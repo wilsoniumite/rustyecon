@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:vic3.paradoxwikis.com)",
+      "Bash(./venv/bin/python3 notebooks/01_market_napkin_math.py)"
+    ]
+  }
+}
