@@ -130,8 +130,9 @@ There is no ordering dependency between agents.
 - Each building: compute target throughput; post sell orders for current
   inventory (subject to reservation price) and buy orders for needed inputs
 - Each pop group: compute income; post buy orders for consumption goods
-- Shipping/bank buildings: observe spreads across their channels; decide
-  buy volume using hedged agent logic (see below)
+- Channel operator buildings (shipping companies, financial intermediaries):
+  observe spreads across their channels; decide buy volume using hedged agent
+  logic (see below)
 
 **Phase 2 — Clearing** (per good, per market; parallelisable)
 - Sum all sell orders and buy orders for each (good, market) pair
@@ -152,8 +153,9 @@ There is no ordering dependency between agents.
 - If inputs were rationed, throughput scales down proportionally
 
 **Phase 5 — Recipes (auto-firing)**
-- Time-decay recipes fire: spoilage reduces inventory quantities, bond
-  maturity recipes convert bonds to currency, depreciation advances
+- Time-decay recipes fire: spoilage reduces inventory quantities, credit
+  instrument maturity recipes convert instruments to currency (at face value
+  or recovery fraction on default), depreciation advances
 - Pop satisfaction updated from consumption that occurred in Phase 3
 
 **Phase 6 — Price update**
@@ -162,8 +164,9 @@ There is no ordering dependency between agents.
 
 ## Agent Decision Model
 
-Shipping companies and banks (the channel-operating buildings) make
-bounded-rational decisions each tick. Constraints:
+Channel operator buildings (shipping companies on trade channels; banks,
+investment banks, and PE firms on capital channels) make bounded-rational
+decisions each tick. Constraints:
 - All computation is O(k) where k is the agent's own information set
 - Agents never simulate other agents
 - All decisions based on last tick's observable state

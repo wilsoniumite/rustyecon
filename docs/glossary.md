@@ -40,15 +40,18 @@ Recipes are defined in game data (static). They are not owned by buildings — a
 building adopts a recipe, and multiple buildings can run the same recipe.
 
 **Building**
-The atomic unit of productive capital in the simulation. A building:
-- Runs one recipe (or two during a transition)
+The atomic unit of productive capital in the simulation. A building always runs
+exactly one recipe. It holds two asset registers: an inventory (goods including
+currency, fully liquid) and a component register (non-market fixed assets
+belonging to the recipe). A building:
+- Runs exactly one recipe at all times
 - Holds an inventory of goods including currency
-- Has a size (a scalar that sets maximum throughput for its current recipe mix)
-- Employs pops (labour relationships are stored in the recipe)
-- Makes tick-by-tick decisions: how much to produce, whether to buy inputs,
-  what price to sell outputs at, whether to begin a transition
-Buildings are owned by an actor (pop group, government, or firm abstraction).
-Ownership determines where profit flows; it does not affect production logic.
+- Holds a component register of non-market fixed assets
+- Employs pops (labour is an input to its recipe)
+- Makes tick-by-tick decisions: chosen recipe size, input purchases, output
+  sell orders
+Buildings are owned by one or more actors with fractional shares. Ownership
+determines profit distribution; it does not affect production decisions.
 
 **Modifier**
 A named multiplier applied to a throughput or cost quantity. Modifiers are
@@ -89,6 +92,22 @@ it), a crossing cost (transport, tariff, compliance), and a regulatory factor
 (0 = blocked, 1 = free). One slot per transport type per channel prevents
 within-channel competition. Channels carry goods; they do not carry components
 or state deltas.
+
+**Recipe size**
+The maximum output rate a recipe instance can sustain, set by the components
+held for that recipe. Increasing recipe size requires acquiring more components
+(construction cost + time); decreasing it releases components back into market
+goods at partial recovery.
+
+**Chosen recipe size**
+How much of its recipe size the building elects to run each tick, in the range
+[0, recipe size]. Fixed costs are paid at recipe size regardless; variable
+costs scale with chosen recipe size.
+
+**Effective recipe size**
+What the recipe actually processes after input rationing. Usually equals chosen
+recipe size; reduced when market inputs are unavailable. Fixed inputs (land,
+structures) are unaffected by rationing; variable inputs fall proportionally.
 
 **SimState**
 The complete runtime state of the simulation at a single point in time. Contains
@@ -139,16 +158,33 @@ values, which regions inherit unless overridden.
 **Starting State** *(conceptual)*
 Informal term for the `SimState` at tick zero of a run. Not a distinct type.
 
-**Transition**
-The state in which a building is running two recipes simultaneously, blending
-between them as components are built or dismantled. Transitions have a direction
-(which recipe is growing, which is shrinking) but this is a convenience — the
-mechanism is symmetric. At 0% and 100% the building is in single-recipe steady
-state. A building can only be in one transition at a time.
+**Transition** *(conceptual)*
+A documentation term for the combination of one building downsizing its recipe
+(releasing components) and another building constructing a new recipe (acquiring
+those components directly via component transfer). Not a simulation construct —
+there is no transition object in SimState. Buildings always run exactly one
+recipe; the "transition" describes two independent buildings making complementary
+decisions, with the source holding an optional transfer_target attribute pointing
+to the destination.
 
-**Throughput**
-The actual rate of production of a recipe per tick, expressed as a fraction of
-the maximum possible given the building's effective recipe size. Throughput is
-chosen by the building each tick in the range [0, max]. It is distinct from
-building size (which sets the ceiling) and from fill rate (the fraction of
-desired inputs actually obtained from the market).
+**Building size** *(conceptual)*
+A building's recipe size. "Building size" has no separate meaning — it is just
+the recipe size of the building's single recipe.
+
+**Efficiency** *(open)*
+A modifier on outputs only, without changing inputs. Relevant to capital vintage
+decay and recipe-level productivity improvements. How exactly input scaling
+works per-input (vs. a single efficiency multiplier) is not yet resolved — see
+Production doc open questions.
+
+**Reversible recipe**
+A recipe that can run at negative chosen size, which swaps inputs and outputs.
+The same components serve both directions. Not all recipes are reversible — this
+is a per-recipe boolean. The canonical example is the gold mint: positive chosen
+size mints gold into currency; negative chosen size redeems currency into gold.
+
+**Passive converter**
+A building whose chosen recipe size is set by incoming demand rather than by
+profit optimisation. It fills all orders at a fixed rate up to its recipe size.
+The gold mint is the canonical example. Distinct from all other buildings, which
+choose throughput to maximise expected margin.

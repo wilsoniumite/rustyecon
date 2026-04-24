@@ -2,340 +2,449 @@
 
 ## Purpose
 
-The production system transforms goods into other goods — the engine of economic
-growth, technological change, and industrial development. It determines what can
-be produced where, how efficiently, at what cost, and how production capacity
-responds to market signals over time.
+The production system transforms goods into other goods. It determines what can
+be produced where, at what cost, and how productive capacity responds to market
+signals and historical change over time.
 
-Production is also the primary mechanism through which historical change enters
-the simulation. Technology is not a separate research tree — it is a schedule of
-recipe unlocks scripted per region. The Bessemer converter is not an invention to
-be discovered; it becomes available in Sheffield in 1856, and in Ruhr in 1863, and
-so on. The economic impact emerges from the recipe change, not from the unlock
-mechanism.
+Technology in this simulation is not a research tree. Recipe unlocks are scripted
+per region with historical dates. The Bessemer converter becomes available in
+Sheffield in 1856 and in Ruhr in 1863; the economic impact emerges from the
+recipe change entering the market, not from a discovery mechanism.
+
+---
 
 ## Scope
 
 This system covers:
-- Buildings: what they are, what they hold, how they produce
-- Recipes: inputs, outputs, switching costs between them
-- Throughput: how output scales with capital and inputs
-- Construction and exit: how new capacity enters and leaves
-- The transition state: how buildings blend two recipes during conversion
+- Buildings and what they hold
+- Components: non-market fixed assets
+- Recipes: inputs, outputs, cost structure, component requirements
+- Recipe size, chosen recipe size, effective recipe size
+- Component transfer: how downsizing buildings fund new construction
+- Construction: how new capacity enters
+- Exit: how capacity leaves
+- Capital vintage: efficiency decay and refresh
 
-Explicitly deferred to other systems:
-- What labour costs (Pop Evolution / Pop Needs)
-- How prices form and goods are bought and sold (Markets)
-- How governments tax production and set labour laws (Government)
-- Recipe unlock schedules — the scripted timeline of when recipes become available
-  per region (Technology)
+Explicitly deferred:
+- How prices form and goods clear (Markets)
+- What labour costs and what pops supply (Pop Needs / Pop Evolution)
+- How governments tax production and set laws (Government)
+- The scripted schedule of when recipes unlock per region (Technology)
 - Financial instruments used to fund construction (Financial Markets)
+
+---
 
 ## Buildings
 
-A building is the simulation's unit of productive capital. It is not a physical
-factory but an abstraction over a coherent productive enterprise — a textile mill,
-a blast furnace, a shipyard, a farm. It holds:
+A building is the atomic unit of productive capital. It runs exactly one recipe
+at all times. It is an abstraction over however many real enterprises share a
+recipe in a region — Lancashire's 300 cotton mills are one building. There is
+at most one building per recipe per region.
 
-- **A recipe** — the single production method currently being run (or two recipes
-  during a transition, see below)
-- **An inventory** — input goods buffered from last tick's purchases, output goods
-  pending sale
-- **A labour relationship** — it employs a number of pop-slots at a wage; the wage
-  is set by the labour market at the time of employment
-- **Capital stock** — a currency-denominated measure of productive capacity, set at
-  construction and modified by depreciation, reinvestment, and disinvestment
-- **Fixed assets** — goods consumed during construction that are tied up for the
-  building's operating life (land, physical structure, specialised equipment)
+A building holds two asset registers:
 
-Buildings are owned. Ownership determines who receives profit (residual income
-after input costs and labour). The owner entity may be a pop group, a private
-firm abstraction, or the government. Ownership matters for where profit flows,
-not for how production works.
+**Inventory** — any goods including currency. Input goods buffered from market
+purchases, output goods pending sale, working cash. Fully liquid.
+
+**Component register** — the components belonging to the building's current
+recipe. Not tradeable; cannot appear in any inventory. Includes land, structures,
+specialised machinery, and any other components the recipe requires.
+
+Buildings are owned. Ownership may be split among multiple actors. Ownership
+determines profit distribution and who makes decisions on the building's behalf.
+Ownership mechanics are an open question.
+
+### One Building per Recipe per Region
+
+Multiple buildings running the same recipe in the same region are not permitted.
+Buildings are price-takers in a posted-price market: two buildings with the same
+recipe in the same region see identical prices and make near-identical decisions.
+Intra-region competition on the same recipe adds noise without meaningful
+dynamics. Split ownership within one building handles profit distribution across
+multiple actor groups.
+
+---
+
+## Components
+
+A component is a non-market fixed asset held in a building's component register.
+Components cannot be traded — they never enter any inventory or market. They are
+built on-site from market goods plus construction service goods, and they are the
+primary store of a recipe's capital.
+
+Examples: land (purchased from the regional market but then held as a component),
+factory structures, blast furnace vessels, power loom frames, Bessemer converters,
+IP, trained workforce expertise.
+
+Each component definition specifies:
+- **Build specification**: goods consumed + construction service goods + time per
+  unit of component
+- **Recovery fraction**: the fraction of build cost recoverable as market goods
+  when dismantled (approximately: land ~100%, structures ~90%, general industrial
+  machinery ~20–50%, specialised equipment ~10–20%, IP/expertise ~0%)
+
+When a building reduces its recipe size, components are either dismantled
+(recovering goods at the recovery fraction) or transferred directly to another
+building (see Component Transfer below). Direct transfer is always more efficient
+than dismantlement because it skips both the recovery loss and the rebuild cost.
+
+### Construction Services as Goods
+
+Building components requires construction capability. Construction services are
+market goods (`movement_type = Local`) produced by construction company buildings.
+This is a non exhaustive, toy example list:
+
+- `construction` — basic labour and simple tools. Available everywhere from
+  simulation start.
+- `heavy_industry_construction` — cranes, heavy equipment, specialist labour.
+  Required for large industrial components.
+- `precision_engineering` — required for high-tolerance machinery.
+- `digitization_consulting` — required for IT infrastructure (Era 5+).
+- `ai_services` — required for AI-enabled components (Era 7).
+
+Construction company buildings are themselves built from components using
+lower-tier services. The bootstrap resolves because basic construction is
+labour-intensive and requires only land and simple tools.
+
+### Land
+
+Land is purchased from the regional land market and held as a component. It is
+owned by actors (primarily aristocrat pop groups in early eras) who post it to
+the regional market via normal sale logic. Recipes that require land specify
+which type is acceptable.
+
+Three land types in approximate order of typical market value: urban land,
+agricultural land, rural land. Land type is set by scenario state and does not
+change. Recovery on building exit is ~100% — it returns to the regional land
+market.
+
+---
 
 ## Recipes
 
-A recipe defines one way a building can produce. It has:
+A recipe is a production method a building runs. Recipes are defined in game
+data (static). Multiple buildings in different regions can run the same recipe.
 
-- **Inputs**: goods consumed per unit of throughput, including labour
-- **Outputs**: goods produced per unit of throughput; may be multiple (fixed ratio)
-- **Capital requirements**: goods required to exist as fixed assets when the
-  building is operating this recipe (e.g. `engines` for a power loom)
-- **Switching costs to other recipes**: expressed as a fraction of new-build
-  cost, in goods consumed and time elapsed. Default assumption is 100% (full
-  rebuild). Some transitions are cheaper; a few are free.
+A recipe specifies:
 
-Multi-output recipes produce all outputs at fixed ratios. These ratios do not
-respond to relative prices — the recipe either runs or it doesn't. If one output
-is in glut and the other is in shortage, the building still produces both.
-This is intentional: it creates exactly the price dynamics that occurred
-historically (coal tar as waste until synthetic dyes, tallow oversupply before
-industrial soap, hide surpluses before the leather industry scaled).
+**Inputs** — goods consumed per unit of effective recipe size per tick. Each
+input has a scaling behaviour: fully variable (scales with chosen recipe size),
+fixed (paid at recipe size regardless of chosen size), or semi-variable (fixed
+floor plus variable portion). Labour is an input; its scaling curve is defined
+per recipe.
 
-### Recipe Justification Criteria
+**Outputs** — goods produced per unit of effective recipe size per tick. May be
+multiple at fixed ratios. Ratios do not respond to relative output prices. The
+recipe either runs or it does not. Overproduction of one output depresses its
+price regardless of shortage in another — this is intentional and creates
+historically accurate dynamics (coal tar as waste before synthetic dyes; hide
+surpluses before industrial leather demand).
 
-A recipe earns a distinct entry in the simulation if it meets one or more of:
+**Component requirements** — the components that must be held at the building's
+full recipe size. Shortfall reduces recipe size proportionally.
 
-1. **Different capital structure** — switching from it to another recipe costs
-   less than building new (otherwise they are separate buildings, not recipes)
-2. **Meaningfully different input mix** — different goods required, or
-   significantly different ratio of labour to physical inputs
-3. **Different output structure** — different output goods, or different
-   multi-output ratios
-4. **Historical non-substitutability for pops** — goods that pops distinguish
-   even if economically similar (e.g. cotton fabric vs. wool fabric)
+**Recipe unlock condition** — which regions can run this recipe and from when.
+Stored in the scenario's state delta schedule, not in the recipe definition.
 
-Aesthetic differentiation alone is not sufficient. If two "recipes" would produce
-the same output from near-identical inputs with no significant switching cost
-difference, they should be one recipe with a throughput modifier instead.
+### Recipe Justification
 
-## Throughput
+A recipe earns a distinct definition if it meets one or more of:
+1. Meaningfully different input mix (different goods or significantly different
+   labour-to-material ratio)
+2. Different output structure (different goods or different multi-output ratios)
+3. Different component requirements (implying non-trivial reconstruction cost
+   relative to other recipes)
+4. Historical non-substitutability for pops (goods pops distinguish even when
+   economically similar)
 
-A building's output per tick is:
+Cosmetic variation alone is not sufficient.
 
-```
-throughput = capital_stock × input_fill_rate × efficiency_modifier
-```
+---
 
-- `capital_stock` — set at construction; scales total potential output
-- `input_fill_rate` — fraction of desired inputs obtained this tick (from
-  market clearing; if rationed, throughput scales proportionally)
-- `efficiency_modifier` — net of all active modifiers (labour law, shortage
-  flag, regional bonuses, etc.)
+## Recipe Size, Chosen Recipe Size, Effective Recipe Size
 
-Labour is one of the inputs and participates in the same fill-rate calculation.
-If the labour market cannot supply the required workers at the posted wage, the
-throughput shortfall is treated identically to a material input shortage.
+**Recipe size** is set by the components held. Holding full components at size N
+means the recipe can run at rate N. Recipe size increases by acquiring more
+components (construction cost + time) or decreases by releasing them.
 
-**Fixed costs are paid regardless of throughput.** Capital depreciation, land
-rent, and fixed asset maintenance occur every tick irrespective of whether the
-building is producing. A building that cannot cover variable costs shuts down
-output (reservation price logic from Markets), but continues paying fixed costs
-until it exits entirely.
+**Chosen recipe size** is what the building elects to run each tick, in
+[0, recipe size]. Fixed costs are paid at recipe size; variable costs scale with
+chosen recipe size.
 
-## The Transition State
+**Effective recipe size** is what actually gets processed after market rationing.
+If the building chose size X but obtained fraction f of its variable material
+inputs, effective recipe size = f × X for those inputs. Fixed inputs are
+unaffected by rationing.
 
-A building can hold at most two recipes simultaneously, representing a transition
-in progress. This is not the normal operating state — it is a bounded period
-during which the building is converting from one recipe to another.
+### Cost Structure
 
-During transition, the building allocates its throughput capacity as a blend:
+Each recipe defines scaling behaviour per input:
 
-```
-total_output = alpha × recipe_A_output + (1 − alpha) × recipe_B_output
-total_inputs = alpha × recipe_A_inputs + (1 − alpha) × recipe_B_inputs
-```
+- **Fixed**: paid at recipe size regardless of chosen size. Land rent, structural
+  maintenance, fixed-term labour contracts.
+- **Variable**: scales with chosen recipe size. Most material inputs, piece-rate
+  labour.
+- **Semi-variable**: fixed floor plus variable component.
 
-where `alpha` starts at or near 1.0 (fully on recipe A) and moves toward 0.0
-(fully on recipe B). The pace at which `alpha` changes is governed by two
-constraints:
+A building below variable cost sets chosen recipe size to zero but holds recipe
+size (paying fixed costs) while awaiting recovery. A building unable to cover
+average total cost over a sustained period exits.
 
-1. **Conversion speed** — how fast the physical transformation of fixed assets
-   can occur; denominated in goods consumed per tick during conversion
-2. **Owner decision** — the owner can slow, pause, or reverse the transition
-   at any point; the decision logic mirrors the sell-order hedging in Markets
-   (proportional signal, derivative damping, noise)
+---
 
-A building can only be in one transition at a time. Starting a new transition
-requires either completing or explicitly abandoning the current one.
+## Component Transfer
 
-The transition state smooths large supply/demand shocks. A region with many
-large textile mills converting from handloom to power loom does so gradually —
-cotton demand rises slowly, coal demand rises slowly, fabric supply dips slowly —
-rather than in a single-tick cliff.
+When a building reduces its recipe size, it has two options for the released
+components:
 
-### Conversion Costs
+1. **Dismantle** — components are converted back to market goods at the
+   recovery fraction. Some value is lost; the goods enter the building's
+   inventory and are sold on the market.
 
-Switching from recipe A to recipe B consumes:
+2. **Transfer** — components are moved directly to a target building's
+   component register, bypassing the recovery loss and any rebuild cost.
+   Transfer is always more efficient than dismantle + rebuild.
 
-- Goods: the goods defined in the switching cost entry for that (A→B) pair,
-  drawn from the building's own reserves or purchased in the market
-- Time: N ticks of reduced effective throughput during conversion
-- Currency: labour hired specifically for the conversion work
+Each tick, a building may submit a transfer action: move N units of a component
+to a specified target building. As part of the transfer, the source building's
+owners receive proportional ownership shares in the target building equal to
+the value transferred.
 
-The switching cost matrix is sparse — most (A, B) pairs have the same cost as
-new construction (100%). Named lower-cost transitions are listed explicitly in
-scenario data.
+A building holds an optional `transfer_target` attribute — a reference to
+another building in the same region (new or existing). This persists tick to
+tick and is changed by actor decision. If no transfer target is set, released
+components are dismantled by default.
 
-If a building exits mid-transition, the conversion goods consumed so far are
-lost. This is not recoverable.
+**Transfer to a new building under construction**: the most common case. The
+source building is downsizing recipe A; the target is a new building under
+construction with recipe B. Components that B requires and that A is releasing
+transfer directly, funded by the source's owners who gain proportional stake in B.
+
+The "transition" in design and documentation refers to the combination of a
+source building downsizing and a target building growing via component transfer.
+It is not a simulation construct — there is no transition object in SimState,
+only the source building's `transfer_target` attribute and the per-tick transfer
+decisions.
+
+---
 
 ## Construction
 
-New buildings enter via explicit construction decisions. The actor is either:
+New buildings enter via construction decisions made by actors. Construction
+consumes market goods and construction service goods over time, per the component
+build specifications of the target recipe. On completion the building enters
+with full recipe size.
 
-- A pop group or private firm entity (motivated by expected profit margin)
-- A government (motivated by strategic objectives — arms, infrastructure)
+### The Opportunity Signal and Capital Allocation
 
-Construction is modelled as a recipe run by a construction company building
-(which itself exists in the simulation). Inputs are construction goods — tools,
-structural materials, labour — consumed over N ticks. On completion, the new
-building enters with full capital stock.
+Each positive-opportunity (region, recipe) pair posts a **currency buy order**:
+"I will accept up to X currency and return ownership shares proportional to
+contribution." X is the opportunity value — derived from last tick's prices, it
+represents how much capital could profitably be invested here before expected
+returns fall to zero.
 
-**New construction, not transition, is the primary mechanism by which gaps in
-supply are filled in a healthy market.** The decision to build new should be
-triggered earlier and more reliably than the decision to transition an existing
-building. The trigger condition is approximately:
+Capital suppliers (pop groups with surplus currency, financial institutions that
+have channelled currency to this region) fill these buy orders. Allocation is by
+return signal: the highest-return opportunity in the region gets funded first,
+then the next, until capital runs out or all opportunities are filled. Multiple
+suppliers filling the same opportunity receive ownership shares proportional to
+their contribution.
 
-```
-expected_margin(new_recipe) > construction_amortised_cost_per_tick + risk_premium
-```
+This is an allocation mechanism, not a posted-price market. There is no "price
+of opportunity" that adjusts to clear the market. Interest rate discovery happens
+in credit instrument markets (see Financial Markets). Here, the return signal
+attracts capital; capital flows until the opportunity is filled or capital runs
+out.
 
-Existing buildings are sticky: they switch only when the margin gap is large
-enough to justify conversion costs. New entrants see the full margin available
-and enter first. This replicates the historical pattern — new industrial capacity
-was built in greenfield sites while existing craft producers continued until
-undercut.
+Actors observe the opportunity signal, construction already underway (which
+offsets available opportunity), and their own available capital. They do not
+speculate about other actors' future plans.
+
+**New construction is the primary mechanism for growing total productive capacity.
+Component transfer is the mechanism for reallocating existing capital more
+efficiently.** In a healthy market, supply gaps are filled by new entrants, not
+by existing buildings transitioning away from profitable recipes.
+
+---
 
 ## Exit
 
-A building exits when it cannot cover average total cost over a sustained period
-(configurable — default ~1 simulated year). Exit is gradual: the building first
-drops to minimum throughput (covering fixed costs if it can), then, if still
-unprofitable, begins selling off fixed assets and releasing labour.
+A building exits when it cannot sustain average total cost over a sustained
+period (default ~1 simulated year). Exit sequence:
 
-On exit, fixed assets that are resaleable (engines, structural iron) return to
-the market as goods. Fixed assets that are not resaleable (site-specific
-earthworks, specialised furnace structures) are destroyed — their value is simply
-lost.
+1. **Reduced operation**: chosen recipe size drops toward zero. Fixed costs
+   continue.
+2. **Sustained loss**: if average total cost remains uncovered after the holding
+   period, begin exit.
+3. **Component release**: components are dismantled or transferred. Land returns
+   to the regional market. Irrecoverable components (specialised earthworks,
+   expertise) are lost.
+4. **Labour release**: employed pops return to the regional labour market.
 
-Land is recovered and re-enters the regional land market.
+---
 
-## Fixed Assets
+## Capital Vintage and Efficiency Decay
 
-Fixed assets are goods that are consumed at construction and are not in the
-building's tradeable inventory. They are held by the building as a separate
-register, distinct from the working inventory.
+Without decay, a building constructed in 1840 operates at identical efficiency
+in 1920. Over a 200-year simulation this produces unrealistic late-era states.
 
-Categories in Era 1:
-- **Land** — a non-storable, non-moveable regional good. Acquired over a few
-  weeks. All agricultural and most industrial buildings require land.
-- **Structures** — physical construction: factory buildings, mine shafts, docks.
-  Produced by the construction industry. Months to acquire.
-- **Specialised equipment** — machinery with limited alternative use: blast
-  furnace vessel, Bessemer converter, power loom frames, ship-building
-  dry dock. Months to years to acquire depending on complexity.
+**Efficiency** is a modifier on outputs only, without changing inputs. An
+efficiency of 0.9 produces 10% less output for the same inputs. It applies after
+effective recipe size and does not affect cost calculations.
 
-Switching costs between recipes are primarily determined by how much of the
-current recipe's fixed assets can be reused. A recipe transition that reuses
-the same structure but replaces equipment costs less than one that requires a
-new structure. A transition that reuses both structure and equipment is cheap
-or free.
+Each building accumulates a slow negative drift in efficiency over time. The
+rate is slow — negligible within a decade, meaningful across a generation. The
+effect is not year-to-year competitiveness loss but ensuring Victorian-era
+capital does not persist at full productivity into much later eras.
+
+**Refresh** resets efficiency toward 1.0. It consumes construction goods and
+construction service goods proportional to recipe size, and takes time. During
+refresh, chosen recipe size is partially reduced. A building refreshes when the
+output loss from continued decay exceeds the refresh cost.
+
+Decay rate, recipe-specificity, and refresh cost calibration are open.
+
+---
 
 ## State It Owns
 
-In `SimState` at runtime:
-- All building instances: id, owner, region, current recipe(s), capital stock,
-  fixed assets register, inventory, employed labour count, current wage
-- Transition state per building: recipe A, recipe B, alpha, conversion goods
-  consumed so far, ticks elapsed
-- Construction projects: inputs consumed, ticks remaining, target building spec
+**In SimState (runtime):**
+- All building instances: id, owner(s) with shares, region, active recipe,
+  chosen recipe size, component register (component → quantity held),
+  inventory (good → quantity), employed labour (pop group → count),
+  optional transfer target (building id or construction project id)
+- Per-building efficiency modifier and decay accumulator
+- In-progress construction projects: actor(s) with investment shares, target
+  recipe, region, components acquired so far, ticks elapsed
 
-In `game_data` (static):
-- Recipe definitions: inputs, outputs, switching cost matrix
-- Building type definitions: which recipes are available, construction cost
-- Fixed asset type definitions: resaleability, depreciation rate
+**In game data (static):**
+- Recipe definitions: inputs with scaling behaviour, outputs with ratios,
+  component requirements
+- Component definitions: build specification, recovery fraction
+- Construction service good definitions and their building definitions
 
-Scenario-variable:
-- Which recipes are unlocked per region (the scripted tech schedule)
+**Scenario-variable:**
+- Recipe unlock schedule per region (in state delta schedule)
 - Starting building distributions per region
+- Starting land ownership per region (aristocrat pop inventories)
+
+---
+
+## Open Questions
+
+**Input scaling specification.** The fixed/variable/semi-variable distinction
+per input needs a concrete data representation. Semi-variable needs at minimum
+two parameters (floor + slope). Must be expressible in scenario data files.
+
+**Ownership mechanics.** Ownership shares are fractional and may be held by
+multiple actors (pop groups, governments, financial institutions). Shares are
+not tradeable on secondary markets in the base simulation. Profit distributes
+pro-rata each tick. Owners receive residual income; production decisions are
+made by the building's agent logic independent of ownership. Secondary equity
+markets (stock exchanges) are a future extension. See Financial Markets for
+how ownership shares are issued and how investment companies hold portfolios
+of ownership stakes.
+
+**Opportunity signal formula.** Described qualitatively; not yet specified. Must
+account for expected margin, existing and in-progress supply, and a risk term.
+Will require calibration runs to tune.
+
+**Efficiency decay calibration.** Rate, recipe-specificity, and refresh cost are
+unquantified. Target: negligible within 20 years, meaningful at 80 without
+refresh.
+
+**Pop expertise as a component.** Accumulation, decay, and behaviour on exit are
+unresolved. See pop design doc.
+
+---
 
 ## Known Simplifications
 
-- **Capital stock as a scalar**: real capital is heterogeneous. Our `f64`
-  capital stock collapses this. A blast furnace and a textile mill have
-  incomparable capital, but the simulation treats them symmetrically.
-- **Profit motive only for construction**: in reality, government industrial
-  policy, prestige, and strategic motives drive significant investment.
-  Government-initiated construction is supported but the decision logic is
-  simpler (scripted or threshold-based, not margin-optimising).
-- **One construction recipe per building type**: real construction projects
-  are highly complex. We use a single recipe per building type.
-- **Labour as a homogeneous input**: skilled vs. unskilled labour matters
-  enormously historically. If pop types include skill levels, this can be
-  addressed; otherwise it is absorbed into the efficiency modifier.
-- **No inter-building dependencies within a region**: in reality, a blast
-  furnace and a toolworks might be integrated under one firm. We model them
-  as separate buildings transacting through the market.
+- **Buildings as aggregates**: one building represents all enterprises sharing a
+  recipe in a region. Firm-level behaviour is abstracted.
+- **Deterministic recipe unlocks**: adoption timing is scripted; economic
+  consequences are emergent.
+- **No mothballing**: buildings either operate or exit. Holding components at
+  zero production while paying maintenance is a natural future extension.
+- **Single efficiency modifier**: real capital heterogeneity within a building
+  is not modelled.
+- **Construction financing not modelled**: working capital during construction
+  is implicit. Deferred to Financial Markets.
+
+---
 
 ## Calibration Targets
 
-- A region that builds its first blast furnace should see iron goods prices
-  fall and imported iron imports decline within 2–5 simulated years.
-- After the Bessemer unlock, steel output should displace iron goods in
-  downstream uses within 10–20 years (matching the 1860s–80s historical
-  pattern).
-- Power loom mills should be unprofitable to build in regions where cotton is
-  expensive and coal is absent, even if the recipe is unlocked — the input
-  cost prevents adoption without cheap coal access.
-- Multi-output recipe byproducts should be priced near zero when the byproduct
-  good has no demand, and should rise to a positive price as downstream demand
-  develops (e.g., coal tar price should be negligible before 1856 and positive
-  after aniline dye production unlocks).
-- A building running below variable cost should not persist more than ~1
-  simulated year before exiting; one running above variable cost but below
-  average total cost should persist several years (waiting for conditions to
-  improve).
+- A region building its first blast furnace should see local iron prices fall
+  within 2–5 simulated years and iron imports decline.
+- After the Bessemer unlock, steel should displace iron in downstream recipes
+  within 10–20 simulated years in industrialising regions.
+- Power loom mills should not be viable in regions with expensive coal even
+  when the recipe is unlocked.
+- Multi-output byproducts should price near zero before downstream demand
+  exists, rising once a downstream recipe unlocks.
+- A building below variable cost should set chosen recipe size to zero within
+  a few ticks. One below average total cost should exit within ~1 simulated year.
+- Efficiency decay: negligible within 20 years, meaningful at 80 without refresh.
+
+---
 
 ## Tick-Time Sensitivity
 
-- **Construction time** must be denominated in real time (weeks), then
-  converted to ticks. A building that takes 6 months to construct should take
-  ~26 ticks at weekly granularity and ~6 ticks at monthly.
-- **Transition speed** same normalisation. The blend fraction `alpha` changes
-  per tick at a rate proportional to `tick_duration / conversion_time`.
-- **Exit persistence**: the N-tick unprofitability threshold must scale with
-  tick duration.
-- **Throughput**: all recipe quantities are per-week; scale by
-  `tick_duration_days / 7.0`.
+All time-denominated quantities normalise by `tick_duration_days / 7.0`:
+- Recipe inputs and outputs are per-week
+- Construction time is in weeks
+- Efficiency decay rate is per-week
+- The ~1-year exit holding period is in ticks
+
+Known instability: at very short ticks, the opportunity signal may fire before
+the market responds to in-progress construction. The signal must discount
+in-progress capacity fully even before completion.
+
+---
 
 ## Stability Conditions
 
 After each tick:
-- Total goods across all inventories is conserved (inputs consumed = outputs
-  produced; construction goods consumed = construction progress; no goods
-  created or destroyed outside of recipes).
-- No building holds negative inventory.
-- A building in transition has `0.0 ≤ alpha ≤ 1.0`.
-- A building's fixed asset register does not increase without corresponding
-  construction goods consumption.
-- Total labour employed ≤ total labour available in the region (this is a
-  Markets / Pop constraint but Production must not over-employ).
+- Goods conservation: goods consumed in production = goods produced; goods
+  consumed in construction = progress made; no goods created or destroyed
+  outside recipes and component build/dismantle/transfer
+- Component conservation: components transferred from A to B appear fully in
+  B's register and are fully absent from A's; no partial accounting
+- No building holds negative inventory or negative recipe size
+- Efficiency modifier in (0, 1] for all active buildings
+- Total labour employed ≤ total labour available in region
+
+---
 
 ## Test Coverage Plan
 
-- **Unit**: throughput formula with rationed inputs; multi-output recipe
-  proportions; transition blend arithmetic; switching cost deduction.
-- **Scenario**: single building, isolated market — build a blast furnace, verify
-  iron goods price falls, verify coal is consumed and iron ore is consumed in
-  correct ratio. Run until exit; verify fixed assets are released correctly.
-- **Scenario**: recipe transition — textile mill handloom → power loom; verify
-  throughput blends smoothly; verify coal demand rises continuously; verify
-  fabric supply dip is bounded; verify mid-transition reversal works.
-- **Scenario**: multi-output — blast furnace with coke_iron running; verify coal
-  tar accumulates (no buyers) and depresses coal tar price; then unlock aniline
-  dye recipe and verify coal tar price rises and inventory drains.
-- **Calibration**: new construction triggered by margin; verify buildings enter
-  a profitable market within N ticks; verify they do not enter an unprofitable
-  market even when the recipe is unlocked.
+- **Unit**: cost calculation at varying chosen recipe size; multi-output ratio
+  conservation; component dismantle goods recovery; component transfer
+  conservation (full value moves, no loss); efficiency decay and refresh.
+- **Scenario**: single building construction, operation, and exit; verify
+  component acquisition, output, and release at each stage.
+- **Scenario**: component transfer — building A downsizes handloom, transfers
+  components to new building B constructing power loom; verify no goods lost
+  in transfer; verify A's owners receive proportional stake in B; verify B
+  reaches full recipe size faster than without transfer.
+- **Scenario**: multi-output — blast furnace coke_iron; coal tar accumulates
+  with no demand; aniline recipe unlocks; coal tar price rises and drains.
+- **Scenario**: efficiency decay — 80-year run without refresh; verify output
+  decline; trigger refresh, verify recovery.
+- **Calibration**: opportunity signal triggers construction; multiple investors
+  share ownership proportionally; no construction into recipes with negative
+  expected margin.
+
+---
 
 ## Future Extensions
 
-- **Firm abstraction**: multiple buildings owned by one firm entity, allowing
-  internal transfer pricing and firm-level investment decisions. Currently each
-  building is independent.
-- **Skill-differentiated labour**: recipes could specify a mix of unskilled and
-  skilled labour inputs. Skill acquisition by pops would then be a genuine
-  bottleneck for industrial upgrading.
-- **Intangible fixed assets (IP)**: relevant from Era 4 onward. A software
-  company's capital is primarily IP; construction looks like hiring engineers
-  over several years, not building a factory. The fixed asset framework extends
-  to this without structural change.
-- **Supply chain integration**: a firm owning both a blast furnace and a
-  toolworks could bypass the market for internal transfers. Deferred; worth
-  revisiting if market noise creates too much inefficiency in tightly coupled
-  chains.
-- **Partial exit / mothballing**: a building that suspends output but retains
-  fixed assets, paying only maintenance costs, waiting for market conditions to
-  improve. Currently buildings either run or exit; a mothball state would be
-  more realistic for large capital-intensive facilities.
+- **Mothballing**: suspending output while retaining components, paying
+  maintenance only.
+- **Firm abstraction**: multiple buildings under one entity, enabling internal
+  transfer pricing and coordinated investment.
+- **Skill-differentiated labour**: recipes specifying skill tiers. Depends on
+  Pop Evolution.
+- **Ownership market**: building shares as tradeable financial goods. Depends
+  on Financial Markets.
