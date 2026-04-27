@@ -1,0 +1,44 @@
+// Supply chain starting state: 1 node, 3 goods (wheat, flour, GBP).
+//
+// MagicProducers:
+//   0 — posts ~10 wheat/tick to Manchester
+//
+// Buildings:
+//   0 — grain mill, recipe_size=10, buys wheat → produces flour.
+//       starts with 50 GBP working capital.
+//
+// Pops:
+//   0 — 10 people, wealth_tier=0 (basket in game_data.ron).
+//       UBI=10 GBP/tick (events.ron). savings_target=0.75.
+//       starts with 20 GBP.
+(
+    tick: 0,
+    buildings: [
+        (
+            id: (0),
+            region: (0),
+            recipe: "grain_mill",
+            recipe_size: 15.0,
+            chosen_size: 0.0,
+            efficiency: 1.0,
+            inventory: {"GBP": 50.0},
+            transfer_target: None,
+            owners: [],
+            channel: None,
+        ),
+    ],
+    pop_groups: [
+        (
+            id: (0),
+            region: (0),
+            size: 10.0,
+            wealth: 0.0,
+            inventory: {"GBP": 20.0},
+            savings_target: 0.75,
+        ),
+    ],
+    channels: [],
+    magic_producers: [
+        (id: (0), node: (0), good: "wheat", qty_per_tick: 11.0),
+    ],
+)

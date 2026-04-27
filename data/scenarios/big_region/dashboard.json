@@ -1,0 +1,107 @@
+{
+  "panels": [
+    {
+      "title": "Inventory \u00b7 pop 0 \u00b7 GBP / Demand volume \u00b7 flour \u00b7 Manchester + 2 more",
+      "series": [
+        {
+          "metric": "inventory",
+          "good_name": "GBP",
+          "region_name": null,
+          "building_id": null,
+          "entity_type": "pop",
+          "entity_id": 0,
+          "axis": "L1",
+          "color": "#1f77b4",
+          "label": "Inventory \u00b7 pop 0 \u00b7 GBP"
+        },
+        {
+          "metric": "demand",
+          "good_name": "flour",
+          "region_name": "Manchester",
+          "building_id": null,
+          "entity_type": null,
+          "entity_id": null,
+          "axis": "R1",
+          "color": "#ff7f0e",
+          "label": "Demand volume \u00b7 flour \u00b7 Manchester"
+        },
+        {
+          "metric": "demand",
+          "good_name": "wine",
+          "region_name": "Manchester",
+          "building_id": null,
+          "entity_type": null,
+          "entity_id": null,
+          "axis": "R1",
+          "color": "#2ca02c",
+          "label": "Demand volume \u00b7 wine \u00b7 Manchester"
+        },
+        {
+          "metric": "demand",
+          "good_name": "bread",
+          "region_name": "Manchester",
+          "building_id": null,
+          "entity_type": null,
+          "entity_id": null,
+          "axis": "R1",
+          "color": "#d62728",
+          "label": "Demand volume \u00b7 bread \u00b7 Manchester"
+        }
+      ]
+    },
+    {
+      "title": "Price \u00b7 flour \u00b7 Manchester / Inventory \u00b7 building 0 \u00b7 GBP",
+      "series": [
+        {
+          "metric": "price",
+          "good_name": "flour",
+          "region_name": "Manchester",
+          "building_id": null,
+          "entity_type": null,
+          "entity_id": null,
+          "axis": "L1",
+          "color": "#1f77b4",
+          "label": "Price \u00b7 flour \u00b7 Manchester"
+        },
+        {
+          "metric": "inventory",
+          "good_name": "GBP",
+          "region_name": null,
+          "building_id": null,
+          "entity_type": "building",
+          "entity_id": 0,
+          "axis": "R1",
+          "color": "#ff7f0e",
+          "label": "Inventory \u00b7 building 0 \u00b7 GBP"
+        }
+      ]
+    },
+    {
+      "title": "Supply volume \u00b7 flour \u00b7 Manchester / Demand volume \u00b7 flour \u00b7 Manchester",
+      "series": [
+        {
+          "metric": "supply",
+          "good_name": "flour",
+          "region_name": "Manchester",
+          "building_id": null,
+          "entity_type": null,
+          "entity_id": null,
+          "axis": "L1",
+          "color": "#1f77b4",
+          "label": "Supply volume \u00b7 flour \u00b7 Manchester"
+        },
+        {
+          "metric": "demand",
+          "good_name": "flour",
+          "region_name": "Manchester",
+          "building_id": null,
+          "entity_type": null,
+          "entity_id": null,
+          "axis": "L1",
+          "color": "#ff7f0e",
+          "label": "Demand volume \u00b7 flour \u00b7 Manchester"
+        }
+      ]
+    }
+  ]
+}

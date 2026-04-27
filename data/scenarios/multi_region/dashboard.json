@@ -1,0 +1,243 @@
+{
+  "panels": [
+    {
+      "title": "Building chosen size \u00b7 grain_mill \u00b7 Manchester / Building chosen size \u00b7 grain_mill \u00b7 Leeds + 1 more",
+      "series": [
+        {
+          "metric": "building_chosen_size",
+          "good_name": null,
+          "region_name": null,
+          "building_id": 0,
+          "entity_type": null,
+          "entity_id": null,
+          "axis": "L1",
+          "color": "#1f77b4",
+          "label": "Building chosen size \u00b7 grain_mill \u00b7 Manchester"
+        },
+        {
+          "metric": "building_chosen_size",
+          "good_name": null,
+          "region_name": null,
+          "building_id": 1,
+          "entity_type": null,
+          "entity_id": null,
+          "axis": "L1",
+          "color": "#ff7f0e",
+          "label": "Building chosen size \u00b7 grain_mill \u00b7 Leeds"
+        },
+        {
+          "metric": "building_chosen_size",
+          "good_name": null,
+          "region_name": null,
+          "building_id": 2,
+          "entity_type": null,
+          "entity_id": null,
+          "axis": "L1",
+          "color": "#2ca02c",
+          "label": "Building chosen size \u00b7 grain_mill \u00b7 Birmingham"
+        }
+      ]
+    },
+    {
+      "title": "Inventory \u00b7 building 3 \u00b7 GBP / Inventory \u00b7 building 5 \u00b7 GBP + 1 more",
+      "series": [
+        {
+          "metric": "inventory",
+          "good_name": "GBP",
+          "region_name": null,
+          "building_id": null,
+          "entity_type": "building",
+          "entity_id": 3,
+          "axis": "L1",
+          "color": "#2ca02c",
+          "label": "Inventory \u00b7 building 3 \u00b7 GBP"
+        },
+        {
+          "metric": "inventory",
+          "good_name": "GBP",
+          "region_name": null,
+          "building_id": null,
+          "entity_type": "building",
+          "entity_id": 5,
+          "axis": "L1",
+          "color": "#d62728",
+          "label": "Inventory \u00b7 building 5 \u00b7 GBP"
+        },
+        {
+          "metric": "demand",
+          "good_name": "flour",
+          "region_name": "Manchester",
+          "building_id": null,
+          "entity_type": null,
+          "entity_id": null,
+          "axis": "L1",
+          "color": "#2e2ca0",
+          "label": "Demand volume \u00b7 flour \u00b7 Manchester"
+        }
+      ]
+    },
+    {
+      "title": "Price \u00b7 wheat \u00b7 Manchester / Price \u00b7 flour \u00b7 Manchester",
+      "series": [
+        {
+          "metric": "price",
+          "good_name": "wheat",
+          "region_name": "Manchester",
+          "building_id": null,
+          "entity_type": null,
+          "entity_id": null,
+          "axis": "L1",
+          "color": "#1f77b4",
+          "label": "Price \u00b7 wheat \u00b7 Manchester"
+        },
+        {
+          "metric": "price",
+          "good_name": "flour",
+          "region_name": "Manchester",
+          "building_id": null,
+          "entity_type": null,
+          "entity_id": null,
+          "axis": "L1",
+          "color": "#ff7f0e",
+          "label": "Price \u00b7 flour \u00b7 Manchester"
+        }
+      ]
+    },
+    {
+      "title": "Building margin \u00b7 grain_mill \u00b7 Manchester / Building margin \u00b7 flour_transport \u00b7 (Manchester\u2192Leeds) + 1 more",
+      "series": [
+        {
+          "metric": "building_margin",
+          "good_name": null,
+          "region_name": null,
+          "building_id": 0,
+          "entity_type": null,
+          "entity_id": null,
+          "axis": "L1",
+          "color": "#1f77b4",
+          "label": "Building margin \u00b7 grain_mill \u00b7 Manchester"
+        },
+        {
+          "metric": "building_margin",
+          "good_name": null,
+          "region_name": null,
+          "building_id": 3,
+          "entity_type": null,
+          "entity_id": null,
+          "axis": "L1",
+          "color": "#ff7f0e",
+          "label": "Building margin \u00b7 flour_transport \u00b7 (Manchester\u2192Leeds)"
+        },
+        {
+          "metric": "building_margin",
+          "good_name": null,
+          "region_name": null,
+          "building_id": 5,
+          "entity_type": null,
+          "entity_id": null,
+          "axis": "L1",
+          "color": "#2ca02c",
+          "label": "Building margin \u00b7 flour_transport \u00b7 (Manchester\u2192Birmingham)"
+        }
+      ]
+    },
+    {
+      "title": "Price \u00b7 flour \u00b7 Manchester / Price \u00b7 flour \u00b7 Leeds + 3 more",
+      "series": [
+        {
+          "metric": "price",
+          "good_name": "flour",
+          "region_name": "Manchester",
+          "building_id": null,
+          "entity_type": null,
+          "entity_id": null,
+          "axis": "L1",
+          "color": "#1f77b4",
+          "label": "Price \u00b7 flour \u00b7 Manchester"
+        },
+        {
+          "metric": "price",
+          "good_name": "flour",
+          "region_name": "Leeds",
+          "building_id": null,
+          "entity_type": null,
+          "entity_id": null,
+          "axis": "L1",
+          "color": "#ff7f0e",
+          "label": "Price \u00b7 flour \u00b7 Leeds"
+        },
+        {
+          "metric": "building_margin",
+          "good_name": null,
+          "region_name": null,
+          "building_id": 3,
+          "entity_type": null,
+          "entity_id": null,
+          "axis": "L1",
+          "color": "#2ca02c",
+          "label": "Building margin \u00b7 flour_transport \u00b7 (Manchester\u2192Leeds)"
+        },
+        {
+          "metric": "inventory",
+          "good_name": "flour",
+          "region_name": null,
+          "building_id": null,
+          "entity_type": "building",
+          "entity_id": 3,
+          "axis": "R1",
+          "color": "#d62728",
+          "label": "Inventory \u00b7 building 3 \u00b7 flour"
+        },
+        {
+          "metric": "building_chosen_size",
+          "good_name": null,
+          "region_name": null,
+          "building_id": 3,
+          "entity_type": null,
+          "entity_id": null,
+          "axis": "R1",
+          "color": "#9467bd",
+          "label": "Building chosen size \u00b7 flour_transport \u00b7 (Manchester\u2192Leeds)"
+        }
+      ]
+    },
+    {
+      "title": "Pop wealth (mean) \u00b7 Manchester / Pop wealth (mean) \u00b7 Leeds + 1 more",
+      "series": [
+        {
+          "metric": "pop_wealth",
+          "good_name": null,
+          "region_name": "Manchester",
+          "building_id": null,
+          "entity_type": null,
+          "entity_id": null,
+          "axis": "L1",
+          "color": "#1f77b4",
+          "label": "Pop wealth (mean) \u00b7 Manchester"
+        },
+        {
+          "metric": "pop_wealth",
+          "good_name": null,
+          "region_name": "Leeds",
+          "building_id": null,
+          "entity_type": null,
+          "entity_id": null,
+          "axis": "L1",
+          "color": "#ff7f0e",
+          "label": "Pop wealth (mean) \u00b7 Leeds"
+        },
+        {
+          "metric": "pop_wealth",
+          "good_name": null,
+          "region_name": "Birmingham",
+          "building_id": null,
+          "entity_type": null,
+          "entity_id": null,
+          "axis": "L1",
+          "color": "#2ca02c",
+          "label": "Pop wealth (mean) \u00b7 Birmingham"
+        }
+      ]
+    }
+  ]
+}

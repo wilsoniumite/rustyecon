@@ -41,9 +41,7 @@ and applied in a single pass by `apply_state_deltas()`. This gives:
 ### Tick Structure
 
 Each simulated week (configurable) is one tick. Within a tick, all agents act
-on last tick's prices simultaneously — there is no ordering dependency. The tick
-phases are: Decisions → Clearing → Transactions → Production → Auto-recipes →
-Price update.
+on last tick's state simultaneously — there is no ordering dependency.
 
 Prices update after clearing, not during. Last tick's price is this tick's
 transaction price. This posted-price model is stable under the bounded-rational
@@ -53,7 +51,7 @@ agent model and avoids within-tick price discovery complexity.
 
 673+ geographic regions, 100+ countries. Every system must be designed with this
 scale in mind. Three-tier market structure (regional → national → world) keeps
-channel evaluation tractable (~660K per tick vs ~45M for fully connected).
+channel evaluation tractable (~660K per tick).
 One building per recipe per region bounds the building count.
 
 ### Output
@@ -70,14 +68,14 @@ extension.
 ### Everything Is a Good
 
 Services, currencies, financial instruments, debt — all are goods. There is no
-separate type hierarchy. Goods vary by attributes (`movement_type`, `shelf_life`,
-`alpha`, etc.) not by type. This unifies the market mechanism: one price formula,
+separate type hierarchy. Goods vary by attributes not by type. This unifies the market mechanism: one price formula,
 one clearing algorithm, one channel infrastructure, across all tradeable things.
 
 Consequence: exchange rates are just the price of one currency good in terms of
-another. Credit instruments are goods with a shelf life (maturity) and an
-auto-firing maturity recipe. Construction services are Local goods produced by
-construction company buildings. Nothing needs a special-cased path.
+another. Credit instruments and perishables are goods with a life attribute and a
+recipe that decrements that life. When life is one, they have special recipes for the
+last tick. Construction services are goods produced by construction company buildings
+that have no cross channel recipe. Nothing needs a special-cased path.
 
 ### Channels Are the Only Movement Mechanism
 
@@ -99,7 +97,8 @@ investment.
 
 ### Recipes Must Justify Their Existence
 
-A recipe is a production method. Two recipes exist only if:
+A recipe is tied to a production building, a cross channel building, or attached to a good.
+It runs every tick. Two production recipes exist only if:
 1. Their input mixes are meaningfully different (different goods, or different
    labour-to-material ratio)
 2. Their output structures differ (different goods or different multi-output ratios)
@@ -116,7 +115,7 @@ it creates the historically accurate dynamic where overproduction of one output
 depresses its price regardless of shortage in the other (coal tar as waste before
 synthetic dyes, hides surplus before industrial leather demand).
 
-### One Building per Recipe per Region
+### One Building per Recipe per Region/channel
 
 There is at most one building per recipe per region. Buildings are price-takers
 in a posted-price market — two buildings with the same recipe in the same region
@@ -126,11 +125,31 @@ competition on the same recipe adds noise without meaningful dynamics.
 Split ownership within one building handles profit distribution across multiple
 actor groups without needing multiple buildings.
 
-### Transitions Are Conceptual
+Channels are usually bidirectional, meaning they can have one building in each direction
+for the same recipe. That recipe is conceptually input good x output good x, but these
+buildings may only buy from node a and sell in node b.
+
+### Recipe Components Aren't Goods (most of the time).
+
+Recipe components are things recipes need to run. They aren't traded so they can
+be much more numerous without hampering performance significantly. They are
+produced on site from tradeable goods when a recipe is being created or scaled up.
+When a recipe is dismantled, recipe goods convert back to tradeable goods at a
+recovery rate. They also have a transfer rate, the efficiency by which they can
+transfer to another recipe if a transition is occuring. Transfer rate is logically
+always at least as high as recovery rate. They also have a construction time. The
+construction time of the slowest component dictates the construction time of the
+recipe. Some conceptual examples:
+1. tools: 1 tool purchased from the market could become 1 tool as a recipe component. When dismantled, it has perfect recovery and perfect transfer. It has a construction time of a single week.
+2. Real estate: produced from eg construction services, steel, glass, concrete, tools. Might have a recovery rate of 0.3 and a transfer rate of 0.95. It has a 1 month construction time
+3. Precision machinery: produced from construction services, steel, and precision tools, recovery 0.2 and transfer 0.8. It may have a construction time of 2 months.
+4. EUV Lithography Machines: recovery is probably very low, 0.1, and transfer might be 1.0 but there are likely no other recipes that could use this component anyways.
+
+### Transitions Of Recipes Are Conceptual
 
 Buildings always run exactly one recipe. A "transition" is a documentation term
 for one building making a decision: one downsizing and releasing
-components and constructing and absorbing those components via direct
+components and another constructing and absorbing those components via direct
 transfer. There is no transition object in SimState — only the source building's
 optional `transfer_target` attribute.
 
@@ -139,7 +158,7 @@ that components transfer directly without going through dismantlement and
 reconstruction. The cost savings emerge from the component transfer mechanic,
 not from a special transition discount.
 
-### Technology Is Scripted
+### Technology, Is Scripted
 
 Recipe unlocks have historical dates per region. The Bessemer converter becomes
 available in Sheffield in 1856, Ruhr in 1863, Lorraine in 1870. The dates are
@@ -161,6 +180,16 @@ The simulation does not model warfare. Wars appear in the scenario as:
 The economic consequences of war (resource diversion, trade disruption,
 demographic effects) are significant and modelled via these mechanisms. The
 military and political logic of why wars happen is not.
+
+### Governments Are Scripted
+
+Changes in Laws may come as Delta events, following historical dates, in much
+the same way as technology
+
+### Scripted Is For Now
+
+We may implement real dynamics for any scripted system, but for now they are
+scripted.
 
 ### Capital Allocation Is Not a Posted-Price Market
 
@@ -193,19 +222,11 @@ dynamics without the instabilities of perfect-information equilibrium models.
 
 ### Noise Desynchronises Agents
 
-Each channel operator draws a per-tick noise multiplier (~N(1.0, 0.15)) on its
-volume decision. This prevents all operators from reacting identically to the
+Sometimes agents draw a per-tick noise multiplier (~N(1.0, 0.15)) for their
+decisions. This prevents all operators from reacting identically to the
 same price signal, which would cause oscillation. The noise is not randomness
 for its own sake — it is a model of the heterogeneous information, timing, and
 risk preferences of real agents.
-
-### Simplifications Are Explicit
-
-Every system doc has a "Known Simplifications" section. When we choose a simpler
-model, we write down what we chose and what the higher-fidelity alternative
-would look like. This serves two purposes: it prevents simplifications from
-becoming invisible assumptions, and it makes the upgrade path legible when
-higher fidelity is needed.
 
 ### Calibration Targets Are Real
 
@@ -248,10 +269,10 @@ dependency.
 - [Production](systems/02_production.md) ✓
 - [Pops](systems/03_pops.md) stub
 - [Financial Markets](systems/04_financial_markets.md) ✓
+- [Monetary](systems/05_monetary.md) ✓
 - Government
 - Pop Needs
 - Pop Evolution
-- Monetary
 - Technology
 - Services
 - Diagnostics

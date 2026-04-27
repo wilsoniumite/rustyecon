@@ -1,0 +1,18 @@
+[package]
+name = "rustyecon"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rayon = "1"
+serde = { version = "1", features = ["derive"] }
+ron = "0.8"
+bincode = "1"
+clap = { version = "4", features = ["derive"] }
+
+[features]
+test-utils = []
+
+[dev-dependencies]
+approx = "0.5"
+tempfile = "3"

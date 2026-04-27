@@ -1,0 +1,43 @@
+(
+    events: [
+        (149, [
+            SetMagicProducerQty(
+                id: (0),
+                qty: 10.0,
+            ),
+        ]),
+        (249, [
+            SetMagicProducerQty(
+                id: (0),
+                qty: 9.5,
+            ),
+        ]),
+        (349, [
+            SetMagicProducerQty(
+                id: (0),
+                qty: 5.0,
+            ),
+        ]),
+        (549, [
+            SetMagicProducerQty(
+                id: (0),
+                qty: 9.5,
+            ),
+        ]),
+        (749, [
+            SetMagicProducerQty(
+                id: (0),
+                qty: 10.01,
+            ),
+        ]),
+    ],
+    recurring: [
+        (1, [
+            AddToInventory(
+                owner: PopGroup((0)),
+                good: (2),
+                qty: 10.0,
+            ),
+        ]),
+    ],
+)

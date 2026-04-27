@@ -2,7 +2,16 @@
   "permissions": {
     "allow": [
       "WebFetch(domain:vic3.paradoxwikis.com)",
-      "Bash(./venv/bin/python3 notebooks/01_market_napkin_math.py)"
+      "Bash(./venv/bin/python3 notebooks/01_market_napkin_math.py)",
+      "Bash(cargo build *)",
+      "Bash(cargo test *)",
+      "Bash(cargo run *)",
+      "Bash(python3 notebooks/05_supply_chain_sim.py 150)",
+      "Bash(cargo fix *)",
+      "Bash(python3 notebooks/05_supply_chain_sim.py)",
+      "Bash(/home/wilso/github/rustyecon/venv/bin/python /home/wilso/github/rustyecon/notebooks/05_supply_chain_sim.py)",
+      "Bash(./target/debug/rustyecon --help)",
+      "Bash(./target/debug/rustyecon data/scenarios/two_region_trade --ticks 5)"
     ]
   }
 }

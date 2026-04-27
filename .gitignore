@@ -1,1 +1,12 @@
 /venv
+.vscode
+tmp
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+CLAUDE.md
+
+# Added by cargo
+
+/target

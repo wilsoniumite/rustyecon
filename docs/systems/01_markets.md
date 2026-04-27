@@ -127,21 +127,41 @@ Within each tick, all market decisions use last tick's prices as fixed inputs.
 There is no ordering dependency between agents.
 
 **Phase 1 — Decisions** (simultaneous, all based on last tick's prices)
-- Each building: compute target throughput; post sell orders for current
-  inventory (subject to reservation price) and buy orders for needed inputs
+- Each building:
+  - Post sell orders for all output currently in inventory, subject to the
+    reservation price floor. Always. Withholding output inventory would hide
+    supply from the market the same way hiding buy orders hides demand.
+  - Choose `chosen_size` based on two signals read from own state:
+    - Output inventory level: accumulating output means the market cannot
+      absorb current production → reduce chosen_size. Draining output
+      inventory means supply is being absorbed → can sustain or increase.
+    - Cash level: if cash is falling (output not selling fast enough to cover
+      input costs and fixed costs), reduce chosen_size. If cash is healthy,
+      sustain.
+    - Sustained reduction in chosen_size eventually triggers recipe_size
+      reduction (exit/downsize). Sustained healthy state allows upsize.
+  - Post buy orders for `chosen_size × input_qty_per_unit`. This expresses
+    the building's genuine demand — no cash-hedged adjustment. Buildings
+    never buy more inputs than they will consume this tick; input inventory
+    is zero in steady state.
+  - // TODO: exact chosen_size adjustment formula and the thresholds that
+    // trigger recipe_size changes (exit, upsize) are not yet decided.
 - Each pop group: compute income; post buy orders for consumption goods
 - Channel operator buildings (shipping companies, financial intermediaries):
   observe spreads across their channels; decide buy volume using hedged agent
   logic (see below)
 
-**Phase 2 — Clearing** (per good, per market; parallelisable)
-- Sum all sell orders and buy orders for each (good, market) pair
+**Phase 2 — Clearing** (per good, per market; parallelisable across nodes)
+- Sum all sell orders and buy orders for each (good, market) pair, including
+  orders from channel operators committed in Phase 1. Channel operator orders
+  appear as supply at the destination node and demand at the source node —
+  they are entries in the order book, not a cascading mechanism.
 - If supply ≥ demand: all buyers satisfied; sellers hold excess as inventory
 - If supply < demand: buyers rationed pro-rata; each gets `supply/demand`
   fraction of their order
 - Record imbalance for price update
-- Channel flows: unsatisfied demand spills toward connected markets subject
-  to channel capacity and crossing cost
+- Each market node clears independently. No intra-tick inter-node dependency
+  exists because all channel volumes were committed from last tick's prices.
 
 **Phase 3 — Transactions**
 - Transfer goods and currency per clearing outcomes
@@ -149,8 +169,10 @@ There is no ordering dependency between agents.
 
 **Phase 4 — Production**
 - Buildings produce based on inputs obtained this tick
+- Effective recipe size = chosen_size × (actual inputs received / inputs ordered).
+  If buy orders were partially filled, throughput scales down proportionally.
+- All inputs received are consumed entirely. Input inventory returns to zero.
 - Output goes to inventory; available for sell orders next tick
-- If inputs were rationed, throughput scales down proportionally
 
 **Phase 5 — Recipes (auto-firing)**
 - Time-decay recipes fire: spoilage reduces inventory quantities, credit
@@ -164,38 +186,67 @@ There is no ordering dependency between agents.
 
 ## Agent Decision Model
 
-Channel operator buildings (shipping companies on trade channels; banks,
-investment banks, and PE firms on capital channels) make bounded-rational
-decisions each tick. Constraints:
+All buildings — production buildings and channel operators alike — use the same
+decision framework. The structural difference is which markets they read and
+write, not the logic they apply.
+
+A production building buys inputs and sells outputs in the same regional market.
+A channel operator buys a good in the source market and sells the same good in
+the destination market. Both compute expected margin per unit of activity and
+set their throughput proportionally.
+
+**Shared constraints:**
 - All computation is O(k) where k is the agent's own information set
 - Agents never simulate other agents
 - All decisions based on last tick's observable state
 
-Available information per agent:
-- Last tick's prices in all markets they participate in (and rolling average)
-- Own inventory, cash, and recent fill rates
-- Publicly visible new capacity under construction
-- Market tightness signal (count of competing buildings, not their strategies)
-
-Decision formula (approximate):
+**Decision formula:**
 ```
-spread         = price_destination − price_source − op_cost
-p_term         = kp × clip(spread / price_source, 0, 1)
-d_term         = kd × clip(spread_delta / price_source, −0.5, 0.5)
-target_frac    = clip(p_term − d_term, floor_frac, 1.0)
-hedged_frac    = target_frac × avg_fill_rate × (1 − loss_aversion) × noise
-order_volume   = max(hedged_frac × capacity, floor_frac × capacity)
+margin         = revenue_per_unit − cost_per_unit
+                 (production:   output_price × qty_out − Σ input_price × qty_in)
+                 (channel op:   price_destination − price_source − crossing_cost)
+
+p_term         = kp × clip(margin / reference_price, 0, 1)
+d_term         = kd × clip(margin_delta / reference_price, −0.5, 0.5)
+target_frac    = clip(p_term − d_term, 0, 1.0)
+chosen_size    = target_frac × recipe_size × noise
 ```
 
-`noise` is a per-tick random draw (~N(1.0, 0.15)) that desynchronises agents
-making decisions from the same market data.
+`noise` (~N(1.0, 0.15) per tick) desynchronises agents reacting to the same
+price signal, preventing coordinated oscillation.
 
-`floor_frac` ensures agents always send some minimum volume — keeping the
-channel warm and preserving optionality even when the spread is thin.
+The D-term dampens overshoot: if margin is already narrowing (others are
+responding), the agent backs off rather than piling in.
 
-The D-term (`d_term`) is critical for oscillation damping: if the spread is
-narrowing (already being arbitraged), the agent reduces its order rather than
-piling in.
+Buy orders express the building's genuine demand for inputs at chosen_size —
+not a hedged or cash-adjusted version of it. A building that wants to run at
+chosen_size 10 posts buy orders for 10 units' worth of inputs. The demand
+signal must be honest; suppressing it distorts market prices for everyone.
+Cash constraints affect next-tick chosen_size decisions, not this tick's signal.
+
+// TODO: exact formula parameters (kp, kd) are calibration targets.
+// TODO: whether channel operators maintain a minimum floor volume to keep
+// a channel warm (even at near-zero margin) is not yet decided.
+
+## Multi-Seller Markets
+
+One building per recipe per region means at most one local producer of any good
+in a regional market. However, incoming channel operators each post sell orders
+for the goods they are moving. A regional wheat market may have one local farm
+building AND several channel operators all posting wheat sell orders simultaneously.
+
+Each seller independently decides whether to post an order based on its own
+reservation price. The market aggregates all sell orders and clears pro-rata
+against total demand. A local producer sees last tick's market price and decides
+whether it can profitably sell at that price; channel operators do the same. No
+seller needs to know how many others are also selling — the posted price encodes
+that competition already.
+
+// TODO: reservation price interaction when local production cost is above
+// posted price but incoming channel supply is still profitable at that price.
+// Does the local producer drop out entirely (post zero sell order) while
+// channel supply continues to fill demand? This should fall out naturally
+// from individual reservation price logic but needs verification in testing.
 
 ## Reservation Prices
 

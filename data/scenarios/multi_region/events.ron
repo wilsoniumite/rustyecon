@@ -1,0 +1,10 @@
+// UBI: 1.5 GBP per pop per tick, enough to sustain wealth tier 4 at flour price ~1.0.
+// good (2) = GBP (third good in game_data.ron, 0-indexed).
+(
+    events: [],
+    recurring: [
+        (1, [AddToInventory(owner: PopGroup((0)), good: (2), qty: 15.0)]),
+        (1, [AddToInventory(owner: PopGroup((1)), good: (2), qty: 17.0)]),
+        (1, [AddToInventory(owner: PopGroup((2)), good: (2), qty: 14.0)]),
+    ],
+)
