@@ -1,6 +1,9 @@
 # Pops
 
+> **v2 triage (2026-07-18).** Section verdicts against [ARCHITECTURE.md](../ARCHITECTURE.md): **KEEP** = survives into v2 (light edits allowed later); **REWRITE** = concept survives, text must be redrafted; **CUT** = does not carry into v2 (may return later; see [PLAN.md](../PLAN.md)). Rewriting happens in the phase that touches each section; these are only the rulings.
+
 ## Purpose
+> **v2: KEEP** — unchanged; welfare under policy is still the question.
 
 Pop groups are the simulation's population model. They are the labour supply,
 the source of consumer demand, and the human consequence of economic change.
@@ -11,6 +14,7 @@ high VAT and UBI — is ultimately answered by observing what pops can afford.
 ---
 
 ## Scope
+> **v2: KEEP** — unchanged.
 
 This system covers:
 - Pop groups as aggregate entities
@@ -32,6 +36,7 @@ Explicitly deferred to other systems or future design:
 ---
 
 ## Pop Groups
+> **v2: KEEP** — plus a frozen capability bucket (architecture/pops.md).
 
 A pop group is an aggregate of people sharing a job category, cultural identity,
 and region. It is not a collection of individuals. Its size is a continuous
@@ -47,6 +52,7 @@ have different W values even if they share a job category.
 ---
 
 ## Inventory and the Liquid Pool
+> **v2: REWRITE** — no deposits in v1 — liquid pool = cash; deposits return with the credit module (architecture/money.md).
 
 A pop group holds an inventory containing currency. Goods purchased for
 consumption are treated as immediately consumed — they do not persist in
@@ -71,6 +77,7 @@ liquid on this timescale and therefore does not enter L.
 ---
 
 ## Need Tiers
+> **v2: KEEP** — the tier/table design is implemented and good; the latent minimum-demand idea stays.
 
 Each pop group has a set of active **need tiers** determined by its current
 wealth level W. A need tier is a specific consumption target that unlocks at
@@ -101,6 +108,7 @@ create a nonzero price, not enough to sustain an industry.
 ---
 
 ## Buying: Decisions and Substitution
+> **v2: REWRITE** — substitution finally gets its price term (logit over preference x exp(-beta p/p-bar)); the stateful drift is cut (architecture/pops.md).
 
 In Phase 1, the pop group posts buy orders based on current targets, limited by
 the liquid pool L.
@@ -129,6 +137,7 @@ share ordering. The pop does not compare prices across tiers.
 ---
 
 ## Savings and the Wealth Signal
+> **v2: REWRITE** — replaced by the absorption cap + overflow routing (architecture/ownership.md, architecture/pops.md); no deposit split in v1.
 
 After market clearing the pop computes savings as the liquid pool minus actual
 spend. Savings are split: a wealth-dependent fraction goes to bank deposits
@@ -145,6 +154,7 @@ target determines the direction and speed of wealth drift.
 ---
 
 ## Wealth Drift
+> **v2: CUT** — the PD controller dies; the consumption desk's scale is the wealth tier, nudged by the kernel (architecture/pops.md).
 
 W is a continuous value that drifts each tick based on the savings signal.
 
@@ -167,6 +177,7 @@ configured maximum.
 ---
 
 ## Labour Supply
+> **v2: KEEP** — the employed/unemployed pair + fill-rate stickiness is v1's best mechanism; carried forward, extended by the capability ladder and the participation scale π; the unemployment-shock paragraph's wealth-controller damping goes with Wealth Drift's CUT (architecture/pops.md).
 
 Labour is a good with `movement_type = Local`. Pop groups are stored as
 **employed/unemployed pairs**: one employed half and one unemployed half,
@@ -209,6 +220,7 @@ with W equal to the employed half's current W.
 ---
 
 ## Peasants
+> **v2: REWRITE** — generalized into the self-provision margin available to every pop (architecture/pops.md); peasant becomes scenario content, not a type.
 
 Peasants are a special pop type that exists outside the normal
 employed/unemployed building-labour loop. They do not work at buildings. They
@@ -265,6 +277,7 @@ proportional share of their total inventory with them, including any land held.
 ---
 
 ## Open Questions
+> **v2: REWRITE** — subsistence-failure and satisfaction questions restate against the self-provision margin.
 
 **Pop satisfaction beyond wealth.** The wealth signal captures material welfare.
 Other dimensions — safety, freedom, community — may matter for political
@@ -282,6 +295,7 @@ Not decided.
 ---
 
 ## Known Simplifications
+> **v2: KEEP** — unchanged.
 
 - **Buy = consume for all goods**: durable goods are modelled as recurring
   maintenance spend rather than one-time purchases.
@@ -293,6 +307,7 @@ Not decided.
 ---
 
 ## Calibration Targets
+> **v2: KEEP** — destined for criteria.ron.
 
 - A subsistence pop receiving a 20% wage increase should drift up one wealth
   tier within 2–5 simulated years, not immediately.
@@ -312,6 +327,7 @@ Not decided.
 ---
 
 ## Future Extensions
+> **v2: KEEP** — parking lot.
 
 - **Pop Evolution**: growth, mortality, migration, job switching, skill
   accumulation. The current doc treats pop size and job as fixed.

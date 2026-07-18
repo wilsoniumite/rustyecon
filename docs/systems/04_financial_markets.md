@@ -1,6 +1,11 @@
 # Financial Markets
 
+> **v2 module status: DEFERRED (PLAN Phase 9+).** v1 built none of this. The doc is kept as the credit module's design record; when built, it enters through the double-entry postings seam (architecture/money.md), and v1's equity-only minting queue (architecture/ownership.md) already covers capital allocation.
+>
+> **v2 triage (2026-07-18).** Section verdicts against [ARCHITECTURE.md](../ARCHITECTURE.md): **KEEP** = survives into v2 (light edits allowed later); **REWRITE** = concept survives, text must be redrafted; **CUT** = does not carry into v2 (may return later; see [PLAN.md](../PLAN.md)). Rewriting happens in the phase that touches each section; these are only the rulings.
+
 ## Purpose
+> **v2: KEEP (deferred)** — module charter for Phase 9+.
 
 The financial markets system allocates capital from holders to productive
 opportunities. It determines how savings are intermediated into investment,
@@ -14,6 +19,7 @@ regions under financial rather than physical constraints.
 ---
 
 ## Scope
+> **v2: KEEP (deferred)** — module deferred to PLAN Phase 9+; kept as the design record for the credit module.
 
 This system covers:
 - Financial goods: the full inventory of instruments
@@ -38,6 +44,7 @@ financial instrument prices. It is defined in Monetary and consumed here.
 ---
 
 ## Financial Goods
+> **v2: REWRITE** — building ownership shares become minted, non-tradeable claims now (architecture/objects.md); credit instruments stay deferred.
 
 All financial instruments are goods with `movement_type = Financial` (near-zero
 crossing cost, subject to capital controls rather than transport costs) and high
@@ -81,6 +88,7 @@ because the issuer is a government entity, not a channel building. Default
 mechanics differ (see Government Bonds below).
 
 ### Maturity Recipes
+> **v2: REWRITE** — the maturity/default-haircut ideas survive, but the representation changes to double-entry postings, not goods converted by auto-firing recipes (architecture/money.md).
 
 Each credit instrument has an auto-firing maturity recipe that converts it to
 currency at the end of its shelf life:
@@ -98,6 +106,7 @@ rather than full.
 ---
 
 ## The Opportunity Signal
+> **v2: REWRITE** — simplified into the minting queue's public yield ranking (architecture/ownership.md), which exists in v1.
 
 For each (region, unlocked recipe) pair, the opportunity signal is computed
 each tick from last tick's observable prices:
@@ -125,6 +134,7 @@ recipe at current prices. Opportunities are always expressed as currency amounts
 ---
 
 ## Capital Allocation
+> **v2: REWRITE** — v1 does this equity-only via the minting queue; banks add leverage later, not a new allocation mechanism.
 
 Investment into productive opportunities is an allocation mechanism, not a
 posted-price market. The mechanism:
@@ -159,8 +169,10 @@ discovery happens in the credit instrument markets (below), not here.
 ---
 
 ## Financial Actors
+> **v2: KEEP (deferred)** — banks / investment banks / PE as desks issuing claims-on-cash through the postings seam.
 
 ### Banks
+> **v2: KEEP (deferred)** — module deferred to PLAN Phase 9+; kept as the design record for the credit module.
 
 A bank is a channel building that operates on capital channels. Its recipe:
 
@@ -183,6 +195,7 @@ outstanding low-yield credit always held in liquid currency. Higher reserve rati
 reduces credit creation capacity but reduces bank run risk.
 
 ### Bank Runs
+> **v2: KEEP (deferred)** — module deferred to PLAN Phase 9+; kept as the design record for the credit module.
 
 Low-yield credit matures every tick. If investors choose not to renew (do not
 buy new low-yield credit next tick), the bank must pay out face value from its
@@ -195,17 +208,20 @@ longer-term credit). Illiquidity triggers default even if the bank is
 fundamentally solvent.
 
 ### Investment Banks
+> **v2: KEEP (deferred)** — module deferred to PLAN Phase 9+; kept as the design record for the credit module.
 
 Same structure as banks but issue `mid_yield_credit` (5-year maturity). Lower
 bank run risk (credit doesn't roll over every tick) but greater exposure to
 borrower default over the longer term.
 
 ### PE-Class Operators
+> **v2: KEEP (deferred)** — module deferred to PLAN Phase 9+; kept as the design record for the credit module.
 
 Issue `high_yield_credit` (10-year maturity). Highest return, highest default
 exposure, no run risk (credit is long-dated).
 
 ### Investment Companies
+> **v2: KEEP (deferred)** — module deferred to PLAN Phase 9+; kept as the design record for the credit module.
 
 An investment company is not a channel operator. It is a building that:
 - Accepts currency from investors and issues equity (building ownership shares
@@ -222,6 +238,7 @@ portfolio earns. Its size is measured by assets under management (total
 inventory value of currency + ownership stakes held).
 
 ### Government
+> **v2: KEEP (deferred)** — module deferred to PLAN Phase 9+; kept as the design record for the credit module.
 
 The government is not a channel building but can issue sovereign bonds directly
 into its local market (see Government Bonds). It also participates in capital
@@ -230,6 +247,7 @@ allocation as a buyer of opportunities for state-owned construction.
 ---
 
 ## Capital Channels
+> **v2: KEEP (deferred)** — module deferred to PLAN Phase 9+; kept as the design record for the credit module.
 
 Capital channels use the same graph structure as trade channels but with
 fundamentally different properties.
@@ -260,6 +278,7 @@ capital, paying a small fixed cost. This maintains optionality — if the spread
 becomes attractive, the bank can resume flow without rebuilding presence.
 
 ### Topology Evolution
+> **v2: KEEP (deferred)** — scenario research; feeds worldgen timelines.
 
 In Era 1, capital channels are sparse and centred on London. Cross-regional
 capital flows exist but are limited to a few corridors (London–Edinburgh,
@@ -279,6 +298,7 @@ requires the recipe to be unlocked for that region.
 ---
 
 ## Credit Instrument Markets
+> **v2: KEEP (deferred)** — module deferred to PLAN Phase 9+; kept as the design record for the credit module.
 
 Credit instruments (`low_yield_credit`, `mid_yield_credit`, `high_yield_credit`)
 trade in standard posted-price goods markets in the region where they are issued.
@@ -306,6 +326,7 @@ demand curves for physical goods.
 ---
 
 ## Bank Balance Sheets and Solvency
+> **v2: REWRITE** — when built: double-entry postings, not inventory bookkeeping (architecture/money.md).
 
 A bank's assets and liabilities are tracked through its inventory:
 
@@ -332,6 +353,7 @@ they convert to `recovery_fraction` currency (where recovery_fraction ≤ 1.0,
 set by the resolution process). This propagates losses to instrument holders.
 
 ### Default Propagation Chain
+> **v2: KEEP (deferred)** — module deferred to PLAN Phase 9+; kept as the design record for the credit module.
 
 ```
 Building fails →
@@ -350,6 +372,7 @@ unwind is: one bank defaults, impairing the other, which may cascade further.
 ---
 
 ## Government Bonds
+> **v2: KEEP (deferred)** — module deferred to PLAN Phase 9+; kept as the design record for the credit module.
 
 Governments issue sovereign bonds directly into their local capital market
 without a channel building. The mechanism:
@@ -374,6 +397,7 @@ issuances) collapses. Recovery is slow, requiring years of surplus budgets.
 ---
 
 ## State It Owns
+> **v2: REWRITE** — restates against the postings instrument set when built.
 
 **In SimState (runtime):**
 - All financial actor building instances (banks, investment companies, PE firms):
@@ -399,6 +423,7 @@ issuances) collapses. Recovery is slow, requiring years of surplus budgets.
 ---
 
 ## Open Questions
+> **v2: KEEP (deferred)** — module deferred to PLAN Phase 9+; kept as the design record for the credit module.
 
 **Opportunity return signal formula.** The opportunity value is described
 qualitatively. The exact formula — how expected profit is computed from last
@@ -430,6 +455,7 @@ operations — is defined in the Monetary system doc.
 ---
 
 ## Known Simplifications
+> **v2: KEEP (deferred)** — module deferred to PLAN Phase 9+; kept as the design record for the credit module.
 
 - **Credit instruments are non-transferable**: no secondary bond market. In
   reality, bond trading is central to financial history (the Amsterdam Beurs,
@@ -449,6 +475,7 @@ operations — is defined in the Monetary system doc.
 ---
 
 ## Calibration Targets
+> **v2: KEEP (deferred)** — good criteria for the future module.
 
 - In Era 1, capital should flow from London to industrialising British regions
   at a meaningful rate, with almost no cross-border flows outside the
@@ -466,6 +493,7 @@ operations — is defined in the Monetary system doc.
 ---
 
 ## Tick-Time Sensitivity
+> **v2: KEEP (deferred)** — module deferred to PLAN Phase 9+; kept as the design record for the credit module.
 
 - `low_yield_credit` maturity of 1 tick is independent of tick duration — it
   is definitionally "instant" credit that rolls over each tick.
@@ -483,6 +511,7 @@ operations — is defined in the Monetary system doc.
 ---
 
 ## Stability Conditions
+> **v2: REWRITE** — becomes posting invariants: every instrument row sums to zero (architecture/money.md).
 
 After each tick:
 - Total currency across all inventories changes only by: government emission,
@@ -500,6 +529,7 @@ After each tick:
 ---
 
 ## Test Coverage Plan
+> **v2: KEEP (deferred)** — module deferred to PLAN Phase 9+; kept as the design record for the credit module.
 
 - **Unit**: credit instrument maturity recipe (face value → currency); default
   maturity recipe (face value × recovery_fraction → currency); opportunity
@@ -523,6 +553,7 @@ After each tick:
 ---
 
 ## Future Extensions
+> **v2: KEEP (deferred)** — module deferred to PLAN Phase 9+; kept as the design record for the credit module.
 
 - **Secondary credit markets**: bond trading with price discovery, allowing
   market-implied default probabilities to emerge.

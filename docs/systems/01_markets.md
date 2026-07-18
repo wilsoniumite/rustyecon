@@ -1,6 +1,9 @@
 # Markets
 
+> **v2 triage (2026-07-18).** Section verdicts against [ARCHITECTURE.md](../ARCHITECTURE.md): **KEEP** = survives into v2 (light edits allowed later); **REWRITE** = concept survives, text must be redrafted; **CUT** = does not carry into v2 (may return later; see [PLAN.md](../PLAN.md)). Rewriting happens in the phase that touches each section; these are only the rulings.
+
 ## Purpose
+> **v2: KEEP** — unchanged — the market system is still the core.
 
 The market system determines how goods are priced and how they move between
 entities and geographic locations. It is the core of the simulation — all other
@@ -9,6 +12,7 @@ signals from markets drive investment, production, migration, and government
 policy decisions throughout the simulation.
 
 ## Scope
+> **v2: KEEP** — unchanged, except FX determination defers to the monetary module (architecture/money.md).
 
 This system covers:
 - Price formation for all goods in all markets
@@ -24,6 +28,7 @@ Explicitly deferred to other systems:
 - How central banks affect money supply (Monetary)
 
 ## Goods
+> **v2: REWRITE** — attribute list shrinks: movement_type / divisible / storage_cost_per_tick were never read and are cut; locality is channel topology (architecture/objects.md).
 
 Everything tradeable is a **good** — physical commodities, services, currencies,
 financial instruments, and debt. No separate type hierarchy. Goods vary by
@@ -49,6 +54,7 @@ curves on a single good rather than separate goods, unless the production
 chains genuinely differ.
 
 ## Market Structure
+> **v2: REWRITE** — the tier enum is cut; tiers are topology (nodes + channels), not types (architecture/objects.md).
 
 Three tiers of market nodes connected by channels:
 
@@ -78,6 +84,7 @@ The world market is not a separate physical place — it is the emergent price
 from cross-border channel flows.
 
 ## Channels
+> **v2: REWRITE** — a channel is operated by a transport desk; capacity = desk size, crossing cost = recipe inputs, regulatory factor = law modifier (architecture/objects.md).
 
 Channels are the edges connecting market nodes. A channel has:
 
@@ -102,6 +109,7 @@ Local goods (`movement_type = Local`) have no outgoing channels. Their
 regional price is fully independent of all other markets.
 
 ## Price Mechanism
+> **v2: KEEP** — implemented verbatim in v1 and still the law — no floors, no ceilings, no clamps (METHODOLOGY R1).
 
 **Posted-price market with lagged adjustment.**
 
@@ -122,6 +130,7 @@ and storage behaviour, not from clamping. (This is an open design decision;
 implications need observation.)
 
 ## Tick Flow (Market Phases)
+> **v2: REWRITE** — new phase order and kernel rules (architecture/kernel.md; tick phases in ARCHITECTURE.md).
 
 Within each tick, all market decisions use last tick's prices as fixed inputs.
 There is no ordering dependency between agents.
@@ -185,6 +194,7 @@ There is no ordering dependency between agents.
 - New prices become next tick's posted prices
 
 ## Agent Decision Model
+> **v2: REWRITE** — replaced wholesale by the desk kernel (architecture/kernel.md); the shared-constraints paragraph survives as METHODOLOGY R13.
 
 All buildings — production buildings and channel operators alike — use the same
 decision framework. The structural difference is which markets they read and
@@ -229,6 +239,7 @@ Cash constraints affect next-tick chosen_size decisions, not this tick's signal.
 // a channel warm (even at near-zero margin) is not yet decided.
 
 ## Multi-Seller Markets
+> **v2: REWRITE** — many-sellers-clear-pro-rata survives; the reservation-price mechanism text goes with the Reservation Prices CUT (architecture/markets.md: no limit prices; the behaviour lives in the kernel).
 
 One building per recipe per region means at most one local producer of any good
 in a regional market. However, incoming channel operators each post sell orders
@@ -249,6 +260,7 @@ that competition already.
 // from individual reservation price logic but needs verification in testing.
 
 ## Reservation Prices
+> **v2: CUT** — never implemented; the kernel's margin gate and buffer bands do this job structurally (architecture/kernel.md).
 
 Sellers will not sell below their variable cost of production. If the posted
 price is below this floor, they offer zero supply and hold inventory.
@@ -259,6 +271,7 @@ immediately cease. This models the difference between short-run shutdown
 (price < variable cost) and long-run exit (price < average total cost).
 
 ## Shortage Mechanism
+> **v2: CUT** — rationing is the shortage signal (METHODOLOGY R8); the 2x flag and throughput bonus do not carry.
 
 When `demand > 2 × supply` for a good, a shortage condition is flagged.
 Buildings that cannot obtain a critical input experience throughput penalties
@@ -267,6 +280,7 @@ shortages (waste reduction, overtime), modelled as a small throughput bonus
 when the shortage flag is active.
 
 ## Inventories
+> **v2: REWRITE** — inventories stay and become load-bearing stabilizers, but the store-vs-sell-by-reservation-price paragraph is replaced by the buffer band (architecture/kernel.md Rule 1).
 
 All entities — pop groups, buildings, shipping companies, banks, governments —
 hold explicit inventories. Inventory is a sparse mapping from good to quantity.
@@ -277,6 +291,7 @@ A building with excess output holds it if the current price is below their
 minimum acceptable price, waiting for conditions to improve.
 
 ## Static vs. Scenario Data
+> **v2: KEEP** — lists refreshed when redrafted.
 
 **In `game_data` (static, not in save state):**
 - Good definitions: base_price, alpha, shelf_life, movement_type, divisibility
@@ -296,6 +311,7 @@ minimum acceptable price, waiting for conditions to improve.
 - Regulatory factors (trade policy laws set these)
 
 ## Known Simplifications
+> **v2: KEEP** — except the "PID-style rules with noise" bullet, which describes the v1 agents; the kernel is dead-banded and deterministic (architecture/kernel.md).
 
 - **Single world market node**: in reality, world prices differ by location
   (e.g. Brent vs WTI crude). We aggregate to one world price per good.
@@ -313,6 +329,7 @@ minimum acceptable price, waiting for conditions to improve.
   markets, a higher alpha compensates.
 
 ## Calibration Targets
+> **v2: KEEP** — destined for criteria.ron (METHODOLOGY R14).
 
 - Price of a good at a well-connected port region should track world price
   within ~5% under normal conditions.
@@ -326,6 +343,7 @@ minimum acceptable price, waiting for conditions to improve.
   more capacity enters a profitable route.
 
 ## Tick-Time Sensitivity
+> **v2: KEEP** — unchanged.
 
 `alpha` is the primary sensitivity lever. All rate-based changes must be
 normalised by `tick_duration_days / 7.0` so that behaviour is consistent
@@ -340,6 +358,7 @@ Known sensitivities:
   more can cross per tick (capacity should be specified per-week and scaled).
 
 ## Stability Conditions
+> **v2: REWRITE** — from prose to enforced asserts: the conservation ledger + run certificate (architecture/engine.md).
 
 After each tick the following should hold:
 - Total money (all currencies, all entities) changes only by: government
@@ -350,6 +369,7 @@ After each tick the following should hold:
   it would if no channels existed.
 
 ## Test Coverage Plan
+> **v2: REWRITE** — folds into the certification stack (PLAN Phase 1).
 
 - **Unit**: price update formula; pro-rata rationing arithmetic; channel
   crossing cost deduction; reservation price floor.
@@ -362,6 +382,7 @@ After each tick the following should hold:
   positive; total goods conserved across clearing.
 
 ## Future Extensions
+> **v2: KEEP** — parking lot.
 
 - **Quality tiers**: if production chains genuinely diverge (basic vs. luxury
   goods requiring different inputs), separate goods per tier. Not needed while

@@ -1,6 +1,11 @@
 # Monetary
 
+> **v2 module status: DEFERRED (PLAN Phase 9+).** v1 built none of this. The design is good and kept: the mint as a reversible passive-converter desk and regimes as laws map cleanly onto v2 (regime flags gate which postings the mint may emit — architecture/money.md).
+>
+> **v2 triage (2026-07-18).** Section verdicts against [ARCHITECTURE.md](../ARCHITECTURE.md): **KEEP** = survives into v2 (light edits allowed later); **REWRITE** = concept survives, text must be redrafted; **CUT** = does not carry into v2 (may return later; see [PLAN.md](../PLAN.md)). Rewriting happens in the phase that touches each section; these are only the rulings.
+
 ## Purpose
+> **v2: KEEP (deferred)** — module charter for Phase 9+.
 
 The monetary system governs the supply of base money, the regimes that constrain
 or enable its creation, and the mechanisms through which monetary conditions
@@ -14,6 +19,7 @@ controls that quantity, and what are the consequences when the answer changes?
 ---
 
 ## Scope
+> **v2: KEEP (deferred)** — module deferred to PLAN Phase 9+; kept as the design record for monetary regimes.
 
 This system covers:
 - Base money and what distinguishes it from credit
@@ -34,6 +40,7 @@ Explicitly deferred:
 ---
 
 ## Base Money vs. Credit
+> **v2: KEEP (deferred)** — the distinction becomes structural under postings (architecture/money.md).
 
 **Base money** is currency — the good. It is the unit of account and the final
 means of settlement in the simulation. All other financial instruments are claims
@@ -57,12 +64,14 @@ do that).
 ---
 
 ## Central Bank Buildings
+> **v2: KEEP (deferred)** — a central bank as a cluster of special desks fits v2 exactly.
 
 The central bank is not a single building. It is a cluster of government-owned
 buildings in the financial centre region, each running a distinct recipe. All
 are controlled by monetary regime laws.
 
 ### Gold Mint
+> **v2: KEEP (deferred)** — the reversible passive-converter desk; regime flags gate its postings.
 
 **Recipe**: `gold_convertibility` — a reversible recipe.
 
@@ -102,6 +111,7 @@ All three outcomes are law changes or market events; none requires special-cased
 mechanics.
 
 ### Open Market Desk
+> **v2: KEEP (deferred)** — module deferred to PLAN Phase 9+; kept as the design record for monetary regimes.
 
 **Recipe**: `sovereign_bond_purchase`
 
@@ -131,6 +141,7 @@ Under fiat regimes, the desk can create currency freely. The constraint is
 political (inflation expectations, legal mandate) rather than mechanical.
 
 ### Discount Window
+> **v2: KEEP (deferred)** — module deferred to PLAN Phase 9+; kept as the design record for monetary regimes.
 
 The discount window is not a separate building. It is the open market desk
 operating with a standing, unconditional commitment: the desk always posts buy
@@ -161,6 +172,7 @@ building exists. Bank runs cascade without mitigation. The Panics of 1837, 1857,
 ---
 
 ## Monetary Regime Laws
+> **v2: KEEP (deferred)** — becomes flags on which postings the mint may emit (architecture/money.md).
 
 The monetary regime is a law at the country level. It determines which central
 bank recipes are active, what constraints apply to money creation, and what
@@ -199,6 +211,7 @@ The policy rate is the primary instrument. This is the dominant regime from
 ---
 
 ## The Policy Rate
+> **v2: KEEP (deferred)** — module deferred to PLAN Phase 9+; kept as the design record for monetary regimes.
 
 The policy rate is the interest rate at which the central bank lends to
 commercial banks via the discount window. It sets a floor on all credit
@@ -226,6 +239,7 @@ infrequently and reactively.
 ---
 
 ## The Price Level and Inflation
+> **v2: KEEP** — diagnostic; lands with telemetry (architecture/engine.md), not with the monetary module.
 
 The price level is not a first-class simulation variable but a computed
 diagnostic: a weighted average of goods prices across the economy.
@@ -255,6 +269,7 @@ post-processing step in analysis notebooks, not a simulation concept.
 ---
 
 ## Gold Flows and the Balance of Payments
+> **v2: KEEP (deferred)** — module deferred to PLAN Phase 9+; kept as the design record for monetary regimes.
 
 Under the gold standard, international trade imbalances produce gold flows that
 create monetary effects. This is the price-specie-flow mechanism (Hume, 1752):
@@ -283,6 +298,7 @@ observable in simulation output.
 ---
 
 ## The Money Multiplier
+> **v2: KEEP (deferred)** — module deferred to PLAN Phase 9+; kept as the design record for monetary regimes.
 
 Commercial banks create credit on top of base money. Under a reserve requirement
 law, each unit of base money can support `1/reserve_ratio` units of credit.
@@ -301,6 +317,7 @@ issuance, and the reserve requirement law.
 ---
 
 ## Historical Monetary Regimes by Era
+> **v2: KEEP** — worldgen research; feeds the policy timeline (PLAN Phase 8).
 
 **Era 1 (1836–1880)**: Bimetallism in most countries (gold and silver
 circulate at a legally fixed ratio). Britain on the gold standard since 1821.
@@ -338,6 +355,7 @@ Digital currencies and central bank digital currencies (CBDCs) emerge.
 ---
 
 ## State It Owns
+> **v2: REWRITE** — restates against the postings instrument set when built.
 
 **In SimState (runtime):**
 - Central bank building instances per country: gold mint, open market desk,
@@ -363,6 +381,7 @@ Digital currencies and central bank digital currencies (CBDCs) emerge.
 ---
 
 ## Open Questions
+> **v2: KEEP (deferred)** — module deferred to PLAN Phase 9+; kept as the design record for monetary regimes.
 
 **Inflation targeting logic.** For central banks in Era 6–7, the policy rate
 is adjusted in response to deviations from a target inflation rate. The decision
@@ -389,6 +408,7 @@ this without an explicit velocity concept is an open calibration question.
 ---
 
 ## Known Simplifications
+> **v2: KEEP (deferred)** — module deferred to PLAN Phase 9+; kept as the design record for monetary regimes.
 
 - **One central bank per country**: in reality, the US had the First and Second
   Banks of the US, then no central bank (1836–1913), then the Federal Reserve.
@@ -407,6 +427,7 @@ this without an explicit velocity concept is an open calibration question.
 ---
 
 ## Calibration Targets
+> **v2: KEEP (deferred)** — module deferred to PLAN Phase 9+; kept as the design record for monetary regimes.
 
 - Under the classical gold standard, exchange rates between two gold-standard
   currencies should remain within the "gold points" (the cost of physically
@@ -422,6 +443,7 @@ this without an explicit velocity concept is an open calibration question.
 ---
 
 ## Stability Conditions
+> **v2: REWRITE** — becomes posting invariants (architecture/money.md).
 
 After each tick:
 - Total base money outstanding = sum of all currency holdings across all
@@ -437,6 +459,7 @@ After each tick:
 ---
 
 ## Test Coverage Plan
+> **v2: KEEP (deferred)** — module deferred to PLAN Phase 9+; kept as the design record for monetary regimes.
 
 - **Unit**: gold mint recipe (gold → currency at correct rate); debasement
   (recipe parameter change → correct new rate); gold coverage ratio check.
@@ -456,6 +479,7 @@ After each tick:
 ---
 
 ## Future Extensions
+> **v2: KEEP (deferred)** — module deferred to PLAN Phase 9+; kept as the design record for monetary regimes.
 
 - **Taylor rule for inflation targeting**: autonomous central bank decision logic
   adjusting policy rate in response to inflation and output gap. Requires

@@ -7,19 +7,29 @@ extensible simulator fast enough for real economic experiments.
 
 ## Status
 
-Design phase. No Rust code yet.
+v1 engine implemented (~3.3k lines: market core + three-strategy agent layer);
+stability suite was failing when v1 work paused. **v2 redesign ruled 2026-07-18**
+— see the three documents below; the fourth deliverable is the section-by-section
+triage verdicts inline in every existing doc.
 
 ## Documentation
 
-- [Design](docs/DESIGN.md) — architecture, key decisions, design principles
-- [Glossary](docs/glossary.md) — canonical term definitions
-- [Systems](docs/systems/) — one doc per simulation system
-- [Timeline](docs/timeline/) — historical era reference for scenario design
+**v2 (authoritative):**
+- [Architecture](docs/ARCHITECTURE.md) — overview: the modules and how they fit
+- [architecture/](docs/architecture/) — subsystem specs: objects, kernel, markets, ownership, pops, money, engine, worldgen
+- [Methodology](docs/METHODOLOGY.md) — why the design is shaped this way + the standing rules (R1–R14)
+- [Plan](docs/PLAN.md) — the phased route from the current code to the architecture, with gates
+
+**v1 (triaged, kept as record):**
+- [Design](docs/DESIGN.md) — v1 architecture; superseded by ARCHITECTURE.md, verdicts inline
+- [Glossary](docs/glossary.md) — canonical term definitions, per-term verdicts inline
+- [Systems](docs/systems/) — one doc per simulation system, verdicts inline (04/05 = deferred module design records)
+- [Timeline](docs/timeline/) — historical era reference; feeds worldgen (kept)
 
 ## Key Constraints
 
 - Global scale: 673+ regions, 100+ countries
-- 200-year simulation (1836–2036) completes in under 24 hours
+- 225-year simulation (1800–2025, ~11,700 weekly ticks) completes in under 24 hours
 - Weekly ticks by default; tick duration is configurable
 - Headless-first; Python notebooks are the primary analysis interface
 - Rust, intermediate level
@@ -37,10 +47,10 @@ Design phase. No Rust code yet.
 
 
 ### next steps:
-- Try and stabilize test regions
+- Superseded by [docs/PLAN.md](docs/PLAN.md) — start at Phase 0 (bugfix floor).
 
-### TODOs for later, put here to not forget them
-- the ./docs might be a bit out of date
-- we should have more tests in the rust code itself and in ./tests
-- we should probably use the ema smoothed prices in simstate more, instead of storing our own smoothed variables on all recipes.
-- storage_cost_per_tick should be removed from goods, will be handled later some other way.
+### old TODOs (all absorbed by the v2 docs)
+- "stabilize test regions" → PLAN Phases 4–5 (desk kernel + phase map)
+- "docs out of date" → triage verdicts inline in every doc, 2026-07-18
+- "more tests" → PLAN Phase 1 (certification stack)
+- "use ema prices more / remove storage_cost_per_tick" → both moot under the kernel (architecture/objects.md + kernel.md; dead attributes cut)

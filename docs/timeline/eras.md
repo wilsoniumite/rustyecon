@@ -1,5 +1,7 @@
 # Economic Eras: 1836–2036
 
+> **v2 triage (2026-07-18): KEEP throughout.** This file is worldgen research — it feeds the regions / tech / policy / war timeline tables (architecture/worldgen.md, PLAN Phase 8). Two standing notes: the span is 1800–2025 per the fundamentals (the 1836–2036 frame below predates that ruling — extend backward to 1800, trim forward to 2025, cut no content); the colonial, slavery, and grain-granularity questions remain open design challenges for the world compiler, now joined by price-controls-vs-posted-prices for the war eras.
+
 A collaborative design document. Each era covers the goods, recipes, technologies,
 trade conditions, policies, and design challenges relevant to the simulation.
 The goal is to discover requirements from history rather than design in the abstract.
@@ -7,6 +9,7 @@ The goal is to discover requirements from history rather than design in the abst
 ---
 
 ## Era 1: 1836–1880 — Steam and Cotton
+> **v2: KEEP** — worldgen research; requirements-from-history is the right method and continues per era.
 
 ### Overview
 

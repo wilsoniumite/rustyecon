@@ -1,5 +1,7 @@
 # Design
 
+> **v2 triage (2026-07-18).** Section verdicts against [ARCHITECTURE.md](ARCHITECTURE.md): **KEEP** = survives into v2 (light edits allowed later); **REWRITE** = concept survives, text must be redrafted; **CUT** = does not carry into v2 (may return later; see [PLAN.md](PLAN.md)). Rewriting happens in the phase that touches each section; these are only the rulings. ARCHITECTURE.md supersedes this file as the architectural authority.
+
 This document captures the major architectural decisions, design principles, and
 conceptual rules of rustyecon. It is the first thing to read before working on
 any system. Individual system docs go deeper on their own mechanics; this doc
@@ -8,6 +10,7 @@ explains why the system is shaped the way it is.
 ---
 
 ## What This Is
+> **v2: REWRITE** — goal statement stands; span becomes 1800–2025 and the research role now includes the two-economies laboratory (METHODOLOGY §5).
 
 A headless global economic simulation spanning 1836–2036. The primary research
 goal is testing redistributive policy (high VAT, UBI) in a high-fidelity
@@ -23,6 +26,7 @@ simulation runs, produces output, and stops.
 ## Architecture
 
 ### Event Sourcing
+> **v2: KEEP** — the delta discipline survives, hardened: no bypasses, canonical ordering, provenance tags (architecture/objects.md, architecture/engine.md).
 
 All simulation systems are pure functions:
 
@@ -39,6 +43,7 @@ and applied in a single pass by `apply_state_deltas()`. This gives:
 - **Introspection**: the delta stream can be logged, filtered, or intercepted
 
 ### Tick Structure
+> **v2: KEEP** — posted price + act-on-last-tick unchanged; v2 adds staggered activation (only 1/S of desks think per tick).
 
 Each simulated week (configurable) is one tick. Within a tick, all agents act
 on last tick's state simultaneously — there is no ordering dependency.
@@ -48,6 +53,7 @@ transaction price. This posted-price model is stable under the bounded-rational
 agent model and avoids within-tick price discovery complexity.
 
 ### Scale
+> **v2: REWRITE** — 673 regions stays as the compiler ceiling; CPU was never the wall — telemetry and authoring are (architecture/engine.md, architecture/worldgen.md).
 
 673+ geographic regions, 100+ countries. Every system must be designed with this
 scale in mind. Three-tier market structure (regional → national → world) keeps
@@ -55,6 +61,7 @@ channel evaluation tractable (~660K per tick).
 One building per recipe per region bounds the building count.
 
 ### Output
+> **v2: REWRITE** — Parquet-first plus run certificates; the CSV/TUI text is stale (architecture/engine.md).
 
 The simulation is headless. Output goes to Parquet files and checkpoint saves
 (same format as starting states). Python notebooks are the primary analysis
@@ -66,6 +73,7 @@ extension.
 ## Core Design Decisions
 
 ### Everything Is a Good
+> **v2: KEEP** — core identity; credit instruments arrive later via the postings seam (architecture/money.md).
 
 Services, currencies, financial instruments, debt — all are goods. There is no
 separate type hierarchy. Goods vary by attributes not by type. This unifies the market mechanism: one price formula,
@@ -78,6 +86,7 @@ last tick. Construction services are goods produced by construction company buil
 that have no cross channel recipe. Nothing needs a special-cased path.
 
 ### Channels Are the Only Movement Mechanism
+> **v2: REWRITE** — concept survives; a channel is operated by a transport desk whose size is the capacity and whose recipe carries crossing costs (architecture/objects.md).
 
 Goods move between markets only through channels. A channel has a capacity,
 a crossing cost, a regulatory factor, and one slot per operator type. No good
@@ -96,6 +105,7 @@ exported ones. A region without capital channels cannot receive foreign
 investment.
 
 ### Recipes Must Justify Their Existence
+> **v2: KEEP** — unchanged.
 
 A recipe is tied to a production building, a cross channel building, or attached to a good.
 It runs every tick. Two production recipes exist only if:
@@ -116,6 +126,7 @@ depresses its price regardless of shortage in the other (coal tar as waste befor
 synthetic dyes, hides surplus before industrial leather demand).
 
 ### One Building per Recipe per Region/channel
+> **v2: KEEP** — as one desk per recipe version per region.
 
 There is at most one building per recipe per region. Buildings are price-takers
 in a posted-price market — two buildings with the same recipe in the same region
@@ -130,6 +141,7 @@ for the same recipe. That recipe is conceptually input good x output good x, but
 buildings may only buy from node a and sell in node b.
 
 ### Recipe Components Aren't Goods (most of the time).
+> **v2: CUT** — component registers and transfer machinery are deferred; capital cost k (goods + build time) covers v1 (architecture/objects.md; deferral list in ARCHITECTURE.md).
 
 Recipe components are things recipes need to run. They aren't traded so they can
 be much more numerous without hampering performance significantly. They are
@@ -146,6 +158,7 @@ recipe. Some conceptual examples:
 4. EUV Lithography Machines: recovery is probably very low, 0.1, and transfer might be 1.0 but there are likely no other recipes that could use this component anyways.
 
 ### Transitions Of Recipes Are Conceptual
+> **v2: CUT** — depends on components; recipe versions + minting give diffusion instead (architecture/objects.md, architecture/ownership.md).
 
 Buildings always run exactly one recipe. A "transition" is a documentation term
 for one building making a decision: one downsizing and releasing
@@ -159,6 +172,7 @@ reconstruction. The cost savings emerge from the component transfer mechanic,
 not from a special transition discount.
 
 ### Technology, Is Scripted
+> **v2: KEEP** — fundamental 4; recipe versions are the mechanism.
 
 Recipe unlocks have historical dates per region. The Bessemer converter becomes
 available in Sheffield in 1856, Ruhr in 1863, Lorraine in 1870. The dates are
@@ -171,6 +185,7 @@ would require a technology system of comparable complexity to the rest of the
 simulation and would not produce more accurate timing.
 
 ### Wars Are Scripted Demand Shocks
+> **v2: KEEP** — one open collision to resolve when war content lands: scripted price controls vs the free price update.
 
 The simulation does not model warfare. Wars appear in the scenario as:
 - Scripted government demand shocks (military purchasing consumes goods)
@@ -182,16 +197,19 @@ demographic effects) are significant and modelled via these mechanisms. The
 military and political logic of why wars happen is not.
 
 ### Governments Are Scripted
+> **v2: KEEP** — unchanged.
 
 Changes in Laws may come as Delta events, following historical dates, in much
 the same way as technology
 
 ### Scripted Is For Now
+> **v2: REWRITE** — becomes the registered scripted/emergent boundary (METHODOLOGY §4).
 
 We may implement real dynamics for any scripted system, but for now they are
 scripted.
 
 ### Capital Allocation Is Not a Posted-Price Market
+> **v2: REWRITE** — survives as the minting queue: overflow funds best yield first, claims minted pro-rata, no price-of-opportunity (architecture/ownership.md).
 
 Investment into productive opportunities is an allocation mechanism, not a
 price-clearing market. Opportunities post currency buy orders expressing how
@@ -209,6 +227,7 @@ mechanisms are connected but distinct.
 ## Design Principles
 
 ### Costs Are Quantities of Goods, Never Fixed Currency Amounts
+> **v2: KEEP** — standing law (METHODOLOGY R12).
 
 Every recipe input and every operational cost must be expressed as a quantity of
 a market good — including labour. Hardcoding a cost in currency units (e.g. a
@@ -223,6 +242,7 @@ price and forbidden. A floor relative to the pop's cost of living — computed f
 market prices — is acceptable because it is endogenous to the price system.
 
 ### Agents Are Bounded Rational
+> **v2: KEEP** — standing law (METHODOLOGY R13).
 
 All agent decisions (building production, channel operator flow volumes, pop
 consumption, investment) are based on last tick's observable state. Agents never
@@ -235,6 +255,7 @@ behaviour of bounded-rational agents with noise produces realistic market
 dynamics without the instabilities of perfect-information equilibrium models.
 
 ### Noise Desynchronises Agents
+> **v2: REWRITE** — the job is real, the tool changes: deterministic staggered activation + dead-bands; seeded noise only if the phase map demands it (architecture/kernel.md).
 
 Sometimes agents draw a per-tick noise multiplier (~N(1.0, 0.15)) for their
 decisions. This prevents all operators from reacting identically to the
@@ -243,6 +264,7 @@ for its own sake — it is a model of the heterogeneous information, timing, and
 risk preferences of real agents.
 
 ### Calibration Targets Are Real
+> **v2: KEEP** — upgraded from prose to executable criteria batteries (METHODOLOGY R5, R14).
 
 Every system doc has a "Calibration Targets" section with specific, testable
 stylised facts the system should reproduce. "Inland regions should show higher
@@ -250,6 +272,7 @@ prices for imported goods" is a calibration target. "The simulation should be
 realistic" is not.
 
 ### Deferred Is Not Forgotten
+> **v2: KEEP** — unchanged; v2's deferral list is ARCHITECTURE.md's deliberately-not-built list.
 
 Each system doc explicitly lists what it defers to other systems. A system that
 says "labour cost is deferred to Pop Evolution" is not ignoring labour — it is
@@ -259,6 +282,7 @@ correct home and the interface will be honoured.
 ---
 
 ## System Map
+> **v2: REWRITE** — superseded by ARCHITECTURE.md.
 
 ```
 Markets
@@ -278,6 +302,7 @@ through market prices. The map above shows primary information flow, not strict
 dependency.
 
 ### Planned System Docs
+> **v2: REWRITE** — list stale; docs now follow their triage headers.
 
 - [Markets](systems/01_markets.md) ✓
 - [Production](systems/02_production.md) ✓
@@ -295,6 +320,7 @@ dependency.
 ---
 
 ## What We Deliberately Did Not Do
+> **v2: KEEP** — all five stand; v2 adds its own list (ARCHITECTURE.md's deliberately-not-built list).
 
 **No individual agents.** Population is modelled as pop groups (aggregates
 sharing job, culture, and wealth tier). The dynamics of interest — wage
@@ -321,6 +347,7 @@ compensates. This is a known simplification with known implications.
 ---
 
 ## Scenario Structure
+> **v2: REWRITE** — a scenario becomes (tape, code version, seed) compiled by worldgen; SimState + deltas survives as the runtime form (architecture/objects.md, architecture/worldgen.md).
 
 A scenario is a `SimState` (starting conditions) paired with a `Vec<StateDelta>`
 (the scripted event schedule). Running a scenario: start from the state, apply

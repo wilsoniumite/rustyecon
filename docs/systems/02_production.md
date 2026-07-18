@@ -1,6 +1,9 @@
 # Production
 
+> **v2 triage (2026-07-18).** Section verdicts against [ARCHITECTURE.md](../ARCHITECTURE.md): **KEEP** = survives into v2 (light edits allowed later); **REWRITE** = concept survives, text must be redrafted; **CUT** = does not carry into v2 (may return later; see [PLAN.md](../PLAN.md)). Rewriting happens in the phase that touches each section; these are only the rulings.
+
 ## Purpose
+> **v2: KEEP** — unchanged.
 
 The production system transforms goods into other goods. It determines what can
 be produced where, at what cost, and how productive capacity responds to market
@@ -14,6 +17,7 @@ recipe change entering the market, not from a discovery mechanism.
 ---
 
 ## Scope
+> **v2: REWRITE** — components out; minting and growth in (architecture/ownership.md).
 
 This system covers:
 - Buildings and what they hold
@@ -35,6 +39,7 @@ Explicitly deferred:
 ---
 
 ## Buildings
+> **v2: REWRITE** — building becomes desk; the two asset registers collapse to one inventory + size (architecture/objects.md).
 
 A building is the atomic unit of productive capital. It runs exactly one recipe
 at all times. It is an abstraction over however many real enterprises share a
@@ -55,6 +60,7 @@ determines profit distribution and who makes decisions on the building's behalf.
 Ownership mechanics are an open question.
 
 ### One Building per Recipe per Region
+> **v2: KEEP** — unchanged, as one desk per recipe version per region.
 
 Multiple buildings running the same recipe in the same region are not permitted.
 Buildings are price-takers in a posted-price market: two buildings with the same
@@ -66,6 +72,7 @@ multiple actor groups.
 ---
 
 ## Components
+> **v2: CUT** — deferred; capital cost k covers v1 grain (architecture/objects.md; deferral list in ARCHITECTURE.md).
 
 A component is a non-market fixed asset held in a building's component register.
 Components cannot be traded — they never enter any inventory or market. They are
@@ -89,6 +96,7 @@ building (see Component Transfer below). Direct transfer is always more efficien
 than dismantlement because it skips both the recovery loss and the rebuild cost.
 
 ### Construction Services as Goods
+> **v2: KEEP** — construction goods are how k gets paid; the tier list is scenario content.
 
 Building components requires construction capability. Construction services are
 market goods (`movement_type = Local`) produced by construction company buildings.
@@ -107,6 +115,7 @@ lower-tier services. The bootstrap resolves because basic construction is
 labour-intensive and requires only land and simple tools.
 
 ### Land
+> **v2: REWRITE** — land becomes the Parcel object with omega and claims, not a component (architecture/objects.md, architecture/ownership.md).
 
 Land is purchased from the regional land market and held as a component. It is
 owned by actors (primarily aristocrat pop groups in early eras) who post it to
@@ -121,6 +130,7 @@ market.
 ---
 
 ## Recipes
+> **v2: KEEP** — plus versioning for technology (architecture/objects.md).
 
 A recipe is a production method a building runs. Recipes are defined in game
 data (static). Multiple buildings in different regions can run the same recipe.
@@ -147,6 +157,7 @@ full recipe size. Shortfall reduces recipe size proportionally.
 Stored in the scenario's state delta schedule, not in the recipe definition.
 
 ### Recipe Justification
+> **v2: KEEP** — unchanged.
 
 A recipe earns a distinct definition if it meets one or more of:
 1. Meaningfully different input mix (different goods or significantly different
@@ -162,6 +173,7 @@ Cosmetic variation alone is not sufficient.
 ---
 
 ## Recipe Size, Chosen Recipe Size, Effective Recipe Size
+> **v2: KEEP** — renamed size / scale / effective; same trichotomy.
 
 **Recipe size** is set by the components held. Holding full components at size N
 means the recipe can run at rate N. Recipe size increases by acquiring more
@@ -177,6 +189,7 @@ inputs, effective recipe size = f × X for those inputs. Fixed inputs are
 unaffected by rationing.
 
 ### Cost Structure
+> **v2: KEEP** — InputScaling is implemented and correct — one of v1's best parts.
 
 Each recipe defines scaling behaviour per input:
 
@@ -193,6 +206,7 @@ average total cost over a sustained period exits.
 ---
 
 ## Component Transfer
+> **v2: CUT** — goes with components.
 
 When a building reduces its recipe size, it has two options for the released
 components:
@@ -229,6 +243,7 @@ decisions.
 ---
 
 ## Construction
+> **v2: REWRITE** — becomes the minting queue: equity-financed, claims minted pro-rata, best yield first (architecture/ownership.md).
 
 New buildings enter via construction decisions made by actors. Construction
 consumes market goods and construction service goods over time, per the component
@@ -236,6 +251,7 @@ build specifications of the target recipe. On completion the building enters
 with full recipe size.
 
 ### The Opportunity Signal and Capital Allocation
+> **v2: REWRITE** — simplified to a public yield ranking; mu and r-star are its telemetry readouts (architecture/ownership.md).
 
 Each positive-opportunity (region, recipe) pair posts a **currency buy order**:
 "I will accept up to X currency and return ownership shares proportional to
@@ -268,6 +284,7 @@ by existing buildings transitioning away from profitable recipes.
 ---
 
 ## Exit
+> **v2: REWRITE** — kernel decline to epsilon-size, then registered release at recovery fractions (architecture/ownership.md).
 
 A building exits when it cannot sustain average total cost over a sustained
 period (default ~1 simulated year). Exit sequence:
@@ -284,6 +301,7 @@ period (default ~1 simulated year). Exit sequence:
 ---
 
 ## Capital Vintage and Efficiency Decay
+> **v2: CUT** — dormant in v1 code; parking lot until a failing criterion demands it (METHODOLOGY R10).
 
 Without decay, a building constructed in 1840 operates at identical efficiency
 in 1920. Over a 200-year simulation this produces unrealistic late-era states.
@@ -307,6 +325,7 @@ Decay rate, recipe-specificity, and refresh cost calibration are open.
 ---
 
 ## State It Owns
+> **v2: REWRITE** — object list changes with the desk/claims model.
 
 **In SimState (runtime):**
 - All building instances: id, owner(s) with shares, region, active recipe,
@@ -331,6 +350,7 @@ Decay rate, recipe-specificity, and refresh cost calibration are open.
 ---
 
 ## Open Questions
+> **v2: REWRITE** — several are resolved by v2 decisions (ownership = claims register; opportunity = minting queue).
 
 **Input scaling specification.** The fixed/variable/semi-variable distinction
 per input needs a concrete data representation. Semi-variable needs at minimum
@@ -359,6 +379,7 @@ unresolved. See pop design doc.
 ---
 
 ## Known Simplifications
+> **v2: KEEP** — except the construction-financing bullet: v2 makes equity-financed minting core (architecture/ownership.md); credit later adds leverage only.
 
 - **Buildings as aggregates**: one building represents all enterprises sharing a
   recipe in a region. Firm-level behaviour is abstracted.
@@ -374,6 +395,7 @@ unresolved. See pop design doc.
 ---
 
 ## Calibration Targets
+> **v2: KEEP** — destined for criteria.ron; the efficiency-decay target drops with the CUT above.
 
 - A region building its first blast furnace should see local iron prices fall
   within 2–5 simulated years and iron imports decline.
@@ -390,6 +412,7 @@ unresolved. See pop design doc.
 ---
 
 ## Tick-Time Sensitivity
+> **v2: KEEP** — unchanged, minus the efficiency-decay line (cut).
 
 All time-denominated quantities normalise by `tick_duration_days / 7.0`:
 - Recipe inputs and outputs are per-week
@@ -404,6 +427,7 @@ in-progress capacity fully even before completion.
 ---
 
 ## Stability Conditions
+> **v2: REWRITE** — becomes enforced asserts (architecture/engine.md).
 
 After each tick:
 - Goods conservation: goods consumed in production = goods produced; goods
@@ -418,6 +442,7 @@ After each tick:
 ---
 
 ## Test Coverage Plan
+> **v2: REWRITE** — folds into certification + phase gates (PLAN).
 
 - **Unit**: cost calculation at varying chosen recipe size; multi-output ratio
   conservation; component dismantle goods recovery; component transfer
@@ -439,6 +464,7 @@ After each tick:
 ---
 
 ## Future Extensions
+> **v2: KEEP** — parking lot.
 
 - **Mothballing**: suspending output while retaining components, paying
   maintenance only.

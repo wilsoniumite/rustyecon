@@ -1,0 +1,144 @@
+# The desk kernel
+
+One kernel *shape* serves every actor: a single scale variable, nudged by small
+asymmetric multiplicative steps, gated by a dead-band on one local **pressure
+signal** σ, evaluated only on the desk's stagger phase
+(`(tick + desk.id) % S == 0`). What varies by desk kind is only which σ it
+reads and where its overflow routes. There are no other decision mechanisms in
+the simulation.
+
+## Parameters
+
+All registered in `game_data.ron`; no behavioral constant lives in code
+(METHODOLOGY R2).
+
+| param | meaning | default |
+|---|---|---|
+| `S` | activation stagger period (ticks) | 4 |
+| `eta_up` / `eta_dn` | scale step up / down (the phase dial) | 0.04 / 0.05 |
+| `dead` | dead-band width on σ | 0.05 |
+| `b_out` | output buffer band, in activations of throughput | 2.0 |
+| `b_cash` | cash band, in activations of outlay | 6.5 |
+| `beta` | within-category consumption logit sensitivity | 1.0 |
+| `alpha` | per-good market price step | per good |
+
+## Rule 1 — SELL above the band
+
+Post `max(inventory − b_out·scale·qty_out, 0)` as sell orders, for every
+*marketable* output. Non-storable marketable outputs (services): post
+`scale · last_fill`, floored at `ε·scale` so a collapsed market can restart;
+`last_fill` is an EMA initialized at 1.0. Labour is the one specialization:
+its posting is the pair rule ([pops.md](pops.md)) — employed halves post full
+supply, unemployed halves post fill-scaled supply, both multiplied by the
+participation scale π; the pair *is* Rule 1's fill-stickiness, resolved at pop
+grain. Sink outputs (consumption utility) are not goods and are never posted.
+No debt gates, no sell caps: the buffer band is the supply smoother.
+
+## Rule 2 — NUDGE scale
+
+```
+u = frac(φ · (desk.id + tick/S))          // deterministic Weyl fraction
+if σ >  dead : scale ← scale · (1 + eta_up · u)
+if σ < −dead : scale ← scale · (1 − eta_dn · u)
+scale ← clamp(scale, ε·size, size)
+```
+
+The pressure signal σ per desk kind — this table *is* the agent design:
+
+| desk kind | σ (pressure to expand) | extra gate |
+|---|---|---|
+| producer | `(band_out − inventory_out) / band_out` | margin > 0, where margin = Σ p_sell·qty_out − Σ p_buy·qty_in at posted prices |
+| transport | same as producer (spread over crossing costs is its margin) | margin > 0 |
+| parcel (enclosed), frozen | none — no scale response; events may set scale | — |
+| labour margin π ([pops.md](pops.md)) | `(w_posted − parity) / parity`, w at the pop's bucket | — |
+| consumption | `(cash − reserve) / reserve` | scale capped at the basket table's top tier (the absorption cap, [pops.md](pops.md)) |
+| government | none — scale is set by law entries on the tape | — |
+| chartered (construction / enforcement) | none — scale = the funded build rate; retires on completion ([ownership.md](ownership.md)) | — |
+
+Bounds: the labour margin's size is 1 by definition, so π ∈ [ε, 1]; the
+consumption desk's size is the basket table's top tier; frozen kinds have no
+scale response and ignore the clamp.
+
+## Rule 3 — BUY below the band, route OVERFLOW above it
+
+Evaluated **once per inventory owner per activation** — a pop's desks share one
+inventory and one Rule-3 pass, so there is no ordering race between them:
+
+```
+reserve  = b_cash · outlay(all resident desks' scale) / S
+budget   = max(cash − reserve, 0)
+buy inputs for scale activations, cash-capped at budget, pro-rata across inputs
+overflow = max(cash − reserve − planned_spend, 0)
+```
+
+Overflow routing, by owner kind — this table closes every loop:
+
+| owner | overflow goes to |
+|---|---|
+| producer / transport / parcel desk | its claim holders, pro-rata — this *is* the dividend system; cash cannot pool in firms, by construction |
+| pop (shared inventory) | consumption first (up to the absorption cap), then the regional minting queue ([ownership.md](ownership.md)) |
+| government desk | its treasury rule (a law; default: hold) |
+| chartered construction / enforcement desk | none — it spends itself to zero and retires |
+
+Special cases collapse into parameters, not code: a natural-resource source is
+a frozen producer desk (claims assigned at genesis — to the public pop if
+nobody else); a passive converter (the future mint) is a desk whose scale is
+set by incoming demand; a government spender is a desk owned by the public pop.
+
+## Why this is stable
+
+Stability is structural, never tuned (METHODOLOGY R1). Four mechanisms, each
+with a validated pedigree in the macro-ABM literature:
+
+1. **Buffers as low-pass filters** — the output band absorbs demand shocks
+   before they reach scale; the cash band absorbs revenue shocks before they
+   reach spending (Lengnick 2013's inventory bands; buffer-stock households in
+   Poledna et al. 2023).
+2. **Small asymmetric steps** — ±4–5% multiplicative nudges, never
+   best-response jumps. The `eta_up/eta_dn` ratio is the known
+   phase-transition dial (Gualdi, Tarzia, Zamponi & Bouchaud 2015: the
+   hiring/firing asymmetry separates full employment from collapse); it is one
+   exposed parameter here, not a dozen implicit ones.
+3. **Dead-band gating** — no adjustment inside ±`dead`; kills limit-cycle
+   chatter at equilibrium (Mark-0's two-signal gate).
+4. **Staggered activation** — synchronous full-strength updates of stiff
+   dynamics oscillate as a numerical artifact (explicit Euler with too-large
+   steps), not an economic one. Stagger divides the effective step size by S
+   and desynchronizes cobweb spirals deterministically — the Weyl fraction
+   provides heterogeneous step sizes with zero RNG.
+
+Because a kernel of this class has a genuine collapse phase, the phase diagram
+over (`eta_up/eta_dn`, `b_cash`, `S`) must be mapped and committed before any
+historical run (PLAN Phase 5): know where the cliff is instead of discovering
+it in 1893.
+
+## Worked traces
+
+One activation of each desk kind, to show the kernel is closed:
+
+**Farm** (producer; recipe: labour_r1 + land-service → wheat). Rule 1: wheat
+inventory above `b_out·scale` is posted for sale. Rule 2: σ from the wheat
+buffer; expands only if the buffer is drawn down *and* wheat revenue exceeds
+labour + land-service cost at posted prices. Rule 3: buys labour_r1 and
+land-service (both market goods — the land-service sold by an enclosed
+parcel's frozen desk) for `scale` activations, cash-capped; cash above the
+band flows to the farm's claim holders.
+
+**Shipper** (transport; recipe: wheat@A + fuel → wheat@B). Buys wheat at node
+A and fuel, sells wheat at node B; margin is the A→B spread minus fuel.
+Otherwise identical to the farm.
+
+**Labour margin** (pop). σ = (posted wage at the pop's bucket − parity) /
+parity. Wage above parity: π nudges up — more of the pair's supply is posted.
+Wage below parity: π nudges down and the withheld hours produce subsistence
+goods inside the pop's own perimeter ([pops.md](pops.md)). Posting itself is
+done by the employed/unemployed pair, both halves scaled by π.
+
+**Consumption desk** (pop). σ = (cash − reserve)/reserve: sustained income
+pushes the wealth tier up, sustained shortfall pushes it down; the basket at
+the current tier is bought subject to budget; no output is ever posted. At the
+top tier (the absorption cap) surplus cash becomes overflow → the minting
+queue.
+
+**Enclosed parcel**. Frozen: posts its service flow (Rule 1), never adjusts
+scale (no σ), pays revenue to claim holders (Rule 3).
