@@ -1,70 +1,73 @@
 use crate::state::{GameData, SimState};
-use crate::types::{delta::StateDelta, ids::OwnerId, recipe::InputScaling};
+use crate::types::{delta::StateDelta, recipe::InputScaling, recipe_instance::StrategyState};
 
-/// Phase 4: Buildings produce output based on chosen_size elected in Phase 1.
-/// Inputs are consumed from inventory (received via Phase 3 buy orders).
+/// Phase 4: Recipe instances produce output based on chosen_size elected in Phase 1.
+/// Inputs are consumed from input_inv. Output is placed into output_inv.
 /// Output scales proportionally to input fill: if inputs are short, output is short too.
-/// Parallelisable across buildings.
 pub fn run(state: &SimState, game_data: &GameData) -> Vec<StateDelta> {
     let mut deltas = Vec::new();
-    for building in &state.buildings {
-        let chosen = building.chosen_size;
+    for ri in &state.recipe_instances {
+        let chosen = ri.chosen_size;
         if chosen <= 0.0 {
             continue;
         }
-        let recipe = game_data.recipe(building.recipe);
+        let recipe = game_data.recipe(ri.recipe);
+
+        let efficiency = match &ri.strategy_state {
+            StrategyState::CapacityControl(cs) => cs.efficiency,
+            _ => 1.0,
+        };
 
         // Determine how much of each input is available and compute a common scale factor.
-        // If a building has no inputs, scale stays 1.0 (full production).
         let mut scale = 1.0f64;
         for input in &recipe.inputs {
             let desired = match input.scaling {
                 InputScaling::Variable => input.qty_per_unit * chosen,
-                InputScaling::Fixed => input.qty_per_unit * building.recipe_size,
+                InputScaling::Fixed => input.qty_per_unit * ri.recipe_size,
                 InputScaling::SemiVariable { floor, slope } => floor + slope * chosen,
             };
             if desired > 0.0 {
-                let available = building.inventory.get(input.good);
+                let available = state.inventory(ri.input_inv).get(input.good);
                 scale = scale.min(available / desired);
             }
         }
-        // scale is in [0, 1]: the fraction of desired inputs actually on hand.
         if scale <= 0.0 {
             continue;
         }
 
-        // Consume inputs scaled by actual throughput.
+        // Consume inputs from input_inv.
         for input in &recipe.inputs {
             let qty = match input.scaling {
                 InputScaling::Variable => input.qty_per_unit * chosen,
-                InputScaling::Fixed => input.qty_per_unit * building.recipe_size,
+                InputScaling::Fixed => input.qty_per_unit * ri.recipe_size,
                 InputScaling::SemiVariable { floor, slope } => floor + slope * chosen,
             } * scale;
             if qty > 0.0 {
                 deltas.push(StateDelta::RemoveFromInventory {
-                    owner: OwnerId::Building(building.id),
+                    inv: ri.input_inv,
                     good: input.good,
                     qty,
                 });
             }
         }
 
-        // Produce outputs scaled by the same factor.
+        // Produce outputs into output_inv.
         for output in &recipe.outputs {
-            let qty = output.qty_per_unit * chosen * building.efficiency * scale;
+            let qty = output.qty_per_unit * chosen * efficiency * scale;
             if qty > 0.0 {
                 deltas.push(StateDelta::AddToInventory {
-                    owner: OwnerId::Building(building.id),
+                    inv: ri.output_inv,
                     good: output.good,
                     qty,
+                    life: game_data.good(output.good).shelf_life.initial_life(),
                 });
             }
         }
 
         let throughput = chosen * scale;
         if throughput > 0.0 {
-            deltas.push(StateDelta::SetBuildingLastThroughput {
-                building: building.id,
+            deltas.push(StateDelta::SetInstanceLastThroughput {
+                instance: ri.id,
                 throughput,
             });
         }

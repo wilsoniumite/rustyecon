@@ -23,3 +23,24 @@ Design phase. No Rust code yet.
 - Weekly ticks by default; tick duration is configurable
 - Headless-first; Python notebooks are the primary analysis interface
 - Rust, intermediate level
+
+## Current project state:
+
+- ./src contains the rust program that runs scenarios. You don't need to pass --scenario to the binary
+- We generally output to ./tmp
+- We store example scenarios in ./data/scenarios
+- When running python make sure to use the venv in ./venv
+- We have some test and analysis scripts in python in ./notebooks
+- There are python utilities in ./tools
+- There is a streamlit app for creating, editing, running, and visualizing scenarios in ./tools
+- There is a scenario, multi_region, that is used as a base by ./notebooks/06_labour_test_suite.py to generate other scenarios with the prefix lr. They represent the stability suite that can be evaluated by ./notebooks/07_stability_suite.py
+
+
+### next steps:
+- Try and stabilize test regions
+
+### TODOs for later, put here to not forget them
+- the ./docs might be a bit out of date
+- we should have more tests in the rust code itself and in ./tests
+- we should probably use the ema smoothed prices in simstate more, instead of storing our own smoothed variables on all recipes.
+- storage_cost_per_tick should be removed from goods, will be handled later some other way.

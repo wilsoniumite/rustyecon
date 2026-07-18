@@ -208,6 +208,20 @@ mechanisms are connected but distinct.
 
 ## Design Principles
 
+### Costs Are Quantities of Goods, Never Fixed Currency Amounts
+
+Every recipe input and every operational cost must be expressed as a quantity of
+a market good — including labour. Hardcoding a cost in currency units (e.g. a
+recipe that consumes 0.1 GBP per unit as an operating cost) pins the expense
+outside the price mechanism and prevents the market from reaching equilibrium.
+The correct model is always: express the cost as a quantity of some good whose
+price floats freely. If the real cost is wages, model it as a quantity of the
+labour good. If it is fuel, model it as a quantity of the coal good.
+
+This also rules out nominal wage floors. A floor expressed in GBP is a hardcoded
+price and forbidden. A floor relative to the pop's cost of living — computed from
+market prices — is acceptable because it is endogenous to the price system.
+
 ### Agents Are Bounded Rational
 
 All agent decisions (building production, channel operator flow volumes, pop

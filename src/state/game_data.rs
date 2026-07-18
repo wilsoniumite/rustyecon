@@ -32,9 +32,6 @@ pub struct GameData {
     #[serde(default)]
     pub channels: Vec<ChannelDef>,
     pub regions: Vec<RegionDef>,
-    /// The good used as currency. If None, all budgets are unlimited.
-    #[serde(default)]
-    pub currency_good: Option<GoodId>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

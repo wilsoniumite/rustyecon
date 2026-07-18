@@ -19,7 +19,8 @@ This system covers:
 - Buying: substitution within tiers, minimum demand
 - Savings and the wealth signal
 - Wealth drift: how W changes over time
-- Labour supply to buildings
+- Labour supply and the employed/unemployed pair model
+- Peasants as a distinct subsistence pop type
 
 Explicitly deferred to other systems or future design:
 - Pop growth, mortality, and migration (Pop Evolution — stub)
@@ -33,15 +34,15 @@ Explicitly deferred to other systems or future design:
 ## Pop Groups
 
 A pop group is an aggregate of people sharing a job category, cultural identity,
-and region. It is not a collection of individuals. Its size is an `f64` — smooth
-dynamics, no integer discontinuities. Pop groups are the atomic unit of the
-population model: they employ at buildings, they buy goods, and they save.
+and region. It is not a collection of individuals. Its size is a continuous
+value — smooth dynamics, no integer discontinuities. Pop groups are the atomic
+unit of the population model: they supply labour, buy goods, and save.
 
-A pop group is not the same as a wealth tier. Wealth `W` is a continuous signal
+A pop group is not the same as a wealth tier. Wealth W is a continuous signal
 per pop group that changes over time. A group of factory workers in Manchester
-in 1840 starts at some `W` and drifts based on their wages and the cost of
+in 1840 starts at some W and drifts based on their wages and the cost of
 living. Two factory worker groups in different regions with different wages will
-have different `W` values even if they share a job category.
+have different W values even if they share a job category.
 
 ---
 
@@ -72,7 +73,7 @@ liquid on this timescale and therefore does not enter L.
 ## Need Tiers
 
 Each pop group has a set of active **need tiers** determined by its current
-wealth level `W`. A need tier is a specific consumption target that unlocks at
+wealth level W. A need tier is a specific consumption target that unlocks at
 a wealth threshold and does not cross wealth thresholds for substitution
 purposes.
 
@@ -102,37 +103,25 @@ create a nonzero price, not enough to sustain an industry.
 ## Buying: Decisions and Substitution
 
 In Phase 1, the pop group posts buy orders based on current targets, limited by
-the liquid pool `L`.
+the liquid pool L.
 
 **Budget allocation**: the liquid pool is allocated across active tiers by
 weights derived from the current wealth level (interpolated from config). A
-poor pop allocates most of `L` to food and energy tiers; a rich pop allocates
+poor pop allocates most of L to food and energy tiers; a rich pop allocates
 less to basic tiers and more to luxury and financial tiers.
 
 For each tier, the budget determines how much currency is available for goods
-in that tier. The buy order for each good within a tier is:
+in that tier. The quantity ordered for each good is the minimum of the current
+target and what the tier budget can afford at last tick's price — surplus tier
+budget goes to savings.
 
-```
-ordered_qty[i] = min(current_target[i], tier_budget × share[i] / price_last_tick[i])
-```
-
-The `min` prevents buying beyond the current target even when budget is
-abundant — surplus tier budget goes to savings. `share[i]` is the within-tier
-allocation share for good `i`, which drifts toward the price-optimal allocation.
-
-**Within-tier substitution**: shares drift toward the cheapest price per unit of
-satisfaction. For good `i` in a tier where each unit provides
-`satisfaction_per_unit[i]` of the tier target:
-
-```
-effective_cost[i] = price_last_tick[i] / (pref_weight[i] × satisfaction_per_unit[i])
-ideal_share[i] ∝ 1 / effective_cost[i]   (normalised, then clamped to [min_share, max_share])
-```
-
-Actual shares drift toward `ideal_share` at a maximum rate of 10% of total
-tier budget per tick, preventing abrupt switches. Preference weights and clamp
-bounds are configured per good per tier. Cultural and religious modifiers adjust
-preference weights via laws and scripted events.
+**Within-tier substitution**: each good's share of the tier budget drifts
+toward the allocation that minimises effective cost per unit of satisfaction,
+where effective cost accounts for the good's price and the pop's preference
+weight for it. Shares are clamped to configured min and max bounds per good.
+Actual shares drift toward the ideal at a bounded rate per tick, preventing
+abrupt switches. Cultural and religious modifiers adjust preference weights
+via laws and scripted events.
 
 Prices appear only to compute quantities from spend and to determine the ideal
 share ordering. The pop does not compare prices across tiers.
@@ -141,165 +130,165 @@ share ordering. The pop does not compare prices across tiers.
 
 ## Savings and the Wealth Signal
 
-After market clearing, the pop knows `actual_spend`:
+After market clearing the pop computes savings as the liquid pool minus actual
+spend. Savings are split: a wealth-dependent fraction goes to bank deposits
+(1-tick credit instruments that mature next tick), the rest is retained as cash.
+The deposit fraction rises with wealth and is modified by laws governing
+financial sector access.
 
-```
-savings = L − actual_spend
-```
-
-Savings are split between cash reserve and new deposits:
-
-```
-new_deposits = savings × deposit_fraction(W, laws)
-cash_reserve  = savings × (1 − deposit_fraction)
-```
-
-`deposit_fraction` rises with wealth and is modified by laws (financial sector
-access, deposit interest rates). In Era 1, subsistence and low-wealth pops
-typically hold all savings as cash; middle and upper pops access bank deposits.
-
-Deposits are 1-tick credit instruments. They appear in the pop's buy order for
-that instrument and mature next tick, returning currency to the liquid pool.
-They are not a consumption category — they are a savings vehicle. Longer-
-duration credit instruments and investment company shares are purchased as
-consumption at higher wealth tiers (financial tier) but do not count as liquid
-savings.
-
-**The wealth signal** compares total savings to a target buffer:
-
-```
-savings_target(W) = savings_fraction(W) × last_tick_spend
-```
-
-where `savings_fraction(W)` rises from ~10% at low wealth to ~70% at high
-wealth. A low-wealth pop has enough savings signal when it holds one week's food
-budget in reserve; a high-wealth pop needs several months of lifestyle spend.
-
-```
-savings_ratio = savings / savings_target(W)
-drift_signal  = savings_ratio − 1.0
-```
-
-Positive: flush, wealth pressure upward. Negative: tight, pressure downward.
-The magnitude of `drift_signal` scales with how far savings are from target —
-further from target means faster wealth adjustment.
+The wealth signal compares savings to a target buffer proportional to last
+tick's spend. The savings fraction of that target rises with wealth — a
+subsistence pop needs roughly one week's food budget in reserve; a high-wealth
+pop needs several months of lifestyle spend. The gap between actual savings and
+target determines the direction and speed of wealth drift.
 
 ---
 
 ## Wealth Drift
 
-`W` is a continuous value drifting based on the savings signal.
+W is a continuous value that drifts each tick based on the savings signal.
 
-### Going up (drift_signal > 0)
+**When savings exceed the target** (pop is flush), W rises. As W rises,
+active tiers may unlock and targets jump to the aspirational upper bound at
+the new wealth level. The pop immediately tries to reach new higher targets,
+which typically depresses savings temporarily until income catches up.
 
-```
-W ← W + α × drift_signal
-current_target[i] ← upper_bound(W, i)   for all i
-```
+**When savings fall short of the target** (pop is stretched), targets are
+trimmed first before W falls. Targets trim uniformly toward their lower bounds;
+only once all targets are at their lower bounds does W itself decrease. A lower
+W has lower lower-bounds, easing cost pressure and allowing savings to rebuild.
+This is the genuine downward mobility path: deprivation sustained long enough
+that the pop revises down its baseline expectations.
 
-As `W` rises, active tiers may unlock and targets jump to the aspirational
-upper bound at the new wealth level. The pop immediately tries to reach new
-higher targets — which typically depresses savings temporarily until income
-catches up.
-
-### Going down (drift_signal < 0)
-
-First, trim above-lower-bound targets uniformly before reducing `W`:
-
-```
-for each good i where current_target[i] > lower_bound(W, i):
-    excess = current_target[i] − lower_bound(W, i)
-    current_target[i] ← current_target[i] − trim_rate × |drift_signal| × excess
-```
-
-Targets cannot be trimmed below `lower_bound(W, i)`. If all targets are already
-at their lower bounds and `drift_signal` is still negative, `W` decreases:
-
-```
-W ← W + α × drift_signal   (negative, so W falls)
-current_target[i] ← lower_bound(W, i)   for all i
-```
-
-A lower `W` has lower lower-bounds, easing cost pressure and allowing savings
-to rebuild. This is the genuine downward mobility path: deprivation sustained
-long enough that the pop revises down its baseline expectations.
-
-`W` is clamped to [0, W_max] at all times. `α` and `trim_rate` are calibration
-parameters. The trimming mechanism makes downward mobility slower and stickier
-than upward mobility, which is realistic.
+The trimming mechanism makes downward mobility slower and stickier than upward
+mobility, which is realistic. W is bounded below at zero and above at a
+configured maximum.
 
 ---
 
 ## Labour Supply
 
-Labour is a good in the simulation with `movement_type = Local`. Pop groups
-supply labour to buildings in their region. A building's recipe specifies how
-much labour it demands per unit of recipe size; the pop group posts sell orders
-for that labour at the prevailing wage.
+Labour is a good with `movement_type = Local`. Pop groups are stored as
+**employed/unemployed pairs**: one employed half and one unemployed half,
+sharing a job category, culture, and region. The pair is the atomic unit of
+the population model. Both halves post labour sell orders to the regional
+market; buildings buy from that pool as recipe inputs. There is no direct
+employer-employee assignment — labour clears as a pooled regional market good
+and wages emerge from imbalance.
 
-// TODO: the mechanics of how wages are set, how pops decide which buildings
-// to work at, and what happens when a pop is unemployed or underemployed are
-// not yet decided. These are core to Pop Evolution and will be designed there.
+**Employed pops** always post their full labour supply (size × labour_rate).
+They do not reduce supply in response to falling wages; employed workers don't
+typically quit over a pay cut.
+
+**Unemployed pops** post supply proportionally to their last-tick fill rate.
+If 60% of their posted supply sold last tick, they post 60% of full supply this
+tick. This gives downward wage stickiness without hardcoding any price level:
+when demand falls and fill rates drop, the unemployed withdraw partially from
+the market, reducing downward pressure on wages.
+
+After clearing each tick, employed and unemployed sizes are redistributed so
+that employed size equals fill_rate × total_pair_size, with the remainder
+unemployed. W belongs to each half independently and does not cross the
+boundary — only size and inventory move. Total inventory is redistributed
+proportionally to the new sizes in the same step.
+
+A large unemployment shock deposits substantial savings into the unemployed
+half. The savings signal reads as flush, which would normally push W up — but
+the derivative term of the wealth controller (which reflects that W was already
+falling) dampens this, giving the cohort time to survive on their savings
+rather than immediately spending down.
+
+Each half is always retained even at zero size, so that W is preserved across
+periods of full employment or full unemployment. If the unemployed half of a
+pair has never existed and pops flow into it for the first time, it initialises
+with W equal to the employed half's current W.
+
+// TODO: labour_rate (supply per unit of pop size) — likely a per-job-category
+// config value rather than per-pair.
 
 ---
 
-## State It Owns
+## Peasants
 
-**In SimState (runtime):**
-- Per pop group: id, region, job category, cultural identity, size (f64)
-- W: continuous wealth level
-- current_target[i]: target quantity per good (may be below upper_bound(W,i))
-- share[c][i]: within-tier allocation shares, one per good per tier
-- Inventory: currency (primarily); goods are consumed immediately and not stored
-- last_tick_spend: total currency spent last tick (used for savings_target)
+Peasants are a special pop type that exists outside the normal
+employed/unemployed building-labour loop. They do not work at buildings. They
+are a model of subsistence agriculture: self-sufficient, market-peripheral, and
+a structural buffer against famine and rapid urbanisation.
 
-**In game data (static):**
-- Need tier definitions: unlock threshold, goods, satisfaction_per_unit,
-  pref_weight, min_share, max_share
-- Upper and lower target bounds per tier per discrete wealth level
-- Category weights per discrete wealth level
-- savings_fraction per discrete wealth level
-- deposit_fraction per discrete wealth level (also law-modified)
+**Role in the economy:**
+- Are themselves famine-immune: their subsistence production covers their own
+  consumption regardless of market prices. Extreme cases (plague, conquest) can
+  be modelled via scripted events.
+- Protect others against famine by providing a small but unconditional local
+  food supply that is not dependent on market prices or supply chains.
+- Exert little pressure on wages — their labour supply to market is small and
+  driven by savings surplus, not wage rates.
+- Act as a stickiness against urbanisation: a peasant leaving subsistence means
+  giving up land security and accepting market dependency.
+- Are displaced by industrial farming recipes, which compete for agricultural land.
+- Have no wealth signal W and never post buy orders to any market. They do not
+  participate as consumers.
 
-**Scenario-variable:**
-- Starting pop group distributions per region (size, job, culture, W)
-- Cultural and religious preference weight modifiers (via state deltas)
+**Land holdings:**
+Peasants hold agricultural land in their inventory like any other good. Regional
+laws govern the maximum fraction of their land they may post for sale. Within
+that legal ceiling, peasants modulate their posted sell quantity between zero
+and the maximum, using bespoke logic that targets the current EMA price of land
+— posting more when the market price is above EMA, less when below, to avoid
+both dumping and hoarding. If demand is strong enough, prices will still rise
+despite this modulation; the mechanism prevents collapse, not appreciation.
+
+When land sells, the proceeds and the corresponding peasant size flow to the
+unemployed half of the unskilled pop pair for the same region. The profits from
+the sale go to that newly-displaced unemployed half, not back to the remaining
+peasants. The peasant size shrinks by the amount displaced.
+
+**Subsistence production:**
+Peasants are magic producers of a very small quantity of the most basic staple
+goods — approximately 10% of the lowest-wealth-tier need per unit of size. This
+supply is not market-responsive. It is enough to keep the peasant alive and
+create a latent price signal for basic goods, but not enough to supply an
+industrial population.
+
+**Labour supply and graduation:**
+Peasants do not post labour supply based on wages or cost of living. Their
+market participation is governed by their savings surplus relative to
+subsistence: they compute how much of their size their savings could support at
+the lowest-wealth-level spending rate and their savings target, and post that
+as labour supply. As savings accumulate beyond what local subsistence requires,
+more supply is posted; as savings deplete, they withdraw.
+
+When a peasant's posted labour is purchased, that fraction of their size
+graduates into the unskilled employed half for the same region. They carry a
+proportional share of their total inventory with them, including any land held.
 
 ---
 
 ## Open Questions
 
-**Labour mechanics.** How wages are set, how pops choose employers, and what
-the consequences of unemployment are. Deferred to Pop Evolution.
-
 **Pop satisfaction beyond wealth.** The wealth signal captures material welfare.
 Other dimensions — safety, freedom, community — may matter for political
 pressure and migration but are not yet designed.
 
-**Subsistence failure.** What happens when a pop cannot afford even lower-bound
-targets and has no savings? The model has W falling, but at W=0 with empty
-savings, the pop is in genuine subsistence crisis. Does it shrink? Emigrate?
-Die? These are Pop Evolution questions with major scenario implications.
+**Subsistence failure at W=0.** At zero wealth with empty savings, a non-peasant
+pop is in genuine crisis. The model has W floored at zero but does not yet
+specify what happens next. Shrinkage, emigration, and death are all Pop Evolution
+questions with major scenario implications.
 
 **Cultural preference weight dynamics.** Preference weights are modified by
-laws and scripted events. Should they also drift based on consumption history
-(pops acquire taste for goods they've consumed)? Not decided.
+laws and scripted events. Should they also drift based on consumption history?
+Not decided.
 
 ---
 
 ## Known Simplifications
 
 - **Buy = consume for all goods**: durable goods are modelled as recurring
-  maintenance spend rather than one-time purchases. This avoids tracking
-  depreciation of pop-owned capital.
+  maintenance spend rather than one-time purchases.
 - **No pop-level skill tracking**: all labour within a job category is treated
   as homogeneous. Skill differentiation is deferred to Pop Evolution.
-- **Immediate consumption**: goods in pop inventory exist only for the duration
-  between Phase 3 (transactions) and the start of the next tick. They are not
-  held across ticks.
-- **Single wealth signal per group**: a pop group is modelled as having a
-  single W rather than a distribution of wealth within the group. In reality,
-  a factory worker group contains some workers doing better than others.
+- **Single wealth signal per half**: a pop half is modelled with a single W
+  rather than a distribution of wealth within the group.
 
 ---
 
@@ -308,62 +297,17 @@ laws and scripted events. Should they also drift based on consumption history
 - A subsistence pop receiving a 20% wage increase should drift up one wealth
   tier within 2–5 simulated years, not immediately.
 - A middle-wealth pop facing a 30% sustained price increase should begin
-  trimming luxury targets within 1–3 ticks and begin losing wealth tier
-  within 2–4 simulated years if wages do not recover.
+  trimming luxury targets within a few ticks and begin losing wealth tier
+  within a few simulated years if wages do not recover.
 - In a region with abundant cheap food and scarce luxury goods, wealthy pops
   should show sustained high wealth but frustrated luxury demand — not
   spontaneously downgrade their W due to unavailability.
-- Within a tier, a good that becomes 50% cheaper relative to peers should
-  capture roughly 20–40% more of that tier's budget within 5–10 ticks, with
-  the drift cap preventing faster switching.
-- UBI equal to 50% of subsistence cost should measurably shift the average W
-  of subsistence pops upward within 1–2 simulated years.
-
----
-
-## Tick-Time Sensitivity
-
-- `last_tick_spend`, `savings_target`, and all per-tick quantities are already
-  in per-tick terms and scale naturally with tick duration.
-- `α` (wealth drift rate) and `trim_rate` must be specified in per-week terms
-  and scaled by `tick_duration_days / 7.0`. Drift too fast at short ticks
-  causes oscillation; drift too slow at long ticks makes wealth unresponsive.
-- The 10% per tick cap on within-tier share drift was derived from Vic3's
-  weekly tick. At longer tick durations, this cap should scale accordingly
-  (e.g., 30% per month at 30-day ticks).
-
----
-
-## Stability Conditions
-
-After each tick:
-- Total currency across all pop group inventories changes only by: wages
-  received, dividends received, credit maturity payouts, and goods purchased
-  (currency transferred to sellers). No currency created or destroyed by pop
-  decisions alone.
-- All `share[c][i]` values remain in [min_share, max_share] and sum to 1
-  within each tier.
-- `W` remains in [0, W_max].
-- `current_target[i]` remains in [lower_bound(W,i), upper_bound(W,i)] for
-  all goods i.
-
----
-
-## Test Coverage Plan
-
-- **Unit**: liquid pool computation; savings_target formula; drift_signal
-  calculation; target trimming arithmetic; within-tier share drift with cap.
-- **Scenario**: isolated pop group with fixed wage and fixed prices — verify
-  W converges to a stable level; verify savings stabilise at savings_target.
-- **Scenario**: price shock — food prices double; verify targets trim toward
-  lower bounds; verify W eventually falls if wages don't cover new costs.
-- **Scenario**: wage increase — verify W rises over time; verify luxury tier
-  unlocks; verify new tier targets are purchased once W crosses threshold.
-- **Scenario**: within-tier substitution — two goods in same food tier, one
-  becomes 50% cheaper; verify share drifts toward cheaper good over ~10 ticks;
-  verify more expensive good retains min_share.
-- **Calibration**: UBI scenario — add UBI equal to 50% subsistence cost;
-  verify subsistence pops gain wealth tier within expected timeframe.
+- Within a tier, a good that becomes significantly cheaper relative to peers
+  should capture a meaningfully larger share of that tier's budget within
+  roughly 5–10 ticks.
+- A large sudden unemployment shock should leave the newly-unemployed cohort
+  able to sustain spending for at least several months before W begins falling
+  noticeably, if they had meaningful savings before displacement.
 
 ---
 
@@ -374,9 +318,7 @@ After each tick:
 - **Skill-differentiated labour**: recipes specifying skill-tier labour
   inputs. Requires Pop Evolution to define skill accumulation.
 - **Pop satisfaction as a system output**: tracking how well each pop group's
-  needs are met as a primary output for policy analysis (the UBI/VAT question
-  is ultimately a satisfaction question).
+  needs are met as a primary output for policy analysis.
 - **Cultural preference drift**: pops acquiring taste for goods they consume.
-  Relevant for modelling how consumer preferences shift over eras.
 - **Political pressure**: pop satisfaction and wealth gap feed into political
   pressure on government. Deferred to Politics seam.

@@ -5,20 +5,46 @@ use crate::types::{
     order::{Order, OrderSide},
 };
 
+/// Units of labour supplied per unit of pop size. Scales with recipe demand side.
+const LABOUR_RATE: f64 = 1.0;
+
 /// Maximum wealth drift per tick in either direction (normal conditions).
-const MAX_DRIFT: f64 = 5.0;
-/// Controls how fast wealth drifts toward the savings target.
-/// excess_ratio = remaining/target_remaining − 1 → drift = excess_ratio * DRIFT_RATE, clamped.
-const DRIFT_RATE: f64 = 4.0;
+const MAX_DRIFT: f64 = 3.0;
+/// P-gain on balance_ratio = balance / target_balance - 1.
+/// target_balance = ema_spending / (1 - sr) (savings target in cash terms).
+const KP: f64 = 0.03;
+/// D-gain on the tick-to-tick change in balance_ratio.
+/// balance_ratio is already smooth (ema_spending denominator), so no further smoothing needed.
+const KD: f64 = 0.2;
+/// EMA factor for spending smoothing
+const SPEND_ALPHA: f64 = 0.3;
+const BALANCE_ALPHA: f64 = 0.02;
 /// Maximum fraction each substitution allocation can shift per tick.
 const MAX_SUB_SHIFT: f64 = 0.05;
 
 pub fn run(state: &SimState, game_data: &GameData, deltas: &mut Vec<StateDelta>, orders: &mut Vec<Order>) {
-    let currency = game_data.currency_good;
-
     for pop in &state.pop_groups {
         let node = game_data.region(pop.region).market_node;
-        let balance = currency.map(|c| pop.inventory.get(c)).unwrap_or(f64::INFINITY);
+        let currency = game_data.market_node(node).currency_good;
+
+        // ── Labour sell orders ────────────────────────────────────────────────
+        if let Some(labour_good) = pop.labour_good {
+            let supply = if pop.is_employed {
+                pop.size * LABOUR_RATE
+            } else {
+                pop.size * LABOUR_RATE * pop.last_labour_fill_rate
+            };
+            if supply > 0.0 {
+                orders.push(Order {
+                    node,
+                    good: labour_good,
+                    side: OrderSide::Sell,
+                    owner: OwnerId::PopGroup(pop.id),
+                    qty: supply,
+                });
+            }
+        }
+        let balance = currency.map(|c| state.inventory(pop.inventory).get(c)).unwrap_or(f64::INFINITY);
 
         // ── Resolve sub_state (initialise from defaults if empty) ────────────
         let sub_state: Vec<Vec<f64>> = if pop.sub_state.len() == game_data.need_categories.len() {
@@ -91,25 +117,40 @@ pub fn run(state: &SimState, game_data: &GameData, deltas: &mut Vec<StateDelta>,
             }
         }
 
-        // ── Step 5: wealth drift from savings target ──────────────────────────
+        // ── Step 5: wealth drift ──────────────────────────────────────────────
         let new_wealth = if let Some(_) = currency {
             let sr = pop.savings_target.clamp(0.0, 0.9999);
-            let actual_cost = basket_cost * scale;
-            let remaining = (balance - actual_cost).max(0.0);
 
-            let excess_ratio = if sr > 0.0 && actual_cost > 1e-9 {
-                let target_remaining = actual_cost * sr / (1.0 - sr);
-                remaining / target_remaining.max(1e-12) - 1.0
-            } else if remaining > 1e-9 {
-                1.0 // has money, no target → treat as excess
+            let actual_cost = basket_cost * scale;
+
+            // Update EMA of spending; seed from actual_cost on the very first tick.
+            let new_ema = if pop.ema_spending < 1e-12 {
+                actual_cost
             } else {
-                0.0
+                SPEND_ALPHA * actual_cost + (1.0 - SPEND_ALPHA) * pop.ema_spending
+            };
+            // Update EMA of balance; seed from actual balance on the very first tick.
+            let new_ema_balance = if pop.ema_balance < 1e-12 && balance > 1e-12 {
+                balance
+            } else {
+                BALANCE_ALPHA * balance + (1.0 - BALANCE_ALPHA) * pop.ema_balance
             };
 
-            let drift = (excess_ratio * DRIFT_RATE).clamp(-MAX_DRIFT, MAX_DRIFT);
+            let target_spend = new_ema_balance * (1.0 - sr);
+            // No drift signal until the pop has a spending history to compare against.
+            // Dividing by near-zero ema causes runaway wealth when a pop can't yet buy goods.
+            let (relative_spend_error, drift) = if new_ema < 1e-9 {
+                (0.0, 0.0)
+            } else {
+                let rse = (target_spend - new_ema) / new_ema;
+                let d = (KP * rse + KD * (rse - pop.prev_spend_error)).clamp(-MAX_DRIFT, MAX_DRIFT);
+                (rse, d)
+            };
             let new_wealth = (wealth + drift).max(0.0);
-            println!("Pop {} wealth drift: {:.3} -> {:.3} (excess_ratio={:.3}, drift={:.3}, balance={:.2}, cost={:.2}, sr={:.2})",
-                pop.id.0, wealth, new_wealth, excess_ratio, drift, balance, actual_cost, sr);
+            println!("Pop {} wealth drift: {:.3} -> {:.3} (rse={:.3}, drift={:.3}, balance={:.2}, target_spend={:.2}, ema_spend={:.2})",
+                pop.id.0, wealth, new_wealth, relative_spend_error, drift, new_ema_balance, target_spend, new_ema);
+            deltas.push(StateDelta::SetPopEmaState { pop: pop.id, ema_spending: new_ema, ema_balance: new_ema_balance });
+            deltas.push(StateDelta::SetPopPrevSpendError { pop: pop.id, spend_error: relative_spend_error });
             new_wealth
         } else {
             wealth // no currency system → wealth is static

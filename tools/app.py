@@ -1013,7 +1013,7 @@ def render_run():
     default_out = str(REPO_ROOT / "tmp" / scenario)
 
     c1, c2, c3 = st.columns(3)
-    ticks            = c1.number_input("Ticks", min_value=1, value=100, step=10)
+    ticks            = c1.number_input("Ticks", min_value=1, value=1000, step=100)
     human_save_every = c2.number_input("Save RON every N ticks (0 = off)", min_value=0, value=1, step=1)
     output_dir       = c3.text_input("Output dir", value=default_out)
 
@@ -1124,8 +1124,12 @@ def _auto_label(cfg: dict, res: ScenarioResults) -> str:
 
     if m == "inventory":
         et = cfg.get("entity_type", "pop")
-        eid = cfg.get("entity_id", 0)
-        parts.append(f"{et} {eid}")
+        if et == "building":
+            _, label = _make_bld_labeller(res)
+            parts.append(label(cfg.get("entity_id", 0)))
+        else:
+            eid = cfg.get("entity_id", 0)
+            parts.append(f"{et} {eid}")
         if cfg.get("good_name"):
             parts.append(cfg["good_name"])
         return " · ".join(parts)
@@ -1245,7 +1249,7 @@ def _filter_res(res: ScenarioResults, lo: int, hi: int) -> ScenarioResults:
     return ScenarioResults(
         good_name=res.good_name, recipe_name=res.recipe_name,
         region_name=res.region_name, node_to_region=res.node_to_region,
-        currency_good_id=res.currency_good_id,
+        node_currency=res.node_currency,
         channel_to_regions=res.channel_to_regions,
         prices=f(res.prices), buildings=f(res.buildings),
         pops=f(res.pops), inventories=f(res.inventories),

@@ -1,4 +1,4 @@
-use crate::types::ids::{BuildingId, ChannelId, MarketNodeId};
+use crate::types::ids::{ChannelId, MarketNodeId, RecipeInstanceId};
 use serde::{Deserialize, Serialize};
 
 /// Static channel definition (in GameData). Channels are directed.
@@ -23,8 +23,8 @@ pub enum ChannelType {
 pub struct ChannelState {
     /// 0.0 = fully blocked, 1.0 = free flow. Modified by laws (tariffs, capital controls).
     pub regulatory_factor: f64,
-    /// Which building currently occupies this channel slot, if any.
-    pub occupant: Option<BuildingId>,
+    /// Which recipe instance currently occupies this channel slot, if any.
+    pub occupant: Option<RecipeInstanceId>,
 }
 
 impl Default for ChannelState {

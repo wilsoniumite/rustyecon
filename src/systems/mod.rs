@@ -1,4 +1,3 @@
-pub mod auto_recipes;
 pub mod clearing;
 pub mod decisions;
 pub mod pop_update;
@@ -13,13 +12,13 @@ use crate::types::delta::StateDelta;
 /// Run one complete tick.
 ///
 /// Phase order:
-///   0  Events      — recurring (UBI etc.) + one-shot (shocks, unlocks)
-///   1  Decisions   — agents post orders; pops snapshot their currency balance
+///   0  Events      — recurring + one-shot (shocks, unlocks)
+///   1  Decisions   — agents post orders (reads last tick's state)
 ///   2  Clearing    — aggregate supply/demand, compute fill rates and imbalances
 ///   3  Transactions— goods move, currency settles
-///   4  Pop update  — consume received goods, adjust unbounded targets via savings ratio
-///   5  Production  — buildings transform inputs into outputs
-///   6  Auto-recipes— spoilage, maturity (stub; reserved for future)
+///   4  Pop update  — consume received goods, wealth drift, labour redistribution
+///   5  Production  — buildings transform inputs into outputs (new stock enters inventory)
+///   6  Spoilage    — advance lot life counters; remove expired lots from all inventories
 ///   7  Price update— posted prices for next tick from imbalances
 pub fn run_tick(state: &mut SimState, game_data: &GameData, events: &EventSchedule) {
     // Phase 0 — Events (recurring + one-shot; UBI fires here as recurring delta)
@@ -46,9 +45,12 @@ pub fn run_tick(state: &mut SimState, game_data: &GameData, events: &EventSchedu
     let d = production::run(state, game_data);
     apply_state_deltas(state, &d);
 
-    // Phase 6 — Auto-recipes (spoilage/maturity stub)
-    let d = auto_recipes::run(state, game_data);
-    apply_state_deltas(state, &d);
+    // Phase 6 — Spoilage: advance lot life counters on all inventories.
+    // Running after production ensures newly produced lots are decremented but not
+    // immediately removed (a lot with life=1 survives this tick and the next).
+    for inv in &mut state.inventories {
+        inv.spoil_lots();
+    }
 
     // Phase 7 — Price update
     let d = price_update::run(state, game_data);

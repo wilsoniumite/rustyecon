@@ -376,10 +376,10 @@
             id: MarketNodeId(0),
             tier: Regional,
             region: Some(RegionId(0)),
+            currency_good: Some(GoodId(2)),
         ),
     ],
     channels: [],
-    currency_good: Some("GBP"),
     regions: [
         (
             id: RegionId(0),

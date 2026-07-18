@@ -1,4 +1,4 @@
-use crate::types::ids::{BuildingId, GoodId, MagicProducerId, MarketNodeId, OwnerId, PopGroupId};
+use crate::types::ids::{GoodId, InventoryId, MagicProducerId, MarketNodeId, PopGroupId, PopPairId, RecipeInstanceId};
 use serde::{Deserialize, Serialize};
 
 /// Every mutation the simulation can express. The only path to modifying SimState.
@@ -29,63 +29,71 @@ pub enum StateDelta {
     // --- Inventories ---
 
     AddToInventory {
-        owner: OwnerId,
+        inv: InventoryId,
         good: GoodId,
         qty: f64,
+        /// Initial lot life. `None` = indefinite. Defaults to `None` for backward-compat
+        /// (e.g. events loaded from RON that predate the lots system).
+        #[serde(default)]
+        life: Option<u32>,
     },
 
     RemoveFromInventory {
-        owner: OwnerId,
+        inv: InventoryId,
         good: GoodId,
         qty: f64,
     },
 
-    // --- Building state ---
+    // --- RecipeInstance state ---
 
     SetChosenSize {
-        building: BuildingId,
+        instance: RecipeInstanceId,
         size: f64,
     },
 
     SetRecipeSize {
-        building: BuildingId,
+        instance: RecipeInstanceId,
         size: f64,
     },
 
     SetEfficiency {
-        building: BuildingId,
+        instance: RecipeInstanceId,
         efficiency: f64,
     },
 
     SetTransferTarget {
-        building: BuildingId,
-        target: Option<BuildingId>,
+        instance: RecipeInstanceId,
+        target: Option<RecipeInstanceId>,
     },
 
-    /// Remove a building entirely (on exit). Components should have been released first.
-    RemoveBuilding {
-        building: BuildingId,
+    /// Remove a recipe instance (on exit). Components should have been released first.
+    RemoveRecipeInstance {
+        instance: RecipeInstanceId,
     },
 
-    /// Adjust a building's notional P&L balance by the given signed amount.
+    /// Adjust a CapacityControl instance's notional P&L balance by the given signed amount.
     /// Positive = revenue received; negative = input cost incurred.
-    AdjustBuildingBalance {
-        building: BuildingId,
+    AdjustInstanceBalance {
+        instance: RecipeInstanceId,
         amount: f64,
     },
 
-    /// Record the margin observed this tick (output price revenue minus input cost per unit of
-    /// recipe_size). Read next tick as last_margin for the D-term capacity adjustment.
-    SetBuildingLastMargin {
-        building: BuildingId,
+    /// Record the margin observed this tick. Only meaningful for CapacityControl.
+    SetInstanceLastMargin {
+        instance: RecipeInstanceId,
         margin: f64,
     },
 
-    /// Record actual throughput (chosen × input fill scale) from production this tick.
-    /// Only emitted when throughput > 0, so the last productive level persists across idle ticks.
-    SetBuildingLastThroughput {
-        building: BuildingId,
+    /// Record actual throughput from production this tick. Only meaningful for CapacityControl.
+    SetInstanceLastThroughput {
+        instance: RecipeInstanceId,
         throughput: f64,
+    },
+
+    /// Update smoothed_input_cost for a DividendPayout instance.
+    SetDividendSmoothedCost {
+        instance: RecipeInstanceId,
+        cost: f64,
     },
 
     // --- Pop wealth and substitution state ---
@@ -95,6 +103,35 @@ pub enum StateDelta {
 
     /// Replace a pop's substitution-state fractions for all need categories.
     SetPopSubState { pop: PopGroupId, sub_state: Vec<Vec<f64>> },
+
+    /// Update the EMA of actual spending and EMA of balance used by the wealth PD controller.
+    SetPopEmaState { pop: PopGroupId, ema_spending: f64, ema_balance: f64 },
+
+    /// Store prev_spend_error for the D-term of the wealth PD controller.
+    SetPopPrevSpendError { pop: PopGroupId, spend_error: f64 },
+
+    /// Set the size of one half of a pop pair (employed or unemployed).
+    SetPopSize { pop: PopGroupId, size: f64 },
+
+    /// Record the labour fill rate for an unemployed half; used to scale next tick's supply.
+    SetPopLabourFillRate { pop: PopGroupId, fill_rate: f64 },
+
+    /// Redistribute sizes between the employed and unemployed halves of a pair
+    /// based on the labour market fill rate at their node. Inventory is split proportionally.
+    RedistributePopPair {
+        pair: PopPairId,
+        employed: PopGroupId,
+        unemployed: PopGroupId,
+        fill_rate: f64,
+    },
+
+    /// Update the one-year EMA of the posted price for a (node, good) pair.
+    /// Emitted each tick by price_update alongside SetPrice.
+    SetPriceEma {
+        node: MarketNodeId,
+        good: GoodId,
+        ema: f64,
+    },
 
     // --- Magic producer (test only) ---
 

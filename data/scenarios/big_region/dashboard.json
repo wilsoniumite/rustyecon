@@ -102,6 +102,38 @@
           "label": "Demand volume \u00b7 flour \u00b7 Manchester"
         }
       ]
+    },
+    {
+      "title": "Pop wealth (mean) \u00b7 Manchester",
+      "series": [
+        {
+          "metric": "pop_wealth",
+          "good_name": null,
+          "region_name": "Manchester",
+          "building_id": null,
+          "entity_type": null,
+          "entity_id": null,
+          "axis": "L1",
+          "color": "#1f77b4",
+          "label": "Pop wealth (mean) \u00b7 Manchester"
+        }
+      ]
+    },
+    {
+      "title": "Price \u00b7 flour \u00b7 Manchester",
+      "series": [
+        {
+          "metric": "price",
+          "good_name": "flour",
+          "region_name": "Manchester",
+          "building_id": null,
+          "entity_type": null,
+          "entity_id": null,
+          "axis": "L1",
+          "color": "#1f77b4",
+          "label": "Price \u00b7 flour \u00b7 Manchester"
+        }
+      ]
     }
   ]
 }

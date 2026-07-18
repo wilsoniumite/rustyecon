@@ -48,10 +48,11 @@ def _bare_str(v) -> str:
 
 # ── game_data helpers ─────────────────────────────────────────────────────────
 
-def _index_game_data(gd: dict) -> tuple[dict, dict, dict, dict, int | None, dict]:
+def _index_game_data(gd: dict) -> tuple[dict, dict, dict, dict, dict, dict]:
     """
-    Returns (good_name, recipe_name, node_to_region, region_name, currency_good_id, channel_to_regions).
+    Returns (good_name, recipe_name, node_to_region, region_name, node_currency, channel_to_regions).
     All keyed by integer id.
+    node_currency: node_id -> good_id of that node's currency, or None.
     """
     goods    = gd.get("goods", [])
     recipes  = gd.get("recipes", [])
@@ -73,19 +74,17 @@ def _index_game_data(gd: dict) -> tuple[dict, dict, dict, dict, int | None, dict
         else:
             node_to_region[nid] = None
 
-    name_to_good_id = {v: k for k, v in good_name.items()}
-    cg = gd.get("currency_good")
-    currency_good_id: int | None = None
-    if isinstance(cg, Tagged) and cg.tag == "Some":
-        inner = cg.inner
-        if isinstance(inner, str):
-            currency_good_id = name_to_good_id.get(inner)
+    # Currency is per market node: build a node_id -> good_id map.
+    node_currency: dict[int, int | None] = {}
+    for i, n in enumerate(nodes):
+        nid = _int_id(n.get("id", i))
+        cg = n.get("currency_good")
+        if isinstance(cg, Tagged) and cg.tag == "Some":
+            node_currency[nid] = _int_id(cg.inner)
+        elif isinstance(cg, int):
+            node_currency[nid] = cg
         else:
-            currency_good_id = _int_id(inner)
-    elif isinstance(cg, str):
-        currency_good_id = name_to_good_id.get(cg)
-    elif isinstance(cg, int):
-        currency_good_id = cg
+            node_currency[nid] = None
 
     channel_to_regions = {}
     for i, c in enumerate(channels):
@@ -97,7 +96,7 @@ def _index_game_data(gd: dict) -> tuple[dict, dict, dict, dict, int | None, dict
         channel_to_regions[cid] = (r1, r2)
 
     print(channel_to_regions)
-    return good_name, recipe_name, node_to_region, region_name, currency_good_id, channel_to_regions
+    return good_name, recipe_name, node_to_region, region_name, node_currency, channel_to_regions
 
 
 # ── single checkpoint parser ──────────────────────────────────────────────────
@@ -133,28 +132,81 @@ def _extract_buildings(state: dict) -> tuple[list[dict], list[dict]]:
     tick = int(state["tick"])
     bld_rows: list[dict] = []
     inv_rows: list[dict] = []
-    for b in state.get("buildings", []):
-        bid = _int_id(b.get("id", 0))
-        bld_rows.append({
-            "tick":             tick,
-            "building_id":      bid,
-            "region_id":        _int_id(b.get("region", 0)),
-            "recipe_id":        _int_id(b.get("recipe", 0)),
-            "recipe_size":      float(b.get("recipe_size", 0.0)),
-            "chosen_size":      float(b.get("chosen_size", 0.0)),
-            "efficiency":       float(b.get("efficiency", 1.0)),
-            "balance":          float(b.get("balance", 0.0)),
-            "last_margin":      float(b.get("last_margin", 0.0)),
-            "last_throughput":  float(b.get("last_throughput", 0.0)),
-            "channel_id":      _int_id(b.get("channel", -1)),
-        })
-        for entry in (b.get("inventory") or []):
-            if isinstance(entry, (tuple, list)) and len(entry) == 2:
-                gid, qty = _int_id(entry[0]), float(entry[1])
-                inv_rows.append({
-                    "tick": tick, "entity_type": "building",
-                    "entity_id": bid, "good_id": gid, "qty": qty,
-                })
+
+    recipe_instances = state.get("recipe_instances")
+    if recipe_instances:
+        # NEW FORMAT: buildings are slim; recipe_instances carry production data.
+        # Top-level inventories list is indexed by InventoryId.
+        inv_list = state.get("inventories", [])
+
+        # Build inv_id -> (building_id, region_id) lookup
+        inv_id_to_bld: dict[int, tuple[int, int]] = {}
+        for b in state.get("buildings", []):
+            bid = _int_id(b.get("id", 0))
+            rid = _int_id(b.get("region", 0))
+            inv_id = _int_id(b.get("inventory", 0))
+            inv_id_to_bld[inv_id] = (bid, rid)
+
+        # Production rows — only CapacityControl instances
+        for ri in recipe_instances:
+            ss = ri.get("strategy_state")
+            if not (isinstance(ss, Tagged) and ss.tag == "CapacityControl"):
+                continue
+            input_inv_id = _int_id(ri.get("input_inv", 0))
+            bld_info = inv_id_to_bld.get(input_inv_id)
+            if bld_info is None:
+                continue
+            bld_id, region_id = bld_info
+            cc = ss.inner if isinstance(ss.inner, dict) else {}
+            bld_rows.append({
+                "tick":             tick,
+                "building_id":      bld_id,
+                "region_id":        region_id,
+                "recipe_id":        _int_id(ri.get("recipe", 0)),
+                "recipe_size":      float(ri.get("recipe_size", 0.0)),
+                "chosen_size":      float(ri.get("chosen_size", 0.0)),
+                "efficiency":       float(cc.get("efficiency", 1.0)),
+                "balance":          float(cc.get("balance", 0.0)),
+                "last_margin":      float(cc.get("last_margin", 0.0)),
+                "last_throughput":  float(cc.get("last_throughput", 0.0)),
+                "channel_id":       _int_id(ri.get("channel")),
+            })
+
+        # Inventory rows — one per building, looked up by InventoryId
+        for b in state.get("buildings", []):
+            bid = _int_id(b.get("id", 0))
+            inv_id = _int_id(b.get("inventory", 0))
+            for entry in (inv_list[inv_id] if inv_id < len(inv_list) else []):
+                if isinstance(entry, (tuple, list)) and len(entry) == 2:
+                    gid, qty = _int_id(entry[0]), float(entry[1])
+                    inv_rows.append({
+                        "tick": tick, "entity_type": "building",
+                        "entity_id": bid, "good_id": gid, "qty": qty,
+                    })
+    else:
+        # OLD FORMAT: buildings carry inline recipe data and inventory
+        for b in state.get("buildings", []):
+            bid = _int_id(b.get("id", 0))
+            bld_rows.append({
+                "tick":             tick,
+                "building_id":      bid,
+                "region_id":        _int_id(b.get("region", 0)),
+                "recipe_id":        _int_id(b.get("recipe", 0)),
+                "recipe_size":      float(b.get("recipe_size", 0.0)),
+                "chosen_size":      float(b.get("chosen_size", 0.0)),
+                "efficiency":       float(b.get("efficiency", 1.0)),
+                "balance":          float(b.get("balance", 0.0)),
+                "last_margin":      float(b.get("last_margin", 0.0)),
+                "last_throughput":  float(b.get("last_throughput", 0.0)),
+                "channel_id":       _int_id(b.get("channel", -1)),
+            })
+            for entry in (b.get("inventory") or []):
+                if isinstance(entry, (tuple, list)) and len(entry) == 2:
+                    gid, qty = _int_id(entry[0]), float(entry[1])
+                    inv_rows.append({
+                        "tick": tick, "entity_type": "building",
+                        "entity_id": bid, "good_id": gid, "qty": qty,
+                    })
     return bld_rows, inv_rows
 
 
@@ -162,6 +214,7 @@ def _extract_pops(state: dict) -> tuple[list[dict], list[dict]]:
     tick = int(state["tick"])
     pop_rows: list[dict] = []
     inv_rows: list[dict] = []
+    inv_list = state.get("inventories", [])  # present in new format
     for p in state.get("pop_groups", []):
         pid = _int_id(p.get("id", 0))
         pop_rows.append({
@@ -171,8 +224,17 @@ def _extract_pops(state: dict) -> tuple[list[dict], list[dict]]:
             "size":           float(p.get("size", 0.0)),
             "wealth":         float(p.get("wealth", 0.0)),
             "savings_target": float(p.get("savings_target", 0.0)),
+            "is_employed":    bool(p.get("is_employed", True)),
         })
-        for entry in (p.get("inventory") or []):
+        inv_field = p.get("inventory")
+        if isinstance(inv_field, tuple):
+            # NEW FORMAT: InventoryId reference
+            inv_id = _int_id(inv_field)
+            entries = inv_list[inv_id] if inv_id < len(inv_list) else []
+        else:
+            # OLD FORMAT: inline list of (good_id, qty)
+            entries = inv_field or []
+        for entry in entries:
             if isinstance(entry, (tuple, list)) and len(entry) == 2:
                 gid, qty = _int_id(entry[0]), float(entry[1])
                 inv_rows.append({
@@ -192,7 +254,7 @@ class ScenarioResults:
     region_name:     dict[int, str]       # region_id -> name
     node_to_region:  dict[int, int|None]  # node_id  -> region_id or None
     channel_to_regions: dict[int, tuple[int, int]]  # channel_id -> (region_id1, region_id2)
-    currency_good_id: int | None
+    node_currency:   dict[int, int | None]  # node_id -> currency good_id or None
 
     # Time series (empty DataFrames with correct columns if no data)
     prices:      pd.DataFrame   # tick, node_id, good_id, price, supply, demand, imbalance
@@ -200,8 +262,17 @@ class ScenarioResults:
     pops:        pd.DataFrame   # tick, pop_id, region_id, size, wealth, savings_target
     inventories: pd.DataFrame   # tick, entity_type, entity_id, good_id, qty
 
+    def currency_good_ids(self) -> set[int]:
+        """Set of all good_ids used as a currency on any node."""
+        return {gid for gid in self.node_currency.values() if gid is not None}
+
+    def currency_for_node(self, node_id: int) -> int | None:
+        """Currency good_id for a specific node, or None."""
+        return self.node_currency.get(node_id)
+
     def good_names_non_currency(self) -> list[int]:
-        return [i for i in self.good_name if i != self.currency_good_id]
+        currencies = self.currency_good_ids()
+        return [i for i in self.good_name if i not in currencies]
 
     def regional_node_ids(self) -> list[int]:
         """Node IDs that correspond to a region (excludes national/world nodes)."""
@@ -351,7 +422,7 @@ def load_scenario_results(
     if not isinstance(game_data, dict):
         game_data = ron.load(str(game_data))
 
-    good_name, recipe_name, node_to_region, region_name, currency_good_id, channel_to_regions = (
+    good_name, recipe_name, node_to_region, region_name, node_currency, channel_to_regions = (
         _index_game_data(game_data)
     )
 
@@ -365,7 +436,7 @@ def load_scenario_results(
         return ScenarioResults(
             good_name=good_name, recipe_name=recipe_name,
             region_name=region_name, node_to_region=node_to_region,
-            currency_good_id=currency_good_id,
+            node_currency=node_currency,
             channel_to_regions=channel_to_regions,
             prices=empty_price, buildings=empty_bld, pops=empty_pop, inventories=empty_inv,
         )
@@ -396,7 +467,7 @@ def load_scenario_results(
         recipe_name=recipe_name,
         region_name=region_name,
         node_to_region=node_to_region,
-        currency_good_id=currency_good_id,
+        node_currency=node_currency,
         channel_to_regions=channel_to_regions,
         prices=prices_df,
         buildings=buildings_df,

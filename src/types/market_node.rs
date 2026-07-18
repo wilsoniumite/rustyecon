@@ -1,4 +1,4 @@
-use crate::types::ids::{MarketNodeId, RegionId};
+use crate::types::ids::{GoodId, MarketNodeId, RegionId};
 use serde::{Deserialize, Serialize};
 
 /// Static definition of a market node (in GameData).
@@ -8,6 +8,9 @@ pub struct MarketNodeDef {
     pub tier: MarketTier,
     /// Only set for Regional nodes.
     pub region: Option<RegionId>,
+    /// The good used as currency on this node.
+    #[serde(default)]
+    pub currency_good: Option<GoodId>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

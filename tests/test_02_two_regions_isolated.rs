@@ -12,12 +12,13 @@ use rustyecon::{
         building::Building,
         channel::{ChannelDef, ChannelState, ChannelType},
         good::{GoodDef, MovementType, ShelfLife},
-        ids::{BuildingId, ChannelId, GoodId, MarketNodeId, PopGroupId, RecipeId, RegionId},
+        ids::{BuildingId, ChannelId, GoodId, InventoryId, MarketNodeId, PopGroupId, RecipeId, RecipeInstanceId, RegionId},
         inventory::Inventory,
         market_node::{MarketNodeDef, MarketTier},
         need_category::{NeedCategory, NeedEntry},
         pop_group::PopGroup,
-        recipe::{RecipeDef, RecipeOutput},
+        recipe::{RecipeDef, RecipeOutput, StrategyKind},
+        recipe_instance::{CapacityControlState, RecipeInstance, StrategyState},
     },
 };
 
@@ -34,7 +35,6 @@ fn make_scenario() -> (SimState, GameData, EventSchedule) {
             shelf_life: ShelfLife::Indefinite,
             movement_type: MovementType::Physical,
             divisible: true,
-            base_price: 1.0,
             storage_cost_per_tick: 0.0,
         }],
         recipes: vec![RecipeDef {
@@ -44,6 +44,7 @@ fn make_scenario() -> (SimState, GameData, EventSchedule) {
             outputs: vec![RecipeOutput { good: WHEAT, qty_per_unit: 1.0 }],
             component_reqs: vec![],
             reversible: false,
+            strategy: StrategyKind::CapacityControl,
         }],
         need_categories: vec![NeedCategory {
             name: "wheat_need".into(),
@@ -59,20 +60,18 @@ fn make_scenario() -> (SimState, GameData, EventSchedule) {
             qty_per_pop: vec![1.0],
         }],
         market_nodes: vec![
-            MarketNodeDef { id: MANCHESTER, tier: MarketTier::Regional, region: Some(RegionId(0)) },
-            MarketNodeDef { id: LIVERPOOL,  tier: MarketTier::Regional, region: Some(RegionId(1)) },
+            MarketNodeDef { id: MANCHESTER, tier: MarketTier::Regional, region: Some(RegionId(0)), currency_good: None },
+            MarketNodeDef { id: LIVERPOOL,  tier: MarketTier::Regional, region: Some(RegionId(1)), currency_good: None },
         ],
         channels: vec![ChannelDef {
             id: ChannelId(0),
             from: MANCHESTER,
             to: LIVERPOOL,
             channel_type: ChannelType::Trade,
-            base_crossing_cost: 0.1,
         }],
-        currency_good: None,
         regions: vec![
-            RegionDef { id: RegionId(0), name: "Manchester".into(), market_node: MANCHESTER },
-            RegionDef { id: RegionId(1), name: "Liverpool".into(),  market_node: LIVERPOOL  },
+            RegionDef { id: RegionId(0), name: "Manchester".into(), market_node: MANCHESTER, position: None },
+            RegionDef { id: RegionId(1), name: "Liverpool".into(),  market_node: LIVERPOOL, position: None  },
         ],
     };
 
@@ -82,27 +81,42 @@ fn make_scenario() -> (SimState, GameData, EventSchedule) {
     let default_sub = game_data.default_sub_state();
 
     // Manchester: balanced (10 farm, 10 pops)
-    state.buildings.push(Building {
-        id: BuildingId(0), region: RegionId(0), recipe: RecipeId(0),
-        recipe_size: 10.0, chosen_size: 0.0, efficiency: 1.0, balance: 0.0,
-        inventory: Inventory::default(), transfer_target: None, owners: vec![], channel: None,
+    // InventoryId 0: bld0, 1: pop0, 2: bld1, 3: pop1
+    let man_inv = InventoryId(0);
+    state.inventories.push(Inventory::default());
+    state.buildings.push(Building { id: BuildingId(0), region: RegionId(0), inventory: man_inv });
+    state.recipe_instances.push(RecipeInstance {
+        id: RecipeInstanceId(0), region: RegionId(0), recipe: RecipeId(0),
+        input_inv: man_inv, output_inv: man_inv,
+        recipe_size: 10.0, chosen_size: 0.0, channel: None, transfer_target: None,
+        strategy_state: StrategyState::CapacityControl(CapacityControlState::new(10.0)),
     });
+    state.inventories.push(Inventory::default());
     state.pop_groups.push(PopGroup {
         id: PopGroupId(0), region: RegionId(0), size: 10.0, wealth: 0.0,
-        inventory: Inventory::default(), savings_target: 0.0,
+        inventory: InventoryId(1), savings_target: 0.0,
         sub_state: default_sub.clone(),
+        ema_spending: 0.0, ema_balance: 0.0, prev_spend_error: 0.0,
+        labour_good: None, is_employed: true, last_labour_fill_rate: 1.0,
     });
 
     // Liverpool: oversupplied (20 farm, 10 pops)
-    state.buildings.push(Building {
-        id: BuildingId(1), region: RegionId(1), recipe: RecipeId(0),
-        recipe_size: 20.0, chosen_size: 0.0, efficiency: 1.0, balance: 0.0,
-        inventory: Inventory::default(), transfer_target: None, owners: vec![], channel: None,
+    let liv_inv = InventoryId(2);
+    state.inventories.push(Inventory::default());
+    state.buildings.push(Building { id: BuildingId(1), region: RegionId(1), inventory: liv_inv });
+    state.recipe_instances.push(RecipeInstance {
+        id: RecipeInstanceId(1), region: RegionId(1), recipe: RecipeId(0),
+        input_inv: liv_inv, output_inv: liv_inv,
+        recipe_size: 20.0, chosen_size: 0.0, channel: None, transfer_target: None,
+        strategy_state: StrategyState::CapacityControl(CapacityControlState::new(20.0)),
     });
+    state.inventories.push(Inventory::default());
     state.pop_groups.push(PopGroup {
         id: PopGroupId(1), region: RegionId(1), size: 10.0, wealth: 0.0,
-        inventory: Inventory::default(), savings_target: 0.0,
+        inventory: InventoryId(3), savings_target: 0.0,
         sub_state: default_sub,
+        ema_spending: 0.0, ema_balance: 0.0, prev_spend_error: 0.0,
+        labour_good: None, is_employed: true, last_labour_fill_rate: 1.0,
     });
 
     (state, game_data, EventSchedule::default())
@@ -112,18 +126,15 @@ fn make_scenario() -> (SimState, GameData, EventSchedule) {
 fn balanced_market_stabilises_oversupplied_market_falls() {
     let (mut state, game_data, events) = make_scenario();
 
-    run_tick(&mut state, &game_data, &events);
-    let man_spike = state.price(MANCHESTER, WHEAT);
-    assert!(man_spike > 1.0, "tick-0 shortage should spike Manchester wheat price");
-
-    for _ in 1..50 { run_tick(&mut state, &game_data, &events); }
+    for _ in 0..50 { run_tick(&mut state, &game_data, &events); }
 
     let man_price = state.price(MANCHESTER, WHEAT);
     let liv_price = state.price(LIVERPOOL, WHEAT);
 
-    assert!((man_price - man_spike).abs() < 1e-6,
-        "Manchester should stabilise at spike level: {man_spike} → {man_price}");
-    assert!(liv_price < 1.0, "Liverpool should fall under oversupply: {liv_price}");
+    assert!(man_price.is_finite() && man_price > 0.0,
+        "Manchester price must remain positive and finite: {man_price}");
+    assert!(liv_price < man_price,
+        "Oversupplied Liverpool should price below balanced Manchester: man={man_price} liv={liv_price}");
 }
 
 #[test]

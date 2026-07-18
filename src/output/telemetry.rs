@@ -56,7 +56,7 @@ impl Telemetry {
         }
 
         for b in &state.buildings {
-            for &(good, qty) in b.inventory.goods() {
+            for (good, qty) in state.inventory(b.inventory).goods() {
                 if qty > 0.0 {
                     self.inventories.push(InventoryRow {
                         tick,
@@ -70,7 +70,7 @@ impl Telemetry {
         }
 
         for p in &state.pop_groups {
-            for &(good, qty) in p.inventory.goods() {
+            for (good, qty) in state.inventory(p.inventory).goods() {
                 if qty > 0.0 {
                     self.inventories.push(InventoryRow {
                         tick,

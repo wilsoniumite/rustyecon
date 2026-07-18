@@ -23,6 +23,18 @@ pub enum ShelfLife {
     Indefinite,
 }
 
+impl ShelfLife {
+    /// Convert shelf life to the initial lot life counter.
+    /// `Instant` → `Some(0)`, `Ticks(n)` → `Some(n)`, `Indefinite` → `None`.
+    pub fn initial_life(&self) -> Option<u32> {
+        match self {
+            ShelfLife::Instant => Some(0),
+            ShelfLife::Ticks(n) => Some(*n),
+            ShelfLife::Indefinite => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MovementType {
     /// Transport cost scales with distance and infrastructure.

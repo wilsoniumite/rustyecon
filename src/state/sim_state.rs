@@ -1,9 +1,11 @@
 use crate::types::{
     building::Building,
     channel::ChannelState,
-    ids::{BuildingId, GoodId, MarketNodeId, MagicProducerId},
+    ids::{BuildingId, GoodId, InventoryId, MarketNodeId, MagicProducerId, RecipeInstanceId},
+    inventory::Inventory,
     magic_producer::MagicProducer,
-    pop_group::PopGroup,
+    pop_group::{PopGroup, PopPair},
+    recipe_instance::RecipeInstance,
 };
 use serde::{Deserialize, Serialize};
 
@@ -21,11 +23,26 @@ pub struct SimState {
     /// Aggregated buy volume per (node, good) after clearing; used by price_update.
     demand: Vec<f64>,
 
+    /// One-year EMA of posted prices. Same flat layout as prices. Updated each tick
+    /// by price_update. Decisions and metrics that need medium-term price signals
+    /// should read this rather than the raw posted price.
+    price_ema: Vec<f64>,
+
     num_goods: usize,
     num_nodes: usize,
 
     pub buildings: Vec<Building>,
+    #[serde(default)]
+    pub recipe_instances: Vec<RecipeInstance>,
     pub pop_groups: Vec<PopGroup>,
+    /// Centralised inventory store. Buildings and PopGroups hold an InventoryId
+    /// that indexes into this Vec.
+    #[serde(default)]
+    pub inventories: Vec<Inventory>,
+    /// Pairs employed and unemployed PopGroups. Populated on scenario load;
+    /// used by pop_update for labour redistribution each tick.
+    #[serde(default)]
+    pub pop_pairs: Vec<PopPair>,
     pub channels: Vec<ChannelState>,
     #[serde(default)]
     pub magic_producers: Vec<MagicProducer>,
@@ -39,10 +56,14 @@ impl SimState {
             prices: vec![1.0; size],
             supply: vec![0.0; size],
             demand: vec![0.0; size],
+            price_ema: vec![1.0; size],
             num_goods,
             num_nodes,
             buildings: Vec::new(),
+            recipe_instances: Vec::new(),
             pop_groups: Vec::new(),
+            inventories: Vec::new(),
+            pop_pairs: Vec::new(),
             channels: Vec::new(),
             magic_producers: Vec::new(),
         }
@@ -54,16 +75,28 @@ impl SimState {
         let size = num_goods * num_nodes;
         Self {
             tick,
+            price_ema: prices.clone(),
             prices,
             supply: vec![0.0; size],
             demand: vec![0.0; size],
             num_goods,
             num_nodes,
             buildings: Vec::new(),
+            recipe_instances: Vec::new(),
             pop_groups: Vec::new(),
+            inventories: Vec::new(),
+            pop_pairs: Vec::new(),
             channels: Vec::new(),
             magic_producers: Vec::new(),
         }
+    }
+
+    pub fn inventory(&self, id: InventoryId) -> &Inventory {
+        &self.inventories[id.idx()]
+    }
+
+    pub fn inventory_mut(&mut self, id: InventoryId) -> &mut Inventory {
+        &mut self.inventories[id.idx()]
     }
 
     pub fn magic_producer_mut(&mut self, id: MagicProducerId) -> &mut MagicProducer {
@@ -109,11 +142,28 @@ impl SimState {
         (d - s) / s.max(d)
     }
 
+    pub fn price_ema(&self, node: MarketNodeId, good: GoodId) -> f64 {
+        self.price_ema[self.idx(node, good)]
+    }
+
+    pub fn set_price_ema(&mut self, node: MarketNodeId, good: GoodId, ema: f64) {
+        let i = self.idx(node, good);
+        self.price_ema[i] = ema;
+    }
+
     pub fn building(&self, id: BuildingId) -> &Building {
         &self.buildings[id.idx()]
     }
 
     pub fn building_mut(&mut self, id: BuildingId) -> &mut Building {
         &mut self.buildings[id.idx()]
+    }
+
+    pub fn recipe_instance(&self, id: RecipeInstanceId) -> &RecipeInstance {
+        &self.recipe_instances[id.idx()]
+    }
+
+    pub fn recipe_instance_mut(&mut self, id: RecipeInstanceId) -> &mut RecipeInstance {
+        &mut self.recipe_instances[id.idx()]
     }
 }

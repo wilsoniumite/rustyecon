@@ -15,15 +15,21 @@ pub fn run(state: &SimState, game_data: &GameData) -> (Vec<StateDelta>, Vec<Orde
     let mut deltas = Vec::new();
     let mut orders = Vec::new();
 
-    // Magic producers post a fixed sell order every tick with no inventory deducted.
+    // Magic producers post a fixed sell order every tick of 105% of demand, up to their limit.
     for mp in &state.magic_producers {
-        if mp.qty_per_tick > 0.0 {
+        let order_qty = if mp.qty_per_tick > 0.0 {
+            let demand = state.demand(mp.node, mp.good);
+            (demand * 1.05).min(mp.qty_per_tick)
+        } else {
+            0.0
+        };
+        if order_qty > 0.0 {
             orders.push(Order {
                 node: mp.node,
                 good: mp.good,
                 side: OrderSide::Sell,
                 owner: OwnerId::MagicProducer(mp.id),
-                qty: mp.qty_per_tick,
+                qty: order_qty,
             });
         }
     }

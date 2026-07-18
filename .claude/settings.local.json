@@ -11,7 +11,11 @@
       "Bash(python3 notebooks/05_supply_chain_sim.py)",
       "Bash(/home/wilso/github/rustyecon/venv/bin/python /home/wilso/github/rustyecon/notebooks/05_supply_chain_sim.py)",
       "Bash(./target/debug/rustyecon --help)",
-      "Bash(./target/debug/rustyecon data/scenarios/two_region_trade --ticks 5)"
+      "Bash(./target/debug/rustyecon data/scenarios/two_region_trade --ticks 5)",
+      "Bash(cargo check *)",
+      "Bash(xargs cat *)",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 notebooks/06_labour_test_suite.py)"
     ]
   }
 }

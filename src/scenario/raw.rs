@@ -1,6 +1,3 @@
-/// Raw types used exclusively for RON authoring.
-/// Good and recipe references are strings ("wheat") rather than numeric IDs.
-/// The loader resolves these to runtime types after reading game_data.ron.
 use crate::state::{
     game_data::{GameData, RegionDef, WealthLevel},
     sim_state::SimState,
@@ -10,15 +7,16 @@ use crate::types::{
     channel::{ChannelDef, ChannelState},
     good::{GoodDef, MovementType, ShelfLife},
     ids::{
-        BuildingId, ChannelId, GoodId, MagicProducerId, MarketNodeId, OwnerId, PopGroupId,
-        RecipeId, RegionId,
+        BuildingId, ChannelId, GoodId, InventoryId, MagicProducerId, MarketNodeId,
+        PopGroupId, PopPairId, RecipeId, RecipeInstanceId, RegionId,
     },
     inventory::Inventory,
     magic_producer::MagicProducer,
     market_node::MarketNodeDef,
     need_category::{NeedCategory, NeedEntry},
-    pop_group::PopGroup,
-    recipe::{InputScaling, RecipeDef, RecipeInput, RecipeOutput},
+    pop_group::{PopGroup, PopPair},
+    recipe::{InputScaling, RecipeDef, RecipeInput, RecipeOutput, StrategyKind},
+    recipe_instance::{CapacityControlState, DividendPayoutState, RecipeInstance, StrategyState},
 };
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -55,9 +53,26 @@ pub struct RawRecipeDef {
     pub inputs: Vec<RawRecipeInput>,
     pub outputs: Vec<RawRecipeOutput>,
     pub reversible: bool,
+    #[serde(default = "raw_default_strategy")]
+    pub strategy: StrategyKind,
 }
 
-// ── Raw need categories and wealth levels ─────────────────────────────────────
+fn raw_default_strategy() -> StrategyKind { StrategyKind::CapacityControl }
+
+/// An additional recipe instance not auto-generated from a building definition.
+/// Used to wire dividend payouts: input comes from a building's inventory,
+/// output goes to a specific pop group's inventory.
+#[derive(Deserialize)]
+pub struct RawExtraInstance {
+    /// Name of the recipe this instance runs.
+    pub recipe: String,
+    /// The building whose inventory is used as input_inv (and region source).
+    pub building: BuildingId,
+    /// The pop group whose inventory receives outputs.
+    pub output_pop: PopGroupId,
+    /// Maximum recipe_size (for DividendPayout this is effectively unused).
+    pub recipe_size: f64,
+}
 
 #[derive(Deserialize)]
 pub struct RawNeedEntry {
@@ -98,12 +113,11 @@ pub struct RawGameData {
     #[serde(default)]
     pub channels: Vec<ChannelDef>,
     pub regions: Vec<RegionDef>,
-    #[serde(default)]
-    pub currency_good: Option<String>,
 }
 
 // ── Raw sim state ─────────────────────────────────────────────────────────────
 
+/// A flat map of good_name → price, applied uniformly to all nodes.
 pub type NodePrices = HashMap<String, f64>;
 
 #[derive(Deserialize)]
@@ -116,8 +130,6 @@ pub struct RawBuilding {
     pub efficiency: f64,
     pub inventory: HashMap<String, f64>,
     pub transfer_target: Option<BuildingId>,
-    #[serde(default)]
-    pub owners: Vec<(OwnerId, f64)>,
     pub channel: Option<ChannelId>,
 }
 
@@ -130,6 +142,9 @@ pub struct RawPopGroup {
     pub inventory: HashMap<String, f64>,
     #[serde(default)]
     pub savings_target: f64,
+    /// The good this pop supplies as labour. Optional; if absent the pop posts no labour orders.
+    #[serde(default)]
+    pub labour_good: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -143,10 +158,10 @@ pub struct RawMagicProducer {
 #[derive(Deserialize)]
 pub struct RawSimState {
     pub tick: u64,
-    /// Optional per-node price overrides (index = node order in game_data).
-    /// Omit to start all goods at 1.0 on all nodes.
+    /// Starting price overrides applied uniformly to all nodes.
+    /// Omit or leave empty to start all goods at 1.0 everywhere.
     #[serde(default)]
-    pub prices: Option<Vec<NodePrices>>,
+    pub prices: NodePrices,
     #[serde(default)]
     pub buildings: Vec<RawBuilding>,
     #[serde(default)]
@@ -155,6 +170,10 @@ pub struct RawSimState {
     pub channels: Vec<ChannelState>,
     #[serde(default)]
     pub magic_producers: Vec<RawMagicProducer>,
+    /// Additional recipe instances beyond those auto-created from buildings.
+    /// For dividend payouts, supply chains, and other cross-inventory transformations.
+    #[serde(default)]
+    pub extra_recipe_instances: Vec<RawExtraInstance>,
 }
 
 // ── Name resolver ─────────────────────────────────────────────────────────────
@@ -207,20 +226,17 @@ impl NameResolver {
     fn inventory(&self, raw: HashMap<String, f64>) -> crate::scenario::loader::Result<Inventory> {
         let mut inv = Inventory::default();
         for (name, qty) in raw {
-            inv.add(self.good(&name)?, qty);
+            inv.add(self.good(&name)?, qty, None);
         }
         Ok(inv)
     }
 
-    fn prices(&self, raw_prices: Option<Vec<NodePrices>>) -> crate::scenario::loader::Result<Vec<f64>> {
-        // Default to 1.0; scenarios override via the prices field in starting_state.ron.
+    fn prices(&self, raw_prices: NodePrices) -> crate::scenario::loader::Result<Vec<f64>> {
         let mut prices = vec![1.0f64; self.num_nodes * self.num_goods];
-        if let Some(node_maps) = raw_prices {
-            for (node_idx, map) in node_maps.into_iter().enumerate() {
-                for (name, price) in map {
-                    let good_id = self.good(&name)?;
-                    prices[node_idx * self.num_goods + good_id.idx()] = price;
-                }
+        for (name, price) in raw_prices {
+            let good_id = self.good(&name)?;
+            for node_idx in 0..self.num_nodes {
+                prices[node_idx * self.num_goods + good_id.idx()] = price;
             }
         }
         Ok(prices)
@@ -263,6 +279,7 @@ pub fn resolve_game_data(
                     .collect::<crate::scenario::loader::Result<_>>()?,
                 component_reqs: vec![],
                 reversible: r.reversible,
+                strategy: r.strategy,
             })
         })
         .collect::<crate::scenario::loader::Result<_>>()?;
@@ -299,8 +316,6 @@ pub fn resolve_game_data(
         .collect::<crate::scenario::loader::Result<_>>()?;
     wealth_levels.sort_by_key(|wl| wl.tier);
 
-    let currency_good = raw.currency_good.map(|n| resolver.good(&n)).transpose()?;
-
     let game_data = GameData {
         goods,
         recipes,
@@ -309,7 +324,6 @@ pub fn resolve_game_data(
         market_nodes: raw.market_nodes,
         channels: raw.channels,
         regions: raw.regions,
-        currency_good,
     };
 
     Ok((game_data, resolver))
@@ -324,33 +338,91 @@ pub fn resolve_sim_state(
     let mut state = SimState::from_prices(raw.tick, resolver.num_goods, resolver.num_nodes, prices);
 
     for b in raw.buildings {
+        let inv_id = InventoryId(state.inventories.len() as u32);
+        state.inventories.push(resolver.inventory(b.inventory)?);
         state.buildings.push(Building {
             id: b.id,
             region: b.region,
+            inventory: inv_id,
+        });
+        let transfer_target = b.transfer_target.map(|t| RecipeInstanceId(t.0));
+        state.recipe_instances.push(RecipeInstance {
+            id: RecipeInstanceId(b.id.0),
+            region: b.region,
             recipe: resolver.recipe(&b.recipe)?,
+            input_inv: inv_id,
+            output_inv: inv_id,
             recipe_size: b.recipe_size,
             chosen_size: b.chosen_size,
-            efficiency: b.efficiency,
-            balance: 0.0,
-            last_margin: 0.0,
-            last_throughput: b.recipe_size,
-            inventory: resolver.inventory(b.inventory)?,
-            transfer_target: b.transfer_target,
-            owners: b.owners,
             channel: b.channel,
+            transfer_target,
+            strategy_state: StrategyState::CapacityControl(CapacityControlState {
+                efficiency: b.efficiency,
+                ..CapacityControlState::new(b.recipe_size)
+            }),
         });
     }
 
     let default_sub = game_data.default_sub_state();
+    // Each raw pop group becomes the employed half. An unemployed stub is auto-created
+    // alongside it. IDs: employed = 0..n, unemployed = n..2n. All employed halves are
+    // pushed first so that id.idx() == vec index for both ranges.
+    let n_pops = raw.pop_groups.len() as u32;
+    // (id, region, wealth, savings_target, labour_good)
+    let mut stub_data: Vec<(PopGroupId, RegionId, f64, f64, Option<GoodId>)> = Vec::new();
+
     for p in raw.pop_groups {
+        let employed_id = p.id;
+        let unemployed_id = PopGroupId(n_pops + employed_id.0);
+        let pair_id = PopPairId(employed_id.0);
+        let labour_good = p.labour_good.map(|n| resolver.good(&n)).transpose()?;
+
+        let inv_id = InventoryId(state.inventories.len() as u32);
+        state.inventories.push(resolver.inventory(p.inventory)?);
+
         state.pop_groups.push(PopGroup {
-            id: p.id,
+            id: employed_id,
             region: p.region,
             size: p.size,
             wealth: p.wealth,
-            inventory: resolver.inventory(p.inventory)?,
+            inventory: inv_id,
             savings_target: p.savings_target,
             sub_state: default_sub.clone(),
+            ema_spending: 0.0,
+            ema_balance: 0.0,
+            prev_spend_error: 0.0,
+            labour_good,
+            is_employed: true,
+            last_labour_fill_rate: 1.0,
+        });
+
+        stub_data.push((unemployed_id, p.region, p.wealth, p.savings_target, labour_good));
+
+        state.pop_pairs.push(PopPair {
+            id: pair_id,
+            employed: employed_id,
+            unemployed: unemployed_id,
+        });
+    }
+
+    // Push all unemployed stubs after employed halves so id.idx() == vec position.
+    for (unemployed_id, region, wealth, savings_target, labour_good) in stub_data {
+        let inv_id = InventoryId(state.inventories.len() as u32);
+        state.inventories.push(Inventory::default());
+        state.pop_groups.push(PopGroup {
+            id: unemployed_id,
+            region,
+            size: 0.0,
+            wealth,
+            inventory: inv_id,
+            savings_target,
+            sub_state: default_sub.clone(),
+            ema_spending: 0.0,
+            ema_balance: 0.0,
+            prev_spend_error: 0.0,
+            labour_good,
+            is_employed: false,
+            last_labour_fill_rate: 1.0,
         });
     }
 
@@ -363,6 +435,68 @@ pub fn resolve_sim_state(
             good: resolver.good(&mp.good)?,
             qty_per_tick: mp.qty_per_tick,
         });
+    }
+
+    for raw in raw.extra_recipe_instances {
+        let recipe_id = resolver.recipe(&raw.recipe)?;
+        let building = state.buildings.iter().find(|b| b.id == raw.building)
+            .ok_or_else(|| format!("extra_recipe_instance references unknown building {:?}", raw.building))?;
+        let building_inv = building.inventory;
+        let building_region = building.region;
+        let pop_inv = state.pop_groups.get(raw.output_pop.idx())
+            .ok_or_else(|| format!("extra_recipe_instance references unknown pop {:?}", raw.output_pop))?
+            .inventory;
+        let ri_id = RecipeInstanceId(state.recipe_instances.len() as u32);
+        let strategy_state = match &game_data.recipe(recipe_id).strategy {
+            StrategyKind::CapacityControl => StrategyState::CapacityControl(
+                CapacityControlState::new(raw.recipe_size)
+            ),
+            StrategyKind::DividendPayout { .. } => StrategyState::DividendPayout(
+                DividendPayoutState { smoothed_input_cost: 0.0 }
+            ),
+            StrategyKind::AlwaysRun => StrategyState::AlwaysRun,
+        };
+        state.recipe_instances.push(RecipeInstance {
+            id: ri_id,
+            region: building_region,
+            recipe: recipe_id,
+            input_inv: building_inv,
+            output_inv: pop_inv,
+            recipe_size: raw.recipe_size,
+            chosen_size: 0.0,
+            channel: None,
+            transfer_target: None,
+            strategy_state,
+        });
+    }
+
+    // Warm-start smoothed_input_cost for DividendPayout instances.
+    // Without this, the reserve = 26 × 0 = 0 on the first tick, so buildings
+    // pay out their entire starting capital before production has begun.
+    // We initialise to the sum of all CapacityControl instances on the same
+    // inventory's weekly input cost at recipe_size throughput and starting prices.
+    let ri_count = state.recipe_instances.len();
+    for i in 0..ri_count {
+        if !matches!(state.recipe_instances[i].strategy_state, StrategyState::DividendPayout(_)) {
+            continue;
+        }
+        let input_inv = state.recipe_instances[i].input_inv;
+        let region = state.recipe_instances[i].region;
+        let node = game_data.region(region).market_node;
+
+        let warm_cost: f64 = state.recipe_instances.iter()
+            .filter(|other| other.input_inv == input_inv && other.strategy_state.capacity_control().is_some())
+            .map(|other| {
+                let recipe = game_data.recipe(other.recipe);
+                recipe.inputs.iter()
+                    .map(|inp| inp.desired(other.recipe_size, other.recipe_size) * state.price(node, inp.good))
+                    .sum::<f64>()
+            })
+            .sum();
+
+        if let StrategyState::DividendPayout(ds) = &mut state.recipe_instances[i].strategy_state {
+            ds.smoothed_input_cost = warm_cost;
+        }
     }
 
     Ok(state)

@@ -45,10 +45,9 @@
         (tier: 10, needs: {"staple_food": 3.6}),
     ],
     market_nodes: [
-        (id: MarketNodeId(0), tier: Regional, region: Some(RegionId(0))),
+        (id: MarketNodeId(0), tier: Regional, region: Some(RegionId(0)), currency_good: Some(GoodId(2))),
     ],
     channels: [],
-    currency_good: Some("GBP"),
     regions: [
         (id: RegionId(0), name: "Manchester", market_node: MarketNodeId(0)),
     ],
