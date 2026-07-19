@@ -9,7 +9,7 @@
 use std::path::PathBuf;
 
 use rustyecon::{
-    certify::ConservationLedger,
+    certify::{ledger::tally, ConservationLedger},
     scenario::loader,
     state::{apply_state_deltas_ledgered, SimState},
     systems::run_tick,
@@ -21,10 +21,22 @@ use rustyecon::{
     },
 };
 
+const NUM_GOODS: usize = 2;
+
 fn one_inventory_state() -> SimState {
-    let mut state = SimState::new(2, 1);
+    let mut state = SimState::new(NUM_GOODS, 1);
     state.inventories.push(Inventory::default());
     state
+}
+
+/// Apply `deltas` and reconcile against a real before/after scan of state —
+/// the same independent measurement `run_tick` uses.
+fn apply_and_reconcile(state: &mut SimState, deltas: &[StateDelta]) -> (ConservationLedger, Vec<f64>, Vec<f64>) {
+    let opening = tally(&state.inventories, NUM_GOODS);
+    let mut ledger = ConservationLedger::new(NUM_GOODS);
+    apply_state_deltas_ledgered(state, deltas, &mut ledger);
+    let closing = tally(&state.inventories, NUM_GOODS);
+    (ledger, opening, closing)
 }
 
 #[test]
@@ -33,25 +45,21 @@ fn untagged_creation_is_caught_through_apply() {
     let (inv, good) = (InventoryId(0), GoodId(0));
 
     // Units appear with no counterparty removal and no provenance line.
-    let mut ledger = ConservationLedger::new(2);
-    apply_state_deltas_ledgered(
+    let (ledger, open, close) = apply_and_reconcile(
         &mut state,
         &[StateDelta::AddToInventory { inv, good, qty: 5.0, life: None, prov: Provenance::Transfer }],
-        &mut ledger,
     );
     assert!(
-        ledger.worst_breach().is_some(),
+        ledger.worst_breach(&open, &close).is_some(),
         "an unpaired transfer-tagged add is unexplained creation"
     );
 
     // The same movement, declared as production, reconciles.
-    let mut ledger = ConservationLedger::new(2);
-    apply_state_deltas_ledgered(
+    let (ledger, open, close) = apply_and_reconcile(
         &mut state,
         &[StateDelta::AddToInventory { inv, good, qty: 5.0, life: None, prov: Provenance::Production }],
-        &mut ledger,
     );
-    assert!(ledger.worst_breach().is_none(), "a declared mint conserves");
+    assert!(ledger.worst_breach(&open, &close).is_none(), "a declared mint conserves");
 }
 
 #[test]
@@ -59,8 +67,7 @@ fn shortfall_is_captured_and_not_silently_clamped() {
     let mut state = one_inventory_state();
     state.inventories[0].add(GoodId(0), 2.0, None);
 
-    let mut ledger = ConservationLedger::new(2);
-    apply_state_deltas_ledgered(
+    let (ledger, open, close) = apply_and_reconcile(
         &mut state,
         &[StateDelta::RemoveFromInventory {
             inv: InventoryId(0),
@@ -68,14 +75,16 @@ fn shortfall_is_captured_and_not_silently_clamped() {
             qty: 7.0,
             prov: Provenance::Consumption,
         }],
-        &mut ledger,
     );
 
+    // The clamp must surface as an explicit line — this is the signal, and
+    // run_tick_ledgered hands it to the certificate rather than dropping it.
     assert_eq!(ledger.shortfalls().len(), 1, "the clamp becomes a ledger line");
     assert!((ledger.shortfalls()[0].missing() - 5.0).abs() < 1e-12);
-    // Only what was actually there is burned, so the books still balance.
+    // Only what was actually there is burned, so the books themselves balance:
+    // a shortfall is a distinct signal from a conservation breach.
     assert!((ledger.burned(GoodId(0)) - 2.0).abs() < 1e-12);
-    assert!(ledger.worst_breach().is_none());
+    assert!(ledger.worst_breach(&open, &close).is_none());
 }
 
 #[test]
@@ -83,10 +92,9 @@ fn unbalanced_transfer_through_apply_is_a_breach() {
     let mut state = one_inventory_state();
     state.inventories.push(Inventory::default());
     state.inventories[0].add(GoodId(1), 10.0, None);
-    let mut ledger = ConservationLedger::new(2);
 
     // Seller ships 5 but the buyer is credited only 3 — two units vanish.
-    apply_state_deltas_ledgered(
+    let (ledger, open, close) = apply_and_reconcile(
         &mut state,
         &[
             StateDelta::RemoveFromInventory {
@@ -103,10 +111,11 @@ fn unbalanced_transfer_through_apply_is_a_breach() {
                 prov: Provenance::Transfer,
             },
         ],
-        &mut ledger,
     );
 
-    let (good, drift) = ledger.worst_breach().expect("phantom consumption must be caught");
+    let (good, drift) = ledger
+        .worst_breach(&open, &close)
+        .expect("phantom consumption must be caught");
     assert_eq!(good, GoodId(1));
     assert!((drift - 2.0).abs() < 1e-12, "drift was {drift}");
 }

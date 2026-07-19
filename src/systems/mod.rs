@@ -5,7 +5,7 @@ pub mod price_update;
 pub mod production;
 pub mod transactions;
 
-use crate::certify::ConservationLedger;
+use crate::certify::{ledger::tally, ConservationLedger};
 use crate::scenario::EventSchedule;
 use crate::state::{apply_state_deltas_ledgered, GameData, SimState};
 use crate::types::delta::StateDelta;
@@ -26,6 +26,19 @@ pub fn run_tick(state: &mut SimState, game_data: &GameData, events: &EventSchedu
     run_tick_inner(state, game_data, events, &mut None);
 }
 
+/// Run one tick and return the tick's conservation ledger.
+///
+/// The ledger is checked internally before the tick closes; this hands it back so
+/// callers (the run certificate) can read the shortfall lines and mint/burn
+/// breakdown instead of letting them be dropped on the floor.
+pub fn run_tick_ledgered(
+    state: &mut SimState,
+    game_data: &GameData,
+    events: &EventSchedule,
+) -> ConservationLedger {
+    run_tick_inner(state, game_data, events, &mut None)
+}
+
 /// Run one tick and return the exact ordered delta stream that was applied.
 ///
 /// The stream is the concatenation, in apply order, of every phase's deltas plus
@@ -39,7 +52,7 @@ pub fn run_tick_capture(
     events: &EventSchedule,
 ) -> Vec<StateDelta> {
     let mut stream = Vec::new();
-    run_tick_inner(state, game_data, events, &mut Some(&mut stream));
+    let _ledger = run_tick_inner(state, game_data, events, &mut Some(&mut stream));
     stream
 }
 
@@ -57,11 +70,12 @@ fn run_tick_inner(
     game_data: &GameData,
     events: &EventSchedule,
     sink: &mut Option<&mut Vec<StateDelta>>,
-) {
+) -> ConservationLedger {
     let tick = state.tick;
-    // Every inventory movement this tick is posted here; the tally is checked
-    // before the tick is allowed to close (METHODOLOGY R3).
+    // Every inventory movement this tick is posted here; the books are checked
+    // against an independent scan before the tick is allowed to close (R3).
     let mut ledger = ConservationLedger::new(game_data.num_goods());
+    let opening = tally(&state.inventories, game_data.num_goods());
 
     // Phase 0 — Events (recurring + one-shot; UBI fires here as recurring delta).
     // Tape deltas carry whatever provenance the tape declares; the default is
@@ -115,6 +129,9 @@ fn run_tick_inner(
     apply_state_deltas_ledgered(state, &[StateDelta::AdvanceTick], &mut ledger);
     record(sink, vec![StateDelta::AdvanceTick]);
 
-    // Phase 8 — Certify: the tick may not close on a broken ledger.
-    ledger.assert_conserved(tick);
+    // Phase 8 — Certify: the tick may not close on a broken ledger. `closing` is
+    // measured by scanning state, never derived from the deltas being checked.
+    let closing = tally(&state.inventories, game_data.num_goods());
+    ledger.assert_conserved(tick, &opening, &closing);
+    ledger
 }
