@@ -2,8 +2,8 @@
 Labour stability test suite runner and analyser.
 
 Runs all 24 lr_XX scenarios plus the multi_region baseline for TICKS ticks,
-saves checkpoints every SAVE_EVERY ticks, then computes per-region stability
-metrics and issues.
+writing Parquet telemetry, then computes per-region stability metrics and
+issues.
 
 PLOTS = False  (set True in .ipynb to see charts)
 """
@@ -13,20 +13,29 @@ import copy, csv, subprocess, sys
 from pathlib import Path
 from dataclasses import dataclass, field
 
+# The report uses PASS/FAIL glyphs; on a Windows console stdout defaults to
+# cp1252 and the whole run dies at print time, after all the work is done.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 _root = next(p for p in [Path.cwd(), *Path.cwd().parents] if (p / "Cargo.toml").exists())
 sys.path.insert(0, str(_root / "tools"))
 
 import numpy as np
 import pandas as pd
 
-from scenario import SCENARIOS_DIR, REPO_ROOT, run_simulation, load_scenario
-from readers import load_scenario_results, ScenarioResults
+from scenario import SCENARIOS_DIR, REPO_ROOT, run_simulation
+from readers import load_scenario_results, has_results, ScenarioResults
 
 # ── Settings ──────────────────────────────────────────────────────────────────
 
 PLOTS       = False
 TICKS       = 1000
-SAVE_EVERY  = 1           # 1000 checkpoints per scenario
+# A certified run exits 1 when its verdict is FAIL. That is the engine working
+# as designed (verdict-first, fail-closed) and it is the expected outcome for
+# this whole corpus - so it is not a run failure. A crash is 101, and anything
+# else is a real problem worth stopping for.
+OK_RETURNCODES = (0, 1)
 TRANSIENT   = 150         # ticks to discard as startup noise
 ANALYSIS_END = TICKS
 ANALYSIS_MID = TRANSIENT + (ANALYSIS_END - TRANSIENT) // 2   # ~575
@@ -72,12 +81,14 @@ def run_all(names):
         shutil.rmtree(out, ignore_errors=True)  # clear old results
         out.mkdir(parents=True, exist_ok=True)
         print(f"  {name}: running {TICKS} ticks…", end=" ", flush=True)
+        # --record writes telemetry.parquet + manifest.json; --certify also
+        # emits the engine's own per-region series alongside them.
         r = run_simulation(name, ticks=TICKS, output_dir=str(out),
-                           human_save_every=SAVE_EVERY, build=False)
-        if r.returncode != 0:
-            print(f"ERROR\n{r.stderr[-500:]}")
+                           record=True, certify=True, build=False)
+        if r.returncode not in OK_RETURNCODES:
+            print(f"ERROR (exit {r.returncode})\n{r.stderr[-500:]}")
         else:
-            print("done")
+            print("done" if r.returncode == 0 else "done (certificate FAIL)")
 
 # ── Load results ──────────────────────────────────────────────────────────────
 
@@ -85,11 +96,11 @@ def load_all(names):
     results = {}
     for name in names:
         out = OUT_BASE / name
-        if not list(out.glob("tick_*.ron")):
-            print(f"  {name}: no checkpoints, skipping")
+        if not has_results(out):
+            print(f"  {name}: no telemetry, skipping")
             continue
-        gd = load_scenario(name)
-        results[name] = load_scenario_results(str(out), gd)
+        # No game_data needed: the manifest carries the dimension tables.
+        results[name] = load_scenario_results(str(out))
     return results
 
 # ── Metric helpers ────────────────────────────────────────────────────────────
@@ -500,7 +511,7 @@ def make_plots(rows, all_results):
 
 if __name__ == "__main__":
     names, labels = scenario_list()
-    print(f"Suite: {len(names)} scenarios, {TICKS} ticks each, save every {SAVE_EVERY}")
+    print(f"Suite: {len(names)} scenarios, {TICKS} ticks each")
 
     run_all(names)
 

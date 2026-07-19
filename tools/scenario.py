@@ -66,6 +66,8 @@ def run_simulation(
     ticks: int = 100,
     output_dir: str | None = None,
     record: bool = False,
+    certify: bool = False,
+    telemetry_every: int = 1,
     human_save_every: int = 0,
     build: bool = True,
     timeout: int = 300,
@@ -78,6 +80,10 @@ def run_simulation(
     extra = []
     if record:
         extra.append("--record")
+        if telemetry_every != 1:
+            extra += ["--telemetry-every", str(telemetry_every)]
+    if certify:
+        extra.append("--certify")
     if human_save_every > 0:
         extra += ["--human-save", str(human_save_every)]
 

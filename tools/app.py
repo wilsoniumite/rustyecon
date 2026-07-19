@@ -1014,7 +1014,7 @@ def render_run():
 
     c1, c2, c3 = st.columns(3)
     ticks            = c1.number_input("Ticks", min_value=1, value=1000, step=100)
-    human_save_every = c2.number_input("Save RON every N ticks (0 = off)", min_value=0, value=1, step=1)
+    telemetry_every  = c2.number_input("Sample telemetry every N ticks", min_value=1, value=1, step=1)
     output_dir       = c3.text_input("Output dir", value=default_out)
 
     if st.button("▶ Run"):
@@ -1022,7 +1022,8 @@ def render_run():
             result = run_simulation(
                 scenario, ticks=ticks,
                 output_dir=output_dir,
-                human_save_every=int(human_save_every),
+                record=True, certify=True,
+                telemetry_every=int(telemetry_every),
             )
         if result.returncode == 0:
             st.success(f"Done. RON checkpoints in `{output_dir}`.")
@@ -1279,22 +1280,20 @@ def render_visualise():
     default_out = str(REPO_ROOT / "tmp" / scenario)
 
     c1, c2 = st.columns([4, 1])
-    out_dir = c1.text_input("Output dir (containing tick_*.ron files)", value=default_out,
+    out_dir = c1.text_input("Output dir (containing telemetry.parquet)", value=default_out,
                             key="viz_out_input")
     if c2.button("Load results", use_container_width=True):
-        if not st.session_state.get("gd"):
-            st.error("Load a scenario first.")
-        else:
-            with st.spinner("Parsing RON checkpoints…"):
-                try:
-                    st.session_state.viz_results = load_scenario_results(
-                        out_dir, st.session_state.gd)
-                    st.session_state.viz_output_dir = out_dir
-                    st.session_state.viz_series = []
-                    st.session_state.viz_dashboard = _load_dashboard(scenario)
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Load failed: {e}")
+        with st.spinner("Loading telemetry…"):
+            try:
+                # The manifest carries the dimension tables, so no scenario needs
+                # to be loaded first to name a good or a region.
+                st.session_state.viz_results = load_scenario_results(out_dir)
+                st.session_state.viz_output_dir = out_dir
+                st.session_state.viz_series = []
+                st.session_state.viz_dashboard = _load_dashboard(scenario)
+                st.rerun()
+            except Exception as e:
+                st.error(f"Load failed: {e}")
 
     res: ScenarioResults | None = st.session_state.viz_results
     if res is None:
@@ -1302,8 +1301,8 @@ def render_visualise():
         return
 
     if res.prices.empty:
-        st.warning("No tick_*.ron checkpoints found in that directory. "
-                   "Run with 'Save RON every N ticks' > 0.")
+        st.warning("That run's telemetry has no market rows. "
+                   "Re-run the scenario with telemetry enabled.")
         return
 
     ticks = sorted(res.prices["tick"].unique())

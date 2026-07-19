@@ -16,7 +16,7 @@ sys.path.insert(0, str(_root / "tools"))
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
-from scenario import run_simulation, load_scenario
+from scenario import run_simulation
 from readers import load_scenario_results, ScenarioResults
 
 # ── settings ──────────────────────────────────────────────────────────────────
@@ -30,8 +30,7 @@ NODE = 0
 
 
 def load() -> ScenarioResults:
-    gd = load_scenario(SCENARIO)
-    return load_scenario_results(OUTPUT, gd)
+    return load_scenario_results(OUTPUT)
 
 
 def print_stats(res: ScenarioResults) -> None:
@@ -220,7 +219,7 @@ def plot(res: ScenarioResults) -> None:
 
 if __name__ == "__main__":
     result = run_simulation(SCENARIO, TICKS, output_dir=str(OUTPUT),
-                            human_save_every=1, build=True)
+                            record=True, certify=True, build=True)
     if result.returncode != 0:
         print(result.stderr)
         raise SystemExit(1)

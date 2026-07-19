@@ -1,13 +1,24 @@
 """
-ScenarioResults: parse RON checkpoints into DataFrames.
+ScenarioResults: load a run's Parquet telemetry into DataFrames.
+
+v2 Phase 2 rewrote the *input* plumbing only. Every attribute and method of
+ScenarioResults is unchanged, because the notebooks and tools/app.py are built
+on it; what changed is where the data comes from. Previously this module parsed
+one RON checkpoint per tick with a hand-written recursive-descent parser whose
+tokeniser re-slices the remaining file on every token, making load quadratic in
+file size — a 25-scenario suite meant 25,000 of those parses. The engine now
+writes a single Parquet file plus a manifest, and this module pivots the tidy
+long table into the same four frames.
+
+The manifest carries the dimension tables, so no game_data.ron is read here
+either. That is the point of the phase gate: nothing in the analysis path
+parses RON.
 
 Usage (standalone / notebook):
     import sys; sys.path.insert(0, "tools")
     from readers import load_scenario_results
-    from scenario import load_scenario, SCENARIOS_DIR
 
-    gd  = load_scenario("supply_chain")
-    res = load_scenario_results("tmp/supply_chain", gd)
+    res = load_scenario_results("tmp/supply_chain")
 
     res.prices.head()
     res.price_index().plot()
@@ -15,244 +26,141 @@ Usage (standalone / notebook):
 
 from __future__ import annotations
 
+import json
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
 
+import numpy as np
 import pandas as pd
 
-import ron
-from ron import Tagged, Bare
+TELEMETRY_FILE = "telemetry.parquet"
+MANIFEST_FILE = "manifest.json"
 
-if TYPE_CHECKING:
-    pass
+# Manifest layouts this reader understands. A run written by a newer engine is
+# refused rather than half-read: silently ignoring an unknown schema is how you
+# get an analysis of columns that no longer mean what they used to.
+SUPPORTED_SCHEMA_VERSIONS = (1,)
+
+# Columns of each frame, in order. Declared once so the empty and populated
+# cases cannot drift apart — they did before, and the empty frames were missing
+# `channel_id` and `is_employed`, so a run with no data raised KeyError in the
+# stability suite instead of yielding empty results.
+PRICE_COLS = ["tick", "node_id", "good_id", "price", "supply", "demand", "imbalance"]
+BUILDING_COLS = [
+    "tick", "building_id", "region_id", "recipe_id", "recipe_size", "chosen_size",
+    "efficiency", "balance", "last_margin", "last_throughput", "channel_id",
+]
+POP_COLS = ["tick", "pop_id", "region_id", "size", "wealth", "savings_target", "is_employed"]
+INV_COLS = ["tick", "entity_type", "entity_id", "good_id", "qty"]
+
+# Integer-valued columns. The long table stores every value as a float (one
+# `value` column serves all metrics), so these are cast back on the way out —
+# downstream code indexes and groups by them and expects ints.
+_INT_COLS = {
+    "tick", "node_id", "good_id", "building_id", "region_id", "recipe_id",
+    "channel_id", "pop_id", "entity_id",
+}
 
 
-# ── ID helpers ────────────────────────────────────────────────────────────────
-
-def _int_id(v) -> int:
-    """Extract integer from a Tagged, 1-tuple, or plain int, e.g. BuildingId(0), (0,), or 0."""
-    if isinstance(v, Tagged):
-        return _int_id(v.inner)
-    if isinstance(v, tuple) and len(v) == 1:
-        return int(v[0])
-    if v is None:
-        return -1
-    return int(v)
+def has_results(output_dir: str | Path) -> bool:
+    """True if output_dir holds a complete telemetry pair."""
+    d = Path(output_dir)
+    return (d / TELEMETRY_FILE).is_file() and (d / MANIFEST_FILE).is_file()
 
 
-def _bare_str(v) -> str:
-    return v.value if isinstance(v, Bare) else str(v)
+def _read_manifest(output_dir: Path) -> dict:
+    path = output_dir / MANIFEST_FILE
+    if not path.is_file():
+        raise FileNotFoundError(
+            f"no {MANIFEST_FILE} in {output_dir}. Run the engine with --record; "
+            "a run without telemetry cannot be analysed."
+        )
+    m = json.loads(path.read_text(encoding="utf-8"))
+    version = m.get("schema_version")
+    if version not in SUPPORTED_SCHEMA_VERSIONS:
+        raise ValueError(
+            f"{path} declares schema_version {version!r}; this reader supports "
+            f"{SUPPORTED_SCHEMA_VERSIONS}. Re-run the scenario or update readers.py."
+        )
+    return m
 
 
-def _lot_qty(second) -> float:
-    """Total quantity from an inventory entry's second element.
+def _dimensions(m: dict) -> tuple[dict, dict, dict, dict, dict, dict]:
+    """Build the six lookup tables from the manifest's dimension tables.
 
-    New checkpoint format: a list of (qty, life) lots -> sum the qtys.
-    Old format: a bare scalar qty. Tolerate both so mixed result dirs load.
+    Returns (good_name, recipe_name, node_to_region, region_name,
+    node_currency, channel_to_regions) — the same six the RON reader derived
+    from game_data.ron, keyed the same way.
     """
-    if isinstance(second, (tuple, list)):
-        return sum(float(lot[0] if isinstance(lot, (tuple, list)) else lot) for lot in second)
-    return float(second)
-
-
-# ── game_data helpers ─────────────────────────────────────────────────────────
-
-def _index_game_data(gd: dict) -> tuple[dict, dict, dict, dict, dict, dict]:
-    """
-    Returns (good_name, recipe_name, node_to_region, region_name, node_currency, channel_to_regions).
-    All keyed by integer id.
-    node_currency: node_id -> good_id of that node's currency, or None.
-    """
-    goods    = gd.get("goods", [])
-    recipes  = gd.get("recipes", [])
-    nodes    = gd.get("market_nodes", [])
-    regions  = gd.get("regions", [])
-    channels = gd.get("channels", [])
-
-    good_name   = {i: g.get("name", f"good{i}") for i, g in enumerate(goods)}
-    recipe_name = {i: r.get("name", f"recipe{i}") for i, r in enumerate(recipes)}
-    region_name = {_int_id(r.get("id", i)): r.get("name", f"region{i}")
-                   for i, r in enumerate(regions)}
+    good_name = {int(g["id"]): g["name"] for g in m.get("goods", [])}
+    recipe_name = {int(r["id"]): r["name"] for r in m.get("recipes", [])}
+    region_name = {int(r["id"]): r["name"] for r in m.get("regions", [])}
 
     node_to_region: dict[int, int | None] = {}
-    for i, n in enumerate(nodes):
-        nid = _int_id(n.get("id", i))
-        reg = n.get("region")
-        if isinstance(reg, Tagged) and reg.tag == "Some":
-            node_to_region[nid] = _int_id(reg.inner)
-        else:
-            node_to_region[nid] = None
-
-    # Currency is per market node: build a node_id -> good_id map.
     node_currency: dict[int, int | None] = {}
-    for i, n in enumerate(nodes):
-        nid = _int_id(n.get("id", i))
+    for n in m.get("market_nodes", []):
+        nid = int(n["id"])
+        # None for national and world nodes, which serve no single region.
+        node_to_region[nid] = None if n.get("region") is None else int(n["region"])
         cg = n.get("currency_good")
-        if isinstance(cg, Tagged) and cg.tag == "Some":
-            node_currency[nid] = _int_id(cg.inner)
-        elif isinstance(cg, int):
-            node_currency[nid] = cg
-        else:
-            node_currency[nid] = None
+        node_currency[nid] = None if cg is None else int(cg)
 
-    channel_to_regions = {}
-    for i, c in enumerate(channels):
-        cid = _int_id(c.get("id", i))
-        from_m_node = _int_id(c.get("from", -1))
-        to_m_node = _int_id(c.get("to", -1))
-        r1 = node_to_region.get(from_m_node)
-        r2 = node_to_region.get(to_m_node)
-        channel_to_regions[cid] = (r1, r2)
+    channel_to_regions: dict[int, tuple[int | None, int | None]] = {}
+    for c in m.get("channels", []):
+        cid = int(c["id"])
+        channel_to_regions[cid] = (
+            node_to_region.get(int(c["from_node"])),
+            node_to_region.get(int(c["to_node"])),
+        )
 
-    print(channel_to_regions)
     return good_name, recipe_name, node_to_region, region_name, node_currency, channel_to_regions
 
 
-# ── single checkpoint parser ──────────────────────────────────────────────────
+def _empty(cols: list[str]) -> pd.DataFrame:
+    """An empty frame with the right columns *and* the right dtypes.
 
-def _parse_checkpoint(text: str) -> dict:
-    return ron.parse(text)
-
-
-def _extract_prices(state: dict) -> list[dict]:
-    tick       = int(state["tick"])
-    num_goods  = int(state["num_goods"])
-    prices     = state.get("prices", [])
-    supply     = state.get("supply", [])
-    demand     = state.get("demand", [])
-    rows = []
-    for i, p in enumerate(prices):
-        node_id = i // num_goods
-        good_id = i % num_goods
-        s = float(supply[i]) if i < len(supply) else 0.0
-        d = float(demand[i]) if i < len(demand) else 0.0
-        if s <= 0.0 and d <= 0.0:
-            imb = 0.0
-        else:
-            imb = (d - s) / max(s, d)
-        rows.append({
-            "tick": tick, "node_id": node_id, "good_id": good_id,
-            "price": float(p), "supply": s, "demand": d, "imbalance": imb,
-        })
-    return rows
+    Dtypes matter here: an object-dtype empty column silently changes the result
+    of a downstream groupby or comparison, so an empty run would not behave like
+    a small one.
+    """
+    df = pd.DataFrame({c: pd.Series(dtype=_dtype_for(c)) for c in cols})
+    return df[cols]
 
 
-def _extract_buildings(state: dict) -> tuple[list[dict], list[dict]]:
-    tick = int(state["tick"])
-    bld_rows: list[dict] = []
-    inv_rows: list[dict] = []
-
-    recipe_instances = state.get("recipe_instances")
-    if recipe_instances:
-        # NEW FORMAT: buildings are slim; recipe_instances carry production data.
-        # Top-level inventories list is indexed by InventoryId.
-        inv_list = state.get("inventories", [])
-
-        # Build inv_id -> (building_id, region_id) lookup
-        inv_id_to_bld: dict[int, tuple[int, int]] = {}
-        for b in state.get("buildings", []):
-            bid = _int_id(b.get("id", 0))
-            rid = _int_id(b.get("region", 0))
-            inv_id = _int_id(b.get("inventory", 0))
-            inv_id_to_bld[inv_id] = (bid, rid)
-
-        # Production rows — only CapacityControl instances
-        for ri in recipe_instances:
-            ss = ri.get("strategy_state")
-            if not (isinstance(ss, Tagged) and ss.tag == "CapacityControl"):
-                continue
-            input_inv_id = _int_id(ri.get("input_inv", 0))
-            bld_info = inv_id_to_bld.get(input_inv_id)
-            if bld_info is None:
-                continue
-            bld_id, region_id = bld_info
-            cc = ss.inner if isinstance(ss.inner, dict) else {}
-            bld_rows.append({
-                "tick":             tick,
-                "building_id":      bld_id,
-                "region_id":        region_id,
-                "recipe_id":        _int_id(ri.get("recipe", 0)),
-                "recipe_size":      float(ri.get("recipe_size", 0.0)),
-                "chosen_size":      float(ri.get("chosen_size", 0.0)),
-                "efficiency":       float(cc.get("efficiency", 1.0)),
-                "balance":          float(cc.get("balance", 0.0)),
-                "last_margin":      float(cc.get("last_margin", 0.0)),
-                "last_throughput":  float(cc.get("last_throughput", 0.0)),
-                "channel_id":       _int_id(ri.get("channel")),
-            })
-
-        # Inventory rows — one per building, looked up by InventoryId
-        for b in state.get("buildings", []):
-            bid = _int_id(b.get("id", 0))
-            inv_id = _int_id(b.get("inventory", 0))
-            for entry in (inv_list[inv_id] if inv_id < len(inv_list) else []):
-                if isinstance(entry, (tuple, list)) and len(entry) == 2:
-                    gid, qty = _int_id(entry[0]), _lot_qty(entry[1])
-                    inv_rows.append({
-                        "tick": tick, "entity_type": "building",
-                        "entity_id": bid, "good_id": gid, "qty": qty,
-                    })
-    else:
-        # OLD FORMAT: buildings carry inline recipe data and inventory
-        for b in state.get("buildings", []):
-            bid = _int_id(b.get("id", 0))
-            bld_rows.append({
-                "tick":             tick,
-                "building_id":      bid,
-                "region_id":        _int_id(b.get("region", 0)),
-                "recipe_id":        _int_id(b.get("recipe", 0)),
-                "recipe_size":      float(b.get("recipe_size", 0.0)),
-                "chosen_size":      float(b.get("chosen_size", 0.0)),
-                "efficiency":       float(b.get("efficiency", 1.0)),
-                "balance":          float(b.get("balance", 0.0)),
-                "last_margin":      float(b.get("last_margin", 0.0)),
-                "last_throughput":  float(b.get("last_throughput", 0.0)),
-                "channel_id":       _int_id(b.get("channel", -1)),
-            })
-            for entry in (b.get("inventory") or []):
-                if isinstance(entry, (tuple, list)) and len(entry) == 2:
-                    gid, qty = _int_id(entry[0]), _lot_qty(entry[1])
-                    inv_rows.append({
-                        "tick": tick, "entity_type": "building",
-                        "entity_id": bid, "good_id": gid, "qty": qty,
-                    })
-    return bld_rows, inv_rows
+def _dtype_for(col: str) -> str:
+    if col in _INT_COLS:
+        return "int64"
+    if col == "is_employed":
+        return "bool"
+    if col == "entity_type":
+        return "object"
+    return "float64"
 
 
-def _extract_pops(state: dict) -> tuple[list[dict], list[dict]]:
-    tick = int(state["tick"])
-    pop_rows: list[dict] = []
-    inv_rows: list[dict] = []
-    inv_list = state.get("inventories", [])  # present in new format
-    for p in state.get("pop_groups", []):
-        pid = _int_id(p.get("id", 0))
-        pop_rows.append({
-            "tick":           tick,
-            "pop_id":         pid,
-            "region_id":      _int_id(p.get("region", 0)),
-            "size":           float(p.get("size", 0.0)),
-            "wealth":         float(p.get("wealth", 0.0)),
-            "savings_target": float(p.get("savings_target", 0.0)),
-            "is_employed":    bool(p.get("is_employed", True)),
-        })
-        inv_field = p.get("inventory")
-        if isinstance(inv_field, tuple):
-            # NEW FORMAT: InventoryId reference
-            inv_id = _int_id(inv_field)
-            entries = inv_list[inv_id] if inv_id < len(inv_list) else []
-        else:
-            # OLD FORMAT: inline list of (good_id, qty)
-            entries = inv_field or []
-        for entry in entries:
-            if isinstance(entry, (tuple, list)) and len(entry) == 2:
-                gid, qty = _int_id(entry[0]), float(entry[1])
-                inv_rows.append({
-                    "tick": tick, "entity_type": "pop",
-                    "entity_id": pid, "good_id": gid, "qty": qty,
-                })
-    return pop_rows, inv_rows
+def _pivot(long: pd.DataFrame, keys: list[str], rename: dict[str, str],
+           cols: list[str]) -> pd.DataFrame:
+    """Pivot a slice of the tidy long table into one wide frame.
+
+    `keys` are the long-table columns that identify a row of the result;
+    `metric` becomes the columns and `value` the cells.
+    """
+    if long.empty:
+        return _empty(cols)
+    wide = long.pivot(index=keys, columns="metric", values="value").reset_index()
+    wide.columns.name = None
+    wide = wide.rename(columns=rename)
+    for c in cols:
+        if c not in wide.columns:
+            # A metric the engine did not emit for this run. Left as NaN rather
+            # than filled: absent is not zero.
+            wide[c] = np.nan
+    wide = wide[cols]
+    for c in cols:
+        dt = _dtype_for(c)
+        if dt != "float64":
+            wide[c] = wide[c].astype(dt)
+    return wide
 
 
 # ── ScenarioResults ───────────────────────────────────────────────────────────
@@ -270,7 +178,7 @@ class ScenarioResults:
     # Time series (empty DataFrames with correct columns if no data)
     prices:      pd.DataFrame   # tick, node_id, good_id, price, supply, demand, imbalance
     buildings:   pd.DataFrame   # tick, building_id, region_id, recipe_id, recipe_size, chosen_size, efficiency, balance, last_margin, last_throughput, channel_id
-    pops:        pd.DataFrame   # tick, pop_id, region_id, size, wealth, savings_target
+    pops:        pd.DataFrame   # tick, pop_id, region_id, size, wealth, savings_target, is_employed
     inventories: pd.DataFrame   # tick, entity_type, entity_id, good_id, qty
 
     def currency_good_ids(self) -> set[int]:
@@ -418,60 +326,106 @@ class ScenarioResults:
 
 # ── loader ────────────────────────────────────────────────────────────────────
 
-def load_scenario_results(
-    output_dir: str | Path,
-    game_data: dict | str | Path,
-) -> ScenarioResults:
+def _require_unique(long: pd.DataFrame, keys: list[str], what: str) -> None:
+    """Fail loudly if a pivot key repeats within a tick.
+
+    `pivot` would raise anyway, and `pivot_table` would quietly average the
+    collision away. Neither is a useful answer, so say what collided: a repeated
+    key means two entities are being reported under one identity, and averaging
+    them would produce a series for an entity that does not exist.
     """
-    Parse all tick_*.ron files in output_dir into a ScenarioResults.
-
-    game_data: either a parsed game_data dict (from ron.load / load_scenario)
-               or a path to game_data.ron.
-    """
-    output_dir = Path(output_dir)
-
-    if not isinstance(game_data, dict):
-        game_data = ron.load(str(game_data))
-
-    good_name, recipe_name, node_to_region, region_name, node_currency, channel_to_regions = (
-        _index_game_data(game_data)
-    )
-
-    ron_files = sorted(output_dir.glob("tick_*.ron"))
-    if not ron_files:
-        # Return empty results
-        empty_price = pd.DataFrame(columns=["tick","node_id","good_id","price","supply","demand","imbalance"])
-        empty_bld   = pd.DataFrame(columns=["tick","building_id","region_id","recipe_id","recipe_size","chosen_size","efficiency","balance","last_margin","last_throughput"])
-        empty_pop   = pd.DataFrame(columns=["tick","pop_id","region_id","size","wealth","savings_target"])
-        empty_inv   = pd.DataFrame(columns=["tick","entity_type","entity_id","good_id","qty"])
-        return ScenarioResults(
-            good_name=good_name, recipe_name=recipe_name,
-            region_name=region_name, node_to_region=node_to_region,
-            node_currency=node_currency,
-            channel_to_regions=channel_to_regions,
-            prices=empty_price, buildings=empty_bld, pops=empty_pop, inventories=empty_inv,
+    dupes = long.duplicated(subset=keys + ["metric"])
+    if bool(dupes.any()):
+        sample = long[dupes][keys + ["metric"]].head(3).to_dict("records")
+        raise ValueError(
+            f"{what}: {int(dupes.sum())} duplicate rows for keys {keys}, e.g. {sample}. "
+            "Two entities share an identity in the telemetry; they cannot be pivoted "
+            "into one series without inventing a number."
         )
 
-    price_rows, bld_rows, pop_rows, inv_rows = [], [], [], []
 
-    for path in ron_files:
-        text = path.read_text(encoding="utf-8")
-        state = _parse_checkpoint(text)
+def load_scenario_results(
+    output_dir: str | Path,
+    game_data: dict | str | Path | None = None,
+) -> ScenarioResults:
+    """
+    Load output_dir's Parquet telemetry into a ScenarioResults.
 
-        price_rows.extend(_extract_prices(state))
+    game_data is accepted and ignored. The manifest carries the dimension tables
+    this loader used to derive from game_data.ron; the parameter is kept so
+    existing callers (notebooks, tools/app.py) keep working unchanged.
 
-        b_rows, b_inv = _extract_buildings(state)
-        bld_rows.extend(b_rows)
-        inv_rows.extend(b_inv)
+    Raises FileNotFoundError if the directory holds no telemetry. That is
+    deliberate: a run that cannot be analysed must not be returned as a run that
+    showed nothing.
+    """
+    output_dir = Path(output_dir)
+    manifest = _read_manifest(output_dir)
+    (good_name, recipe_name, node_to_region, region_name,
+     node_currency, channel_to_regions) = _dimensions(manifest)
 
-        p_rows, p_inv = _extract_pops(state)
-        pop_rows.extend(p_rows)
-        inv_rows.extend(p_inv)
+    tpath = output_dir / manifest["telemetry"].get("file", TELEMETRY_FILE)
+    if not tpath.is_file():
+        raise FileNotFoundError(
+            f"{MANIFEST_FILE} in {output_dir} points at {tpath.name}, which is missing."
+        )
 
-    prices_df      = pd.DataFrame(price_rows)
-    buildings_df   = pd.DataFrame(bld_rows)
-    pops_df        = pd.DataFrame(pop_rows)
-    inventories_df = pd.DataFrame(inv_rows)
+    df = pd.read_parquet(tpath, columns=["tick", "region", "entity_kind", "id", "good", "metric", "value"])
+
+    # ── markets: one row per (tick, node, good) ──
+    mk = df[df["entity_kind"] == "market"]
+    if mk.empty:
+        prices = _empty(PRICE_COLS)
+    else:
+        mk = mk[["tick", "id", "good", "metric", "value"]].copy()
+        mk["good"] = mk["good"].astype("int64")
+        _require_unique(mk, ["tick", "id", "good"], "market telemetry")
+        raw = [c for c in PRICE_COLS if c != "imbalance"]
+        prices = _pivot(mk, ["tick", "id", "good"],
+                        {"id": "node_id", "good": "good_id"}, raw)
+        # Derived, not stored: the engine emits supply and demand, and keeping a
+        # third copy of the same information invites the copies to disagree.
+        # Same definition as the RON reader used: 0.0 when nothing was posted.
+        den = np.maximum(prices["supply"], prices["demand"])
+        prices["imbalance"] = np.where(
+            den > 0, (prices["demand"] - prices["supply"]) / den, 0.0
+        )
+        prices = prices[PRICE_COLS]
+
+    # ── production: one row per (tick, building) ──
+    bd = df[(df["entity_kind"] == "building") & (df["metric"] != "inventory")]
+    if bd.empty:
+        buildings = _empty(BUILDING_COLS)
+    else:
+        bd = bd[["tick", "id", "region", "metric", "value"]].copy()
+        bd["region"] = bd["region"].astype("int64")
+        _require_unique(bd, ["tick", "id", "region"], "building telemetry")
+        buildings = _pivot(bd, ["tick", "id", "region"],
+                           {"id": "building_id", "region": "region_id"}, BUILDING_COLS)
+
+    # ── pops: one row per (tick, pop) ──
+    pp = df[(df["entity_kind"] == "pop") & (df["metric"] != "inventory")]
+    if pp.empty:
+        pops = _empty(POP_COLS)
+    else:
+        pp = pp[["tick", "id", "region", "metric", "value"]].copy()
+        pp["region"] = pp["region"].astype("int64")
+        _require_unique(pp, ["tick", "id", "region"], "pop telemetry")
+        pops = _pivot(pp, ["tick", "id", "region"],
+                      {"id": "pop_id", "region": "region_id"}, POP_COLS)
+
+    # ── inventories: already long; entity_kind is the old entity_type ──
+    iv = df[df["metric"] == "inventory"]
+    if iv.empty:
+        inventories = _empty(INV_COLS)
+    else:
+        inventories = pd.DataFrame({
+            "tick": iv["tick"].astype("int64").to_numpy(),
+            "entity_type": iv["entity_kind"].astype("object").to_numpy(),
+            "entity_id": iv["id"].astype("int64").to_numpy(),
+            "good_id": iv["good"].astype("int64").to_numpy(),
+            "qty": iv["value"].astype("float64").to_numpy(),
+        })[INV_COLS]
 
     return ScenarioResults(
         good_name=good_name,
@@ -480,8 +434,32 @@ def load_scenario_results(
         node_to_region=node_to_region,
         node_currency=node_currency,
         channel_to_regions=channel_to_regions,
-        prices=prices_df,
-        buildings=buildings_df,
-        pops=pops_df,
-        inventories=inventories_df,
+        prices=prices,
+        buildings=buildings,
+        pops=pops,
+        inventories=inventories,
     )
+
+
+def load_region_metrics(output_dir: str | Path) -> pd.DataFrame:
+    """The per-region series the engine scored itself against, as a wide frame.
+
+    Not part of the ScenarioResults API: these are computed in-engine (Phase 1)
+    and were never reconstructable from checkpoints, so nothing downstream
+    expects them yet. Exposed because analysis that wants to agree with the
+    certificate should read the engine's own numbers rather than recompute them.
+
+    Columns: tick, region_id, then one per metric. Empty if the run was not
+    certified — the collector only runs under --certify.
+    """
+    output_dir = Path(output_dir)
+    manifest = _read_manifest(output_dir)
+    df = pd.read_parquet(output_dir / manifest["telemetry"].get("file", TELEMETRY_FILE))
+    rg = df[df["entity_kind"] == "region"]
+    if rg.empty:
+        return pd.DataFrame({"tick": pd.Series(dtype="int64"),
+                             "region_id": pd.Series(dtype="int64")})
+    rg = rg[["tick", "id", "metric", "value"]].copy()
+    wide = rg.pivot(index=["tick", "id"], columns="metric", values="value").reset_index()
+    wide.columns.name = None
+    return wide.rename(columns={"id": "region_id"})
