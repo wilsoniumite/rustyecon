@@ -100,8 +100,6 @@ pub fn run(state: &SimState, game_data: &GameData, deltas: &mut Vec<StateDelta>,
         // ── Step 4: post buy orders ───────────────────────────────────────────
         for (cat_idx, cat) in game_data.need_categories.iter().enumerate() {
             let total_qty = basket_qty[cat_idx] * scale;
-            print!("Pop {} category {}: wealth={:.2}, base_qty={:.2}, scale={:.2}, final_qty={:.2}",
-                pop.id.0, cat.name, wealth, basket_qty[cat_idx], scale, total_qty);
             if total_qty <= 0.0 { continue; }
             for (entry_idx, entry) in cat.entries.iter().enumerate() {
                 let qty = total_qty * sub_state[cat_idx][entry_idx];
@@ -147,8 +145,6 @@ pub fn run(state: &SimState, game_data: &GameData, deltas: &mut Vec<StateDelta>,
                 (rse, d)
             };
             let new_wealth = (wealth + drift).max(0.0);
-            println!("Pop {} wealth drift: {:.3} -> {:.3} (rse={:.3}, drift={:.3}, balance={:.2}, target_spend={:.2}, ema_spend={:.2})",
-                pop.id.0, wealth, new_wealth, relative_spend_error, drift, new_ema_balance, target_spend, new_ema);
             deltas.push(StateDelta::SetPopEmaState { pop: pop.id, ema_spending: new_ema, ema_balance: new_ema_balance });
             deltas.push(StateDelta::SetPopPrevSpendError { pop: pop.id, spend_error: relative_spend_error });
             new_wealth

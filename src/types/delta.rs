@@ -44,6 +44,14 @@ pub enum StateDelta {
         qty: f64,
     },
 
+    /// Advance shelf-life counters on one inventory and drop lots that expired.
+    /// Emitted in the upkeep phase, one per inventory. Routed through the delta
+    /// pipeline (rather than mutating inventories directly) so spoilage is part
+    /// of the replayable, hashable delta stream like every other mutation.
+    SpoilInventory {
+        inv: InventoryId,
+    },
+
     // --- RecipeInstance state ---
 
     SetChosenSize {

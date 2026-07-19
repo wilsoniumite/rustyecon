@@ -346,20 +346,30 @@ pub fn resolve_sim_state(
             inventory: inv_id,
         });
         let transfer_target = b.transfer_target.map(|t| RecipeInstanceId(t.0));
+        let recipe_id = resolver.recipe(&b.recipe)?;
+        // Honor the recipe's declared strategy; the strategy_state variant must
+        // match RecipeDef.strategy or downstream systems silently mis-decide.
+        let strategy_state = match game_data.recipe(recipe_id).strategy {
+            StrategyKind::CapacityControl => StrategyState::CapacityControl(CapacityControlState {
+                efficiency: b.efficiency,
+                ..CapacityControlState::new(b.recipe_size)
+            }),
+            StrategyKind::DividendPayout { .. } => {
+                StrategyState::DividendPayout(DividendPayoutState { smoothed_input_cost: 0.0 })
+            }
+            StrategyKind::AlwaysRun => StrategyState::AlwaysRun,
+        };
         state.recipe_instances.push(RecipeInstance {
             id: RecipeInstanceId(b.id.0),
             region: b.region,
-            recipe: resolver.recipe(&b.recipe)?,
+            recipe: recipe_id,
             input_inv: inv_id,
             output_inv: inv_id,
             recipe_size: b.recipe_size,
             chosen_size: b.chosen_size,
             channel: b.channel,
             transfer_target,
-            strategy_state: StrategyState::CapacityControl(CapacityControlState {
-                efficiency: b.efficiency,
-                ..CapacityControlState::new(b.recipe_size)
-            }),
+            strategy_state,
         });
     }
 

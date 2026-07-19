@@ -21,6 +21,9 @@ pub fn apply_state_deltas(state: &mut SimState, deltas: &[StateDelta]) {
             RemoveFromInventory { inv, good, qty } => {
                 state.inventories[inv.idx()].remove(*good, *qty);
             }
+            SpoilInventory { inv } => {
+                state.inventories[inv.idx()].spoil_lots();
+            }
             SetChosenSize { instance, size } => {
                 state.recipe_instance_mut(*instance).chosen_size = *size;
             }
@@ -85,7 +88,8 @@ pub fn apply_state_deltas(state: &mut SimState, deltas: &[StateDelta]) {
                 let e_size = state.pop_groups[e_idx].size;
                 let u_size = state.pop_groups[u_idx].size;
                 let total = e_size + u_size;
-                if total <= 0.0 { return; }
+                // Per-delta skip: a degenerate pair must not drop the rest of the batch.
+                if total <= 0.0 { continue; }
 
                 let new_e = fill_rate * total;
                 let new_u = total - new_e;

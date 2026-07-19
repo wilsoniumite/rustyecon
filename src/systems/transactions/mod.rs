@@ -177,7 +177,9 @@ pub fn run(
     }
 
     // Settle recipe instance currency receipts/payments.
-    let all_ikeys: std::collections::HashSet<(u32, u32)> =
+    // Ordered iteration: HashSet order is nondeterministic and would make the
+    // emitted delta stream vary run-to-run, breaking replay/golden-hash equality.
+    let all_ikeys: std::collections::BTreeSet<(u32, u32)> =
         instance_currency_delta.keys().copied().collect();
     for (rid_u32, cid_u32) in all_ikeys {
         use crate::types::ids::{GoodId, RecipeInstanceId};

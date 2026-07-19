@@ -114,16 +114,22 @@ def rolling_cv(series, window=10):
     return float(cv.mean())
 
 def damping_ratio(series, mid):
-    """std(second half) / std(first half). <1 means settling."""
+    """std(second half) / std(first half). <1 means settling.
+
+    Returns NaN when either half has too little data to measure the ratio;
+    callers treat an uncomputable damping ratio as a failure (fail-closed).
+    """
     s = series.dropna()
     first  = s[s.index < mid]
     second = s[s.index >= mid]
     s1 = float(first.std())  if len(first)  > 5 else np.nan
     s2 = float(second.std()) if len(second) > 5 else np.nan
-    if s1 is np.nan or s1 < 1e-12:
-        return 0.0   # already settled
-    if s2 is np.nan:
-        return np.nan
+    # np.isnan, not `is np.nan`: a computed NaN is never the np.nan singleton,
+    # so the identity check silently never fired and broken metrics passed.
+    if np.isnan(s1) or np.isnan(s2):
+        return np.nan   # uncomputable → fail-closed at the caller
+    if s1 < 1e-12:
+        return 0.0      # first half already flat: genuinely settled
     return s2 / s1
 
 def analysis_slice(series):
@@ -280,7 +286,9 @@ def detect_issues(m: dict, res: ScenarioResults) -> list:
         s = analysis_slice(series)
         if s.empty: continue
         cv = rolling_cv(s, window=10)
-        if cv is not np.nan and cv > T_UNSTABLE_CV:
+        # Fail-closed: a non-empty series whose CV cannot be computed is an issue,
+        # not a silent pass (the old `cv is not np.nan` guard never fired).
+        if np.isnan(cv) or cv > T_UNSTABLE_CV:
             issues.append(f"UNSTABLE({label} CV={cv:.2f})")
 
     # ── SWINGING: not damping ─────────────────────────────────────────────────
@@ -289,7 +297,8 @@ def detect_issues(m: dict, res: ScenarioResults) -> list:
         s = analysis_slice(series)
         if s.empty: continue
         dr = damping_ratio(s, ANALYSIS_MID)
-        if dr is not np.nan and dr > T_SWING_DAMP:
+        # Fail-closed: an uncomputable damping ratio counts as not-damping.
+        if np.isnan(dr) or dr > T_SWING_DAMP:
             issues.append(f"SWINGING({label} damp={dr:.2f})")
 
     # ── CURRENCY_DRAIN ────────────────────────────────────────────────────────
@@ -303,7 +312,9 @@ def detect_issues(m: dict, res: ScenarioResults) -> list:
     # ── POP_DESTITUTION ───────────────────────────────────────────────────────
     if not ri.empty:
         frac_dest = frac_below(m["real_income"], T_DESTITUTION)
-        if frac_dest is not np.nan and frac_dest > 0.50:
+        # Fail-closed: if the destitution fraction can't be computed over a
+        # non-empty income series, flag it rather than pass silently.
+        if np.isnan(frac_dest) or frac_dest > 0.50:
             issues.append(f"POP_DESTITUTION(frac={frac_dest:.2f})")
 
     # ── DEAD_BUILDING (warning) ───────────────────────────────────────────────

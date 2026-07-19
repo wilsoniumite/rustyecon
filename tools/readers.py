@@ -46,6 +46,17 @@ def _bare_str(v) -> str:
     return v.value if isinstance(v, Bare) else str(v)
 
 
+def _lot_qty(second) -> float:
+    """Total quantity from an inventory entry's second element.
+
+    New checkpoint format: a list of (qty, life) lots -> sum the qtys.
+    Old format: a bare scalar qty. Tolerate both so mixed result dirs load.
+    """
+    if isinstance(second, (tuple, list)):
+        return sum(float(lot[0] if isinstance(lot, (tuple, list)) else lot) for lot in second)
+    return float(second)
+
+
 # ── game_data helpers ─────────────────────────────────────────────────────────
 
 def _index_game_data(gd: dict) -> tuple[dict, dict, dict, dict, dict, dict]:
@@ -178,7 +189,7 @@ def _extract_buildings(state: dict) -> tuple[list[dict], list[dict]]:
             inv_id = _int_id(b.get("inventory", 0))
             for entry in (inv_list[inv_id] if inv_id < len(inv_list) else []):
                 if isinstance(entry, (tuple, list)) and len(entry) == 2:
-                    gid, qty = _int_id(entry[0]), float(entry[1])
+                    gid, qty = _int_id(entry[0]), _lot_qty(entry[1])
                     inv_rows.append({
                         "tick": tick, "entity_type": "building",
                         "entity_id": bid, "good_id": gid, "qty": qty,
@@ -202,7 +213,7 @@ def _extract_buildings(state: dict) -> tuple[list[dict], list[dict]]:
             })
             for entry in (b.get("inventory") or []):
                 if isinstance(entry, (tuple, list)) and len(entry) == 2:
-                    gid, qty = _int_id(entry[0]), float(entry[1])
+                    gid, qty = _int_id(entry[0]), _lot_qty(entry[1])
                     inv_rows.append({
                         "tick": tick, "entity_type": "building",
                         "entity_id": bid, "good_id": gid, "qty": qty,

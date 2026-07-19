@@ -8,6 +8,7 @@ pub mod transactions;
 use crate::scenario::EventSchedule;
 use crate::state::{apply_state_deltas, GameData, SimState};
 use crate::types::delta::StateDelta;
+use crate::types::ids::InventoryId;
 
 /// Run one complete tick.
 ///
@@ -48,9 +49,12 @@ pub fn run_tick(state: &mut SimState, game_data: &GameData, events: &EventSchedu
     // Phase 6 — Spoilage: advance lot life counters on all inventories.
     // Running after production ensures newly produced lots are decremented but not
     // immediately removed (a lot with life=1 survives this tick and the next).
-    for inv in &mut state.inventories {
-        inv.spoil_lots();
-    }
+    // Emitted as deltas so the mutation flows through apply_state_deltas — the sole
+    // writer — and is captured by the replayable/hashable delta stream.
+    let spoil_deltas: Vec<StateDelta> = (0..state.inventories.len())
+        .map(|i| StateDelta::SpoilInventory { inv: InventoryId(i as u32) })
+        .collect();
+    apply_state_deltas(state, &spoil_deltas);
 
     // Phase 7 — Price update
     let d = price_update::run(state, game_data);

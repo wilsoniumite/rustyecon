@@ -11,9 +11,11 @@ pub struct Lot {
 
 /// Sparse inventory: sorted Vec of (GoodId, lots), no empty entries stored.
 ///
-/// Serializes/deserializes as a flat `Vec<(GoodId, f64)>` (summing lots) for
-/// compatibility with existing scenario and checkpoint files. Lot details are
-/// tracked in-memory only and are not persisted to disk.
+/// Serializes/deserializes as `Vec<(GoodId, Vec<(qty, life)>)>` so shelf-life
+/// counters survive checkpoints — without this, a save/resume silently turns
+/// every perishable lot indefinite and spoilage stops after a resume. Scenario
+/// `starting_state.ron` files do NOT use this impl (they load via
+/// `NameResolver::inventory`, a name→qty map), so this format is checkpoint-only.
 #[derive(Debug, Clone, Default)]
 pub struct Inventory(Vec<(GoodId, Vec<Lot>)>);
 
@@ -100,17 +102,35 @@ impl Inventory {
 
 impl Serialize for Inventory {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        self.goods().serialize(serializer)
+        // (good, [(qty, life), …]); exhausted lots dropped to keep it minimal.
+        let repr: Vec<(GoodId, Vec<(f64, Option<u32>)>)> = self.0.iter()
+            .filter_map(|(g, lots)| {
+                let live: Vec<(f64, Option<u32>)> = lots.iter()
+                    .filter(|l| l.qty > 0.0)
+                    .map(|l| (l.qty, l.life))
+                    .collect();
+                if live.is_empty() { None } else { Some((*g, live)) }
+            })
+            .collect();
+        repr.serialize(serializer)
     }
 }
 
 impl<'de> Deserialize<'de> for Inventory {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let flat = Vec::<(GoodId, f64)>::deserialize(deserializer)?;
-        let inner = flat.into_iter()
-            .filter(|&(_, qty)| qty > 0.0)
-            .map(|(g, qty)| (g, vec![Lot { qty, life: None }]))
+        let repr = Vec::<(GoodId, Vec<(f64, Option<u32>)>)>::deserialize(deserializer)?;
+        let mut inner: Vec<(GoodId, Vec<Lot>)> = repr.into_iter()
+            .map(|(g, lots)| {
+                let lots: Vec<Lot> = lots.into_iter()
+                    .filter(|&(qty, _)| qty > 0.0)
+                    .map(|(qty, life)| Lot { qty, life })
+                    .collect();
+                (g, lots)
+            })
+            .filter(|(_, lots)| !lots.is_empty())
             .collect();
+        // Restore the sorted-by-good invariant the rest of the type relies on.
+        inner.sort_by_key(|&(g, _)| g);
         Ok(Inventory(inner))
     }
 }
@@ -172,6 +192,33 @@ mod tests {
 
         inv.spoil_lots();
         assert_eq!(inv.get(g), 2.0); // 3.0 lot expired; only indefinite remains
+    }
+
+    #[test]
+    fn serde_preserves_lot_lives() {
+        // A save/resume must not turn perishable lots indefinite.
+        let mut inv = Inventory::default();
+        let g = GoodId(1);
+        inv.add(g, 4.0, Some(3));
+        inv.add(g, 6.0, None);
+        inv.add(GoodId(0), 2.0, Some(1));
+
+        // Round-trip through both checkpoint formats.
+        let ron_text = ron::ser::to_string(&inv).unwrap();
+        let from_ron: Inventory = ron::from_str(&ron_text).unwrap();
+        let bin = bincode::serialize(&inv).unwrap();
+        let from_bin: Inventory = bincode::deserialize(&bin).unwrap();
+
+        for round in [from_ron, from_bin] {
+            assert_eq!(round.get(g), 10.0);
+            assert_eq!(round.get(GoodId(0)), 2.0);
+            // The Some(1) lot on GoodId(0) must expire exactly one spoil after resume.
+            let mut r = round;
+            r.spoil_lots(); // Some(3)->Some(2), Some(1)->Some(0)
+            r.spoil_lots(); // Some(0) on GoodId(0) removed
+            assert_eq!(r.get(GoodId(0)), 0.0, "finite lot life survived the round-trip");
+            assert_eq!(r.get(g), 10.0, "indefinite + still-live lots retained");
+        }
     }
 
     #[test]
