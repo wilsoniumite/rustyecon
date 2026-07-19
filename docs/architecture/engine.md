@@ -82,12 +82,63 @@ VERDICT: …
 
 ## Telemetry
 
+> **v2 Phase 2: BUILT 2026-07-20.** The long table, the manifest and the
+> DataFrame API ship; the research readouts below do not, and cannot until the
+> settlement records and the ownership register exist (Phases 6–7). Two
+> deviations from the spec as written were taken deliberately and are marked in
+> place rather than edited away.
+
 - The engine writes **Parquet** directly: one tidy long table per run —
-  `(tick, region, entity_kind, id, metric, value)` — plus a manifest (git sha,
-  tape hash, seed, criteria hash). Checkpoints are sparse and exist for
-  resume, not analysis.
+  `(tick, region, entity_kind, id, good, metric, value)` — plus a manifest (git
+  sha, tape hash, seed, criteria hash, and the dimension tables). Checkpoints
+  are sparse and exist for resume, not analysis.
+
+  > **Amended from `(tick, region, entity_kind, id, metric, value)`.** Prices,
+  > supplies and inventories are all keyed by *(entity, good)*. Six columns can
+  > only express that by folding the good into `id` or into the metric name,
+  > and both put structure inside a string, which makes the obvious groupby
+  > wrong. `good` is therefore a seventh column, nullable: null means "this
+  > observation is not per-good", never "good zero". `region` is nullable for a
+  > related reason — a market node can serve several regions, so a price
+  > belongs to a node and to no single region.
+  >
+  > **Manifest extended beyond identity.** The long table holds integer ids, so
+  > a manifest carrying only identity would leave the analysis layer parsing
+  > `game_data.ron` to say the word "flour" — the gate would have been met on a
+  > technicality. The manifest carries goods, recipes, regions, market nodes and
+  > channels, and `readers.py` imports no RON parser at all.
+
+- What is emitted today is the *primitives* the analysis layer used to
+  reconstruct from checkpoints, plus the per-region series the certification
+  stack already computes. Derived quantities that are cheap downstream
+  (imbalance, price index) stay derived: a stored second copy is a copy that can
+  disagree.
+
+| `entity_kind` | keyed by | metrics |
+|---|---|---|
+| `market` | node × good | `price`, `supply`, `demand` |
+| `building` | building | `recipe_id`, `recipe_size`, `chosen_size`, `efficiency`, `balance`, `last_margin`, `last_throughput`, `channel_id` |
+| `building` / `pop` | entity × good | `inventory` |
+| `pop` | pop | `size`, `wealth`, `savings_target`, `is_employed` |
+| `region` | region | `velocity`, `employment`, `real_wage`, `concentration`, `bld_util`, `real_income` |
+
+  The `region` rows are read from the same samples the verdict is scored
+  against, so the telemetry and the certificate cannot tell two stories about
+  one tick. They are only emitted under `--certify`, which is what computes
+  them.
+
 - **Research readouts are first-class columns**, computed in-engine from the
   settlement records and the register:
+
+  > **UNBUILT.** `P`, `Q`, the dual GDP and labour-share columns, `R`, `B`,
+  > `mu`, `r_star`, `concentration` and `dispersal` all read from structures
+  > that do not exist yet — the `SettlementRecord` of [markets.md](markets.md)
+  > and the `OwnershipRegister` of [ownership.md](ownership.md). They land with
+  > Phases 6 and 7. The long format was chosen so that adding them is adding
+  > rows, not migrating a schema. (The `concentration` emitted today is the
+  > 07-suite's currency-concentration metric, a different quantity from the
+  > claims-weighted one specified here; they will need distinct names when both
+  > exist.)
 
 | column | definition |
 |---|---|
@@ -105,3 +156,10 @@ VERDICT: …
 - Analysis tooling consumes the Parquet through a tidy-DataFrame API; the
   factorial suite loop (scenario generator → manifest → batch run → per-region
   metrics → persisted verdicts) is the standard experiment shape.
+
+  > **BUILT.** `tools/readers.py` pivots the long table into the frames the
+  > notebooks and `tools/app.py` already used; its public API is unchanged.
+  > Measured against the RON checkpoint path it replaces, at the suite's own
+  > 1000-tick horizon: lr_00 46.16s → 0.129s (357×, 181 MB → 1.1 MB),
+  > multi_region 9.34s → 0.102s (91×, 48 MB → 1.1 MB). The full 25-scenario
+  > suite loads in 2.28s.

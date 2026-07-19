@@ -20,11 +20,14 @@ struct Args {
     #[arg(short, long, default_value = "output")]
     output: PathBuf,
 
-    /// Save binary checkpoint every N ticks (0 = disabled)
+    /// Save binary checkpoint every N ticks for resume (0 = disabled). Sparse
+    /// by intent: checkpoints exist to restart a run, not to be analysed.
     #[arg(long, default_value_t = 0)]
     checkpoint_every: u64,
 
-    /// Save human-readable .ron checkpoint every N ticks (0 = disabled)
+    /// Save human-readable .ron checkpoint every N ticks (0 = disabled).
+    /// For inspecting a state by eye. NOT the analysis feed — use --record,
+    /// which is what tools/readers.py reads.
     #[arg(long, default_value_t = 0)]
     human_save: u64,
 
