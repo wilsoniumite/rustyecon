@@ -5,6 +5,7 @@ use crate::types::{
     delta::StateDelta,
     ids::{GoodId, InventoryId, OwnerId},
     order::{MarketFills, Order, OrderSide},
+    provenance::Provenance,
 };
 
 /// Phase 3: Transfer goods and settle currency payments.
@@ -45,6 +46,13 @@ pub fn run(
             OwnerId::Government(_) | OwnerId::MagicProducer(_) => None,
         }
     };
+
+    // Goods that pops supply as labour. Pops hold no labour stock: it is minted
+    // against their headcount at the point of sale (Provenance::LabourMint) and
+    // burned the same tick by production or by Instant spoilage. Membership is
+    // only ever queried, never iterated, so the hash order never reaches a delta.
+    let labour_goods: std::collections::HashSet<GoodId> =
+        state.pop_groups.iter().filter_map(|p| p.labour_good).collect();
 
     // Wages earned by pops from sell orders, keyed by (pop_id, currency_good_id).
     let mut pop_sell_revenue: HashMap<(u32, u32), f64> = HashMap::new();
@@ -109,6 +117,13 @@ pub fn run(
                             good: order.good,
                             qty: actual_qty,
                             life: game_data.good(order.good).shelf_life.initial_life(),
+                            // Buying labour mints it; every other purchase is the
+                            // receiving half of a conserved transfer.
+                            prov: if labour_goods.contains(&order.good) {
+                                Provenance::LabourMint
+                            } else {
+                                Provenance::Transfer
+                            },
                         });
                     }
                 }
@@ -138,12 +153,20 @@ pub fn run(
                     }
                     _ => {}
                 }
-                if let Some(inv) = owner_inv(order.owner) {
-                    deltas.push(StateDelta::RemoveFromInventory {
-                        inv,
-                        good: order.good,
-                        qty: cleared_qty,
-                    });
+                // A pop selling its labour has no stock to give up — the units are
+                // minted straight into the buyer above. Emitting a removal here
+                // would clamp to zero and log a phantom shortfall every tick.
+                let pop_labour_sale = matches!(order.owner, OwnerId::PopGroup(_))
+                    && labour_goods.contains(&order.good);
+                if !pop_labour_sale {
+                    if let Some(inv) = owner_inv(order.owner) {
+                        deltas.push(StateDelta::RemoveFromInventory {
+                            inv,
+                            good: order.good,
+                            qty: cleared_qty,
+                            prov: Provenance::Transfer,
+                        });
+                    }
                 }
             }
         }
@@ -162,6 +185,7 @@ pub fn run(
                     inv: pop.inventory,
                     good: cid,
                     qty: spent,
+                    prov: Provenance::Transfer,
                 });
             }
             let wages = pop_sell_revenue.get(&key).copied().unwrap_or(0.0);
@@ -171,6 +195,7 @@ pub fn run(
                     good: cid,
                     qty: wages,
                     life: None, // currency
+                    prov: Provenance::Transfer,
                 });
             }
         }
@@ -198,9 +223,20 @@ pub fn run(
         }
         let inv = state.recipe_instance(rid).input_inv;
         if delta > 1e-12 {
-            deltas.push(StateDelta::AddToInventory { inv, good: cid, qty: delta, life: None }); // currency
+            deltas.push(StateDelta::AddToInventory {
+                inv,
+                good: cid,
+                qty: delta,
+                life: None, // currency
+                prov: Provenance::Transfer,
+            });
         } else if delta < -1e-12 {
-            deltas.push(StateDelta::RemoveFromInventory { inv, good: cid, qty: -delta });
+            deltas.push(StateDelta::RemoveFromInventory {
+                inv,
+                good: cid,
+                qty: -delta,
+                prov: Provenance::Transfer,
+            });
         }
     }
 

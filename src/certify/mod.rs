@@ -4,9 +4,11 @@
 //! criteria is an anecdote. These guarantees live in the engine, not in notebooks:
 //!
 //! - [`hash`] — a canonical state fingerprint, the basis of the golden-hash tests.
-//! - conservation ledger, run certificate, and criteria land here as the phase
-//!   progresses.
+//! - [`ledger`] — per-tick conservation accounting; a breach panics the run.
+//! - run certificate and criteria land here as the phase progresses.
 
 pub mod hash;
+pub mod ledger;
 
 pub use hash::state_hash;
+pub use ledger::{ConservationLedger, Shortfall};

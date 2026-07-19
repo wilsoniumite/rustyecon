@@ -1,10 +1,30 @@
+use crate::certify::ConservationLedger;
 use crate::state::sim_state::SimState;
 use crate::types::delta::StateDelta;
+use crate::types::provenance::Provenance;
 use crate::types::recipe_instance::StrategyState;
 
 /// The only place SimState is mutated. All systems produce StateDelta values;
 /// this function applies them. Never call this from within a system function.
 pub fn apply_state_deltas(state: &mut SimState, deltas: &[StateDelta]) {
+    apply_with_ledger(state, deltas, None);
+}
+
+/// Apply deltas while posting every inventory movement to the conservation
+/// ledger, so the tick can be checked against `observed == declared` (R3).
+pub fn apply_state_deltas_ledgered(
+    state: &mut SimState,
+    deltas: &[StateDelta],
+    ledger: &mut ConservationLedger,
+) {
+    apply_with_ledger(state, deltas, Some(ledger));
+}
+
+fn apply_with_ledger(
+    state: &mut SimState,
+    deltas: &[StateDelta],
+    mut ledger: Option<&mut ConservationLedger>,
+) {
     use StateDelta::*;
     for delta in deltas {
         match delta {
@@ -15,14 +35,27 @@ pub fn apply_state_deltas(state: &mut SimState, deltas: &[StateDelta]) {
                 state.set_supply(*node, *good, *supply);
                 state.set_demand(*node, *good, *demand);
             }
-            AddToInventory { inv, good, qty, life } => {
+            AddToInventory { inv, good, qty, life, prov } => {
                 state.inventories[inv.idx()].add(*good, *qty, *life);
+                if let Some(l) = ledger.as_deref_mut() {
+                    l.record_add(*good, *qty, *prov);
+                }
             }
-            RemoveFromInventory { inv, good, qty } => {
-                state.inventories[inv.idx()].remove(*good, *qty);
+            RemoveFromInventory { inv, good, qty, prov } => {
+                // The actual removed quantity, not the requested one: a clamp must
+                // never be silent — it becomes a shortfall ledger line instead.
+                let removed = state.inventories[inv.idx()].remove(*good, *qty);
+                if let Some(l) = ledger.as_deref_mut() {
+                    l.record_remove(*good, *qty, removed, *prov);
+                }
             }
             SpoilInventory { inv } => {
-                state.inventories[inv.idx()].spoil_lots();
+                let destroyed = state.inventories[inv.idx()].spoil_lots();
+                if let Some(l) = ledger.as_deref_mut() {
+                    for (good, qty) in destroyed {
+                        l.record_remove(good, qty, qty, Provenance::Spoilage);
+                    }
+                }
             }
             SetChosenSize { instance, size } => {
                 state.recipe_instance_mut(*instance).chosen_size = *size;
@@ -98,6 +131,9 @@ pub fn apply_state_deltas(state: &mut SimState, deltas: &[StateDelta]) {
                 let u_inv = state.pop_groups[u_idx].inventory;
 
                 // Redistribute total inventory proportionally to new sizes.
+                // Not posted to the conservation ledger: every good is split as
+                // target_e + target_u == total_qty, so the pair's adds and removes
+                // cancel exactly and Σ inventory is unchanged.
                 // Collect all goods held across both halves.
                 let goods: Vec<_> = {
                     let mut g: std::collections::BTreeMap<crate::types::ids::GoodId, f64> =

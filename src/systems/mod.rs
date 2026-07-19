@@ -5,8 +5,9 @@ pub mod price_update;
 pub mod production;
 pub mod transactions;
 
+use crate::certify::ConservationLedger;
 use crate::scenario::EventSchedule;
-use crate::state::{apply_state_deltas, GameData, SimState};
+use crate::state::{apply_state_deltas_ledgered, GameData, SimState};
 use crate::types::delta::StateDelta;
 use crate::types::ids::InventoryId;
 
@@ -57,34 +58,42 @@ fn run_tick_inner(
     events: &EventSchedule,
     sink: &mut Option<&mut Vec<StateDelta>>,
 ) {
-    // Phase 0 — Events (recurring + one-shot; UBI fires here as recurring delta)
-    let event_deltas = events.deltas_for_tick(state.tick);
-    apply_state_deltas(state, &event_deltas);
+    let tick = state.tick;
+    // Every inventory movement this tick is posted here; the tally is checked
+    // before the tick is allowed to close (METHODOLOGY R3).
+    let mut ledger = ConservationLedger::new(game_data.num_goods());
+
+    // Phase 0 — Events (recurring + one-shot; UBI fires here as recurring delta).
+    // Tape deltas carry whatever provenance the tape declares; the default is
+    // Transfer, so an unpaired injection that forgets `prov: Event` is caught by
+    // the ledger rather than silently minting.
+    let event_deltas = events.deltas_for_tick(tick);
+    apply_state_deltas_ledgered(state, &event_deltas, &mut ledger);
     record(sink, event_deltas);
 
     // Phase 1 — Decisions
     let (decisions_deltas, orders) = decisions::run(state, game_data);
-    apply_state_deltas(state, &decisions_deltas);
+    apply_state_deltas_ledgered(state, &decisions_deltas, &mut ledger);
     record(sink, decisions_deltas);
 
     // Phase 2 — Clearing
     let (clearing_deltas, fills) = clearing::run(state, game_data, &orders);
-    apply_state_deltas(state, &clearing_deltas);
+    apply_state_deltas_ledgered(state, &clearing_deltas, &mut ledger);
     record(sink, clearing_deltas);
 
     // Phase 3 — Transactions
     let d = transactions::run(state, game_data, &orders, &fills);
-    apply_state_deltas(state, &d);
+    apply_state_deltas_ledgered(state, &d, &mut ledger);
     record(sink, d);
 
     // Phase 4 — Pop update (consumption + savings-ratio target adjustment)
     let d = pop_update::run(state, game_data);
-    apply_state_deltas(state, &d);
+    apply_state_deltas_ledgered(state, &d, &mut ledger);
     record(sink, d);
 
     // Phase 5 — Production
     let d = production::run(state, game_data);
-    apply_state_deltas(state, &d);
+    apply_state_deltas_ledgered(state, &d, &mut ledger);
     record(sink, d);
 
     // Phase 6 — Spoilage: advance lot life counters on all inventories.
@@ -95,14 +104,17 @@ fn run_tick_inner(
     let spoil_deltas: Vec<StateDelta> = (0..state.inventories.len())
         .map(|i| StateDelta::SpoilInventory { inv: InventoryId(i as u32) })
         .collect();
-    apply_state_deltas(state, &spoil_deltas);
+    apply_state_deltas_ledgered(state, &spoil_deltas, &mut ledger);
     record(sink, spoil_deltas);
 
     // Phase 7 — Price update
     let d = price_update::run(state, game_data);
-    apply_state_deltas(state, &d);
+    apply_state_deltas_ledgered(state, &d, &mut ledger);
     record(sink, d);
 
-    apply_state_deltas(state, &[StateDelta::AdvanceTick]);
+    apply_state_deltas_ledgered(state, &[StateDelta::AdvanceTick], &mut ledger);
     record(sink, vec![StateDelta::AdvanceTick]);
+
+    // Phase 8 — Certify: the tick may not close on a broken ledger.
+    ledger.assert_conserved(tick);
 }

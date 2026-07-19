@@ -1,5 +1,8 @@
 use crate::state::{GameData, SimState};
-use crate::types::{delta::StateDelta, recipe::InputScaling, recipe_instance::StrategyState};
+use crate::types::{
+    delta::StateDelta, provenance::Provenance, recipe::InputScaling,
+    recipe_instance::StrategyState,
+};
 
 /// Phase 4: Recipe instances produce output based on chosen_size elected in Phase 1.
 /// Inputs are consumed from input_inv. Output is placed into output_inv.
@@ -47,6 +50,8 @@ pub fn run(state: &SimState, game_data: &GameData) -> Vec<StateDelta> {
                     inv: ri.input_inv,
                     good: input.good,
                     qty,
+                    // Inputs are consumed by the transformation, not moved.
+                    prov: Provenance::Production,
                 });
             }
         }
@@ -60,6 +65,8 @@ pub fn run(state: &SimState, game_data: &GameData) -> Vec<StateDelta> {
                     good: output.good,
                     qty,
                     life: game_data.good(output.good).shelf_life.initial_life(),
+                    // Outputs come into existence here.
+                    prov: Provenance::Production,
                 });
             }
         }

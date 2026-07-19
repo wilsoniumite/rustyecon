@@ -1,5 +1,5 @@
 use crate::state::{GameData, SimState};
-use crate::types::delta::StateDelta;
+use crate::types::{delta::StateDelta, provenance::Provenance};
 
 /// Phase 4 — Pop update.
 /// 1. Consume all non-currency, non-labour goods received this tick (pops don't stockpile).
@@ -19,6 +19,8 @@ pub fn run(state: &SimState, game_data: &GameData) -> Vec<StateDelta> {
                     inv: pop.inventory,
                     good,
                     qty,
+                    // The demand sink: consumed goods leave existence.
+                    prov: Provenance::Consumption,
                 });
             }
         }

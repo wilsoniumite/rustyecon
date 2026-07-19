@@ -1,4 +1,5 @@
 use crate::types::ids::{GoodId, InventoryId, MagicProducerId, MarketNodeId, PopGroupId, PopPairId, RecipeInstanceId};
+use crate::types::provenance::Provenance;
 use serde::{Deserialize, Serialize};
 
 /// Every mutation the simulation can express. The only path to modifying SimState.
@@ -36,12 +37,20 @@ pub enum StateDelta {
         /// (e.g. events loaded from RON that predate the lots system).
         #[serde(default)]
         life: Option<u32>,
+        /// Whether these units are newly minted, and by what mechanism.
+        /// Defaults to `Transfer` (conserved) so pre-provenance RON still loads.
+        #[serde(default)]
+        prov: Provenance,
     },
 
     RemoveFromInventory {
         inv: InventoryId,
         good: GoodId,
         qty: f64,
+        /// Whether these units leave existence, and by what mechanism.
+        /// Defaults to `Transfer` (conserved) so pre-provenance RON still loads.
+        #[serde(default)]
+        prov: Provenance,
     },
 
     /// Advance shelf-life counters on one inventory and drop lots that expired.

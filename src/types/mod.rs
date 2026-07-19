@@ -9,5 +9,6 @@ pub mod market_node;
 pub mod need_category;
 pub mod order;
 pub mod pop_group;
+pub mod provenance;
 pub mod recipe;
 pub mod recipe_instance;

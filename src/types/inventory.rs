@@ -87,9 +87,24 @@ impl Inventory {
     ///
     /// A lot produced with `life = Some(1)` survives the tick it is created, is available
     /// for sale the following tick, and is removed at the next call to `spoil_lots`.
-    pub fn spoil_lots(&mut self) {
-        for (_, lots) in &mut self.0 {
-            lots.retain(|l| l.life != Some(0));
+    ///
+    /// Returns the quantity destroyed per good, so spoilage can be posted to the
+    /// conservation ledger as an explicit burn rather than vanishing silently.
+    pub fn spoil_lots(&mut self) -> Vec<(GoodId, f64)> {
+        let mut destroyed: Vec<(GoodId, f64)> = Vec::new();
+        for (good, lots) in &mut self.0 {
+            let mut gone = 0.0;
+            lots.retain(|l| {
+                if l.life == Some(0) {
+                    gone += l.qty;
+                    false
+                } else {
+                    true
+                }
+            });
+            if gone > 0.0 {
+                destroyed.push((*good, gone));
+            }
             for lot in lots.iter_mut() {
                 if let Some(n) = &mut lot.life {
                     *n = n.saturating_sub(1);
@@ -97,6 +112,7 @@ impl Inventory {
             }
         }
         self.0.retain(|(_, lots)| !lots.is_empty());
+        destroyed
     }
 }
 
