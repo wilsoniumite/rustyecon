@@ -69,6 +69,16 @@ def has_results(output_dir: str | Path) -> bool:
     return (d / TELEMETRY_FILE).is_file() and (d / MANIFEST_FILE).is_file()
 
 
+def sampling_every(output_dir: str | Path) -> int:
+    """Ticks between telemetry samples for this run (1 = every tick).
+
+    Anything that indexes by row position rather than tick value - rolling
+    windows, positional shifts - is only correct when this is 1, and should
+    say so rather than quietly rescaling its window.
+    """
+    return int(_read_manifest(Path(output_dir))["telemetry"].get("every", 1))
+
+
 def _read_manifest(output_dir: Path) -> dict:
     path = output_dir / MANIFEST_FILE
     if not path.is_file():
@@ -158,8 +168,15 @@ def _pivot(long: pd.DataFrame, keys: list[str], rename: dict[str, str],
     wide = wide[cols]
     for c in cols:
         dt = _dtype_for(c)
-        if dt != "float64":
-            wide[c] = wide[c].astype(dt)
+        if dt == "float64":
+            continue
+        if wide[c].isna().any():
+            # A metric the engine emitted for some rows of this frame but not
+            # others. Casting would raise and filling would invent data, so the
+            # column stays float and the gap stays visible as NaN - which is
+            # what the comment above promises.
+            continue
+        wide[c] = wide[c].astype(dt)
     return wide
 
 
@@ -249,12 +266,33 @@ class ScenarioResults:
         return pd.Series(idx_vals, index=ticks, name="price_index")
 
     def yoy_inflation(self, ticks_per_year: int = 52) -> pd.Series:
-        """YoY % change in price_index. Returns Series indexed by tick."""
+        """YoY % change in price_index. Returns Series indexed by tick.
+
+        Aligned by *tick value*, not by row position. Telemetry can be
+        subsampled (--telemetry-every), and a positional shift would then
+        compare against whatever row happens to sit N places back: on a run
+        sampled every 5 ticks, 52 rows is 260 ticks, which silently returns a
+        number of the wrong sign and magnitude rather than an error.
+
+        Where the tick a year earlier was not sampled the result is NaN. Under
+        the fail-closed policy that is the honest answer - the comparison was
+        not computable - and it is what the certificate treats as a failure
+        rather than a pass. No nearest-neighbour fallback: silently comparing
+        against a tick 3 short of a year is a different measurement wearing
+        this one's name.
+
+        That does mean a run sampled every 5 ticks returns all-NaN at the
+        default lag of 52, because no multiple of 5 is 52 apart from another.
+        The fix is a lag the sampling divides: on an every=5 run,
+        `yoy_inflation(ticks_per_year=50)` agrees with the fully-sampled run
+        exactly, to the bit.
+        """
         pi = self.price_index()
         if pi.empty:
             return pd.Series(dtype=float, name="yoy_inflation_pct")
-        shifted = pi.shift(ticks_per_year)
-        result = ((pi / shifted) - 1.0) * 100.0
+        prior = pi.reindex(pi.index - ticks_per_year)
+        prior.index = pi.index
+        result = ((pi / prior) - 1.0) * 100.0
         result.name = "yoy_inflation_pct"
         return result
     
@@ -426,6 +464,10 @@ def load_scenario_results(
             "good_id": iv["good"].astype("int64").to_numpy(),
             "qty": iv["value"].astype("float64").to_numpy(),
         })[INV_COLS]
+        # Constructing from a numpy object array lets pandas re-infer a string
+        # dtype, which would not match the empty path. Pin it.
+        inventories["entity_type"] = inventories["entity_type"].astype(
+            _dtype_for("entity_type"))
 
     return ScenarioResults(
         good_name=good_name,

@@ -54,11 +54,36 @@ def save_events(name: str, ev: dict):
 
 # ── Run ───────────────────────────────────────────────────────────────────────
 
+# Engine exit codes. A certified run exits 1 when its verdict is FAIL: the
+# certificate and telemetry are both whole, the economy simply did not pass.
+# That is the engine working as designed (verdict-first, fail-closed) and it is
+# the expected outcome for every scenario in the corpus today, so a caller that
+# treats it as a crash never sees its own results. Rust panics exit 101.
+EXIT_OK = 0
+EXIT_CERTIFICATE_FAIL = 1
+EXIT_CERTIFICATE_WRITE_FAILED = 2
+EXIT_TELEMETRY_FAILED = 3
+
+
 @dataclass
 class RunResult:
     returncode: int
     stdout: str
     stderr: str
+
+    @property
+    def ok(self) -> bool:
+        """The run finished and its artifacts are trustworthy.
+
+        True for a FAIL verdict. False for a telemetry or certificate write
+        failure, and for a crash - in those cases the output on disk is
+        incomplete and must not be analysed.
+        """
+        return self.returncode in (EXIT_OK, EXIT_CERTIFICATE_FAIL)
+
+    @property
+    def certificate_failed(self) -> bool:
+        return self.returncode == EXIT_CERTIFICATE_FAIL
 
 
 def run_simulation(
@@ -67,6 +92,7 @@ def run_simulation(
     output_dir: str | None = None,
     record: bool = False,
     certify: bool = False,
+    results_dir: str | None = None,
     telemetry_every: int = 1,
     human_save_every: int = 0,
     build: bool = True,
@@ -84,6 +110,12 @@ def run_simulation(
             extra += ["--telemetry-every", str(telemetry_every)]
     if certify:
         extra.append("--certify")
+        # Certificates default to repo-root results/, which is committed
+        # evidence (R5). A batch or exploratory run must not silently rewrite
+        # it, so unless a caller asks for somewhere specific, certificates land
+        # beside the run's own telemetry. Regenerating the committed verdicts
+        # is then a deliberate act with an explicit --results.
+        extra += ["--results", results_dir or str(Path(output_dir) / "results")]
     if human_save_every > 0:
         extra += ["--human-save", str(human_save_every)]
 

@@ -25,17 +25,15 @@ import numpy as np
 import pandas as pd
 
 from scenario import SCENARIOS_DIR, REPO_ROOT, run_simulation
-from readers import load_scenario_results, has_results, ScenarioResults
+from readers import load_scenario_results, has_results, sampling_every, ScenarioResults
 
 # ── Settings ──────────────────────────────────────────────────────────────────
 
 PLOTS       = False
 TICKS       = 1000
-# A certified run exits 1 when its verdict is FAIL. That is the engine working
-# as designed (verdict-first, fail-closed) and it is the expected outcome for
-# this whole corpus - so it is not a run failure. A crash is 101, and anything
-# else is a real problem worth stopping for.
-OK_RETURNCODES = (0, 1)
+# Sampling this suite assumes. rolling_cv and the window slices below index by
+# row position, so a subsampled run would silently rescale every window.
+TELEMETRY_EVERY = 1
 TRANSIENT   = 150         # ticks to discard as startup noise
 ANALYSIS_END = TICKS
 ANALYSIS_MID = TRANSIENT + (ANALYSIS_END - TRANSIENT) // 2   # ~575
@@ -85,10 +83,10 @@ def run_all(names):
         # emits the engine's own per-region series alongside them.
         r = run_simulation(name, ticks=TICKS, output_dir=str(out),
                            record=True, certify=True, build=False)
-        if r.returncode not in OK_RETURNCODES:
+        if not r.ok:
             print(f"ERROR (exit {r.returncode})\n{r.stderr[-500:]}")
         else:
-            print("done" if r.returncode == 0 else "done (certificate FAIL)")
+            print("done (certificate FAIL)" if r.certificate_failed else "done")
 
 # ── Load results ──────────────────────────────────────────────────────────────
 
@@ -99,6 +97,13 @@ def load_all(names):
         if not has_results(out):
             print(f"  {name}: no telemetry, skipping")
             continue
+        # rolling_cv and the window slices below index by row position, so a
+        # subsampled run would rescale every window without saying so.
+        every = sampling_every(out)
+        if every != TELEMETRY_EVERY:
+            raise SystemExit(
+                f"{name}: telemetry sampled every {every} ticks, but this suite's "
+                f"windows assume every {TELEMETRY_EVERY}. Re-run it.")
         # No game_data needed: the manifest carries the dimension tables.
         results[name] = load_scenario_results(str(out))
     return results

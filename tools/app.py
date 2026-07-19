@@ -1025,10 +1025,12 @@ def render_run():
                 record=True, certify=True,
                 telemetry_every=int(telemetry_every),
             )
-        if result.returncode == 0:
-            st.success(f"Done. RON checkpoints in `{output_dir}`.")
+        if result.ok:
+            note = " (certificate verdict: FAIL)" if result.certificate_failed else ""
+            st.success(f"Done. Telemetry in `{output_dir}`{note}.")
         else:
-            st.error("Simulation failed.")
+            st.error(f"Simulation failed (exit {result.returncode}) - "
+                     "output on disk is incomplete, do not analyse it.")
         if result.stdout:
             st.code(result.stdout[-3000:], language="text")
         if result.stderr:

@@ -220,7 +220,7 @@ def plot(res: ScenarioResults) -> None:
 if __name__ == "__main__":
     result = run_simulation(SCENARIO, TICKS, output_dir=str(OUTPUT),
                             record=True, certify=True, build=True)
-    if result.returncode != 0:
+    if not result.ok:
         print(result.stderr)
         raise SystemExit(1)
     print(result.stdout)
