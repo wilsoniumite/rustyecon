@@ -1,0 +1,41 @@
+{
+  "run": "52b51b99a87bca26",
+  "git": "f146abb",
+  "tape_sha": "8425309c95330b03",
+  "seed": 0,
+  "scenario": "supply_chain",
+  "ticks": 11700,
+  "batteries": [
+    {
+      "id": "B1",
+      "label": "conservation",
+      "pass": true,
+      "detail": "max drift 4.210e-11, worst margin 0.0% of tolerance"
+    },
+    {
+      "id": "B2",
+      "label": "delta-only mutation (replay audit)",
+      "pass": true,
+      "detail": "no state escaped the delta stream"
+    },
+    {
+      "id": "B3",
+      "label": "determinism",
+      "pass": true,
+      "detail": "state hash 0x417c5ab5f7914e54, replay MATCH"
+    },
+    {
+      "id": "B4",
+      "label": "metrics computable",
+      "pass": true,
+      "detail": "0 NaN"
+    },
+    {
+      "id": "B5",
+      "label": "clamp/shortfall events",
+      "pass": true,
+      "detail": "0 (total 0.000e0 missing)"
+    }
+  ],
+  "verdict": "PASS"
+}

@@ -7,10 +7,13 @@
 //! - [`ledger`] — per-tick conservation accounting; a breach panics the run.
 //! - run certificate and criteria land here as the phase progresses.
 
+pub mod certificate;
 pub mod criteria;
 pub mod hash;
 pub mod ledger;
+pub mod nan;
 
+pub use certificate::{Battery, Certificate, RunIdentity};
 pub use criteria::{Criteria, FailureClass, Metric, NanPolicy, Rule, Window};
 pub use hash::state_hash;
-pub use ledger::{ConservationLedger, Shortfall};
+pub use ledger::{ConservationLedger, Shortfall, TickAudit};

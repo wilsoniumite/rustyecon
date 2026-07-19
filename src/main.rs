@@ -31,6 +31,15 @@ struct Args {
     /// Record per-tick prices and inventories to prices.csv / inventories.csv in output dir
     #[arg(long)]
     record: bool,
+
+    /// Run the certification batteries, print the certificate verdict-first,
+    /// persist it, and exit nonzero if any battery fails
+    #[arg(long)]
+    certify: bool,
+
+    /// Directory certificates are written to (verdicts are committed to the repo)
+    #[arg(long, default_value = "results")]
+    results: PathBuf,
 }
 
 fn main() {
@@ -50,11 +59,34 @@ fn main() {
         human_save_every: args.human_save,
         output_dir: args.output,
         record: args.record,
+        certify: args.certify,
+        results_dir: args.results,
     };
+    let results_dir = config.results_dir.clone();
 
-    let mut runner = SimRunner::new(scenario.state, scenario.game_data, scenario.events, config);
+    let mut runner = SimRunner::new(scenario.state, scenario.game_data, scenario.events, config)
+        .with_scenario_dir(&args.scenario);
 
-    println!("running {} ticks from scenario '{}'", args.ticks, args.scenario.display());
-    runner.run();
-    println!("done — final tick: {}", runner.tick());
+    if !args.certify {
+        println!("running {} ticks from scenario '{}'", args.ticks, args.scenario.display());
+    }
+    let certificate = runner.run();
+
+    // Verdict first: the batteries are printed before any result is read, so a
+    // failed run cannot be skimmed as if it were a result (METHODOLOGY R5).
+    if let Some(cert) = certificate {
+        print!("{}", cert.render());
+        match cert.persist(&results_dir) {
+            Ok(path) => println!("certificate: {}", path.display()),
+            Err(e) => {
+                eprintln!("certificate write failed: {e}");
+                std::process::exit(2);
+            }
+        }
+        if !cert.passed() {
+            std::process::exit(1);
+        }
+    } else {
+        println!("done — final tick: {}", runner.tick());
+    }
 }

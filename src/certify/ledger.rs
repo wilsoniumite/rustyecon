@@ -67,6 +67,30 @@ pub struct ConservationLedger {
     shortfalls: Vec<Shortfall>,
 }
 
+/// What one tick's ledger concluded, in the form the certificate consumes.
+///
+/// The tick has already asserted itself by the time this is produced — a breach
+/// panics — so these are the *margins*: how close it ran to the limit, and what
+/// was clamped. Without them "zero breaches" is indistinguishable from "just
+/// inside tolerance, same sign, every tick".
+#[derive(Debug, Clone, Copy, Default)]
+pub struct TickAudit {
+    pub max_abs_drift: f64,
+    pub max_margin_ratio: f64,
+    pub shortfalls: usize,
+    pub shortfall_qty: f64,
+}
+
+impl TickAudit {
+    /// Fold another tick's audit into a running worst-case for the run.
+    pub fn absorb(&mut self, other: &TickAudit) {
+        self.max_abs_drift = self.max_abs_drift.max(other.max_abs_drift);
+        self.max_margin_ratio = self.max_margin_ratio.max(other.max_margin_ratio);
+        self.shortfalls += other.shortfalls;
+        self.shortfall_qty += other.shortfall_qty;
+    }
+}
+
 /// Σ inventory per good, measured directly from state.
 ///
 /// This is the independent left-hand side of the conservation identity: it is
@@ -240,6 +264,16 @@ impl ConservationLedger {
 
     pub fn shortfalls(&self) -> &[Shortfall] {
         &self.shortfalls
+    }
+
+    /// Summarise this tick for the certificate.
+    pub fn audit(&self, opening: &[f64], closing: &[f64]) -> TickAudit {
+        TickAudit {
+            max_abs_drift: self.max_abs_drift(opening, closing),
+            max_margin_ratio: self.max_margin_ratio(opening, closing),
+            shortfalls: self.shortfalls.len(),
+            shortfall_qty: self.shortfalls.iter().map(|s| s.missing()).sum(),
+        }
     }
 
     pub fn minted(&self, good: GoodId) -> f64 {
