@@ -52,10 +52,10 @@ impl Shortfall {
 ///   `production`, which is what stops a currency-in/currency-out recipe from
 ///   quietly minting money.
 ///
-/// A breach panics the run (METHODOLOGY R3). Equality is up to a tolerance
-/// scaled by gross flow: clearing splits a market with `buyer_fill = min(1, s/d)`
-/// and `seller_fill = min(1, d/s)`, so the two sides of a trade agree only to
-/// within a few ULP of f64.
+/// A breach panics the run (METHODOLOGY R3). Equality holds up to a tolerance
+/// with two relative terms — one for the float error in what *moved*, one for the
+/// error in *measuring* what is held, since `tally` sums thousands of lots — plus
+/// a tiny absolute floor. See [`REL_FLOW`] and [`REL_STOCK`].
 #[derive(Debug, Clone)]
 pub struct ConservationLedger {
     posted: Vec<f64>,
@@ -84,9 +84,27 @@ pub fn tally(inventories: &[crate::types::inventory::Inventory], num_goods: usiz
     totals
 }
 
-/// Relative slack allowed per unit of gross flow, plus an absolute floor.
-const REL_TOLERANCE: f64 = 1e-9;
-const ABS_TOLERANCE: f64 = 1e-9;
+/// Slack per unit of gross flow.
+///
+/// Clearing splits a market with `buyer_fill = min(1, s/d)` and
+/// `seller_fill = min(1, d/s)`, so the two sides of a trade disagree by a few
+/// ULP — about 1e-16 relative. 1e-12 leaves four orders of headroom over that
+/// without being able to absorb a real leak.
+const REL_FLOW: f64 = 1e-12;
+
+/// Slack per unit of stock.
+///
+/// The opening and closing totals are *measured* by summing every lot of every
+/// inventory, and long runs accumulate 10^3–10^4 lots on a single good, so the
+/// measurement carries its own ~N·ε·S error (N·ε ≈ 2e-12 at N = 10^4). The flow
+/// term cannot cover this: a good can hold large stock while barely trading, and
+/// the scan noise scales with what is held, not with what moved.
+const REL_STOCK: f64 = 1e-11;
+
+/// Floor, so a good with neither stock nor flow still has a non-zero threshold.
+/// Deliberately tiny: an absolute constant is unit-dependent and says nothing
+/// meaningful about a good whose natural scale we do not know.
+const ABS_TOLERANCE: f64 = 1e-12;
 
 impl ConservationLedger {
     pub fn new(num_goods: usize) -> Self {
@@ -143,14 +161,30 @@ impl ConservationLedger {
             self.declared[i] -= removed;
             self.burned[i] += removed;
         }
-        if requested - removed > ABS_TOLERANCE {
+        // Relative to what was asked for: a bare absolute threshold would log
+        // float noise as a shortfall on large removals and miss real ones on small.
+        if requested - removed > ABS_TOLERANCE + REL_FLOW * requested.abs() {
             self.shortfalls.push(Shortfall { good, requested, removed });
         }
     }
 
-    /// Drift tolerance for one good, scaled by the gross flow through it.
-    fn tolerance(&self, i: usize) -> f64 {
-        ABS_TOLERANCE + REL_TOLERANCE * self.gross[i]
+    /// Drift tolerance for one good: a floor, plus slack for the float error in
+    /// what moved (flow) and in the measurement of what is held (stock).
+    fn tolerance(&self, i: usize, opening: &[f64], closing: &[f64]) -> f64 {
+        let stock = opening[i].abs().max(closing[i].abs());
+        ABS_TOLERANCE + REL_FLOW * self.gross[i] + REL_STOCK * stock
+    }
+
+    /// How close the tick ran to its limit, as `|drift| / tolerance` over all
+    /// goods. Reported by the certificate so "zero breaches" is distinguishable
+    /// from "99% of tolerance, same sign, every tick".
+    pub fn max_margin_ratio(&self, opening: &[f64], closing: &[f64]) -> f64 {
+        (0..self.posted.len())
+            .map(|i| {
+                let d = ((closing[i] - opening[i]) - self.declared[i]).abs();
+                d / self.tolerance(i, opening, closing)
+            })
+            .fold(0.0, f64::max)
     }
 
     /// Per-good conservation error against a measured scan:
@@ -174,7 +208,7 @@ impl ConservationLedger {
         let mut worst: Option<(GoodId, f64, f64)> = None; // (good, |drift|, excess over tol)
         for i in 0..self.posted.len() {
             let d = ((closing[i] - opening[i]) - self.declared[i]).abs();
-            let excess = d - self.tolerance(i);
+            let excess = d - self.tolerance(i, opening, closing);
             if excess > 0.0 && worst.map_or(true, |(_, _, w)| excess > w) {
                 worst = Some((GoodId(i as u32), d, excess));
             }
@@ -188,7 +222,7 @@ impl ConservationLedger {
         let mut worst: Option<(GoodId, f64, f64)> = None;
         for i in 0..self.posted.len() {
             let d = ((closing[i] - opening[i]) - self.posted[i]).abs();
-            let excess = d - self.tolerance(i);
+            let excess = d - self.tolerance(i, opening, closing);
             if excess > 0.0 && worst.map_or(true, |(_, _, w)| excess > w) {
                 worst = Some((GoodId(i as u32), d, excess));
             }
@@ -273,7 +307,7 @@ impl ConservationLedger {
                 self.minted[i],
                 self.burned[i],
                 self.gross[i],
-                self.tolerance(i),
+                self.tolerance(i, opening, closing),
                 shortfall_note,
             );
         }
@@ -353,6 +387,50 @@ mod tests {
             l.worst_unledgered(&open, &close).is_some(),
             "a write that bypasses apply must be caught"
         );
+    }
+
+    #[test]
+    fn tolerance_covers_scan_noise_on_large_stock() {
+        // `tally` sums thousands of lots, so measuring a stock of ~1e3 carries
+        // ~1e-9 of its own error. That must not be reported as a leak.
+        let mut l = ConservationLedger::new(2);
+        l.record_add(g(0), 1.0, Provenance::Transfer);
+        l.record_remove(g(0), 1.0, 1.0, Provenance::Transfer);
+        let open = vec![1.0e3, 0.0];
+        let close = vec![1.0e3 + 1.0e-9, 0.0];
+        assert!(
+            l.worst_breach(&open, &close).is_none(),
+            "measurement noise proportional to stock must be tolerated"
+        );
+    }
+
+    #[test]
+    fn tolerance_still_catches_a_real_leak_at_the_same_stock() {
+        // Same stock scale, but a loss six orders larger than the scan noise.
+        let mut l = ConservationLedger::new(2);
+        l.record_add(g(0), 1.0, Provenance::Transfer);
+        l.record_remove(g(0), 1.0, 1.0, Provenance::Transfer);
+        let open = vec![1.0e3, 0.0];
+        let close = vec![1.0e3 - 1.0e-3, 0.0];
+        let (good, _) = l
+            .worst_breach(&open, &close)
+            .expect("a real leak must survive the stock-scaled tolerance");
+        assert_eq!(good, g(0));
+    }
+
+    #[test]
+    fn margin_ratio_reports_headroom() {
+        let mut l = ConservationLedger::new(2);
+        l.record_add(g(0), 1.0, Provenance::Transfer);
+        l.record_remove(g(0), 1.0, 1.0, Provenance::Transfer);
+        let open = vec![0.0, 0.0];
+        let close = vec![0.0, 0.0];
+        // Perfectly balanced: no drift, so no headroom consumed.
+        assert_eq!(l.max_margin_ratio(&open, &close), 0.0);
+        // Drifting to exactly the limit reports a ratio of 1.
+        let close = vec![ABS_TOLERANCE, 0.0];
+        let ratio = l.max_margin_ratio(&open, &close);
+        assert!(ratio > 0.0 && ratio <= 1.0 + 1e-9, "ratio was {ratio}");
     }
 
     #[test]

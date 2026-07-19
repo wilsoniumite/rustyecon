@@ -202,7 +202,13 @@ pub fn run(
         let offered_qty = offered.get(&market).copied().unwrap_or(0.0);
         let taken_qty = bought.get(&market).copied().unwrap_or(0.0);
         // Pro-rata across sellers of this good at this node.
-        let fill = if offered_qty > 1e-12 {
+        //
+        // Guard only against a non-positive denominator, never an absolute
+        // quantity epsilon: a market can carry a large *value* in a tiny
+        // quantity once prices diverge (a collapsed region reaches price ~1e18
+        // against quantities ~1e-24), and skipping the seller there would leave
+        // the buyer's payment with no recipient.
+        let fill = if offered_qty > 0.0 {
             (taken_qty / offered_qty).min(1.0)
         } else {
             0.0
