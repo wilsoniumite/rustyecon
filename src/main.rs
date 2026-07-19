@@ -65,7 +65,8 @@ fn main() {
     let results_dir = config.results_dir.clone();
 
     let mut runner = SimRunner::new(scenario.state, scenario.game_data, scenario.events, config)
-        .with_scenario_dir(&args.scenario);
+        .with_scenario_dir(&args.scenario)
+        .with_criteria(scenario.criteria);
 
     if !args.certify {
         println!("running {} ticks from scenario '{}'", args.ticks, args.scenario.display());

@@ -1,0 +1,83 @@
+// Stability criteria — dated, pre-registered (METHODOLOGY R6, engine.md).
+//
+// Ported verbatim from notebooks/07_stability_suite.py, where these were global
+// Python constants applied to every scenario. The thresholds, the window and the
+// fail-closed NaN policy are all registered here so a run scores itself against a
+// committed bar rather than against whatever the analysis notebook happened to
+// hold that day.
+//
+// CHANGING A THRESHOLD AFTER SEEING RESULTS REQUIRES A NEW DATED FILE, not an
+// edit in place. That is the whole point: a criterion retuned to fit an outcome
+// is not a criterion.
+//
+// The window is the ported one — ticks 150..1000, the span the thresholds were
+// calibrated against with TRANSIENT=150 and TICKS=1000. A longer run is still
+// scored over that window only; extending it to the full 11,700-tick horizon is
+// a different claim and belongs in a new dated file.
+(
+    version: 1,
+    date: "2026-07-20",
+    transient: 150,
+    analysis_end: 1000,
+    staple_good: "flour",
+    labour_good: "labour",
+    nan_policy: FailClosed,
+    classes: [
+        // A region with no transaction velocity is not an economy. Checked first
+        // and short-circuits: once dead, nothing else about it is meaningful.
+        (
+            name: "DEAD",
+            fatal: true,
+            metrics: [Velocity],
+            rule: FracBelow(thresh: 0.003, frac: 0.80),
+            window: Analysis,
+            short_circuit: true,
+        ),
+        (
+            name: "DEAD_EMPLOYMENT",
+            fatal: true,
+            metrics: [Employment],
+            rule: FracBelow(thresh: 0.05, frac: 0.80),
+            window: Analysis,
+        ),
+        // Short-term oscillation: the rolling coefficient of variation.
+        (
+            name: "UNSTABLE",
+            fatal: true,
+            metrics: [Velocity, Employment, RealWage],
+            rule: RollingCv(window: 10, max_cv: 0.12),
+            window: Analysis,
+        ),
+        // Not settling: second-half variance still close to the first half's.
+        (
+            name: "SWINGING",
+            fatal: true,
+            metrics: [Velocity, RealWage],
+            rule: Damping(max_ratio: 0.72),
+            window: Halves,
+        ),
+        // Currency pooling in buildings and still trending that way.
+        (
+            name: "CURRENCY_DRAIN",
+            fatal: true,
+            metrics: [Concentration],
+            rule: MeanAndSlope(mean_min: 0.82, slope_min: 0.0),
+            window: Analysis,
+        ),
+        (
+            name: "POP_DESTITUTION",
+            fatal: true,
+            metrics: [RealIncome],
+            rule: FracBelow(thresh: 0.8, frac: 0.50),
+            window: Analysis,
+        ),
+        // Warning only: an idle plant is a symptom, not a failed region.
+        (
+            name: "DEAD_BUILDING",
+            fatal: false,
+            metrics: [BldUtil],
+            rule: FracBelow(thresh: 0.05, frac: 0.60),
+            window: PostTransient,
+        ),
+    ],
+)

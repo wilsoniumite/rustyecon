@@ -1,16 +1,16 @@
 {
-  "run": "3d368853d7b8632b",
-  "git": "f146abb",
+  "run": "177d8555a9053659",
+  "git": "9e96788",
   "tape_sha": "e0e9388ee7f8d90f",
   "seed": 0,
   "scenario": "lr_00",
-  "ticks": 11700,
+  "ticks": 1000,
   "batteries": [
     {
       "id": "B1",
       "label": "conservation",
       "pass": true,
-      "detail": "max drift 8.577e-10, worst margin 7.4% of tolerance"
+      "detail": "max drift 2.274e-12, worst margin 0.0% of tolerance"
     },
     {
       "id": "B2",
@@ -22,7 +22,7 @@
       "id": "B3",
       "label": "determinism",
       "pass": true,
-      "detail": "state hash 0xb3efa8dda364fa78, replay MATCH"
+      "detail": "state hash 0x1e5c239be16c2010, replay MATCH"
     },
     {
       "id": "B4",
@@ -37,5 +37,38 @@
       "detail": "0 (total 0.000e0 missing)"
     }
   ],
-  "verdict": "PASS"
+  "stability": {
+    "criteria_date": "2026-07-20",
+    "criteria_version": 1,
+    "window": [
+      150,
+      1000
+    ],
+    "regions": [
+      {
+        "region": "Manchester",
+        "issues": [
+          "DEAD(velocity frac=0.94)"
+        ],
+        "passed": false
+      },
+      {
+        "region": "Leeds",
+        "issues": [
+          "DEAD(velocity frac=0.95)"
+        ],
+        "passed": false
+      },
+      {
+        "region": "Birmingham",
+        "issues": [
+          "DEAD(velocity frac=0.95)"
+        ],
+        "passed": false
+      }
+    ],
+    "regions_passed": 0,
+    "regions_total": 3
+  },
+  "verdict": "FAIL"
 }

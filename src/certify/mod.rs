@@ -11,9 +11,13 @@ pub mod certificate;
 pub mod criteria;
 pub mod hash;
 pub mod ledger;
+pub mod metrics;
 pub mod nan;
+pub mod verdict;
 
 pub use certificate::{Battery, Certificate, RunIdentity};
 pub use criteria::{Criteria, FailureClass, Metric, NanPolicy, Rule, Window};
 pub use hash::state_hash;
 pub use ledger::{ConservationLedger, Shortfall, TickAudit};
+pub use metrics::{MetricsCollector, RegionSeries};
+pub use verdict::{RegionVerdict, StabilityReport};

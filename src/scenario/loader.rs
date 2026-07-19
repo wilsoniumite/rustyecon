@@ -11,6 +11,10 @@ pub struct Scenario {
     pub state: SimState,
     pub game_data: crate::state::GameData,
     pub events: EventSchedule,
+    /// Pre-registered stability criteria, when the scenario declares them.
+    /// Optional so a scenario can exist before its criteria are written — but a
+    /// run without them reports as unscored rather than as clean (R5).
+    pub criteria: Option<crate::certify::Criteria>,
 }
 
 /// Load a scenario from a directory. Expects three files:
@@ -39,7 +43,16 @@ pub fn load(dir: &Path) -> Result<Scenario> {
 
     let events: EventSchedule = load_ron(&dir.join("events.ron"))?;
 
-    Ok(Scenario { state, game_data, events })
+    // Optional, but a malformed one is an error rather than a silent skip: a
+    // criteria file that fails to parse must not read as "no criteria".
+    let criteria_path = dir.join("criteria.ron");
+    let criteria = if criteria_path.exists() {
+        Some(load_ron::<crate::certify::Criteria>(&criteria_path)?)
+    } else {
+        None
+    };
+
+    Ok(Scenario { state, game_data, events, criteria })
 }
 
 fn load_ron<T: serde::de::DeserializeOwned>(path: &Path) -> Result<T> {

@@ -1,7 +1,8 @@
 use crate::certify::{
     certificate::{self, Battery, Certificate, RunIdentity},
     ledger::TickAudit,
-    nan, state_hash,
+    metrics::MetricsCollector,
+    nan, state_hash, verdict, Criteria,
 };
 use crate::output::checkpoint::{self, SaveFormat};
 use crate::output::telemetry::Telemetry;
@@ -54,6 +55,8 @@ pub struct SimRunner {
     /// Which scenario produced this run, for the certificate's identity.
     scenario_name: String,
     scenario_tape_sha: String,
+    /// Pre-registered stability criteria, when the scenario declares them.
+    criteria: Option<Criteria>,
 }
 
 impl SimRunner {
@@ -70,7 +73,14 @@ impl SimRunner {
             config,
             scenario_name: "unknown".into(),
             scenario_tape_sha: "0".repeat(16),
+            criteria: None,
         }
+    }
+
+    /// Attach the scenario's pre-registered stability criteria.
+    pub fn with_criteria(mut self, criteria: Option<Criteria>) -> Self {
+        self.criteria = criteria;
+        self
     }
 
     /// Name the scenario this run came from and fingerprint its inputs, so the
@@ -104,6 +114,10 @@ impl SimRunner {
         let mut replay_diverged_at: Option<u64> = None;
         let mut audit = TickAudit::default();
         let mut nan_hits: Vec<String> = Vec::new();
+        let mut collector = match (self.config.certify, &self.criteria) {
+            (true, Some(c)) => Some(MetricsCollector::new(&self.game_data, c)),
+            _ => None,
+        };
 
         let total = self.config.ticks;
         for _ in 0..total {
@@ -127,6 +141,10 @@ impl SimRunner {
                             replay_diverged_at = Some(self.state.tick);
                         }
                     }
+                }
+
+                if let Some(m) = collector.as_mut() {
+                    m.record(&self.state, &self.game_data);
                 }
 
                 if nan_hits.is_empty() {
@@ -153,9 +171,14 @@ impl SimRunner {
             }
         }
 
-        self.config.certify.then(|| {
-            self.build_certificate(audit, replay_diverged_at, &nan_hits)
-        })
+        let stability = match (&self.criteria, &collector) {
+            (Some(c), Some(m)) => Some(verdict::evaluate(c, m.series())),
+            _ => None,
+        };
+
+        self.config
+            .certify
+            .then(|| self.build_certificate(audit, replay_diverged_at, &nan_hits, stability))
     }
 
     fn build_certificate(
@@ -163,6 +186,7 @@ impl SimRunner {
         audit: TickAudit,
         replay_diverged_at: Option<u64>,
         nan_hits: &[String],
+        stability: Option<verdict::StabilityReport>,
     ) -> Certificate {
         let replay_ok = replay_diverged_at.is_none();
         let hash = state_hash(&self.state);
@@ -224,7 +248,7 @@ impl SimRunner {
         let scenario = self.scenario_name.clone();
         let run = certificate::run_id(&git, &tape, &scenario, self.config.ticks, seed);
 
-        Certificate::new(
+        Certificate::with_stability(
             RunIdentity {
                 run,
                 git,
@@ -234,6 +258,7 @@ impl SimRunner {
                 ticks: self.config.ticks,
             },
             batteries,
+            stability,
         )
     }
 

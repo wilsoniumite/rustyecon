@@ -48,14 +48,29 @@ pub struct Certificate {
     #[serde(flatten)]
     pub identity: RunIdentity,
     pub batteries: Vec<Battery>,
-    /// PASS only if every battery passed.
+    /// Stability scored against the scenario's dated criteria.ron, when it has
+    /// one. Absent means the scenario registered no criteria — which is itself
+    /// reported, so an unscored run cannot be mistaken for a clean one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stability: Option<crate::certify::verdict::StabilityReport>,
+    /// PASS only if every battery passed *and* stability passed.
     pub verdict: String,
 }
 
 impl Certificate {
     pub fn new(identity: RunIdentity, batteries: Vec<Battery>) -> Self {
-        let verdict = if batteries.iter().all(|b| b.pass) { "PASS" } else { "FAIL" };
-        Self { identity, batteries, verdict: verdict.into() }
+        Self::with_stability(identity, batteries, None)
+    }
+
+    pub fn with_stability(
+        identity: RunIdentity,
+        batteries: Vec<Battery>,
+        stability: Option<crate::certify::verdict::StabilityReport>,
+    ) -> Self {
+        let batteries_ok = batteries.iter().all(|b| b.pass);
+        let stable = stability.as_ref().map_or(true, |s| s.passed());
+        let verdict = if batteries_ok && stable { "PASS" } else { "FAIL" };
+        Self { identity, batteries, stability, verdict: verdict.into() }
     }
 
     pub fn passed(&self) -> bool {
@@ -79,6 +94,24 @@ impl Certificate {
                 line,
                 if b.pass { "PASS" } else { "FAIL" }
             ));
+        }
+        match &self.stability {
+            Some(s) => {
+                out.push_str(&format!(
+                    "{:<62} {}\n",
+                    format!("STABILITY: {}", s.summary()),
+                    if s.passed() { "PASS" } else { "FAIL" }
+                ));
+                for r in s.regions.iter().filter(|r| !r.issues.is_empty()) {
+                    out.push_str(&format!(
+                        "  {:<12} {:<4} {}\n",
+                        r.region,
+                        if r.passed { "warn" } else { "FAIL" },
+                        r.issues.join(", ")
+                    ));
+                }
+            }
+            None => out.push_str("STABILITY: no criteria.ron registered — unscored\n"),
         }
         out.push_str(&format!("VERDICT: {}\n", self.verdict));
         out

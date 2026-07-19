@@ -1,16 +1,16 @@
 {
-  "run": "d2d72265b45ca4f6",
-  "git": "f146abb",
+  "run": "da1b6ba2fee666b8",
+  "git": "9e96788",
   "tape_sha": "29dd897f0473212c",
   "seed": 0,
   "scenario": "big_region",
-  "ticks": 11700,
+  "ticks": 1000,
   "batteries": [
     {
       "id": "B1",
       "label": "conservation",
       "pass": true,
-      "detail": "max drift 3.555e-11, worst margin 0.0% of tolerance"
+      "detail": "max drift 4.061e-12, worst margin 0.0% of tolerance"
     },
     {
       "id": "B2",
@@ -22,7 +22,7 @@
       "id": "B3",
       "label": "determinism",
       "pass": true,
-      "detail": "state hash 0x3b2793719e7280fd, replay MATCH"
+      "detail": "state hash 0x72658c6a9bbf109a, replay MATCH"
     },
     {
       "id": "B4",
@@ -37,5 +37,25 @@
       "detail": "0 (total 0.000e0 missing)"
     }
   ],
-  "verdict": "PASS"
+  "stability": {
+    "criteria_date": "2026-07-20",
+    "criteria_version": 1,
+    "window": [
+      150,
+      1000
+    ],
+    "regions": [
+      {
+        "region": "Manchester",
+        "issues": [
+          "UNSTABLE(velocity CV=0.42)",
+          "CURRENCY_DRAIN(concentration mean=0.99, slope=0.0000)"
+        ],
+        "passed": false
+      }
+    ],
+    "regions_passed": 0,
+    "regions_total": 1
+  },
+  "verdict": "FAIL"
 }
