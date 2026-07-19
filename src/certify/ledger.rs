@@ -239,11 +239,34 @@ impl ConservationLedger {
         }
         if let Some((good, drift)) = self.worst_breach(opening, closing) {
             let i = good.idx();
+            // Shortfalls are the usual culprit: a removal that could not take what
+            // it asked for leaves its counterparty add unmatched. Report them here
+            // so the ledger line points at the cause instead of just the symptom.
+            let lines: Vec<String> = self
+                .shortfalls
+                .iter()
+                .filter(|s| s.good == good)
+                .map(|s| format!("requested {:.6e}, removed {:.6e}", s.requested, s.removed))
+                .collect();
+            let shortfall_note = if lines.is_empty() {
+                "  no shortfalls on this good".to_string()
+            } else {
+                format!(
+                    "  {} shortfall line(s) on this good, total missing {:.6e}:\n    {}",
+                    lines.len(),
+                    self.shortfalls
+                        .iter()
+                        .filter(|s| s.good == good)
+                        .map(|s| s.missing())
+                        .sum::<f64>(),
+                    lines.join("\n    ")
+                )
+            };
             panic!(
                 "conservation failure at tick {tick}: good {} drifted {drift:+.6e}\n  \
                  measured Σ change {:+.6e} != declared mint/burn {:+.6e}\n  \
                  minted {:.6e}, burned {:.6e}, gross flow {:.6e}, tolerance {:.3e}\n  \
-                 (an unbalanced transfer, or a create/destroy with no provenance line)",
+                 (an unbalanced transfer, or a create/destroy with no provenance line)\n{}",
                 good.0,
                 closing[i] - opening[i],
                 self.declared[i],
@@ -251,6 +274,7 @@ impl ConservationLedger {
                 self.burned[i],
                 self.gross[i],
                 self.tolerance(i),
+                shortfall_note,
             );
         }
     }

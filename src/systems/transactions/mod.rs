@@ -54,6 +54,29 @@ pub fn run(
     let labour_goods: std::collections::HashSet<GoodId> =
         state.pop_groups.iter().filter_map(|p| p.labour_good).collect();
 
+    /// How much of `cleared_qty` a buyer drawing on `inv` can actually pay for,
+    /// debiting the shared purse. No currency means free transfer on that node.
+    fn afford(
+        purse: &mut HashMap<(u32, u32), f64>,
+        state: &SimState,
+        inv: InventoryId,
+        cid: Option<GoodId>,
+        price: f64,
+        cleared_qty: f64,
+    ) -> f64 {
+        let Some(c) = cid else { return cleared_qty };
+        let key = (inv.0, c.0);
+        let remaining = *purse
+            .entry(key)
+            .or_insert_with(|| state.inventory(inv).get(c).max(0.0));
+        let affordable = if price > 1e-9 { remaining / price } else { cleared_qty };
+        let qty = cleared_qty.min(affordable.max(0.0));
+        if let Some(r) = purse.get_mut(&key) {
+            *r = (*r - price * qty).max(0.0);
+        }
+        qty
+    }
+
     // Wages earned by pops from sell orders, keyed by (pop_id, currency_good_id).
     let mut pop_sell_revenue: HashMap<(u32, u32), f64> = HashMap::new();
 
@@ -61,6 +84,27 @@ pub fn run(
     let mut instance_sell_revenue: HashMap<(u32, u32), f64> = HashMap::new();
     let mut instance_buy_cost: HashMap<(u32, u32), f64> = HashMap::new();
 
+    // Currency still unspent this tick, per (inventory, currency good).
+    //
+    // Keyed by *inventory*, not by owner: several recipe instances are wired to
+    // the same building inventory, so they share one purse. Sizing each of them
+    // against the full opening balance let them collectively commit to more than
+    // existed, and the currency removal then clamped — money credited to sellers
+    // that was never actually paid.
+    let mut purse: HashMap<(u32, u32), f64> = HashMap::new();
+
+    // Goods actually received by buyers, and goods offered by sellers at the
+    // cleared rate, per (node, good).
+    //
+    // A buyer's cash cap can hold it below its cleared quantity, so how much
+    // really changes hands is not known until every buyer has been resolved.
+    // Sellers are therefore settled in a second pass against these totals —
+    // previously they shipped and were paid for the full cleared quantity while
+    // the buyer received less, and the difference simply vanished.
+    let mut bought: HashMap<(u32, u32), f64> = HashMap::new();
+    let mut offered: HashMap<(u32, u32), f64> = HashMap::new();
+
+    // ── Pass 1: buyers ────────────────────────────────────────────────────────
     for order in orders {
         let rate = match order.side {
             OrderSide::Buy => fills.buyer_fill(order.node, order.good),
@@ -72,8 +116,12 @@ pub fn run(
         }
         let price = state.price(order.node, order.good);
         let cid = node_currency(order.node);
+        let market = (order.node.0, order.good.0);
 
         match order.side {
+            OrderSide::Sell => {
+                *offered.entry(market).or_insert(0.0) += cleared_qty;
+            }
             OrderSide::Buy => {
                 let actual_qty = match order.owner {
                     OwnerId::PopGroup(pid) => {
@@ -91,22 +139,26 @@ pub fn run(
                         }
                     }
                     OwnerId::Building(bid) => {
+                        let inv = state.building(bid).inventory;
+                        let qty = afford(&mut purse, state, inv, cid, price, cleared_qty);
                         if let Some(c) = cid {
                             let key = (bid.0, c.0);
-                            let cost = price * cleared_qty;
+                            let cost = price * qty;
                             *instance_currency_delta.entry(key).or_insert(0.0) -= cost;
                             *instance_buy_cost.entry(key).or_insert(0.0) += cost;
                         }
-                        cleared_qty
+                        qty
                     }
                     OwnerId::RecipeInstance(rid) => {
+                        let inv = state.recipe_instance(rid).input_inv;
+                        let qty = afford(&mut purse, state, inv, cid, price, cleared_qty);
                         if let Some(c) = cid {
                             let key = (rid.0, c.0);
-                            let cost = price * cleared_qty;
+                            let cost = price * qty;
                             *instance_currency_delta.entry(key).or_insert(0.0) -= cost;
                             *instance_buy_cost.entry(key).or_insert(0.0) += cost;
                         }
-                        cleared_qty
+                        qty
                     }
                     _ => cleared_qty,
                 };
@@ -125,49 +177,80 @@ pub fn run(
                                 Provenance::Transfer
                             },
                         });
+                        // Only count what a buyer with somewhere to put it actually
+                        // received; that is precisely what sellers may ship.
+                        *bought.entry(market).or_insert(0.0) += actual_qty;
                     }
                 }
             }
-            OrderSide::Sell => {
-                match order.owner {
-                    OwnerId::Building(bid) => {
-                        if let Some(c) = cid {
-                            let key = (bid.0, c.0);
-                            let revenue = price * cleared_qty;
-                            *instance_currency_delta.entry(key).or_insert(0.0) += revenue;
-                            *instance_sell_revenue.entry(key).or_insert(0.0) += revenue;
-                        }
-                    }
-                    OwnerId::RecipeInstance(rid) => {
-                        if let Some(c) = cid {
-                            let key = (rid.0, c.0);
-                            let revenue = price * cleared_qty;
-                            *instance_currency_delta.entry(key).or_insert(0.0) += revenue;
-                            *instance_sell_revenue.entry(key).or_insert(0.0) += revenue;
-                        }
-                    }
-                    OwnerId::PopGroup(pid) => {
-                        if let Some(c) = cid {
-                            *pop_sell_revenue.entry((pid.0, c.0)).or_insert(0.0) += price * cleared_qty;
-                        }
-                    }
-                    _ => {}
+        }
+    }
+
+    // ── Pass 2: sellers ───────────────────────────────────────────────────────
+    // Ship and get paid for exactly what buyers took. When buyers were cash-short
+    // the market did not clear at the posted terms, and the unsold remainder stays
+    // with the seller — a rationing outcome, not evaporated stock (R8).
+    for order in orders {
+        if order.side != OrderSide::Sell {
+            continue;
+        }
+        let cleared_qty = order.qty * fills.seller_fill(order.node, order.good);
+        if cleared_qty <= 0.0 {
+            continue;
+        }
+        let market = (order.node.0, order.good.0);
+        let offered_qty = offered.get(&market).copied().unwrap_or(0.0);
+        let taken_qty = bought.get(&market).copied().unwrap_or(0.0);
+        // Pro-rata across sellers of this good at this node.
+        let fill = if offered_qty > 1e-12 {
+            (taken_qty / offered_qty).min(1.0)
+        } else {
+            0.0
+        };
+        let shipped = cleared_qty * fill;
+        if shipped <= 0.0 {
+            continue;
+        }
+        let price = state.price(order.node, order.good);
+        let cid = node_currency(order.node);
+        let revenue = price * shipped;
+
+        match order.owner {
+            OwnerId::Building(bid) => {
+                if let Some(c) = cid {
+                    let key = (bid.0, c.0);
+                    *instance_currency_delta.entry(key).or_insert(0.0) += revenue;
+                    *instance_sell_revenue.entry(key).or_insert(0.0) += revenue;
                 }
-                // A pop selling its labour has no stock to give up — the units are
-                // minted straight into the buyer above. Emitting a removal here
-                // would clamp to zero and log a phantom shortfall every tick.
-                let pop_labour_sale = matches!(order.owner, OwnerId::PopGroup(_))
-                    && labour_goods.contains(&order.good);
-                if !pop_labour_sale {
-                    if let Some(inv) = owner_inv(order.owner) {
-                        deltas.push(StateDelta::RemoveFromInventory {
-                            inv,
-                            good: order.good,
-                            qty: cleared_qty,
-                            prov: Provenance::Transfer,
-                        });
-                    }
+            }
+            OwnerId::RecipeInstance(rid) => {
+                if let Some(c) = cid {
+                    let key = (rid.0, c.0);
+                    *instance_currency_delta.entry(key).or_insert(0.0) += revenue;
+                    *instance_sell_revenue.entry(key).or_insert(0.0) += revenue;
                 }
+            }
+            OwnerId::PopGroup(pid) => {
+                if let Some(c) = cid {
+                    *pop_sell_revenue.entry((pid.0, c.0)).or_insert(0.0) += revenue;
+                }
+            }
+            _ => {}
+        }
+
+        // A pop selling its labour has no stock to give up — the units are minted
+        // straight into the buyer above. Emitting a removal here would clamp to
+        // zero and log a phantom shortfall every tick.
+        let pop_labour_sale =
+            matches!(order.owner, OwnerId::PopGroup(_)) && labour_goods.contains(&order.good);
+        if !pop_labour_sale {
+            if let Some(inv) = owner_inv(order.owner) {
+                deltas.push(StateDelta::RemoveFromInventory {
+                    inv,
+                    good: order.good,
+                    qty: shipped,
+                    prov: Provenance::Transfer,
+                });
             }
         }
     }

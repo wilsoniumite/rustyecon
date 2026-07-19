@@ -22,6 +22,17 @@ fn passes_through(recipe: &crate::types::recipe::RecipeDef, good: crate::types::
 /// Output scales proportionally to input fill: if inputs are short, output is short too.
 pub fn run(state: &SimState, game_data: &GameData) -> Vec<StateDelta> {
     let mut deltas = Vec::new();
+    // Units already spoken for this phase, keyed by (input inventory, good).
+    //
+    // Instances may share an input inventory (every extra_recipe_instance is
+    // wired to its building's inventory), and deltas apply in emission order, so
+    // sizing each instance against the same un-drained snapshot lets two of them
+    // claim the same units. The later removal then clamps while its output was
+    // already scaled on stock it never got — creating goods from nothing. Held
+    // as a running reservation so each instance sees only what is still free.
+    // Only ever queried and inserted, never iterated: hash order never reaches a delta.
+    let mut reserved: std::collections::HashMap<(u32, u32), f64> = std::collections::HashMap::new();
+
     for ri in &state.recipe_instances {
         let chosen = ri.chosen_size;
         if chosen <= 0.0 {
@@ -34,21 +45,35 @@ pub fn run(state: &SimState, game_data: &GameData) -> Vec<StateDelta> {
             _ => 1.0,
         };
 
-        // Determine how much of each input is available and compute a common scale factor.
+        let desired_of = |input: &crate::types::recipe::RecipeInput| match input.scaling {
+            InputScaling::Variable => input.qty_per_unit * chosen,
+            InputScaling::Fixed => input.qty_per_unit * ri.recipe_size,
+            InputScaling::SemiVariable { floor, slope } => floor + slope * chosen,
+        };
+
+        // Determine how much of each input is still free and compute a common scale factor.
         let mut scale = 1.0f64;
         for input in &recipe.inputs {
-            let desired = match input.scaling {
-                InputScaling::Variable => input.qty_per_unit * chosen,
-                InputScaling::Fixed => input.qty_per_unit * ri.recipe_size,
-                InputScaling::SemiVariable { floor, slope } => floor + slope * chosen,
-            };
+            let desired = desired_of(input);
             if desired > 0.0 {
-                let available = state.inventory(ri.input_inv).get(input.good);
+                let taken = reserved
+                    .get(&(ri.input_inv.0, input.good.0))
+                    .copied()
+                    .unwrap_or(0.0);
+                let available = (state.inventory(ri.input_inv).get(input.good) - taken).max(0.0);
                 scale = scale.min(available / desired);
             }
         }
         if scale <= 0.0 {
             continue;
+        }
+
+        // Claim what this instance will actually consume before emitting deltas.
+        for input in &recipe.inputs {
+            let qty = desired_of(input) * scale;
+            if qty > 0.0 {
+                *reserved.entry((ri.input_inv.0, input.good.0)).or_insert(0.0) += qty;
+            }
         }
 
         // Consume inputs from input_inv.
