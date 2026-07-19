@@ -28,9 +28,13 @@ struct Args {
     #[arg(long, default_value_t = 0)]
     human_save: u64,
 
-    /// Record per-tick prices and inventories to prices.csv / inventories.csv in output dir
+    /// Write Parquet telemetry (telemetry.parquet + manifest.json) to the output dir
     #[arg(long)]
     record: bool,
+
+    /// Ticks between telemetry samples (1 = every tick). Tick 0 is always sampled.
+    #[arg(long, default_value_t = 1)]
+    telemetry_every: u64,
 
     /// Run the certification batteries, print the certificate verdict-first,
     /// persist it, and exit nonzero if any battery fails
@@ -59,6 +63,7 @@ fn main() {
         human_save_every: args.human_save,
         output_dir: args.output,
         record: args.record,
+        telemetry_every: args.telemetry_every,
         certify: args.certify,
         results_dir: args.results,
     };
@@ -72,6 +77,15 @@ fn main() {
         println!("running {} ticks from scenario '{}'", args.ticks, args.scenario.display());
     }
     let certificate = runner.run();
+    // A run whose telemetry broke mid-write must not be analysed as if it were
+    // whole; the analysis would silently study a prefix.
+    let telemetry_failed = match runner.telemetry_error() {
+        Some(e) => {
+            eprintln!("telemetry failed: {e}");
+            true
+        }
+        None => false,
+    };
 
     // Verdict first: the batteries are printed before any result is read, so a
     // failed run cannot be skimmed as if it were a result (METHODOLOGY R5).
@@ -89,5 +103,8 @@ fn main() {
         }
     } else {
         println!("done — final tick: {}", runner.tick());
+    }
+    if telemetry_failed {
+        std::process::exit(3);
     }
 }

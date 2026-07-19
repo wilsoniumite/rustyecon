@@ -23,6 +23,7 @@ fn certify(scenario: &str, ticks: u64) -> rustyecon::certify::Certificate {
         human_save_every: 0,
         output_dir: out.path().to_path_buf(),
         record: false,
+        telemetry_every: 1,
         certify: true,
         results_dir: out.path().join("results"),
     };

@@ -5,6 +5,7 @@ use crate::certify::{
     nan, state_hash, verdict, Criteria,
 };
 use crate::output::checkpoint::{self, SaveFormat};
+use crate::output::manifest::{self, RunInfo};
 use crate::output::telemetry::Telemetry;
 use crate::scenario::EventSchedule;
 use crate::state::{apply_state_deltas, GameData, SimState};
@@ -18,8 +19,10 @@ pub struct RunConfig {
     /// Save human-readable RON every N ticks. 0 = disabled.
     pub human_save_every: u64,
     pub output_dir: PathBuf,
-    /// Record per-tick prices and inventories to CSV in output_dir.
+    /// Write Parquet telemetry + manifest into output_dir.
     pub record: bool,
+    /// Ticks between telemetry samples. 1 = every tick. Tick 0 is always taken.
+    pub telemetry_every: u64,
     /// Run the certification batteries and emit a run certificate.
     pub certify: bool,
     /// Where certificates are persisted. Verdicts are committed (R5).
@@ -34,6 +37,7 @@ impl Default for RunConfig {
             human_save_every: 0,
             output_dir: PathBuf::from("output"),
             record: false,
+            telemetry_every: 1,
             certify: false,
             results_dir: PathBuf::from("results"),
         }
@@ -55,8 +59,13 @@ pub struct SimRunner {
     /// Which scenario produced this run, for the certificate's identity.
     scenario_name: String,
     scenario_tape_sha: String,
+    /// Hash of the scenario's criteria.ron, for the telemetry manifest.
+    criteria_sha: Option<String>,
     /// Pre-registered stability criteria, when the scenario declares them.
     criteria: Option<Criteria>,
+    /// First telemetry write error, if any. A run whose telemetry is incomplete
+    /// must not be mistakable for one whose telemetry is whole.
+    telemetry_error: Option<String>,
 }
 
 impl SimRunner {
@@ -73,8 +82,15 @@ impl SimRunner {
             config,
             scenario_name: "unknown".into(),
             scenario_tape_sha: "0".repeat(16),
+            criteria_sha: None,
             criteria: None,
+            telemetry_error: None,
         }
+    }
+
+    /// The first telemetry write failure, if telemetry was requested and broke.
+    pub fn telemetry_error(&self) -> Option<&str> {
+        self.telemetry_error.as_deref()
     }
 
     /// Attach the scenario's pre-registered stability criteria.
@@ -93,18 +109,47 @@ impl SimRunner {
             .unwrap_or("unknown")
             .to_string();
         self.scenario_tape_sha = certificate::tape_sha(dir);
+        self.criteria_sha = manifest::criteria_sha(dir);
         self
+    }
+
+    /// Identity of this run: what was run, from which inputs, at which commit.
+    /// Shared by the certificate and the telemetry manifest so the two artifacts
+    /// of one run cannot disagree about which run they describe.
+    fn identity(&self) -> RunIdentity {
+        let git = certificate::git_sha();
+        let tape = self.scenario_tape_sha.clone();
+        let seed = 0; // No stochastic source exists; recorded so the field is explicit.
+        let scenario = self.scenario_name.clone();
+        let run = certificate::run_id(&git, &tape, &scenario, self.config.ticks, seed);
+        RunIdentity {
+            run,
+            git,
+            tape_sha: tape,
+            seed,
+            scenario,
+            ticks: self.config.ticks,
+        }
     }
 
     /// Run to completion. Returns a certificate when `config.certify` is set.
     pub fn run(&mut self) -> Option<Certificate> {
         let num_nodes = self.game_data.num_nodes();
         let num_goods = self.game_data.num_goods();
-        let mut telemetry = self.config.record.then(|| Telemetry::new(num_nodes, num_goods));
+        let mut telemetry = None;
+        if self.config.record {
+            match Telemetry::create(&self.config.output_dir, self.config.telemetry_every) {
+                Ok(t) => telemetry = Some(t),
+                Err(e) => self.telemetry_error = Some(format!("could not open telemetry: {e}")),
+            }
+        }
 
-        // Record tick-0 starting state so the inflation baseline is the initial prices.
+        // Record the tick-0 starting state: it is the baseline every price index
+        // is relative to, so a run that skipped it would rebase silently.
         if let Some(t) = &mut telemetry {
-            t.record(&self.state);
+            if let Err(e) = t.record(&self.state, &self.game_data) {
+                self.telemetry_error.get_or_insert(format!("tick 0: {e}"));
+            }
         }
 
         // Certification state, all bounded: a shadow copy of genesis that the
@@ -145,6 +190,14 @@ impl SimRunner {
 
                 if let Some(m) = collector.as_mut() {
                     m.record(&self.state, &self.game_data);
+                    // Emit the same samples the verdict is computed from, so the
+                    // telemetry and the certificate cannot tell two stories.
+                    if let Some(t) = telemetry.as_mut() {
+                        if let Err(e) = t.record_region_metrics(self.state.tick, m) {
+                            self.telemetry_error
+                                .get_or_insert(format!("tick {}: {e}", self.state.tick));
+                        }
+                    }
                 }
 
                 if nan_hits.is_empty() {
@@ -161,13 +214,28 @@ impl SimRunner {
 
             self.maybe_save_checkpoints();
             if let Some(t) = &mut telemetry {
-                t.record(&self.state);
+                if let Err(e) = t.record(&self.state, &self.game_data) {
+                    self.telemetry_error
+                        .get_or_insert(format!("tick {}: {e}", self.state.tick));
+                }
             }
         }
 
         if let Some(t) = telemetry {
-            if let Err(e) = t.write_csv(&self.config.output_dir, &self.game_data) {
-                eprintln!("telemetry write failed: {e}");
+            let run = RunInfo {
+                run_id: self.identity().run,
+                git_sha: certificate::git_sha(),
+                tape_sha: self.scenario_tape_sha.clone(),
+                criteria_sha: self.criteria_sha.clone(),
+                seed: 0,
+                scenario: self.scenario_name.clone(),
+                ticks: self.config.ticks,
+            };
+            // Parquet keeps its schema and row index in a footer, so failing to
+            // close leaves an unreadable file rather than a short one. Record it
+            // as an error instead of letting the run look successful.
+            if let Err(e) = t.finish(&self.config.output_dir, &self.game_data, run) {
+                self.telemetry_error.get_or_insert(format!("closing telemetry: {e}"));
             }
         }
 
@@ -242,24 +310,7 @@ impl SimRunner {
             ),
         ];
 
-        let git = certificate::git_sha();
-        let tape = self.scenario_tape_sha.clone();
-        let seed = 0; // No stochastic source exists; recorded so the field is explicit.
-        let scenario = self.scenario_name.clone();
-        let run = certificate::run_id(&git, &tape, &scenario, self.config.ticks, seed);
-
-        Certificate::with_stability(
-            RunIdentity {
-                run,
-                git,
-                tape_sha: tape,
-                seed,
-                scenario,
-                ticks: self.config.ticks,
-            },
-            batteries,
-            stability,
-        )
+        Certificate::with_stability(self.identity(), batteries, stability)
     }
 
     fn maybe_save_checkpoints(&self) {
