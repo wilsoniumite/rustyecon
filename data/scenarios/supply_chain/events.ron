@@ -1,6 +1,17 @@
 // UBI: 10 GBP per tick injected into pop 0's currency inventory.
 // Fires at the start of every tick (Phase 0) — before decisions see the balance.
-// Shock at tick 49: wheat supply halved.
+// The magic producer's supply is stepped down and back up over the run.
+//
+// `inv` is a raw InventoryId. The loader assigns them in order — buildings, then
+// employed pops, then unemployed stubs (scenario/raw.rs) — so with 1 building
+// here, pop 0's inventory is index 1. Note this index is positional: adding a
+// building silently retargets the injection. The tape format should reference
+// pops symbolically (worldgen.md); until it does, edit these together.
+//
+// `prov: Event` marks this as a tape injection: an unpaired mint, currency
+// entering with no counterparty giving it up. Without the tag the conservation
+// ledger panics on money appearing from nowhere — which is the correct
+// behaviour for an untagged injection, not a bug.
 (
     events: [
         (149, [SetMagicProducerQty(id:(0),qty:10.0)]),
@@ -10,6 +21,6 @@
         (749, [SetMagicProducerQty(id:(0),qty:10.01)]),
     ],
     recurring: [
-        (1, [AddToInventory(owner:PopGroup((0)),good:(2),qty:10.0)]),
+        (1, [AddToInventory(inv:(1),good:(2),qty:10.0,prov:Event)]),
     ],
 )

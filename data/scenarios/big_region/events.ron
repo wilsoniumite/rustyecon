@@ -1,3 +1,15 @@
+// UBI: 10 GBP per tick into pop 0's currency inventory, plus two steps in the
+// magic producer's supply.
+//
+// `inv` is a raw InventoryId. The loader assigns them in order — buildings, then
+// employed pops, then unemployed stubs (scenario/raw.rs) — so with 5 buildings
+// here, pop 0's inventory is index 5. Note this index is positional: adding a
+// building silently retargets the injection. The tape format should reference
+// pops symbolically (worldgen.md); until it does, edit these together.
+//
+// `prov: Event` marks this as a tape injection: an unpaired mint, currency
+// entering with no counterparty giving it up. Without the tag the conservation
+// ledger panics on money appearing from nowhere.
 (
     events: [
         (149, [
@@ -16,9 +28,10 @@
     recurring: [
         (1, [
             AddToInventory(
-                owner: PopGroup((0)),
+                inv: (5),
                 good: (2),
                 qty: 10.0,
+                prov: Event,
             ),
         ]),
     ],

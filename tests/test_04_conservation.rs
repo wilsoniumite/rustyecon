@@ -121,6 +121,43 @@ fn unbalanced_transfer_through_apply_is_a_breach() {
 }
 
 #[test]
+fn tape_injection_and_phantom_supply_are_declared() {
+    // These two scenarios are the only ones exercising Provenance::Event (a UBI
+    // injection from the tape) and Provenance::Magic (a MagicProducer selling
+    // goods it does not hold, and swallowing the payment). Both are unpaired by
+    // construction — currency and goods enter or leave with no counterparty — so
+    // they are precisely the paths that must be *declared* rather than silently
+    // minted or burned.
+    //
+    // Completing the run is the assertion: until these were tagged, both scenarios
+    // panicked at tick 2 with ~12.6 of currency appearing from nowhere.
+    for name in ["supply_chain", "big_region"] {
+        let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("data/scenarios")
+            .join(name);
+        let s = loader::load(&dir).unwrap_or_else(|e| panic!("{name} must load: {e}"));
+        let (mut state, gd, events) = (s.state, s.game_data, s.events);
+
+        // Guard against the failure mode that made the old corpus evidence
+        // worthless: a scenario can only exercise these paths if its tape
+        // actually fires and it actually has a phantom producer.
+        assert!(
+            !events.deltas_for_tick(1).is_empty(),
+            "{name}: the recurring tape entry must fire, or Event is untested"
+        );
+        assert!(
+            !state.magic_producers.is_empty(),
+            "{name}: needs a MagicProducer, or Magic is untested"
+        );
+
+        for _ in 0..60 {
+            run_tick(&mut state, &gd, &events);
+        }
+        assert_eq!(state.tick, 60, "{name} advanced");
+    }
+}
+
+#[test]
 fn representative_scenarios_conserve_over_a_run() {
     // Spread across the factorial: differing labour supply, channel size, wheat
     // supply and start state, plus the un-generated baseline.

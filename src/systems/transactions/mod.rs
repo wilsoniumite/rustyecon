@@ -47,12 +47,65 @@ pub fn run(
         }
     };
 
-    // Goods that pops supply as labour. Pops hold no labour stock: it is minted
-    // against their headcount at the point of sale (Provenance::LabourMint) and
-    // burned the same tick by production or by Instant spoilage. Membership is
-    // only ever queried, never iterated, so the hash order never reaches a delta.
-    let labour_goods: std::collections::HashSet<GoodId> =
-        state.pop_groups.iter().filter_map(|p| p.labour_good).collect();
+    // How a seller sources what it sells. Classified per *order*, not per good:
+    // whether units are delivered from stock or created at the point of sale is a
+    // property of the seller, and keying it on the good alone would both mis-tag a
+    // stock-backed sale of a labour good and miss a phantom seller of an ordinary one.
+    #[derive(Clone, Copy, PartialEq)]
+    enum Source {
+        /// Delivered from the seller's own inventory — a conserved transfer.
+        Stock,
+        /// A pop selling its own labour. Pops hold no labour stock; it is minted
+        /// against their headcount and burned the same tick by production or by
+        /// `Instant` spoilage.
+        Labour,
+        /// A seller with no inventory at all (MagicProducer, Government): phantom
+        /// supply, conjured for test scenarios.
+        Phantom,
+    }
+
+    let seller_source = |owner: OwnerId, good: GoodId| -> Source {
+        match owner {
+            OwnerId::PopGroup(pid)
+                if state.pop_groups[pid.idx()].labour_good == Some(good) =>
+            {
+                Source::Labour
+            }
+            other if owner_inv(other).is_none() => Source::Phantom,
+            _ => Source::Stock,
+        }
+    };
+
+    /// Cleared sell volume at one market, split by how the sellers source it.
+    #[derive(Default, Clone, Copy)]
+    struct Supply {
+        stock: f64,
+        labour: f64,
+        phantom: f64,
+    }
+    impl Supply {
+        fn total(&self) -> f64 {
+            self.stock + self.labour + self.phantom
+        }
+    }
+
+    // ── Pass 0: what is on offer, and where it comes from ─────────────────────
+    let mut supply: HashMap<(u32, u32), Supply> = HashMap::new();
+    for order in orders {
+        if order.side != OrderSide::Sell {
+            continue;
+        }
+        let cleared = order.qty * fills.seller_fill(order.node, order.good);
+        if cleared <= 0.0 {
+            continue;
+        }
+        let e = supply.entry((order.node.0, order.good.0)).or_default();
+        match seller_source(order.owner, order.good) {
+            Source::Stock => e.stock += cleared,
+            Source::Labour => e.labour += cleared,
+            Source::Phantom => e.phantom += cleared,
+        }
+    }
 
     /// How much of `cleared_qty` a buyer drawing on `inv` can actually pay for,
     /// debiting the shared purse. No currency means free transfer on that node.
@@ -102,7 +155,15 @@ pub fn run(
     // previously they shipped and were paid for the full cleared quantity while
     // the buyer received less, and the difference simply vanished.
     let mut bought: HashMap<(u32, u32), f64> = HashMap::new();
-    let mut offered: HashMap<(u32, u32), f64> = HashMap::new();
+
+    // Currency paid to sellers that have no inventory to receive it, keyed by
+    // (buyer inventory, currency good).
+    //
+    // A phantom seller mints the goods it sells *and* swallows the payment: the
+    // money leaves the economy at the point of sale. That is a real burn and has
+    // to be declared as one, exactly as the matching goods mint is declared —
+    // otherwise the buyer's currency simply disappears with no provenance line.
+    let mut phantom_paid: HashMap<(u32, u32), f64> = HashMap::new();
 
     // ── Pass 1: buyers ────────────────────────────────────────────────────────
     for order in orders {
@@ -119,9 +180,7 @@ pub fn run(
         let market = (order.node.0, order.good.0);
 
         match order.side {
-            OrderSide::Sell => {
-                *offered.entry(market).or_insert(0.0) += cleared_qty;
-            }
+            OrderSide::Sell => {}
             OrderSide::Buy => {
                 let actual_qty = match order.owner {
                     OwnerId::PopGroup(pid) => {
@@ -164,19 +223,40 @@ pub fn run(
                 };
                 if actual_qty > 0.0 {
                     if let Some(inv) = owner_inv(order.owner) {
-                        deltas.push(StateDelta::AddToInventory {
-                            inv,
-                            good: order.good,
-                            qty: actual_qty,
-                            life: game_data.good(order.good).shelf_life.initial_life(),
-                            // Buying labour mints it; every other purchase is the
-                            // receiving half of a conserved transfer.
-                            prov: if labour_goods.contains(&order.good) {
-                                Provenance::LabourMint
-                            } else {
-                                Provenance::Transfer
-                            },
-                        });
+                        // Attribute the receipt across the market's sources in the
+                        // proportions they supplied it. Units traceable to stock are
+                        // the receiving half of a transfer; units from a pop's labour
+                        // or a phantom seller come into existence here and must say so,
+                        // or the ledger sees creation with no provenance line.
+                        let s = supply.get(&market).copied().unwrap_or_default();
+                        let total = s.total();
+                        let life = game_data.good(order.good).shelf_life.initial_life();
+                        let mut push = |qty: f64, prov: Provenance| {
+                            if qty > 0.0 {
+                                deltas.push(StateDelta::AddToInventory {
+                                    inv,
+                                    good: order.good,
+                                    qty,
+                                    life,
+                                    prov,
+                                });
+                            }
+                        };
+                        if total > 0.0 {
+                            push(actual_qty * s.stock / total, Provenance::Transfer);
+                            push(actual_qty * s.labour / total, Provenance::LabourMint);
+                            push(actual_qty * s.phantom / total, Provenance::Magic);
+                            // The share of the payment that went to a seller with
+                            // nowhere to put it leaves the economy with the goods.
+                            if let Some(c) = cid {
+                                let lost = price * actual_qty * s.phantom / total;
+                                if lost > 0.0 {
+                                    *phantom_paid.entry((inv.0, c.0)).or_insert(0.0) += lost;
+                                }
+                            }
+                        } else {
+                            push(actual_qty, Provenance::Transfer);
+                        }
                         // Only count what a buyer with somewhere to put it actually
                         // received; that is precisely what sellers may ship.
                         *bought.entry(market).or_insert(0.0) += actual_qty;
@@ -199,7 +279,7 @@ pub fn run(
             continue;
         }
         let market = (order.node.0, order.good.0);
-        let offered_qty = offered.get(&market).copied().unwrap_or(0.0);
+        let offered_qty = supply.get(&market).copied().unwrap_or_default().total();
         let taken_qty = bought.get(&market).copied().unwrap_or(0.0);
         // Pro-rata across sellers of this good at this node.
         //
@@ -244,12 +324,11 @@ pub fn run(
             _ => {}
         }
 
-        // A pop selling its labour has no stock to give up — the units are minted
-        // straight into the buyer above. Emitting a removal here would clamp to
-        // zero and log a phantom shortfall every tick.
-        let pop_labour_sale =
-            matches!(order.owner, OwnerId::PopGroup(_)) && labour_goods.contains(&order.good);
-        if !pop_labour_sale {
+        // Only a stock-backed seller gives anything up. A pop selling its labour,
+        // or a seller with no inventory at all, created the units at the point of
+        // sale — they were already tagged as minted on the buyer's side. Emitting
+        // a removal here would clamp to zero and log a phantom shortfall each tick.
+        if seller_source(order.owner, order.good) == Source::Stock {
             if let Some(inv) = owner_inv(order.owner) {
                 deltas.push(StateDelta::RemoveFromInventory {
                     inv,
@@ -269,11 +348,26 @@ pub fn run(
             let start = state.inventory(pop.inventory).get(cid).max(0.0);
             let remaining = pop_currency.get(&key).copied().unwrap_or(start);
             let spent = start - remaining;
-            if spent > 1e-12 {
+            // Split off whatever went to a phantom seller: that part is burned,
+            // not transferred, and must carry its own provenance.
+            let lost = phantom_paid
+                .remove(&(pop.inventory.0, cid.0))
+                .unwrap_or(0.0)
+                .min(spent);
+            if lost > 1e-12 {
                 deltas.push(StateDelta::RemoveFromInventory {
                     inv: pop.inventory,
                     good: cid,
-                    qty: spent,
+                    qty: lost,
+                    prov: Provenance::Magic,
+                });
+            }
+            let transferred = spent - lost;
+            if transferred > 1e-12 {
+                deltas.push(StateDelta::RemoveFromInventory {
+                    inv: pop.inventory,
+                    good: cid,
+                    qty: transferred,
                     prov: Provenance::Transfer,
                 });
             }
@@ -311,19 +405,36 @@ pub fn run(
             deltas.push(StateDelta::AdjustInstanceBalance { instance: rid, amount: balance_delta });
         }
         let inv = state.recipe_instance(rid).input_inv;
-        if delta > 1e-12 {
-            deltas.push(StateDelta::AddToInventory {
-                inv,
-                good: cid,
-                qty: delta,
-                life: None, // currency
-                prov: Provenance::Transfer,
-            });
-        } else if delta < -1e-12 {
+        // Money paid to a phantom seller is burned, so it leaves separately with
+        // its own provenance; `delta` is the net of revenue and *all* costs, so
+        // adding the burned part back leaves the genuine transfer component.
+        //
+        // Taken, not read: instances can share one input inventory, and the entry
+        // covers every payment out of it. Whichever instance settles first carries
+        // the whole burn, and the nets still sum to the inventory's true change.
+        let lost = phantom_paid.remove(&(inv.0, cid.0)).unwrap_or(0.0);
+        if lost > 1e-12 {
             deltas.push(StateDelta::RemoveFromInventory {
                 inv,
                 good: cid,
-                qty: -delta,
+                qty: lost,
+                prov: Provenance::Magic,
+            });
+        }
+        let transferred = delta + lost;
+        if transferred > 1e-12 {
+            deltas.push(StateDelta::AddToInventory {
+                inv,
+                good: cid,
+                qty: transferred,
+                life: None, // currency
+                prov: Provenance::Transfer,
+            });
+        } else if transferred < -1e-12 {
+            deltas.push(StateDelta::RemoveFromInventory {
+                inv,
+                good: cid,
+                qty: -transferred,
                 prov: Provenance::Transfer,
             });
         }
