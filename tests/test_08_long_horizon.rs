@@ -65,44 +65,105 @@ fn the_tracer_certifies_at_the_full_span() {
         "the tracer must be scored over the full span, not the corpus's 150..1000 window"
     );
     assert!(cert.passed(), "verdict was {}", cert.verdict);
+    assert!(
+        stability.regions_total >= 2,
+        "the scenario must score more than one region"
+    );
+    // NOTE, so this test is not read as more than it is: the two regions are
+    // identical clones with no channel and the engine has no RNG, so Beta's
+    // series are bit-identical to Alpha's. "2/2" is one trajectory scored twice,
+    // not two samples. See engine.md, "The 225-year horizon".
 }
 
-#[test]
-fn the_tracer_actually_moves_for_all_of_it() {
-    // Guards the gate above against the degenerate pass. A frozen world
-    // certifies trivially and tests nothing; an earlier draft of this scenario
-    // did exactly that. The staple price must still be moving at the horizon,
-    // not merely have moved once during the transient.
+/// What the tracer is doing in the back half of its scored window, measured.
+struct LateBehaviour {
+    price_lo: f64,
+    price_hi: f64,
+    price_direction_changes: usize,
+    distinct_cleared_staple: usize,
+}
+
+/// Walk the run and characterise everything after `from`.
+fn late_behaviour(from: u64) -> LateBehaviour {
     let dir = tracer_dir();
     let s = loader::load(&dir).expect("tracer_2r loads");
     let (mut state, gd, events) = (s.state, s.game_data, s.events);
-
     let node = rustyecon::types::ids::MarketNodeId(0);
     let staple = rustyecon::types::ids::GoodId(0); // "grain"
 
     let (mut lo, mut hi) = (f64::INFINITY, f64::NEG_INFINITY);
-    let mut moved_in_last_thousand = 0usize;
+    let (mut turns, mut last_dir) = (0usize, 0i8);
     let mut prev = state.price(node, staple);
+    let mut cleared: Vec<u64> = Vec::new();
+
     for _ in 0..FULL_SPAN {
         run_tick(&mut state, &gd, &events);
+        if state.tick < from {
+            prev = state.price(node, staple);
+            continue;
+        }
         let p = state.price(node, staple);
         lo = lo.min(p);
         hi = hi.max(p);
-        if state.tick > FULL_SPAN - 1000 && p != prev {
-            moved_in_last_thousand += 1;
+        let dir = if p > prev { 1 } else if p < prev { -1 } else { 0 };
+        if dir != 0 {
+            if last_dir != 0 && dir != last_dir {
+                turns += 1;
+            }
+            last_dir = dir;
         }
         prev = p;
+        // Quantity actually changing hands, as the clearing rule defines it.
+        let q = state.supply(node, staple).min(state.demand(node, staple));
+        cleared.push(q.to_bits());
     }
+    cleared.sort_unstable();
+    cleared.dedup();
+    LateBehaviour {
+        price_lo: lo,
+        price_hi: hi,
+        price_direction_changes: turns,
+        distinct_cleared_staple: cleared.len(),
+    }
+}
 
-    assert!(hi / lo > 10.0, "staple price spanned only {:.3}x ({lo:.4} to {hi:.4})", hi / lo);
+#[test]
+fn the_tracer_prices_stay_inside_a_sane_band() {
+    // A price that has run away toward 1e139 or collapsed into the
+    // delta-suppression floor near 1e-11 is "moving" in the sense a fire is warm.
+    let b = late_behaviour(150);
     assert!(
-        moved_in_last_thousand > 900,
-        "staple moved on only {moved_in_last_thousand}/1000 of the final ticks — \
-         the world settles into a frozen state and stops testing anything"
+        b.price_lo > 1e-6 && b.price_hi < 1e6,
+        "staple price left the sane band: {:.3e} to {:.3e}",
+        b.price_lo,
+        b.price_hi
     );
-    // A price that has run away to 1e139 or collapsed into the delta-suppression
-    // floor near 1e-11 is "moving" in the same sense a fire is warm.
-    assert!(lo > 1e-6 && hi < 1e6, "staple price left the sane band: {lo:.3e} to {hi:.3e}");
+}
+
+/// The tracer's real economy freezes after its transient; only the nominal price
+/// level still moves, and it moves one way. Recorded as a test so the fact
+/// cannot quietly stop being true, and so nobody reads the full-span PASS as
+/// evidence of a live economy at the horizon.
+///
+/// This is *not* the property Phase 3 wanted. It is the property Phase 3 got, and
+/// pinning it down is what stops the next draft from rediscovering it by
+/// accident. See docs/architecture/engine.md, "The 225-year horizon".
+#[test]
+fn the_tracers_real_economy_is_frozen_after_the_transient() {
+    let b = late_behaviour(1550);
+    assert_eq!(
+        b.distinct_cleared_staple, 1,
+        "the tracer used to clear exactly one quantity of staple on every tick \
+         after ~1550; it now clears {} distinct quantities. If the world has been \
+         made genuinely live, delete this test and say so in engine.md.",
+        b.distinct_cleared_staple
+    );
+    assert_eq!(
+        b.price_direction_changes, 0,
+        "the staple price used to fall monotonically after ~1550 with no turning \
+         points; it now has {}. Same instruction as above.",
+        b.price_direction_changes
+    );
 }
 
 #[test]

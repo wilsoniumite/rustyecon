@@ -128,3 +128,63 @@ fn scoring_is_reproducible() {
     };
     assert_eq!(issues(&a), issues(&b), "same run must score identically");
 }
+
+#[test]
+fn an_infinite_damping_ratio_survives_the_certificate_boundary() {
+    // v2 Phase 3 made damping_ratio return INFINITY for a series that is flat and
+    // then erupts, where it used to return 0.0 without looking at the second half.
+    // serde_json cannot represent a non-finite f64, so the question is whether one
+    // can reach a serialized field. It cannot — the ratio is formatted into the
+    // issue string before it lands in RegionVerdict — and this pins that down, so
+    // a later refactor that stores the raw ratio fails here rather than in the
+    // field, at the end of a 225-year run, as an unwritable certificate.
+    use rustyecon::certify::{criteria::*, metrics::RegionSeries, verdict};
+
+    let criteria = Criteria {
+        version: 1,
+        date: "2026-07-20".into(),
+        transient: 0,
+        analysis_end: 40,
+        staple_good: "g".into(),
+        labour_good: "l".into(),
+        nan_policy: NanPolicy::FailClosed,
+        classes: vec![FailureClass {
+            name: "SWINGING".into(),
+            fatal: true,
+            metrics: vec![Metric::Velocity],
+            rule: Rule::Damping { max_ratio: 0.72 },
+            window: Window::Halves,
+            short_circuit: false,
+            nan_policy: None,
+        }],
+    };
+
+    let mut v: Vec<f64> = vec![1.0; 20];
+    v.extend((0..20).map(|i| if i % 2 == 0 { 5.0 } else { -5.0 }));
+    let series = RegionSeries {
+        region: rustyecon::types::ids::RegionId(0),
+        name: "Probe".into(),
+        velocity: v.clone(),
+        employment: v.clone(),
+        real_wage: v.clone(),
+        concentration: v.clone(),
+        bld_util: v.clone(),
+        real_income: v,
+        building_ids: Vec::new(),
+        building_util: Vec::new(),
+    };
+
+    let report = verdict::evaluate(&criteria, &[series]);
+    assert!(!report.passed(), "a flat-then-erupting series must fail SWINGING");
+
+    let json = serde_json::to_string(&report)
+        .expect("the report must serialize even when a ratio was infinite");
+    let back: verdict::StabilityReport =
+        serde_json::from_str(&json).expect("and must round-trip");
+    assert_eq!(back.regions[0].issues, report.regions[0].issues);
+    assert!(
+        report.regions[0].issues.iter().any(|i| i.contains("inf")),
+        "the reader should see that the ratio was unbounded: {:?}",
+        report.regions[0].issues
+    );
+}

@@ -7,26 +7,37 @@
 // *alive*: two identical, uncoupled regions, one produced good, one labour good,
 // one currency.
 //
-// The two regions are literal clones with no channel between them. That is the
-// point: 2/2 passing proves the mechanism replicates, rather than that one
-// region got lucky.
+// The two regions are literal clones with no channel between them, so their
+// series come out bit-identical — the engine has no RNG for them to diverge on.
+// "2/2 regions pass" is therefore ONE trajectory scored twice and carries no
+// replication evidence. (An earlier version of this comment claimed the
+// opposite. It was wrong; corrected in place rather than deleted.)
 //
-// WHY alpha IS SMALL BUT NOT ZERO. An earlier draft of this scenario pinned
-// every good at alpha: 0.0. It certified PASS — and the PASS was hollow. With
-// prices frozen the first half of the scoring window has zero variance, and
-// `damping_ratio` used to short-circuit to 0.0 on that, so SWINGING could not
-// fire whatever happened afterwards. That escape hatch is now closed
-// (src/certify/verdict.rs), but the deeper problem was that a world with no
-// price movement tests none of what this phase was built to test. At
-// alpha: 0.002 the staple moves across a ~30x range on every single tick of the
-// window and the run still passes on the merits, with the first-half standard
-// deviation ten orders of magnitude clear of any guard.
+// WHY alpha IS SMALL BUT NOT ZERO. An earlier draft pinned every good at
+// alpha: 0.0. It certified PASS, and that PASS was hollow: with prices frozen,
+// SWINGING is being asked whether a constant is settling. Note that the
+// two-sided fix later made to `damping_ratio` does NOT close that case and was
+// never meant to — a constant series genuinely is not swinging. What closes it
+// is refusing to ship a world where nothing moves.
 //
-// The passing band was found by sweeping, and it is narrow: roughly
-// 0.0005 <= alpha <= 0.002 jointly. Above it SWINGING fires on real_wage as
-// grain outruns labour; below it the world drifts toward DEAD. That narrowness
-// is itself a finding and is recorded in docs/architecture/engine.md rather
-// than smoothed over here.
+// At alpha: 0.002 the staple price changes on every tick of the window and
+// spans ~30x across it. But do not read that as the world being alive: after
+// tick ~1,550 the REAL economy is frozen — exactly 1.0 grain and 1.8 labour
+// clear every tick, employment takes two f64 values — and the price is a
+// monotone deflation ramp with zero turning points. So this scenario replaced
+// one hollowness with a subtler one, which is why the Phase 3 gate is recorded
+// as NOT MET. It is kept as a working long-horizon substrate, not as evidence
+// of stability.
+//
+// THE PASSING BAND WAS FOUND BY SWEEPING alpha UNTIL THE SCENARIO PASSED, and
+// it is narrow: PASS for roughly 0.0005 <= alpha <= 0.0025 jointly, FAIL at
+// 1e-5, 1e-4, 2e-4, 3e-4, 0.003, 0.005, 0.01 and 0.05. Above the band SWINGING
+// fires on real_wage as grain outruns labour; below it UNSTABLE and SWINGING
+// fire on velocity, and DEAD appears *above* the band rather than below it.
+// The registered thresholds were never touched, so R6's letter holds — but
+// choosing a world parameter against the scored outcome is the same move R6
+// exists to prevent, and it is why the Phase 3 gate is recorded as NOT MET in
+// docs/architecture/engine.md, "The 225-year horizon".
 (
     goods: [
         // The staple, and the deflator for real_wage / real_income.

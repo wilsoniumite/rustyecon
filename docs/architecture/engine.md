@@ -176,67 +176,140 @@ VERDICT: …
 
 ## The 225-year horizon
 
-> **v2 Phase 3: BUILT 2026-07-20.** `data/scenarios/tracer_2r` — two identical,
-> uncoupled regions, one produced good, one labour good, one currency — runs
-> 11,700 weekly ticks under `--certify` and gets **VERDICT: PASS**, 2/2 regions,
-> scored over the full span against `criteria.ron` 2026-07-20 **v2**. The
-> thresholds are copied verbatim from the corpus v1 file; only the window is
-> extended, so the tracer passes the same bar the corpus fails. Certificate at
-> `results/tracer_2r/`.
+> **v2 Phase 3: GATE NOT MET, 2026-07-20.** `data/scenarios/tracer_2r` runs
+> 11,700 ticks under `--certify` and prints **VERDICT: PASS**, and the
+> certificate at `results/tracer_2r/` is real. It does not discharge the gate.
+> Adversarial review found the PASS is an artifact of where the scoring window
+> is placed, over a world whose real economy is frozen for 87% of that window.
+> The measurements below stand; the verdict does not. Retained deliberately —
+> the scenario is a working long-horizon substrate and the negative result is
+> the phase's actual product.
+>
+> **Superseding an earlier claim in this section.** It first read "BUILT … the
+> tracer passes the same bar the corpus fails". That was wrong in the way this
+> phase was built to catch, and is left recorded rather than deleted (R14).
 
 The tracer is not economics and is not trying to be. It exists to run long
 enough that things which are invisible at 1,000 ticks become measurable.
 
-**What it cleared.** Conservation drift does not compound with horizon: it steps
-twice, early, then is flat for the remaining 9,000 ticks — driven by the largest
-single transaction, not by accumulated error. On `multi_region` the run maximum
-is 5.847e-10 from tick ~2,400 onward, holding at 6.3% of tolerance; the tracer's
-own is 3.4e-13. Wall clock is a non-issue — 11,700 ticks certified and recorded
-in 0.64s — confirming the claim above that compute is not the binding constraint.
-Telemetry is 2.0 MB against the ~100 MB gate, a 50× margin.
+### Why the gate is not met
 
-**A tracer must be alive, or it proves nothing.** The first draft pinned every
-good at `alpha: 0.0` and certified PASS. That PASS was hollow: with prices frozen,
-the SWINGING detector is being asked whether a constant is settling. The shipped
-tracer moves its staple across a ~30× range on *every* tick of the window and
-passes on the merits, with first-half standard deviation ten orders of magnitude
-clear of any degeneracy guard. `tests/test_08_long_horizon.rs` asserts the
-movement, so the degenerate version cannot come back silently.
+**The PASS exists only at the exact window `(150, 11700)`.** Score the same run
+over either half alone and it fails:
 
-**What it exposed, for Phase 4 rather than now:**
+| window | verdict |
+|---|---|
+| ticks 150..1600 (the live phase) | FAIL — 8 issues, incl. `SWINGING(velocity damp=9.30)` |
+| ticks 1550..11700 (the settled phase) | FAIL — `SWINGING(realwage damp=2.13)` |
+| ticks 150..11700 (as registered) | **PASS — 0 issues** |
+| ticks 150..46800 (4× the horizon) | FAIL — `UNSTABLE(velocity CV=0.30)`, `SWINGING(velocity damp=19.39)` |
 
-- **Currency inventories fragment without bound.** In the tracer, `gbp` holds
-  exactly 320.0 units at every sample — conservation is perfect — but that value
-  is spread across 22 lots at tick 1,000 and **7,674 at tick 11,700**, growing at
-  roughly one lot per tick after the transient. The physical economy is
-  stationary over the same span (grain: 4 lots, 2.772 units, identical at ticks
-  4,000 and 11,700). Lots exist to carry shelf life; an `Indefinite` good has
-  none, so for currency the lot structure is pure representational overhead.
-  `Inventory::get` sums the vector and runs in the hot loop, so per-tick cost
-  grows with it — measured on `multi_region`, marginal cost rises from
-  0.025 ms/tick early to 0.218 ms/tick by tick 11,700. Checkpoints go 1.7 KB →
-  68.6 KB across one tracer run. Coalescing lots that share a life would bound
-  the vector; it changes float summation order and therefore every state hash,
-  so it needs a deliberate re-baseline.
+The mechanism is `transient`, which was carried over from the corpus file
+unchanged and is **not window-neutral**. At 1,000 ticks a 150-tick transient
+discards 15% of the span; at 11,700 it discards 1.3%, leaving roughly 1,400
+ticks of the tracer's own unfinished transient *inside* the first scored half.
+That inflates `std(first half)`, which is the denominator SWINGING divides by.
+Sweeping `transient` with `analysis_end` fixed shows the pass evaporating as the
+transient is excluded: 0.582 at 150, 0.703 at 600, 1.005 at 900, 2.13 at 1550.
+So "only `analysis_end` changed, therefore the same bar" is true of the literals
+and false of the effect.
+
+**The real economy is frozen for most of the scored window.** After tick ~1,550
+the tracer clears *exactly* 1.0 grain and 1.8 labour every tick (0 and 2.2e-16
+standard deviation), employment takes 2 distinct f64 values (σ 7.9e-17), and the
+staple price falls monotonically with **zero** direction changes over the
+remaining 10,163 ticks. The detectors spend 87% of the window looking at either a
+constant or a one-way deflation ramp. SWINGING's 0.58 measures where a smooth
+non-oscillatory trajectory was cut, not damping.
+
+This is the *second* instance of the same error. The first draft pinned every
+good at `alpha: 0.0`, certified PASS, and was rejected for asking the SWINGING
+detector whether a constant was settling. The shipped version moves its nominal
+staple price — and nothing else. The guard written against the first instance
+(`tests/test_08_long_horizon.rs`) could not catch the second, because it asked
+only whether the staple price changed, which a monotone ramp satisfies. It now
+pins the frozen behaviour explicitly instead.
+
+**`alpha` was swept until the scenario passed.** The passing band is
+`0.0005 ≤ alpha ≤ 0.0025` jointly on grain and labour; it fails at 1e-5, 1e-4,
+2e-4, 3e-4, 0.003, 0.005, 0.01 and 0.05. The registered thresholds were never
+touched, so R6's letter holds — but choosing a world parameter against the
+scored outcome is the same move R6 exists to prevent, and it belongs stated
+beside the verdict rather than only in the scenario file.
+
+**"2/2 regions" carries one region's worth of information.** The two regions are
+identical clones with no channel between them and the engine has no RNG, so every
+emitted series is bit-identical between them. `2/2` is one trajectory scored
+twice. The scenario file's claim that this "proves the mechanism replicates" was
+wrong and has been corrected there.
+
+**And it is dying, slowly.** `velocity` last exceeds the DEAD threshold of 0.003
+at tick 9,673; every one of the final 2,027 ticks is below it. The class passes
+only because the live early phase dilutes the fraction over the whole window.
+
+### What the horizon did establish
+
+**Conservation drift does not compound on `multi_region`, but does not
+generalise.** There it rises in seven discrete steps, all before tick 2,620, and
+is then flat at 5.847e-10 (6.3% of tolerance) for the remaining 9,000 ticks. Two
+other scenarios are still climbing at the horizon: `supply_chain` 1.7e-12 →
+4.2e-11 over 14 steps, `big_region` 4.1e-12 → 3.6e-11 over 17, the last near tick
+11,200. So "drift is bounded" is a measured property of one scenario, not of the
+engine. The tracer's own maximum is 3.4e-13. What *is* general is that no
+scenario approaches its tolerance.
+
+**Compute is not the binding constraint.** 11,700 ticks certified and recorded in
+0.64s, confirming the scale arithmetic above.
+
+**Telemetry clears the ~100 MB gate by a wide margin** — 2.21 MB for the tracer
+with `--certify --record` (1.62 MB with `--record` alone; region series are only
+emitted under `--certify`). That much is unambiguous.
+
+### What it exposed, for Phase 4 rather than now
+
+- **Currency inventories fragment without bound, and faster than linearly.** In
+  the tracer, `gbp` holds exactly 320.0 units at every sample — conservation is
+  perfect — but that value is spread across **296 lots at tick 2,000 and 7,674 at
+  tick 11,700**, at a rate rising from ~0.15 to ~2.2 lots/tick: roughly geometric,
+  not the "one lot per tick" an earlier draft of this line claimed. The count is
+  also non-monotonic before tick ~1,566 (1,322 lots at tick 500, 22 at tick
+  1,000), so early samples are transient rather than baseline. Grain is stationary
+  only from tick 1,566 onward, holding 4 lots / 2.772 units to the horizon. Lots
+  exist to carry shelf life; an `Indefinite` good has none, so for currency the
+  lot structure is pure representational overhead. `Inventory::get` sums the
+  vector and runs in the hot loop, so per-tick cost grows with it — on
+  `multi_region`, marginal cost rises about **7×** across the run (0.020 ms/tick
+  early to 0.14–0.22 ms/tick at the horizon; wall clock on unnamed hardware, so
+  the ratio is the claim, not the absolute). Checkpoints go 1.7 KB → 68.6 KB
+  across one tracer run. Coalescing lots that share a life would bound the
+  vector; it changes float summation order and therefore every state hash, so it
+  needs a deliberate re-baseline.
 - **The price rule has an accidental floor and no ceiling.** `price_next` is
   purely multiplicative with no reference term, and `price_update` suppresses the
   delta when `|next − current| ≤ 1e-12`. That absolute epsilon against a
-  multiplicative step freezes any price below ≈ `1e-12/alpha` — predicted 2.0e-11
-  at alpha 0.05, measured minimum 1.92e-11 across seven scenarios — while nothing
-  bounds the upside: `multi_region` reaches **1.15e+139** by tick 11,700 and still
-  certifies B1–B5 clean. The same epsilon guards the EMA. A run in exponential
-  free-fall is a broken run, and no battery currently sees it.
+  multiplicative step freezes any price below ≈ `1e-12/alpha`. Across all 28
+  scenarios at the full span the minimum non-zero price is 1.11e-11 (`lr_16`),
+  and 18 of 28 sit below 2e-11 — the two predicted floors, 1e-11 at alpha 0.1 and
+  2e-11 at alpha 0.05, bracket the whole corpus. Nothing bounds the upside:
+  `multi_region` peaks at **1.147e+139 at tick 6,193** (8.8e+126 by 11,700) and
+  still certifies B1–B5 clean throughout. The same epsilon guards the EMA. A run
+  in exponential free-fall is a broken run, and no battery currently sees it.
 - **The events tape cannot express an atomic transfer.** A paired
   `RemoveFromInventory` / `AddToInventory` mints currency whenever the source is
   short: the remove takes what is there and logs a shortfall, the add credits the
   full amount regardless. The ledger catches it and panics, correctly — but the
   idiom is a trap, and it is why `tracer_2r` recycles currency through a recipe
   instead of a tape entry.
-- **Telemetry scales linearly and the target world will need subsampling.** At
-  the full span, per-region volume is 1.6–2.6 MB, so the 673-region world of the
-  scale arithmetic above extrapolates to ~1.5 GB per run. `--telemetry-every`
-  is the existing lever and it scales as expected: quarterly (13) gives ~118 MB,
-  annual (52) ~31 MB.
+- **The target world will need subsampling, and volume does not scale with row
+  count.** At the full span, per-region volume across all 28 scenarios runs
+  1.10 MB (`tracer_2r`) to 4.91 MB (`lr_09`), mean 2.93 — so the 673-region world
+  of the scale arithmetic above extrapolates to **~2 GB** per run, ~3.3 GB at the
+  observed worst case. It is not linear in rows: `lr_00` has *more* rows than
+  `multi_region` (3.24 M vs 3.12 M) in a *smaller* file (5.22 vs 7.08 MB),
+  because dictionary encoding and ZSTD both do better on a series that has gone
+  flat. `--telemetry-every` is the existing lever and scales as expected —
+  7.08 → 0.57 → 0.15 MB at every 1 / 13 / 52 — putting the target world at
+  roughly 160 MB quarterly, 40 MB annually.
 
 **One certifier hole closed.** `damping_ratio` returned 0.0 whenever the first
 half of the window was flat, without ever inspecting the second — so a run that
@@ -244,3 +317,21 @@ was quiet and then erupted scored as perfectly settled and SWINGING could not
 fire. It is now two-sided: flat throughout still scores 0.0, flat-then-moving
 scores infinite. All 27 committed certificates are unchanged by the fix, so it
 closes a latent hole rather than one the corpus was hitting.
+
+**Two R2 debts this phase incurred or sharpened, neither yet paid.** The `FLAT`
+epsilon in `certify::verdict` is now a pass/fail switch — below it a class always
+passes or always fails, with nothing in between — and it is still a code literal
+while `max_ratio` beside it lives in `criteria.ron`. And `EMA_ALPHA = 2/53` in
+`price_update` is the sole dial governing `price_ema`, which this phase promoted
+to a first-class telemetry metric while leaving its coefficient unregistered and
+unsweepable. Both belong in data (R2: a constant that cannot be swept cannot be
+defended).
+
+**A note on `criteria.ron` versioning.** `Criteria::version` is documented in
+`certify::criteria` as tracking the file's *shape*. `tracer_2r` uses it instead
+to distinguish a re-registration made on the same calendar day as the corpus v1
+file, whose shape is byte-identical from `classes:` down. Nothing in code depends
+on the shape meaning, and the manifest's `criteria_sha` makes the applied bar
+traceable regardless — but the field now carries two meanings, and a genuine
+schema change has no way to announce itself. Worth a `registration` field
+separate from `version` before a third file needs one.
