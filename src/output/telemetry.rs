@@ -38,6 +38,7 @@ pub const MANIFEST_FILE: &str = "manifest.json";
 /// economy did nothing".
 const CATALOGUE: &[(&str, &str, bool)] = &[
     ("market", "price", true),
+    ("market", "price_ema", true),
     ("market", "supply", true),
     ("market", "demand", true),
     ("building", "recipe_id", false),
@@ -149,13 +150,20 @@ impl Telemetry {
                 let good = GoodId(good_idx as u32);
                 let id = node_idx as u32;
                 let g = Some(good_idx as u32);
-                let (p, s, d) = (
+                // price_ema is the one-year smoothed price maintained by
+                // price_update. Nothing in the engine consumes it, so until it
+                // was emitted here it was write-only state: the long-horizon
+                // question v2 Phase 3 exists to ask — how the EMA behaves across
+                // regime-scale price moves — could not be asked of any run.
+                let (p, e, s, d) = (
                     state.price(node, good),
+                    state.price_ema(node, good),
                     state.supply(node, good),
                     state.demand(node, good),
                 );
                 let w = self.writer()?;
                 w.push(tick, None, "market", id, g, "price", p)?;
+                w.push(tick, None, "market", id, g, "price_ema", e)?;
                 w.push(tick, None, "market", id, g, "supply", s)?;
                 w.push(tick, None, "market", id, g, "demand", d)?;
             }

@@ -1,0 +1,91 @@
+// Stability criteria for the 225-year tracer — dated, pre-registered
+// (METHODOLOGY R6, docs/architecture/engine.md).
+//
+// REGISTRATION IDENTITY. The corpus criteria (data/scenarios/*/criteria.ron)
+// are registered as 2026-07-20 v1 and score ticks 150..1000. Their own header
+// says extending the window to the full 11,700-tick horizon "is a different
+// claim and belongs in a new dated file". This is that file. It was registered
+// on the same calendar day, so the date alone cannot separate the two — the
+// version field carries the distinction, and the certificate prints
+// "criteria 2026-07-20 v2" so a reader can tell which bar was applied. The
+// telemetry manifest additionally records a hash of this file.
+//
+// WHAT CHANGED FROM v1, AND WHAT DID NOT. Only analysis_end (1000 -> 11700),
+// staple_good and labour_good. Every threshold, every rule, every window kind
+// and the fail-closed NaN policy are copied verbatim from the corpus file. That
+// is deliberate: a tracer that passed against thresholds invented for it would
+// prove nothing. It passes against the same bar the corpus fails.
+//
+// THIS FILE MAKES THE SCENARIO UNSCOREABLE BELOW ~5,926 TICKS, and that is not
+// a bug you should work around by shortening the window. Rule::Damping splits
+// at analysis_mid() = transient + (analysis_end - transient)/2 = 5925, which is
+// a property of the criteria and not of the run. A shorter run leaves the second
+// half empty, damping_ratio returns NaN, and FailClosed turns that into a
+// failure. Run this scenario at 11,700 ticks or do not score it.
+(
+    version: 2,
+    date: "2026-07-20",
+    transient: 150,
+    analysis_end: 11700,
+    staple_good: "grain",
+    labour_good: "labour",
+    nan_policy: FailClosed,
+    classes: [
+        // A region with no transaction velocity is not an economy. Checked first
+        // and short-circuits: once dead, nothing else about it is meaningful.
+        (
+            name: "DEAD",
+            fatal: true,
+            metrics: [Velocity],
+            rule: FracBelow(thresh: 0.003, frac: 0.80),
+            window: Analysis,
+            short_circuit: true,
+        ),
+        (
+            name: "DEAD_EMPLOYMENT",
+            fatal: true,
+            metrics: [Employment],
+            rule: FracBelow(thresh: 0.05, frac: 0.80),
+            window: Analysis,
+        ),
+        // Short-term oscillation: the rolling coefficient of variation.
+        (
+            name: "UNSTABLE",
+            fatal: true,
+            metrics: [Velocity, Employment, RealWage],
+            rule: RollingCv(window: 10, max_cv: 0.12),
+            window: Analysis,
+        ),
+        // Not settling: second-half variance still close to the first half's.
+        (
+            name: "SWINGING",
+            fatal: true,
+            metrics: [Velocity, RealWage],
+            rule: Damping(max_ratio: 0.72),
+            window: Halves,
+        ),
+        // Currency pooling in buildings and still trending that way.
+        (
+            name: "CURRENCY_DRAIN",
+            fatal: true,
+            metrics: [Concentration],
+            rule: MeanAndSlope(mean_min: 0.82, slope_min: 0.0),
+            window: Analysis,
+        ),
+        (
+            name: "POP_DESTITUTION",
+            fatal: true,
+            metrics: [RealIncome],
+            rule: FracBelow(thresh: 0.8, frac: 0.50),
+            window: Analysis,
+        ),
+        // Warning only: an idle plant is a symptom, not a failed region.
+        (
+            name: "DEAD_BUILDING",
+            fatal: false,
+            metrics: [BldUtil],
+            rule: FracBelow(thresh: 0.05, frac: 0.60),
+            window: PostTransient,
+        ),
+    ],
+)

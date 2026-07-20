@@ -46,7 +46,11 @@ SUPPORTED_SCHEMA_VERSIONS = (1,)
 # cases cannot drift apart — they did before, and the empty frames were missing
 # `channel_id` and `is_employed`, so a run with no data raised KeyError in the
 # stability suite instead of yielding empty results.
-PRICE_COLS = ["tick", "node_id", "good_id", "price", "supply", "demand", "imbalance"]
+# price_ema is the engine's one-year smoothed price. It sits beside price rather
+# than being recomputed here because the engine's EMA is seeded at genesis and
+# carried through resumes; a reconstruction from the sampled price series would
+# silently differ on any subsampled run.
+PRICE_COLS = ["tick", "node_id", "good_id", "price", "price_ema", "supply", "demand", "imbalance"]
 BUILDING_COLS = [
     "tick", "building_id", "region_id", "recipe_id", "recipe_size", "chosen_size",
     "efficiency", "balance", "last_margin", "last_throughput", "channel_id",

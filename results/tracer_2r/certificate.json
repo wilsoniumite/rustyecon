@@ -1,0 +1,63 @@
+{
+  "run": "10840fd4f75060c8",
+  "git": "bb57eea",
+  "tape_sha": "c7e0eecda81334ba",
+  "seed": 0,
+  "scenario": "tracer_2r",
+  "ticks": 11700,
+  "batteries": [
+    {
+      "id": "B1",
+      "label": "conservation",
+      "pass": true,
+      "detail": "max drift 3.411e-13, worst margin 0.0% of tolerance"
+    },
+    {
+      "id": "B2",
+      "label": "delta-only mutation (replay audit)",
+      "pass": true,
+      "detail": "no state escaped the delta stream"
+    },
+    {
+      "id": "B3",
+      "label": "determinism",
+      "pass": true,
+      "detail": "state hash 0xaea860dcf9dba5d3, replay MATCH"
+    },
+    {
+      "id": "B4",
+      "label": "metrics computable",
+      "pass": true,
+      "detail": "0 NaN"
+    },
+    {
+      "id": "B5",
+      "label": "clamp/shortfall events",
+      "pass": true,
+      "detail": "0 (total 0.000e0 missing)"
+    }
+  ],
+  "stability": {
+    "criteria_date": "2026-07-20",
+    "criteria_version": 2,
+    "window": [
+      150,
+      11700
+    ],
+    "regions": [
+      {
+        "region": "Alpha",
+        "issues": [],
+        "passed": true
+      },
+      {
+        "region": "Beta",
+        "issues": [],
+        "passed": true
+      }
+    ],
+    "regions_passed": 2,
+    "regions_total": 2
+  },
+  "verdict": "PASS"
+}

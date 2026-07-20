@@ -40,6 +40,16 @@ container iteration anywhere on the delta path; floating point stays f64 with
 no non-associative parallel reductions (see below); any RNG, if ever admitted,
 is seeded per-actor and replayable.
 
+The three tests run at 60 ticks, which proves the equalities hold but says
+nothing about whether they survive the horizon the project actually targets. As
+of v2 Phase 3 they are joined by `tests/test_08_long_horizon.rs`, which runs
+resume-equality over the full 11,700 ticks — the case where inventories carry
+thousands of accumulated lots and a checkpoint that silently reordered them
+would still round-trip the totals while changing every later float sum.
+
+> **BUILT 2026-07-20.** Resume-equality holds at 11,700 ticks: a run checkpointed
+> at 5,850 and resumed reaches the same state hash as one that never stopped.
+
 ## The run certificate
 
 Every run ends verdict-first: batteries print PASS/FAIL *before* any result is
@@ -116,7 +126,7 @@ VERDICT: …
 
 | `entity_kind` | keyed by | metrics |
 |---|---|---|
-| `market` | node × good | `price`, `supply`, `demand` |
+| `market` | node × good | `price`, `price_ema`, `supply`, `demand` |
 | `building` | building | `recipe_id`, `recipe_size`, `chosen_size`, `efficiency`, `balance`, `last_margin`, `last_throughput`, `channel_id` |
 | `building` / `pop` | entity × good | `inventory` |
 | `pop` | pop | `size`, `wealth`, `savings_target`, `is_employed` |
@@ -163,3 +173,74 @@ VERDICT: …
   > 1000-tick horizon: lr_00 46.16s → 0.129s (357×, 181 MB → 1.1 MB),
   > multi_region 9.34s → 0.102s (91×, 48 MB → 1.1 MB). The full 25-scenario
   > suite loads in 2.28s.
+
+## The 225-year horizon
+
+> **v2 Phase 3: BUILT 2026-07-20.** `data/scenarios/tracer_2r` — two identical,
+> uncoupled regions, one produced good, one labour good, one currency — runs
+> 11,700 weekly ticks under `--certify` and gets **VERDICT: PASS**, 2/2 regions,
+> scored over the full span against `criteria.ron` 2026-07-20 **v2**. The
+> thresholds are copied verbatim from the corpus v1 file; only the window is
+> extended, so the tracer passes the same bar the corpus fails. Certificate at
+> `results/tracer_2r/`.
+
+The tracer is not economics and is not trying to be. It exists to run long
+enough that things which are invisible at 1,000 ticks become measurable.
+
+**What it cleared.** Conservation drift does not compound with horizon: it steps
+twice, early, then is flat for the remaining 9,000 ticks — driven by the largest
+single transaction, not by accumulated error. On `multi_region` the run maximum
+is 5.847e-10 from tick ~2,400 onward, holding at 6.3% of tolerance; the tracer's
+own is 3.4e-13. Wall clock is a non-issue — 11,700 ticks certified and recorded
+in 0.64s — confirming the claim above that compute is not the binding constraint.
+Telemetry is 2.0 MB against the ~100 MB gate, a 50× margin.
+
+**A tracer must be alive, or it proves nothing.** The first draft pinned every
+good at `alpha: 0.0` and certified PASS. That PASS was hollow: with prices frozen,
+the SWINGING detector is being asked whether a constant is settling. The shipped
+tracer moves its staple across a ~30× range on *every* tick of the window and
+passes on the merits, with first-half standard deviation ten orders of magnitude
+clear of any degeneracy guard. `tests/test_08_long_horizon.rs` asserts the
+movement, so the degenerate version cannot come back silently.
+
+**What it exposed, for Phase 4 rather than now:**
+
+- **Currency inventories fragment without bound.** In the tracer, `gbp` holds
+  exactly 320.0 units at every sample — conservation is perfect — but that value
+  is spread across 22 lots at tick 1,000 and **7,674 at tick 11,700**, growing at
+  roughly one lot per tick after the transient. The physical economy is
+  stationary over the same span (grain: 4 lots, 2.772 units, identical at ticks
+  4,000 and 11,700). Lots exist to carry shelf life; an `Indefinite` good has
+  none, so for currency the lot structure is pure representational overhead.
+  `Inventory::get` sums the vector and runs in the hot loop, so per-tick cost
+  grows with it — measured on `multi_region`, marginal cost rises from
+  0.025 ms/tick early to 0.218 ms/tick by tick 11,700. Checkpoints go 1.7 KB →
+  68.6 KB across one tracer run. Coalescing lots that share a life would bound
+  the vector; it changes float summation order and therefore every state hash,
+  so it needs a deliberate re-baseline.
+- **The price rule has an accidental floor and no ceiling.** `price_next` is
+  purely multiplicative with no reference term, and `price_update` suppresses the
+  delta when `|next − current| ≤ 1e-12`. That absolute epsilon against a
+  multiplicative step freezes any price below ≈ `1e-12/alpha` — predicted 2.0e-11
+  at alpha 0.05, measured minimum 1.92e-11 across seven scenarios — while nothing
+  bounds the upside: `multi_region` reaches **1.15e+139** by tick 11,700 and still
+  certifies B1–B5 clean. The same epsilon guards the EMA. A run in exponential
+  free-fall is a broken run, and no battery currently sees it.
+- **The events tape cannot express an atomic transfer.** A paired
+  `RemoveFromInventory` / `AddToInventory` mints currency whenever the source is
+  short: the remove takes what is there and logs a shortfall, the add credits the
+  full amount regardless. The ledger catches it and panics, correctly — but the
+  idiom is a trap, and it is why `tracer_2r` recycles currency through a recipe
+  instead of a tape entry.
+- **Telemetry scales linearly and the target world will need subsampling.** At
+  the full span, per-region volume is 1.6–2.6 MB, so the 673-region world of the
+  scale arithmetic above extrapolates to ~1.5 GB per run. `--telemetry-every`
+  is the existing lever and it scales as expected: quarterly (13) gives ~118 MB,
+  annual (52) ~31 MB.
+
+**One certifier hole closed.** `damping_ratio` returned 0.0 whenever the first
+half of the window was flat, without ever inspecting the second — so a run that
+was quiet and then erupted scored as perfectly settled and SWINGING could not
+fire. It is now two-sided: flat throughout still scores 0.0, flat-then-moving
+scores infinite. All 27 committed certificates are unchanged by the fix, so it
+closes a latent hole rather than one the corpus was hitting.

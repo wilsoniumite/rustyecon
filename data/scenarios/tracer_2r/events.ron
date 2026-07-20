@@ -1,0 +1,11 @@
+// No tape. The tracer is a bare substrate test: nothing should happen to it
+// except time passing, so that anything which does happen is the engine's doing
+// and not an event's.
+//
+// A recurring currency transfer was tried here first and removed. See the
+// dividend recipe's comment in game_data.ron: a paired
+// RemoveFromInventory / AddToInventory is not atomic, and mints currency
+// whenever the source inventory is short.
+(
+    recurring: [],
+)

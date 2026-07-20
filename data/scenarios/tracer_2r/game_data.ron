@@ -1,0 +1,94 @@
+// The 225-year tracer bullet (v2 Phase 3, docs/PLAN.md).
+//
+// Purpose, stated so nobody mistakes this for economics: this world exists to
+// run 11,700 weekly ticks — 225 years — and expose what only a long horizon can
+// expose. Float drift, EMA behaviour across regime-scale price moves, telemetry
+// volume, checkpoint size. It is deliberately the smallest world that is still
+// *alive*: two identical, uncoupled regions, one produced good, one labour good,
+// one currency.
+//
+// The two regions are literal clones with no channel between them. That is the
+// point: 2/2 passing proves the mechanism replicates, rather than that one
+// region got lucky.
+//
+// WHY alpha IS SMALL BUT NOT ZERO. An earlier draft of this scenario pinned
+// every good at alpha: 0.0. It certified PASS — and the PASS was hollow. With
+// prices frozen the first half of the scoring window has zero variance, and
+// `damping_ratio` used to short-circuit to 0.0 on that, so SWINGING could not
+// fire whatever happened afterwards. That escape hatch is now closed
+// (src/certify/verdict.rs), but the deeper problem was that a world with no
+// price movement tests none of what this phase was built to test. At
+// alpha: 0.002 the staple moves across a ~30x range on every single tick of the
+// window and the run still passes on the merits, with the first-half standard
+// deviation ten orders of magnitude clear of any guard.
+//
+// The passing band was found by sweeping, and it is narrow: roughly
+// 0.0005 <= alpha <= 0.002 jointly. Above it SWINGING fires on real_wage as
+// grain outruns labour; below it the world drifts toward DEAD. That narrowness
+// is itself a finding and is recorded in docs/architecture/engine.md rather
+// than smoothed over here.
+(
+    goods: [
+        // The staple, and the deflator for real_wage / real_income.
+        ( name: "grain",  alpha: 0.002, shelf_life: Indefinite, movement_type: Physical, divisible: true, storage_cost_per_tick: 0.0 ),
+        // The numeraire. alpha: 0.0 pins it, as in every other scenario.
+        ( name: "gbp",    alpha: 0.0,   shelf_life: Indefinite, movement_type: Financial, divisible: true, storage_cost_per_tick: 0.0 ),
+        // Instant shelf life: unsold labour is reclaimed by spoil_lots the same
+        // tick as a ledgered Spoilage burn. Without this the producer's lot
+        // vector grows without bound over 11,700 ticks — see the checkpoint-size
+        // finding in engine.md.
+        ( name: "labour", alpha: 0.002, shelf_life: Instant,    movement_type: Local, divisible: true, storage_cost_per_tick: 0.0 ),
+    ],
+    recipes: [
+        // labour -> grain. Fixed input scaling draws the full recipe_size of
+        // labour every tick regardless of chosen_size, which breaks the
+        // capacity -> labour-demand -> labour-price feedback loop.
+        (
+            name: "grow_grain",
+            inputs:  [ ( good: "labour", qty_per_unit: 1.0, scaling: Fixed ) ],
+            outputs: [ ( good: "grain",  qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: CapacityControl,
+        ),
+        // Recycles the producer's currency back to its pop. Without a return
+        // path, currency pools in the building, velocity falls and the region
+        // scores DEAD long before tick 11,700.
+        //
+        // The obvious alternative — a paired Remove/Add in events.ron — is
+        // unsound and was tried first: RemoveFromInventory takes only what is
+        // there and logs a shortfall, while AddToInventory adds the full amount
+        // regardless, so a short source mints currency. The ledger catches it
+        // and panics (as it should), but the tape idiom cannot express an atomic
+        // transfer. Recorded in engine.md.
+        //
+        // NOTE FOR PHASE 4: DividendPayout is on the deletion list. This
+        // scenario will need porting to the desk kernel along with the lr corpus.
+        (
+            name: "dividend",
+            inputs:  [ ( good: "gbp", qty_per_unit: 1.0, scaling: Variable ) ],
+            outputs: [ ( good: "gbp", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: DividendPayout( reserve_multiple: 26.0 ),
+        ),
+    ],
+    // One entry in one category, deliberately: a single-entry category always
+    // yields target fraction [1.0], which leaves the substitution dynamics
+    // inert. One wealth tier likewise pins demand to a constant per head and
+    // takes the pop wealth PD-controller out of the demand path.
+    need_categories: [
+        ( name: "food", entries: [ ( good: "grain", weight: 1.0 ) ] ),
+    ],
+    wealth_levels: [
+        ( tier: 0, needs: { "food": 0.5 } ),
+    ],
+    market_nodes: [
+        ( id: (0), tier: Regional, region: Some((0)), currency_good: Some((1)) ),
+        ( id: (1), tier: Regional, region: Some((1)), currency_good: Some((1)) ),
+    ],
+    // No channels: the regions must not couple, or 2/2 stops being two samples.
+    channels: [],
+    regions: [
+        ( id: (0), name: "Alpha", market_node: (0) ),
+        ( id: (1), name: "Beta",  market_node: (1) ),
+    ],
+)

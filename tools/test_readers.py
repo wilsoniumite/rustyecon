@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 DEFAULT_DIR = "tmp/stability_suite/lr_00"
 
 EXPECTED_COLUMNS = {
-    "prices": ["tick", "node_id", "good_id", "price", "supply", "demand", "imbalance"],
+    "prices": ["tick", "node_id", "good_id", "price", "price_ema", "supply", "demand", "imbalance"],
     "buildings": [
         "tick", "building_id", "region_id", "recipe_id", "recipe_size", "chosen_size",
         "efficiency", "balance", "last_margin", "last_throughput", "channel_id",

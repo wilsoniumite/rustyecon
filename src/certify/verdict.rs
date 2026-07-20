@@ -107,10 +107,27 @@ pub fn rolling_cv(values: &[f64], window: usize) -> f64 {
     mean(&ratios)
 }
 
+/// A half flat enough that its spread carries no information — small enough that
+/// dividing by it is meaningless, not merely small.
+const FLAT: f64 = 1e-12;
+
 /// `std(second half) / std(first half)` — below 1 means the series is settling.
 ///
-/// NaN when either half is too short to measure; 0.0 when the first half is
-/// already flat, which is genuinely settled rather than uncomputable.
+/// NaN when either half is too short to measure.
+///
+/// The flat-first-half case is judged on the *second* half. A series flat
+/// throughout is genuinely settled and still scores 0.0; a series that is flat
+/// and then erupts is the exact opposite of settling, and this used to score it
+/// 0.0 as well — returning early without ever looking at `s2`, so no amount of
+/// later movement could fire SWINGING. Scored as infinite now, failing against
+/// any finite `max_ratio`.
+///
+/// What this deliberately does *not* do is fail a world whose series never move
+/// at all. A constant series is not swinging, and this class saying so is
+/// correct. A run that is uninformative because nothing in it ever happens is a
+/// scenario problem, not a detector problem, and is caught where it belongs —
+/// see `tests/test_08_long_horizon.rs`, which asserts the tracer's prices are
+/// still moving at the horizon.
 pub fn damping_ratio(values: &[f64], split: usize) -> f64 {
     let first = finite(&values[..split.min(values.len())]);
     let second = finite(&values[split.min(values.len())..]);
@@ -121,8 +138,8 @@ pub fn damping_ratio(values: &[f64], split: usize) -> f64 {
     if !s1.is_finite() || !s2.is_finite() {
         return f64::NAN;
     }
-    if s1 < 1e-12 {
-        return 0.0;
+    if s1 < FLAT {
+        return if s2 < FLAT { 0.0 } else { f64::INFINITY };
     }
     s2 / s1
 }
@@ -305,12 +322,25 @@ mod tests {
         v.extend(std::iter::repeat(0.0).take(20));
         assert!(damping_ratio(&v, 20) < 1.0);
 
-        // A constant first half is genuinely settled, not uncomputable.
+        // Constant throughout is genuinely settled, not uncomputable.
         let flat: Vec<f64> = vec![1.0; 40];
         assert_eq!(damping_ratio(&flat, 20), 0.0);
 
         // Too little data to judge -> NaN, which callers fail closed on.
         assert!(damping_ratio(&[1.0, 2.0, 3.0, 4.0], 2).is_nan());
+    }
+
+    #[test]
+    fn a_quiet_opening_cannot_buy_a_pass_for_a_loud_ending() {
+        // The regression this exists for: a flat first half used to return 0.0
+        // without the second half being looked at, so SWINGING could not fire
+        // however violently the series later moved.
+        let mut v: Vec<f64> = vec![1.0; 20];
+        v.extend((0..20).map(|i| if i % 2 == 0 { 5.0 } else { -5.0 }));
+        let dr = damping_ratio(&v, 20);
+        assert!(dr.is_infinite(), "flat then oscillating must not score as settled, got {dr}");
+        assert!(!dr.is_nan(), "this is computable and failing, not uncomputable");
+        assert!(dr > 0.72, "must fire against the registered SWINGING threshold");
     }
 
     #[test]
