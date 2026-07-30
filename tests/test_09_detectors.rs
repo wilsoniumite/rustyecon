@@ -202,11 +202,11 @@ fn the_level_range_is_blind_to_scale_and_to_direction() {
 
 #[test]
 fn the_thresholds_hold_at_the_corpus_window_too() {
-    // The corpus scores ticks 150..1000 — 850 samples, not 11,550. `LogDrift` is
-    // registered as a total factor *across the window*, so a short run is held
-    // to a looser per-tick rate on purpose: it is a claim about the span that
-    // was actually observed. Check the separation survives the shorter span,
-    // since the thresholds were picked at the long one.
+    // The corpus scores ticks 150..1000 — 850 samples, not 11,550. `LevelRange`
+    // is a percentile band over whatever window it is given, so it makes a claim
+    // about the span actually observed and a short run is held to a looser
+    // per-tick rate on purpose. The thresholds were picked at the long window, so
+    // check the separation survives the short one.
     const M: usize = 850;
     let short = |f: &dyn Fn(f64) -> f64| -> Vec<f64> { (0..M).map(|i| f(i as f64)).collect() };
 
