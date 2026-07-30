@@ -1,22 +1,30 @@
-// Stability criteria — dated, pre-registered (METHODOLOGY R6, engine.md).
+// Stability criteria â€” dated, pre-registered (METHODOLOGY R6, engine.md).
 //
-// Variant of the ported 07-suite taxonomy for a scenario with NO LABOUR MARKET.
-// RealWage is price(labour)/price(staple), and this scenario defines no labour
-// good, so that metric is not merely missing — it is inapplicable. It is dropped
-// from UNSTABLE and SWINGING here rather than left to evaluate as NaN.
+// GENERATION 3, registered 2026-07-31. Variant for a scenario with NO LABOUR
+// MARKET: RealWage is price(labour)/price(staple) and this scenario defines no
+// labour good, so the metric is not merely missing, it is inapplicable. It is
+// dropped from the classes that read it rather than left to evaluate as NaN.
+// That is the registered-convention half of engine.md's NaN rule: a value that
+// cannot exist by construction is declared absent here, while a value that
+// should exist and cannot be computed still fails closed.
 //
-// This is the registered-convention half of engine.md's NaN rule: a value that
-// cannot exist by construction is declared absent in the criteria, while a value
-// that should exist and cannot be computed still fails closed. Silencing the
-// latter by widening this exemption would defeat the policy.
+// Supersedes the 2026-07-20 v1 file, kept in git history so certificates scored
+// under it stay reproducible. The detector change is identical to the standard
+// variant's â€” v1's `Damping(max_ratio: 0.72)` read the raw level, so it passed a
+// monotone collapse (0.149) and failed a stationary economy (1.009). It is split
+// into DRIFTING (LogDrift, the level must stay put) and SWINGING
+// (ResidualDamping on the detrended residual, the wobble must not grow), with
+// both thresholds fixed from synthetic ground truth in
+// tests/test_09_detectors.rs before any scenario was scored. See the standard
+// variant for the full rationale.
+//
+// UNCHANGED FROM v1: the window, every other class and threshold, the NaN
+// policy, and this file's no-labour exemption.
 //
 // CHANGING A THRESHOLD AFTER SEEING RESULTS REQUIRES A NEW DATED FILE.
-//
-// Window is the ported one — ticks 150..1000, the span the thresholds were
-// calibrated against.
 (
-    version: 1,
-    date: "2026-07-20",
+    version: 3,
+    date: "2026-07-31",
     transient: 150,
     analysis_end: 1000,
     staple_good: "flour",
@@ -48,12 +56,24 @@
             rule: RollingCv(window: 10, max_cv: 0.12),
             window: Analysis,
         ),
-        // Not settling: second-half variance still close to the first half's.
+        // The level must stay put. Split out of v1's SWINGING, which read the
+        // raw level and so scored any shrinking series as "settling" (see the
+        // header). A metric that moves more than 2x across the window has gone
+        // somewhere and not come back, whichever direction it went.
+        (
+            name: "DRIFTING",
+            fatal: true,
+            metrics: [Velocity],
+            rule: LogDrift(max_factor: 2.0),
+            window: Analysis,
+        ),
+        // The wobble must not grow — measured on the detrended residual, so this
+        // asks only about oscillation and not about where the level went.
         (
             name: "SWINGING",
             fatal: true,
             metrics: [Velocity],
-            rule: Damping(max_ratio: 0.72),
+            rule: ResidualDamping(max_ratio: 2.0),
             window: Halves,
         ),
         // Currency pooling in buildings and still trending that way.

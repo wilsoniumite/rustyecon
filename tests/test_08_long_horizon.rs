@@ -26,8 +26,11 @@ fn tracer_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("data/scenarios/tracer_2r")
 }
 
+/// The engine batteries — conservation, delta-only mutation, determinism, no
+/// NaN, no clamps — must hold across 225 years. That is the claim Phase 3 can
+/// actually make, and it is separate from whether the *economy* is stable.
 #[test]
-fn the_tracer_certifies_at_the_full_span() {
+fn the_engine_holds_together_across_the_full_span() {
     let dir = tracer_dir();
     let s = loader::load(&dir).expect("tracer_2r loads");
     let out = tempfile::tempdir().unwrap();
@@ -54,25 +57,37 @@ fn the_tracer_certifies_at_the_full_span() {
         assert!(b.pass, "{} {} failed at {FULL_SPAN} ticks: {}", b.id, b.label, b.detail);
     }
     let stability = cert.stability.as_ref().expect("tracer_2r registers criteria");
-    assert!(
-        stability.passed(),
-        "stability failed at the full span: {}",
-        stability.summary()
-    );
     assert_eq!(
         stability.window,
         [150, FULL_SPAN],
         "the tracer must be scored over the full span, not the corpus's 150..1000 window"
     );
-    assert!(cert.passed(), "verdict was {}", cert.verdict);
     assert!(
         stability.regions_total >= 2,
         "the scenario must score more than one region"
     );
-    // NOTE, so this test is not read as more than it is: the two regions are
+
+    // Stability is deliberately NOT asserted here, and the certificate verdict
+    // is deliberately FAIL. Under the criteria registered on 2026-07-20 this
+    // scenario passed, and that PASS was the artifact the whole of Phase 3.1–3.5
+    // exists to retract: the old Damping rule read a raw level, so it scored
+    // this world's monotone deflation as "settling". Generation 3 splits the
+    // rule and the deflation is caught as DRIFTING. Asserting a PASS here again
+    // would re-import the bug as a test.
+    assert!(
+        !cert.passed(),
+        "tracer_2r now certifies PASS. Either the economy was genuinely fixed — \
+         in which case update engine.md's \"225-year horizon\" section and this \
+         test together — or a detector regressed. Do not just flip this assert."
+    );
+    assert!(
+        stability.regions.iter().all(|r| r.issues.iter().any(|i| i.starts_with("DRIFTING"))),
+        "expected every region to fail on DRIFTING (the deflation ramp); got {:?}",
+        stability.regions.iter().map(|r| &r.issues).collect::<Vec<_>>()
+    );
+    // NOTE, so this is not read as more than it is: the two regions are
     // identical clones with no channel and the engine has no RNG, so Beta's
-    // series are bit-identical to Alpha's. "2/2" is one trajectory scored twice,
-    // not two samples. See engine.md, "The 225-year horizon".
+    // series are bit-identical to Alpha's — one trajectory scored twice.
 }
 
 /// What the tracer is doing in the back half of its scored window, measured.

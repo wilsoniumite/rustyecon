@@ -1,6 +1,6 @@
 {
-  "run": "8aa93f7118d6fd22",
-  "git": "3d94969",
+  "run": "141336dcd538cd6f",
+  "git": "8381c59",
   "tape_sha": "8425309c95330b03",
   "seed": 0,
   "scenario": "supply_chain",
@@ -38,8 +38,8 @@
     }
   ],
   "stability": {
-    "criteria_date": "2026-07-20",
-    "criteria_version": 1,
+    "criteria_date": "2026-07-31",
+    "criteria_version": 3,
     "window": [
       150,
       1000
@@ -48,6 +48,7 @@
       {
         "region": "Manchester",
         "issues": [
+          "DRIFTING(velocity drift=4.12x)",
           "POP_DESTITUTION(realincome frac=0.85)"
         ],
         "passed": false

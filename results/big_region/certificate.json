@@ -1,6 +1,6 @@
 {
-  "run": "1bb43bbeb02eabca",
-  "git": "3d94969",
+  "run": "346aa9ae07336c0b",
+  "git": "8381c59",
   "tape_sha": "29dd897f0473212c",
   "seed": 0,
   "scenario": "big_region",
@@ -38,8 +38,8 @@
     }
   ],
   "stability": {
-    "criteria_date": "2026-07-20",
-    "criteria_version": 1,
+    "criteria_date": "2026-07-31",
+    "criteria_version": 3,
     "window": [
       150,
       1000
@@ -49,6 +49,8 @@
         "region": "Manchester",
         "issues": [
           "UNSTABLE(velocity CV=0.42)",
+          "DRIFTING(velocity drift=25.90x)",
+          "SWINGING(velocity osc=2.27)",
           "CURRENCY_DRAIN(concentration mean=0.99, slope=0.0000)"
         ],
         "passed": false

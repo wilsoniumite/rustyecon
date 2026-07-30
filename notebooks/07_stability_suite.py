@@ -46,7 +46,8 @@ MANIFEST    = SCENARIOS_DIR / "lr_manifest.csv"
 T_DEAD_VELOCITY    = 0.003   # velocity below this for >80% of window → DEAD
 T_DEAD_EMPLOY      = 0.05    # employment below this for >80% of window → DEAD
 T_UNSTABLE_CV      = 0.12    # rolling-10 CV above this sustained → UNSTABLE
-T_SWING_DAMP       = 0.72    # std ratio (2nd/1st half) above this → SWINGING
+T_DRIFT_FACTOR     = 2.0     # level moves more than this across the window → DRIFTING
+T_SWING_OSC        = 2.0     # detrended wobble grows by more than this → SWINGING
 T_DRAIN_FRAC       = 0.82    # buildings hold >82% of regional GBP → DRAIN
 T_DRAIN_SLOPE      = 0.0     # positive slope in 2nd half confirms drain trending up
 T_DESTITUTION      = 0.8     # employed pop GBP < this × flour_cost × 1 week → DESTITUTION
@@ -129,11 +130,75 @@ def rolling_cv(series, window=10):
     cv = (rs / rm.replace(0, np.nan)).dropna()
     return float(cv.mean())
 
-def damping_ratio(series, mid):
-    """std(second half) / std(first half). <1 means settling.
+def _log_fit(series):
+    """OLS fit of ln(value) against tick over strictly positive samples.
 
-    Returns NaN when either half has too little data to measure the ratio;
-    callers treat an uncomputable damping ratio as a failure (fail-closed).
+    Mirrors certify::verdict::log_fit. Non-positive samples are dropped rather
+    than clamped — a metric at exactly zero has no logarithm, and inventing one
+    would put a fabricated point into the fit.
+    """
+    s = series.dropna()
+    s = s[s > 0]
+    if len(s) < 3:
+        return None
+    x = s.index.to_numpy(dtype=float)
+    y = np.log(s.to_numpy(dtype=float))
+    den = float(((x - x.mean()) ** 2).sum())
+    if den <= 0:
+        return None
+    slope = float(((x - x.mean()) * (y - y.mean())).sum() / den)
+    if not np.isfinite(slope):
+        return None
+    return slope, pd.Series(y - (y.mean() + slope * (x - x.mean())), index=s.index)
+
+
+def log_drift(series, span):
+    """Total factor the level moves across `span`, folded to >= 1 either way.
+
+    Mirrors certify::verdict::log_drift. This is the runaway half of what the
+    retired `damping_ratio` was conflating.
+    """
+    fit = _log_fit(series)
+    if fit is None:
+        return np.nan
+    f = float(np.exp(fit[0] * span))
+    if not np.isfinite(f) or f <= 0:
+        return np.inf
+    return max(f, 1.0 / f)
+
+
+def residual_damping(series, mid):
+    """std(2nd half)/std(1st half) of the DETRENDED relative residual.
+
+    Mirrors certify::verdict::residual_damping. Above 1 the oscillation is
+    growing. Removing the log-trend first is the whole point: the retired
+    `damping_ratio` read the raw level, where standard deviation scales with the
+    level, so it scored a monotone collapse as "settling" (0.149) and a healthy
+    stationary economy as "swinging" (1.009). See data/scenarios/*/criteria.ron
+    generation 3 and tests/test_09_detectors.rs.
+    """
+    FLAT_REL = 1e-9
+    fit = _log_fit(series)
+    if fit is None:
+        return np.nan
+    res = fit[1]
+    first, second = res[res.index < mid], res[res.index >= mid]
+    s1 = float(first.std())  if len(first)  > 5 else np.nan
+    s2 = float(second.std()) if len(second) > 5 else np.nan
+    if np.isnan(s1) or np.isnan(s2):
+        return np.nan
+    if s1 < FLAT_REL:
+        return 0.0 if s2 < FLAT_REL else np.inf
+    return s2 / s1
+
+
+def damping_ratio(series, mid):
+    """RETIRED — std(second half) / std(first half) of the raw level.
+
+    Kept only so a reader comparing against certificates registered before
+    2026-07-31 can reproduce them. It is not a settling test: standard deviation
+    is homogeneous of degree one, so the statistic falls whenever the level
+    falls. Use `log_drift` + `residual_damping`.
     """
     s = series.dropna()
     first  = s[s.index < mid]
@@ -274,7 +339,7 @@ class RegionResult:
     metrics: dict = field(default_factory=dict)
 
     def passed(self):
-        fatal = {"DEAD", "UNSTABLE", "SWINGING", "CURRENCY_DRAIN", "POP_DESTITUTION"}
+        fatal = {"DEAD", "UNSTABLE", "DRIFTING", "SWINGING", "CURRENCY_DRAIN", "POP_DESTITUTION"}
         return not any(i.split("(")[0] in fatal for i in self.issues)
 
 def detect_issues(m: dict, res: ScenarioResults) -> list:
@@ -307,15 +372,25 @@ def detect_issues(m: dict, res: ScenarioResults) -> list:
         if np.isnan(cv) or cv > T_UNSTABLE_CV:
             issues.append(f"UNSTABLE({label} CV={cv:.2f})")
 
-    # ── SWINGING: not damping ─────────────────────────────────────────────────
+    # ── DRIFTING: the level does not stay put ─────────────────────────────────
     for label, series in [("velocity", m["velocity"]),
                            ("real_wage", m["real_wage"])]:
         s = analysis_slice(series)
         if s.empty: continue
-        dr = damping_ratio(s, ANALYSIS_MID)
-        # Fail-closed: an uncomputable damping ratio counts as not-damping.
-        if np.isnan(dr) or dr > T_SWING_DAMP:
-            issues.append(f"SWINGING({label} damp={dr:.2f})")
+        d = log_drift(s, ANALYSIS_END - TRANSIENT)
+        # Fail-closed: a drift that cannot be computed is an issue, not a pass.
+        if np.isnan(d) or d > T_DRIFT_FACTOR:
+            issues.append(f"DRIFTING({label} drift={d:.2f}x)")
+
+    # ── SWINGING: the wobble grows ────────────────────────────────────────────
+    for label, series in [("velocity", m["velocity"]),
+                           ("real_wage", m["real_wage"])]:
+        s = analysis_slice(series)
+        if s.empty: continue
+        osc = residual_damping(s, ANALYSIS_MID)
+        # Fail-closed: an uncomputable ratio counts as not-settling.
+        if np.isnan(osc) or osc > T_SWING_OSC:
+            issues.append(f"SWINGING({label} osc={osc:.2f})")
 
     # ── CURRENCY_DRAIN ────────────────────────────────────────────────────────
     if not conc.empty:

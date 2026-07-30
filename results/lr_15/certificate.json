@@ -1,6 +1,6 @@
 {
-  "run": "090923ae66d6a233",
-  "git": "3d94969",
+  "run": "56df2a0d42ec0dc0",
+  "git": "8381c59",
   "tape_sha": "a24e7efcc45de491",
   "seed": 0,
   "scenario": "lr_15",
@@ -38,8 +38,8 @@
     }
   ],
   "stability": {
-    "criteria_date": "2026-07-20",
-    "criteria_version": 1,
+    "criteria_date": "2026-07-31",
+    "criteria_version": 3,
     "window": [
       150,
       1000
@@ -57,6 +57,8 @@
         "issues": [
           "UNSTABLE(velocity CV=0.76)",
           "UNSTABLE(employment CV=0.94)",
+          "DRIFTING(velocity drift=26193695106725191916185904589307904.00x)",
+          "DRIFTING(realwage drift=76.28x)",
           "CURRENCY_DRAIN(concentration mean=0.93, slope=0.0000)",
           "POP_DESTITUTION(realincome frac=0.89)",
           "DEAD_BUILDING(bldutil frac=0.98)"
@@ -68,6 +70,8 @@
         "issues": [
           "UNSTABLE(velocity CV=0.73)",
           "UNSTABLE(employment CV=0.89)",
+          "DRIFTING(velocity drift=20893652.12x)",
+          "DRIFTING(realwage drift=21.44x)",
           "CURRENCY_DRAIN(concentration mean=0.88, slope=0.0001)",
           "POP_DESTITUTION(realincome frac=0.82)",
           "DEAD_BUILDING(bldutil frac=1.00)"

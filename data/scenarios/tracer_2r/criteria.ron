@@ -1,11 +1,11 @@
-// Stability criteria for the 225-year tracer — dated, pre-registered
+// Stability criteria for the 225-year tracer â€” dated, pre-registered
 // (METHODOLOGY R6, docs/architecture/engine.md).
 //
 // REGISTRATION IDENTITY. The corpus criteria (data/scenarios/*/criteria.ron)
 // are registered as 2026-07-20 v1 and score ticks 150..1000. Their own header
 // says extending the window to the full 11,700-tick horizon "is a different
 // claim and belongs in a new dated file". This is that file. It was registered
-// on the same calendar day, so the date alone cannot separate the two — the
+// on the same calendar day, so the date alone cannot separate the two â€” the
 // version field carries the distinction, and the certificate prints
 // "criteria 2026-07-20 v2" so a reader can tell which bar was applied. The
 // telemetry manifest additionally records a hash of this file.
@@ -23,8 +23,8 @@
 // half empty, damping_ratio returns NaN, and FailClosed turns that into a
 // failure. Run this scenario at 11,700 ticks or do not score it.
 (
-    version: 2,
-    date: "2026-07-20",
+    version: 3,
+    date: "2026-07-31",
     transient: 150,
     analysis_end: 11700,
     staple_good: "grain",
@@ -56,12 +56,22 @@
             rule: RollingCv(window: 10, max_cv: 0.12),
             window: Analysis,
         ),
-        // Not settling: second-half variance still close to the first half's.
+        // The level must stay put. Split out of the old SWINGING, which read the
+        // raw level and so scored this scenario's own monotone deflation as
+        // "settling" — the artifact that made the Phase 3 gate look met.
+        (
+            name: "DRIFTING",
+            fatal: true,
+            metrics: [Velocity, RealWage],
+            rule: LogDrift(max_factor: 2.0),
+            window: Analysis,
+        ),
+        // The wobble must not grow, measured on the detrended residual.
         (
             name: "SWINGING",
             fatal: true,
             metrics: [Velocity, RealWage],
-            rule: Damping(max_ratio: 0.72),
+            rule: ResidualDamping(max_ratio: 2.0),
             window: Halves,
         ),
         // Currency pooling in buildings and still trending that way.

@@ -1,6 +1,6 @@
 {
-  "run": "a91e797b633fcb36",
-  "git": "3d94969",
+  "run": "ec0072507f42911d",
+  "git": "8381c59",
   "tape_sha": "eaff9dea7f930961",
   "seed": 0,
   "scenario": "lr_05",
@@ -38,8 +38,8 @@
     }
   ],
   "stability": {
-    "criteria_date": "2026-07-20",
-    "criteria_version": 1,
+    "criteria_date": "2026-07-31",
+    "criteria_version": 3,
     "window": [
       150,
       1000

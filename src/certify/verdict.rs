@@ -144,6 +144,93 @@ pub fn damping_ratio(values: &[f64], split: usize) -> f64 {
     s2 / s1
 }
 
+/// A detrended half flat enough that its spread carries no information.
+///
+/// The residuals this guards are logarithmic, so the number is a *relative*
+/// deviation: a series constant to one part in a billion is constant for any
+/// economic purpose. [`FLAT`] cannot serve here — it is an absolute bound on a
+/// raw level, and means something different at price 1e3 than at price 1e-9.
+const FLAT_REL: f64 = 1e-9;
+
+/// OLS fit of ln(value) against sample index over strictly-positive finite
+/// samples, returning the slope and the residuals paired with their index.
+///
+/// Non-positive samples are dropped rather than clamped: a metric at exactly
+/// zero has no logarithm, and inventing one would put a fabricated point into
+/// the fit. Dropping them can leave too little to judge, which the callers turn
+/// into NaN and the registered policy fails closed on.
+fn log_fit(values: &[f64]) -> Option<(f64, Vec<(usize, f64)>)> {
+    let pts: Vec<(usize, f64)> = values
+        .iter()
+        .enumerate()
+        .filter(|(_, v)| v.is_finite() && **v > 0.0)
+        .map(|(i, v)| (i, v.ln()))
+        .collect();
+    if pts.len() < 3 {
+        return None;
+    }
+    let n = pts.len() as f64;
+    let mx = pts.iter().map(|(i, _)| *i as f64).sum::<f64>() / n;
+    let my = pts.iter().map(|(_, y)| *y).sum::<f64>() / n;
+    let den: f64 = pts.iter().map(|(i, _)| (*i as f64 - mx).powi(2)).sum();
+    if den <= 0.0 {
+        return None;
+    }
+    let slope: f64 = pts.iter().map(|(i, y)| (*i as f64 - mx) * (y - my)).sum::<f64>() / den;
+    if !slope.is_finite() {
+        return None;
+    }
+    let resid = pts
+        .iter()
+        .map(|(i, y)| (*i, y - (my + slope * (*i as f64 - mx))))
+        .collect();
+    Some((slope, resid))
+}
+
+/// Total factor the level moves across the window, folded to be ≥ 1 in either
+/// direction so one threshold covers inflation and collapse alike.
+pub fn log_drift(values: &[f64]) -> f64 {
+    if values.len() < 2 {
+        return f64::NAN;
+    }
+    match log_fit(values) {
+        None => f64::NAN,
+        Some((slope, _)) => {
+            let f = (slope * (values.len() - 1) as f64).exp();
+            // exp overflowed, or underflowed to zero: the drift is past anything
+            // a finite threshold would admit, so say so rather than return NaN,
+            // which would read as "could not be computed".
+            if !f.is_finite() || f <= 0.0 {
+                return f64::INFINITY;
+            }
+            f.max(1.0 / f)
+        }
+    }
+}
+
+/// `std(second half) / std(first half)` of the detrended relative residual.
+///
+/// Above 1 the oscillation is growing. Flat throughout scores 0.0; flat and then
+/// moving scores infinite, for the reason given on [`damping_ratio`].
+pub fn residual_damping(values: &[f64], split: usize) -> f64 {
+    let Some((_, resid)) = log_fit(values) else {
+        return f64::NAN;
+    };
+    let first: Vec<f64> = resid.iter().filter(|(i, _)| *i < split).map(|(_, r)| *r).collect();
+    let second: Vec<f64> = resid.iter().filter(|(i, _)| *i >= split).map(|(_, r)| *r).collect();
+    if first.len() <= 5 || second.len() <= 5 {
+        return f64::NAN;
+    }
+    let (s1, s2) = (std_dev(&first), std_dev(&second));
+    if !s1.is_finite() || !s2.is_finite() {
+        return f64::NAN;
+    }
+    if s1 < FLAT_REL {
+        return if s2 < FLAT_REL { 0.0 } else { f64::INFINITY };
+    }
+    s2 / s1
+}
+
 /// Ordinary least squares slope against sample index.
 pub fn linear_slope(values: &[f64]) -> f64 {
     let s = finite(values);
@@ -222,6 +309,21 @@ fn check(
                 return uncomputable("damp");
             }
             (dr > max_ratio).then(|| format!("{}({label} damp={dr:.2})", class.name))
+        }
+        Rule::LogDrift { max_factor } => {
+            let d = log_drift(values);
+            if d.is_nan() {
+                return uncomputable("drift");
+            }
+            (d > max_factor).then(|| format!("{}({label} drift={d:.2}x)", class.name))
+        }
+        Rule::ResidualDamping { max_ratio } => {
+            let mid = criteria.analysis_mid().saturating_sub(criteria.transient) as usize;
+            let r = residual_damping(values, mid);
+            if r.is_nan() {
+                return uncomputable("osc");
+            }
+            (r > max_ratio).then(|| format!("{}({label} osc={r:.2})", class.name))
         }
         Rule::MeanAndSlope { mean_min, slope_min } => {
             let s = finite(values);

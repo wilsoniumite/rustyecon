@@ -1,6 +1,6 @@
 {
-  "run": "66477f07b9624d8b",
-  "git": "3d94969",
+  "run": "64804a0678021e04",
+  "git": "8381c59",
   "tape_sha": "47bbbee4a9b6b6a1",
   "seed": 0,
   "scenario": "lr_01",
@@ -38,8 +38,8 @@
     }
   ],
   "stability": {
-    "criteria_date": "2026-07-20",
-    "criteria_version": 1,
+    "criteria_date": "2026-07-31",
+    "criteria_version": 3,
     "window": [
       150,
       1000
@@ -57,6 +57,9 @@
         "issues": [
           "UNSTABLE(velocity CV=0.16)",
           "UNSTABLE(employment CV=0.74)",
+          "DRIFTING(velocity drift=3883.40x)",
+          "DRIFTING(realwage drift=9821.72x)",
+          "SWINGING(velocity osc=2.18)",
           "DEAD_BUILDING(bldutil frac=0.92)"
         ],
         "passed": false

@@ -320,11 +320,60 @@ detector. Measured on synthetic series over the tracer's own window length:
 
 A healthy economy that reaches a stationary price with any residual ripple fails;
 a dying one that deflates smoothly passes. `PLAN.md` Phase 4 ships the kernel
-only if "its pass-rate ≥ legacy's" — so under the current bar, **fixing the
-economics can lose the A/B**. Splitting the rule into a trend test on the
-log-level slope and an oscillation test on the detrended residual is the
-prerequisite; it needs a new dated criteria file and re-scores the Phase 1
-baseline, which must happen before the comparison, not after.
+only if "its pass-rate ≥ legacy's" — so under that bar, **fixing the economics
+could lose the A/B**.
+
+> **FIXED 2026-07-31 (v2 Phase 3.5).** `Damping` is superseded by two rules that
+> separate the claims it conflated, registered as criteria **generation 3**
+> across all 28 scenarios:
+>
+> | class | rule | asks |
+> |---|---|---|
+> | `DRIFTING` | `LogDrift(max_factor: 2.0)` | did the level stay put? |
+> | `SWINGING` | `ResidualDamping(max_ratio: 2.0)` | did the wobble grow? |
+>
+> `LogDrift` is the OLS slope of ln(metric) against sample index, as a total
+> factor across the window, folded so a 3× fall and a 3× rise both score 3.0.
+> `ResidualDamping` removes that fitted trend first, so a series is judged on how
+> it moves about its own path rather than on where the path went — which is why
+> its threshold sits *above* 1.0: an economy in equilibrium fluctuates
+> persistently, and `0.72` had encoded the assumption that a settled economy
+> stops moving.
+>
+> **Both thresholds were fixed from synthetic ground truth before any scenario
+> was scored** (`tests/test_09_detectors.rs`): healthy cases reach at most 1.20×
+> drift and 1.03 oscillation, sick ones start at 3.0× and 4.2, and 2.0 sits in
+> both gaps. That ordering is the point — a threshold chosen to make particular
+> scenarios pass is not a threshold (R6) — and the test is the standing record
+> of it. `Damping` itself is retained but marked superseded, so certificates
+> registered before this date stay reproducible.
+>
+> **What re-scoring the corpus showed.** Region pass-rate barely moves (4/79 →
+> 3/79) and every scenario still fails, so the Phase 1 baseline keeps its shape
+> for the A/B. What changes is the *diagnosis*: `SWINGING` drops 39 → 12 while
+> `DRIFTING` accounts for 59. The corpus's dominant pathology was never
+> oscillation — it is the deflation ramp above, and the old rule was reporting it
+> under the wrong name or not at all.
+>
+> Five regions changed verdict, and they are the validation:
+>
+> | region | v1 | v3 | measured |
+> |---|---|---|---|
+> | `lr_18`/Birmingham | passed the fatal classes | `DRIFTING(realwage 2169×)` | real wage moved **1218×** |
+> | `lr_06`/Birmingham | **clean** | `DRIFTING(realwage 10.9×)` | real wage moved **12.7×** |
+> | `lr_12`/Manchester | `SWINGING(damp 2.09)` | clean | level moved **1.3×** |
+> | `lr_12`/Leeds | `SWINGING(damp 1.81)` | clean | level moved 1.3× |
+> | `lr_08`/Manchester | `SWINGING(damp 0.74)` | clean | — |
+>
+> Two regions whose real wage moved by factors of 13 and 1200 were being
+> certified as stable; three that merely wandered around a stable level were
+> being failed. The independent Python reimplementation in
+> `notebooks/07_stability_suite.py` was updated in step and agrees with the
+> engine region-for-region, so the cross-check still holds.
+>
+> The tracer itself now correctly **FAILS** — `DRIFTING(velocity 3.10×)`,
+> `DRIFTING(realwage 2.28×)`, with `SWINGING` silent, which is the right
+> attribution: it is a ramp, not an oscillation.
 
 **`parity` is undefined.** `kernel.md:53` and `pops.md` make the labour margin
 `σ_π = (w_posted − parity)/parity` — the only place in the kernel that compares a

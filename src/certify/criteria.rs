@@ -46,9 +46,38 @@ pub enum Rule {
     FracBelow { thresh: f64, frac: f64 },
     /// Fails when the mean rolling coefficient of variation exceeds `max_cv`.
     RollingCv { window: u32, max_cv: f64 },
-    /// Fails when std(second half) / std(first half) exceeds `max_ratio`,
-    /// i.e. the series is not settling.
+    /// Fails when std(second half) / std(first half) exceeds `max_ratio`.
+    ///
+    /// **Superseded by [`Rule::LogDrift`] + [`Rule::ResidualDamping`] (v2 Phase
+    /// 3.5). Retained so criteria registered before 2026-07-20 still load and
+    /// their certificates stay reproducible; do not use it in new files.**
+    ///
+    /// It was intended to ask "is the series settling", but it reads the raw
+    /// *level*, and standard deviation is homogeneous of degree one — so a
+    /// series whose level shrinks scores low no matter how it behaves. Measured
+    /// over an 11,550-tick window: monotone geometric deflation scores 0.149 and
+    /// passes, while a stationary economy with ordinary ripple scores 1.009 and
+    /// fails. It rewards the disease and punishes the cure. The replacement
+    /// splits the two claims it was conflating.
     Damping { max_ratio: f64 },
+    /// Fails when the level drifts by more than `max_factor` across the window,
+    /// in either direction — the runaway half of the old `Damping`.
+    ///
+    /// Measured as the OLS slope of ln(value) against sample index, converted to
+    /// the total factor across the window and folded so that a fall of 3× and a
+    /// rise of 3× both score 3.0. Working in logs makes geometric drift linear,
+    /// which is the shape the engine's multiplicative price rule produces.
+    LogDrift { max_factor: f64 },
+    /// Fails when the oscillation *grows*: std(second half) / std(first half) of
+    /// the **detrended** relative residual exceeds `max_ratio`.
+    ///
+    /// This is what `Damping` was reaching for. Removing the fitted log-trend
+    /// first means a series is judged on how it moves about its own path rather
+    /// than on where that path went, so a stationary economy scores ~1.0 whether
+    /// its level is high or low. The threshold therefore sits *above* 1.0: a
+    /// real economy in equilibrium fluctuates persistently, and demanding decay
+    /// would fail every healthy world.
+    ResidualDamping { max_ratio: f64 },
     /// Fails when the mean exceeds `mean_min` *and* the second-half slope
     /// exceeds `slope_min` — a high level that is still trending up.
     MeanAndSlope { mean_min: f64, slope_min: f64 },

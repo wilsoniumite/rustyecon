@@ -1,7 +1,7 @@
 {
-  "run": "10840fd4f75060c8",
-  "git": "bb57eea",
-  "tape_sha": "c7e0eecda81334ba",
+  "run": "ceba68e14e27e7c1",
+  "git": "8381c59",
+  "tape_sha": "ddb70f0ec1a7aa20",
   "seed": 0,
   "scenario": "tracer_2r",
   "ticks": 11700,
@@ -38,8 +38,8 @@
     }
   ],
   "stability": {
-    "criteria_date": "2026-07-20",
-    "criteria_version": 2,
+    "criteria_date": "2026-07-31",
+    "criteria_version": 3,
     "window": [
       150,
       11700
@@ -47,17 +47,23 @@
     "regions": [
       {
         "region": "Alpha",
-        "issues": [],
-        "passed": true
+        "issues": [
+          "DRIFTING(velocity drift=3.10x)",
+          "DRIFTING(realwage drift=2.28x)"
+        ],
+        "passed": false
       },
       {
         "region": "Beta",
-        "issues": [],
-        "passed": true
+        "issues": [
+          "DRIFTING(velocity drift=3.10x)",
+          "DRIFTING(realwage drift=2.28x)"
+        ],
+        "passed": false
       }
     ],
-    "regions_passed": 2,
+    "regions_passed": 0,
     "regions_total": 2
   },
-  "verdict": "PASS"
+  "verdict": "FAIL"
 }
