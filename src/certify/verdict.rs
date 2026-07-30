@@ -12,6 +12,47 @@ use serde::{Deserialize, Serialize};
 use crate::certify::criteria::{Criteria, FailureClass, Metric, NanPolicy, Rule, Window};
 use crate::certify::metrics::RegionSeries;
 
+/// One statistic that was computed, recorded whether or not it fired.
+///
+/// A verdict is a threshold applied to a number, and only the number can be
+/// compared across two runs. Phase 3.5 left the corpus at 0/72 regions, so a
+/// pass count can no longer tell an improved kernel from an unchanged one — an
+/// A/B on a count is satisfied by an arm that also scores zero. These are the
+/// continuous readings that comparison needs (PLAN Phase 4).
+///
+/// Recorded for **every** class × metric pair, including after a `short_circuit`
+/// class has fired. The short-circuit governs the *verdict* — nothing about a
+/// dead region is meaningful — but suppressing the measurement too would make
+/// the two arms' tables differently shaped exactly where they differ most, and
+/// a mean over differently-composed sets compares nothing.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Measurement {
+    /// Failure class this statistic belongs to, e.g. `DRIFTING`.
+    pub class: String,
+    /// Metric it was computed on, lowercased, e.g. `realwage`.
+    pub metric: String,
+    /// Short name of the statistic itself, e.g. `range`, `osc`, `frac`.
+    pub stat: String,
+    /// Rendered rather than numeric: JSON has no NaN and no Infinity, and
+    /// serde_json flattens both to `null`, which would erase the difference
+    /// between "uncomputable" and "unboundedly bad". Both round-trip through
+    /// Rust's `str::parse::<f64>` and Python's `float()`.
+    pub value: String,
+    /// Whether the rule tripped on this reading. Not the same as appearing in
+    /// [`RegionVerdict::issues`]: a reading taken after a short-circuit trips
+    /// here but does not count toward the verdict.
+    pub tripped: bool,
+    /// Whether this reading counted toward the region's verdict.
+    pub counted: bool,
+}
+
+impl Measurement {
+    /// The reading as a number, with the non-finite cases preserved.
+    pub fn as_f64(&self) -> f64 {
+        self.value.parse().unwrap_or(f64::NAN)
+    }
+}
+
 /// One region's stability outcome.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RegionVerdict {
@@ -20,6 +61,10 @@ pub struct RegionVerdict {
     pub issues: Vec<String>,
     /// False when any *fatal* class fired; warnings do not fail a region.
     pub passed: bool,
+    /// Every statistic computed for this region. Reported so a verdict can be
+    /// audited and so two runs can be compared on more than pass/fail.
+    #[serde(default)]
+    pub measurements: Vec<Measurement>,
 }
 
 /// The scenario's stability outcome, scored against its dated criteria.
@@ -316,13 +361,23 @@ fn slice<'a>(series: &'a [f64], criteria: &Criteria, window: Window) -> &'a [f64
     }
 }
 
-/// Apply one class to one metric, returning the issue text if it fires.
+/// One named statistic and its value, as computed by a rule.
+struct Reading {
+    stat: &'static str,
+    value: f64,
+}
+
+/// Apply one class to one metric.
+///
+/// Returns the issue text if it fires, and the reading(s) behind that decision
+/// either way — a rule that passes is still evidence, and the number is what
+/// survives comparison between two runs.
 fn check(
     criteria: &Criteria,
     class: &FailureClass,
     metric: Metric,
     values: &[f64],
-) -> Option<String> {
+) -> (Option<String>, Vec<Reading>) {
     let label = format!("{metric:?}").to_lowercase();
     let fail_closed = matches!(criteria.policy_for(class), NanPolicy::FailClosed);
     // A NaN statistic means the detector could not be computed. Under the
@@ -330,88 +385,132 @@ fn check(
     let uncomputable = |name: &str| {
         fail_closed.then(|| format!("{}({label} {name}=NaN)", class.name))
     };
+    let one = |stat, value| vec![Reading { stat, value }];
 
     match class.rule {
         Rule::FracBelow { thresh, frac } => {
             let f = frac_below(values, thresh);
+            let r = one("frac", f);
             if f.is_nan() {
-                return uncomputable("frac");
+                return (uncomputable("frac"), r);
             }
-            (f > frac).then(|| format!("{}({label} frac={f:.2})", class.name))
+            ((f > frac).then(|| format!("{}({label} frac={f:.2})", class.name)), r)
         }
         Rule::RollingCv { window, max_cv } => {
             let cv = rolling_cv(values, window as usize);
+            let r = one("cv", cv);
             if cv.is_nan() {
-                return uncomputable("CV");
+                return (uncomputable("CV"), r);
             }
-            (cv > max_cv).then(|| format!("{}({label} CV={cv:.2})", class.name))
+            ((cv > max_cv).then(|| format!("{}({label} CV={cv:.2})", class.name)), r)
         }
         Rule::Damping { max_ratio } => {
             let mid = criteria.analysis_mid().saturating_sub(criteria.transient) as usize;
             let dr = damping_ratio(values, mid);
+            let r = one("damp", dr);
             if dr.is_nan() {
-                return uncomputable("damp");
+                return (uncomputable("damp"), r);
             }
-            (dr > max_ratio).then(|| format!("{}({label} damp={dr:.2})", class.name))
+            ((dr > max_ratio).then(|| format!("{}({label} damp={dr:.2})", class.name)), r)
         }
         Rule::LevelRange { max_ratio } => {
-            let r = level_range(values);
-            if r.is_nan() {
-                return uncomputable("range");
+            let v = level_range(values);
+            let r = one("range", v);
+            if v.is_nan() {
+                return (uncomputable("range"), r);
             }
-            (r > max_ratio).then(|| format!("{}({label} range={r:.2}x)", class.name))
+            ((v > max_ratio).then(|| format!("{}({label} range={v:.2}x)", class.name)), r)
         }
         Rule::ResidualDamping { max_ratio } => {
             let mid = criteria.analysis_mid().saturating_sub(criteria.transient) as usize;
-            let r = residual_damping(values, mid);
-            if r.is_nan() {
-                return uncomputable("osc");
+            let v = residual_damping(values, mid);
+            let r = one("osc", v);
+            if v.is_nan() {
+                return (uncomputable("osc"), r);
             }
-            (r > max_ratio).then(|| format!("{}({label} osc={r:.2})", class.name))
+            ((v > max_ratio).then(|| format!("{}({label} osc={v:.2})", class.name)), r)
         }
         Rule::MeanAndSlope { mean_min, slope_min } => {
             let s = finite(values);
             if s.is_empty() {
-                return uncomputable("mean");
+                return (uncomputable("mean"), one("mean", f64::NAN));
             }
             let m = mean(&s);
             let half = s.len() / 2;
             let slope = linear_slope(&s[half..]);
-            // Both conditions: a high level that is still trending up.
-            (m > mean_min && slope > slope_min)
-                .then(|| format!("{}({label} mean={m:.2}, slope={slope:.4})", class.name))
+            // Both conditions: a high level that is still trending up. Both are
+            // reported, because either one alone explains nothing.
+            let r = vec![
+                Reading { stat: "mean", value: m },
+                Reading { stat: "slope", value: slope },
+            ];
+            let issue = (m > mean_min && slope > slope_min)
+                .then(|| format!("{}({label} mean={m:.2}, slope={slope:.4})", class.name));
+            (issue, r)
         }
     }
 }
 
 /// Score one region against the criteria.
+///
+/// Two passes over the same classes, not one: the verdict stops at the first
+/// `short_circuit` hit — once a region is dead, nothing else about it is
+/// meaningful — while the measurement table keeps going to the end. Scoring
+/// stops; measuring does not. `scoring` is the flag that separates them, so the
+/// verdict logic below is the same logic it has always been.
 pub fn evaluate_region(criteria: &Criteria, series: &RegionSeries) -> RegionVerdict {
     let mut issues = Vec::new();
+    let mut measurements = Vec::new();
     let mut fatal = false;
+    let mut scoring = true;
 
     for class in &criteria.classes {
         let mut fired = false;
         for &metric in &class.metrics {
+            let label = format!("{metric:?}").to_lowercase();
             let values = slice(series.get(metric), criteria, class.window);
             if values.is_empty() {
                 // Nothing recorded at all is a missing metric, and under the
                 // fail-closed policy that is an issue rather than a pass.
-                if matches!(criteria.policy_for(class), NanPolicy::FailClosed) {
+                let fail_closed = matches!(criteria.policy_for(class), NanPolicy::FailClosed);
+                measurements.push(Measurement {
+                    class: class.name.clone(),
+                    metric: label,
+                    stat: "no-data".into(),
+                    value: render(f64::NAN),
+                    tripped: fail_closed,
+                    counted: scoring && fail_closed,
+                });
+                if scoring && fail_closed {
                     issues.push(format!("{}({:?} no-data)", class.name, metric));
                     fired = true;
                     fatal |= class.fatal;
                 }
                 continue;
             }
-            if let Some(issue) = check(criteria, class, metric, values) {
-                issues.push(issue);
-                fired = true;
-                fatal |= class.fatal;
+            let (issue, readings) = check(criteria, class, metric, values);
+            let tripped = issue.is_some();
+            for r in readings {
+                measurements.push(Measurement {
+                    class: class.name.clone(),
+                    metric: label.clone(),
+                    stat: r.stat.into(),
+                    value: render(r.value),
+                    tripped,
+                    counted: scoring && tripped,
+                });
+            }
+            if scoring {
+                if let Some(issue) = issue {
+                    issues.push(issue);
+                    fired = true;
+                    fatal |= class.fatal;
+                }
             }
         }
         // DEAD short-circuits: once a region is dead nothing else is meaningful.
-        if fired && class.short_circuit {
-            break;
+        if scoring && fired && class.short_circuit {
+            scoring = false;
         }
     }
 
@@ -419,7 +518,18 @@ pub fn evaluate_region(criteria: &Criteria, series: &RegionSeries) -> RegionVerd
         region: series.name.clone(),
         issues,
         passed: !fatal,
+        measurements,
     }
+}
+
+/// Render a statistic so JSON can carry it.
+///
+/// JSON has no NaN and no Infinity, and serde_json writes both as `null` — which
+/// would erase the difference between a detector that could not be computed and
+/// one that returned an unbounded reading. Both are failures, but they are not
+/// the same failure, and the A/B ranks them differently.
+fn render(v: f64) -> String {
+    format!("{v:e}")
 }
 
 /// Score every region and summarise.
@@ -527,6 +637,103 @@ mod tests {
         let v = evaluate_region(&criteria, &series);
         assert!(!v.passed, "fail-closed on missing data");
         assert!(v.issues.iter().any(|i| i.contains("no-data")), "{:?}", v.issues);
+    }
+
+    /// Criteria with a short-circuiting DEAD in front of a LevelRange class, so
+    /// the interaction between "stop scoring" and "keep measuring" is exercised.
+    fn two_class_criteria() -> Criteria {
+        use crate::certify::criteria::*;
+        Criteria {
+            version: 4,
+            date: "2026-07-31".into(),
+            transient: 0,
+            analysis_end: 60,
+            staple_good: "flour".into(),
+            labour_good: "labour".into(),
+            nan_policy: NanPolicy::FailClosed,
+            classes: vec![
+                FailureClass {
+                    name: "DEAD".into(),
+                    fatal: true,
+                    metrics: vec![Metric::Velocity],
+                    rule: Rule::FracBelow { thresh: 0.003, frac: 0.80 },
+                    window: Window::Analysis,
+                    short_circuit: true,
+                    nan_policy: None,
+                },
+                FailureClass {
+                    name: "DRIFTING".into(),
+                    fatal: true,
+                    metrics: vec![Metric::RealWage],
+                    rule: Rule::LevelRange { max_ratio: 2.2 },
+                    window: Window::Analysis,
+                    short_circuit: false,
+                    nan_policy: None,
+                },
+            ],
+        }
+    }
+
+    fn series_with(velocity: Vec<f64>, real_wage: Vec<f64>) -> crate::certify::metrics::RegionSeries {
+        let n = velocity.len();
+        crate::certify::metrics::RegionSeries {
+            region: crate::types::ids::RegionId(0),
+            name: "Somewhere".into(),
+            velocity,
+            employment: vec![1.0; n],
+            real_wage,
+            concentration: vec![0.0; n],
+            bld_util: vec![1.0; n],
+            real_income: vec![1.0; n],
+            building_ids: Vec::new(),
+            building_util: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn a_dead_region_still_reports_the_band_it_never_got_scored_on() {
+        // The whole point of the measurement table. A dead region short-circuits,
+        // so DRIFTING never counts against it — but the band is exactly what the
+        // A/B compares, and a table that stopped here would be missing precisely
+        // the regions the two arms differ on.
+        let dead = series_with(vec![0.0; 60], (0..60).map(|i| 1.0 + i as f64).collect());
+        let v = evaluate_region(&two_class_criteria(), &dead);
+
+        assert!(!v.passed);
+        assert_eq!(v.issues.len(), 1, "only DEAD counts: {:?}", v.issues);
+        assert!(v.issues[0].starts_with("DEAD"));
+
+        let band = v.measurements.iter().find(|m| m.stat == "range").expect("band measured");
+        assert!(band.as_f64() > 2.2, "the wage really did drift: {}", band.value);
+        assert!(band.tripped, "the rule tripped");
+        assert!(!band.counted, "but it did not count — DEAD short-circuited");
+    }
+
+    #[test]
+    fn a_live_region_counts_what_it_trips() {
+        let live = series_with(vec![1.0; 60], (0..60).map(|i| 1.0 + i as f64).collect());
+        let v = evaluate_region(&two_class_criteria(), &live);
+        assert!(!v.passed);
+        assert_eq!(v.issues.len(), 1, "{:?}", v.issues);
+        assert!(v.issues[0].starts_with("DRIFTING"));
+        let band = v.measurements.iter().find(|m| m.stat == "range").unwrap();
+        assert!(band.tripped && band.counted);
+    }
+
+    #[test]
+    fn non_finite_readings_survive_the_json_round_trip() {
+        // serde_json writes NaN and Infinity as `null`, which would make an
+        // uncomputable detector and an unbounded one indistinguishable in the
+        // persisted certificate. Both are failures; they are not the same one.
+        for v in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY, 0.0, 2.2, -1.5e-9] {
+            let text = render(v);
+            let back: f64 = text.parse().unwrap_or_else(|e| panic!("{text:?}: {e}"));
+            assert_eq!(back.is_nan(), v.is_nan(), "{text}");
+            if !v.is_nan() {
+                assert_eq!(back, v, "{text}");
+            }
+        }
+        assert_ne!(render(f64::INFINITY), render(f64::NAN));
     }
 
     #[test]
