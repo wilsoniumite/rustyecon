@@ -1,6 +1,6 @@
 {
-  "run": "1fb0d930afcd1aea",
-  "git": "8381c59",
+  "run": "a697530cd673b90c",
+  "git": "8d9574d",
   "tape_sha": "ff621bdeab0bbe2c",
   "seed": 0,
   "scenario": "lr_09",
@@ -39,7 +39,7 @@
   ],
   "stability": {
     "criteria_date": "2026-07-31",
-    "criteria_version": 3,
+    "criteria_version": 4,
     "window": [
       150,
       1000
@@ -48,14 +48,16 @@
       {
         "region": "Manchester",
         "issues": [
-          "DRIFTING(realwage drift=7.37x)"
+          "DRIFTING(velocity range=2.67x)",
+          "DRIFTING(realwage range=11.98x)"
         ],
         "passed": false
       },
       {
         "region": "Leeds",
         "issues": [
-          "DRIFTING(realwage drift=7.10x)"
+          "DRIFTING(realwage range=9.32x)",
+          "SWINGING(realwage osc=1.59)"
         ],
         "passed": false
       },

@@ -187,31 +187,75 @@ fn log_fit(values: &[f64]) -> Option<(f64, Vec<(usize, f64)>)> {
     Some((slope, resid))
 }
 
-/// Total factor the level moves across the window, folded to be ≥ 1 in either
-/// direction so one threshold covers inflation and collapse alike.
-pub fn log_drift(values: &[f64]) -> f64 {
-    if values.len() < 2 {
+/// Linear-interpolated percentile of an already-sorted slice, matching numpy's
+/// default so the Rust and Python scorers agree.
+fn percentile_sorted(sorted: &[f64], p: f64) -> f64 {
+    let n = sorted.len();
+    if n == 0 {
         return f64::NAN;
     }
-    match log_fit(values) {
-        None => f64::NAN,
-        Some((slope, _)) => {
-            let f = (slope * (values.len() - 1) as f64).exp();
-            // exp overflowed, or underflowed to zero: the drift is past anything
-            // a finite threshold would admit, so say so rather than return NaN,
-            // which would read as "could not be computed".
-            if !f.is_finite() || f <= 0.0 {
-                return f64::INFINITY;
-            }
-            f.max(1.0 / f)
-        }
+    if n == 1 {
+        return sorted[0];
+    }
+    let pos = p / 100.0 * (n - 1) as f64;
+    let lo = pos.floor() as usize;
+    let hi = pos.ceil() as usize;
+    if lo == hi {
+        return sorted[lo];
+    }
+    sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo as f64)
+}
+
+/// How wide a band the level occupied: the ratio of its 95th to its 5th
+/// percentile over the window.
+///
+/// This asks the question the class actually cares about — *did the metric stay
+/// put* — and it is deliberately blind to the *shape* of any excursion, because
+/// shape is not what makes a level unstable. The percentiles rather than the
+/// extremes keep one freak sample from deciding a verdict.
+///
+/// It replaces a trend-fit (OLS slope of ln × window span), which measured
+/// something else while claiming this. That statistic answers "what monotone
+/// trend best fits", so it scored a metric that collapsed a millionfold and came
+/// back as perfectly stable — the fit through a V is flat — and it inflated a
+/// one-off level shift by `exp(Δ/2)`, tripping a "2×" bar at a true shift of
+/// 1.59×. Both were measured on the shipped corpus, not hypothesised.
+pub fn level_range(values: &[f64]) -> f64 {
+    let mut live: Vec<f64> = values.iter().copied().filter(|v| v.is_finite() && *v > 0.0).collect();
+    if live.len() < 3 {
+        return f64::NAN;
+    }
+    live.sort_by(|a, b| a.partial_cmp(b).expect("filtered to finite"));
+    let (lo, hi) = (percentile_sorted(&live, 5.0), percentile_sorted(&live, 95.0));
+    if lo <= 0.0 {
+        return f64::INFINITY;
+    }
+    let r = hi / lo;
+    if !r.is_finite() {
+        f64::INFINITY
+    } else {
+        r
     }
 }
 
-/// `std(second half) / std(first half)` of the detrended relative residual.
+/// Interquartile range — a spread measure that one outlier cannot move.
+fn iqr(values: &[f64]) -> f64 {
+    let mut v = values.to_vec();
+    v.sort_by(|a, b| a.partial_cmp(b).expect("caller filtered to finite"));
+    percentile_sorted(&v, 75.0) - percentile_sorted(&v, 25.0)
+}
+
+/// Spread of the detrended relative residual in the second half over the first.
 ///
 /// Above 1 the oscillation is growing. Flat throughout scores 0.0; flat and then
 /// moving scores infinite, for the reason given on [`damping_ratio`].
+///
+/// Spread is the interquartile range, not the standard deviation. With σ a
+/// single sample out of 851 could decide the class — one tick's 2× dip moved
+/// this ratio from 0.998 to 1.499, and on the shipped corpus removing one sample
+/// took `lr_01`/Leeds from 2.18 (firing) to 0.73 (clean). The IQR moves by 0.03%
+/// on the same perturbation. A stability verdict that one tick can flip is not
+/// measuring stability.
 pub fn residual_damping(values: &[f64], split: usize) -> f64 {
     let Some((_, resid)) = log_fit(values) else {
         return f64::NAN;
@@ -221,7 +265,7 @@ pub fn residual_damping(values: &[f64], split: usize) -> f64 {
     if first.len() <= 5 || second.len() <= 5 {
         return f64::NAN;
     }
-    let (s1, s2) = (std_dev(&first), std_dev(&second));
+    let (s1, s2) = (iqr(&first), iqr(&second));
     if !s1.is_finite() || !s2.is_finite() {
         return f64::NAN;
     }
@@ -310,12 +354,12 @@ fn check(
             }
             (dr > max_ratio).then(|| format!("{}({label} damp={dr:.2})", class.name))
         }
-        Rule::LogDrift { max_factor } => {
-            let d = log_drift(values);
-            if d.is_nan() {
-                return uncomputable("drift");
+        Rule::LevelRange { max_ratio } => {
+            let r = level_range(values);
+            if r.is_nan() {
+                return uncomputable("range");
             }
-            (d > max_factor).then(|| format!("{}({label} drift={d:.2}x)", class.name))
+            (r > max_ratio).then(|| format!("{}({label} range={r:.2}x)", class.name))
         }
         Rule::ResidualDamping { max_ratio } => {
             let mid = criteria.analysis_mid().saturating_sub(criteria.transient) as usize;

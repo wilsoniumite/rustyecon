@@ -46,8 +46,8 @@ MANIFEST    = SCENARIOS_DIR / "lr_manifest.csv"
 T_DEAD_VELOCITY    = 0.003   # velocity below this for >80% of window → DEAD
 T_DEAD_EMPLOY      = 0.05    # employment below this for >80% of window → DEAD
 T_UNSTABLE_CV      = 0.12    # rolling-10 CV above this sustained → UNSTABLE
-T_DRIFT_FACTOR     = 2.0     # level moves more than this across the window → DRIFTING
-T_SWING_OSC        = 2.0     # detrended wobble grows by more than this → SWINGING
+T_LEVEL_RANGE      = 2.2     # p95/p05 band wider than this → DRIFTING
+T_SWING_OSC        = 1.5     # detrended wobble grows by more than this → SWINGING
 T_DRAIN_FRAC       = 0.82    # buildings hold >82% of regional GBP → DRAIN
 T_DRAIN_SLOPE      = 0.0     # positive slope in 2nd half confirms drain trending up
 T_DESTITUTION      = 0.8     # employed pop GBP < this × flour_cost × 1 week → DESTITUTION
@@ -152,23 +152,30 @@ def _log_fit(series):
     return slope, pd.Series(y - (y.mean() + slope * (x - x.mean())), index=s.index)
 
 
-def log_drift(series, span):
-    """Total factor the level moves across `span`, folded to >= 1 either way.
+def level_range(series):
+    """Ratio of the 95th to the 5th percentile of the level over the window.
 
-    Mirrors certify::verdict::log_drift. This is the runaway half of what the
-    retired `damping_ratio` was conflating.
+    Mirrors certify::verdict::level_range. Asks "did the metric stay put", and is
+    deliberately blind to the SHAPE of an excursion — a level that went somewhere
+    and came back is as unstable as one that went and stayed. Percentiles rather
+    than extremes so one freak sample cannot decide a verdict.
+
+    Replaces the retired `log_drift`, an OLS trend fit that answered "what
+    monotone trend best fits" instead: a fit through a V is flat, so a
+    millionfold collapse-and-recovery scored 1.05 and passed clean.
     """
-    fit = _log_fit(series)
-    if fit is None:
+    s = series.dropna()
+    s = s[s > 0]
+    if len(s) < 3:
         return np.nan
-    f = float(np.exp(fit[0] * span))
-    if not np.isfinite(f) or f <= 0:
+    lo, hi = np.percentile(s.to_numpy(dtype=float), [5, 95])
+    if lo <= 0:
         return np.inf
-    return max(f, 1.0 / f)
+    return float(hi / lo)
 
 
 def residual_damping(series, mid):
-    """std(2nd half)/std(1st half) of the DETRENDED relative residual.
+    """IQR(2nd half)/IQR(1st half) of the DETRENDED relative residual.
 
     Mirrors certify::verdict::residual_damping. Above 1 the oscillation is
     growing. Removing the log-trend first is the whole point: the retired
@@ -183,8 +190,11 @@ def residual_damping(series, mid):
         return np.nan
     res = fit[1]
     first, second = res[res.index < mid], res[res.index >= mid]
-    s1 = float(first.std())  if len(first)  > 5 else np.nan
-    s2 = float(second.std()) if len(second) > 5 else np.nan
+    # Interquartile range, not std: with std a single tick out of 851 could flip
+    # this class (lr_01/Leeds moved 2.18 -> 0.73 on one sample's removal).
+    q = lambda z: float(np.subtract(*np.percentile(z.to_numpy(dtype=float), [75, 25])))
+    s1 = q(first)  if len(first)  > 5 else np.nan
+    s2 = q(second) if len(second) > 5 else np.nan
     if np.isnan(s1) or np.isnan(s2):
         return np.nan
     if s1 < FLAT_REL:
@@ -198,7 +208,7 @@ def damping_ratio(series, mid):
     Kept only so a reader comparing against certificates registered before
     2026-07-31 can reproduce them. It is not a settling test: standard deviation
     is homogeneous of degree one, so the statistic falls whenever the level
-    falls. Use `log_drift` + `residual_damping`.
+    falls. Use `level_range` + `residual_damping`.
     """
     s = series.dropna()
     first  = s[s.index < mid]
@@ -377,10 +387,10 @@ def detect_issues(m: dict, res: ScenarioResults) -> list:
                            ("real_wage", m["real_wage"])]:
         s = analysis_slice(series)
         if s.empty: continue
-        d = log_drift(s, ANALYSIS_END - TRANSIENT)
-        # Fail-closed: a drift that cannot be computed is an issue, not a pass.
-        if np.isnan(d) or d > T_DRIFT_FACTOR:
-            issues.append(f"DRIFTING({label} drift={d:.2f}x)")
+        d = level_range(s)
+        # Fail-closed: a range that cannot be computed is an issue, not a pass.
+        if np.isnan(d) or d > T_LEVEL_RANGE:
+            issues.append(f"DRIFTING({label} range={d:.2f}x)")
 
     # ── SWINGING: the wobble grows ────────────────────────────────────────────
     for label, series in [("velocity", m["velocity"]),

@@ -1,6 +1,6 @@
 {
-  "run": "56df2a0d42ec0dc0",
-  "git": "8381c59",
+  "run": "a41e76bf4749549e",
+  "git": "8d9574d",
   "tape_sha": "a24e7efcc45de491",
   "seed": 0,
   "scenario": "lr_15",
@@ -39,7 +39,7 @@
   ],
   "stability": {
     "criteria_date": "2026-07-31",
-    "criteria_version": 3,
+    "criteria_version": 4,
     "window": [
       150,
       1000
@@ -57,8 +57,8 @@
         "issues": [
           "UNSTABLE(velocity CV=0.76)",
           "UNSTABLE(employment CV=0.94)",
-          "DRIFTING(velocity drift=26193695106725191916185904589307904.00x)",
-          "DRIFTING(realwage drift=76.28x)",
+          "DRIFTING(velocity range=1309643089329293668723766183505501067777690958415387763014912369554052168533399108150474342490531175040110807948320079349122678386967479484203717228973653359643129988896165320700218573820623195729894464508949655321033301323860320022691840.00x)",
+          "DRIFTING(realwage range=433.64x)",
           "CURRENCY_DRAIN(concentration mean=0.93, slope=0.0000)",
           "POP_DESTITUTION(realincome frac=0.89)",
           "DEAD_BUILDING(bldutil frac=0.98)"
@@ -70,8 +70,9 @@
         "issues": [
           "UNSTABLE(velocity CV=0.73)",
           "UNSTABLE(employment CV=0.89)",
-          "DRIFTING(velocity drift=20893652.12x)",
-          "DRIFTING(realwage drift=21.44x)",
+          "DRIFTING(velocity range=12490931015371842.00x)",
+          "DRIFTING(realwage range=83.98x)",
+          "SWINGING(velocity osc=1.86)",
           "CURRENCY_DRAIN(concentration mean=0.88, slope=0.0001)",
           "POP_DESTITUTION(realincome frac=0.82)",
           "DEAD_BUILDING(bldutil frac=1.00)"

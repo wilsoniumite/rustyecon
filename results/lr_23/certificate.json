@@ -1,6 +1,6 @@
 {
-  "run": "dca35c4665b6cf00",
-  "git": "8381c59",
+  "run": "2604fcb4234fac2e",
+  "git": "8d9574d",
   "tape_sha": "9ad67019d8218c1c",
   "seed": 0,
   "scenario": "lr_23",
@@ -39,7 +39,7 @@
   ],
   "stability": {
     "criteria_date": "2026-07-31",
-    "criteria_version": 3,
+    "criteria_version": 4,
     "window": [
       150,
       1000
@@ -57,9 +57,9 @@
         "issues": [
           "UNSTABLE(velocity CV=0.54)",
           "UNSTABLE(employment CV=0.72)",
-          "DRIFTING(velocity drift=86018023556243865365042792184326997206306044256127381809451314517728334652154646846540126891571937280.00x)",
-          "DRIFTING(realwage drift=2095.39x)",
-          "SWINGING(velocity osc=8.85)",
+          "DRIFTING(velocity range=7755583862339103431453000783992154077284878455372008541346148617179088481457500430128780605366956208464406222191726989629364754900995360617135637708765665000483633937496795512636877217698440066238925129041377293849708555835207842407243416182906299336169613877486622715206346238419326582494413765486837760.00x)",
+          "DRIFTING(realwage range=93237.08x)",
+          "SWINGING(velocity osc=2.53)",
           "CURRENCY_DRAIN(concentration mean=0.96, slope=0.0000)",
           "POP_DESTITUTION(realincome frac=0.98)",
           "DEAD_BUILDING(bldutil frac=1.00)"
@@ -69,7 +69,9 @@
       {
         "region": "Birmingham",
         "issues": [
-          "DRIFTING(velocity drift=2.88x)",
+          "DRIFTING(velocity range=4.71x)",
+          "DRIFTING(realwage range=5.21x)",
+          "SWINGING(realwage osc=1.51)",
           "DEAD_BUILDING(bldutil frac=1.00)"
         ],
         "passed": false

@@ -1,29 +1,59 @@
-// Stability criteria for the 225-year tracer â€” dated, pre-registered
-// (METHODOLOGY R6, docs/architecture/engine.md).
+// Stability criteria — dated, pre-registered (METHODOLOGY R6, engine.md).
 //
-// REGISTRATION IDENTITY. The corpus criteria (data/scenarios/*/criteria.ron)
-// are registered as 2026-07-20 v1 and score ticks 150..1000. Their own header
-// says extending the window to the full 11,700-tick horizon "is a different
-// claim and belongs in a new dated file". This is that file. It was registered
-// on the same calendar day, so the date alone cannot separate the two â€” the
-// version field carries the distinction, and the certificate prints
-// "criteria 2026-07-20 v2" so a reader can tell which bar was applied. The
-// telemetry manifest additionally records a hash of this file.
+// GENERATION 4, registered 2026-07-31. Generations 1 and 3 remain in git history
+// so every certificate scored under them stays reproducible.
 //
-// WHAT CHANGED FROM v1, AND WHAT DID NOT. Only analysis_end (1000 -> 11700),
-// staple_good and labour_good. Every threshold, every rule, every window kind
-// and the fail-closed NaN policy are copied verbatim from the corpus file. That
-// is deliberate: a tracer that passed against thresholds invented for it would
-// prove nothing. It passes against the same bar the corpus fails.
+// WHAT THIS FILE ASSERTS. A region is stable when its metrics stay inside a band
+// and their wobble does not grow:
 //
-// THIS FILE MAKES THE SCENARIO UNSCOREABLE BELOW ~5,926 TICKS, and that is not
-// a bug you should work around by shortening the window. Rule::Damping splits
-// at analysis_mid() = transient + (analysis_end - transient)/2 = 5925, which is
-// a property of the criteria and not of the run. A shorter run leaves the second
-// half empty, damping_ratio returns NaN, and FailClosed turns that into a
-// failure. Run this scenario at 11,700 ticks or do not score it.
+//   DRIFTING  LevelRange(max_ratio: 2.2)       did the level stay put?
+//   SWINGING  ResidualDamping(max_ratio: 1.5)  did the wobble grow?
+//
+// LevelRange is the ratio of the 95th to the 5th percentile of the metric over
+// the window. Percentiles rather than extremes, so one freak sample cannot
+// decide a verdict; and it is deliberately blind to the SHAPE of an excursion,
+// because a level that went somewhere and came back is as unstable as one that
+// went and stayed.
+//
+// ResidualDamping removes the fitted log-trend first, so a series is judged on
+// how it moves about its own path rather than on where the path went. Spread is
+// the interquartile range, not the standard deviation. Its threshold sits ABOVE
+// 1.0 on purpose: a real economy in equilibrium fluctuates persistently, and a
+// rule demanding decay fails every healthy world.
+//
+// TWO RETIRED RULES, AND WHY — both were replaced after they were caught scoring
+// the wrong thing, and both mistakes are worth remembering:
+//
+//   Damping(0.72), generation 1. std(2nd half)/std(1st half) of the RAW level.
+//   Standard deviation is homogeneous of degree one, so the statistic falls
+//   whenever the level falls. It passed a monotone collapse and failed a healthy
+//   stationary economy — it rewarded the disease and punished the cure.
+//
+//   LogDrift(2.0), generation 3. OLS slope of ln(metric) times the window span.
+//   That answers "what monotone trend best fits", which is not "did the level
+//   stay put". A fit through a V is flat, so it scored a millionfold collapse
+//   and recovery as perfectly stable; and it inflated a one-off level shift by
+//   exp(delta/2), tripping its own "2x" bar at a true shift of 1.59x. Both were
+//   measured on this corpus, not hypothesised.
+//
+// HOW THE THRESHOLDS WERE CHOSEN — this matters more than their values. Both
+// were fixed from the separation between synthetic healthy and synthetic sick
+// series in tests/test_09_detectors.rs, BEFORE any scenario was scored with
+// them. On the level side, healthy cases (including a business cycle swinging
+// +/-30% in logs) reach at most 1.81 and sick ones start at 2.69. On the
+// oscillation side, healthy reach 1.04 and sick start at 1.99. A threshold
+// picked to make particular scenarios pass is not a threshold (R6), and that
+// test is the standing record that these were not.
+//
+// UNCHANGED ACROSS ALL GENERATIONS: the window (ticks 150..11700), every other
+// class, every other threshold, and the fail-closed NaN policy.
+//
+// CHANGING A THRESHOLD AFTER SEEING RESULTS REQUIRES A NEW DATED GENERATION,
+// never a silent edit. The loader reads this filename, so the generation lives
+// in the `version` field and the old text in git; `criteria_sha` in the run
+// manifest records which bytes actually scored a given run.
 (
-    version: 3,
+    version: 4,
     date: "2026-07-31",
     transient: 150,
     analysis_end: 11700,
@@ -58,20 +88,24 @@
         ),
         // The level must stay put. Split out of the old SWINGING, which read the
         // raw level and so scored this scenario's own monotone deflation as
-        // "settling" — the artifact that made the Phase 3 gate look met.
+        // Did the level stay put? The 95th/5th-percentile band across the
+        // window, so a metric that went somewhere and came back is as unstable
+        // as one that went and stayed, and one freak sample cannot decide it.
         (
             name: "DRIFTING",
             fatal: true,
             metrics: [Velocity, RealWage],
-            rule: LogDrift(max_factor: 2.0),
+            rule: LevelRange(max_ratio: 2.2),
             window: Analysis,
         ),
-        // The wobble must not grow, measured on the detrended residual.
+        // Did the wobble grow? Measured on the detrended residual with an
+        // interquartile spread, so this asks only about oscillation and cannot
+        // be flipped by a single tick.
         (
             name: "SWINGING",
             fatal: true,
             metrics: [Velocity, RealWage],
-            rule: ResidualDamping(max_ratio: 2.0),
+            rule: ResidualDamping(max_ratio: 1.5),
             window: Halves,
         ),
         // Currency pooling in buildings and still trending that way.

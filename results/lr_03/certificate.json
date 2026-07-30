@@ -1,6 +1,6 @@
 {
-  "run": "9886d500818ff36d",
-  "git": "8381c59",
+  "run": "0716dee4b8ad3293",
+  "git": "8d9574d",
   "tape_sha": "3bfab0d31cf01a30",
   "seed": 0,
   "scenario": "lr_03",
@@ -39,7 +39,7 @@
   ],
   "stability": {
     "criteria_date": "2026-07-31",
-    "criteria_version": 3,
+    "criteria_version": 4,
     "window": [
       150,
       1000
@@ -57,8 +57,9 @@
         "issues": [
           "UNSTABLE(velocity CV=1.48)",
           "UNSTABLE(employment CV=1.09)",
-          "DRIFTING(velocity drift=9167823904776749224250187635251740672.00x)",
-          "SWINGING(velocity osc=10.03)",
+          "DRIFTING(velocity range=9773142359169750.00x)",
+          "DRIFTING(realwage range=5.54x)",
+          "SWINGING(realwage osc=2.09)",
           "CURRENCY_DRAIN(concentration mean=0.98, slope=0.0000)",
           "POP_DESTITUTION(realincome frac=1.00)",
           "DEAD_BUILDING(bldutil frac=1.00)"

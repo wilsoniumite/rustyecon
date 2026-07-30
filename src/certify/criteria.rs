@@ -48,8 +48,8 @@ pub enum Rule {
     RollingCv { window: u32, max_cv: f64 },
     /// Fails when std(second half) / std(first half) exceeds `max_ratio`.
     ///
-    /// **Superseded by [`Rule::LogDrift`] + [`Rule::ResidualDamping`] (v2 Phase
-    /// 3.5). Retained so criteria registered before 2026-07-20 still load and
+    /// **Superseded by [`Rule::LevelRange`] + [`Rule::ResidualDamping`] (v2 Phase
+    /// 3.5). Retained so criteria registered before 2026-07-31 still load and
     /// their certificates stay reproducible; do not use it in new files.**
     ///
     /// It was intended to ask "is the series settling", but it reads the raw
@@ -60,14 +60,19 @@ pub enum Rule {
     /// fails. It rewards the disease and punishes the cure. The replacement
     /// splits the two claims it was conflating.
     Damping { max_ratio: f64 },
-    /// Fails when the level drifts by more than `max_factor` across the window,
-    /// in either direction — the runaway half of the old `Damping`.
+    /// Fails when the level's 95th/5th-percentile band exceeds `max_ratio`
+    /// across the window — did the metric stay put?
     ///
-    /// Measured as the OLS slope of ln(value) against sample index, converted to
-    /// the total factor across the window and folded so that a fall of 3× and a
-    /// rise of 3× both score 3.0. Working in logs makes geometric drift linear,
-    /// which is the shape the engine's multiplicative price rule produces.
-    LogDrift { max_factor: f64 },
+    /// Deliberately blind to the *shape* of an excursion: a level that went
+    /// somewhere and came back is as unstable as one that went and stayed, and
+    /// the percentiles keep one freak sample from deciding a verdict.
+    ///
+    /// Replaces `LogDrift`, an OLS-slope-of-ln trend fit that measured something
+    /// else while claiming this. A trend fit answers "what monotone trend best
+    /// fits", so it scored a millionfold collapse-and-recovery as perfectly
+    /// stable (the fit through a V is flat) and inflated a one-off level shift
+    /// by exp(delta/2), tripping its "2x" bar at a true shift of 1.59x.
+    LevelRange { max_ratio: f64 },
     /// Fails when the oscillation *grows*: std(second half) / std(first half) of
     /// the **detrended** relative residual exceeds `max_ratio`.
     ///

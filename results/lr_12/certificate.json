@@ -1,6 +1,6 @@
 {
-  "run": "7aed0b7ebfa5a5dd",
-  "git": "8381c59",
+  "run": "0cb4607e5587203b",
+  "git": "8d9574d",
   "tape_sha": "94096c4d38b0889e",
   "seed": 0,
   "scenario": "lr_12",
@@ -39,7 +39,7 @@
   ],
   "stability": {
     "criteria_date": "2026-07-31",
-    "criteria_version": 3,
+    "criteria_version": 4,
     "window": [
       150,
       1000
@@ -47,28 +47,31 @@
     "regions": [
       {
         "region": "Manchester",
-        "issues": [],
-        "passed": true
+        "issues": [
+          "DRIFTING(realwage range=2.72x)"
+        ],
+        "passed": false
       },
       {
         "region": "Leeds",
-        "issues": [],
-        "passed": true
+        "issues": [
+          "DRIFTING(realwage range=2.32x)"
+        ],
+        "passed": false
       },
       {
         "region": "Birmingham",
         "issues": [
           "UNSTABLE(employment CV=0.15)",
-          "DRIFTING(velocity drift=4.04x)",
-          "DRIFTING(realwage drift=432.26x)",
-          "SWINGING(velocity osc=3.14)",
-          "SWINGING(realwage osc=2.50)",
+          "DRIFTING(velocity range=7.33x)",
+          "DRIFTING(realwage range=1998.75x)",
+          "SWINGING(velocity osc=2.44)",
           "DEAD_BUILDING(bldutil frac=0.67)"
         ],
         "passed": false
       }
     ],
-    "regions_passed": 2,
+    "regions_passed": 0,
     "regions_total": 3
   },
   "verdict": "FAIL"

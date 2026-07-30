@@ -323,57 +323,63 @@ a dying one that deflates smoothly passes. `PLAN.md` Phase 4 ships the kernel
 only if "its pass-rate ≥ legacy's" — so under that bar, **fixing the economics
 could lose the A/B**.
 
-> **FIXED 2026-07-31 (v2 Phase 3.5).** `Damping` is superseded by two rules that
-> separate the claims it conflated, registered as criteria **generation 3**
-> across all 28 scenarios:
+> **FIXED 2026-07-31 (v2 Phase 3.5), at the second attempt.** `Damping` is
+> superseded by two rules that separate the claims it conflated, registered as
+> criteria **generation 4** across all 28 scenarios:
 >
 > | class | rule | asks |
 > |---|---|---|
-> | `DRIFTING` | `LogDrift(max_factor: 2.0)` | did the level stay put? |
-> | `SWINGING` | `ResidualDamping(max_ratio: 2.0)` | did the wobble grow? |
+> | `DRIFTING` | `LevelRange(max_ratio: 2.2)` | did the level stay put? |
+> | `SWINGING` | `ResidualDamping(max_ratio: 1.5)` | did the wobble grow? |
 >
-> `LogDrift` is the OLS slope of ln(metric) against sample index, as a total
-> factor across the window, folded so a 3× fall and a 3× rise both score 3.0.
-> `ResidualDamping` removes that fitted trend first, so a series is judged on how
-> it moves about its own path rather than on where the path went — which is why
-> its threshold sits *above* 1.0: an economy in equilibrium fluctuates
+> `LevelRange` is the ratio of the metric's 95th to its 5th percentile over the
+> window. `ResidualDamping` removes a fitted log-trend first and compares the
+> interquartile spread of the two halves, so it asks only about oscillation; its
+> threshold sits *above* 1.0 because an economy in equilibrium fluctuates
 > persistently, and `0.72` had encoded the assumption that a settled economy
 > stops moving.
 >
+> **Generation 3 was wrong too, and adversarial review caught it.** That draft
+> used `LogDrift` — an OLS trend fit on ln(metric) times the window span — which
+> answers "what monotone trend best fits", not "did the level stay put". A fit
+> through a V is flat, so a metric that collapsed a *millionfold and came back*
+> scored 1.05 and passed clean; and a one-off level shift was inflated by
+> `exp(Δ/2)`, tripping its own "2×" bar at a true shift of 1.59×. Both were
+> measured on the shipped corpus. The percentile band is shape-agnostic and fixes
+> both. Generation 3 also used σ for the oscillation spread, where a single tick
+> out of 851 could decide the class — removing one sample took `lr_01`/Leeds from
+> 2.18 (firing) to 0.73 (clean); the interquartile range moves 0.03% on the same
+> perturbation.
+>
 > **Both thresholds were fixed from synthetic ground truth before any scenario
-> was scored** (`tests/test_09_detectors.rs`): healthy cases reach at most 1.20×
-> drift and 1.03 oscillation, sick ones start at 3.0× and 4.2, and 2.0 sits in
-> both gaps. That ordering is the point — a threshold chosen to make particular
-> scenarios pass is not a threshold (R6) — and the test is the standing record
-> of it. `Damping` itself is retained but marked superseded, so certificates
-> registered before this date stay reproducible.
+> was scored** (`tests/test_09_detectors.rs`), and the margin is honestly thin:
+> ~1.2× per side on the level rule. A business cycle swinging ±30% in logs reads
+> 1.81 and a slow 3× drift reads 2.69, so 2.2 is the geometric midpoint between
+> them. Widening it passes the drift; narrowing it fails the cycle. An earlier
+> draft claimed ~1.7× margin, but bought that by testing only textbook-clean
+> cases.
 >
-> **What re-scoring the corpus showed.** Region pass-rate barely moves (4/79 →
-> 3/79) and every scenario still fails, so the Phase 1 baseline keeps its shape
-> for the A/B. What changes is the *diagnosis*: `SWINGING` drops 39 → 12 while
-> `DRIFTING` accounts for 59. The corpus's dominant pathology was never
-> oscillation — it is the deflation ramp above, and the old rule was reporting it
-> under the wrong name or not at all.
+> **The re-baseline: 4/79 regions → 0/79.** Not one region in the corpus, and
+> neither region of the tracer, keeps any scored metric inside a 2.2× band.
+> `DRIFTING` fires 84 times, `SWINGING` 19 (down from 39 — most of what the old
+> rule called oscillation was level movement). The independent Python
+> reimplementation agrees exactly: 78 + 6 engine-only = 84, 18 + 1 = 19.
 >
-> Five regions changed verdict, and they are the validation:
+> That result also retracts a claim generation 3 made here. It said three regions
+> had been wrongly failed and "merely wandered around a stable level". They had
+> not: `lr_08`/Manchester ranges **14.78×**, `lr_12`/Manchester **2.72×**,
+> `lr_12`/Leeds **2.32×**. The old rule fired on them for the wrong reason and
+> the new one fires for the right one. What survives from that claim is only that
+> `Damping` was measuring the wrong thing.
 >
-> | region | v1 | v3 | measured |
-> |---|---|---|---|
-> | `lr_18`/Birmingham | passed the fatal classes | `DRIFTING(realwage 2169×)` | real wage moved **1218×** |
-> | `lr_06`/Birmingham | **clean** | `DRIFTING(realwage 10.9×)` | real wage moved **12.7×** |
-> | `lr_12`/Manchester | `SWINGING(damp 2.09)` | clean | level moved **1.3×** |
-> | `lr_12`/Leeds | `SWINGING(damp 1.81)` | clean | level moved 1.3× |
-> | `lr_08`/Manchester | `SWINGING(damp 0.74)` | clean | — |
+> The tracer fails on `DRIFTING` alone, with `SWINGING` silent — the right
+> attribution for a deflation ramp.
 >
-> Two regions whose real wage moved by factors of 13 and 1200 were being
-> certified as stable; three that merely wandered around a stable level were
-> being failed. The independent Python reimplementation in
-> `notebooks/07_stability_suite.py` was updated in step and agrees with the
-> engine region-for-region, so the cross-check still holds.
->
-> The tracer itself now correctly **FAILS** — `DRIFTING(velocity 3.10×)`,
-> `DRIFTING(realwage 2.28×)`, with `SWINGING` silent, which is the right
-> attribution: it is a ramp, not an oscillation.
+> **A consequence for Phase 4.** With legacy at 0/79, its gate as written —
+> "kernel ships if its pass-rate ≥ legacy's" — is satisfied by a kernel that also
+> scores zero. The A/B needs a finer statistic than the region pass count: the
+> distribution of `LevelRange` across regions is the obvious candidate, since it
+> is continuous and is exactly what the corpus fails on.
 
 **`parity` is undefined.** `kernel.md:53` and `pops.md` make the labour margin
 `σ_π = (w_posted − parity)/parity` — the only place in the kernel that compares a

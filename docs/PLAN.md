@@ -100,15 +100,16 @@ carrying a price-formation section with `parity` registered in `game_data.ron`.
 > **MET 2026-07-31**, with one part of the gate deliberately not done — see
 > below.
 >
-> 1. **Criteria split and re-registered as generation 3** across all 28
->    scenarios. `DRIFTING(LogDrift 2.0)` and `SWINGING(ResidualDamping 2.0)`
+> 1. **Criteria split and re-registered as generation 4** across all 28
+>    scenarios. `DRIFTING(LevelRange 2.2)` and `SWINGING(ResidualDamping 1.5)`
 >    replace `Damping(0.72)`, which is retained-but-superseded so older
->    certificates stay reproducible. Thresholds were fixed from synthetic ground
+>    certificates stay reproducible. Generation 3's `LogDrift` was itself wrong —
+>    a trend fit blind to any excursion that returns — and was replaced after
+>    adversarial review; see engine.md. Thresholds were fixed from synthetic ground
 >    truth in `tests/test_09_detectors.rs` *before* the corpus was scored, and
->    that test is the standing record. Corpus re-scored: pass-rate 4/79 → 3/79
->    so the A/B baseline keeps its shape, but the diagnosis changes — `SWINGING`
->    39 → 12, `DRIFTING` 59. Two regions whose real wage had moved 13× and 1218×
->    were previously certified stable.
+>    that test is the standing record. Corpus re-scored: **pass-rate 4/79 →
+>    0/79** — not one region keeps a scored metric inside a 2.2× band, and
+>    `DRIFTING` fires 84 times against `SWINGING`'s 19.
 > 2. **`kernel.md` has a "Price formation" section**, stating as a checkable
 >    invariant that every posted quantity is a function of the posting desk's own
 >    state, why inventory satisfies it for storables, where labour and services
@@ -129,6 +130,13 @@ carrying a price-formation section with `parity` registered in `game_data.ron`.
 > `price_update` are live constants with live consumers, so unlike `parity` they
 > can and should be registered — but they are scoring and engine dials, not
 > kernel ones, and moving them is its own change.
+>
+> **One consequence for Phase 4's gate.** With legacy now at 0/79, "kernel ships
+> if its pass-rate ≥ legacy's" is satisfied by a kernel that also scores zero.
+> The A/B needs a finer statistic than a region pass count — the distribution of
+> `LevelRange` across regions is the natural candidate, being continuous and
+> being exactly what the corpus fails on. Decide that before running the A/B, not
+> after seeing it.
 
 ## Phase 4 — The desk kernel (2–3 sessions)
 

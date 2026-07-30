@@ -1,49 +1,59 @@
-// Stability criteria â€” dated, pre-registered (METHODOLOGY R6, engine.md).
+// Stability criteria — dated, pre-registered (METHODOLOGY R6, engine.md).
 //
-// GENERATION 3, registered 2026-07-31. Supersedes the 2026-07-20 v1 file, which
-// remains in git history so every certificate scored under it stays reproducible.
+// GENERATION 4, registered 2026-07-31. Generations 1 and 3 remain in git history
+// so every certificate scored under them stays reproducible.
 //
-// WHAT CHANGED, AND WHY. v1's SWINGING used `Damping(max_ratio: 0.72)` â€”
-// std(second half)/std(first half) of the raw *level*. Standard deviation is
-// homogeneous of degree one, so that statistic falls whenever the level falls,
-// whatever the series is actually doing. Measured on synthetic series with a
-// known answer: a monotone geometric collapse scores 0.149 and PASSES, while a
-// stationary economy with ordinary ripple scores 1.009 and FAILS. The rule
-// rewarded the disease and punished the cure, and it had done so since it was
-// ported from notebooks/07_stability_suite.py.
+// WHAT THIS FILE ASSERTS. A region is stable when its metrics stay inside a band
+// and their wobble does not grow:
 //
-// It is replaced by the two separate claims it was conflating:
+//   DRIFTING  LevelRange(max_ratio: 2.2)       did the level stay put?
+//   SWINGING  ResidualDamping(max_ratio: 1.5)  did the wobble grow?
 //
-//   DRIFTING  LogDrift(max_factor: 2.0)        the level must stay put
-//   SWINGING  ResidualDamping(max_ratio: 2.0)  the wobble must not grow
+// LevelRange is the ratio of the 95th to the 5th percentile of the metric over
+// the window. Percentiles rather than extremes, so one freak sample cannot
+// decide a verdict; and it is deliberately blind to the SHAPE of an excursion,
+// because a level that went somewhere and came back is as unstable as one that
+// went and stayed.
 //
-// LogDrift is the OLS slope of ln(metric) against sample index, expressed as the
-// total factor across the window and folded so a 3x fall and a 3x rise both
-// score 3.0. It is registered as a total *across the window* rather than a rate
-// per tick: it is a claim about the span actually observed, so a longer run is
-// held to a proportionally tighter per-tick standard.
+// ResidualDamping removes the fitted log-trend first, so a series is judged on
+// how it moves about its own path rather than on where the path went. Spread is
+// the interquartile range, not the standard deviation. Its threshold sits ABOVE
+// 1.0 on purpose: a real economy in equilibrium fluctuates persistently, and a
+// rule demanding decay fails every healthy world.
 //
-// ResidualDamping removes that fitted log-trend first, so a series is judged on
-// how it moves about its own path rather than on where the path went. Its
-// threshold is deliberately ABOVE 1.0: a real economy in equilibrium fluctuates
-// persistently, and a rule demanding decay fails every healthy world. v1's 0.72
-// encoded the assumption that a settled economy stops moving.
+// TWO RETIRED RULES, AND WHY — both were replaced after they were caught scoring
+// the wrong thing, and both mistakes are worth remembering:
 //
-// HOW THE THRESHOLDS WERE CHOSEN â€” this matters more than their values. Both
+//   Damping(0.72), generation 1. std(2nd half)/std(1st half) of the RAW level.
+//   Standard deviation is homogeneous of degree one, so the statistic falls
+//   whenever the level falls. It passed a monotone collapse and failed a healthy
+//   stationary economy — it rewarded the disease and punished the cure.
+//
+//   LogDrift(2.0), generation 3. OLS slope of ln(metric) times the window span.
+//   That answers "what monotone trend best fits", which is not "did the level
+//   stay put". A fit through a V is flat, so it scored a millionfold collapse
+//   and recovery as perfectly stable; and it inflated a one-off level shift by
+//   exp(delta/2), tripping its own "2x" bar at a true shift of 1.59x. Both were
+//   measured on this corpus, not hypothesised.
+//
+// HOW THE THRESHOLDS WERE CHOSEN — this matters more than their values. Both
 // were fixed from the separation between synthetic healthy and synthetic sick
 // series in tests/test_09_detectors.rs, BEFORE any scenario was scored with
-// them. Healthy cases reach at most 1.20x drift and 1.03 oscillation; sick ones
-// start at 3.0x drift and 4.2 oscillation. 2.0 sits in both gaps with margin on
-// each side. A threshold picked to make particular scenarios pass is not a
-// threshold (R6), and the test is the record that these were not.
+// them. On the level side, healthy cases (including a business cycle swinging
+// +/-30% in logs) reach at most 1.81 and sick ones start at 2.69. On the
+// oscillation side, healthy reach 1.04 and sick start at 1.99. A threshold
+// picked to make particular scenarios pass is not a threshold (R6), and that
+// test is the standing record that these were not.
 //
-// UNCHANGED FROM v1: the window (ticks 150..1000), every other class, every
-// other threshold, and the fail-closed NaN policy. Only the detector changed, so
-// a re-scored verdict differs only because the instrument was corrected.
+// UNCHANGED ACROSS ALL GENERATIONS: the window (ticks 150..1000), every other
+// class, every other threshold, and the fail-closed NaN policy.
 //
-// CHANGING A THRESHOLD AFTER SEEING RESULTS REQUIRES A NEW DATED FILE.
+// CHANGING A THRESHOLD AFTER SEEING RESULTS REQUIRES A NEW DATED GENERATION,
+// never a silent edit. The loader reads this filename, so the generation lives
+// in the `version` field and the old text in git; `criteria_sha` in the run
+// manifest records which bytes actually scored a given run.
 (
-    version: 3,
+    version: 4,
     date: "2026-07-31",
     transient: 150,
     analysis_end: 1000,
@@ -79,21 +89,24 @@
         // The level must stay put. Split out of v1's SWINGING, which read the
         // raw level and so scored any shrinking series as "settling" (see the
         // header). A metric that moves more than 2x across the window has gone
-        // somewhere and not come back, whichever direction it went.
+        // Did the level stay put? The 95th/5th-percentile band across the
+        // window, so a metric that went somewhere and came back is as unstable
+        // as one that went and stayed, and one freak sample cannot decide it.
         (
             name: "DRIFTING",
             fatal: true,
             metrics: [Velocity, RealWage],
-            rule: LogDrift(max_factor: 2.0),
+            rule: LevelRange(max_ratio: 2.2),
             window: Analysis,
         ),
-        // The wobble must not grow — measured on the detrended residual, so this
-        // asks only about oscillation and not about where the level went.
+        // Did the wobble grow? Measured on the detrended residual with an
+        // interquartile spread, so this asks only about oscillation and cannot
+        // be flipped by a single tick.
         (
             name: "SWINGING",
             fatal: true,
             metrics: [Velocity, RealWage],
-            rule: ResidualDamping(max_ratio: 2.0),
+            rule: ResidualDamping(max_ratio: 1.5),
             window: Halves,
         ),
         // Currency pooling in buildings and still trending that way.

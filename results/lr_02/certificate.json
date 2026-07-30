@@ -1,6 +1,6 @@
 {
-  "run": "966b59978fcd5e9d",
-  "git": "8381c59",
+  "run": "73f64f0e05bcd30f",
+  "git": "8d9574d",
   "tape_sha": "cb995c4f81cf0fb2",
   "seed": 0,
   "scenario": "lr_02",
@@ -39,7 +39,7 @@
   ],
   "stability": {
     "criteria_date": "2026-07-31",
-    "criteria_version": 3,
+    "criteria_version": 4,
     "window": [
       150,
       1000
@@ -57,9 +57,10 @@
         "issues": [
           "UNSTABLE(velocity CV=1.16)",
           "UNSTABLE(employment CV=0.98)",
-          "DRIFTING(velocity drift=111.32x)",
-          "DRIFTING(realwage drift=126716.92x)",
-          "SWINGING(realwage osc=2.42)",
+          "DRIFTING(velocity range=25030051106188488.00x)",
+          "DRIFTING(realwage range=125480.96x)",
+          "SWINGING(velocity osc=1.81)",
+          "SWINGING(realwage osc=3.91)",
           "CURRENCY_DRAIN(concentration mean=0.95, slope=0.0000)",
           "POP_DESTITUTION(realincome frac=0.93)",
           "DEAD_BUILDING(bldutil frac=0.94)"
@@ -69,7 +70,9 @@
       {
         "region": "Birmingham",
         "issues": [
-          "DRIFTING(realwage drift=37.98x)"
+          "DRIFTING(velocity range=2.83x)",
+          "DRIFTING(realwage range=41.46x)",
+          "SWINGING(realwage osc=1.51)"
         ],
         "passed": false
       }

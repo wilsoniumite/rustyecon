@@ -1,6 +1,6 @@
 {
-  "run": "ceba68e14e27e7c1",
-  "git": "8381c59",
+  "run": "61116811df29e8ef",
+  "git": "8d9574d",
   "tape_sha": "ddb70f0ec1a7aa20",
   "seed": 0,
   "scenario": "tracer_2r",
@@ -39,7 +39,7 @@
   ],
   "stability": {
     "criteria_date": "2026-07-31",
-    "criteria_version": 3,
+    "criteria_version": 4,
     "window": [
       150,
       11700
@@ -48,16 +48,16 @@
       {
         "region": "Alpha",
         "issues": [
-          "DRIFTING(velocity drift=3.10x)",
-          "DRIFTING(realwage drift=2.28x)"
+          "DRIFTING(velocity range=14.12x)",
+          "DRIFTING(realwage range=4.40x)"
         ],
         "passed": false
       },
       {
         "region": "Beta",
         "issues": [
-          "DRIFTING(velocity drift=3.10x)",
-          "DRIFTING(realwage drift=2.28x)"
+          "DRIFTING(velocity range=14.12x)",
+          "DRIFTING(realwage range=4.40x)"
         ],
         "passed": false
       }

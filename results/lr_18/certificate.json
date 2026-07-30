@@ -1,6 +1,6 @@
 {
-  "run": "f66266231390797a",
-  "git": "8381c59",
+  "run": "f066a0fe30f91228",
+  "git": "8d9574d",
   "tape_sha": "088594612fa4c1a2",
   "seed": 0,
   "scenario": "lr_18",
@@ -39,7 +39,7 @@
   ],
   "stability": {
     "criteria_date": "2026-07-31",
-    "criteria_version": 3,
+    "criteria_version": 4,
     "window": [
       150,
       1000
@@ -62,7 +62,8 @@
       {
         "region": "Birmingham",
         "issues": [
-          "DRIFTING(realwage drift=2169.56x)",
+          "DRIFTING(realwage range=31317.52x)",
+          "SWINGING(realwage osc=1.62)",
           "DEAD_BUILDING(bldutil frac=1.00)"
         ],
         "passed": false
