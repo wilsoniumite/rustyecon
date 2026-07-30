@@ -35,9 +35,20 @@ cannot be stored.
 ## The participation / self-provision margin
 
 π is a kernel scale ([kernel.md](kernel.md)) whose pressure signal is
-`(w_posted − parity) / parity`, where `parity` is the pop's registered
+`(w_posted / P_basket − parity) / parity`, where `parity` is the pop's registered
 self-provision wage-equivalent. Wages above parity draw hours into the market;
-wages below it push them out. Hours not offered (`1 − π`) produce subsistence
+wages below it push them out.
+
+> **Units made explicit 2026-07-31 (v2 Phase 3.5).** This line previously read
+> `(w_posted − parity) / parity`, subtracting a nominal wage from a quantity
+> whose units were stated nowhere — and `parity` appeared zero times in `src/`
+> and `data/`, so nothing forced the question. It is a **quantity of the
+> subsistence basket per hour**, the same registered rate the withheld hours
+> produce at below, so the comparison is real on both sides and `w_posted` is
+> deflated by `P_basket`, that basket's price at the pop's node. Registering it
+> as a currency amount instead would pin a price outside the price system (R12).
+> π is the labour market's only corrective state variable, so this is
+> load-bearing rather than cosmetic — see kernel.md, "Price formation". Hours not offered (`1 − π`) produce subsistence
 goods directly into the pop's own inventory at a registered rate — real
 provision, unpriced, provenance `SelfProvision`, visible to *true* telemetry
 and invisible to *measured* ([markets.md](markets.md)).

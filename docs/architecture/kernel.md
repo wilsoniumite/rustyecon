@@ -7,9 +7,10 @@ signal** σ, evaluated only on the desk's stagger phase
 reads and where its overflow routes. There are no other decision mechanisms in
 the simulation.
 
-> **Finding from v2 Phase 3, 2026-07-20 — two gaps to close before Phase 4
-> implements this spec.** Recorded here, not resolved: Phase 3 does not own this
-> document.
+> **Finding from v2 Phase 3, 2026-07-20 — two gaps found before Phase 4
+> implements this spec. Both closed 2026-07-31 by the "Price formation" section
+> below; the finding is kept in place as the record of why that section exists
+> (R14).**
 >
 > **1. Nothing here says how a posted price reaches equilibrium.** The whole of
 > "Why this is stable" below argues about *scale*; [markets.md](markets.md)
@@ -139,6 +140,105 @@ Because a kernel of this class has a genuine collapse phase, the phase diagram
 over (`eta_up/eta_dn`, `b_cash`, `S`) must be mapped and committed before any
 historical run (PLAN Phase 5): know where the cliff is instead of discovering
 it in 1893.
+
+Every one of those four mechanisms acts on **scale**. None of them acts on
+price, which is what the next section is for.
+
+## Price formation
+
+> **Added 2026-07-31 (v2 Phase 3.5), closing the gap flagged at the top of this
+> file.** [markets.md](markets.md) keeps the imbalance price rule and delegates —
+> "stability comes from the kernel's structure (kernel.md), never from price
+> surgery" — and this document previously never took delivery. The section above
+> argues only about scale. That circular reference is where a real defect got in
+> and survived a full corpus of certificates.
+
+**The invariant this kernel must maintain, stated so it can be checked:**
+
+> Every posted quantity is a function of the posting desk's **own state**. No
+> desk computes what it offers from another agent's demand, or from the fill it
+> most recently received.
+
+That is not a style preference, it is what makes the price signal mean anything.
+`imbalance = (demand − supply)/max(demand, supply)` is only a *measurement* if
+supply was decided independently of demand. The legacy engine violated this — it
+posted `min(stock, 1.2 × demand)` — and the consequence was not subtle: whenever
+the cap bound, the imbalance was pinned at `(d − 1.2d)/1.2d = −1/6` **exactly,
+independent of price**, so a market clearing 100% of demand reported 16.7% excess
+supply and marked its own price down forever. Measured across 10,100 consecutive
+ticks with standard deviation exactly zero ([engine.md](engine.md), "The 225-year
+horizon"). No price anywhere on that branch reports balance, because the rule is
+reading back its own decision.
+
+**Storables — why Rule 1 satisfies it.** `max(inventory − b_out·scale·qty_out, 0)`
+names only the desk's own stock and scale. Inventory is a *stock*, so it
+integrates the flow error: persistent `d < s` makes it grow without bound,
+`σ = (band_out − inventory_out)/band_out` runs negative past `dead`, and Rule 2
+nudges scale down until `s = d`. The dead-band cannot mask a persistent flow
+imbalance, because the imbalance accumulates somewhere the dead-band is not
+looking. A demand-keyed cap has no such integrator — it re-derives supply from
+demand every tick, so the error never accumulates anywhere and never gets
+corrected.
+
+**The two flow cases — where the invariant is delicate.** Labour and
+non-storable services have no stock to integrate anything, so each needs its own
+state variable playing inventory's role:
+
+| case | posts | state variable | fixed point if the state variable never moves |
+|---|---|---|---|
+| labour | pair rule ([pops.md](pops.md)) × π | **π** | `imbalance = f − 1`, strictly negative under any unemployment |
+| services | `scale · last_fill` | **`scale`** | `imbalance = √(d/scale) − 1`, negative below capacity |
+
+Both fixed points are price-independent, so neither self-corrects through the
+price rule alone: they are corrected only by their state variable moving.
+For services that is Rule 2, driven by the producer's own margin. For labour it
+is π, driven by the participation margin — which makes σ_π the load-bearing
+mechanism, and therefore makes `parity`'s units load-bearing too.
+
+**`parity` is real, not nominal.** [pops.md](pops.md) defines it as the pop's
+self-provision wage-equivalent, and the hours a pop withholds "produce
+subsistence goods directly into the pop's own inventory at a registered rate."
+That registered rate is a physical productivity — goods per hour — so parity is a
+**quantity of the subsistence basket per hour**, and the margin is a comparison
+between two real quantities:
+
+```
+σ_π = (w_posted / P_basket − parity) / parity
+```
+
+where `P_basket` is the price of that same basket at the pop's node. It is
+registered per pop, in goods, alongside the self-provision rate it is derived
+from — never as a currency amount, which would pin a price outside the price
+system (R12).
+
+The objection to the real reading is that under *uniform* deflation `w/P_basket`
+is unchanged, so π never moves and the labour pin survives. That is true and it
+is the right reason to state the invariant above rather than rely on σ_π to
+rescue a broken market: uniform deflation of everything is exactly the symptom of
+every market carrying a structural pin, which is the legacy engine's disease and
+not a state the kernel should be able to reach. Once the goods markets satisfy
+the invariant and settle, they supply a stable `P_basket`, a falling nominal wage
+is a falling *real* wage, π moves, and labour clears. The nominal reading would
+also arrest the pin — by nailing the wage to a constant — but it buys that by
+importing the very thing R12 forbids, and it would make the labour market's
+behaviour depend on the arbitrary units of the currency.
+
+**What anchors the price level.** Nothing above fixes the absolute level, only
+relative prices; the anchor is money demand. Rule 3 holds
+`reserve = b_cash · outlay(scale)/S` per owner, so with a bounded money stock `M`
+the economy at rest satisfies `M ≈ Σ b_cash · outlay/S`, and since `outlay` is
+prices × quantities, the level is pinned against `M·S/b_cash`. This is why
+`b_cash` is a phase-diagram axis and not merely a liquidity comfort dial.
+
+**Two things Phase 4 must check rather than assume**, because the kernel is
+unimplemented and everything in this section is derivation:
+
+1. **An assertion that no posted quantity reads another agent's demand or fill.**
+   The invariant is cheap to state and cheap to enforce; it is expensive to
+   discover violated, as this project has now demonstrated at the cost of a
+   phase. It belongs in the engine (R3/R5), not in a notebook.
+2. **That a settled market actually reaches `imbalance ≈ 0`** rather than merely
+   a smaller pin — reported as telemetry, per market, over the scored window.
 
 ## Worked traces
 

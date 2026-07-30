@@ -97,6 +97,39 @@ Neither is engine work; both invalidate Phase 4's A/B if skipped.
 synthetic deflation ramp; the Phase 1 corpus re-scored under it; kernel.md
 carrying a price-formation section with `parity` registered in `game_data.ron`.
 
+> **MET 2026-07-31**, with one part of the gate deliberately not done — see
+> below.
+>
+> 1. **Criteria split and re-registered as generation 3** across all 28
+>    scenarios. `DRIFTING(LogDrift 2.0)` and `SWINGING(ResidualDamping 2.0)`
+>    replace `Damping(0.72)`, which is retained-but-superseded so older
+>    certificates stay reproducible. Thresholds were fixed from synthetic ground
+>    truth in `tests/test_09_detectors.rs` *before* the corpus was scored, and
+>    that test is the standing record. Corpus re-scored: pass-rate 4/79 → 3/79
+>    so the A/B baseline keeps its shape, but the diagnosis changes — `SWINGING`
+>    39 → 12, `DRIFTING` 59. Two regions whose real wage had moved 13× and 1218×
+>    were previously certified stable.
+> 2. **`kernel.md` has a "Price formation" section**, stating as a checkable
+>    invariant that every posted quantity is a function of the posting desk's own
+>    state, why inventory satisfies it for storables, where labour and services
+>    need their own state variable instead, and what anchors the price *level*.
+>    `parity` is resolved to a **real** quantity — subsistence basket per hour,
+>    with the wage deflated — in `pops.md` and `kernel.md`.
+>
+> **Not done, deliberately: the `game_data.ron` field.** Registering `parity`
+> means adding schema no code reads, for a consumer (the labour desk) that Phase
+> 4 has not built. R2 exists so constants can be swept and defended, and a field
+> with no consumer can be swept by nothing — while a schema commitment made ahead
+> of its code is exactly the mistake Phase 3 made twice. The units and location
+> are now specified; the field lands with the desk that reads it, and the Phase 4
+> gate's "zero behavioral constants in code" already covers it.
+>
+> Two other R2 debts are recorded in engine.md rather than paid here, for the
+> same reason: `FLAT`/`FLAT_REL` in `certify::verdict` and `EMA_ALPHA` in
+> `price_update` are live constants with live consumers, so unlike `parity` they
+> can and should be registered — but they are scoring and engine dials, not
+> kernel ones, and moving them is its own change.
+
 ## Phase 4 — The desk kernel (2–3 sessions)
 
 Spec: architecture/kernel.md. Implement `Desk` + the three rules beside the existing
