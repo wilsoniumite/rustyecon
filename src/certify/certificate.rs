@@ -41,7 +41,14 @@ pub struct RunIdentity {
     pub seed: u64,
     pub scenario: String,
     pub ticks: u64,
+    /// Which agent layer decided (PLAN Phase 4). Defaulted for certificates
+    /// written before the kernel arm existed — every one of those was legacy,
+    /// so the default states a fact rather than guessing one.
+    #[serde(default = "legacy_arm")]
+    pub agents: String,
 }
+
+fn legacy_arm() -> String { "legacy".into() }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Certificate {
@@ -84,8 +91,8 @@ impl Certificate {
             self.identity.run, self.identity.git, self.identity.tape_sha, self.identity.seed,
         );
         out.push_str(&format!(
-            "  scenario={}  ticks={}\n",
-            self.identity.scenario, self.identity.ticks
+            "  scenario={}  ticks={}  agents={}\n",
+            self.identity.scenario, self.identity.ticks, self.identity.agents
         ));
         for b in &self.batteries {
             let line = format!("{} {}: {}", b.id, b.label, b.detail);
@@ -167,9 +174,11 @@ pub fn tape_sha(dir: &Path) -> String {
 }
 
 /// Deterministic run id: the same inputs must name the same run.
-pub fn run_id(git: &str, tape: &str, scenario: &str, ticks: u64, seed: u64) -> String {
+pub fn run_id(git: &str, tape: &str, scenario: &str, agents: &str, ticks: u64, seed: u64) -> String {
     let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
-    for part in [git, tape, scenario] {
+    // The arm is part of the identity: the A/B runs one scenario twice, and two
+    // runs that differ only in who decided must not share a run id.
+    for part in [git, tape, scenario, agents] {
         for b in part.as_bytes() {
             hash ^= *b as u64;
             hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
@@ -196,6 +205,7 @@ mod tests {
             seed: 0,
             scenario: "lr_00".into(),
             ticks: 100,
+            agents: "legacy".into(),
         }
     }
 
@@ -238,11 +248,14 @@ mod tests {
 
     #[test]
     fn run_id_is_reproducible_and_input_sensitive() {
-        let a = run_id("git1", "tape1", "lr_00", 100, 0);
-        assert_eq!(a, run_id("git1", "tape1", "lr_00", 100, 0));
-        assert_ne!(a, run_id("git1", "tape1", "lr_00", 101, 0));
-        assert_ne!(a, run_id("git2", "tape1", "lr_00", 100, 0));
-        assert_ne!(a, run_id("git1", "tape1", "lr_01", 100, 0));
+        let a = run_id("git1", "tape1", "lr_00", "legacy", 100, 0);
+        assert_eq!(a, run_id("git1", "tape1", "lr_00", "legacy", 100, 0));
+        assert_ne!(a, run_id("git1", "tape1", "lr_00", "legacy", 101, 0));
+        assert_ne!(a, run_id("git2", "tape1", "lr_00", "legacy", 100, 0));
+        assert_ne!(a, run_id("git1", "tape1", "lr_01", "legacy", 100, 0));
+        // The A/B's two arms run the same tape, so this is the only field that
+        // separates their certificates.
+        assert_ne!(a, run_id("git1", "tape1", "lr_00", "kernel", 100, 0));
     }
 
     #[test]

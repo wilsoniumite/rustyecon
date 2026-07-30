@@ -60,7 +60,7 @@ fn main() {
     let (mut state, gd, events) = (s.state, s.game_data, s.events);
 
     for _ in 0..ticks {
-        run_tick(&mut state, &gd, &events);
+        run_tick(&mut state, &gd, &events, rustyecon::kernel::AgentArm::Legacy);
     }
     println!("stepped to tick {} — now probing one tick, good {target}", state.tick);
 
@@ -94,7 +94,7 @@ fn step_and_report(
     summarise("events", &d, target);
     apply_state_deltas(state, &d);
 
-    let (d, orders) = decisions::run(state, gd);
+    let (d, orders) = decisions::run(state, gd, rustyecon::kernel::AgentArm::Legacy);
     summarise("decisions", &d, target);
     apply_state_deltas(state, &d);
 

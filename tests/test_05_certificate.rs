@@ -18,6 +18,7 @@ fn certify(scenario: &str, ticks: u64) -> rustyecon::certify::Certificate {
     let s = loader::load(&dir).expect("scenario loads");
     let out = tempfile::tempdir().unwrap();
     let config = RunConfig {
+        agents: rustyecon::kernel::AgentArm::Legacy,
         ticks,
         checkpoint_every: 0,
         human_save_every: 0,

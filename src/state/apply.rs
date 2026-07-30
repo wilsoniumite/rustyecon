@@ -96,6 +96,9 @@ fn apply_with_ledger(
                     s.smoothed_input_cost = *cost;
                 }
             }
+            SetDeskFill { instance, fill } => {
+                state.recipe_instance_mut(*instance).last_fill = *fill;
+            }
             SetPopWealth { pop, wealth } => {
                 state.pop_groups[pop.idx()].wealth = *wealth;
             }

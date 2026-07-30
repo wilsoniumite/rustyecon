@@ -151,7 +151,7 @@ fn tape_injection_and_phantom_supply_are_declared() {
         );
 
         for _ in 0..60 {
-            run_tick(&mut state, &gd, &events);
+            run_tick(&mut state, &gd, &events, rustyecon::kernel::AgentArm::Legacy);
         }
         assert_eq!(state.tick, 60, "{name} advanced");
     }
@@ -170,7 +170,7 @@ fn representative_scenarios_conserve_over_a_run() {
 
         // run_tick asserts the ledger at the close of every tick — a leak panics here.
         for _ in 0..120 {
-            run_tick(&mut state, &gd, &events);
+            run_tick(&mut state, &gd, &events, rustyecon::kernel::AgentArm::Legacy);
         }
 
         assert_eq!(state.tick, 120, "{name} advanced 120 ticks");

@@ -104,6 +104,7 @@ fn make_scenario() -> (SimState, GameData, EventSchedule) {
         id: RecipeInstanceId(0), region: RegionId(0), recipe: RecipeId(0),
         input_inv: man_inv, output_inv: man_inv,
         recipe_size: 10.0, chosen_size: 0.0, channel: None, transfer_target: None,
+        last_fill: 1.0,
         strategy_state: StrategyState::CapacityControl(CapacityControlState::new(10.0)),
     });
     state.inventories.push(Inventory::default());
@@ -123,6 +124,7 @@ fn make_scenario() -> (SimState, GameData, EventSchedule) {
         id: RecipeInstanceId(1), region: RegionId(1), recipe: RecipeId(0),
         input_inv: liv_inv, output_inv: liv_inv,
         recipe_size: 20.0, chosen_size: 0.0, channel: None, transfer_target: None,
+        last_fill: 1.0,
         strategy_state: StrategyState::CapacityControl(CapacityControlState::new(20.0)),
     });
     state.inventories.push(Inventory::default());
@@ -141,7 +143,7 @@ fn make_scenario() -> (SimState, GameData, EventSchedule) {
 fn balanced_market_stabilises_oversupplied_market_falls() {
     let (mut state, game_data, events) = make_scenario();
 
-    for _ in 0..50 { run_tick(&mut state, &game_data, &events); }
+    for _ in 0..50 { run_tick(&mut state, &game_data, &events, rustyecon::kernel::AgentArm::Legacy); }
 
     let man_price = state.price(MANCHESTER, WHEAT);
     let liv_price = state.price(LIVERPOOL, WHEAT);
@@ -155,7 +157,7 @@ fn balanced_market_stabilises_oversupplied_market_falls() {
 #[test]
 fn markets_are_independent() {
     let (mut state, game_data, events) = make_scenario();
-    for _ in 0..50 { run_tick(&mut state, &game_data, &events); }
+    for _ in 0..50 { run_tick(&mut state, &game_data, &events, rustyecon::kernel::AgentArm::Legacy); }
 
     let man_price = state.price(MANCHESTER, WHEAT);
     let liv_price = state.price(LIVERPOOL, WHEAT);

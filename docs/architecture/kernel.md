@@ -74,6 +74,60 @@ scale ← clamp(scale, ε·size, size)
 
 The pressure signal σ per desk kind — this table *is* the agent design:
 
+> **SUPERSEDED for producer and transport desks, 2026-07-31 (v2 Phase 4).** The
+> row below reads `(band_out − inventory_out)/band_out`. Implementing it showed
+> that signal **cannot expand a desk**, and the reason is Rule 1 in this same
+> document. The row is left in place as the record (R14); what the engine runs
+> is stated under "Producer σ, corrected" below.
+>
+> **The proof.** Rule 1 posts everything above the band, so the buffer is swept
+> flat every tick and inventory at the next decision is exactly
+> `band + last tick's production`. Substituting into the row's formula:
+>
+> ```
+> σ = (band − (band + scale·qty_out)) / band  =  −scale·qty_out / (b_out·scale·qty_out)  =  −1/b_out
+> ```
+>
+> With the registered `b_out = 2.0`, **a desk that sells every unit it offers
+> reads σ = −0.5**, clears the −0.05 dead-band, and shrinks — every activation,
+> forever. Nothing about the desk being healthy enters the arithmetic, and
+> `scale` cancels, so shrinking cannot escape it. `desk_buffer_sigma_is_pinned…`
+> in `src/kernel/mod.rs` is the standing proof.
+>
+> **Measured before it was diagnosed.** Under the row as written, every desk in
+> `lr_00` falls to `ε·size` inside ~80 ticks and sits there for the remaining
+> 920, while flour goes 0.6 → 7,898 and wheat goes to 0. Quantities frozen,
+> prices doing all the adjusting.
+>
+> **The deeper problem is informational**, and no rearrangement of the formula
+> fixes it. Once Rule 1 has swept the surplus onto the market, output inventory
+> says nothing about *excess* demand: a desk selling everything it makes reads
+> identically whether demand is 1× or 100× its output. The quantity signal
+> saturates at "sold out". This is the same information problem the price
+> formation section already identifies for the two *flow* cases — it turns out
+> not to be special to them.
+
+### Producer σ, corrected
+
+Each side of the signal comes from the reading that carries information:
+
+| side | signal | why |
+|---|---|---|
+| contract | `fill − 1`, where `fill` is the desk's own EMA of the rate it realized on what it posted | Once Rule 1 has offered everything above the band, unsold offers are the only own-state evidence of a glut |
+| expand | relative margin, `(Σ p_sell·qty_out − Σ p_buy·qty_in) / reference` | Selling out reveals only `d ≥ s`; what separates 1× from 100× demand is the *price*, and margin is already this table's expansion gate |
+
+```
+σ = if fill < 1 − dead  then  fill − 1  else  relative_margin
+```
+
+Both are own-state, and note where the fill enters: it steers **scale**, never
+the posted quantity. Rule 1 still names only stock and scale, so the invariant
+in "Price formation" holds for storables.
+
+The buffer band keeps its job in Rule 1 — it is what makes posted supply a flow
+commensurate with a flow of demand, rather than a stock dumped against one — but
+it is no longer read as a pressure signal.
+
 | desk kind | σ (pressure to expand) | extra gate |
 |---|---|---|
 | producer | `(band_out − inventory_out) / band_out` | margin > 0, where margin = Σ p_sell·qty_out − Σ p_buy·qty_in at posted prices |

@@ -1,10 +1,11 @@
 {
-  "run": "af62bd5646f76ff0",
-  "git": "d7b427b",
+  "run": "d840692f344b4686",
+  "git": "48c00bf",
   "tape_sha": "243b6b8a383a4129",
   "seed": 0,
   "scenario": "lr_15",
   "ticks": 1000,
+  "agents": "legacy",
   "batteries": [
     {
       "id": "B1",
@@ -22,7 +23,7 @@
       "id": "B3",
       "label": "determinism",
       "pass": true,
-      "detail": "state hash 0xa798aefe2d4bde1e, replay MATCH"
+      "detail": "state hash 0x7792885d026d654a, replay MATCH"
     },
     {
       "id": "B4",

@@ -47,6 +47,12 @@ struct Args {
     /// Directory certificates are written to (verdicts are committed to the repo)
     #[arg(long, default_value = "results")]
     results: PathBuf,
+
+    /// Which agent layer decides: `legacy` (the three strategies plus the pop
+    /// PD controller) or `kernel` (the desk kernel's three rules). Both read the
+    /// same tape; PLAN Phase 4 A/Bs them and deletes the loser.
+    #[arg(long, default_value = "legacy")]
+    agents: rustyecon::kernel::AgentArm,
 }
 
 fn main() {
@@ -69,6 +75,7 @@ fn main() {
         telemetry_every: args.telemetry_every,
         certify: args.certify,
         results_dir: args.results,
+        agents: args.agents,
     };
     let results_dir = config.results_dir.clone();
 

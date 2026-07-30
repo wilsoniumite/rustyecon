@@ -24,6 +24,7 @@ fn certify(name: &str, ticks: u64, criteria: Option<Criteria>) -> Certificate {
     let s = loader::load(&dir).expect("scenario loads");
     let out = tempfile::tempdir().unwrap();
     let config = RunConfig {
+        agents: rustyecon::kernel::AgentArm::Legacy,
         ticks,
         checkpoint_every: 0,
         human_save_every: 0,

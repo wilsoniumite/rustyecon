@@ -1,4 +1,5 @@
 pub mod certify;
+pub mod kernel;
 pub mod output;
 pub mod runner;
 pub mod scenario;

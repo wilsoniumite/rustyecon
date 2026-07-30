@@ -83,6 +83,7 @@ fn run_with_telemetry(name: &str, ticks: u64, dir: &Path) {
     let sdir = scenario_dir(name);
     let s = loader::load(&sdir).expect("scenario loads");
     let config = RunConfig {
+        agents: rustyecon::kernel::AgentArm::Legacy,
         ticks,
         checkpoint_every: 0,
         human_save_every: 0,
@@ -284,6 +285,7 @@ fn subsampling_keeps_tick_zero_and_says_so() {
     let sdir = scenario_dir("lr_00");
     let s = loader::load(&sdir).expect("scenario loads");
     let config = RunConfig {
+        agents: rustyecon::kernel::AgentArm::Legacy,
         ticks: 20,
         checkpoint_every: 0,
         human_save_every: 0,

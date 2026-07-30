@@ -113,6 +113,12 @@ pub enum StateDelta {
         cost: f64,
     },
 
+    /// Update a desk's EMA of its own realized sell fill. Kernel arm only.
+    SetDeskFill {
+        instance: RecipeInstanceId,
+        fill: f64,
+    },
+
     // --- Pop wealth and substitution state ---
 
     /// Update a pop's floating-point wealth level (drift up/down each tick).

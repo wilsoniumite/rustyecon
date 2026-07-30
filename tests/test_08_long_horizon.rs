@@ -37,6 +37,7 @@ fn the_engine_holds_together_across_the_full_span() {
     let results = tempfile::tempdir().unwrap();
 
     let config = RunConfig {
+        agents: rustyecon::kernel::AgentArm::Legacy,
         ticks: FULL_SPAN,
         checkpoint_every: 0,
         human_save_every: 0,
@@ -112,7 +113,7 @@ fn late_behaviour(from: u64) -> LateBehaviour {
     let mut cleared: Vec<u64> = Vec::new();
 
     for _ in 0..FULL_SPAN {
-        run_tick(&mut state, &gd, &events);
+        run_tick(&mut state, &gd, &events, rustyecon::kernel::AgentArm::Legacy);
         if state.tick < from {
             prev = state.price(node, staple);
             continue;
@@ -194,13 +195,13 @@ fn resume_is_lossless_at_the_full_span() {
 
     let mut reference = genesis.clone();
     for _ in 0..FULL_SPAN {
-        run_tick(&mut reference, &gd, &events);
+        run_tick(&mut reference, &gd, &events, rustyecon::kernel::AgentArm::Legacy);
     }
     let end_hash = state_hash(&reference);
 
     let mut state = genesis;
     for _ in 0..T {
-        run_tick(&mut state, &gd, &events);
+        run_tick(&mut state, &gd, &events, rustyecon::kernel::AgentArm::Legacy);
     }
 
     let td = tempfile::tempdir().unwrap();
@@ -214,7 +215,7 @@ fn resume_is_lossless_at_the_full_span() {
     );
 
     for _ in 0..(FULL_SPAN - T) {
-        run_tick(&mut resumed, &gd, &events);
+        run_tick(&mut resumed, &gd, &events, rustyecon::kernel::AgentArm::Legacy);
     }
     assert_eq!(
         end_hash,

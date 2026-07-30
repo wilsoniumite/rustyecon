@@ -7,6 +7,7 @@ use crate::certify::{
 use crate::output::checkpoint::{self, SaveFormat};
 use crate::output::manifest::{self, RunInfo};
 use crate::output::telemetry::Telemetry;
+use crate::kernel::AgentArm;
 use crate::scenario::EventSchedule;
 use crate::state::{apply_state_deltas, GameData, SimState};
 use crate::systems::{run_tick, run_tick_certified};
@@ -27,6 +28,10 @@ pub struct RunConfig {
     pub certify: bool,
     /// Where certificates are persisted. Verdicts are committed (R5).
     pub results_dir: PathBuf,
+    /// Which agent layer decides. Recorded in the certificate and folded into
+    /// the run id, so two runs of one scenario under different arms cannot be
+    /// mistaken for each other.
+    pub agents: AgentArm,
 }
 
 impl Default for RunConfig {
@@ -40,6 +45,7 @@ impl Default for RunConfig {
             telemetry_every: 1,
             certify: false,
             results_dir: PathBuf::from("results"),
+            agents: AgentArm::Legacy,
         }
     }
 }
@@ -121,7 +127,9 @@ impl SimRunner {
         let tape = self.scenario_tape_sha.clone();
         let seed = 0; // No stochastic source exists; recorded so the field is explicit.
         let scenario = self.scenario_name.clone();
-        let run = certificate::run_id(&git, &tape, &scenario, self.config.ticks, seed);
+        let agents = self.config.agents.name().to_string();
+        let run =
+            certificate::run_id(&git, &tape, &scenario, &agents, self.config.ticks, seed);
         RunIdentity {
             run,
             git,
@@ -129,6 +137,7 @@ impl SimRunner {
             seed,
             scenario,
             ticks: self.config.ticks,
+            agents,
         }
     }
 
@@ -168,7 +177,7 @@ impl SimRunner {
         for _ in 0..total {
             if self.config.certify {
                 let (stream, tick_audit) =
-                    run_tick_certified(&mut self.state, &self.game_data, &self.events);
+                    run_tick_certified(&mut self.state, &self.game_data, &self.events, self.config.agents);
                 audit.absorb(&tick_audit);
 
                 if let (Some(r), None) = (replay.as_mut(), replay_diverged_at) {
@@ -209,7 +218,7 @@ impl SimRunner {
                     }
                 }
             } else {
-                run_tick(&mut self.state, &self.game_data, &self.events);
+                run_tick(&mut self.state, &self.game_data, &self.events, self.config.agents);
             }
 
             self.maybe_save_checkpoints();

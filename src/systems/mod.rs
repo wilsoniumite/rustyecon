@@ -9,6 +9,7 @@ use crate::certify::{
     ledger::{tally, TickAudit},
     ConservationLedger,
 };
+use crate::kernel::AgentArm;
 use crate::scenario::EventSchedule;
 use crate::state::{apply_state_deltas_ledgered, GameData, SimState};
 use crate::types::delta::StateDelta;
@@ -25,8 +26,13 @@ use crate::types::ids::InventoryId;
 ///   5  Production  — buildings transform inputs into outputs (new stock enters inventory)
 ///   6  Spoilage    — advance lot life counters; remove expired lots from all inventories
 ///   7  Price update— posted prices for next tick from imbalances
-pub fn run_tick(state: &mut SimState, game_data: &GameData, events: &EventSchedule) {
-    run_tick_inner(state, game_data, events, &mut None);
+pub fn run_tick(
+    state: &mut SimState,
+    game_data: &GameData,
+    events: &EventSchedule,
+    arm: AgentArm,
+) {
+    run_tick_inner(state, game_data, events, arm, &mut None);
 }
 
 /// Run one tick, returning both the applied delta stream and the tick's audit.
@@ -39,9 +45,10 @@ pub fn run_tick_certified(
     state: &mut SimState,
     game_data: &GameData,
     events: &EventSchedule,
+    arm: AgentArm,
 ) -> (Vec<StateDelta>, TickAudit) {
     let mut stream = Vec::new();
-    let audit = run_tick_inner(state, game_data, events, &mut Some(&mut stream));
+    let audit = run_tick_inner(state, game_data, events, arm, &mut Some(&mut stream));
     (stream, audit)
 }
 
@@ -56,9 +63,10 @@ pub fn run_tick_capture(
     state: &mut SimState,
     game_data: &GameData,
     events: &EventSchedule,
+    arm: AgentArm,
 ) -> Vec<StateDelta> {
     let mut stream = Vec::new();
-    let _audit = run_tick_inner(state, game_data, events, &mut Some(&mut stream));
+    let _audit = run_tick_inner(state, game_data, events, arm, &mut Some(&mut stream));
     stream
 }
 
@@ -75,6 +83,7 @@ fn run_tick_inner(
     state: &mut SimState,
     game_data: &GameData,
     events: &EventSchedule,
+    arm: AgentArm,
     sink: &mut Option<&mut Vec<StateDelta>>,
 ) -> TickAudit {
     let tick = state.tick;
@@ -92,7 +101,7 @@ fn run_tick_inner(
     record(sink, event_deltas);
 
     // Phase 1 — Decisions
-    let (decisions_deltas, orders) = decisions::run(state, game_data);
+    let (decisions_deltas, orders) = decisions::run(state, game_data, arm);
     apply_state_deltas_ledgered(state, &decisions_deltas, &mut ledger);
     record(sink, decisions_deltas);
 

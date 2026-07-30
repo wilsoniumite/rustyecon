@@ -104,6 +104,7 @@ fn make_scenario() -> (SimState, GameData, EventSchedule) {
         chosen_size: 0.0,
         channel: None,
         transfer_target: None,
+        last_fill: 1.0,
         strategy_state: StrategyState::CapacityControl(CapacityControlState::new(10.0)),
     });
 
@@ -133,12 +134,12 @@ fn price_falls_from_startup_spike_toward_equilibrium() {
     let node = MarketNodeId(0);
     let good = GoodId(0);
 
-    run_tick(&mut state, &game_data, &events);
+    run_tick(&mut state, &game_data, &events, rustyecon::kernel::AgentArm::Legacy);
     let p0 = state.price(node, good);
     assert!(p0 > 1.0, "startup shortage should spike price above 1.0, got {p0}");
 
     for _ in 1..20 {
-        run_tick(&mut state, &game_data, &events);
+        run_tick(&mut state, &game_data, &events, rustyecon::kernel::AgentArm::Legacy);
     }
     let p20 = state.price(node, good);
     assert!(p20.is_finite() && p20 > 0.0, "price must remain finite and positive");
@@ -149,11 +150,11 @@ fn pop_consumption_drains_inventory_each_tick() {
     let (mut state, game_data, events) = make_scenario();
     let wheat = GoodId(0);
 
-    run_tick(&mut state, &game_data, &events);
+    run_tick(&mut state, &game_data, &events, rustyecon::kernel::AgentArm::Legacy);
     let pop_inv = state.pop_groups[0].inventory;
     assert_eq!(state.inventory(pop_inv).get(wheat), 0.0, "inventory consumed each tick");
 
-    run_tick(&mut state, &game_data, &events);
+    run_tick(&mut state, &game_data, &events, rustyecon::kernel::AgentArm::Legacy);
     assert_eq!(state.inventory(pop_inv).get(wheat), 0.0, "inventory consumed each tick");
 }
 
@@ -162,13 +163,13 @@ fn building_inventory_cycles_correctly() {
     let (mut state, game_data, events) = make_scenario();
     let wheat = GoodId(0);
 
-    run_tick(&mut state, &game_data, &events);
+    run_tick(&mut state, &game_data, &events, rustyecon::kernel::AgentArm::Legacy);
     let bld_inv = state.buildings[0].inventory;
     let after_tick0 = state.inventory(bld_inv).get(wheat);
     assert!(after_tick0 > 0.0, "farm should produce wheat on tick 0, got {after_tick0}");
 
     let prev = after_tick0;
-    run_tick(&mut state, &game_data, &events);
+    run_tick(&mut state, &game_data, &events, rustyecon::kernel::AgentArm::Legacy);
     let after_tick1 = state.inventory(bld_inv).get(wheat);
     assert!(after_tick1 > 0.0 || prev > 0.0, "farm should produce wheat over ticks");
 }

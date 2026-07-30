@@ -179,41 +179,8 @@ pub fn run(state: &SimState, game_data: &GameData, deltas: &mut Vec<StateDelta>,
                 }
             }
 
-            StrategyState::DividendPayout(ds) => {
-                let node = game_data.region(ri.region).market_node;
-                let Some(gbp) = game_data.market_node(node).currency_good else { continue; };
-
-                // Sum expected GBP input cost of all CapacityControl instances sharing this inventory.
-                // These are the production recipe instances whose operating costs determine how large
-                // a cash reserve the building needs.
-                let input_cost: f64 = state.recipe_instances.iter()
-                    .filter(|other| other.input_inv == ri.input_inv
-                        && other.strategy_state.capacity_control().is_some())
-                    .map(|other| {
-                        let other_recipe = game_data.recipe(other.recipe);
-                        other_recipe.inputs.iter()
-                            .filter(|inp| inp.good != gbp)
-                            .map(|inp| inp.desired(other.chosen_size, other.recipe_size) * state.price(node, inp.good))
-                            .sum::<f64>()
-                    })
-                    .sum();
-
-                // Update smoothed input cost EMA (α = 0.1 ≈ 10-week smoothing).
-                let new_smoothed = ds.smoothed_input_cost * 0.9 + input_cost * 0.1;
-                deltas.push(StateDelta::SetDividendSmoothedCost { instance: ri.id, cost: new_smoothed });
-
-                let reserve_multiple = match &game_data.recipe(ri.recipe).strategy {
-                    StrategyKind::DividendPayout { reserve_multiple } => *reserve_multiple,
-                    _ => 26.0,
-                };
-
-                let gbp_held = state.inventory(ri.input_inv).get(gbp);
-                let reserve = reserve_multiple * new_smoothed;
-                let payout = (gbp_held - reserve).max(0.0);
-
-                if (payout - ri.chosen_size).abs() > 1e-12 {
-                    deltas.push(StateDelta::SetChosenSize { instance: ri.id, size: payout });
-                }
+            StrategyState::DividendPayout(_) => {
+                dividend_payout(state, game_data, ri, deltas);
             }
 
             StrategyState::AlwaysRun => {
@@ -222,5 +189,65 @@ pub fn run(state: &SimState, game_data: &GameData, deltas: &mut Vec<StateDelta>,
                 }
             }
         }
+    }
+}
+
+/// Run only the dividend desks.
+///
+/// The kernel arm calls this until Rule 3's overflow routing replaces it
+/// (PLAN Phase 4, P4.4). Without it, cash pools in buildings under one arm and
+/// not the other, which is a difference between the arms that has nothing to do
+/// with the kernel's rules — and an A/B has to isolate what it is testing.
+pub fn run_dividends_only(state: &SimState, game_data: &GameData, deltas: &mut Vec<StateDelta>) {
+    for ri in &state.recipe_instances {
+        if ri.recipe_size <= 0.0 {
+            continue;
+        }
+        if matches!(ri.strategy_state, StrategyState::DividendPayout(_)) {
+            dividend_payout(state, game_data, ri, deltas);
+        }
+    }
+}
+
+fn dividend_payout(
+    state: &SimState,
+    game_data: &GameData,
+    ri: &crate::types::recipe_instance::RecipeInstance,
+    deltas: &mut Vec<StateDelta>,
+) {
+    let StrategyState::DividendPayout(ds) = &ri.strategy_state else { return };
+    let node = game_data.region(ri.region).market_node;
+    let Some(gbp) = game_data.market_node(node).currency_good else { return };
+
+    // Sum expected GBP input cost of all CapacityControl instances sharing this inventory.
+    // These are the production recipe instances whose operating costs determine how large
+    // a cash reserve the building needs.
+    let input_cost: f64 = state.recipe_instances.iter()
+        .filter(|other| other.input_inv == ri.input_inv
+            && other.strategy_state.capacity_control().is_some())
+        .map(|other| {
+            let other_recipe = game_data.recipe(other.recipe);
+            other_recipe.inputs.iter()
+                .filter(|inp| inp.good != gbp)
+                .map(|inp| inp.desired(other.chosen_size, other.recipe_size) * state.price(node, inp.good))
+                .sum::<f64>()
+        })
+        .sum();
+
+    // Update smoothed input cost EMA (α = 0.1 ≈ 10-week smoothing).
+    let new_smoothed = ds.smoothed_input_cost * 0.9 + input_cost * 0.1;
+    deltas.push(StateDelta::SetDividendSmoothedCost { instance: ri.id, cost: new_smoothed });
+
+    let reserve_multiple = match &game_data.recipe(ri.recipe).strategy {
+        StrategyKind::DividendPayout { reserve_multiple } => *reserve_multiple,
+        _ => 26.0,
+    };
+
+    let gbp_held = state.inventory(ri.input_inv).get(gbp);
+    let reserve = reserve_multiple * new_smoothed;
+    let payout = (gbp_held - reserve).max(0.0);
+
+    if (payout - ri.chosen_size).abs() > 1e-12 {
+        deltas.push(StateDelta::SetChosenSize { instance: ri.id, size: payout });
     }
 }

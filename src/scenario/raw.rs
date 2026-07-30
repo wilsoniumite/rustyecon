@@ -379,6 +379,9 @@ pub fn resolve_sim_state(
             channel: b.channel,
             transfer_target,
             strategy_state,
+            // kernel.md: the fill EMA opens at 1.0, so a desk with no
+            // history posts its full flow rather than opening muted.
+            last_fill: 1.0,
         });
     }
 
@@ -486,6 +489,9 @@ pub fn resolve_sim_state(
             channel: None,
             transfer_target: None,
             strategy_state,
+            // kernel.md: the fill EMA opens at 1.0, so a desk with no
+            // history posts its full flow rather than opening muted.
+            last_fill: 1.0,
         });
     }
 

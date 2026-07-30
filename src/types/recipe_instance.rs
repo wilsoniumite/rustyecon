@@ -98,4 +98,19 @@ pub struct RecipeInstance {
 
     /// Per-strategy working memory.
     pub strategy_state: StrategyState,
+
+    /// EMA of the fill this desk realized on what it posted, in [0, 1].
+    ///
+    /// Only the kernel arm reads or writes it. Rule 1 gives non-storable outputs
+    /// no stock to smooth them, so this plays the buffer band's role — and it is
+    /// the one place a posted quantity is keyed to a fill, which kernel.md's own
+    /// invariant forbids while its Rule 1 specifies. See `kernel::rule_1_sell`.
+    ///
+    /// Initialised to 1.0 per kernel.md, and defaulted for tapes and checkpoints
+    /// written before the kernel existed: a desk with no fill history assumes it
+    /// sold everything, so it opens at full flow rather than silently muted.
+    #[serde(default = "default_full_fill")]
+    pub last_fill: f64,
 }
+
+fn default_full_fill() -> f64 { 1.0 }
