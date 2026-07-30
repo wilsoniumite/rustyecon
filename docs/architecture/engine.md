@@ -243,9 +243,97 @@ emitted series is bit-identical between them. `2/2` is one trajectory scored
 twice. The scenario file's claim that this "proves the mechanism replicates" was
 wrong and has been corrected there.
 
-**And it is dying, slowly.** `velocity` last exceeds the DEAD threshold of 0.003
-at tick 9,673; every one of the final 2,027 ticks is below it. The class passes
-only because the live early phase dilutes the fraction over the whole window.
+**And it is not dying slowly — it is in a lull.** `velocity` last exceeds the
+DEAD threshold of 0.003 at tick 9,673; every one of the final 2,027 ticks is
+below it, and the class passes only because the live early phase dilutes the
+fraction. Run the same world to 45,000 ticks and it does not fade out: at tick
+~22,500 the imbalance flips sign and stays at **+0.697**, and the staple price
+hyperinflates from 1.2e-2 to **1.4e+13**. Within the scored window 95.1% of ticks
+sit at the pinned deflation value; across the full 45,000 only 47.8% do, and 51%
+show *excess demand*. So the registered window is not merely placed where the
+statistics happen to pass — it is placed in the quiet stretch between two
+crises.
+
+### Why: posted supply is computed from demand
+
+The deflation ramp is not an emergent economic result. It is arithmetic.
+
+`decisions/building_agent.rs:54` caps a producer's posted sell quantity at
+`demand * 1.2`. `clearing/mod.rs:59-65` then computes
+`imbalance = (demand − supply) / max(demand, supply)`. When the cap binds, that
+is `(d − 1.2d)/1.2d = −1/6` **exactly, independent of price**, and
+`clearing/mod.rs:54-57` reads it as "too expensive" and marks the price down by
+`α/6` — forever. In the tracer this is measured at
+`imbalance = −0.166666666667, std exactly 0.0` across 10,100 consecutive ticks,
+with the per-tick price ratio matching `1 + α·(−1/6)` to twelve digits. A market
+clearing 100% of demand every tick reports 16.7% excess supply, because the
+seller is *required* to post 20% more than is wanted.
+
+Two further constants share the construction: `decisions/mod.rs:22` posts
+`min(1.05·demand, qty_per_tick)` for magic producers, and the employed/unemployed
+pair rule (`decisions/pop_agent.rs:32-36`) posts labour supply as a function of
+realized fill. The pair rule's fixed point is `imbalance = f − 1` — strictly
+negative under *any* unemployment, price-independent, and in the tracer it
+predicts the measured labour imbalance `−0.092271562623196` to all fifteen
+printed digits with no fitted parameters.
+
+> **An earlier draft of this section over-claimed and is corrected in place
+> (R14).** It said the market has *no* equilibrium and that deflation is
+> unconditional. Adversarial review refuted both. The cap is one branch of four —
+> `sell_proportion` (`building_agent.rs:37-48`) can zero the posting entirely,
+> and a producer whose stock sits *below* the cap posts its stock instead, at
+> which point balance is reachable. It is reached in the shipped corpus:
+> `big_region`'s wine market holds `supply = demand = 1.0` with imbalance exactly
+> 0 and a price constant at 0.1102425 across 9,701 ticks, on unmodified code.
+> Nor is the exact `−1/6` general — posting reads the *previous* tick's demand,
+> so it requires demand to be constant tick-over-tick, which is a property of the
+> tracer's single wealth tier. With K capped sellers the pin is `1/(1.2K) − 1`.
+>
+> The corrected claim: **whenever a seller is stocked above the cap, the rule
+> converts perfect clearing into a permanent negative signal and a geometric
+> price ramp, and no price anywhere on that branch reports balance.** That is
+> narrower than "no equilibrium" and still a defect — an agent's own decision
+> rule is being fed back to it as though it were a market observation.
+
+METHODOLOGY R1 already bans this by name ("Never from price clamps, **demand
+caps**…"), R2 bans the unregistered literals, and `PLAN.md` already schedules
+"the sell caps and debt gates" for deletion in Phase 4. `kernel.md:35` is
+explicit: *"No debt gates, no sell caps: the buffer band is the supply
+smoother."* So the design already knew. What this phase adds is the measurement
+of what the cap costs, and the observation that the kernel keeps the same
+construction for the two cases where there is no stock to absorb the error —
+labour (the pair rule) and non-storable services (`scale · last_fill`).
+
+### Before Phase 4 can be scored honestly
+
+**The stability criteria reward the disease.** `Rule::Damping(max_ratio: 0.72)`
+is implemented (`certify/verdict.rs`) as `std(second half)/std(first half)` of a
+**level** series. On a level series that is a trend detector, not a settling
+detector. Measured on synthetic series over the tracer's own window length:
+
+| series | damping | verdict |
+|---|---|---|
+| stationary, mean-reverting with ripple | 1.009 | **FAIL** |
+| stationary with a slow oscillation | 0.971 | **FAIL** |
+| monotone geometric deflation (what the tracer does) | 0.149 | **PASS** |
+| geometric inflation / recovery | 6.724 | **FAIL** |
+
+A healthy economy that reaches a stationary price with any residual ripple fails;
+a dying one that deflates smoothly passes. `PLAN.md` Phase 4 ships the kernel
+only if "its pass-rate ≥ legacy's" — so under the current bar, **fixing the
+economics can lose the A/B**. Splitting the rule into a trend test on the
+log-level slope and an oscillation test on the detrended residual is the
+prerequisite; it needs a new dated criteria file and re-scores the Phase 1
+baseline, which must happen before the comparison, not after.
+
+**`parity` is undefined.** `kernel.md:53` and `pops.md` make the labour margin
+`σ_π = (w_posted − parity)/parity` — the only place in the kernel that compares a
+price to a level, and therefore the only thing that could arrest the labour pin.
+`grep -rn parity src/ data/` returns **zero hits**, and no doc gives its units. If
+`parity` is real (goods-denominated), uniform deflation leaves the ratio
+unchanged and the pin survives; if nominal, it anchors the level but trips R12.
+The price-level determinacy of the whole kernel rests on which, and the spec does
+not say.
 
 ### What the horizon did establish
 

@@ -58,6 +58,45 @@ moves, telemetry volume, checkpoint size — not to be economics.
 
 **Gate:** certificate PASS at full span; telemetry for the full run under ~100 MB.
 
+> **GATE HALF MET, 2026-07-20.** Telemetry: cleared decisively (2.2 MB against
+> ~100 MB, and per-region figures for extrapolating to 673 regions). Certificate
+> PASS: **not honestly met.** `data/scenarios/tracer_2r` does print PASS at
+> 11,700 ticks, but the PASS is an artifact of window placement over a world
+> whose real economy is frozen for 87% of the scored span — full evidence in
+> architecture/engine.md, "The 225-year horizon".
+>
+> The phase delivered its *purpose* rather than its gate, which is the trade it
+> was written to allow ("expose long-horizon unknowns now"). What it exposed:
+> unbounded currency-lot fragmentation, an accidental price floor with no
+> ceiling, resume-equality holding at full span, `price_ema` having been
+> write-only state — and the substantive one, that posted supply is computed
+> from demand (`building_agent.rs:54`), so a market clearing 100% of demand
+> reports 16.7% excess supply and deflates geometrically forever.
+>
+> Two items below now block Phase 4 rather than Phase 3, and are listed there.
+
+## Phase 3.5 — Close the two gaps Phase 3 found (1 session, blocking Phase 4)
+
+Neither is engine work; both invalidate Phase 4's A/B if skipped.
+
+1. **Split `Rule::Damping` and re-register criteria.** As implemented it is a
+   trend detector on a level series: it passes monotone deflation (0.149) and
+   fails a stationary economy with any ripple (1.009). Phase 4 ships the kernel
+   only if its pass-rate ≥ legacy's, so as it stands **fixing the economics
+   loses the A/B**. Needs a trend test on the log-level slope plus an
+   oscillation test on the detrended residual, a new dated `criteria.ron`, and a
+   re-score of the Phase 1 baseline so both arms are judged by one bar.
+2. **Specify `parity`, and price formation generally, in kernel.md.**
+   `markets.md` delegates price stability to `kernel.md`; `kernel.md` never
+   addresses how a posted price reaches equilibrium — its whole "why this is
+   stable" argument is about *scale*. `parity` appears zero times in `src/` and
+   `data/` and has no stated units, yet the labour margin is the only kernel
+   mechanism that compares a price to a level.
+
+**Gate:** a criteria file that passes a synthetic stationary series and fails a
+synthetic deflation ramp; the Phase 1 corpus re-scored under it; kernel.md
+carrying a price-formation section with `parity` registered in `game_data.ron`.
+
 ## Phase 4 — The desk kernel (2–3 sessions)
 
 Spec: architecture/kernel.md. Implement `Desk` + the three rules beside the existing

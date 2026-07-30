@@ -7,6 +7,34 @@ signal** σ, evaluated only on the desk's stagger phase
 reads and where its overflow routes. There are no other decision mechanisms in
 the simulation.
 
+> **Finding from v2 Phase 3, 2026-07-20 — two gaps to close before Phase 4
+> implements this spec.** Recorded here, not resolved: Phase 3 does not own this
+> document.
+>
+> **1. Nothing here says how a posted price reaches equilibrium.** The whole of
+> "Why this is stable" below argues about *scale*; [markets.md](markets.md)
+> keeps the imbalance price rule unchanged and explicitly delegates — "stability
+> comes from the kernel's structure (kernel.md), never from price surgery". That
+> is a circular reference, and it is where the defect Phase 3 measured got in:
+> the legacy engine posts sell quantities as `1.2 × demand`, which pins the
+> imbalance negative regardless of price and deflates the price forever. Rule 1's
+> buffer band fixes that for storables — posted supply becomes a function of own
+> stock, so the flow error accumulates in inventory where σ can see it, and
+> imbalance 0 becomes reachable. The gap is that this is never *stated* as a
+> property the kernel guarantees, so nothing checks it.
+>
+> **2. Rule 1 keeps the same construction for the two cases with no stock to
+> integrate the error** — labour (the pair rule, deferred to
+> [pops.md](pops.md)) and non-storable services (`scale · last_fill`). Both post
+> a quantity keyed to *realized fill*, and both therefore have a strictly
+> negative, price-independent fixed point: for labour, measured at
+> `imbalance = f − 1` on the legacy engine and predicted to fifteen digits with
+> no fitted parameters. `σ_π = (w_posted − parity)/parity` is the only kernel
+> mechanism that could arrest it — and `parity` appears **zero** times in `src/`
+> and `data/`, with no units given anywhere. If it is real-denominated, uniform
+> deflation leaves the ratio unchanged and the pin survives; if nominal, it
+> trips R12. The price-level determinacy of the kernel rests on that fork.
+
 ## Parameters
 
 All registered in `game_data.ron`; no behavioral constant lives in code
