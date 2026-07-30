@@ -152,6 +152,67 @@ and the six now-unemitted delta variants. Constants land in `game_data.ron`.
 **Gate:** kernel wins or ties the A/B; agent layer is one file; zero behavioral
 constants in code.
 
+> **IN PROGRESS, 2026-07-31 — first session of the 2–3.** Four sub-phases
+> landed; the pop side and the A/B itself remain.
+>
+> **Done.**
+>
+> - **P4.0a** — certificates carry a `measurements` table: every class × metric
+>   statistic, computed whether or not the rule fired and *past* the `DEAD`
+>   short-circuit. 33 of 72 regions are DEAD, so without this the two arms'
+>   tables would be missing readings exactly where the arms differ. Verified
+>   behaviour-neutral across all 28 scenarios.
+> - **P4.0b** — the A/B gate replaced, **pre-registered before the kernel arm
+>   existed** in `results/ab/preregistration.md`. Three necessary gates: liveness
+>   may not regress; the paired band may not widen on regions both arms keep
+>   alive; the paired band may not widen across all 72. `tools/test_ab.py`
+>   shows it can report LOSS — including that "collapse every economy" loses on
+>   G1 *while fooling G3*, which is what makes G1 load-bearing rather than
+>   decorative. One registered constant in the whole rule.
+> - **P4.1** — ten kernel dials registered in `game_data.ron` across all 28
+>   scenarios, with **no `Default` impl in code**: a scenario missing the block
+>   fails to load. Storability is *derived* (`b_out · S` ticks) rather than a
+>   further threshold.
+> - **P4.2** — Rules 1–3 for producer desks, behind `--agents kernel`. Every
+>   engine battery passes under the new arm; the economics do not.
+>
+> **The finding, which is the session's main output.** kernel.md's producer
+> pressure signal cannot expand a desk, and Rule 1 in the same document is why:
+> it posts everything above the band, so inventory rests at `band + production`
+> and σ is pinned at `−1/b_out` = **−0.5**, below the dead-band, for a desk
+> selling every unit it offers. Proof and measurement in kernel.md, "Producer σ,
+> corrected"; the corrected signal takes contraction from unsold offers and
+> expansion from margin, with the fill steering *scale* and never the posted
+> quantity, so the price-formation invariant still holds.
+>
+> **Where the kernel stands after the correction: still losing badly**, for two
+> reasons that are not the σ defect and are both known work.
+>
+> 1. **Cold start.** The tapes set `chosen_size: 0.0`, which the legacy PD
+>    controller overwrites on tick 1 but which the kernel reads as its state
+>    variable — so desks open at `ε·size` = 1% of nameplate and need ~230
+>    activations (~900 ticks) of multiplicative growth to return. The scored
+>    window is 150..1000. Whether the port should set a genesis scale is a real
+>    question, and it must be decided the R6 way: state the rule first, apply it
+>    uniformly, re-run **both** arms, and report the A/B both with and without.
+> 2. **The labour side is still legacy** (P4.3). Pops post their whole supply
+>    inelastically, so with desks small the wage collapses, incomes vanish, and
+>    demand with them — every desk then reads fill ≈ 0 and contracts. The
+>    participation margin π that kernel.md calls "the load-bearing mechanism" is
+>    exactly what is missing.
+>
+> **Remaining: P4.3 pop desks (π + parity + the consumption desk), P4.4 Rule 3
+> overflow routing, P4.5 the own-state assertion and imbalance telemetry, P4.6
+> the A/B, P4.7 the deletions.**
+>
+> **One decision P4.3 must take deliberately.** `parity` is registered per pop
+> in *goods per unit labour* (Phase 3.5 specified the units and deferred the
+> field). Setting it from the genesis real wage would make σ_π ≈ 0 at t=0 — and
+> `RealWage` is one of the two metrics the A/B's band is computed on, so that
+> choice paints part of the scored series. It must instead be derived from
+> *technology* (labour embodied in one basket, times a stated home-production
+> penalty), and the derivation written down before the run.
+
 ## Phase 5 — Phase map (1–2 sessions)
 
 Sweep `eta_up/eta_dn × b_cash × S` over a reference world; commit the phase
