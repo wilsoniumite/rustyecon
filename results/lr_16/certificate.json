@@ -1,7 +1,7 @@
 {
-  "run": "01f40beffd417168",
-  "git": "71df123",
-  "tape_sha": "d873298a3d8678a3",
+  "run": "03048705d65e83d6",
+  "git": "d7b427b",
+  "tape_sha": "c053631aea41c60b",
   "seed": 0,
   "scenario": "lr_16",
   "ticks": 1000,

@@ -1,7 +1,7 @@
 {
-  "run": "4bff4cd0a43e963c",
-  "git": "71df123",
-  "tape_sha": "8425309c95330b03",
+  "run": "a9be0e702884e774",
+  "git": "d7b427b",
+  "tape_sha": "7a161539e1ec0e03",
   "seed": 0,
   "scenario": "supply_chain",
   "ticks": 1000,

@@ -1,6 +1,22 @@
 // Supply chain: wheat (MagicProducer) → grain mill → flour → pops.
 // Three goods: wheat, flour, GBP (currency). Shock at tick 49: wheat supply halved.
 (
+    // ── Desk kernel (kernel.md, "Parameters"; METHODOLOGY R2) ─────────────
+    // Registered here rather than in code so the phase map (PLAN Phase 5) can
+    // sweep them. Defaults are kernel.md's table; epsilon, phi and fill_alpha
+    // are the three the table omits and are documented on KernelParams.
+    kernel: (
+        s: 4,
+        eta_up: 0.04,
+        eta_dn: 0.05,
+        dead: 0.05,
+        b_out: 2.0,
+        b_cash: 6.5,
+        beta: 1.0,
+        epsilon: 0.01,
+        phi: 0.6180339887498949,
+        fill_alpha: 0.25,
+    ),
     goods: [
         (name: "wheat", alpha: 0.5, shelf_life: Indefinite, movement_type: Physical, divisible: true, storage_cost_per_tick: 0.0),
         (name: "flour", alpha: 0.5, shelf_life: Indefinite, movement_type: Physical, divisible: true, storage_cost_per_tick: 0.0),

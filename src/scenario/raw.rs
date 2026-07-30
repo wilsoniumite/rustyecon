@@ -105,6 +105,10 @@ pub struct RawWealthLevel {
 pub struct RawGameData {
     pub goods: Vec<RawGoodDef>,
     pub recipes: Vec<RawRecipeDef>,
+    /// Desk kernel dials. Required, with no code-side default: a scenario that
+    /// omits the block fails to load rather than inheriting a constant from the
+    /// source (METHODOLOGY R2).
+    pub kernel: crate::state::game_data::KernelParams,
     #[serde(default)]
     pub need_categories: Vec<RawNeedCategory>,
     #[serde(default)]
@@ -249,6 +253,10 @@ pub fn resolve_game_data(
     raw: RawGameData,
 ) -> crate::scenario::loader::Result<(GameData, NameResolver)> {
     let resolver = NameResolver::from_raw(&raw);
+    // Checked here rather than at first use: a nonsensical dial otherwise
+    // surfaces as a panic deep inside a rule thousands of ticks later, with
+    // nothing in the message saying which dial.
+    raw.kernel.validate()?;
 
     let goods: Vec<GoodDef> = raw.goods.into_iter().enumerate()
         .map(|(i, g)| GoodDef {
@@ -319,6 +327,7 @@ pub fn resolve_game_data(
     let game_data = GameData {
         goods,
         recipes,
+        kernel: raw.kernel,
         need_categories,
         wealth_levels,
         market_nodes: raw.market_nodes,

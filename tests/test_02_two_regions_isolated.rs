@@ -4,7 +4,7 @@
 use rustyecon::{
     scenario::EventSchedule,
     state::{
-        game_data::{RegionDef, WealthLevel},
+        game_data::{KernelParams, RegionDef, WealthLevel},
         GameData, SimState,
     },
     systems::run_tick,
@@ -28,6 +28,21 @@ const LIVERPOOL: MarketNodeId = MarketNodeId(1);
 
 fn make_scenario() -> (SimState, GameData, EventSchedule) {
     let game_data = GameData {
+        // A test that hand-builds a GameData is writing its own tape, and the
+        // kernel dials are part of it. KernelParams has no Default impl on
+        // purpose (METHODOLOGY R2), so this is written out rather than inherited.
+        kernel: KernelParams {
+            s: 4,
+            eta_up: 0.04,
+            eta_dn: 0.05,
+            dead: 0.05,
+            b_out: 2.0,
+            b_cash: 6.5,
+            beta: 1.0,
+            epsilon: 0.01,
+            phi: 0.6180339887498949,
+            fill_alpha: 0.25,
+        },
         goods: vec![GoodDef {
             id: WHEAT,
             name: "wheat".into(),

@@ -39,6 +39,22 @@
 // exists to prevent, and it is why the Phase 3 gate is recorded as NOT MET in
 // docs/architecture/engine.md, "The 225-year horizon".
 (
+    // ── Desk kernel (kernel.md, "Parameters"; METHODOLOGY R2) ─────────────
+    // Registered here rather than in code so the phase map (PLAN Phase 5) can
+    // sweep them. Defaults are kernel.md's table; epsilon, phi and fill_alpha
+    // are the three the table omits and are documented on KernelParams.
+    kernel: (
+        s: 4,
+        eta_up: 0.04,
+        eta_dn: 0.05,
+        dead: 0.05,
+        b_out: 2.0,
+        b_cash: 6.5,
+        beta: 1.0,
+        epsilon: 0.01,
+        phi: 0.6180339887498949,
+        fill_alpha: 0.25,
+    ),
     goods: [
         // The staple, and the deflator for real_wage / real_income.
         ( name: "grain",  alpha: 0.002, shelf_life: Indefinite, movement_type: Physical, divisible: true, storage_cost_per_tick: 0.0 ),
