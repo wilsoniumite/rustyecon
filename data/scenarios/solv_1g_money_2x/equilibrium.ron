@@ -1,0 +1,37 @@
+// The registered closed-form equilibrium for solv_1g_money_2x.
+//
+// Registered 2026-07-31, before the run (R6). Every RELATIVE price here is
+// identical to solv_1g_money's, which is the whole content of money neutrality:
+// doubling the level moves no ratio. The absolute prices differ (grain 1.0 not
+// 0.5, labour 2.0 not 1.0) and this file does not record them, because a
+// relative-price target is the only kind that survives redenomination.
+(
+    derivation: "docs/design/solvable-scenarios.md#3-scenario-1m--solv_1g_money-the-same-world-with-the-level-pinned",
+    registered: "2026-07-31",
+    numeraire: "labour",
+
+    // p_grain/p_labour = 1.0/2.0 = 0.5. Same ratio, doubled level.
+    prices: {
+        "labour": 1.0,
+        "grain":  0.5,
+    },
+    // Real quantities are untouched by a redenomination, so these are
+    // solv_1g_money's numbers exactly.
+    cleared: {
+        "labour": 10.0,
+        "grain":  20.0,
+    },
+    real_wage: 2.0,
+
+    // Velocity is currency FLOW over currency STOCK, so both legs double and the
+    // ratio is invariant: 2/(2*b_cash + 1) = 2/14, the same number as at 1x.
+    // That invariance is a prediction of this tape, not a copy-paste.
+    velocity: Some(0.14285714285714285),
+
+    fixed_point_tol_log: 1e-12,
+
+    // NO MODE B. This tape is a control, not an experiment: its only job is to
+    // be compared tick-by-tick against solv_1g_money from the same fixed point.
+    // Displacing it would introduce a second difference and destroy that.
+    displaced: None,
+)

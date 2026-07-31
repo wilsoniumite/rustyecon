@@ -66,6 +66,121 @@
 //! are own-state, and the fill steers scale rather than the posted quantity, so
 //! Rule 1 still names only stock and scale.
 //!
+//! **Rule 1 was price-inelastic, and that is why no equilibrium price existed.**
+//! Recorded at length because it is the largest correction the kernel has taken
+//! and because the spec that produced it — `docs/design/price-responsive-supply.md`
+//! — is a prediction, not a result, and parts of it are wrong (below).
+//!
+//! `max(inventory − b_out·flow, 0)` mentions no price, so `ε_s = 0` exactly, for
+//! every good, measured. With `ε_d = 0` on labour and services the price loop's
+//! gain is `|1 + α(ε_d − ε_s)| = 1` — a unit root. The corpus was not failing a
+//! stability *tuning*; it had no fixed point to fail to reach.
+//!
+//! [`SupplyRule::Reservation`] divides the band by the desk's own markup `R`, so
+//! it withholds a fixed *value* of stock and the price decides how many units
+//! that value is. Three properties are load-bearing and each has a test:
+//! monotone increasing in price, never more than held, and **identical to the
+//! shipped rule at `R = 1`** — which is why every zero-profit resting-state
+//! result in the repo (all five `solv_*` tapes, mode A) is unchanged bit for bit.
+//!
+//! `b_out` stops being an inert threshold and becomes the supply curve's slope:
+//! at a desk's resting point `ε_s = b_out/R`, so the stability condition
+//! `α(ε_s − ε_d) < 2` collapses to `α·b_out < 2R`. Registered: `0.1 × 2 = 0.2`.
+//!
+//! **The dimensional pick, made deliberately rather than inherited.** kernel.md
+//! calls `b_out` a band "in activations of throughput" while `rule_1_sell`
+//! computes `flow` per *tick*, so the band is 2 ticks of cover, not 8. Under the
+//! old rule that only moved a threshold; under the new one it *is* the
+//! elasticity — `ε_s* = 2` or `8`. **Per-tick is kept**, unchanged from the
+//! shipped code, for one reason that outranks the others: it is what makes the
+//! new rule reduce to the old one exactly at `R = 1`. Changing the functional
+//! form and the band width in the same commit would leave no way to attribute
+//! either measurement. `α·b_out = 0.2` is a factor of ten inside the boundary;
+//! the activation reading (0.8) is also stable and is a Phase 5 sweep point.
+//!
+//! **WHAT IT MEASURED, 2026-07-31, and the headline is not the good news.**
+//!
+//! The elasticity is real: on a live state, storable goods read `ε_s` of 0.216
+//! to 45.2 (own-price, one `(node, good)` bumped at a time), labour reads 1.67
+//! to 3.19 under the full rule, and the uniform all-goods bump reads **exactly
+//! 0.000**, which is the degree-0 homogeneity the design requires and the reason
+//! the old probe could not have seen any of this.
+//!
+//! **And on the lr corpus the full rule is a catastrophe: 72 live regions'
+//! worth of economy goes to ZERO.** Legacy 33 live, kernel/inelastic 8,
+//! kernel/reservation **0**, with `DEAD` tripping in all 72 regions and
+//! `POP_DESTITUTION` in all 72. It loses the pre-registered A/B against both the
+//! legacy arm and the shipped kernel, on G1.
+//!
+//! **The decomposition says which half.** [`SupplyRule::ReservationGoods`] — the
+//! reservation band on storable outputs, the shipped `π·H` on labour — reads
+//! 5 live regions against the shipped kernel's 8, but its median `LevelRange`
+//! falls from **3.27e15× to 6.53e8×** and its median B8 price gap from
+//! **1.78e11× to 1.61e8×**. On the solvable worlds it does something nothing in
+//! this repository had done: displaced by 2× on one price, `solv_1g` under the
+//! imbalance rule keeps its market (volume trend **1.134×**, against 0.068
+//! under the shipped rule), and `solv_chain`'s median price gap goes from
+//! **1.5e11× to 2.12×** against a registered bar of 1.10×.
+//!
+//! **The mechanism of the collapse, traced rather than guessed.** In `lr_00` the
+//! flour market has zero posted supply from tick 0 under *both* rules — that
+//! part is pre-existing — so its imbalance is pinned at +1 and the imbalance
+//! rule's saturating normaliser marks it up by the full `α` every tick, for
+//! ever. `P_basket` is mostly flour, so the pop's reservation wage
+//! `w_res = parity · P_basket` inflates at 10%/tick while `p_labour` does not
+//! (labour's market is often two-sided-empty, where the price rule freezes).
+//! The real wage falls through the shutdown wage `(2/3)·parity` at tick 7 and
+//! never returns: labour supply is identically zero from then on, so nothing is
+//! produced, and the economy is gone by tick 9.
+//!
+//! Two things follow, and both are findings rather than excuses. (1) The
+//! design's "structural price floor" argument is only half of one: withholding
+//! does stop a price falling to zero, but against a *starved* market it converts
+//! the failure into an unbounded mark-UP — B7's pins flip from `-1.000000` to
+//! `+1.000000` across the corpus. (2) A reservation price indexed to a basket
+//! whose own market has collapsed is indexed to a runaway; the rule is degree-0
+//! in prices by design, and that is exactly why a uniform runaway in everything
+//! *except* the wage cannot be escaped by inflation.
+//!
+//! **What the spec got wrong, found by implementing it.** §2.2's labour rule
+//! `posted = min(H, π·H·max(1 + b_out(1 − w_res/w), 0))` is *not* the
+//! generalisation it claims to be for a pop at the π corner. At `w = w_res` it
+//! posts `π·H`, as advertised — but π is clamped to 1 in the lr corpus, so the
+//! capacity `(1+b_out)·π·H` is cut to `H` by the physical cap and the *upside*
+//! is gone: above the reservation wage the pop can post nothing extra, while
+//! below it the supply still falls away. The rule is one-sided wherever π = 1,
+//! which is where the corpus lives. That is recorded, not patched: the fix is
+//! π's, not Rule 1's, and inventing a second capacity term to restore symmetry
+//! would be a constant nobody registered.
+//!
+//! **A second thing the spec got wrong, and this one is structural.** §2's law
+//! treats `R = 1` as the desk's indifference point. That is the right
+//! reservation price only where the *equilibrium* markup is one. `solv_labour`
+//! is the corpus's one world with a scarce second factor: `recipe_size` binds,
+//! the firm earns a capacity rent, and its equilibrium markup is **R = 2**. The
+//! band is then halved, the desk posts more than it produces, and a
+//! hand-computed fixed point that the shipped rule holds to 0 ulp stops being a
+//! fixed point at all. The same tape is already the registered counterexample to
+//! reading B8 as a correctness verdict; it is now also the counterexample to
+//! reading `R = 1` as break-even. A Leontief reservation price cannot see a
+//! scarce second factor either. `mode_a_breaks_on_solv_labour_…` asserts it, as
+//! a failure, rather than patching it: a rent-aware reservation price is a new
+//! mechanism with its own derivation and its own A/B.
+//!
+//! **What was deliberately NOT implemented.** The spec's §5 mirrors the change
+//! onto Rule 3's buying (`target = S·desired·R`). It is left out, and the reason
+//! is R10 rather than time: it moves `ε_d`, and this change exists to measure
+//! what moving `ε_s` does. Two mechanisms landing together have one receipt
+//! between them. §5 is a separate change with its own A/B.
+//!
+//! **What the tapes register, and why it is the OLD rule.** All 33
+//! `game_data.ron` blocks carry `supply_rule: inelastic`. R10 says a change
+//! ships when the certified suite says it is no worse, and on the pre-registered
+//! gates this one is worse; flipping the tapes is a decision taken on the
+//! receipt, not on the way to producing it. `--supply-rule` runs the others, and
+//! the effective value is folded into the run identity so no two certificates
+//! can be confused.
+//!
 //! **Fill-keyed posting, which the invariant forbids.** kernel.md's price
 //! formation section states that no desk may compute what it offers "from
 //! another agent's demand, or from the fill it most recently received" — and
@@ -77,6 +192,7 @@
 //! capacity, corrected only by scale moving. Whether it is corrected fast enough
 //! is a measurement, and the A/B is the measurement.
 
+use crate::state::game_data::SupplyRule;
 use crate::state::{GameData, SimState};
 use crate::types::{
     delta::StateDelta,
@@ -198,11 +314,16 @@ pub fn run(
             continue;
         }
         let (buy_node, sell_node) = nodes(ri, game_data);
+        // Computed once and handed to both rules. Rule 1 and Rule 2 must read
+        // the *same* R in the same tick, or a desk posts as if profitable while
+        // shrinking as if not — the spec's risk 7, and the cheapest possible
+        // way to avoid it is to not compute it twice.
+        let (revenue, cost) = unit_margin(state, recipe, buy_node, sell_node);
 
-        rule_1_sell(state, game_data, ri, recipe, sell_node, orders, deltas);
+        rule_1_sell(state, game_data, ri, recipe, sell_node, (revenue, cost), orders, deltas);
 
         if !is_frozen(recipe) && on_phase(state.tick, ri.id.0 as u64, k.s) {
-            rule_2_nudge(state, game_data, ri, recipe, buy_node, sell_node, deltas);
+            rule_2_nudge(state, game_data, ri, recipe, sell_node, (revenue, cost), deltas);
         }
     }
 
@@ -314,13 +435,50 @@ fn pop_desks(
         // grain — and π scales both. π is the state variable that lets the
         // labour market integrate its flow error, the role inventory plays for
         // a storable.
+        // Read once and shared by Rule 1's reservation wage and σ_π's target, so
+        // a pop cannot post against one basket price and re-aim π at another.
+        // Computed only for the pops that have both a labour good and a
+        // registered parity — it walks the whole need table, and before this
+        // change it ran on activation ticks only.
+        let p_basket = match (pop.labour_good, pop.parity) {
+            (Some(_), Some(_)) => subsistence_price(state, game_data, node),
+            _ => 0.0,
+        };
+
         if let Some(labour) = pop.labour_good {
             let hours = if pop.is_employed {
                 pop.size
             } else {
                 pop.size * pop.last_labour_fill_rate
             };
-            let qty = hours * pop.participation;
+            let qty = match k.supply_rule {
+                // `ReservationGoods` keeps the shipped labour posting on
+                // purpose: it is the decomposition arm, and its whole job is to
+                // hold this branch fixed while the storable branch moves, so the
+                // A/B can say which half of the change did what.
+                SupplyRule::Inelastic | SupplyRule::ReservationGoods => {
+                    hours * pop.participation
+                }
+                // `parity` is already registered per pop, in baskets per hour and
+                // derived from technology, so the reservation wage needs no new
+                // constant: `w_res = parity · P_basket`. Both sides are real, so
+                // R12 holds under redenomination — a nominal reservation would
+                // pin a wage from outside the price system.
+                SupplyRule::Reservation => match pop.parity {
+                    Some(parity) => labour_posted(
+                        hours,
+                        pop.participation,
+                        k.b_out,
+                        state.price(node, labour),
+                        parity * p_basket,
+                    ),
+                    // A tape that registers no parity has no reservation wage to
+                    // post against. Falling back to the inelastic rule is the
+                    // honest reading and is what the lr corpus would have done
+                    // before `parity` landed; it is not a default constant.
+                    None => hours * pop.participation,
+                },
+            };
             if qty > 0.0 {
                 orders.push(Order {
                     node,
@@ -394,7 +552,6 @@ fn pop_desks(
         // parity would pin a price from outside the price system (R12), and
         // under uniform deflation the ratio would not move at all.
         if let (Some(labour), Some(parity)) = (pop.labour_good, pop.parity) {
-            let p_basket = subsistence_price(state, game_data, node);
             if p_basket > 0.0 && parity > 0.0 {
                 let real_wage = state.price(node, labour) / p_basket;
                 let sigma_pi = (real_wage - parity) / parity;
@@ -419,6 +576,94 @@ fn pop_desks(
 
 // ── Rule 1 — SELL above the band ──────────────────────────────────────────────
 
+/// The value of stock a desk withholds, expressed in units of the good.
+///
+/// `band = b_out · flow / R` with `R = revenue/cost` the desk's markup at posted
+/// prices, written as `b_out · flow · cost / revenue` so no price is ever a
+/// divisor. Equivalently, and this is the sentence that explains it: **the desk
+/// withholds stock worth `b_out` ticks of its own input outlay, valued at the
+/// posted price.** Dear ticks make that value cheap in units, so the desk
+/// releases; cheap ticks make it expensive, so the desk holds.
+///
+/// Multi-output recipes split the withheld value by *revenue* share, which is
+/// what using one recipe-level `R` for every output is. A registered choice, not
+/// a discovery: a physical-share split gives different per-good elasticities.
+///
+/// The two degenerate branches are reachable and both are the economically right
+/// answer, so neither is a guard bolted on to avoid a NaN:
+///
+/// * **`revenue ≤ 0`** — the posted price is zero, so selling gains nothing:
+///   band `∞`, post nothing. This is the structural price floor. As `p → 0`
+///   supply → 0, imbalance → +1 and the price rule marks *up*; the "price marks
+///   itself down forever" mode B7 catches becomes unreachable through this
+///   channel without a clamp being added anywhere (R1).
+/// * **`cost ≤ 0`** — a desk with no purchased inputs has no reservation price
+///   at all: band 0, post everything, `ε_s = 0`, and that market keeps its unit
+///   root. Recorded rather than guarded, because a guard would hide it from the
+///   Phase 5 phase map that ought to find it. No such desk is registered in the
+///   corpus; frozen sources and enclosed parcels are where it will first appear.
+///
+/// Order matters: `revenue ≤ 0` is tested first, so a desk with neither revenue
+/// nor cost withholds rather than dumping. Selling into a zero price is the
+/// worse of the two mistakes.
+pub fn reservation_band(b_out: f64, flow: f64, revenue: f64, cost: f64) -> f64 {
+    if !(revenue > 0.0) {
+        return f64::INFINITY;
+    }
+    if !(cost > 0.0) {
+        return 0.0;
+    }
+    b_out * flow * cost / revenue
+}
+
+/// Stock above the band, with an infinite band meaning "post nothing".
+///
+/// Spelled out rather than left to `(stock − INFINITY).max(0.0)` — which does
+/// give 0 — because the day `stock` is itself non-finite that expression is a
+/// NaN posted quantity, and R5 says a metric that cannot be computed FAILS
+/// rather than propagates.
+pub fn posted_above_band(stock: f64, band: f64) -> f64 {
+    if !band.is_finite() || !stock.is_finite() {
+        return 0.0;
+    }
+    (stock - band).max(0.0)
+}
+
+/// A pop's posted hours under the reservation rule.
+///
+/// `posted = min(H, π·H · max(1 + b_out·(1 − w_res/w), 0))`, the same shape as
+/// the storable band term for term: capacity `(1+b_out)·π·H` capped at the pop's
+/// physical hours, reserve `b_out·π·H`, so at the reservation wage the pop posts
+/// one unit of throughput out of `1 + b_out` units of capacity and the
+/// elasticity is `b_out` wherever π sits.
+///
+/// The naive `H·max(1 − w_res/w, 0)` was written first and is recorded as
+/// rejected: it posts **zero** at `w = w_res`, collapsing the labour market at
+/// exactly the wage it should clear at, and at the corpus's π floor of 0.01 its
+/// elasticity is `(1−π)/π = 99`, loop gain `|1 − 0.1·99| = 8.9`.
+///
+/// **The cap bites in the corpus and the rule is one-sided there.** With π = 1
+/// the capacity `(1+b_out)·π·H` is cut to `H`, so a pop already offering all its
+/// hours cannot offer more when the wage rises — the response exists only below
+/// `w_res`. That is a real limitation of the design as specified, not of this
+/// implementation, and it is π's job to fix, not Rule 1's.
+///
+/// `w_res ≤ 0` (a free subsistence basket, or an unregistered `parity`) means no
+/// reservation wage exists, so the pop posts its physical hours: the labour
+/// analogue of the `cost ≤ 0` desk, and elastic at zero like it.
+pub fn labour_posted(hours: f64, pi: f64, b_out: f64, wage: f64, w_res: f64) -> f64 {
+    let base = pi * hours;
+    if !(w_res > 0.0) {
+        return (base * (1.0 + b_out)).min(hours).max(0.0);
+    }
+    if !(wage > 0.0) {
+        // No wage posted at all: the reservation binds absolutely.
+        return 0.0;
+    }
+    let release = (1.0 + b_out * (1.0 - w_res / wage)).max(0.0);
+    (base * release).min(hours).max(0.0)
+}
+
 /// Post every marketable output above the buffer band.
 ///
 /// The posted quantity names only the desk's own stock and scale. That is what
@@ -433,6 +678,7 @@ fn rule_1_sell(
     ri: &RecipeInstance,
     recipe: &RecipeDef,
     sell_node: MarketNodeId,
+    (revenue, cost): (f64, f64),
     orders: &mut Vec<Order>,
     deltas: &mut Vec<StateDelta>,
 ) {
@@ -461,7 +707,20 @@ fn rule_1_sell(
             // before the shock can reach scale. Because inventory is a *stock*
             // it integrates the flow error, so a persistent `d < s` accumulates
             // somewhere σ can see it.
-            (stock - k.b_out * flow).max(0.0)
+            //
+            // Under `Reservation` the band is additionally divided by the
+            // desk's own markup, which is the whole change: the band is then a
+            // fixed *value* rather than a fixed quantity, `∂posted/∂ln p = band`
+            // and `ε_s = inventory/posted − 1`. At `R = 1` the two branches are
+            // the same number, which is why this is a generalisation and not a
+            // replacement.
+            let band = match k.supply_rule {
+                SupplyRule::Inelastic => k.b_out * flow,
+                SupplyRule::Reservation | SupplyRule::ReservationGoods => {
+                    reservation_band(k.b_out, flow, revenue, cost)
+                }
+            };
+            posted_above_band(stock, band)
         } else {
             // No stock to integrate anything, so the flow itself is the offer:
             // one activation's production, capped by what the desk actually has.
@@ -474,6 +733,16 @@ fn rule_1_sell(
             // by σ, to steer *scale* — which is the placement kernel.md's own
             // analysis argues for: a flow case is corrected by its state
             // variable moving, not by its offer being re-derived every tick.
+            //
+            // `Reservation` does NOT touch this branch, and that is a positive
+            // claim rather than an omission: once a perishable has been made its
+            // input cost is *sunk*, an unsold unit is worth nothing at end of
+            // tick, and selling at any positive price beats holding what cannot
+            // be held. The profit-maximising supply of an already-produced
+            // perishable is vertical. A withholding rule here would model a desk
+            // destroying its own output. `local_services` therefore keeps a unit
+            // root on the supply side, and the pre-registered prediction is that
+            // it stays the corpus's worst market and that B7 can still pin it.
             flow.min(stock).max(0.0)
         };
 
@@ -572,12 +841,11 @@ fn rule_2_nudge(
     game_data: &GameData,
     ri: &RecipeInstance,
     recipe: &RecipeDef,
-    buy_node: MarketNodeId,
     sell_node: MarketNodeId,
+    (revenue, cost): (f64, f64),
     deltas: &mut Vec<StateDelta>,
 ) {
     let k = &game_data.kernel;
-    let (revenue, cost) = unit_margin(state, recipe, buy_node, sell_node);
     let margin = revenue - cost;
     let reference = ((revenue + cost) / 2.0).max(1e-12);
 

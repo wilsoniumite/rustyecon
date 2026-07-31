@@ -1,0 +1,170 @@
+// solv_1g — ONE GOOD. The smallest object that is still an economy, and the
+// first scenario in this repo whose right answer is known before the run.
+//
+// Registered 2026-07-31. Derivation: docs/design/solvable-scenarios.md §2.
+// Machine-readable target: equilibrium.ron beside this file. THE TWO MUST
+// AGREE; tests/test_12_solvable.rs reads equilibrium.ron, and this header is
+// the human-readable copy of the same numbers so a reader never has to trust a
+// test file to learn what the world is supposed to do.
+//
+// ── WHY THIS EXISTS ───────────────────────────────────────────────────────────
+// Every criterion in the project before B8 was a STABILITY criterion: did the
+// level stay put, did the wobble grow. None asked whether the prices went to the
+// RIGHT PLACE, because no scenario in the corpus had a right place. tracer_2r's
+// own header says it is "not to be economics"; the lr_* corpus is a factorial
+// search grid. This world's competitive equilibrium is a single division.
+//
+// ── THE CLOSED FORM ───────────────────────────────────────────────────────────
+//   technology:   a = 0.5 labour per grain,  so  r = 1/a = 2 grain per labour
+//
+//   PRICES, by zero profit. A desk rests iff |relative margin| <= dead
+//   (src/kernel/mod.rs:539,593 — that dead-band IS the rest SET, width +/-5%).
+//   Per unit of recipe size revenue R = p_grain, cost C = a*p_labour, so
+//       p_grain = a * p_labour              =>  RealWage = p_labour/p_grain = 2
+//
+//   QUANTITIES, by exact posted balance. p <- p*(1 + alpha*clamp(imbalance)) is
+//   stationary iff demand == supply EXACTLY, market by market, every tick
+//   (src/systems/clearing/mod.rs:136). With N = head-count, q = basket per head,
+//   K = the desk's scale:
+//       labour :  supply N*pi   ==  demand a*K
+//       grain  :  supply K      ==  demand N*q        (Rule 1 at rest posts
+//                                                      exactly production)
+//   Participation is pinned at the pi = 1 corner and this is STRUCTURAL, not a
+//   choice: parity = HOME_PENALTY/embodied with HOME_PENALTY = 0.5, and at the
+//   zero-profit vector the market real wage is 1/embodied, so
+//       sigma_pi = (1/e - 0.5/e)/(0.5/e) = +1   identically,
+//   for any labour-only technology, any basket, any chain length, any price
+//   level. Hence K = N/a = N*r and q = K/N = r. At N = 10, a = 0.5:
+//       K = 20,  q = 2,  labour cleared 10/tick,  grain cleared 20/tick.
+//
+//   STOCKS. Rule 1 posts stock - b_out*scale*qty_out and production adds
+//   scale*qty_out, so at rest stock = (1 + b_out)*K = 3*20 = 60 and the posted
+//   quantity is 60 - 40 = 20 = demand.
+//
+//   CASH. Rule 3 strips a firm to reserve + planned = (b_cash/s + s)*outlay
+//   = 7.5*10 = 75, and at zero profit revenue (20*0.5 = 10) equals outlay (10),
+//   so overflow is exactly 0 and the balance reproduces itself. The pop's income
+//   (p_labour*10 = 10) equals its spending (p_grain*20 = 10), so its cash is
+//   constant at whatever it starts with.
+//
+//   PREDICTED EQUILIBRIUM
+//       p_labour 1.0 (numeraire)   p_grain 0.5   p_gbp 1.0
+//       RealWage 2.0    chosen_size 20    BldUtil 0.8    Employment 1.0
+//       cleared labour 10, grain 20       firm grain stock 60
+//       cash: firm 75, pop 30, M = 105
+//       Velocity 20/105 = 0.19047619...   Concentration 75/105 = 0.71428571...
+//       RealIncome (30/10)/0.5 = 6.0
+//   Every registered failure class passes on those constants, and B7 does not
+//   fire (it exempts |mean imbalance| <= 1e-9).
+//
+// ── WHAT THIS SCENARIO CANNOT TEST, STATED SO NOBODY READS MORE INTO IT ───────
+// THE PRICE LEVEL IS NOT PINNED HERE. With ONE wealth tier the pop's cash rule
+// is skipped entirely (src/kernel/mod.rs:377 requires max_wealth_tier > 0), so
+// every posted quantity is physical and the excess-demand system is homogeneous
+// of degree zero: lambda*p* is a rest point for every lambda leaving no cash
+// constraint binding. From above lambda <= 1 and it binds AT the equilibrium
+// (Rule 3 leaves the firm exactly 75*lambda against a fixed stock of 75); from
+// below, nothing. The equilibrium is a half-open ray lambda in (0, 1].
+// Two consequences worth registering:
+//   1. a correctness test must score RELATIVE prices against a numeraire;
+//   2. Velocity is proportional to the level at fixed M, so the DRIFTING
+//      criterion on Velocity is scoring an UNPINNED direction of the dynamics
+//      whenever a tape registers a single tier. solv_1g_money is the same real
+//      economy WITH the anchor, and the pair separates that cleanly.
+//
+// ── s = 1 IS FORCED, NOT CHOSEN ───────────────────────────────────────────────
+// rule_3_buy_and_route posts a desk's input demand only when
+// (tick + inventory_index) % s == 0, while pops post labour EVERY tick. With one
+// desk per market, any s > 1 leaves labour demand at 0 on non-activation ticks,
+// so imbalance = -1 and p_labour falls by alpha; a constant price would require
+// pi = 0, i.e. a dead economy. The stagger presumes a population and has no
+// meaning with one desk per market. THE COST IS REAL AND IS NOT HIDDEN: at
+// s = 1, Rule 3's overflow leaves zero cash slack, and growing by g without
+// rationing needs g <= m*s^2/(b_cash + s^2), i.e. margin m >= 0.30 (sigma >=
+// 0.26) — while Rule 2's expansion gate is sigma > dead = 0.05. FOR SIGMA
+// BETWEEN 0.05 AND 0.26 THE KERNEL EXPANDS AND IMMEDIATELY RATIONS ITS OWN
+// INPUTS, and that threshold is 2.4x harsher here than at the corpus's s = 4.
+// If a measurement turns out to be dominated by that, the honest response is a
+// registered b_cash sweep in a NEW dated file, not a quiet retune of this one.
+//
+// EVERY NUMBER IN THIS TAPE IS A DYADIC RATIONAL (halves, quarters, small
+// integers), so the fixed point is bit-exact in f64 and every rule's response at
+// the equilibrium is IDENTICALLY zero rather than approximately zero. That is
+// what lets the mode-A test assert no motion at all instead of small motion.
+(
+    kernel: (
+        // s = 1: forced, see the header. Everything else is the corpus value so
+        // results transfer to lr_* and tracer_2r without a second explanation.
+        s: 1,
+        eta_up: 0.04,
+        eta_dn: 0.05,
+        dead: 0.05,
+        b_out: 2.0,
+        b_cash: 6.5,
+        beta: 1.0,
+        epsilon: 0.01,
+        phi: 0.6180339887498949,
+        fill_alpha: 0.25,
+        // Which Rule 1 the desks post under. `inelastic` is the rule
+        // shipped through Phase 4 (posted supply has price elasticity
+        // exactly zero); `reservation` divides the band by the desk's
+        // own markup, so b_out becomes the supply curve's slope.
+        // Registered here, swept with --supply-rule.
+        supply_rule: inelastic,
+    ),
+    goods: [
+        // alpha 0.05 is the corpus's labour value, applied to both traded goods
+        // so mode A is invariant to it (a balanced market is stationary for ANY
+        // alpha) and mode B's speed is the corpus's speed.
+        ( name: "grain",  alpha: 0.05, shelf_life: Indefinite, movement_type: Physical,  divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "gbp",    alpha: 0.0,  shelf_life: Indefinite, movement_type: Financial, divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "labour", alpha: 0.05, shelf_life: Instant,    movement_type: Local,     divisible: true, storage_cost_per_tick: 0.0 ),
+    ],
+    recipes: [
+        // a = 0.5 labour per grain, so r = 2 and RealWage = 2.
+        //
+        // Variable, NOT Fixed. tracer_2r uses Fixed and its own header records
+        // what that does: the recipe draws recipe_size of labour regardless of
+        // chosen_size, which breaks the capacity -> labour-demand -> labour-price
+        // loop this scenario exists to measure.
+        (
+            name: "grow_grain",
+            inputs:  [ ( good: "labour", qty_per_unit: 0.5, scaling: Variable ) ],
+            outputs: [ ( good: "grain",  qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: CapacityControl,
+        ),
+        // NOT a desk under the kernel: is_desk() excludes DividendPayout, and
+        // Rule 3's overflow routing reads this instance purely as the pointer to
+        // the claim holder (kernel/mod.rs:620), forcing its chosen_size to 0.
+        // Under --agents legacy it is the dividend desk. Both arms therefore have
+        // a currency return path and neither can be said to have been starved of
+        // one. At the equilibrium the overflow is exactly zero, so this instance
+        // moves nothing — it is wiring, not a flow.
+        (
+            name: "dividend",
+            inputs:  [ ( good: "gbp", qty_per_unit: 1.0, scaling: Variable ) ],
+            outputs: [ ( good: "gbp", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: DividendPayout( reserve_multiple: 26.0 ),
+        ),
+    ],
+    // One entry, so logit_shares returns [1.0] and beta is inert — the world has
+    // no substitution to confound the price test with.
+    need_categories: [
+        ( name: "food", entries: [ ( good: "grain", weight: 1.0 ) ] ),
+    ],
+    // ONE tier, deliberately: this is the tape that leaves the price level
+    // unpinned. See the header, and see solv_1g_money for the paired tape that
+    // switches the anchor on.
+    wealth_levels: [
+        ( tier: 0, needs: { "food": 2.0 } ),
+    ],
+    market_nodes: [
+        ( id: (0), tier: Regional, region: Some((0)), currency_good: Some((1)) ),
+    ],
+    channels: [],
+    regions: [
+        ( id: (0), name: "Solo", market_node: (0) ),
+    ],
+)

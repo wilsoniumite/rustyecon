@@ -1,0 +1,780 @@
+{
+ "verdict": "LOSS",
+ "gate_met": false,
+ "gates": [
+  {
+   "id": "G1",
+   "label": "liveness may not regress",
+   "passed": false,
+   "detail": "live regions 33 -> 5; 2 revived, 30 killed (lr_00/Leeds, lr_00/Manchester, lr_04/Leeds, lr_04/Manchester, lr_08/Birmingham, lr_08/Leeds)",
+   "strict": false
+  },
+  {
+   "id": "G2",
+   "label": "band may not widen where both arms keep the economy alive",
+   "passed": true,
+   "detail": "n=3, median dlog=-1.351 (x0.2591), 2 tighter / 1 wider / 0 unchanged",
+   "strict": true
+  },
+  {
+   "id": "G3",
+   "label": "band may not widen across the corpus",
+   "passed": false,
+   "detail": "n=72, median dlog=12.84 (x3.771e+05), 14 tighter / 58 wider / 0 unchanged",
+   "strict": false
+  }
+ ],
+ "regions": 72,
+ "passing": {
+  "legacy": 0,
+  "kernel": 0
+ },
+ "live": {
+  "legacy": 33,
+  "kernel": 5
+ },
+ "revived": [
+  "lr_18/Birmingham",
+  "lr_19/Birmingham"
+ ],
+ "killed": [
+  "lr_00/Leeds",
+  "lr_00/Manchester",
+  "lr_04/Leeds",
+  "lr_04/Manchester",
+  "lr_08/Birmingham",
+  "lr_08/Leeds",
+  "lr_08/Manchester",
+  "lr_09/Leeds",
+  "lr_10/Birmingham",
+  "lr_10/Leeds",
+  "lr_10/Manchester",
+  "lr_12/Birmingham",
+  "lr_12/Leeds",
+  "lr_12/Manchester",
+  "lr_13/Leeds",
+  "lr_14/Birmingham",
+  "lr_14/Manchester",
+  "lr_15/Leeds",
+  "lr_15/Manchester",
+  "lr_16/Birmingham",
+  "lr_16/Leeds",
+  "lr_16/Manchester",
+  "lr_18/Leeds",
+  "lr_18/Manchester",
+  "lr_20/Birmingham",
+  "lr_20/Leeds",
+  "lr_20/Manchester",
+  "lr_21/Birmingham",
+  "lr_22/Leeds",
+  "lr_22/Manchester"
+ ],
+ "bands": {
+  "legacy": {
+   "n": 72,
+   "nonfinite": 0,
+   "min": 2.715214320325328,
+   "median": 152486.14756890654,
+   "max": 1.0548564982047037e+234,
+   "within_2_2": 0
+  },
+  "kernel": {
+   "n": 72,
+   "nonfinite": 0,
+   "min": 1053.1145477029484,
+   "median": 653268037.8926536,
+   "max": 2.7291898238472972e+16,
+   "within_2_2": 0
+  },
+  "legacy_live": {
+   "n": 33,
+   "nonfinite": 0,
+   "min": 2.715214320325328,
+   "median": 23.612220271992708,
+   "max": 60804445.57978823,
+   "within_2_2": 0
+  },
+  "kernel_live": {
+   "n": 5,
+   "nonfinite": 0,
+   "min": 81426.2344671856,
+   "median": 225344.72195984315,
+   "max": 1840809.441091801,
+   "within_2_2": 0
+  }
+ },
+ "classes": {
+  "legacy": {
+   "DRIFTING": 72,
+   "UNSTABLE": 39,
+   "SWINGING": 37,
+   "DEAD": 30,
+   "DEAD_BUILDING": 27,
+   "POP_DESTITUTION": 9,
+   "CURRENCY_DRAIN": 3
+  },
+  "kernel": {
+   "DRIFTING": 72,
+   "UNSTABLE": 72,
+   "POP_DESTITUTION": 67,
+   "SWINGING": 65,
+   "CURRENCY_DRAIN": 28
+  }
+ },
+ "scenario_level": {
+  "median_dlog": 10.577593591040038,
+  "tighter": 2,
+  "wider": 22,
+  "unchanged": 0
+ },
+ "per_region": [
+  {
+   "scenario": "lr_00",
+   "region": "Birmingham",
+   "legacy_band": 1406116.9467373635,
+   "kernel_band": 1.1572381831997416e+16,
+   "dlog": 22.831055252872613,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_00",
+   "region": "Leeds",
+   "legacy_band": 23.612220271992708,
+   "kernel_band": 1.3015342475866132e+16,
+   "dlog": 33.94314086079569,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_00",
+   "region": "Manchester",
+   "legacy_band": 11.473629831530742,
+   "kernel_band": 1.156769775740594e+16,
+   "dlog": 34.54694158835627,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_01",
+   "region": "Birmingham",
+   "legacy_band": 172828.9674825445,
+   "kernel_band": 1.291522002746202e+16,
+   "dlog": 25.037125100698674,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_01",
+   "region": "Leeds",
+   "legacy_band": 61850.0686793351,
+   "kernel_band": 1.2609204412888386e+16,
+   "dlog": 26.040734962897993,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_01",
+   "region": "Manchester",
+   "legacy_band": 127303.05298971797,
+   "kernel_band": 1.0704791929038166e+16,
+   "dlog": 25.15514211306663,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_02",
+   "region": "Birmingham",
+   "legacy_band": 3411214.5662215245,
+   "kernel_band": 7756088491724906.0,
+   "dlog": 21.544675578058936,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_02",
+   "region": "Leeds",
+   "legacy_band": 1.2048545921181778e+196,
+   "kernel_band": 1.3167979086378512e+16,
+   "dlog": -414.37647266542433,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_02",
+   "region": "Manchester",
+   "legacy_band": 2769050.517082459,
+   "kernel_band": 1.3104997761975194e+16,
+   "dlog": 22.277755015122857,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_03",
+   "region": "Birmingham",
+   "legacy_band": 129060.79662092372,
+   "kernel_band": 1.3616876248748242e+16,
+   "dlog": 25.38204745505922,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_03",
+   "region": "Leeds",
+   "legacy_band": 1.0548564982047037e+234,
+   "kernel_band": 1.2159238018106056e+16,
+   "dlog": -501.82145089112345,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_03",
+   "region": "Manchester",
+   "legacy_band": 426419.8544379403,
+   "kernel_band": 1.2690775228822638e+16,
+   "dlog": 24.116472050822303,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_04",
+   "region": "Birmingham",
+   "legacy_band": 8640102.295437705,
+   "kernel_band": 1.3247835402437374e+16,
+   "dlog": 21.150685587683597,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_04",
+   "region": "Leeds",
+   "legacy_band": 3.2376495901755105,
+   "kernel_band": 8209927170420928.0,
+   "dlog": 35.46927281607995,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_04",
+   "region": "Manchester",
+   "legacy_band": 7.615087747366594,
+   "kernel_band": 8814833962344131.0,
+   "dlog": 34.68508086553,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_05",
+   "region": "Birmingham",
+   "legacy_band": 27059.92932327371,
+   "kernel_band": 1.5699553392200478e+16,
+   "dlog": 27.086599370634726,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_05",
+   "region": "Leeds",
+   "legacy_band": 66367.41133618967,
+   "kernel_band": 1.564401859994436e+16,
+   "dlog": 26.185903618897434,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_05",
+   "region": "Manchester",
+   "legacy_band": 51115.4568637672,
+   "kernel_band": 1.2292732969702632e+16,
+   "dlog": 26.205942454107458,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_06",
+   "region": "Birmingham",
+   "legacy_band": 57823.440754027244,
+   "kernel_band": 8560500320833663.0,
+   "dlog": 25.72078551022662,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_06",
+   "region": "Leeds",
+   "legacy_band": 4070964.5186429564,
+   "kernel_band": 9768659827504582.0,
+   "dlog": 21.598565167535604,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_06",
+   "region": "Manchester",
+   "legacy_band": 186086.7668642818,
+   "kernel_band": 1.2081017525466364e+16,
+   "dlog": 24.896443483669575,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_07",
+   "region": "Birmingham",
+   "legacy_band": 137770.40499664436,
+   "kernel_band": 1.3493448682703444e+16,
+   "dlog": 25.307636833112525,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_07",
+   "region": "Leeds",
+   "legacy_band": 1267576338.754203,
+   "kernel_band": 9223218200890678.0,
+   "dlog": 15.800127897796717,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_07",
+   "region": "Manchester",
+   "legacy_band": 1735022.8582590932,
+   "kernel_band": 1.597189801226733e+16,
+   "dlog": 22.943076052618103,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_08",
+   "region": "Birmingham",
+   "legacy_band": 7.1075268950952974,
+   "kernel_band": 75413.01572950993,
+   "dlog": 9.269580812925588,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_08",
+   "region": "Leeds",
+   "legacy_band": 45.28411417106547,
+   "kernel_band": 32793.73317871907,
+   "dlog": 6.585036424057465,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_08",
+   "region": "Manchester",
+   "legacy_band": 32.02775207894437,
+   "kernel_band": 2488.1107386211825,
+   "dlog": 4.3526761825400815,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_09",
+   "region": "Birmingham",
+   "legacy_band": 14201800.505139666,
+   "kernel_band": 493800.2658937846,
+   "dlog": -3.358992916312536,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_09",
+   "region": "Leeds",
+   "legacy_band": 61.93029790038711,
+   "kernel_band": 408490.8579480924,
+   "dlog": 8.794215288253426,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_09",
+   "region": "Manchester",
+   "legacy_band": 4.724892113310428e+196,
+   "kernel_band": 22797.231246940217,
+   "dlog": -442.82512858332535,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_10",
+   "region": "Birmingham",
+   "legacy_band": 3.043451719720417,
+   "kernel_band": 30958.25601820678,
+   "dlog": 9.227402690536888,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_10",
+   "region": "Leeds",
+   "legacy_band": 22393.269854517002,
+   "kernel_band": 86219.02756113885,
+   "dlog": 1.3481304298863162,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_10",
+   "region": "Manchester",
+   "legacy_band": 12.552970080638923,
+   "kernel_band": 30969.601037893455,
+   "dlog": 7.8108040932820995,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_11",
+   "region": "Birmingham",
+   "legacy_band": 337196.1083422233,
+   "kernel_band": 26629.410883741395,
+   "dlog": -2.5386484076611833,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_11",
+   "region": "Leeds",
+   "legacy_band": 320578.33516276145,
+   "kernel_band": 595590.9697381854,
+   "dlog": 0.6194274770927706,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_11",
+   "region": "Manchester",
+   "legacy_band": 75517.22339382884,
+   "kernel_band": 114849.1783923298,
+   "dlog": 0.41925902070389043,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_12",
+   "region": "Birmingham",
+   "legacy_band": 42316013.10202264,
+   "kernel_band": 181106.07508730938,
+   "dlog": -5.453837943918394,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_12",
+   "region": "Leeds",
+   "legacy_band": 3.089359103641589,
+   "kernel_band": 13507417.042672802,
+   "dlog": 15.290785843533751,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_12",
+   "region": "Manchester",
+   "legacy_band": 2.715214320325328,
+   "kernel_band": 1053.1145477029484,
+   "dlog": 5.960636398844934,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_13",
+   "region": "Birmingham",
+   "legacy_band": 4.719748705233116e+19,
+   "kernel_band": 247935.95328451187,
+   "dlog": -32.87994658574123,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_13",
+   "region": "Leeds",
+   "legacy_band": 45.200638508029954,
+   "kernel_band": 16086370.237095168,
+   "dlog": 12.7823716892659,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_13",
+   "region": "Manchester",
+   "legacy_band": 2026158.23033073,
+   "kernel_band": 91017.33684959557,
+   "dlog": -3.1028467784241602,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_14",
+   "region": "Birmingham",
+   "legacy_band": 21.761535279084004,
+   "kernel_band": 56895.83790151573,
+   "dlog": 7.868833495234417,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_14",
+   "region": "Leeds",
+   "legacy_band": 92493682.53152736,
+   "kernel_band": 139400552.8790759,
+   "dlog": 0.41021111922295717,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_14",
+   "region": "Manchester",
+   "legacy_band": 22.881093223724903,
+   "kernel_band": 2882.6115293639064,
+   "dlog": 4.836140997154233,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_15",
+   "region": "Birmingham",
+   "legacy_band": 944109.3089208952,
+   "kernel_band": 244592.7498436434,
+   "dlog": -1.350647370844781,
+   "legacy_live": true,
+   "kernel_live": true
+  },
+  {
+   "scenario": "lr_15",
+   "region": "Leeds",
+   "legacy_band": 318459.03238893364,
+   "kernel_band": 52076085.08834092,
+   "dlog": 5.096967262925409,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_15",
+   "region": "Manchester",
+   "legacy_band": 4.025791559776187,
+   "kernel_band": 1.0557152020697614e+16,
+   "dlog": 35.50285838945558,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_16",
+   "region": "Birmingham",
+   "legacy_band": 21088602.39875217,
+   "kernel_band": 3109587.085240851,
+   "dlog": -1.9142427765046257,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_16",
+   "region": "Leeds",
+   "legacy_band": 3.710171343197694,
+   "kernel_band": 1482572.394907976,
+   "dlog": 12.898211181948717,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_16",
+   "region": "Manchester",
+   "legacy_band": 15.725388816153707,
+   "kernel_band": 1531136475.837957,
+   "dlog": 18.393999563012326,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_17",
+   "region": "Birmingham",
+   "legacy_band": 140570.28853644544,
+   "kernel_band": 6955326538223167.0,
+   "dlog": 24.624821252382663,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_17",
+   "region": "Leeds",
+   "legacy_band": 164402.00660136767,
+   "kernel_band": 7785754402208516.0,
+   "dlog": 24.58100213295438,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_17",
+   "region": "Manchester",
+   "legacy_band": 210913.7852397786,
+   "kernel_band": 1.123017195967631e+16,
+   "dlog": 24.698175747871808,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_18",
+   "region": "Birmingham",
+   "legacy_band": 109212258.58305047,
+   "kernel_band": 81426.2344671856,
+   "dlog": -7.201351082243365,
+   "legacy_live": false,
+   "kernel_live": true
+  },
+  {
+   "scenario": "lr_18",
+   "region": "Leeds",
+   "legacy_band": 7230010.266205124,
+   "kernel_band": 31501691.76062472,
+   "dlog": 1.4718007949608847,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_18",
+   "region": "Manchester",
+   "legacy_band": 28.855432817289543,
+   "kernel_band": 1004676611.3702841,
+   "dlog": 17.365633259160962,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_19",
+   "region": "Birmingham",
+   "legacy_band": 298366.53516256675,
+   "kernel_band": 1840809.441091801,
+   "dlog": 1.8196379530441789,
+   "legacy_live": false,
+   "kernel_live": true
+  },
+  {
+   "scenario": "lr_19",
+   "region": "Leeds",
+   "legacy_band": 4.608005305477103e+20,
+   "kernel_band": 6819170.10290364,
+   "dlog": -31.844248598011987,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_19",
+   "region": "Manchester",
+   "legacy_band": 243715.3790051911,
+   "kernel_band": 6385495142850158.0,
+   "dlog": 23.989049085289864,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_20",
+   "region": "Birmingham",
+   "legacy_band": 75.3000605197691,
+   "kernel_band": 132198.48470989708,
+   "dlog": 7.470578805709461,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_20",
+   "region": "Leeds",
+   "legacy_band": 6.278259283089246,
+   "kernel_band": 688531480.8625658,
+   "dlog": 18.512978841089826,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_20",
+   "region": "Manchester",
+   "legacy_band": 40709.976400527405,
+   "kernel_band": 52896963593.44965,
+   "dlog": 14.077383313374002,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_21",
+   "region": "Birmingham",
+   "legacy_band": 5.095142227093982,
+   "kernel_band": 9391703.407084623,
+   "dlog": 14.427049659919323,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_21",
+   "region": "Leeds",
+   "legacy_band": 175952.6069540726,
+   "kernel_band": 3377347.7563736015,
+   "dlog": 2.9546313128791795,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_21",
+   "region": "Manchester",
+   "legacy_band": 453362.6778962631,
+   "kernel_band": 2.7291898238472972e+16,
+   "dlog": 24.820918587633102,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_22",
+   "region": "Birmingham",
+   "legacy_band": 4266133.171184835,
+   "kernel_band": 225344.72195984315,
+   "dlog": -2.940831788078544,
+   "legacy_live": true,
+   "kernel_live": true
+  },
+  {
+   "scenario": "lr_22",
+   "region": "Leeds",
+   "legacy_band": 60804445.57978823,
+   "kernel_band": 382721681.9412787,
+   "dlog": 1.8396451416292372,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_22",
+   "region": "Manchester",
+   "legacy_band": 29.60421300819393,
+   "kernel_band": 618004594.9227414,
+   "dlog": 16.854089767984618,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_23",
+   "region": "Birmingham",
+   "legacy_band": 23.55771480622512,
+   "kernel_band": 102102.64749265005,
+   "dlog": 8.374280574768212,
+   "legacy_live": true,
+   "kernel_live": true
+  },
+  {
+   "scenario": "lr_23",
+   "region": "Leeds",
+   "legacy_band": 1123594742982.7207,
+   "kernel_band": 747828669.4187934,
+   "dlog": -7.314869795315612,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "lr_23",
+   "region": "Manchester",
+   "legacy_band": 203870.36938107817,
+   "kernel_band": 785802170.1299115,
+   "dlog": 8.256976000131358,
+   "legacy_live": false,
+   "kernel_live": false
+  }
+ ]
+}

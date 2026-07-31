@@ -17,6 +17,78 @@ pub struct WealthLevel {
     pub qty_per_pop: Vec<f64>, // length == game_data.need_categories.len()
 }
 
+/// Which Rule 1 a run's desks post under.
+///
+/// A *switch*, registered like every other kernel dial rather than chosen in
+/// code, for the reason R7 and R10 exist: the shipped rule has to stay runnable
+/// so the two can be A/B'd under identical tapes before either is deleted.
+///
+/// There is deliberately **no `Default` derive** here, for the same reason
+/// [`KernelParams`] has none: a tape that omits the field must fail to load,
+/// not silently inherit whichever variant the source file happened to list
+/// first. That is exactly the failure the switch would otherwise invite —
+/// a scenario ported before this change quietly running the other mechanism.
+// snake_case on the wire so the tape spells the variant exactly as the
+// `--supply-rule` flag does. One name for one thing; a tape reading `Inelastic`
+// against a flag reading `inelastic` is a transcription error waiting to happen.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SupplyRule {
+    /// `posted = max(inventory − b_out · flow, 0)`.
+    ///
+    /// The rule shipped through Phase 4. It names no price, so posted supply
+    /// has price elasticity **exactly zero** — measured at 0.000 for every good
+    /// under the kernel (`examples/elasticity_probe.rs`), which is the same
+    /// statement as "the price loop has a unit root and no fixed point exists".
+    Inelastic,
+    /// `posted = max(inventory − b_out · flow / R, 0)`, `R` the desk's own
+    /// markup at posted prices.
+    ///
+    /// Hold back a fixed *value* of stock and let the price decide how many
+    /// units that value is. Reduces to [`SupplyRule::Inelastic`] identically at
+    /// `R = 1`, so it is a strict generalisation rather than a replacement, and
+    /// every resting-state result at zero profit is unchanged bit for bit.
+    /// Design: `docs/design/price-responsive-supply.md`.
+    Reservation,
+    /// [`SupplyRule::Reservation`] on **storable outputs only**; pops keep the
+    /// shipped `π·H` labour posting.
+    ///
+    /// A decomposition, not a third design. The change has two halves that hit
+    /// different markets — a producer's stock and a pop's hours — and the first
+    /// A/B could not say which half moved the result. This variant exists so it
+    /// can, for the same reason Rule 3's mirror was left out entirely: two
+    /// mechanisms landing together have one receipt between them.
+    ///
+    /// It earned its place immediately. Under the full rule the lr corpus goes
+    /// to **0 live regions of 72**; under this one it does not, which localises
+    /// the collapse to the labour branch rather than to the reservation band.
+    ReservationGoods,
+}
+
+impl SupplyRule {
+    pub fn name(&self) -> &'static str {
+        match self {
+            SupplyRule::Inelastic => "inelastic",
+            SupplyRule::Reservation => "reservation",
+            SupplyRule::ReservationGoods => "reservation_goods",
+        }
+    }
+}
+
+impl std::str::FromStr for SupplyRule {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "inelastic" => Ok(SupplyRule::Inelastic),
+            "reservation" => Ok(SupplyRule::Reservation),
+            "reservation_goods" => Ok(SupplyRule::ReservationGoods),
+            other => Err(format!(
+                "unknown supply rule {other:?} (inelastic | reservation | reservation_goods)"
+            )),
+        }
+    }
+}
+
 /// The desk kernel's dials ([kernel.md](../../docs/architecture/kernel.md),
 /// "Parameters"). Registered in `game_data.ron`, one block per scenario.
 ///
@@ -44,6 +116,17 @@ pub struct KernelParams {
     /// Output buffer band, in activations of throughput. Rule 1 posts stock
     /// above `b_out · scale · qty_out`, so this is the low-pass filter between
     /// a demand shock and a scale response.
+    ///
+    /// **Under [`SupplyRule::Reservation`] it is also the supply curve's
+    /// slope**: the band becomes `b_out · flow / R`, so at a desk's resting
+    /// point `ε_s = b_out/R`, and the whole price-loop stability condition
+    /// collapses to `α · b_out < 2R`. Registered: `0.1 × 2.0 = 0.2`, a factor of
+    /// ten inside the boundary. `α` and `b_out` enter the linearised loop only
+    /// as their product, so the Phase 5 sweep over that axis is
+    /// one-dimensional. The name still says "activations" while `rule_1_sell`
+    /// computes `flow` per *tick*; the per-tick reading is kept deliberately,
+    /// because it is what makes the reservation band reduce to this one exactly
+    /// at `R = 1`. See the header of `src/kernel/mod.rs`.
     pub b_out: f64,
     /// Cash band, in activations of outlay. Rule 3 holds
     /// `b_cash · outlay(scale) / s` back as reserve, which is also what anchors
@@ -65,6 +148,18 @@ pub struct KernelParams {
     /// EMA weight on a service desk's realized fill. Non-storable outputs have
     /// no stock to smooth them, so this plays the buffer band's role.
     pub fill_alpha: f64,
+    /// Which Rule 1 the desks post under — the shipped price-inelastic band, or
+    /// the price-responsive reservation band.
+    ///
+    /// Registered rather than hardcoded because the two have to be A/B'd, and
+    /// registered *per tape* rather than only as a CLI flag because R2 says a
+    /// behavioural choice lives in data. `--supply-rule` overrides it for a
+    /// sweep, and the effective value is folded into the run identity so an
+    /// overridden run cannot be mistaken for the tape's own.
+    ///
+    /// It is not a magnitude, so [`KernelParams::validate`] has nothing to say
+    /// about it: an unknown variant fails in the RON parser, by name, at load.
+    pub supply_rule: SupplyRule,
 }
 
 impl KernelParams {
@@ -231,6 +326,7 @@ mod kernel_tests {
             epsilon: 0.01,
             phi: 0.6180339887498949,
             fill_alpha: 0.25,
+            supply_rule: SupplyRule::Inelastic,
         }
     }
 

@@ -1,0 +1,94 @@
+// solv_1g_money_2x — THE MONEY-NEUTRALITY CONTROL. R2's sharpest audit.
+//
+// Registered 2026-07-31. Derivation: docs/design/solvable-scenarios.md §3.
+//
+// THIS FILE IS BYTE-IDENTICAL TO data/scenarios/solv_1g_money/game_data.ron
+// EXCEPT FOR THIS HEADER. Nothing in game data is denominated in currency, so
+// there is nothing here to double; the entire difference between the two
+// scenarios lives in starting_state.ron, where every price and every currency
+// balance is exactly 2x. If a future edit makes these two files differ in any
+// other way, the experiment is void — diff them before trusting a result.
+//
+// ── THE CLAIM, REGISTERED BEFORE THE RUN ──────────────────────────────────────
+// Every real quantity, every fill rate and every metric series is BIT-IDENTICAL
+// between solv_1g_money and solv_1g_money_2x, and every price is exactly 2x at
+// every tick.
+//
+// WHY IT MUST HOLD. Every kernel rule is a function of ratios: the dead-bands
+// act on sigma = margin/reference and on sigma_c = (cash - reserve)/reserve, the
+// clamps act on pi and on scale/recipe_size, the ration is budget/want, the
+// logit divides prices by their own mean. Doubling every price and every
+// currency stock leaves all of those unchanged, and on dyadic inputs the
+// arithmetic at 2x has identical rounding. Note the metrics are ratios too —
+// Velocity is currency-flow over currency-stock, RealIncome is currency over a
+// price, Concentration is a share — so they are invariant rather than doubled.
+//
+// WHY A FAILURE MATTERS. It would mean an absolute constant with behavioural
+// meaning has leaked into the source: a number that means one thing when a loaf
+// costs 0.5 and another when it costs 1.0. That is the R2 violation the rule
+// exists to prevent, and this pair names it by good and by tick instead of
+// leaving it to be discovered by a redenomination years later.
+//
+// ONE ABSOLUTE CURRENCY CONSTANT IS ALREADY KNOWN TO EXIST, and it is recorded
+// here rather than found later: `overflow > 1e-12` in rule_3_buy_and_route
+// (src/kernel/mod.rs:707) compares a CURRENCY AMOUNT against a fixed epsilon,
+// so it is not scale-free. At the equilibrium the overflow is exactly 0.0 in
+// both tapes and the gate cannot bind, which is why this test is expected to
+// pass; the constant is a numerical epsilon rather than a behavioural dial, and
+// it would only bite in a world denominated near 1e-12. Stated so that a future
+// failure here is diagnosed rather than re-derived.
+(
+    kernel: (
+        s: 1,
+        eta_up: 0.04,
+        eta_dn: 0.05,
+        dead: 0.05,
+        b_out: 2.0,
+        b_cash: 6.5,
+        beta: 1.0,
+        epsilon: 0.01,
+        phi: 0.6180339887498949,
+        fill_alpha: 0.25,
+        // Which Rule 1 the desks post under. `inelastic` is the rule
+        // shipped through Phase 4 (posted supply has price elasticity
+        // exactly zero); `reservation` divides the band by the desk's
+        // own markup, so b_out becomes the supply curve's slope.
+        // Registered here, swept with --supply-rule.
+        supply_rule: inelastic,
+    ),
+    goods: [
+        ( name: "grain",  alpha: 0.05, shelf_life: Indefinite, movement_type: Physical,  divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "gbp",    alpha: 0.0,  shelf_life: Indefinite, movement_type: Financial, divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "labour", alpha: 0.05, shelf_life: Instant,    movement_type: Local,     divisible: true, storage_cost_per_tick: 0.0 ),
+    ],
+    recipes: [
+        (
+            name: "grow_grain",
+            inputs:  [ ( good: "labour", qty_per_unit: 0.5, scaling: Variable ) ],
+            outputs: [ ( good: "grain",  qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: CapacityControl,
+        ),
+        (
+            name: "dividend",
+            inputs:  [ ( good: "gbp", qty_per_unit: 1.0, scaling: Variable ) ],
+            outputs: [ ( good: "gbp", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: DividendPayout( reserve_multiple: 26.0 ),
+        ),
+    ],
+    need_categories: [
+        ( name: "food", entries: [ ( good: "grain", weight: 1.0 ) ] ),
+    ],
+    wealth_levels: [
+        ( tier: 0, needs: { "food": 1.0 } ),
+        ( tier: 1, needs: { "food": 3.0 } ),
+    ],
+    market_nodes: [
+        ( id: (0), tier: Regional, region: Some((0)), currency_good: Some((1)) ),
+    ],
+    channels: [],
+    regions: [
+        ( id: (0), name: "Solo", market_node: (0) ),
+    ],
+)

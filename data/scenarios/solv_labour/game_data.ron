@@ -1,0 +1,162 @@
+// solv_labour — A LABOUR MARKET WHOSE CROSSING IS INTERIOR AND PROVABLE.
+//
+// Registered 2026-07-31. Derivation: docs/design/solvable-scenarios.md §5.
+// Machine-readable target: equilibrium.ron beside this file.
+//
+// ── THE FINDING THIS SCENARIO ANSWERS ─────────────────────────────────────────
+// Phase 4 measured posted labour supply 0.41 against demand 73.7, with the price
+// elasticity of BOTH sides exactly zero (examples/elasticity_probe.rs). No price
+// clears that market, and the price rule has been chasing a crossing that does
+// not exist. This world is built so the crossing EXISTS, is INTERIOR, and is
+// PROVABLE from the tape.
+//
+// ── WHY A ONE-FACTOR ECONOMY CANNOT HAVE ONE ──────────────────────────────────
+// tools/derive_parity.py sets parity = HOME_PENALTY / (labour embodied in one
+// subsistence basket), HOME_PENALTY = 0.5. At the zero-profit price vector the
+// market real wage is exactly 1/embodied, so
+//     sigma_pi = (1/e - 0.5/e) / (0.5/e) = +1     IDENTICALLY,
+// for any basket, any chain length, any price level. Labour supply is therefore
+// VERTICAL at head-count in solv_1g and solv_chain, while the desk moves scale
+// until its margin is zero, so labour demand is HORIZONTAL at the technologically
+// determined wage. The pair crosses, but the price is doing no allocative work
+// and neither side has a slope. That is Phase 4's finding, restated as a theorem
+// about this engine.
+//
+// THE ONLY WAY TO GET AN INTERIOR CROSSING IS TO MAKE SOMETHING OTHER THAN
+// LABOUR SCARCE, AND THE ENGINE HAS EXACTLY ONE SUCH OBJECT: recipe_size, the
+// capacity cap on scale. So this is a different world, not solv_1g with
+// different numbers.
+//
+// ── THE DESIGN AND THE CROSSING PROOF ─────────────────────────────────────────
+//   a = 0.5,  N = 20,  recipe_size = K = 20 (THE CAP MUST BIND),  q* = K/N = 1
+//   tiers: tier0 food 0.5, tier1 food 1.5  =>  q(w) = 0.5 + w  =>  w* = 0.5
+//   parity = HOME_PENALTY/(0.5*0.5) = 2.0
+//
+//   LABOUR DEMAND. D(w_real) = a*scale. For any real wage below the zero-profit
+//   wage the margin is bounded away from zero — at the equilibrium below it is
+//   sigma = 0.667 — so Rule 2 drives scale to its clamp and D = a*K = 10, a
+//   CONSTANT lying strictly inside [epsilon*N, N] = [0.2, 20].
+//
+//   LABOUR SUPPLY. S = N*pi with pi in [epsilon, 1], rising when
+//   w_real > 1.05*parity and falling when w_real < 0.95*parity. So S is a
+//   nondecreasing correspondence whose value set AT the reservation wage is the
+//   whole interval [0.2, 20].
+//
+//   PROOF. D is a constant strictly inside the range of S, and S attains every
+//   value in that range at w_real = parity. A crossing therefore exists, at
+//   w_real* = parity and L* = 10, i.e. pi* = 0.5 — INTERIOR. Uniqueness and
+//   stability: above the band S = 20 > D, excess supply, p_labour falls; below
+//   it S = 0.2 < D, excess demand, p_labour rises. The restoring sign is correct
+//   on both sides. QED.
+//
+// ── THE WAGE, AND WHY IT IS NOT THE LABOUR VALUE ──────────────────────────────
+//     w_real* = parity  =>  p_labour/(q_tier0 * p_grain) = 2.0
+//                       =>  p_labour = 2.0*0.5*p_grain = p_grain
+//                       =>  RealWage = 1.0,   AGAINST r = 1/a = 2.
+// The firm keeps the other half as a CAPACITY RENT: revenue 20*p_grain against
+// outlay 10*p_labour, profit 10 per tick, routed out by Rule 3's overflow to the
+// pop, who is the claim holder.
+//
+// THIS SCENARIO'S RIGHT ANSWER IS DELIBERATELY NOT THE LEONTIEF ANSWER, and that
+// makes it a falsification test for the correctness instrument itself. B8 scores
+// the realised vector against the zero-profit labour-value vector, so B8 WILL
+// REPORT grain "2x too dear" HERE AND B8 WILL BE WRONG — the gap is a rent, not
+// an error. Expect that reading, and do not treat it as a defect in either the
+// scenario or the battery: it is what a battery with no scarce factor in its
+// model must say about a world that has one. Registering the expectation in
+// advance is what keeps it from being discovered as a surprise and explained
+// away afterwards.
+//
+// ── LEVEL ─────────────────────────────────────────────────────────────────────
+// Firm cash at the decision point is (b_cash+1)*outlay + profit = 85*p_labour;
+// pop cash at the decision point is b_cash*cost = 130*p_grain. With
+// theta = p_labour/p_grain = parity*q_tier0 = 1:
+//     M = K*p_grain*(b_cash*a*theta + b_cash + 1) = 215*p_grain
+//     =>  p_grain = p_labour = M/215 = 1.0 at M = 215
+// The tick closes on the loop: firm 85 -> overflow -10 -> 75 -> labour -10 ->
+// 65 -> grain revenue +20 -> 85; pop 130 -> dividend +10 -> 140 -> grain -20 ->
+// 120 -> wages +10 -> 130.
+//
+// ── PREDICTED EQUILIBRIUM ─────────────────────────────────────────────────────
+//     p_labour = p_grain = 1.0      RealWage 1.0 (NOT 2.0)      pi 0.5
+//     cleared labour 10, grain 20   firm profit 10/tick, all paid out
+//     cash firm 85, pop 130, M = 215
+//     Velocity 30/215 = 0.13953488...   Employment 1.0 (supply is pi-scaled, so
+//     the fill is 1 and nobody is rationed)   Concentration 85/215 = 0.39534883
+//     BldUtil 1.0 — THE ONE SCENARIO IN THE FAMILY WHERE A BOUND CLAMP IS
+//     CORRECT, because the binding cap IS the scarce second factor
+//     RealIncome (130/20)/1.0 = 6.5
+//
+// ── A PRE-REGISTERED ARM PREDICTION ───────────────────────────────────────────
+// UNDER --agents legacy THIS SCENARIO HAS NO REST POINT, and the failure is
+// computable in advance. src/systems/decisions/pop_agent.rs posts
+// size*LABOUR_RATE unconditionally — the legacy layer has no participation
+// margin at all — so labour supply is 20 against demand fixed at 10, imbalance
+// is -0.5 every tick, and
+//     p_labour(t) = p_labour(0) * (1 - 0.5*alpha)^t = 0.975^t at alpha = 0.05
+// while p_grain stays put (the pop's income, wages plus dividend, still exactly
+// funds its basket). RealWage decays geometrically to zero and DRIFTING fires
+// enormously. IF THE LEGACY ARM PASSES solv_labour, THIS ANALYSIS IS WRONG —
+// which is the property that makes the prediction worth registering rather than
+// merely asserting.
+//
+// s = 1 is forced (see solv_1g's header). Every number is a dyadic rational.
+(
+    kernel: (
+        s: 1,
+        eta_up: 0.04,
+        eta_dn: 0.05,
+        dead: 0.05,
+        b_out: 2.0,
+        b_cash: 6.5,
+        beta: 1.0,
+        epsilon: 0.01,
+        phi: 0.6180339887498949,
+        fill_alpha: 0.25,
+        // Which Rule 1 the desks post under. `inelastic` is the rule
+        // shipped through Phase 4 (posted supply has price elasticity
+        // exactly zero); `reservation` divides the band by the desk's
+        // own markup, so b_out becomes the supply curve's slope.
+        // Registered here, swept with --supply-rule.
+        supply_rule: inelastic,
+    ),
+    goods: [
+        ( name: "grain",  alpha: 0.05, shelf_life: Indefinite, movement_type: Physical,  divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "gbp",    alpha: 0.0,  shelf_life: Indefinite, movement_type: Financial, divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "labour", alpha: 0.05, shelf_life: Instant,    movement_type: Local,     divisible: true, storage_cost_per_tick: 0.0 ),
+    ],
+    recipes: [
+        (
+            name: "grow_grain",
+            inputs:  [ ( good: "labour", qty_per_unit: 0.5, scaling: Variable ) ],
+            outputs: [ ( good: "grain",  qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: CapacityControl,
+        ),
+        (
+            name: "dividend",
+            inputs:  [ ( good: "gbp", qty_per_unit: 1.0, scaling: Variable ) ],
+            outputs: [ ( good: "gbp", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: DividendPayout( reserve_multiple: 26.0 ),
+        ),
+    ],
+    need_categories: [
+        ( name: "food", entries: [ ( good: "grain", weight: 1.0 ) ] ),
+    ],
+    // The tiers are HALVED relative to solv_1g_money's, and that is the design:
+    // q(w) = 0.5 + w puts the equilibrium basket at 1.0 grain per head, so
+    // N*q = 20 = K is exactly the capped output. If the basket were bigger the
+    // cap would not bind and the labour market would go vertical again.
+    wealth_levels: [
+        ( tier: 0, needs: { "food": 0.5 } ),
+        ( tier: 1, needs: { "food": 1.5 } ),
+    ],
+    market_nodes: [
+        ( id: (0), tier: Regional, region: Some((0)), currency_good: Some((1)) ),
+    ],
+    channels: [],
+    regions: [
+        ( id: (0), name: "Solo", market_node: (0) ),
+    ],
+)

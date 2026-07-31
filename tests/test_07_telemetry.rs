@@ -93,6 +93,9 @@ fn run_with_telemetry(name: &str, ticks: u64, dir: &Path) {
         telemetry_every: 1,
         certify: true,
         results_dir: dir.join("results"),
+        // Tape-registered: this run uses whatever kernel.supply_rule the
+        // scenario declares, which is the only R2-clean default.
+        supply_rule: None,
     };
     let mut runner = SimRunner::new(s.state, s.game_data, s.events, config)
         .with_scenario_dir(&sdir)
@@ -296,6 +299,9 @@ fn subsampling_keeps_tick_zero_and_says_so() {
         telemetry_every: 5,
         certify: false,
         results_dir: dir.path().join("results"),
+        // Tape-registered: this run uses whatever kernel.supply_rule the
+        // scenario declares, which is the only R2-clean default.
+        supply_rule: None,
     };
     let mut runner = SimRunner::new(s.state, s.game_data, s.events, config)
         .with_scenario_dir(&sdir)

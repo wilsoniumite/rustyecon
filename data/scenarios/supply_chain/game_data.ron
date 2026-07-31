@@ -16,6 +16,12 @@
         epsilon: 0.01,
         phi: 0.6180339887498949,
         fill_alpha: 0.25,
+        // Which Rule 1 the desks post under. `inelastic` is the rule
+        // shipped through Phase 4 (posted supply has price elasticity
+        // exactly zero); `reservation` divides the band by the desk's
+        // own markup, so b_out becomes the supply curve's slope.
+        // Registered here, swept with --supply-rule.
+        supply_rule: inelastic,
     ),
     goods: [
         (name: "wheat", alpha: 0.5, shelf_life: Indefinite, movement_type: Physical, divisible: true, storage_cost_per_tick: 0.0),

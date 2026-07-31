@@ -1,0 +1,139 @@
+// cr_00 — the base world: three autarkic regions, all four conditions exact.
+//
+// THE FREE PARAMETERS, and they are the only things chosen here: three pop sizes
+// (32 / 24 / 40), the technology coefficients, the two basket rows, and genesis
+// utilisation 0.8. Everything else — every capacity, every stock, every cash
+// balance, every price — is SOLVED. tools/gen_regions.py holds the derivation.
+//
+// WHAT THIS WORLD IS. Per unit of pop the basket is 1.25 flour + 0.375 services at
+// the genesis wealth 0.5, which embodies 1.25*0.5 + 0.375*1.0 = 1.0 unit of labour
+// — so one head's consumption takes exactly one head's hours, and A1 holds at
+// every capacity that meets the demand. At the zero-profit price vector (labour 1,
+// wheat 0.25, flour 0.5, services 1) that same statement is the circular flow
+// closing in money: each pop spends exactly its wage.
+//
+// Region 0 (pop 32): farm 40, mill 40, services 12; labour 10 + 10 + 12 = 32.
+// Region 1 (pop 24): farm 30, mill 30, services  9; labour 7.5 + 7.5 + 9 = 24.
+// Region 2 (pop 40): farm 50, mill 50, services 15; labour 12.5 + 12.5 + 15 = 40.
+//
+// THREE AUTARKIC REGIONS RATHER THAN ONE, on purpose: the corpus's failure classes
+// are scored per region and the A/B's unit is a region, so a one-region world would
+// have made this corpus a third the size of the baseline it is compared to. The
+// regions differ in size, so they are not three copies of one draw.
+//
+// WHAT IT IS EXPECTED TO DO, WRITTEN BEFORE THE RUN. A1-A4 at exact equality make
+// genesis a FIXED POINT of the kernel's rules: every fill is 1, every margin is 0,
+// every imbalance is 0, sigma_c is 0, and pi is at its corner. So the kernel arm
+// should not move at all, and if it does the defect is in the engine or in this
+// derivation, not in the economy. THAT IS A NECESSARY CONDITION AND NOT AN
+// INTERESTING ONE — Phase 4's RESULT 2 already established that the mechanism can
+// hold a fixed point it cannot walk to. The interesting readings are the legacy arm
+// here (which has no reason to hold it) and the five defect worlds.
+//
+// >>> MEASURED, AND THE PASS IS WORTH LESS THAN IT LOOKS. Recorded here rather
+// >>> than in a notebook, because anyone reading this tape's green certificate
+// >>> needs this paragraph with it.
+// >>>
+// >>> The kernel holds cr_00 exactly: 8/8 batteries, 3/3 regions, B8 1.000x with
+// >>> sd 0.000, `LevelRange` 1.000. The legacy arm cannot: band 4.4e5 on all three
+// >>> regions, none of them alive. So the fixed point is real and only one arm can
+// >>> sit on it.
+// >>>
+// >>> THERE IS NO BASIN AROUND IT. THERE IS A DEAD BAND. Scaling the genesis flour
+// >>> price by x and re-solving the cash (so A1-A5 stay exact except A4):
+// >>>
+// >>>     x1.00  x1.01  x1.02  x1.05  |  x1.10   x1.20   x1.50   x2.00
+// >>>     PASS   PASS   PASS   PASS   |  3.4e9   1.0e29  6.3e9   5.9e26   worst band
+// >>>
+// >>> and inside the passing region B8 reads 1.010x, 1.020x, 1.050x too dear with
+// >>> **sd 0.000** — THE DISPLACED PRICE NEVER MOVES. Those are full-PASS
+// >>> certificates on a world that is permanently and exactly 5% wrong. Nothing
+// >>> converges; the price freezes wherever it starts and the criteria call that
+// >>> stability.
+// >>>
+// >>> The edge is not empirical, it is `dead`. The mill's relative margin is
+// >>> (p_f - 0.5)/((p_f + 0.5)/2), which reaches dead = 0.05 at p_f = 1.025/1.95,
+// >>> i.e. x1.051282. Bisected AFTER deriving it: x1.0512 PASS, x1.0514 FAIL.
+// >>>
+// >>> So cr_00's green certificate says exactly one thing — the fixed point exists
+// >>> and the kernel can sit on it — and it must not be read as saying the
+// >>> mechanism finds prices. Phase 4's RESULT 2 said the mechanism "cannot walk
+// >>> to" a fixed point one factor of two away. This is sharper: it cannot walk to
+// >>> one 6% away, and inside 5% it does not walk at all.
+(
+    // Kernel dials: lr_00's generation-4 values, copied verbatim and NOT
+    // retuned (R2, R6). `s` is the only one any cr_* world varies.
+    kernel: (
+        s: 1,
+        eta_up: 0.04,
+        eta_dn: 0.05,
+        dead: 0.05,
+        b_out: 2.0,
+        b_cash: 6.5,
+        beta: 1.0,
+        epsilon: 0.01,
+        phi: 0.6180339887498949,
+        fill_alpha: 0.25,
+        supply_rule: inelastic,
+    ),
+    goods: [
+        ( name: "wheat", alpha: 0.1, shelf_life: Indefinite, movement_type: Physical, divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "flour", alpha: 0.1, shelf_life: Indefinite, movement_type: Physical, divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "GBP", alpha: 0.0, shelf_life: Indefinite, movement_type: Financial, divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "labour", alpha: 0.05, shelf_life: Instant, movement_type: Local, divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "services", alpha: 0.1, shelf_life: Ticks(1), movement_type: Local, divisible: true, storage_cost_per_tick: 0.0 ),
+    ],
+    recipes: [
+        (
+            name: "wheat_farm",
+            inputs:  [ ( good: "labour", qty_per_unit: 0.25, scaling: Variable ) ],
+            outputs: [ ( good: "wheat", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: CapacityControl,
+        ),
+        (
+            name: "grain_mill",
+            inputs:  [ ( good: "wheat", qty_per_unit: 1.0, scaling: Variable ), ( good: "labour", qty_per_unit: 0.25, scaling: Variable ) ],
+            outputs: [ ( good: "flour", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: CapacityControl,
+        ),
+        (
+            name: "local_services",
+            inputs:  [ ( good: "labour", qty_per_unit: 1.0, scaling: Variable ) ],
+            outputs: [ ( good: "services", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: CapacityControl,
+        ),
+        (
+            name: "dividend",
+            inputs:  [ ( good: "GBP", qty_per_unit: 1.0, scaling: Variable ) ],
+            outputs: [ ( good: "GBP", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: DividendPayout( reserve_multiple: 26.0 ),
+        ),
+    ],
+    need_categories: [
+        ( name: "staple_food",     entries: [ ( good: "flour",    weight: 1.0 ) ] ),
+        ( name: "services_demand", entries: [ ( good: "services", weight: 1.0 ) ] ),
+    ],
+    // TWO tiers, not a hundred. The ladder is piecewise linear in `wealth`,
+    // so two rows already give a continuous basket over the whole range the
+    // consumption desk can reach; more rows would be more numbers to
+    // register without another degree of freedom (R2).
+    wealth_levels: [
+        ( tier: 0, needs: { "staple_food": 1.0 } ),
+        ( tier: 1, needs: { "staple_food": 1.5, "services_demand": 0.75 } ),
+    ],
+    market_nodes: [
+        ( id: MarketNodeId(0), tier: Regional, region: Some(RegionId(0)), currency_good: Some(GoodId(2)) ),
+        ( id: MarketNodeId(1), tier: Regional, region: Some(RegionId(1)), currency_good: Some(GoodId(2)) ),
+        ( id: MarketNodeId(2), tier: Regional, region: Some(RegionId(2)), currency_good: Some(GoodId(2)) ),
+    ],
+    channels: [],
+    regions: [
+        ( id: RegionId(0), name: "Ashby", market_node: MarketNodeId(0) ),
+        ( id: RegionId(1), name: "Brindle", market_node: MarketNodeId(1) ),
+        ( id: RegionId(2), name: "Corwen", market_node: MarketNodeId(2) ),
+    ],
+)

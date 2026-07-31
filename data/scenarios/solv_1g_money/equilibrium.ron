@@ -1,0 +1,43 @@
+// The registered closed-form equilibrium for solv_1g_money.
+//
+// Registered 2026-07-31, before the engine was pointed at this tape (R6).
+// Derived in docs/design/solvable-scenarios.md §3 and restated with its
+// derivation in game_data.ron's header.
+(
+    derivation: "docs/design/solvable-scenarios.md#3-scenario-1m--solv_1g_money-the-same-world-with-the-level-pinned",
+    registered: "2026-07-31",
+    numeraire: "labour",
+
+    // Identical to solv_1g's: the money anchor pins the LEVEL and leaves every
+    // relative price exactly where technology put it. If these two tapes ever
+    // disagree on this vector, the anchor is doing real work it should not be.
+    prices: {
+        "labour": 1.0,
+        "grain":  0.5,
+    },
+    cleared: {
+        "labour": 10.0,
+        "grain":  20.0,
+    },
+    real_wage: 2.0,
+
+    // REGISTERED HERE, unlike in solv_1g, because two wealth tiers switch the
+    // pop's cash rule on and the price level acquires a closed form:
+    //   Velocity* = 2/(2*b_cash + 1) = 2/14
+    // The nearest f64 to 1/7, written at full precision. Note what this number
+    // does NOT contain: no technology, no head-count, no money stock. Equilibrium
+    // velocity in this engine is a pure function of the registered cash band,
+    // and that is a theorem this tape tests rather than an observation.
+    velocity: Some(0.14285714285714285),
+
+    fixed_point_tol_log: 1e-12,
+
+    // Same displacement and same tolerance as solv_1g, and deliberately the same
+    // good, so mode B on the pair is a controlled comparison: identical shock,
+    // identical technology, one difference (the money anchor).
+    displaced: Some((
+        good: "grain",
+        factor: 2.0,
+        tol_log: 0.09531017980432486,
+    )),
+)

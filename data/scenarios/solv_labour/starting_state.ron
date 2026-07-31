@@ -1,0 +1,66 @@
+// Genesis for solv_labour. GENESIS IS THE EQUILIBRIUM — see game_data.ron for
+// the crossing proof and the derivation of every number.
+//
+// THIS IS THE ONLY TAPE IN THE REPO THAT SETS `participation`, and it is the
+// reason that field exists. Every scenario written before 2026-07-31 has its
+// labour margin pinned at the pi = 1 corner (sigma_pi = +1 identically in a
+// one-factor economy), so the loader's hardcoded genesis of 1.0 was invisible.
+// Here the equilibrium is INTERIOR at pi* = 0.5, so genesis cannot be reached
+// without stating it, and a state variable that cannot be stated in the tape is
+// a state variable the tape cannot start at rest (R2). The field defaults to
+// 1.0 when absent, so no existing tape changed.
+//
+// The cash balances, and note the firm's is NOT (b_cash/s + s)*outlay here:
+//   firm 85 = (b_cash/s + s)*outlay + profit = 7.5*10 + 10
+//             Rule 3 strips the profit back out as overflow every tick, so 85 is
+//             the balance the firm HOLDS at the decision point and 75 is what it
+//             keeps. This is the one scenario in the family whose desk is not
+//             sitting exactly on Rule 3's zero-cash-slack kink.
+//   pop 130 = b_cash*cost/s = 6.5*(1.0*20*1.0), so sigma_c = 0 exactly.
+//   M = 215, and p_grain = M/215 = 1.0 closes the level.
+(
+    tick: 0,
+    // p_labour = p_grain: the reservation wage, NOT the zero-profit wage. The
+    // gap between them is the capacity rent, and it is real income, not an error.
+    prices: { "grain": 1.0, "gbp": 1.0, "labour": 1.0 },
+    buildings: [
+        // chosen_size == recipe_size DELIBERATELY. In every other scenario in
+        // this family a binding clamp would mask a defect; here THE BINDING CAP
+        // IS THE SCARCE SECOND FACTOR and the whole crossing depends on it. If
+        // this ever stops binding, the labour market goes vertical and the
+        // scenario has silently become solv_1g.
+        // grain 60 = (1 + b_out)*20, so Rule 1 posts exactly 20 = demand.
+        (
+            id: (0), region: (0), recipe: "grow_grain",
+            recipe_size: 20.0, chosen_size: 20.0, efficiency: 1.0,
+            inventory: { "gbp": 85.0, "grain": 60.0 },
+        ),
+    ],
+    pop_groups: [
+        // Subsistence baskets per unit of labour: the pop's outside option.
+        // Derived from technology by tools/derive_parity.py, never from prices,
+        // because RealWage is a scored series (R6):
+        //   tier-0 basket = 0.5 grain, grain embodies 0.5 labour => 0.25 labour
+        //   market rate 1/0.25 = 4.0 baskets per labour
+        //   parity = HOME_PENALTY * market rate = 0.5 * 4.0 = 2.0
+        // Here — unlike in solv_1g and solv_chain — parity is not merely a floor
+        // the market clears above; IT IS THE EQUILIBRIUM REAL WAGE, because the
+        // capacity cap and not the technology is what sets the quantity.
+        //
+        // participation 0.5: the interior crossing, pi* = a*K/N = 10/20.
+        (
+            id: (0), region: (0), size: 20.0, wealth: 0.5,
+            inventory: { "gbp": 130.0 },
+            savings_target: 0.9,
+            labour_good: Some("labour"),
+            parity: Some(2.0),
+            participation: Some(0.5),
+        ),
+    ],
+    // The claim-holder pointer. Unlike the rest of the family this one carries a
+    // real flow every tick: the firm's capacity rent, 10 currency, leaves as
+    // Rule 3 overflow and lands here.
+    extra_recipe_instances: [
+        ( recipe: "dividend", building: (0), output_pop: (0), recipe_size: 1000.0 ),
+    ],
+)

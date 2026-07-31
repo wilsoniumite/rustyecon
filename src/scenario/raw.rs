@@ -155,6 +155,23 @@ pub struct RawPopGroup {
     /// consumer belongs in the tape (R2).
     #[serde(default)]
     pub parity: Option<f64>,
+    /// Genesis value of the labour margin `pi`, the fraction of the pop's hours
+    /// actually offered to the market. `None` means 1.0 — full participation.
+    ///
+    /// **Why this is optional rather than required, which is a departure from
+    /// how `wealth` is handled.** `pi` was a hardcoded genesis of 1.0 in this
+    /// loader until 2026-07-31, and the reason nobody noticed is structural: in
+    /// any economy whose only primary input is labour, `sigma_pi = +1`
+    /// identically at the zero-profit price vector, so the margin is pinned at
+    /// the `pi = 1` corner and genesis is the rest point whatever the tape says.
+    /// `data/scenarios/solv_labour` is the first world with a scarce second
+    /// factor, so the first with an INTERIOR equilibrium margin (`pi* = 0.5`) —
+    /// and a state variable that cannot be stated in the tape is one the tape
+    /// cannot start at rest. Making the field required would have rewritten 28
+    /// tapes to say the thing they already meant, so the missing-field meaning
+    /// is the old behaviour exactly and no existing scenario changed.
+    #[serde(default)]
+    pub participation: Option<f64>,
 }
 
 #[derive(Deserialize)]
@@ -396,8 +413,10 @@ pub fn resolve_sim_state(
     // alongside it. IDs: employed = 0..n, unemployed = n..2n. All employed halves are
     // pushed first so that id.idx() == vec index for both ranges.
     let n_pops = raw.pop_groups.len() as u32;
-    // (id, region, wealth, savings_target, labour_good, parity)
-    let mut stub_data: Vec<(PopGroupId, RegionId, f64, f64, Option<GoodId>, Option<f64>)> = Vec::new();
+    // (id, region, wealth, savings_target, labour_good, parity, participation)
+    #[allow(clippy::type_complexity)]
+    let mut stub_data: Vec<(PopGroupId, RegionId, f64, f64, Option<GoodId>, Option<f64>, f64)> =
+        Vec::new();
 
     for p in raw.pop_groups {
         let employed_id = p.id;
@@ -419,6 +438,17 @@ pub fn resolve_sim_state(
                 return Err(format!("pop {:?}: parity must be finite and positive, got {v}", p.id).into());
             }
         }
+        // The same bound Rule 2 clamps to every activation. Checked at load
+        // because a tape asking for pi = 0 is asking for a labour market that
+        // can never reopen, and it should say so here rather than 900 ticks in.
+        let participation = p.participation.unwrap_or(1.0);
+        if !(participation.is_finite() && participation > 0.0 && participation <= 1.0) {
+            return Err(format!(
+                "pop {:?}: participation must be in (0, 1], got {participation}",
+                p.id
+            )
+            .into());
+        }
 
         let inv_id = InventoryId(state.inventories.len() as u32);
         state.inventories.push(resolver.inventory(p.inventory)?);
@@ -437,12 +467,21 @@ pub fn resolve_sim_state(
             labour_good,
             is_employed: true,
             last_labour_fill_rate: 1.0,
-            // Full participation at genesis; the margin moves it from there.
-            participation: 1.0,
+            // Full participation unless the tape says otherwise; the margin
+            // moves it from there. See RawPopGroup::participation.
+            participation,
             parity: p.parity,
         });
 
-        stub_data.push((unemployed_id, p.region, p.wealth, p.savings_target, labour_good, p.parity));
+        stub_data.push((
+            unemployed_id,
+            p.region,
+            p.wealth,
+            p.savings_target,
+            labour_good,
+            p.parity,
+            participation,
+        ));
 
         state.pop_pairs.push(PopPair {
             id: pair_id,
@@ -452,7 +491,9 @@ pub fn resolve_sim_state(
     }
 
     // Push all unemployed stubs after employed halves so id.idx() == vec position.
-    for (unemployed_id, region, wealth, savings_target, labour_good, parity) in stub_data {
+    for (unemployed_id, region, wealth, savings_target, labour_good, parity, participation) in
+        stub_data
+    {
         let inv_id = InventoryId(state.inventories.len() as u32);
         state.inventories.push(Inventory::default());
         state.pop_groups.push(PopGroup {
@@ -469,8 +510,10 @@ pub fn resolve_sim_state(
             labour_good,
             is_employed: false,
             last_labour_fill_rate: 1.0,
-            // Both halves of a pair share one outside option and one margin.
-            participation: 1.0,
+            // Both halves of a pair share one outside option and one margin, so
+            // the stub inherits the employed half's genesis pi rather than
+            // opening at a different one.
+            participation,
             parity,
         });
     }

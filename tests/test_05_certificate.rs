@@ -28,6 +28,9 @@ fn certify(scenario: &str, ticks: u64) -> rustyecon::certify::Certificate {
         telemetry_every: 1,
         certify: true,
         results_dir: out.path().join("results"),
+        // Tape-registered: this run uses whatever kernel.supply_rule the
+        // scenario declares, which is the only R2-clean default.
+        supply_rule: None,
     };
     let mut runner = SimRunner::new(s.state, s.game_data, s.events, config).with_scenario_dir(&dir);
     runner.run().expect("certify mode yields a certificate")
@@ -38,13 +41,24 @@ fn a_certified_run_reports_every_battery_and_a_verdict() {
     let cert = certify("lr_00", 120);
 
     let ids: Vec<&str> = cert.batteries.iter().map(|b| b.id.as_str()).collect();
-    assert_eq!(ids, ["B1", "B2", "B3", "B4", "B5", "B6", "B7"], "all batteries present");
+    assert_eq!(
+        ids,
+        ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8"],
+        "all batteries present"
+    );
 
     // NO LONGER CLEAN, and deliberately so (v2 Phase 4, P4.5). This asserted
     // `cert.passed()` until B6 — the own-state posting invariant — was added,
     // and B6 fires on the legacy layer because the legacy layer really does
     // compute its postings from other agents' orders. The assertion was true
     // only because nothing was looking. Engine correctness proper is B1..B5.
+    //
+    // B8 stays inside the loop and passes, and that PASS must not be misread.
+    // It does not say the prices are right — they are two orders of magnitude
+    // out on this very run — it says the distance from the implied vector was
+    // computable. B8 carries no distance threshold on purpose (R6; see
+    // `PriceGapWatch::report`), so its verdict is fail-closed only, and the
+    // number in its detail line is the part worth reading.
     for b in cert.batteries.iter().filter(|b| b.id != "B6") {
         assert!(b.pass, "battery {} should pass: {}", b.id, b.detail);
     }
@@ -102,5 +116,5 @@ fn certificate_persists_as_json() {
     let text = std::fs::read_to_string(&path).unwrap();
     let back: rustyecon::certify::Certificate = serde_json::from_str(&text).unwrap();
     assert_eq!(back.verdict, cert.verdict);
-    assert_eq!(back.batteries.len(), 7);
+    assert_eq!(back.batteries.len(), 8);
 }

@@ -3,7 +3,7 @@ use crate::certify::{
     certificate::{self, Battery, Certificate, RunIdentity},
     ledger::TickAudit,
     metrics::MetricsCollector,
-    nan, state_hash, verdict, Criteria,
+    nan, state_hash, technology::PriceGapWatch, verdict, Criteria,
 };
 use crate::output::checkpoint::{self, SaveFormat};
 use crate::output::manifest::{self, RunInfo};
@@ -35,6 +35,16 @@ pub struct RunConfig {
     pub agents: AgentArm,
     /// Which price rule the market uses. A/B'd like the agent arm.
     pub price_rule: crate::systems::clearing::PriceRule,
+    /// Override of the tape's registered `kernel.supply_rule`.
+    ///
+    /// `None` — the default — means "run what the tape registered", which is the
+    /// R2-clean path: the constant lives in data. The override exists because
+    /// the switch has to be swept across 33 tapes for the A/B and editing 33
+    /// tapes per arm is how a corpus comes to disagree with itself. It is
+    /// applied to `game_data` once, at construction, so exactly one value is in
+    /// force for the whole run, and the *effective* value is folded into the run
+    /// identity — an overridden certificate cannot be mistaken for the tape's.
+    pub supply_rule: Option<crate::state::game_data::SupplyRule>,
 }
 
 impl Default for RunConfig {
@@ -50,6 +60,7 @@ impl Default for RunConfig {
             results_dir: PathBuf::from("results"),
             agents: AgentArm::Legacy,
             price_rule: crate::systems::clearing::PriceRule::Imbalance,
+            supply_rule: None,
         }
     }
 }
@@ -90,10 +101,16 @@ pub struct SimRunner {
 impl SimRunner {
     pub fn new(
         state: SimState,
-        game_data: GameData,
+        mut game_data: GameData,
         events: EventSchedule,
         config: RunConfig,
     ) -> Self {
+        // Applied here rather than at each call site so there is one place where
+        // the effective dial is decided, and so `identity()` can read it back
+        // off `game_data` instead of re-deriving the precedence a second time.
+        if let Some(rule) = config.supply_rule {
+            game_data.kernel.supply_rule = rule;
+        }
         Self {
             state,
             game_data,
@@ -140,7 +157,15 @@ impl SimRunner {
         let tape = self.scenario_tape_sha.clone();
         let seed = 0; // No stochastic source exists; recorded so the field is explicit.
         let scenario = self.scenario_name.clone();
-        let agents = format!("{}+{}", self.config.agents.name(), self.config.price_rule.name());
+        // The effective supply rule is read off `game_data`, not off the config,
+        // so a CLI override and a tape value are recorded the same way and a
+        // swept run can never carry the tape's label.
+        let agents = format!(
+            "{}+{}+{}",
+            self.config.agents.name(),
+            self.config.price_rule.name(),
+            self.game_data.kernel.supply_rule.name()
+        );
         let run =
             certificate::run_id(&git, &tape, &scenario, &agents, self.config.ticks, seed);
         RunIdentity {
@@ -185,6 +210,12 @@ impl SimRunner {
         // than assume. Both are engine checks (R3/R5), not notebook checks.
         let mut own_state_hits: Vec<String> = Vec::new();
         let mut balance = self.config.certify.then(|| BalanceWatch::new(&self.game_data));
+        // B8's accumulator. Needs the criteria for two things it must not invent:
+        // which good is the numeraire, and which ticks are the scored window.
+        let mut price_gap = match (self.config.certify, &self.criteria) {
+            (true, Some(c)) => Some(PriceGapWatch::new(&self.game_data, c)),
+            _ => None,
+        };
         let mut collector = match (self.config.certify, &self.criteria) {
             (true, Some(c)) => Some(MetricsCollector::new(&self.game_data, c)),
             _ => None,
@@ -233,9 +264,17 @@ impl SimRunner {
                     own_state_hits =
                         own_state_scan(&self.state, &self.game_data, self.config.agents);
                 }
-                if let (Some(b), Some(c)) = (balance.as_mut(), self.criteria.as_ref()) {
+                if let Some(c) = self.criteria.as_ref() {
+                    // Both read the same window as the stability verdict, so a
+                    // certificate cannot report a pin or a price gap measured
+                    // over a span the criteria never scored.
                     if c.in_analysis(self.state.tick) {
-                        b.observe(&self.state, &self.game_data);
+                        if let Some(b) = balance.as_mut() {
+                            b.observe(&self.state, &self.game_data);
+                        }
+                        if let Some(g) = price_gap.as_mut() {
+                            g.observe(&self.state);
+                        }
                     }
                 }
 
@@ -291,10 +330,12 @@ impl SimRunner {
                 stability,
                 &own_state_hits,
                 balance.as_ref(),
+                price_gap.as_ref(),
             )
         })
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn build_certificate(
         &self,
         audit: TickAudit,
@@ -303,6 +344,7 @@ impl SimRunner {
         stability: Option<verdict::StabilityReport>,
         own_state_hits: &[String],
         balance: Option<&BalanceWatch>,
+        price_gap: Option<&PriceGapWatch>,
     ) -> Certificate {
         let replay_ok = replay_diverged_at.is_none();
         let hash = state_hash(&self.state);
@@ -394,6 +436,28 @@ impl SimRunner {
                     )
                 }
                 None => Battery::new("B7", "no pinned market", true, "unscored".into()),
+            },
+            // The first CORRECTNESS battery. B1..B7 all ask whether the run held
+            // together or stayed put; none of them asks whether the prices went
+            // to the right place, and a world that settles instantly on nonsense
+            // passes every one of them. B8 compares the realised relative price
+            // vector against the one the tape's own recipes imply at zero profit.
+            //
+            // It deliberately has NO distance threshold — see
+            // `PriceGapWatch::report` for the argument, which is the R6 one: the
+            // numbers were already known when this was written, so any bar
+            // picked now would be a bar fitted to a result.
+            match price_gap {
+                Some(g) => {
+                    let (pass, detail) = g.report(&self.game_data);
+                    Battery::new("B8", "prices match technology", pass, detail)
+                }
+                None => Battery::new(
+                    "B8",
+                    "prices match technology",
+                    true,
+                    "unscored: no criteria.ron registered".into(),
+                ),
             },
         ];
 

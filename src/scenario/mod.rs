@@ -1,3 +1,4 @@
+pub mod equilibrium;
 pub mod loader;
 pub mod raw;
 

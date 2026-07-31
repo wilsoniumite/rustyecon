@@ -63,6 +63,24 @@ participation scale π; the pair *is* Rule 1's fill-stickiness, resolved at pop
 grain. Sink outputs (consumption utility) are not goods and are never posted.
 No debt gates, no sell caps: the buffer band is the supply smoother.
 
+> **AMENDED 2026-07-31, and the amendment is registered rather than adopted
+> (R14).** The rule above has posted-supply price elasticity **exactly zero** —
+> it names no price — which is the same statement as "the price loop has a unit
+> root and no equilibrium price exists". `kernel.supply_rule` registers which
+> Rule 1 a tape runs: `inelastic` (the text above, and what every tape in the
+> corpus still registers), `reservation` (band divided by the desk's own markup
+> `R`, plus a reservation-wage labour posting), or `reservation_goods` (the band
+> only, labour unchanged). Derivation and pre-registration:
+> `docs/design/price-responsive-supply.md`; implementation notes, including two
+> places where that note turned out to be wrong, in the header of
+> `src/kernel/mod.rs`; measurements in `docs/PLAN.md`, Phase 4.
+>
+> Two things the amendment establishes about the text above. `b_out` is not an
+> inert threshold — under the reservation band it *is* the supply curve's slope,
+> `eps_s = b_out/R`. And the non-storable branch is right to have no band: a
+> perishable's cost is sunk once produced, so its supply is vertical, and
+> services duly measure `eps_s = 0.000` under every rule.
+
 ## Rule 2 — NUDGE scale
 
 ```

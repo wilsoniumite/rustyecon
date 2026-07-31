@@ -1,0 +1,105 @@
+// cr_05 — DEFECT A2: the goods balance broken, with A1 HELD.
+//
+// cr_00 with the flour chain halved and the services desks enlarged to take up
+// exactly the labour the chain released, so the labour market still balances to the
+// last hour while the goods markets do not:
+//
+//     farm and mill   chosen x 0.5    flour supply 0.5x its demand
+//     services        chosen x 1.8333 services supply 1.8333x its demand
+//     labour          0.25*20 + 0.25*20 + 22 = 32 = supply, unchanged
+//
+// WHY IT IS BUILT THIS WAY. The four conditions are COUPLED — consumption drives
+// capacity drives labour drives outlay drives cash — so a naive "halve the mill"
+// would have moved A1 and A3 too and the run would have been uninterpretable.
+// Holding A1 fixed while breaking A2 is the only way to ask what a goods imbalance
+// does on its own. A3 stays exact because every desk's cash is solved from ITS OWN
+// outlay at its own scale, so the enlarged services desks open with the larger
+// balance they need and the halved chain with the smaller one; A4 is a price
+// condition and quantities cannot touch it. Measured, not asserted:
+// `--audit` reads A1 = A3 = A4 = 1.000 and A2 = 0.5.
+//
+// This is `lr_00`'s shape: it mills 16 flour against 30 flour of demand (0.53x)
+// while its services desks draw 50 labour to make a good its tier-0 basket does not
+// contain at all.
+//
+// PRE-REGISTERED PREDICTION: the flour market is short and the services market is
+// long, and the price rule's response is asymmetric between them — flour is
+// storable and marks up against a real shortage, services are `Ticks(1)` and expire
+// unsold, so the services desks should be the ones that die.
+(
+    // Kernel dials: lr_00's generation-4 values, copied verbatim and NOT
+    // retuned (R2, R6). `s` is the only one any cr_* world varies.
+    kernel: (
+        s: 1,
+        eta_up: 0.04,
+        eta_dn: 0.05,
+        dead: 0.05,
+        b_out: 2.0,
+        b_cash: 6.5,
+        beta: 1.0,
+        epsilon: 0.01,
+        phi: 0.6180339887498949,
+        fill_alpha: 0.25,
+        supply_rule: inelastic,
+    ),
+    goods: [
+        ( name: "wheat", alpha: 0.1, shelf_life: Indefinite, movement_type: Physical, divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "flour", alpha: 0.1, shelf_life: Indefinite, movement_type: Physical, divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "GBP", alpha: 0.0, shelf_life: Indefinite, movement_type: Financial, divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "labour", alpha: 0.05, shelf_life: Instant, movement_type: Local, divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "services", alpha: 0.1, shelf_life: Ticks(1), movement_type: Local, divisible: true, storage_cost_per_tick: 0.0 ),
+    ],
+    recipes: [
+        (
+            name: "wheat_farm",
+            inputs:  [ ( good: "labour", qty_per_unit: 0.25, scaling: Variable ) ],
+            outputs: [ ( good: "wheat", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: CapacityControl,
+        ),
+        (
+            name: "grain_mill",
+            inputs:  [ ( good: "wheat", qty_per_unit: 1.0, scaling: Variable ), ( good: "labour", qty_per_unit: 0.25, scaling: Variable ) ],
+            outputs: [ ( good: "flour", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: CapacityControl,
+        ),
+        (
+            name: "local_services",
+            inputs:  [ ( good: "labour", qty_per_unit: 1.0, scaling: Variable ) ],
+            outputs: [ ( good: "services", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: CapacityControl,
+        ),
+        (
+            name: "dividend",
+            inputs:  [ ( good: "GBP", qty_per_unit: 1.0, scaling: Variable ) ],
+            outputs: [ ( good: "GBP", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: DividendPayout( reserve_multiple: 26.0 ),
+        ),
+    ],
+    need_categories: [
+        ( name: "staple_food",     entries: [ ( good: "flour",    weight: 1.0 ) ] ),
+        ( name: "services_demand", entries: [ ( good: "services", weight: 1.0 ) ] ),
+    ],
+    // TWO tiers, not a hundred. The ladder is piecewise linear in `wealth`,
+    // so two rows already give a continuous basket over the whole range the
+    // consumption desk can reach; more rows would be more numbers to
+    // register without another degree of freedom (R2).
+    wealth_levels: [
+        ( tier: 0, needs: { "staple_food": 1.0 } ),
+        ( tier: 1, needs: { "staple_food": 1.5, "services_demand": 0.75 } ),
+    ],
+    market_nodes: [
+        ( id: MarketNodeId(0), tier: Regional, region: Some(RegionId(0)), currency_good: Some(GoodId(2)) ),
+        ( id: MarketNodeId(1), tier: Regional, region: Some(RegionId(1)), currency_good: Some(GoodId(2)) ),
+        ( id: MarketNodeId(2), tier: Regional, region: Some(RegionId(2)), currency_good: Some(GoodId(2)) ),
+    ],
+    channels: [],
+    regions: [
+        ( id: RegionId(0), name: "Ashby", market_node: MarketNodeId(0) ),
+        ( id: RegionId(1), name: "Brindle", market_node: MarketNodeId(1) ),
+        ( id: RegionId(2), name: "Corwen", market_node: MarketNodeId(2) ),
+    ],
+)

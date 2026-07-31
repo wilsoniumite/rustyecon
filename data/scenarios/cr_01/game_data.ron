@@ -1,0 +1,148 @@
+// cr_01 — the same conditions with REGIONAL SPECIALISATION and trade.
+//
+// Region 0 mills and does not farm; region 1 farms and does not mill; region 2 is
+// autarkic. Two channels carry the wheat one way and the flour the other.
+//
+// THE LABOUR CONDITION FORCES H0 = H1, and that is the whole design. Region 0's
+// hours go to milling both regions' flour plus its own services; region 1's go to
+// growing both regions' wheat plus its own services. Writing A1 for each and using
+// a_wf = a_gm gives 0.25*(F0+F1) = 0.625*H0 and the same with H1, so the two pops
+// must be the same size. A trade pattern is not free: it is a constraint on who can
+// live where, and this is the smallest world in which that shows up.
+//
+// THE CHANNELS CARRY NO LABOUR, AND THAT IS A LIMITATION OF THE TAPE FORMAT, NOT A
+// SIMPLIFICATION. `RawSimState.prices` is one price per good, written to every
+// node by `NameResolver::prices`, so a tape cannot state a per-node genesis price.
+// A priced transport has a zero-profit wedge p_to = p_from + a_tr*w, so a world
+// with one CANNOT open on its own equilibrium vector in this format: it opens
+// exactly a_tr*w low on every importing node and every transport desk opens at a
+// loss of exactly that. lr_* has six such desks per scenario, each opening at
+// -0.1*w. A costless channel is the only trade structure this format can start
+// consistent, so that is what this world uses, and the limitation is recorded here
+// rather than worked around silently.
+//
+// PRE-REGISTERED PREDICTION: the specialised regions have no local substitute, so
+// this world's failure mode if it has one should be a TRANSMISSION failure — a
+// price move in one region reaching the other through the channel — and not the
+// starvation modes cr_04/cr_05 are built to produce.
+//
+// >>> THAT PREDICTION IS WRONG, AND IT IS MARKED IN PLACE RATHER THAN REWRITTEN
+// >>> (R14). What happened was not a transmission failure but a DEADLOCK, and it
+// >>> is a defect of the KERNEL'S RULES, not of this world. See `a5_rule_window`
+// >>> in tools/gen_regions.py, which was written because of this run.
+// >>>
+// >>> A pass-through desk reads ONE inventory slot with two opposite meanings:
+// >>> Rule 1 posts stock above `b_out*chosen*q_out` while Rule 3 buys only below
+// >>> `s*q_in*chosen`. With b_out = 2 and s = 1 the second bound is BELOW the
+// >>> first, so no stock level does both. Stocked to post — which is what this
+// >>> generator solved for — the haul sells down to its band and then never buys
+// >>> again. MEASURED, wheat cleared at the node the haul BUYS at, over 12 ticks:
+// >>>     s=1  0.00      s=2  18.77      s=3  93.32      s=4  86.77
+// >>> The boundary is exactly `b_out < s`, where the arithmetic puts it.
+// >>>
+// >>> THE TAPE IS LEFT AT s = 1 DELIBERATELY. Bumping it to 3 would hide the
+// >>> finding behind a dial, and the world is more useful as it is: A1-A4 all read
+// >>> 1.000 and its AUTARKIC region (Corwen) passes the full criteria under the
+// >>> kernel while its two traded regions die. One tape, one difference, and the
+// >>> difference is the channel.
+// >>>
+// >>> IT ALSO EXPLAINS SOMETHING ALREADY IN THE RECORD. Phase 4 traced lr's
+// >>> collapse to "flour has zero posted supply from tick 0 — that part is
+// >>> pre-existing" without saying why. lr's transports open with no flour, so
+// >>> they post nothing and the importing node's imbalance pins at +1 for ever.
+// >>> lr's window IS open (s=4, b_out=2), so seeding them would have helped there
+// >>> — which is a concrete, cheap experiment this finding hands to Phase 5.
+(
+    // Kernel dials: lr_00's generation-4 values, copied verbatim and NOT
+    // retuned (R2, R6). `s` is the only one any cr_* world varies.
+    kernel: (
+        s: 1,
+        eta_up: 0.04,
+        eta_dn: 0.05,
+        dead: 0.05,
+        b_out: 2.0,
+        b_cash: 6.5,
+        beta: 1.0,
+        epsilon: 0.01,
+        phi: 0.6180339887498949,
+        fill_alpha: 0.25,
+        supply_rule: inelastic,
+    ),
+    goods: [
+        ( name: "wheat", alpha: 0.1, shelf_life: Indefinite, movement_type: Physical, divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "flour", alpha: 0.1, shelf_life: Indefinite, movement_type: Physical, divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "GBP", alpha: 0.0, shelf_life: Indefinite, movement_type: Financial, divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "labour", alpha: 0.05, shelf_life: Instant, movement_type: Local, divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "services", alpha: 0.1, shelf_life: Ticks(1), movement_type: Local, divisible: true, storage_cost_per_tick: 0.0 ),
+    ],
+    recipes: [
+        (
+            name: "wheat_farm",
+            inputs:  [ ( good: "labour", qty_per_unit: 0.25, scaling: Variable ) ],
+            outputs: [ ( good: "wheat", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: CapacityControl,
+        ),
+        (
+            name: "grain_mill",
+            inputs:  [ ( good: "wheat", qty_per_unit: 1.0, scaling: Variable ), ( good: "labour", qty_per_unit: 0.25, scaling: Variable ) ],
+            outputs: [ ( good: "flour", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: CapacityControl,
+        ),
+        (
+            name: "local_services",
+            inputs:  [ ( good: "labour", qty_per_unit: 1.0, scaling: Variable ) ],
+            outputs: [ ( good: "services", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: CapacityControl,
+        ),
+        (
+            name: "dividend",
+            inputs:  [ ( good: "GBP", qty_per_unit: 1.0, scaling: Variable ) ],
+            outputs: [ ( good: "GBP", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: DividendPayout( reserve_multiple: 26.0 ),
+        ),
+        (
+            name: "wheat_haul",
+            inputs:  [ ( good: "wheat", qty_per_unit: 1.0, scaling: Variable ) ],
+            outputs: [ ( good: "wheat", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: CapacityControl,
+        ),
+        (
+            name: "flour_haul",
+            inputs:  [ ( good: "flour", qty_per_unit: 1.0, scaling: Variable ) ],
+            outputs: [ ( good: "flour", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: CapacityControl,
+        ),
+    ],
+    need_categories: [
+        ( name: "staple_food",     entries: [ ( good: "flour",    weight: 1.0 ) ] ),
+        ( name: "services_demand", entries: [ ( good: "services", weight: 1.0 ) ] ),
+    ],
+    // TWO tiers, not a hundred. The ladder is piecewise linear in `wealth`,
+    // so two rows already give a continuous basket over the whole range the
+    // consumption desk can reach; more rows would be more numbers to
+    // register without another degree of freedom (R2).
+    wealth_levels: [
+        ( tier: 0, needs: { "staple_food": 1.0 } ),
+        ( tier: 1, needs: { "staple_food": 1.5, "services_demand": 0.75 } ),
+    ],
+    market_nodes: [
+        ( id: MarketNodeId(0), tier: Regional, region: Some(RegionId(0)), currency_good: Some(GoodId(2)) ),
+        ( id: MarketNodeId(1), tier: Regional, region: Some(RegionId(1)), currency_good: Some(GoodId(2)) ),
+        ( id: MarketNodeId(2), tier: Regional, region: Some(RegionId(2)), currency_good: Some(GoodId(2)) ),
+    ],
+    channels: [
+        ( id: ChannelId(0), from: MarketNodeId(1), to: MarketNodeId(0), channel_type: Trade ),
+        ( id: ChannelId(1), from: MarketNodeId(0), to: MarketNodeId(1), channel_type: Trade ),
+    ],
+    regions: [
+        ( id: RegionId(0), name: "Ashby", market_node: MarketNodeId(0) ),
+        ( id: RegionId(1), name: "Brindle", market_node: MarketNodeId(1) ),
+        ( id: RegionId(2), name: "Corwen", market_node: MarketNodeId(2) ),
+    ],
+)

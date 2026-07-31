@@ -1,0 +1,413 @@
+{
+ "verdict": "LOSS",
+ "gate_met": false,
+ "gates": [
+  {
+   "id": "G1",
+   "label": "liveness may not regress",
+   "passed": false,
+   "detail": "live regions 15 -> 23; 12 revived, 4 killed (cr_08/Brindle, cr_10/Ashby, cr_10/Brindle, cr_10/Corwen)",
+   "strict": true
+  },
+  {
+   "id": "G2",
+   "label": "band may not widen where both arms keep the economy alive",
+   "passed": false,
+   "detail": "n=11, median dlog=2.632 (x13.9), 4 tighter / 7 wider / 0 unchanged",
+   "strict": false
+  },
+  {
+   "id": "G3",
+   "label": "band may not widen across the corpus",
+   "passed": false,
+   "detail": "n=33, median dlog=16.2 (x1.083e+07), 11 tighter / 22 wider / 0 unchanged",
+   "strict": false
+  }
+ ],
+ "regions": 33,
+ "passing": {
+  "legacy": 0,
+  "kernel": 10
+ },
+ "live": {
+  "legacy": 15,
+  "kernel": 23
+ },
+ "revived": [
+  "cr_00/Ashby",
+  "cr_00/Brindle",
+  "cr_00/Corwen",
+  "cr_01/Corwen",
+  "cr_03/Ashby",
+  "cr_03/Brindle",
+  "cr_03/Corwen",
+  "cr_04/Ashby",
+  "cr_04/Brindle",
+  "cr_07/Ashby",
+  "cr_07/Brindle",
+  "cr_07/Corwen"
+ ],
+ "killed": [
+  "cr_08/Brindle",
+  "cr_10/Ashby",
+  "cr_10/Brindle",
+  "cr_10/Corwen"
+ ],
+ "bands": {
+  "legacy": {
+   "n": 33,
+   "nonfinite": 0,
+   "min": 3.1661955272481035,
+   "median": 395526.9473036062,
+   "max": 160309061.7979926,
+   "within_2_2": 0
+  },
+  "kernel": {
+   "n": 33,
+   "nonfinite": 0,
+   "min": 1.0,
+   "median": 2856531924.9099,
+   "max": 9.571968578739377e+43,
+   "within_2_2": 10
+  },
+  "legacy_live": {
+   "n": 15,
+   "nonfinite": 0,
+   "min": 3.1661955272481035,
+   "median": 16614.912979140005,
+   "max": 160309061.7979926,
+   "within_2_2": 0
+  },
+  "kernel_live": {
+   "n": 23,
+   "nonfinite": 0,
+   "min": 1.0,
+   "median": 229986175.22341153,
+   "max": 2.167921691208211e+25,
+   "within_2_2": 10
+  }
+ },
+ "classes": {
+  "legacy": {
+   "DRIFTING": 33,
+   "DEAD": 17,
+   "SWINGING": 4,
+   "DEAD_BUILDING": 2,
+   "CURRENCY_DRAIN": 1,
+   "POP_DESTITUTION": 1
+  },
+  "kernel": {
+   "DRIFTING": 23,
+   "UNSTABLE": 23,
+   "SWINGING": 11,
+   "DEAD": 9,
+   "POP_DESTITUTION": 7,
+   "DEAD_BUILDING": 4
+  }
+ },
+ "scenario_level": {
+  "median_dlog": 27.320681898171152,
+  "tighter": 3,
+  "wider": 8,
+  "unchanged": 0
+ },
+ "per_region": [
+  {
+   "scenario": "cr_00",
+   "region": "Ashby",
+   "legacy_band": 444616.68892574374,
+   "kernel_band": 1.0,
+   "dlog": -13.004967816752732,
+   "legacy_live": false,
+   "kernel_live": true
+  },
+  {
+   "scenario": "cr_00",
+   "region": "Brindle",
+   "legacy_band": 444616.6891428733,
+   "kernel_band": 1.0,
+   "dlog": -13.004967817241084,
+   "legacy_live": false,
+   "kernel_live": true
+  },
+  {
+   "scenario": "cr_00",
+   "region": "Corwen",
+   "legacy_band": 444616.68895134673,
+   "kernel_band": 1.0,
+   "dlog": -13.004967816810316,
+   "legacy_live": false,
+   "kernel_live": true
+  },
+  {
+   "scenario": "cr_01",
+   "region": "Ashby",
+   "legacy_band": 391530.32056696224,
+   "kernel_band": 6.174194628032108e+32,
+   "dlog": 62.625283186623406,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "cr_01",
+   "region": "Brindle",
+   "legacy_band": 2699.899824469853,
+   "kernel_band": 3.13608733134234e+32,
+   "dlog": 66.92472897665853,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "cr_01",
+   "region": "Corwen",
+   "legacy_band": 444616.68937743444,
+   "kernel_band": 1.0,
+   "dlog": -13.004967817768643,
+   "legacy_live": false,
+   "kernel_live": true
+  },
+  {
+   "scenario": "cr_02",
+   "region": "Ashby",
+   "legacy_band": 3.16619552724839,
+   "kernel_band": 1.0,
+   "dlog": -1.1525307180004847,
+   "legacy_live": true,
+   "kernel_live": true
+  },
+  {
+   "scenario": "cr_02",
+   "region": "Brindle",
+   "legacy_band": 3.166195527248971,
+   "kernel_band": 1.0,
+   "dlog": -1.152530718000668,
+   "legacy_live": true,
+   "kernel_live": true
+  },
+  {
+   "scenario": "cr_02",
+   "region": "Corwen",
+   "legacy_band": 3.1661955272481035,
+   "kernel_band": 1.0,
+   "dlog": -1.152530718000394,
+   "legacy_live": true,
+   "kernel_live": true
+  },
+  {
+   "scenario": "cr_03",
+   "region": "Ashby",
+   "legacy_band": 444616.68892574374,
+   "kernel_band": 1.0,
+   "dlog": -13.004967816752732,
+   "legacy_live": false,
+   "kernel_live": true
+  },
+  {
+   "scenario": "cr_03",
+   "region": "Brindle",
+   "legacy_band": 444616.6891428733,
+   "kernel_band": 1.0,
+   "dlog": -13.004967817241084,
+   "legacy_live": false,
+   "kernel_live": true
+  },
+  {
+   "scenario": "cr_03",
+   "region": "Corwen",
+   "legacy_band": 444616.68895134673,
+   "kernel_band": 1.0,
+   "dlog": -13.004967816810316,
+   "legacy_live": false,
+   "kernel_live": true
+  },
+  {
+   "scenario": "cr_04",
+   "region": "Ashby",
+   "legacy_band": 444616.68892574374,
+   "kernel_band": 2.167921691208211e+25,
+   "dlog": 45.33342847073204,
+   "legacy_live": false,
+   "kernel_live": true
+  },
+  {
+   "scenario": "cr_04",
+   "region": "Brindle",
+   "legacy_band": 444616.6891428733,
+   "kernel_band": 10339963559.821749,
+   "dlog": 10.054314364584211,
+   "legacy_live": false,
+   "kernel_live": true
+  },
+  {
+   "scenario": "cr_04",
+   "region": "Corwen",
+   "legacy_band": 444616.68895134673,
+   "kernel_band": 1.52008063260714e+21,
+   "dlog": 35.7680825172837,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "cr_05",
+   "region": "Ashby",
+   "legacy_band": 160309061.79798564,
+   "kernel_band": 2227984138.3235064,
+   "dlog": 2.631748893516505,
+   "legacy_live": true,
+   "kernel_live": true
+  },
+  {
+   "scenario": "cr_05",
+   "region": "Brindle",
+   "legacy_band": 160309061.79798594,
+   "kernel_band": 229986175.22341153,
+   "dlog": 0.3609156111314178,
+   "legacy_live": true,
+   "kernel_live": true
+  },
+  {
+   "scenario": "cr_05",
+   "region": "Corwen",
+   "legacy_band": 160309061.7979926,
+   "kernel_band": 154577564.74527624,
+   "dlog": -0.036407580715433596,
+   "legacy_live": true,
+   "kernel_live": true
+  },
+  {
+   "scenario": "cr_06",
+   "region": "Ashby",
+   "legacy_band": 64.9540047565163,
+   "kernel_band": 703572111.7080853,
+   "dlog": 16.198001533185803,
+   "legacy_live": true,
+   "kernel_live": true
+  },
+  {
+   "scenario": "cr_06",
+   "region": "Brindle",
+   "legacy_band": 26.687505352139798,
+   "kernel_band": 2221798560.2691345,
+   "dlog": 18.23738737557229,
+   "legacy_live": true,
+   "kernel_live": true
+  },
+  {
+   "scenario": "cr_06",
+   "region": "Corwen",
+   "legacy_band": 64.95473449771603,
+   "kernel_band": 3949068132.7003765,
+   "dlog": 17.923054837295854,
+   "legacy_live": true,
+   "kernel_live": true
+  },
+  {
+   "scenario": "cr_07",
+   "region": "Ashby",
+   "legacy_band": 395526.9473035719,
+   "kernel_band": 2.3839530911463244e+20,
+   "dlog": 34.03248773371392,
+   "legacy_live": false,
+   "kernel_live": true
+  },
+  {
+   "scenario": "cr_07",
+   "region": "Brindle",
+   "legacy_band": 395526.94730357605,
+   "kernel_band": 786143003.3799247,
+   "dlog": 7.594675073343204,
+   "legacy_live": false,
+   "kernel_live": true
+  },
+  {
+   "scenario": "cr_07",
+   "region": "Corwen",
+   "legacy_band": 395526.9473036062,
+   "kernel_band": 2.899996458881647e+17,
+   "dlog": 27.320681898171152,
+   "legacy_live": false,
+   "kernel_live": true
+  },
+  {
+   "scenario": "cr_08",
+   "region": "Ashby",
+   "legacy_band": 603520.813009726,
+   "kernel_band": 1.3457627248215465e+23,
+   "dlog": 39.945882266739105,
+   "legacy_live": true,
+   "kernel_live": true
+  },
+  {
+   "scenario": "cr_08",
+   "region": "Brindle",
+   "legacy_band": 603520.8136334529,
+   "kernel_band": 7.534308502929257e+22,
+   "dlog": 39.36580329526016,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "cr_08",
+   "region": "Corwen",
+   "legacy_band": 44982400.0383442,
+   "kernel_band": 2856531924.9099,
+   "dlog": 4.151092251327444,
+   "legacy_live": true,
+   "kernel_live": true
+  },
+  {
+   "scenario": "cr_09",
+   "region": "Ashby",
+   "legacy_band": 394048.0720890085,
+   "kernel_band": 2.0464604326768812e+42,
+   "dlog": 84.540457397155,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "cr_09",
+   "region": "Brindle",
+   "legacy_band": 394047.24796118535,
+   "kernel_band": 9.571968578739377e+43,
+   "dlog": 88.38577178638879,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "cr_09",
+   "region": "Corwen",
+   "legacy_band": 394047.2479611902,
+   "kernel_band": 1.792336099119188e+42,
+   "dlog": 84.40786765825477,
+   "legacy_live": false,
+   "kernel_live": false
+  },
+  {
+   "scenario": "cr_10",
+   "region": "Ashby",
+   "legacy_band": 16614.912979140005,
+   "kernel_band": 5.322372422112329e+23,
+   "dlog": 44.913320343532035,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "cr_10",
+   "region": "Brindle",
+   "legacy_band": 14688.946375002119,
+   "kernel_band": 3.410750960071075e+27,
+   "dlog": 53.80187945815,
+   "legacy_live": true,
+   "kernel_live": false
+  },
+  {
+   "scenario": "cr_10",
+   "region": "Corwen",
+   "legacy_band": 18390.157297535567,
+   "kernel_band": 6.73778439112519e+21,
+   "dlog": 40.442447227415315,
+   "legacy_live": true,
+   "kernel_live": false
+  }
+ ]
+}

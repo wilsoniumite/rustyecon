@@ -47,6 +47,9 @@ fn the_engine_holds_together_across_the_full_span() {
         telemetry_every: 1,
         certify: true,
         results_dir: results.path().to_path_buf(),
+        // Tape-registered: this run uses whatever kernel.supply_rule the
+        // scenario declares, which is the only R2-clean default.
+        supply_rule: None,
     };
     let mut runner = SimRunner::new(s.state, s.game_data, s.events, config)
         .with_scenario_dir(&dir)
@@ -64,6 +67,13 @@ fn the_engine_holds_together_across_the_full_span() {
     // is that a battery finds it now; test_10_invariants asserts that it does,
     // so excluding them here loses no coverage. Everything else must hold at
     // the 225-year horizon.
+    //
+    // B8 is kept in, and what it asserts at this horizon is only that the
+    // realised-vs-implied price distance stayed *computable* across 225 years —
+    // it carries no threshold (see `PriceGapWatch::report`). Grain is about 4x
+    // too dear on this tracer, and test_11_correctness is where that number
+    // lives; here it would be an assertion about the economy in a test about
+    // the engine.
     for b in cert.batteries.iter().filter(|b| b.id != "B6" && b.id != "B7") {
         assert!(b.pass, "{} {} failed at {FULL_SPAN} ticks: {}", b.id, b.label, b.detail);
     }

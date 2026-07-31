@@ -1,0 +1,124 @@
+// solv_1g_money — solv_1g WITH THE PRICE LEVEL PINNED.
+//
+// Registered 2026-07-31. Derivation: docs/design/solvable-scenarios.md §3.
+// Machine-readable target: equilibrium.ron beside this file.
+//
+// ── WHAT CHANGES, AND WHY THAT IS THE WHOLE SCENARIO ──────────────────────────
+// Byte-for-byte solv_1g except for the wealth table: TWO tiers instead of one,
+// and the pop starts halfway between them. That single change switches on the
+// one mechanism in the engine that gives money demand two sides — the pop's cash
+// band, src/kernel/mod.rs:377, which is skipped entirely when
+// max_wealth_tier == 0 — and turns an unpinned price LEVEL into a closed form.
+//
+// solv_1g and solv_1g_money are the SAME REAL ECONOMY. Same technology, same
+// head-count, same equilibrium quantities, same relative prices. If the two
+// disagree about anything real, the disagreement is caused by the money anchor
+// and by nothing else, which is what makes the pair worth having.
+//
+// ── THE CLOSED FORM ───────────────────────────────────────────────────────────
+//   technology: a = 0.5 labour per grain, r = 1/a = 2 grain per labour
+//   tiers:      tier0 food 1.0, tier1 food 3.0  =>  q(w) = 1 + 2w
+//
+//   RELATIVE PRICES are solv_1g's, and for solv_1g's reason (zero profit):
+//       p_grain = a*p_labour        =>  RealWage = 2.0
+//
+//   THE WEALTH TIER IS PINNED BY QUANTITY BALANCE, NOT BY THE CASH RULE.
+//   Participation is at the pi = 1 corner (sigma_pi = +1 identically at the
+//   zero-profit vector in any labour-only technology), so labour balance still
+//   gives K = N/a, and grain balance gives q = K/N = r = 2. The tier that
+//   demands a basket of 2 is w* = 0.5 exactly, since 1 + 0.5*(3-1) = 2.
+//
+//   THE LEVEL IS THEN PINNED BY THE CASH BAND. The pop's Rule 2 rests where
+//   sigma_c = (cash - reserve)/reserve = 0 with reserve = b_cash*basket_cost/s,
+//   and Rule 3 leaves the firm (b_cash/s + s)*outlay. Money is conserved, so
+//       M   = b_cash*p_grain*N*r  +  (b_cash+1)*N*r*p_grain
+//           = N*r*p_grain*(2*b_cash + 1)
+//       p_grain = M / (N*r*(2*b_cash+1)) = 140/(10*2*14) = 0.5
+//       p_labour = r*p_grain = 1.0
+//
+//   AND A COROLLARY THAT NEEDS NO SCENARIO ARITHMETIC AT ALL:
+//       Velocity* = 2/(2*b_cash + 1) = 2/14 = 0.142857142857...
+//   EQUILIBRIUM VELOCITY IS A PURE FUNCTION OF THE CASH BAND. It does not
+//   depend on the technology, the head-count, or the money stock. That is a
+//   theorem about this engine, it is testable, and this tape is the test.
+//
+//   PREDICTED EQUILIBRIUM
+//       p_labour 1.0 (numeraire)  p_grain 0.5   RealWage 2.0
+//       chosen_size 20   BldUtil 0.8   Employment 1.0   pop wealth 0.5
+//       cleared labour 10, grain 20      firm grain stock 60
+//       cash: firm 75, pop 65, M = 140
+//       Velocity 20/140 = 0.14285714...  Concentration 75/140 = 0.53571428...
+//       RealIncome (65/10)/0.5 = 13.0
+//
+// ── THE NEUTRALITY TEST, AND WHY IT IS THE SHARPEST R2 AUDIT AVAILABLE ────────
+// data/scenarios/solv_1g_money_2x is this tape with every currency balance and
+// every price DOUBLED and nothing else touched. Prediction, registered before
+// the run: every real quantity, every fill rate and every metric series except
+// the currency stocks is BIT-IDENTICAL between the two, and every price is
+// exactly 2x at every tick. Every kernel rule is a function of ratios —
+// dead-bands on sigma, clamps on pi and scale/recipe_size, cash/reserve — so
+// homogeneity is exact on dyadic inputs, UNLESS an absolute constant with
+// behavioural meaning has leaked into the code. A failure names the leak by
+// good and by tick. One extra tape, and it audits R2 across the whole kernel.
+//
+// s = 1 is forced for the reason given in solv_1g's header. Every number is a
+// dyadic rational, so the fixed point is bit-exact.
+(
+    kernel: (
+        s: 1,
+        eta_up: 0.04,
+        eta_dn: 0.05,
+        dead: 0.05,
+        b_out: 2.0,
+        b_cash: 6.5,
+        beta: 1.0,
+        epsilon: 0.01,
+        phi: 0.6180339887498949,
+        fill_alpha: 0.25,
+        // Which Rule 1 the desks post under. `inelastic` is the rule
+        // shipped through Phase 4 (posted supply has price elasticity
+        // exactly zero); `reservation` divides the band by the desk's
+        // own markup, so b_out becomes the supply curve's slope.
+        // Registered here, swept with --supply-rule.
+        supply_rule: inelastic,
+    ),
+    goods: [
+        ( name: "grain",  alpha: 0.05, shelf_life: Indefinite, movement_type: Physical,  divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "gbp",    alpha: 0.0,  shelf_life: Indefinite, movement_type: Financial, divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "labour", alpha: 0.05, shelf_life: Instant,    movement_type: Local,     divisible: true, storage_cost_per_tick: 0.0 ),
+    ],
+    recipes: [
+        (
+            name: "grow_grain",
+            inputs:  [ ( good: "labour", qty_per_unit: 0.5, scaling: Variable ) ],
+            outputs: [ ( good: "grain",  qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: CapacityControl,
+        ),
+        (
+            name: "dividend",
+            inputs:  [ ( good: "gbp", qty_per_unit: 1.0, scaling: Variable ) ],
+            outputs: [ ( good: "gbp", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: DividendPayout( reserve_multiple: 26.0 ),
+        ),
+    ],
+    need_categories: [
+        ( name: "food", entries: [ ( good: "grain", weight: 1.0 ) ] ),
+    ],
+    // THE ONE DIFFERENCE FROM solv_1g. Two tiers, so max_wealth_tier() = 1 > 0
+    // and the pop's cash rule runs. The tiers are 1.0 and 3.0 rather than, say,
+    // 1.5 and 2.5 so that the equilibrium tier lands on the exact half — w* is
+    // the solution of 1 + 2w = r = 2 — and stays a dyadic rational.
+    wealth_levels: [
+        ( tier: 0, needs: { "food": 1.0 } ),
+        ( tier: 1, needs: { "food": 3.0 } ),
+    ],
+    market_nodes: [
+        ( id: (0), tier: Regional, region: Some((0)), currency_good: Some((1)) ),
+    ],
+    channels: [],
+    regions: [
+        ( id: (0), name: "Solo", market_node: (0) ),
+    ],
+)

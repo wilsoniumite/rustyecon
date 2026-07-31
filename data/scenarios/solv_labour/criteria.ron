@@ -1,0 +1,138 @@
+// Stability criteria — dated, pre-registered (METHODOLOGY R6, engine.md).
+//
+// GENERATION 1, registered 2026-07-31, for a scenario that did not exist before
+// today. `version: 1` is this FILE's generation; every threshold in it is the
+// corpus's generation-4 value, copied verbatim from data/scenarios/lr_00 and
+// data/scenarios/tracer_2r without one digit changed.
+//
+//   NOT ONE THRESHOLD HERE WAS CHOSEN WITH KNOWLEDGE OF WHAT THIS SCENARIO DOES.
+//   The tape and this file were written before the engine had ever been pointed
+//   at solv_labour. Every number was fixed earlier, against the synthetic
+//   healthy/sick series in tests/test_09_detectors.rs, to score a corpus this
+//   world is not part of. If this scenario fails one of these, the finding is
+//   that it fails a bar the rest of the corpus is already held to.
+//
+// WHAT THIS FILE ASSERTS: stability only — the metrics stayed inside a band and
+// their wobble did not grow. IT DOES NOT ASSERT CORRECTNESS. Every class here
+// passes on a world whose prices are arbitrarily wrong as long as they are wrong
+// quietly: a run that instantly settles on RealWage = 0.02 and holds it scores
+// LevelRange 1.00, RollingCv 0.00 and ResidualDamping 0.00 — a clean sweep.
+// Whether the prices went to the RIGHT PLACE is equilibrium.ron's question, read
+// by tests/test_12_solvable.rs, and B8's in the run certificate.
+//
+// THE DIFFERENCE FROM solv_1g's OTHERWISE IDENTICAL FILE. In solv_1g the DEAD
+// and DRIFTING thresholds on Velocity are scoring an UNPINNED direction: one
+// wealth tier means the price level is a free ray, and Velocity is proportional
+// to the level. HERE THAT CAVEAT DOES NOT APPLY. Two tiers switch on the pop's
+// cash band, the level has a closed form, and equilibrium Velocity is
+// 30/215 = 0.139535 exactly. So on this tape a Velocity verdict is a verdict
+// about something that has a right answer.
+//
+// A SECOND DIFFERENCE, AND IT IS THE ONE TO WATCH. DEAD_BUILDING would fire if
+// this scenario's building idled — but here the building sits at BldUtil = 1.0
+// BY DESIGN, because the capacity cap IS the scarce second factor and the whole
+// crossing depends on it binding. A BldUtil below 1.0 on this tape means the cap
+// stopped binding, which means the labour market has gone vertical and the
+// scenario has silently become solv_1g. Read that as the scenario failing to be
+// itself, not as a plant running slow — and note that no class in this file can
+// catch it, because 0.4 is nowhere near the 0.05 floor.
+//
+// Equilibrium readings against each bar, all comfortably inside, all computed
+// from the tape rather than measured: Velocity 0.1395 vs the 0.003 DEAD floor;
+// Employment 1.0 vs 0.05; every RollingCv 0.00 vs 0.12; every LevelRange 1.00
+// vs 2.2; every ResidualDamping 0.00 vs 1.5; Concentration 0.395 vs 0.82;
+// RealIncome 6.5 vs 0.8; BldUtil 1.0 vs 0.05. A scenario that fails one of
+// these has moved, and how far it moved is the measurement.
+//
+// AND ONE THING THIS FILE CANNOT SAY. solv_labour's registered equilibrium
+// RealWage is 1.0 — half the labour-value answer, because the firm earns a
+// capacity rent. DRIFTING will happily pass a run sitting at RealWage 2.0, which
+// is the WRONG answer for this world and the RIGHT answer for solv_1g. Only
+// equilibrium.ron distinguishes them. That is the sharpest available statement
+// of why a stability file is not a correctness file.
+//
+// WHY THE WINDOW IS 150..1000: copied from lr_00 unchanged. The transient is
+// arguably zero here — mode A starts AT the equilibrium — but shortening the
+// window would be a scenario-specific choice made by someone who knew the
+// answer, and would stop these numbers being comparable with the corpus's.
+//
+// WHERE THE FIRST-PRINCIPLES JUSTIFICATION RUNS OUT, said plainly: the liveness
+// floors (0.003, 0.05, 0.12, 0.82, 0.8, 0.60) are ported from
+// notebooks/07_stability_suite.py, where they were global Python constants
+// applied to every scenario. NOTHING DERIVES THEM. They are inherited, not
+// justified, and this file does not pretend otherwise. The two that ARE
+// evidenced are 2.2 and 1.5, fixed from the separation between synthetic healthy
+// and sick series in tests/test_09_detectors.rs: healthy levels reach at most
+// 1.81 and sick start at 2.69; healthy oscillation reaches 1.04 and sick starts
+// at 1.99.
+//
+// CHANGING A THRESHOLD AFTER SEEING RESULTS REQUIRES A NEW DATED GENERATION,
+// never a silent edit.
+(
+    version: 1,
+    date: "2026-07-31",
+    transient: 150,
+    analysis_end: 1000,
+    staple_good: "grain",
+    labour_good: "labour",
+    nan_policy: FailClosed,
+    classes: [
+        (
+            name: "DEAD",
+            fatal: true,
+            metrics: [Velocity],
+            rule: FracBelow(thresh: 0.003, frac: 0.80),
+            window: Analysis,
+            short_circuit: true,
+        ),
+        (
+            name: "DEAD_EMPLOYMENT",
+            fatal: true,
+            metrics: [Employment],
+            rule: FracBelow(thresh: 0.05, frac: 0.80),
+            window: Analysis,
+        ),
+        (
+            name: "UNSTABLE",
+            fatal: true,
+            metrics: [Velocity, Employment, RealWage],
+            rule: RollingCv(window: 10, max_cv: 0.12),
+            window: Analysis,
+        ),
+        (
+            name: "DRIFTING",
+            fatal: true,
+            metrics: [Velocity, RealWage],
+            rule: LevelRange(max_ratio: 2.2),
+            window: Analysis,
+        ),
+        (
+            name: "SWINGING",
+            fatal: true,
+            metrics: [Velocity, RealWage],
+            rule: ResidualDamping(max_ratio: 1.5),
+            window: Halves,
+        ),
+        (
+            name: "CURRENCY_DRAIN",
+            fatal: true,
+            metrics: [Concentration],
+            rule: MeanAndSlope(mean_min: 0.82, slope_min: 0.0),
+            window: Analysis,
+        ),
+        (
+            name: "POP_DESTITUTION",
+            fatal: true,
+            metrics: [RealIncome],
+            rule: FracBelow(thresh: 0.8, frac: 0.50),
+            window: Analysis,
+        ),
+        (
+            name: "DEAD_BUILDING",
+            fatal: false,
+            metrics: [BldUtil],
+            rule: FracBelow(thresh: 0.05, frac: 0.60),
+            window: PostTransient,
+        ),
+    ],
+)

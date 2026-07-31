@@ -1,0 +1,61 @@
+// Genesis for solv_chain. GENESIS IS THE EQUILIBRIUM — see game_data.ron for
+// the derivation. Every number is the unique value a rest condition requires.
+//
+// The three cash balances encode Rule 3's holding, (b_cash/s + s)*outlay:
+//   farm 30 = 7.5 * (0.25*16*1.0)          outlay 4
+//   mill 60 = 7.5 * (16*0.25 + 4*1.0)      outlay 8
+//   pop  52 = b_cash * basket_cost / s = 6.5 * (2*8*0.5), so sigma_c = 0 exactly
+// and M = 142 closes the level: p_flour = M/284 = 0.5.
+//
+// MILL WHEAT IS ABSENT ON PURPOSE. At s = 1 the mill buys one tick's worth and
+// consumes it in the same tick's production phase, so its wheat holding at the
+// decision point is 0. Seeding it with a stock would make planned_spend's `held`
+// term nonzero, the mill would under-buy for one tick, and the wheat market
+// would open unbalanced — a transient in a tape whose entire claim is that there
+// is no transient.
+(
+    tick: 0,
+    // The equilibrium price vector: it IS the labour-content vector.
+    prices: { "wheat": 0.25, "flour": 0.5, "gbp": 1.0, "labour": 1.0 },
+    buildings: [
+        // wheat 48 = (1 + b_out)*chosen_size, so Rule 1 posts exactly 16 = the
+        // mill's demand. recipe_size 20 > chosen 16 so scale is interior.
+        (
+            id: (0), region: (0), recipe: "wheat_farm",
+            recipe_size: 20.0, chosen_size: 16.0, efficiency: 1.0,
+            inventory: { "gbp": 30.0, "wheat": 48.0 },
+        ),
+        // flour 48 = (1 + b_out)*chosen_size, posting exactly 16 = the pop's
+        // demand. No wheat: see the header.
+        (
+            id: (1), region: (0), recipe: "grain_mill",
+            recipe_size: 20.0, chosen_size: 16.0, efficiency: 1.0,
+            inventory: { "gbp": 60.0, "flour": 48.0 },
+        ),
+    ],
+    pop_groups: [
+        // Subsistence baskets per unit of labour: the pop's outside option.
+        // Derived from technology by tools/derive_parity.py, never from prices,
+        // because RealWage is a scored series (R6):
+        //   tier-0 basket = 1.0 flour, and flour embodies 0.5 labour
+        //   market rate 1/0.5 = 2.0 baskets per labour
+        //   parity = HOME_PENALTY * market rate = 0.5 * 2.0 = 1.0
+        // Note this is the same 1.0 as solv_1g_money's despite a different
+        // technology — because both baskets embody half an hour. Coincidence of
+        // value, not of recipe.
+        (
+            id: (0), region: (0), size: 8.0, wealth: 0.5,
+            inventory: { "gbp": 52.0 },
+            savings_target: 0.9,
+            labour_good: Some("labour"),
+            parity: Some(1.0),
+        ),
+    ],
+    // One claim-holder pointer per firm, both paying the single pop: with two
+    // firms and one pop there is nowhere else for overflow to go, and leaving
+    // either out would make one firm a cash sink and the other not.
+    extra_recipe_instances: [
+        ( recipe: "dividend", building: (0), output_pop: (0), recipe_size: 1000.0 ),
+        ( recipe: "dividend", building: (1), output_pop: (0), recipe_size: 1000.0 ),
+    ],
+)

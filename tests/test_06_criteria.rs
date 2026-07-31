@@ -34,6 +34,9 @@ fn certify(name: &str, ticks: u64, criteria: Option<Criteria>) -> Certificate {
         telemetry_every: 1,
         certify: true,
         results_dir: out.path().join("results"),
+        // Tape-registered: this run uses whatever kernel.supply_rule the
+        // scenario declares, which is the only R2-clean default.
+        supply_rule: None,
     };
     let criteria = criteria.or(s.criteria);
     SimRunner::new(s.state, s.game_data, s.events, config)
@@ -85,6 +88,14 @@ fn engine_batteries_pass_while_stability_fails() {
     // B6 excepted: it checks an agent-design invariant rather than engine
     // correctness, and the legacy agent violates it — see test_10_invariants.
     // Excluded here rather than dropped, so the distinction stays visible.
+    //
+    // B8 is NOT excepted, and its PASS here is worth reading carefully. It is a
+    // correctness criterion, not an engine one, and this run's prices are two
+    // orders of magnitude away from what the tape's recipes imply. B8 passes
+    // because it deliberately carries no distance threshold (R6 — the numbers
+    // were known before it was written, so any bar would have been fitted to
+    // them); it fails only when the distance cannot be computed at all. The
+    // measurement is in the battery's detail line, and it is the whole point.
     for b in cert.batteries.iter().filter(|b| b.id != "B6") {
         assert!(b.pass, "engine battery {} should pass: {}", b.id, b.detail);
     }

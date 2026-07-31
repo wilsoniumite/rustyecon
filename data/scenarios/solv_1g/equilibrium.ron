@@ -1,0 +1,89 @@
+// The registered closed-form equilibrium for solv_1g.
+//
+// Registered 2026-07-31, BEFORE the engine was ever pointed at this tape (R6).
+// Derived by hand in docs/design/solvable-scenarios.md §2 and restated with its
+// derivation in game_data.ron's header. This file is the machine-readable copy;
+// tests/test_12_solvable.rs reads it, src/scenario/equilibrium.rs parses it.
+//
+// WHY THIS FILE EXISTS AND IS NOT PART OF criteria.ron: `Rule` cannot express
+// "distance from a target vector". Every rule it has reads one series and asks
+// whether that series stayed put. None of them can be handed a number the series
+// is supposed to equal. Rather than bolt a target onto a stability schema, the
+// target is registered separately and read separately, so a stability verdict
+// and a correctness verdict can disagree in public.
+(
+    derivation: "docs/design/solvable-scenarios.md#2-scenario-1--solv_1g-one-good",
+    registered: "2026-07-31",
+
+    // Everything below is a RELATIVE price, against this good. The level is not
+    // a target in this tape — see `velocity` and the note under it.
+    numeraire: "labour",
+
+    // p_good / p_numeraire at the equilibrium. p_grain = a*p_labour with
+    // a = 0.5 labour per grain, so grain is worth half an hour.
+    // The currency is deliberately absent: its alpha is 0, it never moves, and
+    // its "relative price" carries no information (B8 excludes it for the same
+    // reason).
+    prices: {
+        "labour": 1.0,
+        "grain":  0.5,
+    },
+
+    // Units changing hands per tick, from exact posted balance:
+    //   labour  N*pi   = 10*1  = a*K = 0.5*20
+    //   grain   K      = 20    = N*q = 10*2
+    cleared: {
+        "labour": 10.0,
+        "grain":  20.0,
+    },
+
+    // p_labour / p_staple = 1/a = r. The one number the whole scenario is about.
+    real_wage: 2.0,
+
+    // NOT REGISTERED, AND THE ABSENCE IS THE FINDING. With one wealth tier the
+    // pop's cash rule is skipped (src/kernel/mod.rs:377), so every posted
+    // quantity is physical and the excess-demand system is homogeneous of degree
+    // zero: the equilibrium is a half-open ray of price levels, lambda in (0,1].
+    // Velocity is proportional to the level at fixed money stock, so it has no
+    // single equilibrium value here — it is anything in (0, 20/105]. Registering
+    // 0.190476 as a target would be registering the top of a ray as if it were a
+    // point. solv_1g_money is the same real economy WITH the anchor switched on,
+    // and there this field carries a number.
+    velocity: None,
+
+    // MODE A — stationarity. Genesis IS the equilibrium, so the claim is that
+    // the price vector never moves at all.
+    //
+    // 1e-12 is FLOAT slack, not economic slack. Every number in the tape is a
+    // dyadic rational, so the fixed point is bit-exact in f64 and every rule's
+    // response at it is identically zero: posted 60 - 2*20 = 20 == demand 20,
+    // imbalance 0, sigma 0 inside the dead band, fill EMA 1, overflow
+    // 75 - 65 - 10 = 0. ANY observed motion is a defect — in the engine or in
+    // the derivation, and either is worth knowing. This gate is ~12 orders of
+    // magnitude tighter than any stability criterion in the repo, and it was
+    // written down before the run, so it cannot have been widened to fit one.
+    fixed_point_tol_log: 1e-12,
+
+    // MODE B — attraction. Genesis displaced by doubling one good's price, so
+    // RealWage opens at 1.0 and must climb to 2.0. The displacement leaves both
+    // markets BALANCED on tick 0 (posted quantities are physical), so the run is
+    // driven purely by the desk's margin — the cleanest possible excitation.
+    //
+    // tol_log = ln(1.10) = 0.09531017980432486, derived entirely from registered
+    // dials and from nothing about the result:
+    //   * the rest SET is a band, not a point: dead = 0.05 puts revenue/cost in
+    //     [0.9512, 1.0513], so the correct price ratio is only defined to +/-5%;
+    //   * scale is checked once per activation and moves multiplicatively, so it
+    //     can sit one eta_dn = 0.05 step outside the band before being observed;
+    //   * 1.05 * 1.05 = 1.1025, registered as 1.10.
+    // Scored on the MEDIAN over the analysis window, because the loop is
+    // predicted to orbit rather than converge and the orbit is predicted to be
+    // centred on the fixed point. The band is REPORTED, never gated — gating it
+    // would be scoring stability again, which is the conflation this whole
+    // family exists to stop.
+    displaced: Some((
+        good: "grain",
+        factor: 2.0,
+        tol_log: 0.09531017980432486,
+    )),
+)

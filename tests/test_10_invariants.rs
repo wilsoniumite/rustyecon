@@ -38,6 +38,9 @@ fn certify(scenario: &str, ticks: u64, agents: AgentArm) -> Certificate {
         telemetry_every: 1,
         certify: true,
         results_dir: out.path().join("results"),
+        // Tape-registered: this run uses whatever kernel.supply_rule the
+        // scenario declares, which is the only R2-clean default.
+        supply_rule: None,
     };
     let mut runner = SimRunner::new(s.state, s.game_data, s.events, config)
         .with_scenario_dir(&dir)
@@ -115,7 +118,11 @@ fn b7_reports_a_number_rather_than_a_reassurance() {
 fn both_new_batteries_are_present_and_the_verdict_accounts_for_them() {
     let cert = certify("lr_00", 200, AgentArm::Legacy);
     let ids: Vec<&str> = cert.batteries.iter().map(|b| b.id.as_str()).collect();
-    assert_eq!(ids, ["B1", "B2", "B3", "B4", "B5", "B6", "B7"]);
+    // B8 joined the list afterwards (the correctness criterion,
+    // tests/test_11_correctness.rs). Asserted here as an exact list rather than
+    // a `contains`, because a battery silently dropping out of the certificate
+    // is the failure this test exists to catch.
+    assert_eq!(ids, ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8"]);
     // Fail-closed: a failing battery must reach the verdict, or the certificate
     // reports a defect and then calls the run clean anyway.
     assert!(!cert.passed(), "B6 fails on legacy, so the run cannot PASS");
@@ -127,8 +134,12 @@ fn the_arm_is_recorded_so_two_certificates_cannot_be_confused() {
     // two certificates differ in no field that says which is which.
     let legacy = certify("lr_00", 60, AgentArm::Legacy);
     let kernel = certify("lr_00", 60, AgentArm::Kernel);
-    assert_eq!(legacy.identity.agents, "legacy+imbalance");
-    assert_eq!(kernel.identity.agents, "kernel+imbalance");
+    // Three fields, not two: the supply rule joined the identity when it became
+    // a switch, because `--supply-rule` can change the mechanism without
+    // changing the tape sha, and two certificates that differ only there would
+    // otherwise be indistinguishable. The value here is the tape's own.
+    assert_eq!(legacy.identity.agents, "legacy+imbalance+inelastic");
+    assert_eq!(kernel.identity.agents, "kernel+imbalance+inelastic");
     assert_eq!(legacy.identity.tape_sha, kernel.identity.tape_sha, "same tape");
     assert_ne!(legacy.identity.run, kernel.identity.run, "different runs");
 }

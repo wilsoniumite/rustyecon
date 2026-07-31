@@ -1,0 +1,63 @@
+// The registered closed-form equilibrium for solv_chain.
+//
+// Registered 2026-07-31, before the run (R6). Derived in
+// docs/design/solvable-scenarios.md §4 and restated with its derivation in
+// game_data.ron's header.
+(
+    derivation: "docs/design/solvable-scenarios.md#4-scenario-2--solv_chain-labour--wheat--flour",
+    registered: "2026-07-31",
+    numeraire: "labour",
+
+    // THE PRICE VECTOR IS THE LABOUR-CONTENT VECTOR:
+    //   wheat  0.25*1                = 0.25 hours embodied
+    //   flour  1*0.25 + 0.25*1       = 0.50 hours embodied
+    // The gate is on the WHOLE vector, not on RealWage, because a run can reach
+    // RealWage = 2.0 with the wrong p_wheat and a one-good world cannot see it.
+    prices: {
+        "labour": 1.0,
+        "wheat":  0.25,
+        "flour":  0.5,
+    },
+    cleared: {
+        "labour": 8.0,
+        "wheat":  16.0,
+        "flour":  16.0,
+    },
+    real_wage: 2.0,
+
+    // Pinned: two wealth tiers switch the pop's cash band on.
+    //   (8*1.0 + 16*0.25 + 16*0.5) / 142 = 20/142
+    // Note this is NOT 2/(2*b_cash+1): that corollary assumes one produced good.
+    // With a chain the intermediate is bought and sold inside the same tick, so
+    // the flow leg carries an extra term and velocity rises above the one-good
+    // value. Written at full f64 precision.
+    velocity: Some(0.14084507042253522),
+
+    fixed_point_tol_log: 1e-12,
+
+    // MODE B displaces the FINAL good, not the intermediate, and the choice is
+    // load-bearing. Doubling p_flour leaves every market balanced on tick 0
+    // (posted quantities are physical, and the pop's flour order is unchanged
+    // because its ration stays 1), so the run is driven purely by the mill's
+    // margin — the cleanest possible single excitation. The farm is untouched at
+    // t=0 and can only be moved through the chain, which is exactly the
+    // propagation this scenario exists to test.
+    //
+    // Doubling p_wheat instead was considered and REJECTED: it raises the mill's
+    // outlay to 12 against a reserve of 78 and a cash stock of 60, so the mill's
+    // budget goes to zero and it posts nothing at all on tick 0. That is a real
+    // property of the engine (Rule 3 has no credit, so a cost shock rations
+    // instantly — see R-F in the design note) and it deserves its own experiment,
+    // but it would make this one a study of cash rationing rather than of price
+    // attraction, and the two must not be confounded in a single reading.
+    //
+    // tol_log = ln(1.10), derived from dials only: the rest SET is +/-5% wide
+    // (dead = 0.05), and scale can sit one eta_dn = 0.05 step outside it before
+    // being observed; 1.05*1.05 = 1.1025 -> 1.10. Scored on the MEDIAN over the
+    // window, because the chain's cobweb is predicted to orbit.
+    displaced: Some((
+        good: "flour",
+        factor: 2.0,
+        tol_log: 0.09531017980432486,
+    )),
+)

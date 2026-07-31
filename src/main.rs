@@ -58,6 +58,15 @@ struct Args {
     /// shipped rule) or `ratio` (p x d/s, which has no alpha at all).
     #[arg(long, default_value = "imbalance")]
     price_rule: rustyecon::systems::clearing::PriceRule,
+
+    /// Override the tape's registered `kernel.supply_rule`: `inelastic` (the
+    /// shipped price-inelastic band), `reservation` (the price-responsive band
+    /// plus the reservation-wage labour posting), or `reservation_goods` (the
+    /// band on storable outputs only — the decomposition arm). Omitted means
+    /// "whatever the tape registered", which is the normal way to run: the
+    /// constant lives in data (R2). This flag is the sweep.
+    #[arg(long)]
+    supply_rule: Option<rustyecon::state::game_data::SupplyRule>,
 }
 
 fn main() {
@@ -82,6 +91,7 @@ fn main() {
         results_dir: args.results,
         agents: args.agents,
         price_rule: args.price_rule,
+        supply_rule: args.supply_rule,
     };
     let results_dir = config.results_dir.clone();
 

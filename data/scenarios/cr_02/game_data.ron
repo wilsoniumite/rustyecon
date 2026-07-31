@@ -1,0 +1,94 @@
+// cr_02 — consistent, with the basket's labour moved into SERVICES.
+//
+// Same technology, same conditions, a different split of the same one unit of
+// labour per head: 0.5 flour + 0.75 services at genesis wealth, so a quarter of
+// the basket's embodied labour is in the storable good and three quarters in the
+// non-storable one. The base world is 5/8 and 3/8.
+//
+// WHY THIS IS THE SECOND FREE-PARAMETER AXIS AND NOT, SAY, ANOTHER SIZE VECTOR.
+// Services are `Ticks(1)`, so `GameData::storable` is false for them and Rule 1
+// posts `min(flow, stock)` — a VERTICAL supply curve, price elasticity exactly
+// 0.000 under every supply rule, which `examples/elasticity_probe.rs` measured and
+// `price-responsive-supply.md` §2.3 predicted. Moving weight into services moves
+// this world's share of markets that have no supply response at all, which is the
+// one structural knob Phase 4 identified and never swept.
+//
+// PRE-REGISTERED PREDICTION: if the elasticity story is right, cr_02 is harder than
+// cr_00 for both arms, and harder by more under the kernel than under legacy.
+(
+    // Kernel dials: lr_00's generation-4 values, copied verbatim and NOT
+    // retuned (R2, R6). `s` is the only one any cr_* world varies.
+    kernel: (
+        s: 1,
+        eta_up: 0.04,
+        eta_dn: 0.05,
+        dead: 0.05,
+        b_out: 2.0,
+        b_cash: 6.5,
+        beta: 1.0,
+        epsilon: 0.01,
+        phi: 0.6180339887498949,
+        fill_alpha: 0.25,
+        supply_rule: inelastic,
+    ),
+    goods: [
+        ( name: "wheat", alpha: 0.1, shelf_life: Indefinite, movement_type: Physical, divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "flour", alpha: 0.1, shelf_life: Indefinite, movement_type: Physical, divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "GBP", alpha: 0.0, shelf_life: Indefinite, movement_type: Financial, divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "labour", alpha: 0.05, shelf_life: Instant, movement_type: Local, divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "services", alpha: 0.1, shelf_life: Ticks(1), movement_type: Local, divisible: true, storage_cost_per_tick: 0.0 ),
+    ],
+    recipes: [
+        (
+            name: "wheat_farm",
+            inputs:  [ ( good: "labour", qty_per_unit: 0.25, scaling: Variable ) ],
+            outputs: [ ( good: "wheat", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: CapacityControl,
+        ),
+        (
+            name: "grain_mill",
+            inputs:  [ ( good: "wheat", qty_per_unit: 1.0, scaling: Variable ), ( good: "labour", qty_per_unit: 0.25, scaling: Variable ) ],
+            outputs: [ ( good: "flour", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: CapacityControl,
+        ),
+        (
+            name: "local_services",
+            inputs:  [ ( good: "labour", qty_per_unit: 1.0, scaling: Variable ) ],
+            outputs: [ ( good: "services", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: CapacityControl,
+        ),
+        (
+            name: "dividend",
+            inputs:  [ ( good: "GBP", qty_per_unit: 1.0, scaling: Variable ) ],
+            outputs: [ ( good: "GBP", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: DividendPayout( reserve_multiple: 26.0 ),
+        ),
+    ],
+    need_categories: [
+        ( name: "staple_food",     entries: [ ( good: "flour",    weight: 1.0 ) ] ),
+        ( name: "services_demand", entries: [ ( good: "services", weight: 1.0 ) ] ),
+    ],
+    // TWO tiers, not a hundred. The ladder is piecewise linear in `wealth`,
+    // so two rows already give a continuous basket over the whole range the
+    // consumption desk can reach; more rows would be more numbers to
+    // register without another degree of freedom (R2).
+    wealth_levels: [
+        ( tier: 0, needs: { "staple_food": 0.5, "services_demand": 0.25 } ),
+        ( tier: 1, needs: { "staple_food": 0.5, "services_demand": 1.25 } ),
+    ],
+    market_nodes: [
+        ( id: MarketNodeId(0), tier: Regional, region: Some(RegionId(0)), currency_good: Some(GoodId(2)) ),
+        ( id: MarketNodeId(1), tier: Regional, region: Some(RegionId(1)), currency_good: Some(GoodId(2)) ),
+        ( id: MarketNodeId(2), tier: Regional, region: Some(RegionId(2)), currency_good: Some(GoodId(2)) ),
+    ],
+    channels: [],
+    regions: [
+        ( id: RegionId(0), name: "Ashby", market_node: MarketNodeId(0) ),
+        ( id: RegionId(1), name: "Brindle", market_node: MarketNodeId(1) ),
+        ( id: RegionId(2), name: "Corwen", market_node: MarketNodeId(2) ),
+    ],
+)

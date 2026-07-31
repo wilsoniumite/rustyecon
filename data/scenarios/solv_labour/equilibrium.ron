@@ -1,0 +1,72 @@
+// The registered closed-form equilibrium for solv_labour.
+//
+// Registered 2026-07-31, before the run (R6). Derived in
+// docs/design/solvable-scenarios.md §5 and restated with the crossing proof in
+// game_data.ron's header.
+//
+// READ THE `real_wage` FIELD BEFORE ANYTHING ELSE. It is 1.0, not 2.0, and the
+// difference from the labour-value answer is not an error: it is the capacity
+// rent the firm earns because recipe_size binds. This tape is the family's
+// falsification test for the correctness instrument itself, so an instrument
+// that scores it against the Leontief vector — which B8 does — will score it
+// WRONG BY EXACTLY A FACTOR OF 2. That is registered here in advance so it is
+// read as a known limit of B8's model rather than as a defect discovered later.
+(
+    derivation: "docs/design/solvable-scenarios.md#5-scenario-3--solv_labour-a-labour-market-that-must-actually-cross",
+    registered: "2026-07-31",
+    numeraire: "labour",
+
+    // p_grain = p_labour, from w_real* = parity = 2.0 and q_tier0 = 0.5:
+    //   p_labour/(0.5*p_grain) = 2.0  =>  p_labour = p_grain
+    // The zero-profit vector would say 0.5. It is not the answer here because
+    // labour is not the only scarce factor.
+    prices: {
+        "labour": 1.0,
+        "grain":  1.0,
+    },
+    // labour a*K = 10 (the interior crossing, pi* = 0.5 of a head-count of 20)
+    // grain  N*q = 20 = K (the capped output)
+    cleared: {
+        "labour": 10.0,
+        "grain":  20.0,
+    },
+
+    // 1.0, NOT 1/a = 2.0. See the header.
+    real_wage: 1.0,
+
+    // Pinned: two wealth tiers switch the pop's cash band on. 30/215, at full
+    // f64 precision. Note this is NOT 2/(2*b_cash+1) = 0.1429 either — that
+    // corollary assumes zero profit, and here a tenth of the flow is rent.
+    velocity: Some(0.13953488372093023),
+
+    fixed_point_tol_log: 1e-12,
+
+    // MODE B doubles the grain price, so the pop's real wage opens at 1.0
+    // against a parity of 2.0 and the participation margin is the thing under
+    // load — which is the point of this tape. Two restoring channels then run at
+    // once and both push p_labour/p_grain back toward 1.0:
+    //   sigma_pi = -0.5  =>  pi falls  =>  labour supply falls below demand 10
+    //                    =>  p_labour rises
+    //   sigma_c  = -0.5  =>  the wealth tier falls  =>  q falls
+    //                    =>  grain demand falls below supply 20  =>  p_grain falls
+    //
+    // Doubling p_labour instead was considered and REJECTED for the same reason
+    // as in solv_chain: it raises the firm's outlay to 20 against a reserve of
+    // 130 and a cash stock of 85, so its budget goes to zero and it posts no
+    // labour orders at all on tick 0. That is a genuine engine property (Rule 3
+    // has no credit) but it would make this a cash-rationing experiment instead
+    // of a participation-margin one.
+    //
+    // tol_log = ln(1.10). The derivation is the family's, but the term is
+    // different here and worth naming: the +/-5% rest band comes from
+    // sigma_pi's dead band rather than the margin dead band, because it is the
+    // participation margin and not the desk margin that pins this wage. Scored
+    // on the MEDIAN: the pi/price loop is a relay against an integrator, which
+    // linearises to a CENTRE — a displacement gives a permanent orbit rather
+    // than convergence — so a band is expected and is reported, not gated.
+    displaced: Some((
+        good: "grain",
+        factor: 2.0,
+        tol_log: 0.09531017980432486,
+    )),
+)

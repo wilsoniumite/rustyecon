@@ -1,0 +1,154 @@
+// solv_chain — TWO STAGES: labour -> wheat -> flour.
+//
+// Registered 2026-07-31. Derivation: docs/design/solvable-scenarios.md §4.
+// Machine-readable target: equilibrium.ron beside this file.
+//
+// ── WHY A CHAIN, WHEN solv_1g ALREADY TESTS A PRICE ───────────────────────────
+// Because a one-good world has no free coordinate. Its only relative price is
+// pinned by one division, and a run can get it right for the wrong reason. Here
+// the labour value of the final good is a SUM ALONG THE CHAIN, so the prediction
+// is a price VECTOR, and the intermediate price is a number no single-good world
+// contains. A RUN CAN HIT RealWage = 2.0 WITH THE WRONG p_wheat. The gate is
+// therefore on the whole vector — max over goods of |ln(p_g/p_labour) -
+// ln(p*_g/p*_labour)| — and not on RealWage.
+//
+// ── THE CLOSED FORM ───────────────────────────────────────────────────────────
+//   technology
+//       wheat_farm :  0.25 labour           -> 1 wheat
+//       grain_mill :  1 wheat + 0.25 labour -> 1 flour
+//
+//   LABOUR CONTENT, by the relaxation tools/derive_parity.py runs, here by hand:
+//       content(labour) = 1
+//       content(wheat)  = 0.25 * 1               = 0.25
+//       content(flour)  = 1 * 0.25  +  0.25 * 1  = 0.50
+//
+//   PRICES, by zero profit applied at EACH stage (the kernel's rest condition,
+//   twice), with p_labour = 1 as numeraire:
+//       farm:  p_wheat  = 0.25 * p_labour                 = 0.25
+//       mill:  p_flour  = 1 * p_wheat + 0.25 * p_labour   = 0.50
+//                                          =>  RealWage = 1/0.5 = 2.0
+//   THE PRICE VECTOR IS THE LABOUR-CONTENT VECTOR. That is the theorem this
+//   scenario exists to test, and it is a theorem about a chain, not a slogan:
+//   it holds only if the intermediate price carries value from one stage to the
+//   next without gaining or losing any.
+//
+//   QUANTITIES, by exact posted balance, with N = 8 and pi at the corner:
+//       wheat  :  K_farm = 1 * K_mill                     =>  K_farm = K_mill = K
+//       flour  :  K_mill = N * q
+//       labour :  0.25*K_farm + 0.25*K_mill = N*pi = N    =>  0.5K = 8, K = 16
+//                                          =>  q = K/N = 2  =>  w* = 0.5
+//   (Two tiers 1.0/3.0 give q(w) = 1 + 2w, so q = 2 is exactly w = 0.5.)
+//
+//   STOCKS. farm wheat (1+b_out)*K = 48; mill flour 48; MILL WHEAT 0 at the
+//   decision point — it buys s = 1 tick's worth and consumes it the same tick,
+//   so planned_spend's `held` term is zero. A nonzero mill wheat stock at
+//   genesis would be a transient, not a rest point.
+//
+//   LEVEL, by the same money-anchor construction as solv_1g_money:
+//       M = b_cash*(p_flour*N*q)                       pop  = 6.5*8 = 52
+//         + (b_cash+1)*(0.25*K*p_labour)               farm = 7.5*4 = 30
+//         + (b_cash+1)*(K*p_wheat + 0.25*K*p_labour)   mill = 7.5*8 = 60
+//         = 142    =>  p_flour = M/284, p_wheat = M/568, p_labour = M/142
+//
+//   PREDICTED EQUILIBRIUM
+//       p_labour 1.0 (numeraire)  p_wheat 0.25  p_flour 0.5   RealWage 2.0
+//       cleared labour 8, wheat 16, flour 16
+//       scales farm 16, mill 16 (BldUtil 0.8 each)   Employment 1.0
+//       stocks farm wheat 48, mill flour 48, mill wheat 0
+//       cash farm 30, mill 60, pop 52, M = 142
+//       Velocity (8 + 4 + 8)/142 = 0.14084507...
+//       Concentration 90/142 = 0.63380281...   RealIncome (52/8)/0.5 = 13.0
+//   The tick closes exactly on every balance: farm 30 - 4 + 4, mill
+//   60 - 4 - 4 + 8, pop 52 - 8 + 8.
+//
+// ── WHAT IS EXPECTED TO GO WRONG, REGISTERED IN ADVANCE ───────────────────────
+// The chain adds a LAG that solv_1g does not have: mill scale -> wheat demand ->
+// wheat price -> farm margin -> farm scale. Displaced (mode B), that loop is a
+// cobweb and may not converge even if the fixed point is exact. THAT IS A
+// MEASUREMENT, NOT A DESIGN FLAW, and a mode-B failure here must not be read as
+// a chain-propagation failure without checking mode A first — mode A isolates
+// the fixed point from the dynamics around it.
+//
+// Both desks sit at exactly zero profit, so both sit on Rule 3's zero-cash-slack
+// kink: at s = 1 a desk needs margin >= 0.30 to fund eta_up = 0.04 of growth out
+// of its own cash, while Rule 2's expansion gate opens at sigma > 0.05. Between
+// those two numbers THE KERNEL EXPANDS AND IMMEDIATELY RATIONS ITS OWN INPUTS.
+// The signature to look for is chosen_size rising while cleared input volume
+// falls on the same tick.
+//
+// s = 1 is forced (see solv_1g's header). Every number is a dyadic rational.
+(
+    kernel: (
+        s: 1,
+        eta_up: 0.04,
+        eta_dn: 0.05,
+        dead: 0.05,
+        b_out: 2.0,
+        b_cash: 6.5,
+        beta: 1.0,
+        epsilon: 0.01,
+        phi: 0.6180339887498949,
+        fill_alpha: 0.25,
+        // Which Rule 1 the desks post under. `inelastic` is the rule
+        // shipped through Phase 4 (posted supply has price elasticity
+        // exactly zero); `reservation` divides the band by the desk's
+        // own markup, so b_out becomes the supply curve's slope.
+        // Registered here, swept with --supply-rule.
+        supply_rule: inelastic,
+    ),
+    goods: [
+        ( name: "wheat",  alpha: 0.05, shelf_life: Indefinite, movement_type: Physical,  divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "flour",  alpha: 0.05, shelf_life: Indefinite, movement_type: Physical,  divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "gbp",    alpha: 0.0,  shelf_life: Indefinite, movement_type: Financial, divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "labour", alpha: 0.05, shelf_life: Instant,    movement_type: Local,     divisible: true, storage_cost_per_tick: 0.0 ),
+    ],
+    recipes: [
+        // Both inputs Variable. Fixed would draw recipe_size of the input
+        // regardless of chosen_size and sever the capacity -> input-demand loop
+        // that the chain is here to exercise (the defect tracer_2r records).
+        (
+            name: "wheat_farm",
+            inputs:  [ ( good: "labour", qty_per_unit: 0.25, scaling: Variable ) ],
+            outputs: [ ( good: "wheat",  qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: CapacityControl,
+        ),
+        // 1 wheat + 0.25 labour -> 1 flour. The 1:1 wheat ratio is deliberate:
+        // it makes the quantity balance K_farm = K_mill exactly, so a divergence
+        // between the two scales is visible without arithmetic.
+        (
+            name: "grain_mill",
+            inputs:  [ ( good: "wheat",  qty_per_unit: 1.0,  scaling: Variable ),
+                       ( good: "labour", qty_per_unit: 0.25, scaling: Variable ) ],
+            outputs: [ ( good: "flour",  qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: CapacityControl,
+        ),
+        // Not a desk under the kernel: the claim-holder pointer for Rule 3's
+        // overflow. Under legacy it is the dividend desk. One per firm.
+        (
+            name: "dividend",
+            inputs:  [ ( good: "gbp", qty_per_unit: 1.0, scaling: Variable ) ],
+            outputs: [ ( good: "gbp", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: DividendPayout( reserve_multiple: 26.0 ),
+        ),
+    ],
+    // The pop eats only the END of the chain. If it ate wheat as well, the
+    // intermediate price would be pinned by demand rather than by the chain, and
+    // the propagation test would be gone.
+    need_categories: [
+        ( name: "food", entries: [ ( good: "flour", weight: 1.0 ) ] ),
+    ],
+    wealth_levels: [
+        ( tier: 0, needs: { "food": 1.0 } ),
+        ( tier: 1, needs: { "food": 3.0 } ),
+    ],
+    market_nodes: [
+        ( id: (0), tier: Regional, region: Some((0)), currency_good: Some((2)) ),
+    ],
+    channels: [],
+    regions: [
+        ( id: (0), name: "Solo", market_node: (0) ),
+    ],
+)

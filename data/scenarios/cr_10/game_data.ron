@@ -1,0 +1,106 @@
+// cr_10 — PROBE: a rentier pop per region, lr's shape, and why it cannot balance.
+//
+// cr_00 plus one non-labouring pop per region at lr's own sizes (0.999 / 1.101 /
+// 0.9), holding the cash Rule 3 sizes for its basket and receiving every desk's
+// overflow through the dividend pointers. Capacities are NOT enlarged to feed
+// them, and that is the finding rather than an oversight:
+//
+//     A rentier consumes a basket that embodies labour. At the zero-profit price
+//     vector there is NO profit, so the overflow that funds it is identically
+//     zero — its income stream does not exist. A2 therefore breaks by exactly
+//     their consumption (`--audit` reads 0.956, the worst region being Brindle,
+//     where 1.101 rentiers sit against 24 workers). A1 does NOT break, and the
+//     reason is worth stating: rentiers demand no labour and supply none, so the
+//     labour market is cr_00's untouched. THE DEFECT IS PURELY ONE OF GOODS AND
+//     INCOME. Enlarging the capacity to feed them would move the defect into A1
+//     instead; it cannot remove it from both.
+//
+// A CLASS THAT CONSUMES WITHOUT WORKING IS CONSISTENT ONLY IN A WORLD WITH A
+// SURPLUS, and a zero-profit world has none by definition. `lr_*` carries exactly
+// this shape — three elite pops at wealth 10.0 funded by `DividendPayout` — and it
+// is worth being explicit that this is a MODELLING gap and not an arithmetic one:
+// rent, land and the claim register are Phase 6-7 work, and until they exist a
+// rentier is a pop with a cash balance and a countdown.
+//
+// PRE-REGISTERED PREDICTION: the rentiers exhaust their cash in `b_cash / s` = 6.5
+// ticks and then buy nothing, and POP_DESTITUTION trips on `RealIncome`, which is
+// cash-per-head over all pops the metric counts as employed — and `is_employed` is
+// true for every raw pop the loader reads, whether or not it registers a
+// `labour_good`, so the rentiers are inside that average.
+(
+    // Kernel dials: lr_00's generation-4 values, copied verbatim and NOT
+    // retuned (R2, R6). `s` is the only one any cr_* world varies.
+    kernel: (
+        s: 1,
+        eta_up: 0.04,
+        eta_dn: 0.05,
+        dead: 0.05,
+        b_out: 2.0,
+        b_cash: 6.5,
+        beta: 1.0,
+        epsilon: 0.01,
+        phi: 0.6180339887498949,
+        fill_alpha: 0.25,
+        supply_rule: inelastic,
+    ),
+    goods: [
+        ( name: "wheat", alpha: 0.1, shelf_life: Indefinite, movement_type: Physical, divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "flour", alpha: 0.1, shelf_life: Indefinite, movement_type: Physical, divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "GBP", alpha: 0.0, shelf_life: Indefinite, movement_type: Financial, divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "labour", alpha: 0.05, shelf_life: Instant, movement_type: Local, divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "services", alpha: 0.1, shelf_life: Ticks(1), movement_type: Local, divisible: true, storage_cost_per_tick: 0.0 ),
+    ],
+    recipes: [
+        (
+            name: "wheat_farm",
+            inputs:  [ ( good: "labour", qty_per_unit: 0.25, scaling: Variable ) ],
+            outputs: [ ( good: "wheat", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: CapacityControl,
+        ),
+        (
+            name: "grain_mill",
+            inputs:  [ ( good: "wheat", qty_per_unit: 1.0, scaling: Variable ), ( good: "labour", qty_per_unit: 0.25, scaling: Variable ) ],
+            outputs: [ ( good: "flour", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: CapacityControl,
+        ),
+        (
+            name: "local_services",
+            inputs:  [ ( good: "labour", qty_per_unit: 1.0, scaling: Variable ) ],
+            outputs: [ ( good: "services", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: CapacityControl,
+        ),
+        (
+            name: "dividend",
+            inputs:  [ ( good: "GBP", qty_per_unit: 1.0, scaling: Variable ) ],
+            outputs: [ ( good: "GBP", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: DividendPayout( reserve_multiple: 26.0 ),
+        ),
+    ],
+    need_categories: [
+        ( name: "staple_food",     entries: [ ( good: "flour",    weight: 1.0 ) ] ),
+        ( name: "services_demand", entries: [ ( good: "services", weight: 1.0 ) ] ),
+    ],
+    // TWO tiers, not a hundred. The ladder is piecewise linear in `wealth`,
+    // so two rows already give a continuous basket over the whole range the
+    // consumption desk can reach; more rows would be more numbers to
+    // register without another degree of freedom (R2).
+    wealth_levels: [
+        ( tier: 0, needs: { "staple_food": 1.0 } ),
+        ( tier: 1, needs: { "staple_food": 1.5, "services_demand": 0.75 } ),
+    ],
+    market_nodes: [
+        ( id: MarketNodeId(0), tier: Regional, region: Some(RegionId(0)), currency_good: Some(GoodId(2)) ),
+        ( id: MarketNodeId(1), tier: Regional, region: Some(RegionId(1)), currency_good: Some(GoodId(2)) ),
+        ( id: MarketNodeId(2), tier: Regional, region: Some(RegionId(2)), currency_good: Some(GoodId(2)) ),
+    ],
+    channels: [],
+    regions: [
+        ( id: RegionId(0), name: "Ashby", market_node: MarketNodeId(0) ),
+        ( id: RegionId(1), name: "Brindle", market_node: MarketNodeId(1) ),
+        ( id: RegionId(2), name: "Corwen", market_node: MarketNodeId(2) ),
+    ],
+)

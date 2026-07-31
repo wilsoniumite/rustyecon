@@ -1,0 +1,6 @@
+// No tape. A world built to sit at a known point must be left alone:
+// anything that then happens is the engine's doing, not an event's.
+(
+    events: [],
+    recurring: [],
+)

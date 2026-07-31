@@ -1,0 +1,164 @@
+// Stability criteria — dated, pre-registered (METHODOLOGY R6, engine.md).
+//
+// GENERATION 1, registered 2026-07-31, for a scenario that did not exist before
+// today. `version: 1` is this FILE's generation; the thresholds in it are the
+// corpus's generation-4 values, copied verbatim from data/scenarios/lr_00 and
+// data/scenarios/tracer_2r without one digit changed. That is deliberate and it
+// is the whole R6 argument for this file:
+//
+//   NOT ONE THRESHOLD HERE WAS CHOSEN WITH KNOWLEDGE OF WHAT THIS SCENARIO DOES.
+//   The tape and this file were written in the same sitting, before the engine
+//   had ever been pointed at solv_1g. Every number was fixed earlier, against
+//   the synthetic healthy/sick series in tests/test_09_detectors.rs, to score a
+//   corpus this world is not part of. If solv_1g fails one of these, the finding
+//   is that solv_1g fails a bar the rest of the corpus is already held to — not
+//   that the bar was wrong.
+//
+// WHAT THIS FILE ASSERTS, AND — MORE IMPORTANTLY — WHAT IT DOES NOT.
+// It asserts stability: a region is stable when its metrics stay inside a band
+// and their wobble does not grow.
+//
+//   DEAD            FracBelow(Velocity < 0.003, 80%)   is anything trading?
+//   DEAD_EMPLOYMENT FracBelow(Employment < 0.05, 80%)  is anyone working?
+//   UNSTABLE        RollingCv(window 10, max 0.12)     short-term chatter
+//   DRIFTING        LevelRange(max_ratio: 2.2)         did the level stay put?
+//   SWINGING        ResidualDamping(max_ratio: 1.5)    did the wobble grow?
+//   CURRENCY_DRAIN  MeanAndSlope(0.82, 0.0)            cash pooling in firms?
+//   POP_DESTITUTION FracBelow(RealIncome < 0.8, 50%)   can the pop eat?
+//   DEAD_BUILDING   FracBelow(BldUtil < 0.05, 60%)     warning only
+//
+// IT DOES NOT ASSERT CORRECTNESS, and on this scenario that gap is the point.
+// EVERY ONE OF THESE CLASSES PASSES ON A WORLD WHOSE PRICES ARE ARBITRARILY
+// WRONG, as long as they are wrong quietly: a run that instantly settles on
+// RealWage = 0.02 and holds it scores LevelRange 1.00, RollingCv 0.00 and
+// ResidualDamping 0.00 — a clean sweep. What says whether solv_1g's prices went
+// to the RIGHT PLACE is equilibrium.ron beside this file, read by
+// tests/test_12_solvable.rs, and B8 in the run certificate. This file is the
+// stability half of the verdict and nothing more, and it is registered here so
+// the two halves can disagree in public.
+//
+// WHY THE WINDOW IS 150..1000. Copied from lr_00 unchanged. On this scenario
+// the transient is arguably zero — mode A starts AT the equilibrium, so there
+// is no startup to discard — but shortening the window would be a
+// scenario-specific choice made by someone who knew the answer, and it would
+// stop these numbers being comparable with the corpus's. 850 scored samples is
+// also what the corpus's detectors were characterised on.
+//
+// WHY EACH THRESHOLD IS WHAT IT IS, in one line each, all inherited:
+//   2.2 and 1.5   fixed from the separation between synthetic healthy and sick
+//                 series in tests/test_09_detectors.rs, before any scenario was
+//                 scored: healthy levels reach at most 1.81 and sick start at
+//                 2.69; healthy oscillation reaches 1.04 and sick starts at 1.99.
+//   0.003, 0.05,  liveness floors ported from notebooks/07_stability_suite.py,
+//   0.12, 0.82,   where they were global constants applied to every scenario.
+//   0.8, 0.60
+//
+// WHERE THE FIRST-PRINCIPLES JUSTIFICATION RUNS OUT, SAID PLAINLY RATHER THAN
+// PAPERED OVER. Two of these thresholds are NOT derivable from anything, and
+// this scenario is the first world in the repo where that can be demonstrated
+// instead of suspected:
+//
+//   * DEAD's Velocity floor of 0.003. solv_1g's equilibrium Velocity is
+//     20/105 = 0.190, but §2.2 of docs/design/solvable-scenarios.md proves the
+//     price LEVEL is unpinned in this tape (one wealth tier -> the pop's cash
+//     rule is skipped -> the excess-demand system is homogeneous of degree
+//     zero), and Velocity is proportional to the level at fixed money stock. So
+//     the equilibrium Velocity is any number in (0, 0.190]: a run with PERFECT
+//     relative prices can score DEAD, and a run can escape DEAD by inflating.
+//     A threshold on Velocity is therefore scoring an unpinned direction of the
+//     dynamics here. It is left at the corpus value anyway, because changing it
+//     for this scenario would be exactly the fitted-threshold move R6 forbids —
+//     and because the pair (solv_1g, solv_1g_money) exists precisely to measure
+//     how much difference the anchor makes. Read a DEAD or DRIFTING hit on
+//     Velocity in this scenario against that caveat.
+//   * DRIFTING's 2.2x on Velocity, for the same reason.
+//   Both caveats are about the METRIC, not the number; no number would fix them.
+//   The RealWage arm of DRIFTING has no such problem: RealWage is a ratio of two
+//   prices and is invariant to the level.
+//
+// CHANGING A THRESHOLD AFTER SEEING RESULTS REQUIRES A NEW DATED GENERATION,
+// never a silent edit. `criteria_sha` in the run manifest records which bytes
+// actually scored a given run.
+(
+    version: 1,
+    date: "2026-07-31",
+    transient: 150,
+    analysis_end: 1000,
+    staple_good: "grain",
+    labour_good: "labour",
+    nan_policy: FailClosed,
+    classes: [
+        // A region with no transaction velocity is not an economy. Checked first
+        // and short-circuits: once dead, nothing else about it is meaningful.
+        (
+            name: "DEAD",
+            fatal: true,
+            metrics: [Velocity],
+            rule: FracBelow(thresh: 0.003, frac: 0.80),
+            window: Analysis,
+            short_circuit: true,
+        ),
+        (
+            name: "DEAD_EMPLOYMENT",
+            fatal: true,
+            metrics: [Employment],
+            rule: FracBelow(thresh: 0.05, frac: 0.80),
+            window: Analysis,
+        ),
+        // Short-term oscillation: the rolling coefficient of variation.
+        (
+            name: "UNSTABLE",
+            fatal: true,
+            metrics: [Velocity, Employment, RealWage],
+            rule: RollingCv(window: 10, max_cv: 0.12),
+            window: Analysis,
+        ),
+        // Did the level stay put? The 95th/5th-percentile band across the
+        // window, so a metric that went somewhere and came back is as unstable
+        // as one that went and stayed, and one freak sample cannot decide it.
+        (
+            name: "DRIFTING",
+            fatal: true,
+            metrics: [Velocity, RealWage],
+            rule: LevelRange(max_ratio: 2.2),
+            window: Analysis,
+        ),
+        // Did the wobble grow? Measured on the detrended residual with an
+        // interquartile spread, so this asks only about oscillation and cannot
+        // be flipped by a single tick. A perfectly constant series scores 0.0
+        // and passes, which is correct: a constant is not swinging. Whether the
+        // constant is the RIGHT constant is equilibrium.ron's question.
+        (
+            name: "SWINGING",
+            fatal: true,
+            metrics: [Velocity, RealWage],
+            rule: ResidualDamping(max_ratio: 1.5),
+            window: Halves,
+        ),
+        // Currency pooling in buildings and still trending that way. At this
+        // scenario's equilibrium Concentration is 75/105 = 0.714 with slope 0,
+        // so the class rests inside its bar on BOTH conditions, not just one.
+        (
+            name: "CURRENCY_DRAIN",
+            fatal: true,
+            metrics: [Concentration],
+            rule: MeanAndSlope(mean_min: 0.82, slope_min: 0.0),
+            window: Analysis,
+        ),
+        (
+            name: "POP_DESTITUTION",
+            fatal: true,
+            metrics: [RealIncome],
+            rule: FracBelow(thresh: 0.8, frac: 0.50),
+            window: Analysis,
+        ),
+        // Warning only: an idle plant is a symptom, not a failed region.
+        (
+            name: "DEAD_BUILDING",
+            fatal: false,
+            metrics: [BldUtil],
+            rule: FracBelow(thresh: 0.05, frac: 0.60),
+            window: PostTransient,
+        ),
+    ],
+)

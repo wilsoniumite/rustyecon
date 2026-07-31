@@ -1,0 +1,137 @@
+// cr_09 — PROBE: cr_00 with the stagger period s = 4, lr's registered value.
+//
+// Cash is re-solved for s = 4 — `(b_cash/s + s) * outlay = 5.625 * outlay` for
+// firms, `b_cash * cost / 4` for pops — so A3 holds. A1, A2 and A4 are untouched.
+// Every other number is cr_00's.
+//
+// A PRE-REGISTERED PREDICTION, AND IT IS A PREDICTION OF FAILURE. Reading the
+// engine rather than running it: `rule_3_buy_and_route` fires only on a desk's
+// phase tick and buys `desired * s` — S ticks of inputs at once — while
+// `production::run` consumes `desired * 1` every tick. That is fine for a storable
+// input. `labour` is `ShelfLife::Instant`, so `initial_life()` is `Some(0)` and
+// `spoil_lots` removes the lot at the END OF THE TICK IT ARRIVED IN. Therefore, at
+// s = 4:
+//
+//     a desk buys 4 ticks of labour, produces with 1, and has the other 3
+//     DESTROYED the same tick; on the next three ticks it is off-phase, holds no
+//     labour, and produces nothing at all.
+//
+// If that reading is right the desk pays 4x the labour bill for 1x the output and
+// sits idle three ticks in four, and NO tape can be consistent at s > 1 while any
+// input is non-storable — the condition A1 is written against (per-tick demand)
+// is not the quantity Rule 3 actually buys. cr_09 against cr_00 is the measurement
+// that settles it, and if it comes out the other way this paragraph is wrong and
+// should be marked so in place rather than deleted (R14).
+//
+// >>> MEASURED, AND THE PREDICTION IS HALF WRONG. Marked in place (R14).
+// >>>
+// >>> The collapse is real and it is the worst in this corpus: all three regions
+// >>> DEAD, bands 1.8e42 to 9.6e43 against cr_00's 1.000, worse than every one of
+// >>> the five NAMED defect worlds. Labour cleared at Ashby over 40 ticks is
+// >>> 373.8 against cr_00's 1280.0 — 29% of the throughput of the identical
+// >>> economy at s = 1.
+// >>>
+// >>> BUT SPOILAGE IS NOT THE BINDING MECHANISM, and the falsification test says
+// >>> so. Re-run with labour's `shelf_life` changed from `Instant` to `Ticks(8)`,
+// >>> so a purchased hour survives the whole activation period: the world still
+// >>> dies, all three regions still DEAD, and labour cleared FALLS slightly, to
+// >>> 329.2. (Flour cleared does roughly double, 245 -> 505, so the waste is real
+// >>> — it is just not what kills it.)
+// >>>
+// >>> THE ACTUAL MECHANISM IS THE ONE THE PROBE EXPOSED: a non-storable input's
+// >>> supply is a PER-TICK FLOW and Rule 3 asks for S ticks of it in a single
+// >>> tick. Region 0's three desks sit on inventory indices 0,1,2, so exactly one
+// >>> of them buys on each of three ticks in four and NONE buys on the fourth.
+// >>> Measured labour demand at Ashby, ticks 1-4: 40, 0, 48, 40, against a flat
+// >>> supply of 32. Clearing is min(supply, demand) per tick, so the cycle takes
+// >>> 32+0+32+32 = 96 of the 128 hours the economy needs, at genesis, before any
+// >>> dynamics — and the rationing compounds from there down to 29%.
+// >>>
+// >>> Making the hours keep does not help because the pop's hours on a desk's
+// >>> OFF ticks are never bought at all. It is the lumping, not the perishing.
+// >>>
+// >>> CONSEQUENCE, and it is a real one for the phase map: `s` is not a free
+// >>> stability dial. Against a flow-supplied input it is a throughput divisor,
+// >>> and lr's registered s = 4 imposes it on every scenario in the baseline
+// >>> corpus. The two `s`-sensitive findings here point OPPOSITE ways — A5 needs
+// >>> `s > b_out` for a channel to function, this needs `s = 1` for a labour
+// >>> market to clear — so with b_out = 2 the two cannot be satisfied at once and
+// >>> the corpus has no admissible `s` while both a channel and a labour market
+// >>> are present. That is a design contradiction, not a tuning problem.
+(
+    // Kernel dials: lr_00's generation-4 values, copied verbatim and NOT
+    // retuned (R2, R6). `s` is the only one any cr_* world varies.
+    kernel: (
+        s: 4,
+        eta_up: 0.04,
+        eta_dn: 0.05,
+        dead: 0.05,
+        b_out: 2.0,
+        b_cash: 6.5,
+        beta: 1.0,
+        epsilon: 0.01,
+        phi: 0.6180339887498949,
+        fill_alpha: 0.25,
+        supply_rule: inelastic,
+    ),
+    goods: [
+        ( name: "wheat", alpha: 0.1, shelf_life: Indefinite, movement_type: Physical, divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "flour", alpha: 0.1, shelf_life: Indefinite, movement_type: Physical, divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "GBP", alpha: 0.0, shelf_life: Indefinite, movement_type: Financial, divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "labour", alpha: 0.05, shelf_life: Instant, movement_type: Local, divisible: true, storage_cost_per_tick: 0.0 ),
+        ( name: "services", alpha: 0.1, shelf_life: Ticks(1), movement_type: Local, divisible: true, storage_cost_per_tick: 0.0 ),
+    ],
+    recipes: [
+        (
+            name: "wheat_farm",
+            inputs:  [ ( good: "labour", qty_per_unit: 0.25, scaling: Variable ) ],
+            outputs: [ ( good: "wheat", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: CapacityControl,
+        ),
+        (
+            name: "grain_mill",
+            inputs:  [ ( good: "wheat", qty_per_unit: 1.0, scaling: Variable ), ( good: "labour", qty_per_unit: 0.25, scaling: Variable ) ],
+            outputs: [ ( good: "flour", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: CapacityControl,
+        ),
+        (
+            name: "local_services",
+            inputs:  [ ( good: "labour", qty_per_unit: 1.0, scaling: Variable ) ],
+            outputs: [ ( good: "services", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: CapacityControl,
+        ),
+        (
+            name: "dividend",
+            inputs:  [ ( good: "GBP", qty_per_unit: 1.0, scaling: Variable ) ],
+            outputs: [ ( good: "GBP", qty_per_unit: 1.0 ) ],
+            reversible: false,
+            strategy: DividendPayout( reserve_multiple: 26.0 ),
+        ),
+    ],
+    need_categories: [
+        ( name: "staple_food",     entries: [ ( good: "flour",    weight: 1.0 ) ] ),
+        ( name: "services_demand", entries: [ ( good: "services", weight: 1.0 ) ] ),
+    ],
+    // TWO tiers, not a hundred. The ladder is piecewise linear in `wealth`,
+    // so two rows already give a continuous basket over the whole range the
+    // consumption desk can reach; more rows would be more numbers to
+    // register without another degree of freedom (R2).
+    wealth_levels: [
+        ( tier: 0, needs: { "staple_food": 1.0 } ),
+        ( tier: 1, needs: { "staple_food": 1.5, "services_demand": 0.75 } ),
+    ],
+    market_nodes: [
+        ( id: MarketNodeId(0), tier: Regional, region: Some(RegionId(0)), currency_good: Some(GoodId(2)) ),
+        ( id: MarketNodeId(1), tier: Regional, region: Some(RegionId(1)), currency_good: Some(GoodId(2)) ),
+        ( id: MarketNodeId(2), tier: Regional, region: Some(RegionId(2)), currency_good: Some(GoodId(2)) ),
+    ],
+    channels: [],
+    regions: [
+        ( id: RegionId(0), name: "Ashby", market_node: MarketNodeId(0) ),
+        ( id: RegionId(1), name: "Brindle", market_node: MarketNodeId(1) ),
+        ( id: RegionId(2), name: "Corwen", market_node: MarketNodeId(2) ),
+    ],
+)

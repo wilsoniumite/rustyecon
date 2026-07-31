@@ -1,0 +1,7 @@
+// No tape. A world whose equilibrium is known must be left alone: anything that
+// happens is then the engine's doing and not an event's. The displacement the
+// mode-B test applies is registered in equilibrium.ron, not scripted here,
+// because it is a change to GENESIS, not an event during the run.
+(
+    recurring: [],
+)

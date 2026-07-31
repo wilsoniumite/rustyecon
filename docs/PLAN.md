@@ -336,10 +336,21 @@ constants in code.
 >
 > | arm | price rule | live | median band | within 2.2× |
 > |---|---|---|---|---|
-> | legacy | imbalance | 33 | 1.64e5 | **0/72** |
-> | legacy | ratio | 32 | 2.94e5 | **5/72** |
-> | kernel | imbalance | 8 | 3.32e15 | 0/72 |
-> | kernel | ratio | 0 | 2.21e12 | 0/72 |
+> | legacy | imbalance | 33 | ~~1.64e5~~ **1.525e5** | **0/72** |
+> | legacy | ratio | 32 | ~~2.94e5~~ **1.725e5** | **5/72** |
+> | kernel | imbalance | 8 | ~~3.32e15~~ **3.270e15** | 0/72 |
+> | kernel | ratio | 0 | ~~2.21e12~~ **1.105e12** | 0/72 |
+>
+> > **The median-band column above is SUPERSEDED (2026-07-31,
+> > `results/ab/receipt-foundations.md` §7).** The `live` and `within 2.2×`
+> > columns reproduce exactly. The medians do not: a git worktree at `8ba33f9`
+> > — *this* commit, its own tapes, its own binary — was built and all four
+> > cells re-run, and it produces the struck-through values' replacements, not
+> > the struck-through values. The cause was not determined; `2.21e12 /
+> > 1.105e12` is exactly 2.000, which hints at a different aggregation over the
+> > same readings rather than a different run, but that is a guess and is not
+> > asserted. Nothing downstream of this table changes: the conclusion below
+> > rests on `live` and `within 2.2×`, both of which stand.
 >
 > **Bimodal.** The ratio rule produced the first regions ever to land inside the
 > 2.2× band — 5 of 72, against 0 for every configuration tried before — *and* a
@@ -416,6 +427,12 @@ constants in code.
 > inventory buffer is the intertemporal link, held through cheap ticks and
 > released into dear ones. `b_out` stops being an inert constant and becomes the
 > supply curve's slope. The symmetric change applies to Rule 3's buying.
+>
+> **LANDED AND MEASURED 2026-07-31** — see "The price-responsive Rule 1, landed
+> and measured" at the end of this phase. The direction above is confirmed on the
+> instrument (epsilon_s moves off zero, degree-0 in prices, B6 still clean) and
+> the corpus still loses the A/B: the storable half tightens the median band by a
+> factor of 20 and the labour half takes every region to DEAD.
 >
 > That wants its own design note and criteria before code (R14). It is a change
 > to Rule 1, not to markets.md's clearing — the earlier "schedules" claim is
@@ -529,6 +546,151 @@ constants in code.
 > into "*this* market is at the wrong price, by *this* factor, in *this*
 > direction". Stability then becomes the second question rather than the only one.
 >
+> **LANDED as B8 (2026-07-31), `src/certify/technology.rs`.** The Leontief solve
+> is ported from `tools/derive_parity.py` — one algorithm in two languages, so
+> the labour values that set a pop's `parity` and the ones that score B8 cannot
+> disagree. `lr_00` comes out at wheat 0.3, flour 0.5, services 1.0, implied
+> `RealWage` **2.0**, as computed by hand above.
+>
+> B8 reports `ln(realised / implied)` per (region, good) over the scored window,
+> and names the good and the direction. Measured on `lr_00`, 1,000 ticks,
+> imbalance rule, window 150–1000:
+>
+> | arm | α | worst reading | Manchester flour |
+> |---|---|---|---|
+> | legacy | ×1 | wheat **2.9e6×** too dear (Birmingham) | 209× too dear |
+> | legacy | ×0.01 | flour **2.27×** too dear (Leeds) | 2.25× too dear |
+> | kernel | ×1 | flour **3.5e11×** too dear (Leeds) | 3.8e10× too dear |
+> | kernel | ×0.01 | flour **2.37×** too dear (Leeds) | 2.14× too dear |
+>
+> Three findings the stability criteria could not have produced:
+>
+> 1. **The α claim survives contact with an absolute benchmark, on both arms.**
+>    It was previously a claim about a median of one metric on one arm; it is now
+>    a claim about the whole price vector, and the kernel improves by eleven
+>    orders of magnitude when α is slowed. The timescale ratio is the finding,
+>    not the agent layer.
+> 2. **The error has a uniform sign.** Across all 26 labour-bearing scenarios at
+>    the registered α under the legacy arm, *every* good in *every* region reads
+>    **too dear** against labour — i.e. labour is underpaid against its embodied
+>    value everywhere, never overpaid. That is the same market the elasticity
+>    probe found has no crossing, seen from the price side.
+> 3. **Stable and correct are genuinely different.** `lr_00`/Manchester has the
+>    tidiest `RealWage` band in the corpus (11.5) and its flour is still 209×
+>    too dear. Nothing before B8 could say that.
+>
+> `tracer_2r` at the 11,700-tick horizon reads grain **3.96×** too dear — the
+> closest thing in the corpus to a run that is merely wrong rather than absurd,
+> and note the known sign of the error there: `grow_grain`'s input is `Fixed`, so
+> below full utilisation it really does draw more labour per grain than the
+> benchmark credits, which flatters the producer in exactly this direction.
+>
+> **B8 carries no distance threshold, and that was the hard call.** The numbers
+> above were already known when it was written, so any bar between ~3× and ~200×
+> would have been a criterion fitted to a result — the R6 sin, and worse than
+> usual here because this is the *first* correctness criterion and a bar chosen
+> now would define what correctness means for everything after it. There is also
+> no bar available from outside the data: a competitive-equilibrium vector is a
+> limit, not a tolerance. So B8 **reports always and fails only fail-closed** —
+> on a traded good whose implied value cannot be computed, or whose realised
+> relative price has no logarithm anywhere in the window. The consequence is
+> stated rather than hidden: **a run can be 3.5e11 off and see B8 PASS.** When
+> the corpus produces a region that is both alive and in-band, a dated criteria
+> file can register a bar against *that* evidence.
+>
+> ### The solvable scenarios: worlds whose answer is known before the run
+>
+> **LANDED 2026-07-31.** `data/scenarios/solv_1g`, `solv_1g_money`,
+> `solv_1g_money_2x`, `solv_chain`, `solv_labour`; `tests/test_12_solvable.rs`;
+> `src/scenario/equilibrium.rs`. Design and derivations:
+> `docs/design/solvable-scenarios.md`. Five worlds whose competitive equilibrium
+> — price vector, quantity vector, money stock and metric series — is written
+> down in closed form, by hand, from the tape, **before the engine was run**. The
+> target lives in each tape's own header and in an `equilibrium.ron` beside it,
+> not in a test file.
+>
+> This closes the gap B8 could not: B8 measures a distance and carries no bar
+> because no bar could be defended for `lr_*`. Here the bar *is* derivable —
+> mode A's `1e-12` is float slack on a dyadic-rational fixed point, and mode B's
+> `ln(1.10)` comes from `dead = 0.05` and `eta_dn = 0.05` and nothing else.
+>
+> **RESULT 1 — the kernel reproduces a hand-computed equilibrium exactly.** All
+> five tapes, both price rules, worst `|ln(realised/target)|` over 1,000 ticks:
+> **`0.000e0`**. Not "within tolerance" — identically zero, on the whole price
+> vector including `solv_chain`'s intermediate `p_wheat = 0.25` and
+> `solv_labour`'s interior labour market. Certificates persisted under
+> `results/solv_*`: all eight batteries PASS and 1/1 regions pass on stability,
+> the first full-PASS certificates in the repo that are also *correct*. B8 reads
+> `1.000x, ln +0.000, sd 0.000`. **The mechanism can form prices. What it cannot
+> do is find them.**
+>
+> **RESULT 2 — nothing attracts to the fixed point.** Displace one genesis price
+> by 2× and every configuration's traded volume decays across the scored window
+> (last tenth over first tenth; 1.0 would mean no decay):
+>
+> | | imbalance | ratio |
+> |---|---|---|
+> | `solv_1g` | 0.068 | **0.000** |
+> | `solv_1g_money` | 0.356 | **0.000** |
+> | `solv_chain` | 0.000 | **0.000** |
+> | `solv_labour` | 0.204 | **0.000** |
+>
+> All four `ratio` columns traded exactly nothing for the last 800 ticks. Seven
+> of the eight also miss the registered `ln(1.10)` on price, by 1.9× to 1.5e11×.
+> **This is a sharper statement of Phase 4's central finding than the elasticity
+> probe could make**: it is not only that the price rule chases a crossing that
+> does not exist — even where a crossing provably *does* exist and sits one
+> factor of two away, the mechanism cannot walk to it.
+>
+> **RESULT 3 — `solv_labour` is a trap for exactly the instrument that found
+> these.** Its equilibrium `RealWage` is **1.0**, half the labour-value answer,
+> because `recipe_size` binds and the firm earns a capacity rent. B8 duly reports
+> grain **2.000× too dear** — and B8 is wrong, by construction, in a way
+> registered in the tape before the run. A Leontief benchmark cannot see a scarce
+> second factor. That limit is now demonstrated rather than suspected.
+>
+> **RESULT 4 — money is exactly neutral.** `solv_1g_money` against
+> `solv_1g_money_2x` (every price and currency balance doubled, nothing else):
+> every real series bit-identical and every price exactly 2× for 1,000 ticks, to
+> 0 ulp. That is the sharpest available R2 audit and the kernel passes it. One
+> absolute currency constant is known to exist — `overflow > 1e-12` in
+> `rule_3_buy_and_route` — and is recorded in the 2x tape's header; it cannot
+> bind at a fixed point where the overflow is identically zero.
+>
+> **RESULT 5 — the two arms fail differently, and no single number could have
+> said so.** Legacy cannot hold any fixed point (worst `|ln|` 1.48 / 1.51 / 3.02
+> / 20.62) **but keeps its markets alive** at 0.98–1.00 of target volume; the
+> displaced kernel gets far closer on price and lets the market die. `solv_labour`
+> under legacy reproduces its own pre-registered arm prediction: the legacy layer
+> has no participation margin, so B7 catches `node0/labour pinned at -0.403032
+> for all 851 ticks` and the wage decays geometrically to 9e8× wrong.
+>
+> **Two side findings, recorded where they were found rather than in a notebook.**
+> (a) The wealth-tier dead band absorbs a 0.77% cash shock *completely and
+> permanently* — the neutrality falsification control had to be widened from 1
+> currency unit to 10 before the world diverged at all, because `sigma_c` inside
+> `dead` leaves every order identical and the balanced cash flow holds the
+> shortfall forever. (b) A **median** price gap cannot tell a converged run from a
+> symmetric orbit: `solv_labour`/imbalance reads 1.006× on the median while its
+> real-wage band is 8.1× and its volume falls to a seventh of target. Every
+> reading in `test_12_solvable.rs` is therefore reported beside the band and the
+> volume, and the mode-A test gates on volume independently of price.
+>
+> **One loader change was required and is registered:**
+> `RawPopGroup.participation`, absent-means-1.0, because `solv_labour` is the
+> first world with a scarce second factor and therefore the first with an
+> *interior* equilibrium labour margin (`pi* = 0.5`). Genesis `pi` had been a
+> hardcoded 1.0 since the loader was written, invisible because `sigma_pi = +1`
+> identically in any one-factor economy. No existing tape changed.
+>
+> **What this does NOT say.** Nothing here is evidence that any `lr_*` scenario
+> is fixable, and mode A passing is a *necessary* condition, not a sufficient
+> one — a world that starts at rest and stays there has not demonstrated price
+> formation, only the absence of a spurious response. Result 2 is the load-bearing
+> one for Phase 5: the phase diagram should be swept for a region where mode B
+> converges at all, and `alpha`, `b_out` and `b_cash` are the three dials the
+> derivations name.
+>
 > ---
 >
 > **P4.3 LANDED, and the first A/B is a decisive LOSS.** Pop desks are in: the
@@ -586,6 +748,395 @@ constants in code.
 > choice paints part of the scored series. It must instead be derived from
 > *technology* (labour embodied in one basket, times a stated home-production
 > penalty), and the derivation written down before the run.
+
+> ---
+>
+> ### The price-responsive Rule 1, landed and measured (2026-07-31)
+>
+> `docs/design/price-responsive-supply.md` is implemented behind a registered
+> switch, `kernel.supply_rule`, in all 33 tapes. **Every tape registers
+> `inelastic`** — the shipped rule — because R10 says a change ships when the
+> certified suite says it is no worse, and on the pre-registered gates this one
+> is not. `--supply-rule` runs the alternatives and the effective value is folded
+> into the run identity (`kernel+imbalance+reservation`), so no two certificates
+> for one tape can be confused. Three values:
+>
+> | value | Rule 1, storable outputs | Rule 1, pop labour |
+> |---|---|---|
+> | `inelastic` | `max(I − b_out·flow, 0)` | `π·H` |
+> | `reservation_goods` | `max(I − b_out·flow/R, 0)` | `π·H` |
+> | `reservation` | `max(I − b_out·flow/R, 0)` | `min(H, π·H·max(1 + b_out(1 − w_res/w), 0))` |
+>
+> `reservation_goods` is a **decomposition arm, not a third design**: the change
+> hits two different markets and the first A/B could not say which half moved the
+> result. It turned out to be the whole story. Rule 3's mirror (design §5) is
+> deliberately **not** implemented: it moves `ε_d`, and two mechanisms landing
+> together have one receipt between them.
+>
+> #### 1. The elasticity moved off zero, exactly as derived
+>
+> `examples/elasticity_probe.rs` was **blind and had to be fixed first**: it
+> bumped every price at once, and the new rule is homogeneous of degree 0, so it
+> would have read `ε_s = 0.000` for a working rule as loudly as for a broken one.
+> It now perturbs one `(node, good)` at a time and keeps the uniform bump as a
+> control. `lr_00`, kernel arm, own-price `ε_s`:
+>
+> | good | shipped | reservation (storables) | uniform control |
+> |---|---|---|---|
+> | wheat | **0.000** | 1.11 / 16.7 / 43.5 / 45.2 | 0.000 |
+> | flour | **0.000** | 0.216 / 6.10 / 6.73 / 17.7 | 0.000 |
+> | labour | **0.000** | 1.67 / 2.53 / 3.19 *(full rule only)* | 0.000 |
+> | services | **0.000** | **0.000** | 0.000 |
+>
+> The spread is `ε_s = I/q − 1`: `b_out/R = 2` at a desk's resting point, larger
+> the further it is from one. Several readings exceed `2/α = 20`, i.e. those
+> markets are outside the derived stability bound — a desk far from rest posts
+> less than a twentieth of its stock. Services stay at 0.000, which is §2.3's
+> pre-registered prediction arriving as a measurement: a non-storable's cost is
+> sunk and its supply is vertical, correctly.
+>
+> #### 2. The solvable worlds: the first displaced market that does not die
+>
+> Mode A is **bit-identical** under both rules on the four zero-profit tapes
+> (`solv_1g`, `solv_1g_money`, `solv_1g_money_2x`, `solv_chain`) — the
+> reduction to the shipped rule at `R = 1` is exact, over 1,000 ticks of a
+> multiplicative loop.
+>
+> Mode B, displaced 2× on one price, kernel arm, imbalance rule, shipped rule →
+> `reservation_goods`:
+>
+> | tape | median price gap (bar 1.10×) | volume trend |
+> |---|---|---|
+> | `solv_1g` | 2.06× → **1.52×** | 0.068 → **1.134** |
+> | `solv_1g_money` | 1.92× → 1.96× | 0.356 → 0.274 |
+> | `solv_chain` | **1.5e11× → 2.12×** | 0.000 → 0.058 |
+> | `solv_labour` | 1.006× → 1.024× | 0.204 → 0.113 |
+>
+> **`solv_1g` at 1.134× is the first configuration in this repository where a
+> displaced world keeps its market**, and it directly amends RESULT 2 above,
+> which is marked in place in `tests/test_12_solvable.rs` rather than rewritten.
+> `solv_chain` going 1.5e11× → 2.12× against a bar of 1.10× is the largest single
+> improvement any change in Phase 4 has produced on a world with a known answer.
+> Under the `ratio` price rule every configuration still trades nothing, and the
+> full `reservation` rule reads a volume trend of 0.0000 on all eight.
+>
+> **And mode A now BREAKS on `solv_labour`.** Its equilibrium markup is **R = 2**,
+> not 1 — `recipe_size` binds and the firm earns a capacity rent — so the band
+> halves, the desk posts more than it produces, and a fixed point the shipped rule
+> holds to 0 ulp stops being one. `R = 1` is the reservation price only in a
+> zero-rent world. That is the same tape that is already the registered
+> counterexample to reading B8 as a correctness verdict, and it is now a second
+> standing counterexample. Asserted as a failure in
+> `mode_a_breaks_on_solv_labour_because_its_equilibrium_markup_is_two_not_one`
+> rather than patched: a rent-aware reservation price is a new mechanism.
+>
+> #### 3. The lr corpus: the full rule destroys it, the goods-only arm does not
+>
+> 24 scenarios × 3 regions, 1,000 ticks, imbalance rule. Receipts persisted:
+> `results/ab/receipt-supply-goods.md`, `-reservation.md`, `-within-kernel.md`.
+>
+> | | legacy | kernel/inelastic | kernel/reservation_goods | kernel/reservation |
+> |---|---|---|---|---|
+> | live regions | 33 | 8 | 5 | **0** |
+> | median band | 1.53e5× | 3.27e15× | **6.53e8×** | inf |
+> | worst band | 1.06e234× | 9.28e35× | **2.73e16×** | 2.11e19× |
+> | median B8 worst gap | 1.90e7× | 1.78e11× | **1.61e8×** | 1.53e23× |
+> | DEAD | 30 | 28 | **0** | **72** |
+> | POP_DESTITUTION | 9 | 60 | 67 | **72** |
+> | CURRENCY_DRAIN | 3 | 9 | 28 | 2 |
+> | bands within 2.2× | 0 | 0 | 0 | 2 (all dead) |
+>
+> **All three A/Bs are a LOSS.** Against legacy, both new arms fail G1 (33 → 5
+> and 33 → 0). Within the kernel — `inelastic` vs `reservation_goods`, which is
+> this change's own A/B — G1 fails 8 → 5 and G2 fails on its single paired
+> region, while G3 passes with the corpus band a factor of **20 tighter** in
+> median log terms. So the honest summary is: *the change makes prices markedly
+> better and liveness slightly worse, and the pre-registered rule counts liveness
+> first, on purpose.*
+>
+> #### 4. Why the full rule kills everything, traced rather than guessed
+>
+> In `lr_00`, flour has **zero posted supply from tick 0 under both rules** — that
+> is pre-existing — so its imbalance is pinned at `+1` and the saturating
+> normaliser marks it up by the full `α` every tick, for ever. `P_basket` is
+> mostly flour, so `w_res = parity · P_basket` inflates at 10%/tick while
+> `p_labour` sits in a market that is frequently two-sided-empty and therefore
+> frozen. The real wage falls through the shutdown wage `(2/3)·parity` at **tick
+> 7** and never returns; labour supply is identically zero from then on, nothing
+> is produced, and the economy is gone by tick 9.
+>
+> Two consequences worth carrying forward:
+>
+> 1. **The "structural price floor, not a clamp" argument is half an argument.**
+>    Withholding does stop a price falling to zero — and converts the same
+>    starvation into an unbounded mark-*up*. B7's pins flip across the corpus from
+>    `node0/wheat pinned at -1.000000` to `node0/flour pinned at 1.000000 for all
+>    851 ticks`. The design predicted B7 would "fail differently"; it did, in the
+>    opposite direction from the one intended.
+> 2. **A reservation price indexed to a collapsing basket is indexed to a
+>    runaway.** The rule is degree-0 in prices by construction (that is what keeps
+>    R12), which is exactly why a runaway in everything *except* the wage cannot
+>    be escaped by inflation. Any future reservation-wage rule has to be robust to
+>    its own index diverging.
+>
+> #### 5. What this does and does not settle
+>
+> It settles the Phase 4 central finding's *first* clause: posted supply can be
+> given a genuine, instantaneous, own-state price elasticity inside the kernel's
+> idiom, with no new magnitude registered, B6 still clean, and `b_out` becoming
+> the supply curve's slope as derived. It does **not** settle the second: a
+> crossing existing is not the same as the economy reaching it, and on the corpus
+> the binding constraint has moved rather than gone — from "no fixed point" to
+> "markets that starve at tick 0 inflate without bound, and every rule keyed on a
+> relative price inherits that".
+>
+> The next three things this points at, in order:
+>
+> 1. **The zero-supply market is the real defect.** `imbalance = +1` with `s = 0`
+>    is not a price signal, it is a division by nothing, and both price rules
+>    handle it badly (imbalance marks up for ever; ratio freezes). That is
+>    upstream of both agent arms and of this change.
+> 2. **`α·b_out` is now a one-dimensional Phase 5 axis** with a derived optimum at
+>    ≈ 1 against a registered 0.2. If the measured optimum is not near 1 the
+>    linearisation is wrong and the design note is marked superseded, not retuned.
+> 3. **A rent-aware reservation price**, without which `solv_labour` cannot be
+>    held and any world with a binding capacity is mispriced in a known direction.
+
+> ---
+>
+> ### P4.6 — the full matrix, and nothing improved (2026-07-31)
+>
+> `results/ab/receipt-foundations.md`, with every per-region band and every
+> pairwise comparison persisted in `receipt-foundations.json`. 261 certified runs:
+> 2 agent arms × 2 price rules × 3 supply rules (the supply rule is kernel-only,
+> which is *checked* — the legacy arm's B3 state hash is identical with the
+> override on, 24/24), over the 24 `lr` scenarios and the 5 solvable worlds at
+> genesis. Mode B has no CLI and is not in the matrix.
+>
+> **The headline is that there is no headline. In all eight cells: 0 of 72 `lr`
+> regions pass their criteria, and 0 of 72 are both alive and inside the 2.2×
+> band.** The standing claim now holds across eight configurations rather than
+> six. Every legacy → kernel A/B is a **LOSS** on the pre-registered rule — six
+> for six, under both price rules and all three supply rules — with liveness
+> going 33 → 8 / 5 / 0 under `imbalance` and 32 → 0 / 2 / 0 under `ratio`. The
+> Phase 4 gate is met by no configuration measured here, and P4.7's deletions
+> remain unavailable.
+>
+> Four results are new.
+>
+> **1. THE REGISTERED RULE HAS STOPPED MEASURING THE RIGHT THING, and the failure
+> is now realised rather than hypothetical.** Reported as a finding; **the rule is
+> not amended and no amendment is proposed** (that needs a dated file written
+> before the number is known). `tools/test_ab.py` shows collapse losing *against a
+> live baseline*; two cells here are the case it does not cover — collapse on
+> **both** sides — and there G1 and G2 evaporate together:
+>
+> - `kernel+ratio+inelastic → kernel+ratio+reservation_goods` reports **WIN**,
+>   gate met, on 0 → 2 live regions out of 72, with 0 passing on both sides, the
+>   marginal median band **1,685× wider** (1.105e12 → 1.862e15), and G3's paired
+>   median landing *exactly* on 0 because nine both-unbounded pairs sit on it. The
+>   scenario-level median says +0.58, i.e. worse. Three summaries of one
+>   comparison, two of them negative, and the rule reports the third.
+> - `kernel+imbalance+reservation → kernel+ratio+reservation` reports **TIE**,
+>   gate met, between two arms in which all 72 regions are `DEAD` and `UNSTABLE`
+>   and the challenger has 21 *more* unbounded bands.
+>
+> The defect is precise: G1 forbids liveness *regressing* and says nothing about
+> it being *zero*; G2 is conditioned on a set that empties; G3 scores
+> unbounded-vs-unbounded as a tie, which is right for a handful of blow-ups and
+> wrong when they decide the median. **All three gates are relative; the rule has
+> no absolute floor.** What it needs is not a threshold but a floor stated in
+> advance — plausibly "a baseline with no live region yields `INVALID`, as a
+> changed `tape_sha` does". Recorded as the case for a dated amendment, not as one.
+>
+> **2. The two arms violate exactly one invariant each, and no cell satisfies
+> both.** Over the 24 `lr` scenarios: legacy passes B6 **0/24** and B7 **24/24**;
+> every kernel cell passes B6 **24/24** and B7 **0/24**. On the *solvable* worlds
+> every kernel cell is 5/5 on both under `imbalance`, which localises the pin to
+> the corpus's zero-supply markets rather than to the kernel rule. And swapping
+> the price rule alone takes legacy's B7 from **24/24 to 1/24** — "ratio freezes"
+> was traced from `price_next_ratio`'s `supply ≤ 0 → return price_current`; this
+> is it measured, on 23 of 24 scenarios.
+>
+> **3. B8's fail-closed branch fired on the corpus for the first time, and caught
+> an f64 overflow.** `kernel+ratio+reservation_goods` on `lr_05`:
+> `Manchester/flour no computable relative price in 851 traded tick(s)`. Traced:
+> that world's tick-1000 price vector spans 3.32e306 down to 3.74e-15, and
+> `p_flour / p_labour` = 3.32e306 / 0.006912 **overflows f64**. Until now the
+> branch had only been shown firing on defects planted in
+> `tests/test_11_correctness.rs`. Two notes on the instrument: B8's "traded"
+> means *posted on at least one side*, not *cleared* (that region is `DEAD`); and
+> `price_next_ratio` guards against a non-finite **price** while nothing guards
+> the **quotient of two** prices.
+>
+> **4. The one unambiguous positive, and it is not on the corpus.** The kernel
+> with the shipped supply rule holds all five hand-computed equilibria under
+> **both** price rules — band `1.000×`, B8 `1.000×`, **5/5 full-PASS
+> certificates** each — while the legacy arm produces **0/5** on either rule. The
+> `ratio` result is new and is partly a harness check (`d == s` is stationary
+> under both rules by construction). The only tape that separates the supply
+> rules is `solv_labour`, in the direction registered before the run.
+>
+> **One caution the matrix makes unavoidable: a corpse prices well.** The best B8
+> median in the whole table (241×, four to twenty orders better than every other
+> kernel cell) belongs to `kernel+ratio+reservation`, in which all 72 regions are
+> `DEAD` and 66 of 72 bands are unbounded. B8 carries no liveness term by design.
+> **B8 is a distance, never a verdict** — the `solv_labour` lesson, now on `lr`.
+>
+> One audit finding is folded back above: the median-band column of the
+> "*Can the price rule lose its α entirely?*" table does not reproduce, and is
+> marked superseded in place. Its `live` and `within 2.2×` columns do reproduce,
+> so the conclusion that rests on them stands.
+
+> ---
+>
+> ### P4.7 — the `cr_*` consistency corpus: worlds built to be viable (2026-07-31)
+>
+> **LANDED.** `tools/gen_regions.py` (generator + auditor + falsification
+> selftest), `data/scenarios/cr_00 … cr_10`, receipts
+> `results/ab/receipt-cr-corpus.md` (the pre-registered A/B) and
+> `receipt-cr-vs-lr.md` (the descriptive comparison and every measurement below).
+> **`data/scenarios/lr_*` is untouched** — it is the registered baseline and R7's
+> regression suite; this corpus is an addition.
+>
+> `lr_*` is a factorial search grid built to LOOK FOR a stable region. It never
+> asked whether any of its cells was a world that *could* be stable. The new tool
+> asks that from the tape, before a tick runs, on **five** conditions: **A1**
+> labour demanded at genesis capacity == hours offered; **A2** produced-or-
+> imported == consumed-or-exported per (node, good) at the genesis wealth tier;
+> **A3** every owner holds the cash Rule 3 requires; **A4** genesis relative
+> prices == the technology's Leontief vector (the solver is *imported* from
+> `tools/derive_parity.py`, so the generator and the scored benchmark cannot
+> disagree); **A5** — added after the first run — whether Rule 1 and Rule 3 can
+> both be satisfied by any stock level at all.
+>
+> **The instrument is calibrated on worlds it did not build.** The three `solv_*`
+> tapes whose equilibria were hand-derived *before the engine was pointed at
+> them* read exactly `1.000` on all four world conditions. `solv_labour` reads
+> **A4 = 2.00** — which is *wrong*, and is the registered counterexample to
+> reading a Leontief benchmark as truth; A4 reproduces B8's registered wrong
+> answer to the digit. `lr_*` fails four of five on all 24 tapes: A1 **2.15×** to
+> **18.1×**, A2 **inf** (services desks draw 50 labour per region to make a good
+> the tier-0 basket does not contain), A3 0.178×–24.7×, A4 1.20×/13.3×.
+>
+> #### RESULT 1 — ten regions are alive and in-band. The standing number was zero.
+>
+> | | cr/kernel | cr/legacy | lr/kernel | lr/legacy |
+> |---|---|---|---|---|
+> | passing the full criteria | **10** | 0 | 0 | 0 |
+> | alive **and** band ≤ 2.2× | **10** | 0 | **0** | **0** |
+> | alive | 23 | 15 | 8 | 33 |
+> | median band | 2.86e9× | 3.96e5× | 3.27e15× | 1.52e5× |
+>
+> All ten are in the consistent worlds; not one is in a defect world. Across every
+> configuration ever run on `lr_*` the "alive and in-band" count has been zero,
+> and the five regions that ever got inside the band were all dead.
+>
+> #### RESULT 2 — the controlled half, which is the part that is not confounded
+>
+> `cr_04`…`cr_08` differ from `cr_00` by exactly one named condition, in the same
+> technology, basket, region sizes and criteria file; `--selftest` asserts in both
+> directions that the named condition moves and the other four read 1.000. Worst
+> band, kernel arm: `cr_00` **1.000×** → A1 broken **2.2e25×**, A2 **2.2e9×**, A3
+> **3.9e9×**, A4 **2.4e20×**, all four **1.3e23×**. **A `cr_00`-vs-`lr_00`
+> comparison could never have said that**, and building the defect controls was
+> the only way to get it.
+>
+> #### RESULT 3 — there is no basin of attraction; there is a dead band
+>
+> This is the one that matters most and it is negative. `cr_00` with its genesis
+> flour price scaled and its cash re-solved (only A4 moves):
+>
+> | ×1.00 | ×1.01 | ×1.02 | ×1.05 | ×1.10 | ×1.20 | ×2.00 |
+> |---|---|---|---|---|---|---|
+> | PASS | PASS | PASS | PASS | 3.4e9× | 1.0e29× | 5.9e26× |
+>
+> **Inside the passing region B8 reads the displacement back verbatim with
+> `sd 0.000` — the wrong price never moves.** ×1.05 is a full-PASS certificate,
+> all eight batteries and 3/3 regions, on a world permanently and exactly 5%
+> wrong. The edge was derived before it was measured: the mill's relative margin
+> `(p_f − 0.5)/((p_f + 0.5)/2)` reaches `dead = 0.05` at **×1.051282**; bisected,
+> **×1.0512 PASS, ×1.0514 FAIL**. RESULT 2 of the solvable worlds said the
+> mechanism cannot walk to a fixed point one factor of two away. **It cannot walk
+> to one 6% away, and inside 5% it does not walk at all.**
+>
+> #### RESULT 4 — Rule 1 and Rule 3 contradict each other on every channel operator
+>
+> Found by building a trade world exact on A1–A4 and watching its channels stop
+> trading on tick 2. A pass-through desk reads **one** inventory slot two ways:
+> Rule 1 posts above `b_out·flow`, Rule 3 buys below `s·flow`, so a stock level
+> doing both exists **iff `b_out < s`**. Wheat cleared at the buying node over 12
+> ticks, one dial moved: `s=1` **0.00**, `s=2` 18.77, `s=3` 93.32, `s=4` 86.77 —
+> exactly where the arithmetic puts it. Inside `cr_01` the **autarkic** region
+> passes the full criteria while both **traded** regions die.
+>
+> **This explains a defect already in the record.** P4.5 traced lr's collapse to
+> "flour has zero posted supply from tick 0 — that part is pre-existing" without
+> saying why: lr's six `flour_transport` desks open holding no flour, so they post
+> nothing and the importing node pins at +1 for ever. lr's window **is** open
+> (`s = 4`), so **seeding those desks is a cheap experiment that should work** —
+> the one concrete repair this session hands forward.
+>
+> #### RESULT 5 — `s` is not a free dial, and its two constraints conflict
+>
+> `cr_09` is `cr_00` at lr's registered `s = 4`: the **worst world in the
+> corpus**, 0/3 alive, bands 1.8e42–9.6e43, worse than every named defect.
+> Labour cleared over 40 ticks 373.8 against `cr_00`'s 1280.0 — 29% throughput.
+> The pre-registered cause was *spoilage* (Rule 3 buys `desired·s`, production
+> consumes `desired·1`, `labour` is `Instant`). **Half wrong, and the
+> falsification test says so**: with labour's shelf life changed to `Ticks(8)` the
+> world still dies and labour cleared *falls* to 329.2. The real mechanism is that
+> a non-storable input's supply is a **per-tick flow** while Rule 3 asks for S
+> ticks of it in one tick — measured demand at Ashby, ticks 1–4: **40, 0, 48, 40**
+> against a flat supply of 32, taking 96 of the 128 hours needed *at genesis*.
+>
+> **The two `s` findings point opposite ways**: RESULT 4 needs `s > b_out`,
+> RESULT 5 needs `s = 1`. With `b_out = 2` **no `s` is admissible** for a world
+> containing both a channel and a labour market — which is every `lr_*` tape. A
+> design contradiction, not a tuning problem, and `α·b_out` was already the
+> Phase 5 axis.
+>
+> #### Three smaller findings, recorded where they were found
+>
+> 1. **The tape format cannot express a consistent transport wedge.**
+>    `RawSimState.prices` is one price per good written to every node, so a
+>    priced transport's zero-profit wedge `p_to = p_from + a_tr·w` is
+>    unstateable: every `lr_*` `flour_transport` desk opens at a loss of exactly
+>    `−0.1·w`. `cr_01` uses costless channels because that is the only trade
+>    structure this format can start consistent.
+> 2. **A rentier class has no consistent version.** At the zero-profit vector
+>    there is no profit, so the overflow funding it is identically zero; `cr_10`
+>    breaks A2 by exactly the rentiers' share and nothing else. A modelling gap
+>    Phases 6–7 own, carried by all 24 `lr_*` tapes.
+> 3. **Consistency does not help the legacy arm.** Its median band on `cr_*`
+>    (3.96e5×) is *worse* than on `lr_*` (1.52e5×), and it cannot hold `cr_00` at
+>    all. One exception, and it is the best legacy result in the repository:
+>    `cr_02` runs **alive at a band of 3.17×** against the 2.2× bar, B7 clean at
+>    median |imbalance| 0.045, flour only **4.56×** too dear — against lr/legacy's
+>    209×–2.9e6×. Still a fail.
+>
+> #### What this does NOT say
+>
+> **The pre-registered A/B is still a LOSS** (`receipt-cr-corpus.md`): G1 fails on
+> four killed regions even though liveness rises 15 → 23, and G2/G3 fail because
+> the defect worlds blow up harder under the kernel than under legacy. The rule
+> counts liveness first and does not care that the kernel is the only arm that
+> produced a passing region. **The Phase 4 gate is not met.**
+>
+> And every one of the ten passing regions sits at a hand-solved rest point.
+> RESULT 3 is the honest weight on RESULT 1: consistency buys the kernel a fixed
+> point it can *hold*, and buys it no ability to *find* one. `cr_00` is a
+> necessary condition passing, not a sufficient one.
+>
+> #### What Phase 5 should take from this
+>
+> 1. Seed lr's transport desks (RESULT 4) — cheap, and predicted to work.
+> 2. Sweep `dead` as an axis. RESULT 3 says it is not a chatter-killer, it is the
+>    entire width of the region in which the price system does anything at all.
+> 3. Resolve the `s` contradiction (RESULT 5) before `s` appears in any sweep as
+>    if it were a stability dial.
+> 4. `cr_00` is now the reference world the phase map should be swept over: it is
+>    the only multi-region tape in the repo that is green, correct, and solved.
 
 ## Phase 5 — Phase map (1–2 sessions)
 

@@ -4,7 +4,7 @@
 use rustyecon::{
     scenario::EventSchedule,
     state::{
-        game_data::{KernelParams, RegionDef, WealthLevel},
+        game_data::{KernelParams, RegionDef, SupplyRule, WealthLevel},
         GameData, SimState,
     },
     systems::run_tick,
@@ -37,6 +37,7 @@ fn make_scenario() -> (SimState, GameData, EventSchedule) {
             epsilon: 0.01,
             phi: 0.6180339887498949,
             fill_alpha: 0.25,
+            supply_rule: SupplyRule::Inelastic,
         },
         goods: vec![GoodDef {
             id: GoodId(0),
