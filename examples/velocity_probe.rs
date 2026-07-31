@@ -45,6 +45,10 @@ fn main() {
 
     let (mut vel, mut level, mut money, mut turnover, mut qty) =
         (vec![], vec![], vec![], vec![], vec![]);
+    // The real wage the tape's own technology implies, and what the run does.
+    let mut real_wage: Vec<f64> = Vec::new();
+    let labour = gd.goods.iter().position(|g| g.name.contains("labour"));
+    let staple = gd.goods.iter().position(|g| g.name == "flour");
     let mut dead_ticks = 0usize;
 
     for t in 1..=ticks {
@@ -92,6 +96,12 @@ fn main() {
         qty.push(units);
         money.push(gbp);
         level.push(if n > 0 { (lnsum / n as f64).exp() } else { f64::NAN });
+        if let (Some(l), Some(s)) = (labour, staple) {
+            let ps = state.price(node, GoodId(s as u32));
+            if ps > 0.0 {
+                real_wage.push(state.price(node, GoodId(l as u32)) / ps);
+            }
+        }
     }
 
     println!("{dir}  arm={arm:?}  price={price:?}  ticks 150..{ticks}");
@@ -100,6 +110,15 @@ fn main() {
     println!("  cleared units   band {:>12.4e}   (real trade)", band(&qty));
     println!("  nominal turnover band {:>11.4e}", band(&turnover));
     println!("  regional money  band {:>12.4e}", band(&money));
+    if !real_wage.is_empty() {
+        let mut rw = real_wage.clone();
+        rw.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        println!(
+            "  real wage        median {:>10.4e}  band {:>10.4e}   (technology implies 2.0)",
+            rw[rw.len() / 2],
+            band(&real_wage)
+        );
+    }
     println!(
         "  ticks below the DEAD threshold: {:.1}%   cleared units min {:.3e} max {:.3e}",
         100.0 * dead_ticks as f64 / vel.len() as f64,

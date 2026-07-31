@@ -470,6 +470,65 @@ constants in code.
 > Until then the A/B receipts stand as measured, with this caveat attached to
 > them rather than quietly folded into them.
 >
+> ### The missing instrument: a correctness criterion
+>
+> **Every criterion in this project is a *stability* criterion.** `DRIFTING`,
+> `SWINGING`, `UNSTABLE`, `DEAD` all ask *did it stay put*. Not one asks *did it
+> go to the right place*. That is why the work keeps feeling like a chicken-and-
+> egg problem: when something will not settle there is no way to tell a missing
+> feature from a broken mechanism, because there is no case where the right
+> answer is known.
+>
+> **The tape already contains the right answer.** Technology implies relative
+> prices: in `lr_00`, `wheat_farm` embodies 0.3 labour per wheat and `grain_mill`
+> adds 0.2, so flour embodies 0.5 and a zero-profit equilibrium has
+> `RealWage = p_labour/p_flour = 1/0.5 = **2.0**`. `RealWage` is *already a scored
+> metric*. Nothing has ever checked it against this. The same Leontief solve
+> already exists in `tools/derive_parity.py`.
+>
+> **Measured against it, and the result separates two problems that have been
+> tangled together all phase:**
+>
+> | configuration | median RealWage | band | vs. 2.0 |
+> |---|---|---|---|
+> | legacy, α×1 | 0.0066 | 11.5 | off by **300×** |
+> | kernel, α×1 | 4.9e-10 | 1.25e17 | off by **4×10⁹** |
+> | legacy, α×0.01 | **0.799** | **1.72** | off by **2.5×** |
+>
+> At slow α the legacy arm sits within a factor of 2.5 of the analytically
+> correct relative price, with a band of 1.72 — **inside the 2.2× bar**. That is
+> the closest anything in this project has come to being right, and it says the
+> mechanism is not incapable of price formation; it is being run outside the
+> region where it works.
+>
+> **But the same run has 23.5% dead ticks and a cleared-units band of 4.4e5.** So
+> the honest decomposition is:
+>
+> - **relative prices** — nearly right at slow α, both arms improving with α;
+> - **volumes and liveness** — broken at every setting tried.
+>
+> Two separable problems, which is exactly the tool the chicken-and-egg needs.
+> And the error has a *direction*: the real wage is too **low** by 2.5×, i.e.
+> labour is underpaid against its embodied value — consistent with the labour
+> market having no crossing (supply 0.41 against demand 73.7, both elasticities
+> zero). The correctness test and the elasticity finding point at the same market.
+>
+> **On the missing-feature worry, what the evidence says.** The α×0.01 run gets
+> the relative price nearly right with a *fixed money stock and no credit*, so
+> monetary machinery is not what stands between here and price formation — it
+> would matter for the price *level* and for smoothing. Memory already exists
+> (`price_ema`, `last_fill`). And the one ingredient actually identified as
+> missing — a desk setting its quantity from the posted price against its own
+> cost — is a **reservation price against own state, not a forecast of anybody
+> else**. On present evidence inter-agent prediction is *not* required.
+>
+> **Proposed next artifact, ahead of any more kernel work:** a correctness
+> battery. Solve the tape's labour values, derive the implied relative price
+> vector, and report per-run how far the realised prices sit from it. It costs
+> almost nothing — the solver exists — and it converts "it did not stabilise"
+> into "*this* market is at the wrong price, by *this* factor, in *this*
+> direction". Stability then becomes the second question rather than the only one.
+>
 > ---
 >
 > **P4.3 LANDED, and the first A/B is a decisive LOSS.** Pop desks are in: the
