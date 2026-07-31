@@ -81,6 +81,15 @@ const REPLAY_CHECK_EVERY: u64 = 64;
 /// a behavioural constant.
 const OWN_STATE_CHECK_EVERY: u64 = 64;
 
+/// What B8 is called on every certificate, in one place so the two arms of the
+/// `match` below cannot drift apart.
+///
+/// The words are the finding of the 2026-07-31 adversarial review: the old label
+/// `prices match technology` turned "the distance was computable" into a
+/// correctness claim nobody had checked. A certificate is a record, so the
+/// wording is part of the result and not decoration.
+const B8_LABEL: &str = "price/technology gap (report, no bar)";
+
 pub struct SimRunner {
     pub state: SimState,
     pub game_data: GameData,
@@ -437,24 +446,33 @@ impl SimRunner {
                 }
                 None => Battery::new("B7", "no pinned market", true, "unscored".into()),
             },
-            // The first CORRECTNESS battery. B1..B7 all ask whether the run held
+            // The correctness *instrument*. B1..B7 all ask whether the run held
             // together or stayed put; none of them asks whether the prices went
             // to the right place, and a world that settles instantly on nonsense
             // passes every one of them. B8 compares the realised relative price
             // vector against the one the tape's own recipes imply at zero profit.
             //
-            // It deliberately has NO distance threshold — see
-            // `PriceGapWatch::report` for the argument, which is the R6 one: the
-            // numbers were already known when this was written, so any bar
-            // picked now would be a bar fitted to a result.
+            // **It is a REPORT, and the label says so** (renamed 2026-07-31).
+            // It carried "prices match technology" and printed PASS beside gaps
+            // of 4e9x, so every certificate in the corpus asserted something no
+            // code in it had checked. The argument for renaming rather than
+            // fitting a threshold is on `PriceGapWatch::report`, and it is not
+            // "no evidence yet": the benchmark is zero-rent and single-node, it
+            // reads the one world in the corpus with a hand-derived answer
+            // (`solv_labour`) as 2.000x wrong when that world is exactly right,
+            // and no choice of threshold repairs a specification error.
+            //
+            // A PASS here means the distance was COMPUTABLE. That claim does
+            // fail — on an unmakeable good, on a market whose numeraire never
+            // traded, and on any non-finite statistic (R5).
             match price_gap {
                 Some(g) => {
                     let (pass, detail) = g.report(&self.game_data);
-                    Battery::new("B8", "prices match technology", pass, detail)
+                    Battery::new("B8", B8_LABEL, pass, detail)
                 }
                 None => Battery::new(
                     "B8",
-                    "prices match technology",
+                    B8_LABEL,
                     true,
                     "unscored: no criteria.ron registered".into(),
                 ),

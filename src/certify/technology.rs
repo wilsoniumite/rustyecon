@@ -1,9 +1,10 @@
-//! The project's first **correctness** criterion (v2 Phase 4; PLAN, "The
-//! missing instrument").
+//! B8 — the realised-versus-implied price gap. A **reporter**, not a battery
+//! (v2 Phase 4; PLAN, "The missing instrument"; renamed 2026-07-31, §"The
+//! decision" on [`PriceGapWatch::report`]).
 //!
 //! Every other criterion in this repository asks *did it stay put*. `DRIFTING`,
 //! `SWINGING`, `UNSTABLE`, `DEAD` are all stability rules, and a world that
-//! settles instantly on nonsense passes all of them. Nothing has ever asked *did
+//! settles instantly on nonsense passes all of them. Nothing had ever asked *did
 //! the prices go to the right place* — which is why a failure to settle could
 //! never be told apart from a missing feature: there was no case where the right
 //! answer was known.
@@ -18,29 +19,45 @@
 //!
 //! # What this module is, and what it is not
 //!
-//! It is a *long-run, full-utilisation, zero-profit* benchmark. It is not a
-//! prediction of the tick-by-tick path, and a run whose prices sit some distance
-//! from it is not thereby broken — real economies carry margins, rents and
-//! disequilibrium. What the distance buys is a *direction and a magnitude* for
-//! each market: "flour 2.5× too dear" is a lead, where "the band was 11.5×" is
-//! only a complaint.
+//! It is a *long-run, full-utilisation, zero-profit, single-node* benchmark. It
+//! is not a prediction of the tick-by-tick path, and a run whose prices sit some
+//! distance from it is not thereby broken — real economies carry margins, rents
+//! and transport wedges. What the distance buys is a *direction and a magnitude*
+//! for each market: "flour 2.5× too dear" is a lead, where "the band was 11.5×"
+//! is only a complaint.
 //!
-//! Three simplifications are load-bearing and are stated rather than buried:
+//! **Every one of those words is load-bearing, and each is printed on the
+//! certificate line** (`report`), because the corpus already contains a case
+//! where a reading was mistaken for an error:
 //!
-//! 1. **Capital is ignored.** `component_reqs` are a stock requirement, not a
+//! 1. **Zero rent.** The benchmark prices labour and nothing else scarce.
+//!    `solv_labour` is the corpus's one world with a binding second factor — the
+//!    firm's `recipe_size` caps output, so it earns a capacity rent and its
+//!    registered equilibrium is `p_grain = p_labour`, not the labour-value
+//!    answer of 0.5. B8 read that world, which is *exactly right*, as
+//!    "grain 2.000x too dear". Modelling the rent is not attempted here: it
+//!    needs the scarce factor's shadow price, which is a solve this module does
+//!    not do and a new registered object if it did. What is done instead is to
+//!    say the assumption out loud on every line.
+//! 2. **Full utilisation.** `Fixed` and `SemiVariable` inputs are per-unit only
+//!    at nameplate, which is the regime this benchmark is *about*. `tracer_2r`'s
+//!    `grow_grain` is the corpus's one `Fixed` input, and below full size it
+//!    really does draw more labour per grain than this says — so the benchmark
+//!    flatters that scenario's producer, in the direction of making grain look
+//!    *dearer* than the value implies. Recorded because it is an error with a
+//!    known sign.
+//! 3. **Single node.** See [`LabourValues::pass_through`]. A good is worth the
+//!    same everywhere here, so transport adds no value at the destination and a
+//!    competitive importer that merely recovers its haulage cost scores as an
+//!    error. The bias is computed from the tape rather than asserted, and
+//!    printed.
+//! 4. **Capital is ignored.** `component_reqs` are a stock requirement, not a
 //!    flow input, and amortising them needs a depreciation rate that no tape
 //!    registers. The values here are therefore labour-*flow* values. No scenario
 //!    in the corpus declares a component requirement, so nothing currently
 //!    depends on the choice; a world that does will need this revisited, and
 //!    that is a design event, not a tweak.
-//! 2. **Input scaling is read at nameplate.** `Fixed` and `SemiVariable` inputs
-//!    are per-unit only at full utilisation, which is the regime this benchmark
-//!    is *about*. `tracer_2r`'s `grow_grain` is the corpus's one `Fixed` input,
-//!    and below full size it really does draw more labour per grain than this
-//!    says — so the benchmark flatters that scenario's producer, in the
-//!    direction of making grain look *dearer* than the value implies. Recorded
-//!    because it is an error with a known sign.
-//! 3. **Joint products each carry the whole input bill.** A recipe with two
+//! 5. **Joint products each carry the whole input bill.** A recipe with two
 //!    outputs charges each of them the full cost of the inputs. Splitting it
 //!    would need a rule for apportioning, every such rule is a registered
 //!    constant, and no corpus recipe has more than one output. Ported from
@@ -55,11 +72,28 @@ use crate::types::ids::{GoodId, MarketNodeId};
 /// An acyclic recipe graph is resolved in at most one sweep per good, but the
 /// graph is not acyclic — `flour_transport` takes flour and makes flour — so a
 /// topological pass would not terminate and the solve is a relaxation instead.
-/// A cycle that lowers cost each time round (make A from B, B from A, cheaper
-/// every lap) has no fixed point at all, and without a cap it spins forever.
-/// Hitting the cap is reported as [`Value::NotConverged`] rather than returning
-/// whatever the last sweep happened to hold: a value that is still moving is not
-/// a value.
+///
+/// **Superseded wording, marked in place (R14, 2026-07-31).** This comment used
+/// to read "A cycle that lowers cost each time round … has no fixed point at
+/// all, and without a cap it spins forever", and [`Value::NotConverged`] was
+/// documented as "a defect in the technology graph itself". That is true of the
+/// *constructed* runaway in `a_cost_reducing_cycle_is_reported_as_not_converged`
+/// and false as a general reading of the cap. A cycle whose round-trip gain `f`
+/// is just under one has a *unique positive* fixed point and merely approaches
+/// it geometrically, needing about `ln(IMPROVE_REL)/ln(f)` laps to get inside
+/// the improvement floor. Measured, on the `iron = 1 + f·tools`,
+/// `tools = iron + 1` family in `examples/b8_adversary.rs`: `f = 0.89` lands in
+/// **255** sweeps and `f = 0.90` **trips this cap** — at a graph whose exact
+/// answer is `iron = 19.0`. So hitting the cap means *this relaxation did not
+/// settle within this cap*, which is a statement about the solver, and only a
+/// statement about the graph once somebody has looked. Reported as
+/// [`Value::NotConverged`] rather than returning whatever the last sweep
+/// happened to hold: a value that is still moving is not a value.
+///
+/// Raising the cap is not the fix and is deliberately not done here: it moves
+/// the boundary without removing it, and 256 is what every certificate in the
+/// corpus was produced under. The fix is a solver that reports its own residual
+/// instead of a boolean, which is a change with its own A/B.
 const MAX_SWEEPS: usize = 256;
 
 /// A route is only "cheaper" if it is cheaper by more than floating-point dust.
@@ -78,6 +112,20 @@ const IMPROVE_REL: f64 = 1e-12;
 /// battery line nobody reads is a battery nobody checks.
 const LIST_GOODS: usize = 6;
 
+/// Render a log distance as a multiple with its direction named.
+///
+/// A bare distance is useless for diagnosis: `0.917` says nothing a reader can
+/// act on, `flour 2.503x too dear` names the market and which way to look. This
+/// is the whole reason B8 is worth having over the existing `RealWage` band.
+fn phrase_log(subject: &str, log_gap: f64) -> String {
+    let x = log_gap.exp();
+    if x >= 1.0 {
+        format!("{subject} {x:.3}x too dear")
+    } else {
+        format!("{subject} {:.3}x too cheap", 1.0 / x)
+    }
+}
+
 // ── 1. Labour values ──────────────────────────────────────────────────────────
 
 /// What the recipe graph says one unit of a good is worth in labour, or why it
@@ -88,7 +136,8 @@ const LIST_GOODS: usize = 6;
 /// a world has. METHODOLOGY R5's fail-closed rule applies to all three equally,
 /// but the *diagnosis* differs: `Unreachable` is a modelling gap in the tape,
 /// `Free` is a technology that makes something from nothing, and `NotConverged`
-/// is a defect in the technology graph itself.
+/// is a good the relaxation had not finished with — see [`MAX_SWEEPS`] for why
+/// that is not the same as a defect in the graph.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Value {
     /// Labour embodied in one unit, direct plus indirect. Strictly positive.
@@ -107,8 +156,20 @@ pub enum Value {
     /// ever match, so it is excluded from the distance rather than scored
     /// against an unreachable target.
     Free,
-    /// The relaxation was still finding cheaper routes when [`MAX_SWEEPS`] ran
-    /// out. Reported, never rounded off.
+    /// This good's own value was still moving, or something upstream of it was,
+    /// when [`MAX_SWEEPS`] ran out. Reported, never rounded off.
+    ///
+    /// **Scope corrected 2026-07-31 (R14).** This used to be applied to *every*
+    /// good in the tape the moment any cycle failed to settle — including
+    /// labour, which is `Labour(1.0)` by definition and which the relaxation
+    /// never writes to, so the numeraire itself came back unpriced because two
+    /// unrelated goods in another corner of the graph were chasing each other.
+    /// The old comment justifying that ("a graph that never settled has no
+    /// trustworthy values anywhere in it") is wrong in one specific way: a good
+    /// that is neither still moving nor downstream of anything still moving is
+    /// not fed by the runaway and its value is final. Only those two sets are
+    /// marked now; `a_stalled_cycle_marks_only_the_goods_that_are_still_moving`
+    /// is the guard.
     NotConverged,
 }
 
@@ -136,6 +197,68 @@ impl Value {
             Value::Free => "produced from nothing that embodies labour",
             Value::NotConverged => "labour value still moving after the sweep cap",
         }
+    }
+}
+
+/// A recipe whose output is also one of its inputs, and the labour it adds that
+/// lands in no good's value anywhere.
+///
+/// **The single-node assumption, made visible.** `flour_transport` takes one
+/// flour and 0.1 labour and yields one flour. Treating that as production would
+/// define flour in terms of itself, so it is skipped — and the consequence is
+/// that the 0.1 labour it spends is in *no* good's labour content. A benchmark
+/// that values a good identically at every node is the same benchmark that
+/// cannot see haulage, and the two are one choice, not two.
+///
+/// **The choice, and why it went this way.** The alternative is to value goods
+/// *per node*, so that flour at Leeds embodies flour at Manchester plus the
+/// transport labour. It was rejected for this repair, on grounds that are
+/// recorded rather than assumed:
+///
+/// - It needs a node-to-node route graph the solver does not have. `recipes` are
+///   not sited: nothing in `RecipeDef` says which node a `flour_transport`
+///   instance runs between, and the siting lives in `starting_state.ron`'s
+///   building placements and in `channels`. Reading it would make the benchmark
+///   depend on where buildings happen to have been *placed*, which is a genesis
+///   choice, not a technology.
+/// - It turns one value per good into one value per (node, good) and makes the
+///   cheapest-route relaxation a shortest-path solve over a graph with cycles
+///   *and* an economically meaningful direction. That is a new algorithm with
+///   its own falsification burden, and it would no longer be the same algorithm
+///   as `tools/derive_parity.py`, which is what keeps the `parity` the agents
+///   aim at and the benchmark they are scored against from disagreeing.
+///
+/// So the benchmark stays single-node, and the bias is **computed from the tape
+/// and printed** instead of being left as a surprise. On `lr_00` the whole of it
+/// is one line: `flour_transport` adds 0.100 labour to a flour worth 0.500, so
+/// an importing region's competitive flour price is 1.200× the benchmark and a
+/// perfectly competitive importer scores as 1.200× too dear. That is the size of
+/// the known bias, with its sign, and it bounds it: no route in the corpus
+/// stacks two hauls.
+#[derive(Debug, Clone)]
+pub struct PassThrough {
+    pub recipe: String,
+    pub good: String,
+    /// Labour per unit this recipe adds on top of the good's own value.
+    pub added: f64,
+    /// The good's single-node labour value, for scale.
+    pub base: f64,
+}
+
+impl PassThrough {
+    /// How much dearer than the benchmark a competitive unit is at the far end.
+    pub fn bias(&self) -> f64 {
+        (self.base + self.added) / self.base
+    }
+
+    pub fn phrase(&self) -> String {
+        format!(
+            "{} adds {:.3} labour to {} that is in no good's value ({:.3}x at the far end)",
+            self.recipe,
+            self.added,
+            self.good,
+            self.bias()
+        )
     }
 }
 
@@ -173,6 +296,60 @@ impl LabourValues {
             .map(|(i, v)| format!("{}: {}", game_data.goods[i].name, v.why()))
             .collect()
     }
+
+    /// Every pass-through recipe and the labour it spends that no good's value
+    /// carries — the size of the single-node bias. See [`PassThrough`].
+    pub fn pass_through(&self, game_data: &GameData) -> Vec<PassThrough> {
+        let mut currency = vec![false; game_data.num_goods()];
+        for node in &game_data.market_nodes {
+            if let Some(c) = node.currency_good {
+                currency[c.idx()] = true;
+            }
+        }
+        let mut out = Vec::new();
+        for recipe in &game_data.recipes {
+            for output in &recipe.outputs {
+                let g = output.good;
+                if output.qty_per_unit <= 0.0 || g == self.labour || currency[g.idx()] {
+                    continue;
+                }
+                if !recipe.inputs.iter().any(|i| i.good == g) {
+                    continue;
+                }
+                let Some(base) = self.get(g).relative_price() else { continue };
+                // Total input bill on the same terms the solver uses: currency
+                // legs skipped, everything else at its solved value.
+                let mut total = 0.0;
+                let mut ok = true;
+                for input in &recipe.inputs {
+                    if currency[input.good.idx()] {
+                        continue;
+                    }
+                    match self.get(input.good).relative_price() {
+                        Some(v) => total += v * input.qty_per_unit,
+                        None => {
+                            ok = false;
+                            break;
+                        }
+                    }
+                }
+                let added = total / output.qty_per_unit - base;
+                // A pass-through that adds nothing (or, through a joint output,
+                // appears to remove value) is not a wedge and reporting it would
+                // bury the ones that are.
+                if !ok || !added.is_finite() || added <= 0.0 {
+                    continue;
+                }
+                out.push(PassThrough {
+                    recipe: recipe.name.clone(),
+                    good: game_data.goods[g.idx()].name.clone(),
+                    added,
+                    base,
+                });
+            }
+        }
+        out
+    }
 }
 
 /// Solve the labour embodied in one unit of every good, direct plus indirect.
@@ -189,7 +366,8 @@ impl LabourValues {
 /// - **A good appearing on both sides of a recipe is passing through, not being
 ///   made.** `flour_transport` takes flour and labour and yields flour; treating
 ///   that as production would say flour costs flour plus 0.1 labour, which is
-///   not a definition of anything.
+///   not a definition of anything. What that costs the benchmark is measured by
+///   [`LabourValues::pass_through`] rather than left implicit.
 /// - **The graph has cycles, so it is solved by relaxation.** A topological pass
 ///   has no order to run in.
 /// - **Where several recipes make a good, the cheapest route wins.** Competitive
@@ -209,11 +387,16 @@ pub fn labour_values(game_data: &GameData, labour: GoodId) -> LabourValues {
     let mut content: Vec<Option<f64>> = vec![None; n];
     content[labour.idx()] = Some(1.0);
 
+    // Which goods the *final* sweep moved. Only meaningful when that sweep is
+    // the cap: it is the seed set for "what was still moving when we stopped".
+    let mut moved = vec![false; n];
+
     let mut sweeps = 0;
     let mut converged = false;
     for _ in 0..MAX_SWEEPS {
         sweeps += 1;
         let mut changed = false;
+        moved.iter_mut().for_each(|m| *m = false);
         for recipe in &game_data.recipes {
             for out in &recipe.outputs {
                 if out.qty_per_unit <= 0.0 || out.good == labour || currency[out.good.idx()] {
@@ -252,6 +435,7 @@ pub fn labour_values(game_data: &GameData, labour: GoodId) -> LabourValues {
                 if better {
                     *slot = Some(value);
                     changed = true;
+                    moved[out.good.idx()] = true;
                 }
             }
         }
@@ -261,14 +445,52 @@ pub fn labour_values(game_data: &GameData, labour: GoodId) -> LabourValues {
         }
     }
 
+    // Everything the runaway feeds, and nothing else. A good whose own value
+    // stopped moving is still untrustworthy if one of its inputs has not — the
+    // cheaper route upstream will re-price it on some later sweep — so the seed
+    // set is closed downstream through the recipe graph before it is used.
+    // Labour can never enter it: the sweep above never writes to labour, so it
+    // is never in `moved`, and no recipe output may be labour either.
+    if !converged {
+        loop {
+            let mut grew = false;
+            for recipe in &game_data.recipes {
+                let fed_by_a_runaway = recipe
+                    .inputs
+                    .iter()
+                    .any(|i| !currency[i.good.idx()] && moved[i.good.idx()]);
+                if !fed_by_a_runaway {
+                    continue;
+                }
+                for out in &recipe.outputs {
+                    if out.good == labour || currency[out.good.idx()] {
+                        continue;
+                    }
+                    // A pass-through never set this good's value, so it cannot
+                    // be the channel that moves it either.
+                    if recipe.inputs.iter().any(|i| i.good == out.good) {
+                        continue;
+                    }
+                    if !moved[out.good.idx()] {
+                        moved[out.good.idx()] = true;
+                        grew = true;
+                    }
+                }
+            }
+            if !grew {
+                break;
+            }
+        }
+    }
+
     let values = (0..n)
         .map(|i| {
             if currency[i] {
                 Value::Currency
-            } else if !converged {
-                // Conservative on purpose: a graph that never settled has no
-                // trustworthy values anywhere in it, because a route that is
-                // still getting cheaper feeds everything downstream of it.
+            } else if !converged && moved[i] && content[i].is_some() {
+                // `content[i].is_some()` matters: a good the closure reached but
+                // that never got a value at all was never reached by a route,
+                // and "unreachable" is the finding, not "still moving".
                 Value::NotConverged
             } else {
                 match content[i] {
@@ -299,28 +521,62 @@ pub struct GapReading {
     /// Standard deviation of the same log ratio. A small `log_gap` with a large
     /// `log_sd` is a price that averaged out right while never *being* right,
     /// and the two must not be reported as the same thing.
-    pub log_sd: f64,
-    /// Ticks in the window where the ratio existed.
+    ///
+    /// **`None`, never `NaN` (R5, fixed 2026-07-31).** This was `f64::NAN`
+    /// whenever `samples < 2`, and `report` interpolated it straight onto the
+    /// certificate line: a run with one priced tick printed `sd NaN` next to
+    /// `pass = true`, and `certify::nan::scan` could not see it because that
+    /// scan walks `SimState` and this number lives in the accumulator. R5 says a
+    /// metric that cannot be computed FAILS. The dispersion of one sample is a
+    /// value *declared missing* under a registered convention — the same class
+    /// as μ/r\* on a quiet tick — so it is represented as an absence and
+    /// rendered as an absence; what is banned is the NaN, and
+    /// [`PriceGapWatch::uncomputable`] fails the report closed if one ever
+    /// appears anyway.
+    pub log_sd: Option<f64>,
+    /// Ticks in the window where the ratio existed and was used.
     pub samples: u64,
-    /// Ticks in the window where the market traded but the ratio had no
-    /// logarithm — a zero, negative or non-finite price on either leg.
+    /// Ticks in the window where this market traded at all — `samples`'
+    /// denominator, without which `n=1` cannot be told apart from a market that
+    /// genuinely traded once.
+    pub traded_ticks: u64,
+    /// Traded ticks where the ratio had no logarithm — a zero, negative or
+    /// non-finite price on either leg.
     pub unpriced: u64,
+    /// Traded ticks dropped because the **numeraire** did not trade, so every
+    /// price on that tick was measured against a stale wage.
+    pub numeraire_idle: u64,
 }
 
 impl GapReading {
     /// The gap as a multiple, with its direction named.
-    ///
-    /// A bare distance is useless for diagnosis: `0.917` says nothing a reader
-    /// can act on, `flour 2.503x too dear` names the market and which way to
-    /// look. This is the whole reason B8 is worth having over the existing
-    /// `RealWage` band.
     pub fn phrase(&self) -> String {
-        let x = self.log_gap.exp();
-        if x >= 1.0 {
-            format!("{} {:.3}x too dear", self.good, x)
-        } else {
-            format!("{} {:.3}x too cheap", self.good, 1.0 / x)
+        phrase_log(&self.good, self.log_gap)
+    }
+
+    /// Traded ticks that produced no reading.
+    pub fn discarded(&self) -> u64 {
+        self.traded_ticks.saturating_sub(self.samples)
+    }
+
+    /// The dispersion, or the fact that there is not enough to compute one.
+    pub fn sd_phrase(&self) -> String {
+        match self.log_sd {
+            Some(sd) => format!("sd {sd:.3}"),
+            None => "sd n/a (one sample)".into(),
         }
+    }
+
+    /// Sample count with its denominator and where the rest of it went.
+    pub fn census(&self) -> String {
+        format!(
+            "n={} of {} traded tick(s), {} discarded ({} unpriced, {} numeraire idle)",
+            self.samples,
+            self.traded_ticks,
+            self.discarded(),
+            self.unpriced,
+            self.numeraire_idle
+        )
     }
 }
 
@@ -330,6 +586,63 @@ pub struct GapFailure {
     pub region: String,
     pub good: String,
     pub reason: String,
+}
+
+/// One region's readings split into the part that is a statement about the
+/// **wage** and the part that is a statement about each **good**.
+///
+/// # Why this exists, and why it is the most useful thing on the line
+///
+/// Every reading in a region is `ln(p_g/p_labour) − ln(λ_g)`. A wage that is
+/// wrong by a factor `k` therefore shifts *every* good's reading by the same
+/// `ln k`, and the old report printed the result as N independent findings.
+/// `lr_00`/Manchester under the legacy arm read wheat 312.3×, flour 208.8× and
+/// services 43,415× "too dear" — three numbers spanning two orders of magnitude,
+/// which look like three problems and are one: a common factor of ~1,414×, which
+/// is a statement about `p_labour`, plus residuals of 4.5× *too cheap*, 6.8× too
+/// cheap and 30.7× too dear around it. The residuals are the only part of the
+/// reading that is about wheat, flour or services at all, and two of the three
+/// point the *opposite way* to the raw number.
+///
+/// **The common factor is an unweighted geometric mean over the region's scored
+/// goods** — one vote per good, not per sample. Weighting by sample count would
+/// let whichever market happened to trade most decide what the wage error is,
+/// and the quantity being estimated is shared by all of them equally. The
+/// residuals then sum to zero across the goods by construction, which is what
+/// makes "common factor plus residual" a decomposition rather than two
+/// statistics printed next to each other.
+///
+/// **What it is not.** It cannot tell a wrong wage from a world where every good
+/// is dear for its own reason and the wage is right; no statistic reading only
+/// this vector can. It says "here is the part of these N numbers that is one
+/// number", which is exactly what a reader needs before deciding which market to
+/// open.
+#[derive(Debug, Clone)]
+pub struct WageDecomposition {
+    pub region: String,
+    /// Unweighted mean of the region's `log_gap`s: the shared factor, in logs.
+    pub common_log: f64,
+    /// `(good, log_gap − common_log)`, worst first.
+    pub residuals: Vec<(String, f64)>,
+}
+
+impl WageDecomposition {
+    pub fn common_phrase(&self) -> String {
+        phrase_log("common factor", self.common_log)
+    }
+
+    /// The residual list, worst first, truncated for the certificate line.
+    pub fn residual_phrases(&self, limit: usize) -> Vec<String> {
+        let shown = self.residuals.len().min(limit);
+        let mut out: Vec<String> = self.residuals[..shown]
+            .iter()
+            .map(|(g, r)| phrase_log(g, *r))
+            .collect();
+        if self.residuals.len() > shown {
+            out.push(format!("+{} more", self.residuals.len() - shown));
+        }
+        out
+    }
 }
 
 /// Accumulates the realised-vs-implied price gap over the scored window.
@@ -358,7 +671,24 @@ pub struct PriceGapWatch {
     mean: Vec<f64>,
     m2: Vec<f64>,
     unpriced: Vec<u64>,
-    traded: Vec<bool>,
+    /// Traded ticks dropped because the numeraire was idle, per (region, good).
+    idle_drops: Vec<u64>,
+    /// In-window ticks on which this market traded, per (region, good).
+    traded_ticks: Vec<u64>,
+    /// In-window ticks observed, and of those how many had an idle numeraire —
+    /// per region, so the drop can be reported even when no good survived.
+    ticks_seen: Vec<u64>,
+    numeraire_idle_ticks: Vec<u64>,
+    /// Set when `criteria.labour_good` names a good the tape does not contain.
+    ///
+    /// Distinct from "no labour good", which the corpus declares deliberately by
+    /// registering the empty name — `big_region` and `supply_chain` are worlds
+    /// with no labour market and are legitimately unscored. A NON-empty name
+    /// that resolves to nothing is a different thing entirely: a typo in a
+    /// registered criteria file, which previously produced the same silent
+    /// "unscored" pass as the deliberate case. One is a world without wages; the
+    /// other is a broken tape claiming to be one.
+    numeraire_missing: Option<String>,
 }
 
 impl PriceGapWatch {
@@ -373,6 +703,9 @@ impl PriceGapWatch {
             .iter()
             .find(|g| g.name == criteria.labour_good)
             .map(|g| g.id);
+        // Empty name = declared absent; non-empty and unresolved = a tape error.
+        let numeraire_missing = (labour.is_none() && !criteria.labour_good.is_empty())
+            .then(|| criteria.labour_good.clone());
         // A world with no labour good has no numeraire to normalise against, so
         // there is nothing to solve. Reported as unscored, never as clean.
         let values = labour
@@ -387,7 +720,8 @@ impl PriceGapWatch {
             .iter()
             .map(|r| (r.name.clone(), r.market_node))
             .collect::<Vec<_>>();
-        let n = regions.len() * game_data.num_goods();
+        let r = regions.len();
+        let n = r * game_data.num_goods();
         Self {
             num_goods: game_data.num_goods(),
             regions,
@@ -397,7 +731,11 @@ impl PriceGapWatch {
             mean: vec![0.0; n],
             m2: vec![0.0; n],
             unpriced: vec![0; n],
-            traded: vec![false; n],
+            idle_drops: vec![0; n],
+            traded_ticks: vec![0; n],
+            ticks_seen: vec![0; r],
+            numeraire_idle_ticks: vec![0; r],
+            numeraire_missing,
         }
     }
 
@@ -415,16 +753,42 @@ impl PriceGapWatch {
         Some(good) != self.labour && !matches!(self.values.get(good), Value::Currency)
     }
 
-    /// Take one tick's reading of every market that traded.
+    /// Take one tick's reading of every market that traded, **against a
+    /// numeraire that also traded**.
     ///
-    /// The trading gate is [`crate::certify::invariants::BalanceWatch`]'s
-    /// convention: a market with neither supply nor demand posts a stale price
-    /// that no agent acted on, and counting it would let a world be scored on
-    /// prices nobody paid.
+    /// The per-good trading gate is
+    /// [`crate::certify::invariants::BalanceWatch`]'s convention: a market with
+    /// neither supply nor demand posts a stale price that no agent acted on, and
+    /// counting it would let a world be scored on prices nobody paid.
+    ///
+    /// **The numeraire gate is the same convention applied to the denominator,
+    /// and it was missing (fixed 2026-07-31).** Every reading here is
+    /// `p_g / p_labour`, so a labour market with zero supply and zero demand
+    /// sitting at a stale price makes *every* per-good reading in that region
+    /// wrong by one shared factor — and, because it is shared, wrong in a way
+    /// the per-good numbers cannot reveal. Gating only the numerator meant B8
+    /// would report 851 confident readings on a run whose wage nobody had paid
+    /// since tick 149. Ticks dropped for this reason are counted, per region and
+    /// per market, and printed: a silent drop is the same defect one layer down.
     pub fn observe(&mut self, state: &SimState) {
         let Some(labour) = self.labour else { return };
         for (ri, (_, node)) in self.regions.iter().enumerate() {
             let p_labour = state.price(*node, labour);
+            // CLEARED volume, not posted orders. `supply` and `demand` are the
+            // summed sell and buy *order* quantities (`systems::clearing::run`);
+            // what changes hands is `min` of the two. The first version of this
+            // gate read `supply > 0 || demand > 0`, which admits every tick on
+            // which labour was OFFERED and nobody hired — exactly the state a
+            // dead labour market is in, and exactly the state the gate exists to
+            // exclude. Measured on `tracer_2r` under the kernel arm, that
+            // version admitted the great majority of the window on a wage
+            // nobody had paid. A price nobody transacted at is not a numeraire.
+            let numeraire_traded =
+                state.supply(*node, labour).min(state.demand(*node, labour)) > 0.0;
+            self.ticks_seen[ri] += 1;
+            if !numeraire_traded {
+                self.numeraire_idle_ticks[ri] += 1;
+            }
             for good_idx in 0..self.num_goods {
                 let good = GoodId(good_idx as u32);
                 if !self.scored(good) {
@@ -434,7 +798,14 @@ impl PriceGapWatch {
                     continue;
                 }
                 let i = ri * self.num_goods + good_idx;
-                self.traded[i] = true;
+                // Counted before the numeraire gate: the market DID trade, and
+                // `failures` needs to know that in order to say that a live
+                // market went unmeasured rather than that nothing happened.
+                self.traded_ticks[i] += 1;
+                if !numeraire_traded {
+                    self.idle_drops[i] += 1;
+                    continue;
+                }
                 let Some(implied) = self.values.get(good).relative_price() else {
                     continue;
                 };
@@ -469,11 +840,8 @@ impl PriceGapWatch {
                 let Some(implied) = self.values.get(good).relative_price() else {
                     continue;
                 };
-                let sd = if self.count[i] < 2 {
-                    f64::NAN
-                } else {
-                    (self.m2[i] / (self.count[i] - 1) as f64).sqrt()
-                };
+                let sd = (self.count[i] >= 2)
+                    .then(|| (self.m2[i] / (self.count[i] - 1) as f64).sqrt());
                 out.push(GapReading {
                     region: name.clone(),
                     good: game_data.goods[good_idx].name.clone(),
@@ -481,7 +849,9 @@ impl PriceGapWatch {
                     log_gap: self.mean[i],
                     log_sd: sd,
                     samples: self.count[i],
+                    traded_ticks: self.traded_ticks[i],
                     unpriced: self.unpriced[i],
+                    numeraire_idle: self.idle_drops[i],
                 });
             }
         }
@@ -499,7 +869,7 @@ impl PriceGapWatch {
         for (ri, (name, _)) in self.regions.iter().enumerate() {
             for good_idx in 0..self.num_goods {
                 let i = ri * self.num_goods + good_idx;
-                if !self.traded[i] {
+                if self.traded_ticks[i] == 0 {
                     continue;
                 }
                 let good = GoodId(good_idx as u32);
@@ -508,8 +878,9 @@ impl PriceGapWatch {
                     format!("implied value unavailable — {}", value.why())
                 } else if self.count[i] == 0 {
                     format!(
-                        "no computable relative price in {} traded tick(s)",
-                        self.unpriced[i]
+                        "no computable relative price in {} traded tick(s) \
+                         ({} unpriced, {} with an idle numeraire)",
+                        self.traded_ticks[i], self.unpriced[i], self.idle_drops[i]
                     )
                 } else {
                     continue;
@@ -524,40 +895,131 @@ impl PriceGapWatch {
         out
     }
 
-    /// B8's verdict and its measurement.
+    /// Split each region's readings into a shared wage factor and per-good
+    /// residuals. See [`WageDecomposition`].
+    pub fn decompositions(&self, game_data: &GameData) -> Vec<WageDecomposition> {
+        let readings = self.readings(game_data);
+        let mut out: Vec<WageDecomposition> = Vec::new();
+        for (name, _) in &self.regions {
+            let here: Vec<&GapReading> = readings.iter().filter(|r| &r.region == name).collect();
+            if here.is_empty() {
+                continue;
+            }
+            let common_log = here.iter().map(|r| r.log_gap).sum::<f64>() / here.len() as f64;
+            let mut residuals: Vec<(String, f64)> = here
+                .iter()
+                .map(|r| (r.good.clone(), r.log_gap - common_log))
+                .collect();
+            residuals.sort_by(|a, b| {
+                b.1.abs()
+                    .partial_cmp(&a.1.abs())
+                    .expect("readings are checked finite before this runs")
+            });
+            out.push(WageDecomposition { region: name.clone(), common_log, residuals });
+        }
+        out
+    }
+
+    /// Every statistic in a reading set that is not a number (R5, fail-closed).
     ///
-    /// # Why there is no distance threshold, and why that was the hard call
+    /// A free function over readings rather than a peek at the accumulator, so a
+    /// test can hand it a hand-built [`GapReading`] and watch it fire — the
+    /// house rule is that a guard is not trusted until it has been seen firing
+    /// on a defect known to exist. `log_sd: None` is *not* a hit: an absence is
+    /// a declared-missing value under a registered convention, which R5's own
+    /// parenthetical exempts. A `Some(NaN)` is a hit, and so is a non-finite
+    /// `log_gap` or `implied`.
+    pub fn uncomputable(readings: &[GapReading]) -> Vec<String> {
+        let mut out = Vec::new();
+        for r in readings {
+            for (what, v) in [
+                ("log_gap", Some(r.log_gap)),
+                ("implied", Some(r.implied)),
+                ("log_sd", r.log_sd),
+            ] {
+                if let Some(v) = v {
+                    if !v.is_finite() {
+                        out.push(format!("{}/{} {what} = {v}", r.region, r.good));
+                    }
+                }
+            }
+        }
+        out
+    }
+
+    /// B8's line, and the only verdicts it is entitled to.
     ///
-    /// A threshold on the gap would be a registered constant (R2) and would have
-    /// to be picked *before* seeing results (R6). The numbers available when
-    /// this was written were `legacy α×1` at ~300×, `kernel α×1` at ~4e9× and
-    /// `legacy α×0.01` at ~2.5× — so any bar between about 3× and 200× would
-    /// have separated the corpus into "the run I like" and "the runs I do not",
-    /// and picking one would have been fitting a criterion to a result. That is
-    /// precisely the R6 sin, and it is worse here than usual: this is the *first*
-    /// correctness criterion, so a threshold chosen now would silently define
-    /// what correctness means for everything after it.
+    /// # THE DECISION: this is a REPORTER, and it is now named like one
     ///
-    /// There is also no defensible bar available from outside the data. A
-    /// competitive-equilibrium benchmark is a limit, not a tolerance; real
-    /// economies carry margins, rents and transport wedges, and nothing in this
-    /// project yet says how big those should be. A "2×" would be a number
-    /// somebody made up.
+    /// Adversarial review, 2026-07-31, found that B8 was a reporter mislabelled
+    /// as a battery: it carried the label `prices match technology`, printed
+    /// PASS beside gaps of 4×10⁹, and every certificate in the corpus therefore
+    /// asserted something no code in it had checked. The two ways out were to
+    /// give it a threshold or to rename it. **It is renamed**, and the argument
+    /// is not "there is no evidence for a bar yet" — that was the old argument
+    /// and it is the weaker one. It is that *this benchmark cannot carry a bar
+    /// at any threshold*, for two reasons that are properties of the benchmark
+    /// rather than of the corpus:
     ///
-    /// So B8 **reports always and fails only on the threshold-free case**: a
-    /// market where the distance cannot be computed. That is the house
-    /// fail-closed rule (engine.md, "NaN = FAIL") applied to a new metric, not a
-    /// new bar — and it is falsifiable, which is the test that matters: a run
-    /// where a traded good never has a relative price fails, and
-    /// `tests/test_11_correctness.rs` shows it doing so.
+    /// 1. **Its one hand-checked case is a known false positive.** `solv_labour`
+    ///    has a closed-form competitive equilibrium, derived on paper and
+    ///    registered in `equilibrium.ron` before any run: `p_grain = p_labour`.
+    ///    The world is *right* when it sits there, and B8 reads it as
+    ///    "2.000x too dear", because the firm earns a capacity rent and a
+    ///    zero-rent benchmark cannot see one. A bar at 2× fails a correct world;
+    ///    a bar above 2× is a bar chosen to let a known false positive through.
+    ///    Neither is a criterion. The defect is in what the statistic measures,
+    ///    and no choice of threshold repairs a specification error.
+    /// 2. **It carries a second bias of known sign and unknown total.** The
+    ///    benchmark is single-node, so haulage is in no good's value
+    ///    ([`LabourValues::pass_through`]). On `lr_00` that is one recipe and
+    ///    1.200×; on a compiled world (PLAN Phase 8) with stacked routes it is a
+    ///    product over the route, and nothing in this module knows the route.
+    ///    A bar would be applied to a quantity whose bias the code can bound for
+    ///    today's corpus and not for tomorrow's.
     ///
-    /// The consequence is stated plainly rather than hidden: **a run can be
-    /// 4×10⁹ off and still see B8 PASS.** The number is in the certificate
-    /// either way, which is the point — the instrument was missing, and an
-    /// instrument that reports is worth more than a bar that flatters. When the
-    /// corpus has a region that is both alive and in-band, a dated criteria file
-    /// can register a bar against *that* evidence.
+    /// So the label is now `price/technology gap (report, no bar)`, and a PASS
+    /// on it means **"the distance was computable"** and nothing else. That is a
+    /// real claim with a real failure mode, and the failure mode fires: see
+    /// [`Self::failures`] and the R5 sweep below.
+    ///
+    /// **What would make it a battery**, recorded so the next person does not
+    /// have to re-derive it: a rent-aware implied vector (the scarce factor's
+    /// shadow price, solved, not assumed) and a per-node valuation. With both,
+    /// the implied vector equals the hand-derived `equilibrium.ron` vector on
+    /// every `solv_*` tape — it already does on `solv_1g` and `solv_chain`,
+    /// which have neither rent nor transport — and a per-scenario bar can then
+    /// be registered in that scenario's dated criteria file, against a
+    /// derivation rather than against a measurement. Registering one *today*, on
+    /// a statistic that is knowingly 2× wrong on the one world whose answer is
+    /// known, would be the R6 sin with extra steps.
+    ///
+    /// **The consequence, stated plainly rather than hidden: a run can be
+    /// 4×10⁹ off and this line still says PASS.** It also says 4×10⁹, in words,
+    /// with the market named and the direction named, which is what the
+    /// instrument is for.
+    ///
+    /// # What it does fail on
+    ///
+    /// Three threshold-free cases, all of them R5's fail-closed rule rather than
+    /// a bar:
+    ///
+    /// - a market that traded and never once had a computable relative price
+    ///   (including because its numeraire never traded) — [`Self::failures`];
+    /// - a tape that does not say how a traded good is made — same;
+    /// - any statistic that came out non-finite — [`Self::uncomputable`].
     pub fn report(&self, game_data: &GameData) -> (bool, String) {
+        // Fail-closed, and before the deliberate-absence branch: a criteria file
+        // naming a good that does not exist scored nothing while reporting a
+        // pass, which is R5's failure mode dressed as a convention.
+        if let Some(name) = &self.numeraire_missing {
+            return (
+                false,
+                format!(
+                    "criteria registers labour_good {name:?}, which this tape does not                      define — nothing was scored (register \"\" for a world with no                      labour market, as big_region and supply_chain do)"
+                ),
+            );
+        }
         if self.labour.is_none() {
             return (
                 true,
@@ -594,67 +1056,104 @@ impl PriceGapWatch {
             );
         }
 
+        // R5, before anything is phrased: a NaN must never reach a passing line.
+        let bad = Self::uncomputable(&readings);
+        if !bad.is_empty() {
+            return (
+                false,
+                format!(
+                    "{} reading(s) whose statistic is not a number: {}",
+                    bad.len(),
+                    bad.join(", ")
+                ),
+            );
+        }
+
         let worst = readings
             .iter()
             .max_by(|a, b| {
                 a.log_gap
                     .abs()
                     .partial_cmp(&b.log_gap.abs())
-                    .expect("readings are finite by construction")
+                    .expect("checked finite by the sweep above")
             })
             .expect("non-empty");
 
-        // Per good, the worst region — a distance per good, as the criterion
-        // specifies, rather than one number that hides which market is wrong.
-        let mut per_good: Vec<&GapReading> = Vec::new();
-        for r in &readings {
-            match per_good.iter_mut().find(|g| g.good == r.good) {
-                Some(slot) => {
-                    if r.log_gap.abs() > slot.log_gap.abs() {
-                        *slot = r;
-                    }
-                }
-                None => per_good.push(r),
-            }
-        }
-        // Ordered worst-first and truncated, so the line stays readable in a
-        // world with fifty goods. The full table is [`Self::readings`]; this is
-        // the certificate's headline, not its dataset.
-        per_good.sort_by(|a, b| {
-            b.log_gap
-                .abs()
-                .partial_cmp(&a.log_gap.abs())
-                .expect("readings are finite by construction")
-        });
-        let shown = per_good.len().min(LIST_GOODS);
-        let mut list: Vec<String> = per_good[..shown].iter().map(|r| r.phrase()).collect();
-        if per_good.len() > shown {
-            list.push(format!("+{} more", per_good.len() - shown));
+        // The headline region is the one whose *shared* factor is largest —
+        // i.e. where the numeraire is most suspect — because that is the finding
+        // a reader can act on before opening any single market.
+        let decomps = self.decompositions(game_data);
+        let head = decomps
+            .iter()
+            .max_by(|a, b| {
+                a.common_log
+                    .abs()
+                    .partial_cmp(&b.common_log.abs())
+                    .expect("checked finite by the sweep above")
+            })
+            .expect("readings are non-empty, so at least one region decomposes");
+
+        // The benchmark's assumptions, on every line. `solv_labour` is the
+        // standing reason: its price is CORRECT and this instrument calls it
+        // 2.000x too dear, and a reader who does not know what was assumed will
+        // read that as a defect — one already did.
+        let mut line = String::from(
+            "REPORT, no bar (a PASS means the distance was computable). \
+             Benchmark: long-run zero-profit, ZERO-RENT, FULL-UTILISATION, \
+             SINGLE-NODE — a world with a scarce second factor is read as \
+             'too dear' by exactly its rent",
+        );
+        let hauls = self.values.pass_through(game_data);
+        if hauls.is_empty() {
+            line.push_str(", and this tape has no pass-through recipe. ");
+        } else {
+            let shown: Vec<String> = hauls.iter().take(LIST_GOODS).map(|h| h.phrase()).collect();
+            line.push_str(&format!("; single-node bias: {}. ", shown.join(", ")));
         }
 
-        (
-            true,
-            format!(
-                "worst {} at {} (ln {:+.3} sd {:.3}, n={}); {}",
-                worst.phrase(),
-                worst.region,
-                worst.log_gap,
-                worst.log_sd,
-                worst.samples,
-                list.join(", ")
-            ),
-        )
+        line.push_str(&format!(
+            "{} {} — a statement about the WAGE, not about a good; residuals {}",
+            head.region,
+            head.common_phrase(),
+            head.residual_phrases(LIST_GOODS).join(", ")
+        ));
+        if decomps.len() > 1 {
+            line.push_str(&format!(" (+{} more region(s))", decomps.len() - 1));
+        }
+
+        line.push_str(&format!(
+            ". Worst single reading {} at {} (ln {:+.3}, {}, {})",
+            worst.phrase(),
+            worst.region,
+            worst.log_gap,
+            worst.sd_phrase(),
+            worst.census()
+        ));
+
+        // Region-level drops, which no single reading can show: a region where
+        // the numeraire went idle on ticks when NO good traded leaves no market
+        // to carry the count.
+        let idle: u64 = self.numeraire_idle_ticks.iter().sum();
+        if idle > 0 {
+            let seen: u64 = self.ticks_seen.iter().sum();
+            line.push_str(&format!(
+                ". Numeraire idle on {idle} of {seen} observed region-tick(s)"
+            ));
+        }
+        line.push('.');
+
+        (true, line)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::state::game_data::{KernelParams, SupplyRule};
     use crate::types::good::{GoodDef, MovementType, ShelfLife};
     use crate::types::ids::{MarketNodeId, RegionId};
     use crate::types::market_node::{MarketNodeDef, MarketTier};
     use crate::types::recipe::{InputScaling, RecipeDef, RecipeInput, RecipeOutput, StrategyKind};
-    use crate::state::game_data::{KernelParams, SupplyRule};
 
     fn good(i: u32, name: &str) -> GoodDef {
         GoodDef {
@@ -779,6 +1278,35 @@ mod tests {
         assert_eq!(v.get(GoodId(2)), Value::Labour(0.5), "transport is not a mill");
     }
 
+    /// …and the 0.1 labour it spends has to be *accounted for* rather than
+    /// silently dropped. It is in no good's value, so a competitive importer who
+    /// recovers exactly his haulage cost prices flour at 0.6 and this benchmark
+    /// calls him 1.2x too dear. That is the size of the single-node bias, with
+    /// its sign, computed from the tape.
+    #[test]
+    fn the_labour_a_pass_through_spends_is_reported_as_the_single_node_bias() {
+        let gd = tape(
+            vec![good(0, "labour"), good(1, "wheat"), good(2, "flour"), good(3, "GBP")],
+            vec![
+                recipe(0, "wheat_farm", &[(0, 0.3)], &[(1, 1.0)]),
+                recipe(1, "grain_mill", &[(1, 1.0), (0, 0.2)], &[(2, 1.0)]),
+                recipe(2, "flour_transport", &[(2, 1.0), (0, 0.1)], &[(2, 1.0)]),
+                // Currency in and out: the `dividend` shape. It is a
+                // pass-through too, and it must NOT be reported — currency is
+                // outside the labour accounting by construction.
+                recipe(3, "dividend", &[(3, 1.0)], &[(3, 1.0)]),
+            ],
+            Some(3),
+        );
+        let v = labour_values(&gd, GoodId(0));
+        let hauls = v.pass_through(&gd);
+        assert_eq!(hauls.len(), 1, "{hauls:?}");
+        assert_eq!(hauls[0].recipe, "flour_transport");
+        assert_eq!(hauls[0].good, "flour");
+        assert!((hauls[0].added - 0.1).abs() < 1e-12, "added {}", hauls[0].added);
+        assert!((hauls[0].bias() - 1.2).abs() < 1e-12, "bias {}", hauls[0].bias());
+    }
+
     /// Where two recipes make a good, the cheap one sets the price. A producer
     /// on the dear route is competed out; it is not averaged in.
     #[test]
@@ -865,6 +1393,23 @@ mod tests {
     /// the cycle is cheaper than the last, forever. The solver must say it did
     /// not converge rather than hand back the value the last sweep happened to
     /// hold — which would be an artifact of [`MAX_SWEEPS`], i.e. of nothing.
+    ///
+    /// **The third assertion was reversed on 2026-07-31 (R14, marked in place).**
+    /// It used to read:
+    ///
+    /// ```text
+    ///     assert_eq!(v.get(GoodId(0)), Value::NotConverged,
+    ///         "and nothing in a graph that never settled is trustworthy, \
+    ///          including the goods that looked resolved");
+    /// ```
+    ///
+    /// That was wrong, and it was wrong about the *numeraire*: labour is
+    /// `Labour(1.0)` by definition, the relaxation never writes to it, and
+    /// marking it unpriced because two other goods were chasing each other made
+    /// `PriceGapWatch` unable to score a single market in the whole tape. The
+    /// claim it was reaching for — "a value fed by a runaway is not a value" —
+    /// is kept, and is now enforced by closing the moving set *downstream*
+    /// instead of over the whole tape. See [`Value::NotConverged`].
     #[test]
     fn a_cost_reducing_cycle_is_reported_as_not_converged() {
         let gd = tape(
@@ -884,9 +1429,8 @@ mod tests {
         assert_eq!(v.get(GoodId(2)), Value::NotConverged);
         assert_eq!(
             v.get(GoodId(0)),
-            Value::NotConverged,
-            "and nothing in a graph that never settled is trustworthy, including \
-             the goods that looked resolved"
+            Value::Labour(1.0),
+            "labour is the unit; a runaway elsewhere in the graph cannot move it"
         );
     }
 
@@ -927,9 +1471,11 @@ mod tests {
             good: "flour".into(),
             implied: 0.5,
             log_gap: (2.5f64).ln(),
-            log_sd: 0.1,
+            log_sd: Some(0.1),
             samples: 851,
+            traded_ticks: 851,
             unpriced: 0,
+            numeraire_idle: 0,
         };
         assert_eq!(dear.phrase(), "flour 2.500x too dear");
         let cheap = GapReading { log_gap: -(4.0f64).ln(), ..dear.clone() };
@@ -938,5 +1484,85 @@ mod tests {
         // number, not the word, is the measurement.
         let right = GapReading { log_gap: 0.0, ..dear };
         assert_eq!(right.phrase(), "flour 1.000x too dear");
+    }
+
+    /// The R5 sweep, shown firing on each defect it claims to catch — and shown
+    /// *not* firing on `log_sd: None`, which is the declared-missing convention
+    /// and not a NaN. A guard that fired on both would make every one-sample
+    /// market a failure and the distinction meaningless.
+    #[test]
+    fn the_fail_closed_sweep_fires_on_a_nan_and_not_on_a_declared_absence() {
+        let ok = GapReading {
+            region: "Manchester".into(),
+            good: "flour".into(),
+            implied: 0.5,
+            log_gap: 0.25,
+            log_sd: None,
+            samples: 1,
+            traded_ticks: 851,
+            unpriced: 0,
+            numeraire_idle: 850,
+        };
+        assert!(
+            PriceGapWatch::uncomputable(std::slice::from_ref(&ok)).is_empty(),
+            "a dispersion that does not exist is an absence, not a NaN"
+        );
+        assert_eq!(ok.sd_phrase(), "sd n/a (one sample)");
+        assert_eq!(
+            ok.census(),
+            "n=1 of 851 traded tick(s), 850 discarded (0 unpriced, 850 numeraire idle)"
+        );
+
+        for bad in [
+            GapReading { log_sd: Some(f64::NAN), ..ok.clone() },
+            GapReading { log_gap: f64::NAN, ..ok.clone() },
+            GapReading { log_gap: f64::INFINITY, ..ok.clone() },
+            GapReading { implied: f64::NAN, ..ok.clone() },
+        ] {
+            let hits = PriceGapWatch::uncomputable(std::slice::from_ref(&bad));
+            assert_eq!(hits.len(), 1, "{bad:?} -> {hits:?}");
+            assert!(hits[0].starts_with("Manchester/flour "), "{hits:?}");
+        }
+    }
+
+    /// The decomposition, on the arithmetic it was designed from. Three goods
+    /// whose gaps are 100x, 10x and 1000x share a common factor of exactly
+    /// (100·10·1000)^(1/3) = 100x, leaving residuals of 1x, 0.1x and 10x — so
+    /// the middle good, which reads "10x too dear", is really 10x too *cheap*
+    /// once the wage is accounted for. That sign flip is the whole point.
+    #[test]
+    fn the_decomposition_separates_the_shared_factor_from_the_residuals() {
+        let base = GapReading {
+            region: "Manchester".into(),
+            good: String::new(),
+            implied: 1.0,
+            log_gap: 0.0,
+            log_sd: Some(0.0),
+            samples: 10,
+            traded_ticks: 10,
+            unpriced: 0,
+            numeraire_idle: 0,
+        };
+        let readings: Vec<GapReading> = [("wheat", 100.0), ("flour", 10.0), ("services", 1000.0)]
+            .iter()
+            .map(|(g, x)| GapReading {
+                good: (*g).into(),
+                log_gap: f64::ln(*x),
+                ..base.clone()
+            })
+            .collect();
+        let common = readings.iter().map(|r| r.log_gap).sum::<f64>() / 3.0;
+        assert!((common.exp() - 100.0).abs() < 1e-9, "common {}", common.exp());
+        let residual = |g: &str| {
+            readings.iter().find(|r| r.good == g).unwrap().log_gap - common
+        };
+        assert!((residual("wheat").exp() - 1.0).abs() < 1e-9);
+        assert!((residual("flour").exp() - 0.1).abs() < 1e-9);
+        assert!((residual("services").exp() - 10.0).abs() < 1e-9);
+        assert_eq!(phrase_log("flour", residual("flour")), "flour 10.000x too cheap");
+        // ...and the residuals sum to zero, which is what makes this a
+        // decomposition rather than two unrelated statistics.
+        let sum: f64 = ["wheat", "flour", "services"].iter().map(|g| residual(g)).sum();
+        assert!(sum.abs() < 1e-12, "residuals must sum to zero, got {sum}");
     }
 }

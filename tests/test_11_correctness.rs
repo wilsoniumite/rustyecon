@@ -535,3 +535,319 @@ fn b8_holds_at_the_full_horizon() {
     let gbp = s.game_data.goods.iter().find(|g| g.name == "gbp").unwrap().id;
     assert_eq!(v.get(gbp), Value::Currency);
 }
+
+// ── 6. The 2026-07-31 repair, falsification first ─────────────────────────────
+//
+// Adversarial review established seven defects in the subject of the sections
+// above. Each is provoked here by a test that was written and *watched failing*
+// against the pre-repair code before a line of the repair was written; the
+// failure each one produced is recorded on the test.
+
+/// Zero the named markets' posted supply and demand on every in-window tick
+/// `keep` rejects, so those markets do not trade on those ticks.
+///
+/// Chosen over zeroing a *price* deliberately. A zero price poisons the price
+/// rule and everything after it stops being `lr_00`; a market with nothing
+/// posted on either side is the *ordinary* quiet-market state the engine
+/// already has a convention for (`BalanceWatch::observe`), and it leaves every
+/// other market's dynamics alone. What is under test is the reporter's
+/// accounting, not the economy's response to a shock.
+fn idle_markets_except(
+    goods: &'static [&'static str],
+    keep: impl Fn(u64) -> bool + 'static,
+) -> impl FnMut(&mut rustyecon::state::SimState, &GameData) {
+    move |state, gd| {
+        if keep(state.tick) {
+            return;
+        }
+        for name in goods {
+            let g = gd.goods.iter().find(|g| &g.name == name).unwrap().id;
+            for node in &gd.market_nodes {
+                state.set_supply(node.id, g, 0.0);
+                state.set_demand(node.id, g, 0.0);
+            }
+        }
+    }
+}
+
+/// **Defect 1 (R5).** `GapReading::log_sd` was `f64::NAN` whenever a market
+/// produced fewer than two samples, and `report` interpolated it straight into
+/// the certificate's detail line. `certify::nan::scan` walks `SimState` only, so
+/// nothing else in the run could ever have seen it.
+///
+/// lr_00's window is ticks 150..=1000, 851 of them. Every *scored* market is
+/// idled on all but the last, so each good lands exactly one sample and Welford
+/// has nothing to divide by.
+///
+/// SEEN FAILING before the repair with
+/// `worst services 1.198x too dear at Manchester (ln +0.181 sd NaN, n=1);
+///  services 1.198x too dear, flour 1.052x too cheap, wheat 1.036x too cheap`
+/// — `pass = true`, a NaN on the certificate line.
+#[test]
+fn a_reading_with_one_sample_never_puts_a_nan_in_the_certificate() {
+    let m = measure(
+        "lr_00",
+        1000,
+        AgentArm::Legacy,
+        1.0,
+        |_| {},
+        idle_markets_except(&["wheat", "flour", "services"], |t| t == 1000),
+    );
+    assert!(
+        m.readings.iter().all(|r| r.samples == 1),
+        "the setup is meant to leave exactly one sample per market: {:?}",
+        m.readings.iter().map(|r| r.samples).collect::<Vec<_>>()
+    );
+    assert!(
+        !m.detail.to_ascii_lowercase().contains("nan"),
+        "R5: a metric that cannot be computed FAILS, and must never be printed \
+         as a NaN on a passing line: {}",
+        m.detail
+    );
+}
+
+/// **Defect 4.** The same run discarded 850 of its 851 traded ticks and said
+/// only `n=1`. A sample count with no denominator cannot be told apart from a
+/// market that genuinely only traded once.
+///
+/// Here the numeraire is idled on every other in-window tick, so the scored
+/// markets trade throughout and only half of those ticks can produce a reading.
+/// The sample count needs its denominator, and the discards need a reason, on
+/// the same line.
+///
+/// SEEN FAILING before the repair with `... sd 4.825, n=851)`: the pre-repair
+/// line reported a bare sample count and, because it never looked at the
+/// numeraire at all, counted every idled tick as a good one — defect 2 wearing
+/// defect 4's clothes.
+///
+/// The first version of this provocation idled the numeraire on all but the
+/// *last* tick. It was tightened after being watched failing, because the
+/// repaired code correctly turns that run into a B8 *failure*: Birmingham's
+/// services market trades on 62 of the 851 ticks and on none of the surviving
+/// one, so it has no computable distance at all and the census line is never
+/// reached. Half-idling keeps every market measurable while still throwing most
+/// of the window away, which is the case this test is about.
+#[test]
+fn a_run_that_discards_most_of_its_ticks_says_how_many() {
+    let m = measure(
+        "lr_00",
+        1000,
+        AgentArm::Legacy,
+        1.0,
+        |_| {},
+        idle_markets_except(&["labour"], |t| t % 2 == 0),
+    );
+    assert!(m.pass, "every market is still measurable here: {}", m.detail);
+    assert!(
+        m.readings.iter().all(|r| r.discarded() > 0 && r.numeraire_idle > 0),
+        "the setup throws away about half of every market's ticks: {:?}",
+        m.readings
+            .iter()
+            .map(|r| (r.samples, r.traded_ticks, r.numeraire_idle))
+            .collect::<Vec<_>>()
+    );
+    let worst = m
+        .readings
+        .iter()
+        .max_by(|a, b| a.log_gap.abs().partial_cmp(&b.log_gap.abs()).unwrap())
+        .expect("readings");
+    assert!(
+        m.detail.contains(&worst.census()),
+        "the line must carry the sample count WITH its denominator and where \
+         the rest went — expected {:?} in: {}",
+        worst.census(),
+        m.detail
+    );
+}
+
+/// **Defect 2.** `observe` gated on the *scored* good's supply and demand and
+/// never asked whether the labour market had traded. A numeraire sitting at a
+/// stale price makes every per-good reading wrong by the same stale factor, and
+/// nothing in the certificate said so.
+///
+/// SEEN FAILING before the repair: 851 readings accumulated and B8 passed, on a
+/// run whose labour market posted nothing on either side for the whole window.
+#[test]
+fn a_tick_whose_numeraire_did_not_trade_contributes_no_reading() {
+    let m = measure(
+        "lr_00",
+        1000,
+        AgentArm::Legacy,
+        1.0,
+        |_| {},
+        idle_markets_except(&["labour"], |_| false),
+    );
+    assert!(
+        m.readings.is_empty(),
+        "a stale numeraire divides every reading, so no tick without a traded \
+         numeraire may contribute one: got {} readings, {}",
+        m.readings.len(),
+        m.detail
+    );
+    assert!(!m.pass, "and B8 had markets to score and could not: {}", m.detail);
+    assert!(
+        m.detail.contains("numeraire"),
+        "and must name the reason, so the fix is obvious: {}",
+        m.detail
+    );
+}
+
+/// **Defect 3.** Every reading divides by the same `p_labour`, so one wage error
+/// is reported as N independent-looking per-good errors. lr_00/Manchester under
+/// the legacy arm reads wheat 312.3x, flour 208.8x and services 43,415x "too
+/// dear" — which is a *common factor* of about 1414x, a statement about the
+/// wage, plus three small residuals around it.
+///
+/// SEEN FAILING before the repair: the detail line listed the three raw gaps and
+/// said nothing about what they share.
+#[test]
+fn the_report_separates_a_wage_error_from_a_per_good_error() {
+    let m = measure_plain("lr_00", 1000, AgentArm::Legacy, 1.0);
+    assert!(
+        m.detail.contains("common factor"),
+        "N findings that are one finding must be reported as one: {}",
+        m.detail
+    );
+
+    // The decomposition, recomputed here from the raw readings rather than
+    // parsed out of the line, so the test cannot be satisfied by wording.
+    let goods = ["wheat", "flour", "services"];
+    let gaps: Vec<f64> = goods
+        .iter()
+        .map(|g| m.find("Manchester", g).log_gap)
+        .collect();
+    let common = gaps.iter().sum::<f64>() / gaps.len() as f64;
+    let residuals: Vec<f64> = gaps.iter().map(|g| g - common).collect();
+
+    assert!(
+        common.exp() > 100.0,
+        "Manchester's three goods share a large factor: {:?}",
+        gaps.iter().map(|g| g.exp()).collect::<Vec<_>>()
+    );
+    assert!(
+        residuals.iter().sum::<f64>().abs() < 1e-9,
+        "a decomposition's residuals sum to zero: {residuals:?}"
+    );
+    let worst_raw = gaps.iter().fold(0.0f64, |a, b| a.max(b.abs()));
+    let worst_res = residuals.iter().fold(0.0f64, |a, b| a.max(b.abs()));
+    assert!(
+        worst_res * 2.0 < worst_raw,
+        "most of what the raw per-good numbers say is the shared factor, not \
+         the good: worst raw ln {worst_raw:.3}, worst residual ln {worst_res:.3}"
+    );
+
+    // The sharpest part of the finding: at least one good whose raw reading
+    // says "too dear" is, once the wage is accounted for, too CHEAP. A report
+    // that only listed raw gaps would have sent a reader to the wrong market.
+    assert!(
+        gaps.iter().zip(&residuals).any(|(g, r)| g.signum() != r.signum()),
+        "raw {:?} vs residual {:?}",
+        gaps,
+        residuals
+    );
+}
+
+/// **Defect 5.** `solv_labour`'s registered equilibrium price is `p_grain =
+/// p_labour`; the labour-value vector says 0.5, and the difference is the firm's
+/// capacity rent, not an error. B8 called it "2.000x too dear". The benchmark's
+/// assumption has to be on the line, or a reading gets mistaken for a defect —
+/// this one already was.
+///
+/// SEEN FAILING before the repair: the line said only `worst grain 2.000x too
+/// dear ...`, with no statement of what it assumed.
+#[test]
+fn the_line_states_the_benchmarks_assumptions() {
+    let cert = certify("solv_labour", 1000, AgentArm::Kernel);
+    let b8 = battery(&cert, "B8");
+    let d = b8.detail.to_ascii_lowercase();
+    for claim in ["zero-rent", "full-utilisation", "single-node", "rent"] {
+        assert!(
+            d.contains(claim),
+            "the line must state that it assumes {claim}: {}",
+            b8.detail
+        );
+    }
+    // And the reading itself is unchanged and still 2.000x — the repair states
+    // the assumption, it does not model the rent. A test that let the number
+    // move would be hiding the very thing being disclosed.
+    assert!(
+        b8.detail.contains("grain 2.000x too dear"),
+        "solv_labour's registered equilibrium is p_grain = p_labour and the \
+         zero-rent benchmark says 0.5; the factor of two IS the rent: {}",
+        b8.detail
+    );
+}
+
+/// **Defect 6.** `flour_transport` (flour in, flour out) is skipped as a
+/// pass-through, so its 0.1 labour is in no good's value anywhere and a
+/// competitive importer that recovers its transport cost scores as an error.
+/// The benchmark is a single-node one; the size of the resulting bias is
+/// computable from the tape and must be stated rather than left as a surprise.
+///
+/// SEEN FAILING before the repair: nothing anywhere named `flour_transport` or
+/// the 0.1 labour it adds.
+#[test]
+fn the_single_node_benchmark_names_the_transport_labour_it_omits() {
+    let cert = certify("lr_00", 400, AgentArm::Legacy);
+    let d = &battery(&cert, "B8").detail;
+    assert!(
+        d.contains("flour_transport"),
+        "the omitted value has a name and a size; both belong on the line: {d}"
+    );
+}
+
+/// **Defect 7.** A cost-reducing cycle in one corner of the graph marked *every*
+/// good `NotConverged`, including labour — which is `Labour(1.0)` by definition
+/// and cannot move, because the relaxation never writes to it.
+///
+/// SEEN FAILING before the repair, with labour reading `NotConverged`.
+#[test]
+fn a_stalled_cycle_marks_only_the_goods_that_are_still_moving() {
+    let gd = tiny_tape(
+        vec![good(0, "labour"), good(1, "wheat"), good(2, "a"), good(3, "b")],
+        vec![
+            recipe(0, "wheat_farm", &[(0, 0.3)], &[(1, 1.0)]),
+            // The runaway, in its own corner of the graph: 1 b makes 2 a and
+            // 1 a makes 2 b, so a lap quarters the cost and never settles.
+            recipe(1, "seed_a", &[(0, 1.0)], &[(2, 1.0)]),
+            recipe(2, "a_from_b", &[(3, 1.0)], &[(2, 2.0)]),
+            recipe(3, "b_from_a", &[(2, 1.0)], &[(3, 2.0)]),
+        ],
+        None,
+    );
+    let v = labour_values(&gd, GoodId(0));
+    assert_eq!(
+        v.get(GoodId(0)),
+        Value::Labour(1.0),
+        "labour is the unit and the relaxation never writes to it"
+    );
+    assert_eq!(
+        v.get(GoodId(1)),
+        Value::Labour(0.3),
+        "wheat is nowhere near the runaway and is not downstream of it"
+    );
+    assert_eq!(v.get(GoodId(2)), Value::NotConverged, "a is in the cycle");
+    assert_eq!(v.get(GoodId(3)), Value::NotConverged, "b is in the cycle");
+}
+
+/// **The decision.** B8 cannot fail on being wrong, so it must not be *called*
+/// something a PASS reads as a correctness claim.
+///
+/// SEEN FAILING before the repair: the label was `prices match technology`, and
+/// every certificate in the corpus carried `B8 PASS prices match technology`
+/// beside gaps of up to 4e9x.
+#[test]
+fn b8_is_not_labelled_as_a_correctness_verdict() {
+    let cert = certify("lr_00", 200, AgentArm::Legacy);
+    let b8 = battery(&cert, "B8");
+    assert_ne!(
+        b8.label, "prices match technology",
+        "a PASS beside a 4e9x gap must not read as 'prices match technology'"
+    );
+    assert!(
+        b8.label.contains("report"),
+        "the label has to say it is a report, not a bar: {}",
+        b8.label
+    );
+}
+

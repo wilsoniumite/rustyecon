@@ -22,6 +22,26 @@
 //!   the hand-computed fixed points moved, the reduction is not exact and the
 //!   whole "generalisation" claim is false.
 //!
+//! # [CORRECTION 2026-07-31] One of those pairs was not a pair
+//!
+//! The loop-gain bullet above described a test named
+//! `the_loop_gain_bound_is_real_in_both_directions`, and that test never touched
+//! the engine: `loop_residual` takes `eps_s` as an argument, is handed the
+//! constant `B_OUT`, and iterates against analytic constant-elasticity curves.
+//! It checks the arithmetic of `|1 + α(ε_d − ε_s)| < 1`. It cannot check that
+//! the engine's markets sit where the arithmetic was evaluated, and the claim
+//! that shipped beside it — "`α·b_out = 0.2`, a factor of ten inside the
+//! boundary" — was therefore argued, not measured.
+//!
+//! The test keeps its body and is **renamed** to say what it does. The
+//! conformance question it was mistaken for now has its own measurement,
+//! `the_engines_measured_loop_gain_is_not_the_argued_0_8`, with
+//! `the_gain_instrument_reads_the_derived_number_where_a_desk_actually_rests`
+//! as its positive control. Measured answer: the derived 0.8 holds where a desk
+//! rests (`solv_1g` reads `ε_s = 2.000` exactly) and nowhere else in `lr_00`,
+//! where the worst reading in 20 ticks is **g = 2.28** — outside the boundary,
+//! not a factor of ten inside it.
+//!
 //! Design and derivations: `docs/design/price-responsive-supply.md`.
 
 use std::path::PathBuf;
@@ -394,10 +414,15 @@ fn the_rejected_naive_labour_rule_is_shown_to_be_the_disaster_it_was_rejected_fo
     assert!((eps_ours - B_OUT).abs() < 1e-5, "expected b_out = {B_OUT}, got {eps_ours}");
 }
 
-// ── 3. The stability bound, with its negative control ─────────────────────────
+// ── 3. The stability bound: the algebra, and then the engine ──────────────────
 
 /// Iterate `p ← p·(1 + α·imbalance)` against analytic curves, and report the
 /// worst |ln(p/p*)| over the last tenth of the run.
+///
+/// **Analytic curves.** `eps_s` is a parameter of this function, not a reading
+/// off the engine, and nothing here calls the kernel. That is deliberate — it
+/// isolates the scalar map — but it is also the whole limit of what the test
+/// below can say. See the correction on that test.
 fn loop_residual(alpha: f64, eps_s: f64, eps_d: f64, start: f64, steps: usize) -> f64 {
     let (p_star, q_star) = (1.0, 10.0);
     let mut p = start;
@@ -417,8 +442,26 @@ fn loop_residual(alpha: f64, eps_s: f64, eps_d: f64, start: f64, steps: usize) -
 }
 
 #[test]
-fn the_loop_gain_bound_is_real_in_both_directions() {
-    // Convergence at the registered product `α·b_out = 0.1 × 2 = 0.2`...
+fn the_loop_gain_bound_is_arithmetic_and_this_test_checks_only_the_arithmetic() {
+    // **RENAMED 2026-07-31 (R14). Was
+    // `the_loop_gain_bound_is_real_in_both_directions`, and that name claimed
+    // more than the body checks.** The old name, and the comment that said the
+    // first line demonstrated "the registered product α·b_out = 0.2", read as a
+    // statement about the engine. It is not one. `loop_residual` takes `eps_s`
+    // as an ARGUMENT — it is passed `B_OUT` here, i.e. the resting-point value
+    // `b_out/R` at `R = 1` — and iterates the scalar map against analytic
+    // constant-elasticity curves. No kernel code runs in this test. It shows
+    // that `|1 + α(ε_d − ε_s)| < 1` is the right condition for THAT map, which
+    // is arithmetic, and it says nothing about whether the engine's markets sit
+    // at `ε_s = 2`.
+    //
+    // They do not: `the_engines_measured_loop_gain_is_not_the_argued_0_8` below
+    // measures `ε_s` and `ε_d` off a live state and finds gains above 1 at the
+    // registered dials. The two tests are kept apart on purpose — this one is
+    // the closed form, that one is the conformance — because the session that
+    // wrote them conflated exactly these two things.
+    //
+    // Convergence of the scalar map at `α·ε_s = 0.1 × 2 = 0.2`, ε_s SUPPLIED...
     let ok = loop_residual(ALPHA, B_OUT, 0.0, 1.5, 4000);
     assert!(ok < 1e-6, "registered dials must converge, residual {ok:e}");
     // ...and the negative control, which is the point of the test: past
@@ -437,6 +480,155 @@ fn the_loop_gain_bound_is_real_in_both_directions() {
         (unit_root - 1.5f64.ln()).abs() < 1e-9,
         "with both elasticities zero the price cannot move at all: {unit_root}"
     );
+}
+
+/// `ε_s` and `ε_d` for one `(node, good)` on a live state, by central difference
+/// in the log price, and the loop gain that follows from them.
+///
+/// Central rather than one-sided: the gain is a claim about a derivative at the
+/// operating point, and a secant from `p` to `1.01·p` is not one. Returns `None`
+/// where either side has no reading — a market with zero posted supply is not
+/// near a crossing at all, and folding it in as "gain = 1" would be inventing a
+/// measurement.
+fn measured_gain(
+    state: &SimState,
+    gd: &GameData,
+    arm: AgentArm,
+    node: MarketNodeId,
+    good: GoodId,
+) -> Option<(f64, f64, f64)> {
+    let i = node.idx() * gd.num_goods() + good.idx();
+    let p0 = state.price(node, good);
+    let mut up = state.clone();
+    up.set_price(node, good, p0 * BUMP);
+    let up = posted(&up, gd, arm)[i];
+    let mut dn = state.clone();
+    dn.set_price(node, good, p0 / BUMP);
+    let dn = posted(&dn, gd, arm)[i];
+    if up.0 <= 0.0 || dn.0 <= 0.0 || up.1 <= 0.0 || dn.1 <= 0.0 {
+        return None;
+    }
+    let dln = 2.0 * BUMP.ln();
+    let (eps_s, eps_d) = ((up.0 / dn.0).ln() / dln, (up.1 / dn.1).ln() / dln);
+    let alpha = gd.good(good).alpha;
+    Some((eps_s, eps_d, (1.0 + alpha * (eps_d - eps_s)).abs()))
+}
+
+#[test]
+fn the_engines_measured_loop_gain_is_not_the_argued_0_8() {
+    // **THE CORRECTION, 2026-07-31 (R14).** The kernel module header, PLAN
+    // Phase 4 and the design note all state that at the registered dials
+    // `α·b_out = 0.1 × 2 = 0.2` puts the loop "a factor of ten inside the
+    // boundary", i.e. `g = 0.8`. That was ARGUED from `ε_s* = b_out/R` at a
+    // desk's RESTING POINT, and then quoted as if it described the engine. This
+    // test measures it instead, and the argued number is wrong in both
+    // directions:
+    //
+    //   * most live markets read `g` between 0.9 and 1.0, not 0.8, because
+    //     `ε_s` is nowhere near 2 (`ε_s = I/q − 1` — a desk posting its whole
+    //     stock reads 0, and a market with `ε_s = ε_d = 0` reads `g = 1.000`
+    //     EXACTLY, the unit root, under the price-responsive rule too);
+    //   * and at least one market reads `g > 1` — outside the boundary the
+    //     design says the registered dials sit a factor of ten inside.
+    //
+    // Measured on `lr_00`, kernel arm, state evolved under the SHIPPED rule
+    // (`inelastic`, which is what all 33 tapes register), posting evaluated
+    // under `reservation`. The worst reading in the first 20 ticks is at
+    // **tick 7, node 1, wheat: ε_s = 31.68, ε_d = −1.16, α = 0.100, g = 2.28** —
+    // a desk posting 0.47 units against 30.9 demanded, i.e. holding some forty
+    // times what it offers, which is precisely `ε_s = I/q − 1` far from rest.
+    //
+    // Asserted as a FAILURE of the claim rather than as a defect to fix, in the
+    // house pattern: if this ever stops firing, either the corpus reached its
+    // resting points (the good outcome) or the elasticity stopped depending on
+    // the state, and either way the claim above needs re-measuring, not this
+    // test relaxing.
+    let s = loader::load(&scenario_dir("lr_00")).expect("scenario loads");
+    let (mut state, mut gd, events) = (s.state, s.game_data, s.events);
+    gd.kernel.supply_rule = SupplyRule::Inelastic;
+
+    let (mut worst, mut worst_at) = (0.0f64, String::new());
+    let mut unit_roots = 0;
+    let mut readings = 0;
+    for t in 1..=20u64 {
+        gd.kernel.supply_rule = SupplyRule::Inelastic;
+        run_tick(&mut state, &gd, &events, AgentArm::Kernel, rustyecon::systems::clearing::PriceRule::Imbalance);
+        gd.kernel.supply_rule = SupplyRule::Reservation;
+        for n in 0..gd.num_nodes() {
+            for g in 0..gd.num_goods() {
+                let (node, good) = (MarketNodeId(n as u32), GoodId(g as u32));
+                let Some((eps_s, eps_d, gain)) = measured_gain(&state, &gd, AgentArm::Kernel, node, good)
+                else {
+                    continue;
+                };
+                readings += 1;
+                if (gain - 1.0).abs() < 1e-12 {
+                    unit_roots += 1;
+                }
+                if gain > worst {
+                    worst = gain;
+                    worst_at = format!(
+                        "tick {t}, node {n}, {}: eps_s = {eps_s:.3}, eps_d = {eps_d:.3}, \
+                         alpha = {:.3}, g = {gain:.3}",
+                        gd.good(good).name,
+                        gd.good(good).alpha,
+                    );
+                }
+            }
+        }
+    }
+
+    assert!(readings > 10, "the scan must find markets to read, got {readings}");
+    assert!(
+        worst > 1.0,
+        "the engine's own loop gain is claimed to sit at 0.8; the worst measured \
+         reading over 20 ticks of lr_00 was {worst:.3} ({worst_at}). If this is now \
+         below 1 the claim may be defensible again — RE-MEASURE and mark the docs, \
+         do not delete the test."
+    );
+    // And the unit root survives the fix in every market where the desk posts
+    // its whole stock, which is the other half of why 0.8 is not the engine's
+    // number. Reported, not asserted at a count: the count moves with the
+    // trajectory and pinning it would be pinning a tape.
+    println!("engine loop gain: worst {worst:.3} at {worst_at}; {unit_roots}/{readings} readings sat at g = 1.000 exactly");
+}
+
+#[test]
+fn the_gain_instrument_reads_the_derived_number_where_a_desk_actually_rests() {
+    // The positive control for the test above, and the reason its 2.28 is a fact
+    // about the STATE rather than about the instrument. A guard that only ever
+    // reports "worse than derived" could be a broken thermometer; this one is
+    // shown reading the derived value exactly where the derivation applies.
+    //
+    // `solv_1g` under the reservation rule sits at its hand-computed fixed point:
+    // one desk, `R = 1`, selling everything it posts, so `I = band + flow` and
+    // `ε_s* = b_out/R = 2` is not an approximation. The engine measures
+    // **ε_s = 2.000** there, at tick 50 and unchanged at tick 200.
+    //
+    // And one detail that the "α·b_out = 0.2" slogan hides, worth its own line:
+    // **α is per good, not a kernel dial.** `grain` in this tape registers
+    // α = 0.05, so the gain at this resting point is |1 + 0.05·(0 − 2)| = 0.900,
+    // not the 0.800 the design's table quotes for α = 0.1. The product α·b_out
+    // is 0.2 for `lr_00`'s wheat and flour and 0.1 for its labour. There is no
+    // single registered α to be a factor of ten inside anything.
+    for ticks in [50u64, 200] {
+        let (state, gd) = advance("solv_1g", ticks, AgentArm::Kernel, SupplyRule::Reservation);
+        let grain = gd.goods.iter().position(|g| g.name == "grain").expect("grain");
+        let (node, good) = (MarketNodeId(0), GoodId(grain as u32));
+        let (eps_s, eps_d, gain) =
+            measured_gain(&state, &gd, AgentArm::Kernel, node, good).expect("grain trades here");
+        assert!(
+            (eps_s - B_OUT).abs() < 2e-3,
+            "at a resting desk eps_s must be b_out/R = {B_OUT}, measured {eps_s} after {ticks} ticks"
+        );
+        let alpha = gd.good(good).alpha;
+        let expected = (1.0 + alpha * (eps_d - B_OUT)).abs();
+        assert!(
+            (gain - expected).abs() < 1e-3,
+            "gain {gain} should be |1 + {alpha}(eps_d - b_out)| = {expected} after {ticks} ticks"
+        );
+        assert!(gain < 1.0, "and the resting point is inside the boundary: {gain}");
+    }
 }
 
 // ── 4. Nothing that already worked may break ──────────────────────────────────

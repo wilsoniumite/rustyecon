@@ -80,6 +80,22 @@ No debt gates, no sell caps: the buffer band is the supply smoother.
 > `eps_s = b_out/R`. And the non-storable branch is right to have no band: a
 > perishable's cost is sunk once produced, so its supply is vertical, and
 > services duly measure `eps_s = 0.000` under every rule.
+>
+> > **[CORRECTED 2026-07-31, second pass. `eps_s = b_out/R` is the value at a
+> > desk's RESTING POINT — `I = band + flow` — and the sentence above states it
+> > without that condition.]** In general `eps_s = I/q − 1`, and it moves with
+> > the state: measured on `lr_00` it reads 0.000 where a desk posts its whole
+> > stock and 65.5 where one posts a sixty-fifth of it. The two coincide only
+> > where a desk sells everything it posts, which is exactly where the recursion
+> > `I = band + flow` holds. That case is real and is measured — `solv_1g` under
+> > `reservation` reads `eps_s = 2.000` at its hand-computed fixed point — but
+> > the `lr` corpus does not sit there, so the resting-point value must not be
+> > quoted as the corpus's elasticity or used to argue a loop gain for it. It
+> > was, in PLAN Phase 4 and in `src/kernel/mod.rs`; both are marked. The
+> > engine's measured gain reaches 2.28 at the registered dials
+> > (`the_engines_measured_loop_gain_is_not_the_argued_0_8`), and note that
+> > `alpha` is a per-good dial, not a kernel one — the parameter table above
+> > lists it as "per good" for that reason.
 
 ## Rule 2 — NUDGE scale
 

@@ -124,8 +124,8 @@ fn main() {
         println!("\n[ATTACK 1 oscillation] pass={pass}\n  {detail}");
         for r in w.readings(gd) {
             println!(
-                "  {:<12} implied={} ln={:+.4} sd={:.4} n={} unpriced={}",
-                r.good, r.implied, r.log_gap, r.log_sd, r.samples, r.unpriced
+                "  {:<12} implied={} ln={:+.4} {} {}",
+                r.good, r.implied, r.log_gap, r.sd_phrase(), r.census()
             );
         }
     }
@@ -134,6 +134,16 @@ fn main() {
     // ATTACK 2 — n=1 SAMPLE, sd = NaN, PASS.
     // R5: "a NaN metric FAILS". Drive one market to have exactly one usable
     // tick out of many and see what reaches the certificate line.
+    //
+    // FOUND (pre-repair): `worst flour 1000.000x too dear (ln +6.908 sd NaN,
+    // n=1)` with pass=true. REPAIRED 2026-07-31: `log_sd` is `Option<f64>` and
+    // renders as an absence, the 850 discarded ticks are on the line, and
+    // `PriceGapWatch::uncomputable` fails the report closed if a NaN ever
+    // reaches it anyway.
+    //
+    // The labour market is posted here as well as priced. It was not, in the
+    // review's version, and post-repair that alone made the attack fail on the
+    // numeraire gate instead — which is ATTACK 3's finding, not this one's.
     // ────────────────────────────────────────────────────────────────────────
     {
         let sc = loader::load(Path::new("data/scenarios/lr_00")).expect("lr_00");
@@ -149,16 +159,18 @@ fn main() {
             // Price is zero (unpriced) on every tick but one; on that tick it
             // is 1000x too dear.
             st.set_price(node, flour, if t == 400 { 500.0 } else { 0.0 });
-            st.set_supply(node, flour, 10.0);
-            st.set_demand(node, flour, 10.0);
+            for g in [labour, flour] {
+                st.set_supply(node, g, 10.0);
+                st.set_demand(node, g, 10.0);
+            }
             w.observe(&st);
         }
         let (pass, detail) = w.report(gd);
         println!("\n[ATTACK 2 single sample] pass={pass}\n  {detail}");
         for r in w.readings(gd) {
             println!(
-                "  {:<12} ln={:+.4} sd={:.4} n={} unpriced={}",
-                r.good, r.log_gap, r.log_sd, r.samples, r.unpriced
+                "  {:<12} ln={:+.4} {} {}",
+                r.good, r.log_gap, r.sd_phrase(), r.census()
             );
         }
     }
@@ -168,6 +180,11 @@ fn main() {
     // `observe` gates on the SCORED GOOD's supply/demand. It never asks whether
     // the labour market traded. If labour is dead all window, every other good
     // is still divided by labour's frozen price and reported as a measurement.
+    //
+    // FOUND (pre-repair): 851 confident readings, flour "100x too cheap", on a
+    // world whose flour price is right in every real sense and whose wage
+    // nobody had paid. REPAIRED 2026-07-31: pass=false, naming the idle
+    // numeraire. Kept as the regression exhibit.
     // ────────────────────────────────────────────────────────────────────────
     {
         let sc = loader::load(Path::new("data/scenarios/lr_00")).expect("lr_00");
@@ -202,6 +219,14 @@ fn main() {
     // "pass-through", so the 0.1 labour a transported flour genuinely embodies
     // is in NO value anywhere. Give B8 a price vector that is CORRECT in every
     // region including the transport wedge, and see what it says.
+    //
+    // FOUND: "flour 1.200x too dear" on a perfectly competitive importer.
+    // 2026-07-31: NOT repaired — per-node valuation was considered and
+    // rejected, with reasons, on `LabourValues::pass_through`. What changed is
+    // that the same line now *states* the benchmark is single-node and prints
+    // this tape's whole bias, "flour_transport adds 0.100 labour ... 1.200x at
+    // the far end" — the exact number the attack produces. Disclosed, bounded,
+    // still there.
     // ────────────────────────────────────────────────────────────────────────
     {
         let sc = loader::load(Path::new("data/scenarios/lr_00")).expect("lr_00");
@@ -237,6 +262,13 @@ fn main() {
     // ln(1e-12)/ln(r) laps to get inside IMPROVE_REL. For r=0.9 that is ~262
     // laps against MAX_SWEEPS=256. Build one and see whether a perfectly
     // well-posed technology gets reported as a defect.
+    //
+    // MEASURED, and it is the reason MAX_SWEEPS's comment was rewritten
+    // (2026-07-31, R14): f=0.89 lands in 255 sweeps, f=0.90 trips the cap — at
+    // a graph with the unique positive fixed point iron = 19.0. Hitting the cap
+    // is therefore a statement about the SOLVER, not about the graph, and
+    // `Value::NotConverged` no longer claims otherwise. Still open: the cap is
+    // where a well-posed technology becomes unscoreable, and nothing warns.
     // ────────────────────────────────────────────────────────────────────────
     {
         use rustyecon::state::game_data::{GameData, KernelParams, RegionDef, SupplyRule};

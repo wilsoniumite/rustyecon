@@ -598,6 +598,63 @@ constants in code.
 > the corpus produces a region that is both alive and in-band, a dated criteria
 > file can register a bar against *that* evidence.
 >
+> > ##### [CORRECTED 2026-07-31, adversarial review] B8 was a REPORTER wearing a battery's label, and seven defects
+> >
+> > The paragraph above reaches the right *action* — no threshold — on an
+> > argument that has since been superseded, and it left the instrument carrying
+> > the label `prices match technology` while printing PASS beside a 3.5e11×
+> > gap. Every certificate in the corpus therefore asserted something no code in
+> > it had checked. **Renamed to `price/technology gap (report, no bar)`**; a
+> > PASS now means *the distance was computable* and nothing else.
+> >
+> > **The argument is also replaced, and the new one is stronger.** "No evidence
+> > for a bar yet" implies a bar arrives with more evidence. It does not, for
+> > *this* statistic: the benchmark is zero-rent, and `solv_labour` — the one
+> > world in the corpus whose answer is derived on paper and registered before
+> > the run — is **exactly right** at `p_grain = p_labour` while B8 reads it
+> > "2.000× too dear", because the firm earns a capacity rent a zero-rent
+> > benchmark cannot see. A bar at 2× fails a correct world; a bar above 2× is
+> > chosen to let a known false positive through. No threshold repairs a
+> > specification error. What would make it a battery is recorded in
+> > `PriceGapWatch::report`: a rent-aware implied vector and a per-node
+> > valuation, after which a per-scenario bar can be registered against a
+> > derivation rather than a measurement.
+> >
+> > Six further defects, all repaired, each with a falsification test in
+> > `tests/test_11_correctness.rs` §6 that was watched failing first:
+> >
+> > 1. **R5 breach.** `log_sd` was `f64::NAN` at `n < 2` and went straight onto
+> >    a passing certificate line; `certify::nan::scan` walks `SimState` and
+> >    could never see it. Now `Option<f64>`, rendered as an absence, with a
+> >    fail-closed sweep (`PriceGapWatch::uncomputable`) behind it.
+> > 2. **The numeraire was never checked.** Every reading divides by
+> >    `p_labour`, and `observe` gated only on the scored good. A region whose
+> >    labour market posted nothing all window still produced 851 confident
+> >    readings. Ticks without a traded numeraire now contribute nothing and are
+> >    counted.
+> > 3. **N findings that were one finding.** `lr_00`/Manchester's wheat 312×,
+> >    flour 209×, services 43,415× is a **common factor of ~1,414×** — a
+> >    statement about the wage — plus residuals of 4.5× *too cheap*, 6.8× too
+> >    cheap and 30.7× too dear. Two of the three raw numbers point the opposite
+> >    way to the truth about their own market. The line now carries the
+> >    decomposition.
+> > 4. **Silent sample loss.** A run that discarded 850 of 851 ticks reported
+> >    `n=1`. The denominator and the reason are now on the line.
+> > 5. **The benchmark's assumptions are now printed** — zero-rent,
+> >    full-utilisation, single-node — because finding 5 above was mistaken for
+> >    an error once already.
+> > 6. **Single-node bias, disclosed and bounded rather than fixed.**
+> >    `flour_transport`'s 0.1 labour is in no good's value, so a competitive
+> >    importer scores 1.200× too dear. Per-node valuation was considered and
+> >    rejected with reasons (`LabourValues::pass_through`); the line prints the
+> >    tape's whole bias instead.
+> > 7. **`NotConverged` marked the whole graph**, labour included, so one
+> >    runaway cycle made the numeraire unpriceable. Only goods still moving and
+> >    what they feed are marked now. Measured while fixing it: the 256-sweep cap
+> >    trips on a *well-posed* cycle at round-trip gain 0.90 whose exact answer is
+> >    19.0, so hitting the cap is a statement about the solver, not the graph.
+> >    That remains open.
+>
 > ### The solvable scenarios: worlds whose answer is known before the run
 >
 > **LANDED 2026-07-31.** `data/scenarios/solv_1g`, `solv_1g_money`,
@@ -795,6 +852,95 @@ constants in code.
 > pre-registered prediction arriving as a measurement: a non-storable's cost is
 > sunk and its supply is vertical, correctly.
 >
+> > ##### [CORRECTED 2026-07-31, second pass] the elasticity table above is struck: it is not reproducible as labelled
+> >
+> > Adversarial review could not reproduce it, and re-measurement says why. **The
+> > table states no tick count and no evolution rule, and its cells do not share
+> > either one.** Held to a single stated condition the figures do not appear
+> > together; each was taken wherever it was largest:
+> >
+> > | quoted | actually exists only at |
+> > |---|---|
+> > | wheat `1.11` | tick **20**, state evolved under the **shipped** `inelastic` rule |
+> > | wheat `16.7` / `45.2`, flour `0.216` / `6.10` | tick **20**, state evolved under **`reservation_goods`** |
+> > | wheat `43.5`, flour `6.73` / `17.7` | tick **200**, state evolved under **`reservation_goods`** |
+> > | labour `1.67` / `2.53` / `3.19` | tick **5**, posting under the full `reservation` rule |
+> >
+> > That is not a property of the rule. `ε_s = I/q − 1` is a function of the
+> > **state**: the same rule reads 0.000 at a desk posting its whole stock and 65
+> > at a desk posting a sixty-fifth of it. An elasticity with no stated state is
+> > not a measurement, and this one silently mixed two trajectories — including
+> > the one the corpus does not run, since all 33 tapes register `inelastic`.
+> >
+> > **Re-measured, with conditions.** `examples/elasticity_probe.rs` now prints
+> > the scenario, tape sha, arm, evolution rule, posting rule, tick count and
+> > `state_hash` above every table, takes a *list* of tick counts, and reports the
+> > loop gain per market. Both blocks below: `data/scenarios/lr_00`,
+> > `tape_sha=9c701ab41330554a`, arm **kernel**, own-price central ±1% difference
+> > in log price (the figures the old table quoted were one-sided +1%; those are
+> > given in parentheses where the two differ visibly). `—` = the market posted
+> > nothing on that side, so there is no reading (R5: absent, not zero).
+> >
+> > **A. State evolved under `inelastic` — the rule every tape registers —
+> > posting measured under `reservation`.**
+> >
+> > | node / good | t=5 `44a3a23f…` | t=20 `99a006a1…` | t=40 `0e1785ca…` | t=200 `f17fb500…` |
+> > |---|---|---|---|---|
+> > | 0 wheat | — | 1.123 (1.111) | 0.262 | — |
+> > | 1 wheat | — | 0.549 | 0.265 | — |
+> > | 2 wheat | — | 0.830 | **8.778** (8.352) | — |
+> > | 0 flour | — | — | — | 0.000 |
+> > | 1 flour | — | — | 0.249 | 0.000 |
+> > | 2 flour | — | 0.377 | 0.012 | 0.000 |
+> > | 0 labour | 2.580 (2.534) | — | — | — |
+> > | 1 labour | 3.261 (3.192) | — | — | — |
+> > | 2 labour | 1.876 (1.669) | — | — | — |
+> > | 1 services | — | 0.000 | 0.000 | 0.000 |
+> >
+> > **B. State evolved under `reservation_goods`, posting measured under
+> > `reservation_goods`** — where the large figures live. (At t=5 the two
+> > trajectories are still the same state, hash `44a3a23f…`, and they are still
+> > identical at t=6; the first tick whose `state_hash` differs is **t=7**, which
+> > is measured, not explained — no desk posts a different quantity before it.)
+> >
+> > | node / good | t=5 `44a3a23f…` | t=20 `a1c9784a…` | t=40 `f049eb05…` | t=200 `c1e76165…` |
+> > |---|---|---|---|---|
+> > | 0 wheat | — | 1.118 (1.106) | 1.294 | **61.542** (43.498) |
+> > | 1 wheat | — | **18.490** (16.707) | **21.818** (19.362) | — |
+> > | 2 wheat | — | **65.482** (45.221) | — | — |
+> > | 0 flour | — | — | 15.369 (14.123) | 7.008 (6.729) |
+> > | 1 flour | — | 0.217 (0.216) | 0.046 | 0.000 |
+> > | 2 flour | — | 6.333 (6.102) | 0.103 | **19.686** (17.674) |
+> > | labour, every node that posted any | 0.000 | 0.000 | 0.000 | 0.000 |
+> > | services, every node that posted any | — | 0.000 | 0.000 | 0.000 |
+> >
+> > Labour reads 0.000 throughout block B **because `reservation_goods` runs the
+> > shipped `π·H` labour rule** — that is the arm's definition, not a finding. The
+> > only labour elasticities this change produces are block A's `t=5` row, under
+> > the full rule, and they are gone by `t=10` because that is when the pop is
+> > shut out of the market (§4 below).
+> >
+> > **The series, so no single tick can stand in for "the" elasticity.** Maximum
+> > `ε_s` over any market, 19 tick counts from 1 to 200:
+> >
+> > | evolved under | ticks with max < 1.2 | worst | where |
+> > |---|---|---|---|
+> > | `inelastic` (posting `reservation`) | 14 of 19 | **31.7** (26.6 one-sided) | t=7, node 1, wheat |
+> > | `reservation_goods` | 5 of 19 | **125.2** | t=30 |
+> >
+> > What survives unchanged: **the uniform control reads exactly 0.000
+> > everywhere** (degree-0 homogeneity, the reason the old probe was blind), and
+> > **services read exactly 0.000 under every rule at every tick** — §2.3's
+> > pre-registered prediction, arriving as a measurement. What does not survive
+> > is the phrase "0.216 to 45.2" as a description of the rule. The correct
+> > statement is the sentence the old text ends with: the reading *is* `I/q − 1`,
+> > it moves with the state, and the corpus does not sit at a resting point.
+> >
+> > The one place a resting point exists, the derivation is exact: `solv_1g` under
+> > `reservation` measures `ε_s = 2.000` at tick 50 and again at tick 200, which
+> > is `b_out/R` at `R = 1` to three decimals
+> > (`the_gain_instrument_reads_the_derived_number_where_a_desk_actually_rests`).
+>
 > #### 2. The solvable worlds: the first displaced market that does not die
 >
 > Mode A is **bit-identical** under both rules on the four zero-profit tapes
@@ -899,6 +1045,19 @@ constants in code.
 > 2. **`α·b_out` is now a one-dimensional Phase 5 axis** with a derived optimum at
 >    ≈ 1 against a registered 0.2. If the measured optimum is not near 1 the
 >    linearisation is wrong and the design note is marked superseded, not retuned.
+>
+>    > **[CORRECTED 2026-07-31, second pass] "a registered 0.2" is not one
+>    > number, and the loop gain it implies was never measured on the engine.**
+>    > `alpha` is a per-*good* dial: 0.100 for `lr_00`'s wheat, flour and
+>    > services, **0.050 for labour**, 0.050 for `solv_1g`'s grain. The sweep
+>    > axis is therefore `α_g·b_out` per good, and `b_out` is the only end of it
+>    > the kernel can move for all goods at once. Measured on live `lr_00` states
+>    > at the registered dials, the worst gain in any market is **2.28** at tick 7
+>    > with the state evolved under the shipped rule, and **7.25** at tick 75 with
+>    > it evolved under the full `reservation` rule; on the same 19-tick grid the
+>    > per-tick worst also falls as low as 0.006. The derived 0.800 is a
+>    > resting-point value, the corpus does not rest, and the spread is the
+>    > finding. See `the_engines_measured_loop_gain_is_not_the_argued_0_8`.
 > 3. **A rent-aware reservation price**, without which `solv_labour` cannot be
 >    held and any world with a binding capacity is mispriced in a known direction.
 
@@ -1137,6 +1296,289 @@ constants in code.
 >    if it were a stability dial.
 > 4. `cr_00` is now the reference world the phase map should be swept over: it is
 >    the only multi-region tape in the repo that is green, correct, and solved.
+
+> ---
+>
+> ### P4.8 — the audit pass: what 2026-07-31 actually established (2026-07-31)
+>
+> **This entry exists because a session that produced a great deal was found, on
+> review, to have produced much less than it reported.** Two adversarial passes
+> refuted or downgraded most of it. A third pass — this one — re-measured the one
+> result that had survived both, from a clean build, and found that half of *that*
+> was wrong too. The instruments are `examples/restoring_force.rs` (the sweep, the
+> basin scan, the mechanism trace) and `tests/test_15_restoring_force.rs` (seven
+> tests, every one asserting a measured number including the ones that contradict
+> the record). Nothing below is a summary of an earlier summary; every figure was
+> produced by a run made for this entry.
+>
+> #### The headline, in one paragraph
+>
+> The kernel can **hold** a hand-derived equilibrium exactly, and — with the
+> reservation rule — can **walk back to one** from a displacement of a few
+> percent. It cannot walk back from more than about 5%, the set of displacements
+> it recovers from is not an interval, the recovery stops short of the registered
+> exactness for a reason that is a constant in the source rather than economics,
+> and on the corpus of record none of this buys a single live in-band region. The
+> project's only correctness criterion turned out not to be one.
+>
+> #### 1. The correctness battery was a REPORTER, and had to be repaired
+>
+> **This is the item that must not be smoothed over.** B8 shipped labelled
+> `"prices match technology"` and was counted as the project's first correctness
+> criterion — the thing PLAN had been asking for since "the missing instrument"
+> above. It was not one. Adversarial review found **seven** defects, and the
+> repair (`src/certify/technology.rs`, `src/runner.rs::B8_LABEL`) renamed it to
+> **`B8 "price/technology gap (report, no bar)"`**. A PASS now means *the distance
+> was computable*, and nothing else. The seven, with the repair:
+>
+> | # | defect | state |
+> |---|---|---|
+> | 1 | a one-sample reading printed `sd NaN` on a **passing** line (R5) | fixed: `log_sd: Option<f64>`, fail-closed sweep over every statistic |
+> | 2 | a region whose numeraire market never traded emitted 851 confident readings | fixed: no numeraire, no reading; the region now FAILS |
+> | 3 | one wage error reported as N per-good errors, two of them pointing the wrong way | fixed: common-factor / residual decomposition |
+> | 4 | 850 of 851 ticks silently discarded, reported as `n=851` | fixed: census with denominator and disposal |
+> | 5 | benchmark assumptions (zero-rent, full-utilisation, single-node) undisclosed | fixed: stated on every line |
+> | 6 | single-node valuation drops haulage labour — 1.200× on `lr_00` | measured and disclosed, **not** fixed |
+> | 7 | one stalled good marked the whole vector `NotConverged` | fixed: only the goods still moving |
+>
+> **It carries no bar and the reason is now structural rather than procedural.**
+> The old argument was "the corpus numbers were already known, so any bar picked
+> now would be fitted" — true, but it implies a bar arrives with better evidence.
+> It does not. B8's one hand-checked case is a **known false positive**:
+> `solv_labour` sits on a closed-form equilibrium registered before any run, and
+> B8 reads it "2.000× too dear" because a zero-rent benchmark cannot see a
+> capacity rent. A bar at 2× fails a correct world; a bar above 2× is chosen to
+> let a known false positive through. **No threshold repairs a specification
+> error.** What would make it a battery is recorded in code: a rent-aware implied
+> vector plus per-node valuation.
+>
+> Three threshold-free fail-closed paths do fire, and one of them fired on the
+> corpus for the first time (P4.6 finding 3).
+>
+> #### 2. The displacement result, re-measured — half of it was wrong
+>
+> The claim carried forward by `src/kernel/mod.rs`, the design note and the
+> summaries: *"a displaced `solv_1g` grain price returns to 1.000 under
+> `reservation` while sitting at 1.010 with standard deviation exactly zero under
+> `inelastic`."* It was measured at one displacement, in one direction, on one
+> tape, under one price rule. All four of those were the problem.
+>
+> **STANDS, and understated.** Under `inelastic` a +1% displacement does not have
+> a small spread; the price series is **bit-constant for all 1000 ticks** —
+> `max − min = 0.0` exactly — on `solv_1g`, `solv_chain` and `solv_1g_money`,
+> under **both** price rules. Rule 1 names no price, both markets stay balanced,
+> every σ stays inside its dead band, and nothing in the kernel moves. Note that
+> "sd exactly zero" is a claim about the *estimator*: a two-pass sd of a
+> bit-constant series reads ~1e-15. Welford — what `certify::invariants` and B8
+> use — returns exactly 0, so the original sentence is true as written, and is
+> weaker than the fact.
+>
+> **STANDS, with a boundary nobody had stated.** The freeze ends exactly where
+> `dead = 0.05` puts it: **frozen at ×1.0512, moving at ×1.0513**, against the
+> dial-derived `(1+d/2)/(1−d/2) = 1.051282`. That reproduces P4.7's RESULT 3 edge
+> (`cr_00`: ×1.0512 PASS, ×1.0514 FAIL) on a different tape by a different
+> instrument — the same number from two independent measurements.
+>
+> **FALSE.** "Returns to 1.000" fails the tape's **own** registered
+> `fixed_point_tol_log = 1e-12`. It returns to `|ln dev| = 1.86e-11`, nineteen
+> times the gate — and reads **1.862e-11 on all three tapes**, which is the tell:
+> it is not a property of any of those economies.
+>
+> **NOT MEASURED, AND IT IS ONE-SIDED.** Displace **down** 1% under `inelastic`
+> and the price does not sit at 0.990. It walks *up*, crosses the target, and
+> rests at **+0.87%** on the far side — with the standard deviation over the
+> scored window still exactly 0.0, because all the motion is in the transient.
+> The mechanism is not Rule 1 and not Rule 2 — it is Rule 3's cash band. Below
+> zero profit the desk's revenue (0.495 × 20 = 9.9) is under its outlay (10), its
+> balance drains, it rations its own labour purchases, labour demand falls under
+> the 10 hours posted, and the wage follows; the rationed desk then produces less
+> grain, so grain rises. Split at tick 1000: **`p_grain` 0.4950 → 0.499753** — it
+> closes **95.1%** of its own 0.005 displacement — while **`p_labour` 1.0 →
+> 0.990754**, a fall of 0.0092, nearly twice as far as the grain price's residual.
+> The pop's cash goes 30.00 → 30.61, the mirror of the drain.
+> **Almost all of the residual in the ratio is the numeraire**, under a rule whose
+> supply elasticity is exactly zero and which therefore has no price-response with
+> which to have done any of it. A relative price cannot say which of its two sides
+> moved, and here the answer is "the other one"
+> (`the_downward_drift_is_the_wage_falling_not_the_displaced_good_failing_to_return`).
+>
+> The consequence outranks the finding: **`sd = 0` over a post-transient window is
+> not evidence of "no restoring force"** — it is evidence of "no motion in the
+> window", and this configuration satisfies the second while violating the first.
+> `max − min` over the *whole* series is the statistic that separates them.
+>
+> #### 3. The sweep table (`solv_1g`, kernel arm, 1000 ticks, window 150–1000)
+>
+> `ends` is the final relative price as a multiple of the registered target;
+> `range(all)` is `max − min` of `ln(p/p_labour)` over the whole run — `0` is the
+> unit root; `alive` is the fraction of window ticks on which every good with a
+> registered `cleared` target actually traded.
+>
+> | ×factor | inelastic `ends` | range(all) | reservation `ends` | range(all) | alive (res.) |
+> |---|---|---|---|---|---|
+> | 0.500 | 1.334 | 2.004 | 1.291 | 1.447 | 1.000 |
+> | 0.833 | 2.328 | 1.162 | 0.950 | 0.670 | 1.000 |
+> | 0.952 | 1.038 | 8.60e−2 | 1.025 | 7.40e−2 | 1.000 |
+> | 0.980 | 1.017 | 3.67e−2 | 1.012 | 3.20e−2 | 1.000 |
+> | 0.990 | 1.009 | 1.87e−2 | 1.006 | 1.58e−2 | 1.000 |
+> | 0.999 | 1.001 | 1.89e−3 | 1.0006 | 1.57e−3 | 1.000 |
+> | **1.001** | **1.001000** | **0 (exact)** | **1.000000** | 9.99e−4 | 1.000 |
+> | **1.010** | **1.010000** | **0 (exact)** | **1.000000** | 9.95e−3 | 1.000 |
+> | **1.020** | **1.020000** | **0 (exact)** | **1.000000** | 1.98e−2 | 1.000 |
+> | 1.050 | 1.050000 | 0 (exact) | 1.308 | 0.654 | 1.000 |
+> | 1.100 | 2.314 | 1.561 | 1.310 | 0.671 | 1.000 |
+> | 1.200 | 1.911 | 1.003 | 1.363 | 0.653 | 1.000 |
+> | 1.500 | 2.672 | 1.606 | 1.396 | 0.845 | 1.000 |
+> | 2.000 | 1.501 | 2.137 | 3.102 | 1.924 | **0.595** (dead from t=292) |
+>
+> Read across, the whole result is the three bold rows and their two neighbours.
+> Outside `[0.95, 1.05]` **neither rule returns to the target.** `reservation`
+> lands *nearer* it in six of the eight outside rows — but it has not converged
+> there: its `sd` over the window sits at **0.18–0.19** in every one of them, i.e.
+> a ±20% orbit that happens to be centred nearer the answer. That is precisely the
+> artefact `mode_b_gap`'s doc comment warns about, arriving as a measurement: a
+> proximity statistic and a convergence statistic are different questions.
+>
+> Under the **`ratio`** price rule the picture is worse and is not a near miss.
+> On `solv_1g` under `reservation`, of the sixteen displacements: two overflow f64
+> and are reported **`UNCOMPUTABLE`** rather than as numbers (R5), eight have the
+> market **dead before the window opens** (`alive 0.000`), five stay alive, and
+> the one survivor outside `[0.98, 1.02]` — ×0.9524 — sits at **0.133× of target**
+> with a live market throughout. Inside the surviving band the price orbits rather
+> than resting: `sd` 2.6e−4 over the window and still 1.7e−4 over its last tenth.
+>
+> #### 4. The basin — measured, and it is not an interval
+>
+> Nobody had measured it. `examples/restoring_force.rs` scans 40 geometric points
+> per side out to ×8 and ×1/8, takes the **connected component containing the
+> fixed point**, and bisects that first crossing in log-factor space. Three
+> verdicts are reported side by side rather than one being chosen; the
+> threshold-free one is `contracted` = the final `|ln dev|` is smaller than the
+> displacement it started from.
+>
+> | `solv_1g`, imbalance | boundary down | boundary up |
+> |---|---|---|
+> | `inelastic`, contracted | 0.9493× | **none — no upward displacement contracts at all** |
+> | `reservation`, contracted | **0.9359×** | **1.0457×** |
+> | `reservation`, within ln(1.10) of target | 0.9359× | 1.0463× |
+> | `reservation`, within 1e-12 (registered) | — | — (never, at any displacement) |
+>
+> So the honest basin is roughly **−6.4% to +4.6%**, and three things qualify it:
+>
+> 1. **The predicate is not monotone.** Beyond the boundary, ×1.2311, ×1.4389 and
+>    ×2.5491 all contract while ×1.05 does not — eleven such islands on the
+>    up side under `reservation`, nineteen on the down side. Those are separate
+>    attractors, not a wider basin. **A single "basin width" is the wrong kind of
+>    sentence for this mechanism**, which is why none is quoted without the
+>    component qualifier. `the_set_of_displacements_that_come_back_is_not_an_interval`
+>    asserts it.
+> 2. **The upward boundary and the `inelastic` dead-band edge are nearly the same
+>    number** (1.0457 vs 1.051282). The reservation rule buys recovery *inside a
+>    region whose width is still set by `dead`* — which is P4.7 RESULT 3's point
+>    arriving from the other direction, and is the sharpest available argument for
+>    `dead` being the Phase 5 axis rather than `α·b_out`.
+> 3. **Under `inelastic` the upward basin is empty by construction.** Contraction
+>    is *exactly* 1.000 everywhere inside the dead band — the displacement neither
+>    shrinks nor grows. That is the unit root, stated as a basin.
+>
+> #### 5. What actually stops the return: an unregistered absolute constant
+>
+> `src/systems/price_update/mod.rs:28` emits a price delta only when
+> `|p_next − p| > 1e-12`. That is an **absolute threshold in currency units with
+> behavioural meaning, registered nowhere** — arguably an R2 breach, and
+> demonstrably an R12 one. Near the fixed point the per-tick step is
+> `p·α·|imbalance|` with `imbalance ≈ −2e` in the log price error, so a run stalls
+> at
+>
+> ```text
+>     e ≤ 1e-12 / (2·α·p) = 1e-12 / (2 × 0.05 × 0.5) = 2.0e-11
+> ```
+>
+> against a measured **1.86e-11**. The prediction that makes it a mechanism and
+> not a coincidence: `solv_1g_money_2x` is the same real economy at exactly twice
+> the price level, so the same algebra halves the residual. Measured **1.8617e-11
+> at 1× and 9.8936e-12 at 2×** — ratio 1.882 against a predicted 2.
+>
+> **A redenomination changed a real outcome.** `money_is_exactly_neutral_between_the_1x_and_2x_tapes`
+> cannot see this and is not wrong: it runs both tapes *at* the fixed point, where
+> no price drifts and the guard never binds. Neutrality was only ever tested where
+> nothing moves. `the_return_stalls_on_an_absolute_constant_…` asserts the
+> violation. Making the guard relative is a mechanism change with its own A/B; it
+> was not smuggled in beside a measurement.
+>
+> #### 6. Is `solv_1g` knife-edge? No — and that is not reassuring
+>
+> The headline transfers exactly: bit-frozen under `inelastic`, back to 1.86e-11
+> under `reservation`, on `solv_1g`, `solv_chain` **and** `solv_1g_money`, to the
+> same digits. **Nothing else transfers.** Displaced to ×0.9524 under `inelastic`,
+> `solv_1g` rests quietly at 1.038× with its markets alive throughout while
+> `solv_chain` runs its relative price to **1.6e20** and trades on 6% of the
+> window; `solv_1g_money`'s reservation runs die from tick 171 at ×0.5 and from
+> tick 332 at ×1.05, where `solv_1g`'s stay alive. The shared row is the +1% row
+> and its immediate neighbours. **A summary saying "the family agrees" would be
+> false**, and `the_headline_transfers_to_the_other_tapes_and_nothing_else_does`
+> asserts both halves.
+>
+> #### 7. The honest overall position
+>
+> **Established, and re-verified independently:**
+>
+> * The shipped `inelastic` Rule 1 has supply elasticity exactly zero and the
+>   price loop a literal unit root — a displaced price is bit-constant for 1000
+>   ticks. This is the sharpest negative result the project has.
+> * The reservation band removes it: three tapes, two price rules, a displacement
+>   of 0.1–2% comes back to within 2e-11.
+> * The dead band, not the supply rule, sets the width of the region in which
+>   anything happens: ×1.051282, derived from `dead` and confirmed twice
+>   independently (`solv_1g` here, `cr_00` in P4.7).
+> * The kernel holds all five hand-derived equilibria bit-exactly (mode A), which
+>   remains the only unambiguous positive in Phase 4.
+>
+> **Refuted or downgraded this session:**
+>
+> * B8 is a reporter, not a battery. Renamed. Seven defects, six repaired.
+> * "Returns to 1.000 exactly" — false at the tape's own registered exactness; the
+>   floor is a numerical guard, and it is level-dependent.
+> * "No restoring force under `inelastic`" — true upward, false downward, where a
+>   cash-channel drift moves the numeraire instead.
+> * The `ε_s` range "0.216 to 45.2" — not reproducible as labelled (second pass).
+> * "`α·b_out = 0.2` is a factor of ten inside the stability boundary" — the test
+>   that appeared to check it never called the kernel; measured gain reaches 2.28
+>   (second pass).
+> * "No configuration recovers from a 2× displacement" — one does
+>   (`solv_1g`/imbalance/`reservation_goods`, volume trend 1.134×).
+>
+> **Still unknown, in the order it matters:**
+>
+> 1. **Whether any of this survives contact with a multi-region world.** Every
+>    positive result in Phase 4 lives on a one- or two-good tape with one desk per
+>    market. On `lr_*` the count of live, in-band regions is **0 of 72 in all
+>    eight configurations**; on `cr_*` ten regions pass, and every one of them
+>    sits at a hand-solved rest point it never had to find.
+> 2. **Whether the basin's islands are real attractors or an artefact of a
+>    1000-tick horizon.** Nothing has been run long enough to tell, and a
+>    displacement that "contracts" at tick 1000 may be mid-orbit.
+> 3. **What the basin looks like as a function of `dead`.** It is now the obvious
+>    Phase 5 axis and it has never been swept.
+> 4. **Whether the 1e-12 guard has been distorting every stability measurement in
+>    the repo.** It stops price motion below an absolute size, so every band,
+>    every `LevelRange`, and every damping statistic taken at a low price level
+>    has been measured on a series that was quantised. Unquantified.
+> 5. **Whether `ratio` is a price rule at all.** On the solvable worlds it kills
+>    the market before the scored window opens at almost every displacement, and
+>    two cells overflow f64. It has never had its own write-up.
+> 6. Rent-aware reservation pricing; per-node valuation for B8; the well-posed
+>    cycle that trips the 256-sweep cap — all three carried forward unfixed with
+>    their reasons recorded in code.
+>
+> **Process note, recorded because it is the actual lesson.** Every refuted claim
+> above was refuted the same way: a number was measured under conditions nobody
+> wrote down, then quoted as a property of a mechanism. The elasticity range, the
+> loop gain, B8's confident readings and the displacement result all failed for
+> that one reason. The instruments now print their own conditions
+> (`elasticity_probe`'s CONDITIONS line, `restoring_force`'s per-table header,
+> B8's benchmark-assumptions preamble), and it should be treated as a standing
+> requirement rather than three separate repairs.
 
 ## Phase 5 — Phase map (1–2 sessions)
 

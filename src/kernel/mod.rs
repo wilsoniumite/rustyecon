@@ -87,6 +87,32 @@
 //! at a desk's resting point `ε_s = b_out/R`, so the stability condition
 //! `α(ε_s − ε_d) < 2` collapses to `α·b_out < 2R`. Registered: `0.1 × 2 = 0.2`.
 //!
+//! > **[CORRECTED 2026-07-31, second pass — the sentence above is a statement
+//! > about a desk AT REST, and the next paragraph as originally written quoted
+//! > it as a statement about the engine. It is struck in that role.]** Three
+//! > things it does not say and was read as saying:
+//! >
+//! > * **`α` is a per-good dial** ([`crate::types::good::GoodDef::alpha`]), not
+//! >   a kernel one. `lr_00` registers 0.100 for wheat, flour and services and
+//! >   **0.050 for labour**; `solv_1g` registers 0.050 for grain. "The
+//! >   registered `α·b_out`" is 0.2 in some markets and 0.1 in others.
+//! > * **Nothing measured it on the engine.** The test that appeared to —
+//! >   `the_loop_gain_bound_is_real_in_both_directions` — passed `ε_s = b_out`
+//! >   into a scalar map of analytic curves and never called this module. It is
+//! >   renamed `…_is_arithmetic_and_this_test_checks_only_the_arithmetic`.
+//! > * **Measured, the gain is not 0.8 and is not always below 1.** Central
+//! >   differences on live `lr_00` states (kernel arm, evolved under the shipped
+//! >   `inelastic` rule, posting under `reservation`) over the first 20 ticks:
+//! >   3 of 25 readings sit at **exactly 1.000** — the unit root survives
+//! >   wherever a desk posts its whole stock — and the worst is **g = 2.28**
+//! >   (tick 7, node 1, wheat: `ε_s = 31.7`, `ε_d = −1.16`, `α = 0.100`).
+//! >   `the_engines_measured_loop_gain_is_not_the_argued_0_8` asserts it.
+//! >
+//! > The derivation is intact where it applies: `solv_1g` at its hand-computed
+//! > fixed point measures `ε_s = 2.000` exactly, and `g = 0.900` there because
+//! > grain's `α` is 0.05 — the positive control, so the 2.28 is a fact about the
+//! > state and not about the instrument.
+//!
 //! **The dimensional pick, made deliberately rather than inherited.** kernel.md
 //! calls `b_out` a band "in activations of throughput" while `rule_1_sell`
 //! computes `flow` per *tick*, so the band is 2 ticks of cover, not 8. Under the
@@ -95,8 +121,12 @@
 //! shipped code, for one reason that outranks the others: it is what makes the
 //! new rule reduce to the old one exactly at `R = 1`. Changing the functional
 //! form and the band width in the same commit would leave no way to attribute
-//! either measurement. `α·b_out = 0.2` is a factor of ten inside the boundary;
-//! the activation reading (0.8) is also stable and is a Phase 5 sweep point.
+//! either measurement. ~~`α·b_out = 0.2` is a factor of ten inside the
+//! boundary~~ — **struck, see the correction above: that is the resting-point
+//! gain for the goods whose registered `α` is 0.1, and the engine measures 2.28
+//! in a live market.** The pick between per-tick and per-activation `b_out`
+//! stands on the reduction-to-the-old-rule argument alone, which is unaffected;
+//! the activation reading is a Phase 5 sweep point either way.
 //!
 //! **WHAT IT MEASURED, 2026-07-31, and the headline is not the good news.**
 //!
@@ -105,6 +135,52 @@
 //! to 3.19 under the full rule, and the uniform all-goods bump reads **exactly
 //! 0.000**, which is the degree-0 homogeneity the design requires and the reason
 //! the old probe could not have seen any of this.
+//!
+//! > **[CORRECTED 2026-07-31, second pass — "0.216 to 45.2" is struck; it is not
+//! > reproducible as labelled.]** "On a live state" names no state, and the four
+//! > figures are not from one: `0.216`/`16.7`/`45.2` exist only at **tick 20
+//! > with the state evolved under `reservation_goods`**, `6.73`/`17.7`/`43.5`
+//! > only at **tick 200** under the same, `1.111` only at **tick 20 evolved
+//! > under the shipped rule**, and labour's `1.67`/`2.53`/`3.19` only at **tick
+//! > 5**. Held to the one condition the corpus actually runs — evolved under
+//! > `inelastic`, which is what all 33 tapes register — the largest `ε_s`
+//! > anywhere on `lr_00` over a 19-tick grid is **31.7**, and at 14 of those 19
+//! > tick counts the largest is below 1.2.
+//! >
+//! > `ε_s = I/q − 1` is a function of the **state**, not of the rule, so a range
+//! > quoted without one measures nothing. The re-measured table, per node, per
+//! > good, per tick, with the evolution rule and the `state_hash` beside each
+//! > block, is in PLAN Phase 4 under "[CORRECTED] the elasticity table"; the
+//! > probe now prints those conditions above every table it produces.
+//! >
+//! > Unaffected, and the reason the change is still worth having: the uniform
+//! > control still reads **exactly 0.000**, services still read **exactly
+//! > 0.000** under every rule at every tick, and ~~a displaced `solv_1g` grain
+//! > price returns to 1.000 under `reservation` while sitting at 1.010 with
+//! > standard deviation exactly zero under `inelastic`~~.
+//! >
+//! > > **[CORRECTED 2026-07-31, third pass — the struck clause was the one
+//! > > result the second pass left standing, and it is half wrong. Re-measured
+//! > > over the whole displacement grid, both price rules, all three supply
+//! > > rules, three tapes: `examples/restoring_force.rs`,
+//! > > `tests/test_15_restoring_force.rs`, table in PLAN "P4.8".]**
+//! > >
+//! > > * "sitting at 1.010 with sd exactly zero" is **understated**: the series
+//! > >   is *bit-constant* for 1000 ticks (`max − min = 0`), on all three tapes
+//! > >   under both price rules. Nothing in the kernel responds, at all.
+//! > > * It holds exactly as far as `dead` predicts — frozen at ×1.0512, moving
+//! > >   at ×1.0513, against `(1+d/2)/(1−d/2) = 1.051282` — and no further.
+//! > > * "returns to 1.000" is **false** at the tape's own registered
+//! > >   `fixed_point_tol_log = 1e-12`. It returns to **1.86e-11**, and that
+//! > >   floor is the *absolute* `1e-12` guard in
+//! > >   [`crate::systems::price_update`], not economics: the same economy at
+//! > >   twice the price level stops at 9.89e-12, half as far.
+//! > > * The freeze is **one-sided**, which the +1%-only measurement could not
+//! > >   see. Displaced DOWN 1% under `inelastic` the price walks *up* through
+//! > >   the target to +0.87% — via Rule 3's cash band draining the desk and
+//! > >   pulling `p_labour` down, not via any supply elasticity — with the
+//! > >   window sd still exactly 0. **sd = 0 is "no motion in the window", not
+//! > >   "no restoring force".**
 //!
 //! **And on the lr corpus the full rule is a catastrophe: 72 live regions'
 //! worth of economy goes to ZERO.** Legacy 33 live, kernel/inelastic 8,

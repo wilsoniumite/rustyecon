@@ -28,6 +28,60 @@
 > §4's loop-gain bound and its negative control; §2.3's prediction that services
 > stay unresponsive; §6's "no new parameters" (the one field added is the
 > A/B switch itself, which is a mechanism selector, not a magnitude).
+>
+> > **[SECOND PASS 2026-07-31 — adversarial review; two of the "confirmed" items
+> > were overstated and are corrected in place below.]**
+> >
+> > * **"§4's loop-gain bound … confirmed" confirmed the ARITHMETIC, not the
+> >   engine.** The test that appeared to check it never called the kernel. On
+> >   the engine the measured gain reaches **2.28** at the registered dials.
+> >   Marked at §4; the renamed test and the new engine measurement are in
+> >   `tests/test_13_elastic_supply.rs`.
+> > * **The headline `ε_s` range 0.216–45.2 is not reproducible as labelled.**
+> >   Its figures come from three tick counts and two evolution rules, none of
+> >   them recorded. Marked at §3; the re-measured table with its conditions is
+> >   in PLAN Phase 4.
+> >
+> > ~~Unaffected: the displacement result (`solv_1g` returns to 1.000 under
+> > `reservation`, sits at 1.010 with standard deviation exactly zero under
+> > `inelastic`), which was independently re-verified and is the finding this
+> > design is carried by.~~
+> >
+> > > **[THIRD PASS 2026-07-31 — the sentence above is struck. It is half right,
+> > > and the wrong half is the half the design is carried by.]** Re-measured
+> > > from a clean build over the whole displacement grid, both price rules, all
+> > > three supply rules and three tapes
+> > > (`examples/restoring_force.rs`, `tests/test_15_restoring_force.rs`;
+> > > full table in PLAN Phase 4 "P4.8"):
+> > >
+> > > * **STANDS, and is stronger than stated.** Under `inelastic` the +1%
+> > >   displacement does not merely have zero standard deviation — the price
+> > >   series is **bit-constant for all 1000 ticks**, on all three tapes, under
+> > >   both price rules. `max − min = 0` exactly.
+> > > * **STANDS, with a boundary the sentence does not carry.** The freeze holds
+> > >   exactly as far as `dead = 0.05` predicts: frozen at ×1.0512, moving at
+> > >   ×1.0513, against the dial-derived `(1+d/2)/(1−d/2) = 1.051282`. Beyond
+> > >   it the price does not stay and does not return; it leaves.
+> > > * **FALSE.** "Returns to 1.000" fails the tape's own registered
+> > >   `fixed_point_tol_log = 1e-12`. It returns to **1.0000000000186**, and the
+> > >   residual is set by the **absolute** `1e-12` price-delta guard in
+> > >   `src/systems/price_update/mod.rs:28`, not by the mechanism this design
+> > >   note proposes. Doubling the price level halves the residual
+> > >   (1.86e-11 → 9.89e-12), so a redenomination changes a real outcome.
+> > > * **NOT MEASURED AT ALL, AND IT IS ONE-SIDED.** The displacement was only
+> > >   ever applied *upward*. Displaced **down** 1% under `inelastic`, the price
+> > >   does not sit at 0.990: it walks up through the target and rests at
+> > >   **+0.87%** on the far side, driven by Rule 3's cash band and not by any
+> > >   supply elasticity — while the standard deviation over the scored window
+> > >   is still exactly 0.0. **`sd = 0` means "no motion in the window", not "no
+> > >   restoring force"**, and this configuration satisfies the first while
+> > >   violating the second.
+> > >
+> > > What the design may still be carried by is the first two bullets: the
+> > > shipped rule provably cannot respond, and the reservation rule provably
+> > > does. What it may *not* be carried by is "and therefore the world returns
+> > > to its equilibrium", which holds over a measured range of roughly
+> > > `[0.936×, 1.046×]` on `solv_1g` and is not an interval even there.
 
 **Status as written: design only, 2026-07-31. No code written. Criteria below are
 pre-registered predictions (R6); they are falsifiable and several of them are
@@ -323,6 +377,23 @@ in §2.2 was built to reproduce it, and the aggregate over identical desks is
 > §4's bound, because a desk far from its resting point posts far less than
 > `1/20` of its stock. The bound is a statement about the resting point, and
 > the corpus does not sit at one.
+>
+> > **[CORRECTED 2026-07-31, second pass — "0.216 to 45.2" is not reproducible
+> > as labelled and is struck.]** The closed form is confirmed and stands; the
+> > *range* is not a measurement of anything stated. The four figures were taken
+> > at three different tick counts and under two different evolution rules, and
+> > nothing recorded that: `0.216`, `16.7` and `45.2` exist only at **tick 20
+> > with the state evolved under `reservation_goods`**; `6.73`, `17.7`, `43.5`
+> > only at **tick 200** under the same; `1.111` only at **tick 20 with the state
+> > evolved under the SHIPPED rule**. Held to one stated condition — state
+> > evolved under the shipped `inelastic` rule, which is what all 33 tapes
+> > register — the maximum `ε_s` anywhere on `lr_00` over a 19-tick grid is
+> > **31.7** (at tick 7, central difference; 26.6 one-sided), and at 14 of those
+> > 19 tick counts the maximum is below 1.2. The honest table, with its
+> > conditions, is in PLAN Phase 4 under
+> > "[CORRECTED] the elasticity table". The sentence after it survives intact and
+> > is now the *whole* content of the finding: `ε_s` is a function of the state,
+> > `I/q − 1`, and the corpus does not sit at a resting point.
 
 **A dimensional caveat that stops being cosmetic.** `kernel.md`'s parameter table
 calls `b_out` a band "in activations of throughput", and an activation is `S = 4`
@@ -387,6 +458,37 @@ boundary.** And PLAN's open "α/η timescale" worry now has a closed form: `α` 
 `b_out` enter only as their product, so the Phase 5 sweep over that axis is
 one-dimensional.
 
+> **[CORRECTED 2026-07-31, second pass — the bolded sentence above is true of
+> the resting point and false of the engine, and it was quoted as if it were
+> about the engine.]** Three things it gets wrong, all now measured:
+>
+> 1. **There is no single registered `α`.** `alpha` is a per-*good* dial
+>    (`GoodDef::alpha`), not a kernel one. In `lr_00` it is 0.100 for wheat,
+>    flour and services and **0.050 for labour**; `solv_1g`'s grain registers
+>    0.050. So `α·b_out` is 0.2 on some markets and 0.1 on others, and the
+>    resting-point gain is 0.800 or 0.900 depending which market you are
+>    standing in.
+> 2. **The claim was argued, never measured**, and the test that appeared to
+>    check it did not. `the_loop_gain_bound_is_real_in_both_directions` passed
+>    `eps_s = B_OUT` into a scalar map of analytic curves; no kernel code ran in
+>    it. It is renamed
+>    `the_loop_gain_bound_is_arithmetic_and_this_test_checks_only_the_arithmetic`.
+> 3. **Measured on the engine, the gain is not 0.8 and is not always below 1.**
+>    Central differences on live `lr_00` states (kernel arm, evolved under the
+>    shipped `inelastic` rule, posting under `reservation`), first 20 ticks:
+>    most readings sit between 0.9 and 1.0, three of 25 sit at **exactly
+>    1.000** — the unit root, still there wherever a desk posts its whole stock —
+>    and the worst is **g = 2.28** at tick 7, node 1, wheat (`ε_s = 31.7`,
+>    `ε_d = −1.16`, `α = 0.100`). That is outside the boundary this section says
+>    the registered dials sit a factor of ten inside.
+>
+> The derivation is not wrong; its *scope* was overstated. `g = 0.900` is
+> reproduced exactly where the derivation applies — `solv_1g` at its
+> hand-computed fixed point measures `ε_s = 2.000` — which is the positive
+> control (`the_gain_instrument_reads_the_derived_number_where_a_desk_actually_rests`).
+> The row of the table below labelled "proposed, per-tick `b_out`" is a
+> statement about a desk at rest, and should be read only that way.
+
 | configuration | ε_s | ε_d | g | time constant |
 |---|---|---|---|---|
 | **shipped, labour/services** | 0 | 0 | **1.000** | ∞ — unit root, no fixed point |
@@ -438,7 +540,10 @@ root at the fixed point and nowhere else — the worst possible place for it.
 nowhere else. Recorded because it was considered.
 
 > **[MEASURED] The bound and its negative control both hold** as a property of
-> the scalar map (`the_loop_gain_bound_is_real_in_both_directions`): converges
+> the scalar map (`the_loop_gain_bound_is_real_in_both_directions`, **renamed
+> 2026-07-31 to `…_is_arithmetic_and_this_test_checks_only_the_arithmetic`**,
+> because "the bound is real" was read as a statement about the engine and the
+> test contains no engine): converges
 > at `α·b_out = 0.2`, does not settle at 2.5, and is exactly stationary at
 > `ε_s = ε_d = 0`. What the table could not show is that a market with **zero**
 > supply is not on this curve at all: the normaliser saturates, the step is
