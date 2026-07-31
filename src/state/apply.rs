@@ -96,6 +96,9 @@ fn apply_with_ledger(
                     s.smoothed_input_cost = *cost;
                 }
             }
+            SetPopParticipation { pop, participation } => {
+                state.pop_groups[pop.idx()].participation = *participation;
+            }
             SetDeskFill { instance, fill } => {
                 state.recipe_instance_mut(*instance).last_fill = *fill;
             }

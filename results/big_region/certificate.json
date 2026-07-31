@@ -1,7 +1,7 @@
 {
-  "run": "5451c1820508e1ea",
-  "git": "48c00bf",
-  "tape_sha": "9333875e6e8f8d34",
+  "run": "068deab778653ff4",
+  "git": "0242823",
+  "tape_sha": "051c2939efd582a4",
   "seed": 0,
   "scenario": "big_region",
   "ticks": 1000,
@@ -23,7 +23,7 @@
       "id": "B3",
       "label": "determinism",
       "pass": true,
-      "detail": "state hash 0x83751a09d70aac6f, replay MATCH"
+      "detail": "state hash 0x2cfb39fade25d3b7, replay MATCH"
     },
     {
       "id": "B4",

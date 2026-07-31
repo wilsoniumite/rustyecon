@@ -99,6 +99,29 @@ cannot pass unnoticed:
 | bands within the 2.2× bar | 0 of 72 |
 | classes tripped | DRIFTING 72, UNSTABLE 45, DEAD_BUILDING 34, SWINGING 34, DEAD 33, POP_DESTITUTION 10, CURRENCY_DRAIN 6 |
 
+### Re-baselined 2026-07-31 — the genesis-scale port
+
+The table above is what the corpus read before `tools/port_genesis_scale.py`
+gave every building a genesis `chosen_size` of its own `recipe_size`. This
+section exists because the paragraph above promised a later re-baselining could
+not pass unnoticed, and one happened the same day. **The rule is unchanged**;
+only the world it is measured on moved.
+
+| | before the port | after |
+|---|---|---|
+| passing the full criteria | 0 | **0** |
+| live | 29 | **33** |
+| median band, all regions | 1.296e5 × | 1.525e5 × |
+| median band, live regions | 13.34 × | **23.61 ×** |
+| min band, live regions | 2.316 × | 2.715 × |
+
+Both A/Bs are reported — `receipt-preport.md` and `receipt-ported.md` — rather
+than one being asserted to be the fair comparison. The port's justification is
+in the tool's header: it is one uniform rule, it fixes a tape field that was
+unobservable under the legacy agent and load-bearing under the kernel, and it
+cannot flatter a scored series, since nameplate is the value a kernel must
+adjust *down* from if capacity is excessive.
+
 ## What the rule was shown to detect
 
 `tools/test_ab.py`, run against the shipped certificates. A comparison that

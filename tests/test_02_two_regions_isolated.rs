@@ -114,6 +114,7 @@ fn make_scenario() -> (SimState, GameData, EventSchedule) {
         sub_state: default_sub.clone(),
         ema_spending: 0.0, ema_balance: 0.0, prev_spend_error: 0.0,
         labour_good: None, is_employed: true, last_labour_fill_rate: 1.0,
+        participation: 1.0, parity: None,
     });
 
     // Liverpool: oversupplied (20 farm, 10 pops)
@@ -134,6 +135,7 @@ fn make_scenario() -> (SimState, GameData, EventSchedule) {
         sub_state: default_sub,
         ema_spending: 0.0, ema_balance: 0.0, prev_spend_error: 0.0,
         labour_good: None, is_employed: true, last_labour_fill_rate: 1.0,
+        participation: 1.0, parity: None,
     });
 
     (state, game_data, EventSchedule::default())

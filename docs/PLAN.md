@@ -201,9 +201,58 @@ constants in code.
 >    participation margin π that kernel.md calls "the load-bearing mechanism" is
 >    exactly what is missing.
 >
-> **Remaining: P4.3 pop desks (π + parity + the consumption desk), P4.4 Rule 3
-> overflow routing, P4.5 the own-state assertion and imbalance telemetry, P4.6
-> the A/B, P4.7 the deletions.**
+> **Remaining: P4.4 Rule 3 overflow routing, P4.5 the own-state assertion and
+> imbalance telemetry, P4.6 the A/B proper, P4.7 the deletions.**
+>
+> ---
+>
+> **P4.3 LANDED, and the first A/B is a decisive LOSS.** Pop desks are in: the
+> labour pair scaled by participation π driven by σ_π, the consumption desk on
+> `(cash − reserve)/reserve` capped at the top basket tier, and a price logit
+> replacing the stored `sub_state`. `parity` is registered per pop, derived from
+> **technology** by `tools/derive_parity.py` — never from the genesis real wage,
+> which would have set part of a scored series from a dial. Every lr scenario
+> derives 1.0 baskets per unit of labour.
+>
+> Two receipts, both persisted, neither hidden:
+>
+> | | live regions | median band | verdict |
+> |---|---|---|---|
+> | pre-port, legacy → kernel | 29 → **0** | 1.30e5 → 5.9e12 × | **LOSS** |
+> | ported, legacy → kernel | 33 → **0** | 1.53e5 → 2.99e14 × | **LOSS** |
+>
+> The pre-registered rule works exactly as intended: G1 catches the kernel
+> killing every live region, G3 catches the bands widening, and G2 correctly
+> reports `n=0` rather than inventing a comparison on an empty set.
+>
+> **A correction, and it was mine, not the spec's.** The cash reserve was
+> implemented as `b_cash · S · outlay`, argued from the parameter table's
+> "activations of outlay" and from `b_cash · S = 26` matching the legacy dividend
+> `reserve_multiple`. Wrong: legacy's 26 is a *dividend retention* threshold,
+> Rule 3's reserve is a floor on *spending*. A building holding 50 against a
+> 228.8 reserve had `budget = 0`, so it bought nothing, produced nothing, earned
+> nothing, and could never climb out. Under kernel.md's literal formula the
+> reserve is 14.3 against a budget of 35.7 and inputs costing 35.2 — close enough
+> that the corpus's genesis cash was plainly sized against that reading. Fixed;
+> the absorbing state is recorded rather than guarded, because a guard would hide
+> it from the Phase 5 phase map that ought to find it.
+>
+> **What the kernel now does, and what it does not.** With a genesis scale and a
+> working reserve the economy runs — desks trade, inventories build, scale moves
+> both ways, every engine battery passes. It is nonetheless violently unstable:
+> on `lr_00` flour goes 0.6 → 2.3 → 3.6e3 → 4.97e7 → 1.8e4 while wheat and labour
+> go to zero. Prices adjust ~10%/tick (registered α) against scale's ~1%/tick, so
+> quantities cannot answer a price move before the next one arrives. That
+> timescale ratio is a Phase 5 question — α is not currently a phase-diagram axis
+> and on this evidence it should be.
+>
+> **The kill condition is in view and is not yet met.** METHODOLOGY's standing
+> rule is to stop and rethink the agent design if the kernel cannot pass the
+> Phase 4/5 gates after honest effort. Two known mechanisms are still missing
+> (P4.4 overflow routing, P4.5's checks), so the effort is not yet honest-complete
+> — but a kernel that takes 33 live regions to 0 is not a near miss, and the next
+> session should decide between finishing P4.4–P4.5 and taking the timescale
+> ratio to Phase 5 first.
 >
 > **One decision P4.3 must take deliberately.** `parity` is registered per pop
 > in *goods per unit labour* (Phase 3.5 specified the units and deferred the

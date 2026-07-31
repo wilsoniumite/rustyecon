@@ -94,6 +94,8 @@ mod tests {
             labour_good: None,
             is_employed: true,
             last_labour_fill_rate: 1.0,
+            participation: 1.0,
+            parity: None,
         });
         let found = scan(&state, 1, 1);
         assert!(found.iter().any(|f| f.field == "pop"), "found: {found:?}");

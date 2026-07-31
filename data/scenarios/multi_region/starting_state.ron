@@ -13,7 +13,7 @@
             region: (0),
             recipe: "grain_mill",
             recipe_size: 16.0,
-            chosen_size: 0.0,
+            chosen_size: 16.0,
             efficiency: 1.0,
             inventory: {
                 "GBP": 50.0,
@@ -27,7 +27,7 @@
             region: (1),
             recipe: "grain_mill",
             recipe_size: 12.0,
-            chosen_size: 0.0,
+            chosen_size: 12.0,
             efficiency: 1.0,
             inventory: {
                 "GBP": 50.0,
@@ -41,7 +41,7 @@
             region: (2),
             recipe: "grain_mill",
             recipe_size: 14.0,
-            chosen_size: 0.0,
+            chosen_size: 14.0,
             efficiency: 1.0,
             inventory: {
                 "GBP": 50.0,
@@ -55,7 +55,7 @@
             region: (0),
             recipe: "flour_transport",
             recipe_size: 10.0,
-            chosen_size: 0.0,
+            chosen_size: 10.0,
             efficiency: 1.0,
             inventory: {
                 "GBP": 50.0,
@@ -69,7 +69,7 @@
             region: (1),
             recipe: "flour_transport",
             recipe_size: 10.0,
-            chosen_size: 0.0,
+            chosen_size: 10.0,
             efficiency: 1.0,
             inventory: {
                 "GBP": 50.0,
@@ -83,7 +83,7 @@
             region: (0),
             recipe: "flour_transport",
             recipe_size: 10.0,
-            chosen_size: 0.0,
+            chosen_size: 10.0,
             efficiency: 1.0,
             inventory: {
                 "GBP": 50.0,
@@ -97,7 +97,7 @@
             region: (2),
             recipe: "flour_transport",
             recipe_size: 10.0,
-            chosen_size: 0.0,
+            chosen_size: 10.0,
             efficiency: 1.0,
             inventory: {
                 "GBP": 50.0,
@@ -111,7 +111,7 @@
             region: (1),
             recipe: "flour_transport",
             recipe_size: 10.0,
-            chosen_size: 0.0,
+            chosen_size: 10.0,
             efficiency: 1.0,
             inventory: {
                 "GBP": 50.0,
@@ -125,7 +125,7 @@
             region: (2),
             recipe: "flour_transport",
             recipe_size: 10.0,
-            chosen_size: 0.0,
+            chosen_size: 10.0,
             efficiency: 1.0,
             inventory: {
                 "GBP": 50.0,
@@ -139,7 +139,7 @@
             region: (0),
             recipe: "wheat_farm",
             recipe_size: 16.0,
-            chosen_size: 0.0,
+            chosen_size: 16.0,
             efficiency: 1.0,
             inventory: {
                 "GBP": 50.0,
@@ -153,7 +153,7 @@
             region: (1),
             recipe: "wheat_farm",
             recipe_size: 12.0,
-            chosen_size: 0.0,
+            chosen_size: 12.0,
             efficiency: 1.0,
             inventory: {
                 "GBP": 50.0,
@@ -167,7 +167,7 @@
             region: (2),
             recipe: "wheat_farm",
             recipe_size: 14.0,
-            chosen_size: 0.0,
+            chosen_size: 14.0,
             efficiency: 1.0,
             inventory: {
                 "GBP": 50.0,
@@ -181,7 +181,7 @@
             region: (0),
             recipe: "local_services",
             recipe_size: 50.0,
-            chosen_size: 0.0,
+            chosen_size: 50.0,
             efficiency: 1.0,
             inventory: {
                 "GBP": 50.0,
@@ -195,7 +195,7 @@
             region: (1),
             recipe: "local_services",
             recipe_size: 50.0,
-            chosen_size: 0.0,
+            chosen_size: 50.0,
             efficiency: 1.0,
             inventory: {
                 "GBP": 50.0,
@@ -209,7 +209,7 @@
             region: (2),
             recipe: "local_services",
             recipe_size: 50.0,
-            chosen_size: 0.0,
+            chosen_size: 50.0,
             efficiency: 1.0,
             inventory: {
                 "GBP": 50.0,
@@ -230,6 +230,10 @@
             },
             savings_target: 0.9,
             labour_good: Some("labour"),
+            // Subsistence baskets per unit of labour — the pop's outside
+            // option. Derived from technology by tools/derive_parity.py,
+            // never from prices: RealWage is a scored series (R6).
+            parity: Some(1.0),
         ),
         (
             id: (1),
@@ -241,6 +245,10 @@
             },
             savings_target: 0.9,
             labour_good: Some("labour"),
+            // Subsistence baskets per unit of labour — the pop's outside
+            // option. Derived from technology by tools/derive_parity.py,
+            // never from prices: RealWage is a scored series (R6).
+            parity: Some(1.0),
         ),
         (
             id: (2),
@@ -252,6 +260,10 @@
             },
             savings_target: 0.9,
             labour_good: Some("labour"),
+            // Subsistence baskets per unit of labour — the pop's outside
+            // option. Derived from technology by tools/derive_parity.py,
+            // never from prices: RealWage is a scored series (R6).
+            parity: Some(1.0),
         ),
         (
             id: (3),

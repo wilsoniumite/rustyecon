@@ -6,7 +6,7 @@
             region: (0),
             recipe: "grain_mill",
             recipe_size: 15.0,
-            chosen_size: 0.0,
+            chosen_size: 15.0,
             efficiency: 1.0,
             inventory: {
                 "GBP": 50.0,
@@ -20,7 +20,7 @@
             region: (0),
             recipe: "bread_bakery",
             recipe_size: 15.0,
-            chosen_size: 0.0,
+            chosen_size: 15.0,
             efficiency: 1.0,
             inventory: {
                 "GBP": 50.0,
@@ -34,7 +34,7 @@
             region: (0),
             recipe: "tool_workshop",
             recipe_size: 15.0,
-            chosen_size: 0.0,
+            chosen_size: 15.0,
             efficiency: 1.0,
             inventory: {
                 "GBP": 50.0,
@@ -48,7 +48,7 @@
             region: (0),
             recipe: "luxury_restaurant",
             recipe_size: 15.0,
-            chosen_size: 0.0,
+            chosen_size: 15.0,
             efficiency: 1.0,
             inventory: {
                 "GBP": 50.0,
@@ -62,7 +62,7 @@
             region: (0),
             recipe: "winery",
             recipe_size: 15.0,
-            chosen_size: 0.0,
+            chosen_size: 15.0,
             efficiency: 1.0,
             inventory: {
                 "GBP": 50.0,

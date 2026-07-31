@@ -13,14 +13,31 @@
 //!
 //! Three, each recorded here and in kernel.md rather than chosen silently.
 //!
-//! **The cash reserve.** kernel.md writes `reserve = b_cash · outlay(scale)/S`
-//! but its parameter table calls `b_cash` a band "in activations of outlay".
-//! Those disagree by a factor of S²: the formula with a per-tick outlay gives
-//! 1.6 ticks of cover, the table's words give 26. The table wins, on evidence
-//! rather than taste — every scenario in the corpus registers the legacy
-//! dividend desk's `reserve_multiple` as 26.0 against a smoothed per-tick input
-//! cost, and `b_cash · S = 6.5 · 4 = 26` exactly. So: `reserve = b_cash · S ·
-//! outlay_per_tick`.
+//! **The cash reserve** is `b_cash · outlay_per_tick / S`, the formula as
+//! kernel.md literally writes it.
+//!
+//! It was implemented as `b_cash · S · outlay_per_tick` first, on the argument
+//! that the parameter table calls `b_cash` a band "in activations of outlay" and
+//! that `b_cash · S = 6.5 · 4 = 26` matches the legacy dividend desk's
+//! registered `reserve_multiple` of 26.0. That argument was wrong, and it is
+//! worth keeping the reason: legacy's 26 is a *dividend retention* threshold —
+//! pay out cash above 26× smoothed input cost — while Rule 3's reserve is a
+//! floor on *spending*. Two different quantities that happen to be denominated
+//! the same way.
+//!
+//! The consequence was decisive rather than subtle. A building in the corpus
+//! opens with 50 currency against a per-tick input cost of 8.8; the wrong
+//! reading put its reserve at 228.8, so `budget = max(cash − reserve, 0)` was
+//! exactly zero, and it bought nothing, produced nothing, earned nothing, and
+//! could never climb out. Under the literal formula the reserve is 14.3 and the
+//! budget 35.7, against 35.2 needed to fund one activation's inputs — which is
+//! close enough to suggest the corpus's genesis cash was sized against this
+//! reading.
+//!
+//! The absorbing state is still real in the general case: any desk that starts
+//! below its cash band buys nothing and can never earn its way back. It is not
+//! reached at these numbers, and it is recorded rather than guarded, because a
+//! guard would hide it from the phase map (PLAN Phase 5) that should find it.
 //!
 //! **σ, which is not the spec's σ — a defect found by implementing it.** The
 //! table gives the producer's pressure signal as
@@ -182,6 +199,214 @@ pub fn run(
     }
 
     rule_3_buy_and_route(state, game_data, orders);
+    pop_desks(state, game_data, deltas, orders);
+}
+
+// ── Pop desks ─────────────────────────────────────────────────────────────────
+
+/// Within-category shares from a multinomial logit on price.
+///
+/// `share_i ∝ weight_i · exp(−beta · p_i / p̄)`, so a category's spending tilts
+/// toward whichever member got cheaper, at a sensitivity the tape registers.
+/// Prices are divided by their own mean before the exponential, which is what
+/// makes `beta` a pure number instead of something with units of 1/currency —
+/// and therefore what keeps it meaningful under any redenomination (R12).
+///
+/// Replaces the legacy `sub_state`, a per-pop stored allocation that crept
+/// toward fixed weights at a capped rate and never looked at a price at all.
+/// Every need category in the lr corpus has exactly one entry, so on that
+/// corpus this returns `[1.0]` and `beta` is inert; it is written and tested
+/// here rather than implied to be exercised.
+pub fn logit_shares(weights: &[f64], prices: &[f64], beta: f64) -> Vec<f64> {
+    let n = weights.len();
+    if n == 0 {
+        return Vec::new();
+    }
+    if n == 1 {
+        return vec![1.0];
+    }
+    let mean = prices.iter().sum::<f64>() / n as f64;
+    if !(mean > 0.0) {
+        return vec![1.0 / n as f64; n];
+    }
+    let raw: Vec<f64> = weights
+        .iter()
+        .zip(prices)
+        .map(|(w, p)| w.max(0.0) * (-beta * (p / mean)).exp())
+        .collect();
+    let total: f64 = raw.iter().sum();
+    if total > 0.0 {
+        raw.into_iter().map(|r| r / total).collect()
+    } else {
+        vec![1.0 / n as f64; n]
+    }
+}
+
+/// Quantity and cost of one tick's basket at a given wealth tier.
+fn basket(
+    state: &SimState,
+    game_data: &GameData,
+    node: MarketNodeId,
+    wealth: f64,
+    size: f64,
+) -> (Vec<Vec<f64>>, f64) {
+    let per_pop = game_data.interpolated_qty(wealth);
+    let mut cost = 0.0;
+    let mut per_entry = Vec::with_capacity(game_data.need_categories.len());
+    for (ci, cat) in game_data.need_categories.iter().enumerate() {
+        let total = per_pop.get(ci).copied().unwrap_or(0.0) * size;
+        let weights: Vec<f64> = cat.entries.iter().map(|e| e.weight).collect();
+        let prices: Vec<f64> = cat
+            .entries
+            .iter()
+            .map(|e| state.price(node, e.good).max(0.0))
+            .collect();
+        let shares = logit_shares(&weights, &prices, game_data.kernel.beta);
+        let qtys: Vec<f64> = shares.iter().map(|s| s * total).collect();
+        for (q, p) in qtys.iter().zip(&prices) {
+            cost += q * p;
+        }
+        per_entry.push(qtys);
+    }
+    (per_entry, cost)
+}
+
+/// The subsistence basket's price at this node — the tier-0 row of the
+/// registered table, which is what `parity` is denominated in.
+fn subsistence_price(state: &SimState, game_data: &GameData, node: MarketNodeId) -> f64 {
+    basket(state, game_data, node, 0.0, 1.0).1
+}
+
+/// Pops: the labour pair scaled by participation, and the consumption desk.
+///
+/// **Buying is per tick, not per activation**, unlike a producer desk. That is
+/// forced by the engine rather than chosen: `pop_update` consumes every
+/// non-currency good a pop holds at the end of every tick — pops do not
+/// stockpile — so a pop that bought four ticks' worth on its activation would
+/// have three of them destroyed. Only the two *scales*, π and the wealth tier,
+/// are staggered.
+fn pop_desks(
+    state: &SimState,
+    game_data: &GameData,
+    deltas: &mut Vec<StateDelta>,
+    orders: &mut Vec<Order>,
+) {
+    let k = &game_data.kernel;
+    let max_tier = game_data.max_wealth_tier();
+
+    for pop in &state.pop_groups {
+        let node = game_data.region(pop.region).market_node;
+        let currency = game_data.market_node(node).currency_good;
+        let acting = on_phase(state.tick, pop.id.0 as u64, k.s);
+
+        // ── Rule 1 for labour: the pair rule, scaled by participation ──
+        //
+        // The employed half posts its full hours, the unemployed half posts
+        // fill-scaled hours — that pair *is* Rule 1's fill-stickiness at pop
+        // grain — and π scales both. π is the state variable that lets the
+        // labour market integrate its flow error, the role inventory plays for
+        // a storable.
+        if let Some(labour) = pop.labour_good {
+            let hours = if pop.is_employed {
+                pop.size
+            } else {
+                pop.size * pop.last_labour_fill_rate
+            };
+            let qty = hours * pop.participation;
+            if qty > 0.0 {
+                orders.push(Order {
+                    node,
+                    good: labour,
+                    side: OrderSide::Sell,
+                    owner: OwnerId::PopGroup(pop.id),
+                    qty,
+                });
+            }
+        }
+
+        // ── Rule 3 for the consumption desk ──
+        let wealth = pop.wealth.clamp(k.epsilon * max_tier, max_tier);
+        let (qtys, cost) = basket(state, game_data, node, wealth, pop.size);
+        let cash = currency
+            .map(|c| state.inventory(pop.inventory).get(c).max(0.0))
+            .unwrap_or(f64::INFINITY);
+        // The same reading as a producer desk's, so the money-demand anchor
+        // that pins the price level is one rule and not two.
+        let reserve = k.b_cash * cost / k.s as f64;
+        let budget = (cash - reserve).max(0.0);
+        // Below the band the pop still eats: subsistence is not discretionary,
+        // and a reserve that suppressed buying entirely would starve a pop
+        // holding exactly its own savings target.
+        let affordable = cash.min(f64::INFINITY);
+        let spend = if cost <= budget { cost } else { cost.min(affordable) };
+        let ration = if cost > 0.0 { (spend / cost).clamp(0.0, 1.0) } else { 0.0 };
+
+        for (ci, cat) in game_data.need_categories.iter().enumerate() {
+            for (ei, entry) in cat.entries.iter().enumerate() {
+                let qty = qtys[ci][ei] * ration;
+                if qty > 0.0 {
+                    orders.push(Order {
+                        node,
+                        good: entry.good,
+                        side: OrderSide::Buy,
+                        owner: OwnerId::PopGroup(pop.id),
+                        qty,
+                    });
+                }
+            }
+        }
+
+        if !acting {
+            continue;
+        }
+        let u = weyl(k.phi, pop.id.0 as u64, state.tick, k.s);
+
+        // ── Rule 2 for the consumption desk ──
+        //
+        // σ = (cash − reserve)/reserve: sustained income pushes the wealth tier
+        // up, sustained shortfall pushes it down. `size` is the basket table's
+        // top tier, which is the absorption cap.
+        if currency.is_some() && reserve > 0.0 && max_tier > 0.0 {
+            let sigma_c = (cash - reserve) / reserve;
+            let mut w = wealth;
+            if sigma_c > k.dead {
+                w *= 1.0 + k.eta_up * u;
+            } else if sigma_c < -k.dead {
+                w *= 1.0 - k.eta_dn * u;
+            }
+            let w = w.clamp(k.epsilon * max_tier, max_tier);
+            if (w - pop.wealth).abs() > 1e-12 {
+                deltas.push(StateDelta::SetPopWealth { pop: pop.id, wealth: w });
+            }
+        }
+
+        // ── Rule 2 for the labour margin ──
+        //
+        // σ_π = (w_posted/P_basket − parity)/parity, both sides real. A nominal
+        // parity would pin a price from outside the price system (R12), and
+        // under uniform deflation the ratio would not move at all.
+        if let (Some(labour), Some(parity)) = (pop.labour_good, pop.parity) {
+            let p_basket = subsistence_price(state, game_data, node);
+            if p_basket > 0.0 && parity > 0.0 {
+                let real_wage = state.price(node, labour) / p_basket;
+                let sigma_pi = (real_wage - parity) / parity;
+                let mut pi = pop.participation;
+                if sigma_pi > k.dead {
+                    pi *= 1.0 + k.eta_up * u;
+                } else if sigma_pi < -k.dead {
+                    pi *= 1.0 - k.eta_dn * u;
+                }
+                // The labour margin's size is 1 by definition, so π ∈ [ε, 1].
+                let pi = pi.clamp(k.epsilon, 1.0);
+                if (pi - pop.participation).abs() > 1e-12 {
+                    deltas.push(StateDelta::SetPopParticipation {
+                        pop: pop.id,
+                        participation: pi,
+                    });
+                }
+            }
+        }
+    }
 }
 
 // ── Rule 1 — SELL above the band ──────────────────────────────────────────────
@@ -411,9 +636,9 @@ fn rule_3_buy_and_route(state: &SimState, game_data: &GameData, orders: &mut Vec
             .map(|ri| outlay_per_tick(state, game_data, ri, currency))
             .sum();
 
-        // See the module header for why this is `b_cash · S` and not
-        // `b_cash / S`: the reserve is a cash *band*, measured in activations.
-        let reserve = k.b_cash * k.s as f64 * outlay;
+        // kernel.md's formula, literally. See the module header for the reading
+        // that was tried first, why it was wrong, and what it did.
+        let reserve = k.b_cash * outlay / k.s as f64;
         let budget = (cash - reserve).max(0.0);
 
         // What an activation's production actually needs, net of stock already

@@ -123,6 +123,8 @@ fn make_scenario() -> (SimState, GameData, EventSchedule) {
         labour_good: None,
         is_employed: true,
         last_labour_fill_rate: 1.0,
+        participation: 1.0,
+        parity: None,
     });
 
     (state, game_data, EventSchedule::default())

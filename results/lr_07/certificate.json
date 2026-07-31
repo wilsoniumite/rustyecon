@@ -1,7 +1,7 @@
 {
-  "run": "00302923c84e3e4f",
-  "git": "48c00bf",
-  "tape_sha": "9d4e8ed6d6032c48",
+  "run": "0d9a8ee0ac1b6560",
+  "git": "0242823",
+  "tape_sha": "78f2394777a4a3fa",
   "seed": 0,
   "scenario": "lr_07",
   "ticks": 1000,
@@ -11,7 +11,7 @@
       "id": "B1",
       "label": "conservation",
       "pass": true,
-      "detail": "max drift 2.046e-12, worst margin 0.0% of tolerance"
+      "detail": "max drift 1.819e-12, worst margin 0.0% of tolerance"
     },
     {
       "id": "B2",
@@ -23,7 +23,7 @@
       "id": "B3",
       "label": "determinism",
       "pass": true,
-      "detail": "state hash 0x8bd145142769b37c, replay MATCH"
+      "detail": "state hash 0x8e0262cf0e20e5df, replay MATCH"
     },
     {
       "id": "B4",
@@ -49,7 +49,7 @@
       {
         "region": "Manchester",
         "issues": [
-          "DEAD(velocity frac=0.84)"
+          "DEAD(velocity frac=0.87)"
         ],
         "passed": false,
         "measurements": [
@@ -57,7 +57,7 @@
             "class": "DEAD",
             "metric": "velocity",
             "stat": "frac",
-            "value": "8.448883666274971e-1",
+            "value": "8.683901292596945e-1",
             "tripped": true,
             "counted": true
           },
@@ -65,7 +65,7 @@
             "class": "DEAD_EMPLOYMENT",
             "metric": "employment",
             "stat": "frac",
-            "value": "0e0",
+            "value": "3.572267920094007e-1",
             "tripped": false,
             "counted": false
           },
@@ -73,7 +73,7 @@
             "class": "UNSTABLE",
             "metric": "velocity",
             "stat": "cv",
-            "value": "1.6976377928292638e-1",
+            "value": "1.5291229950270074e-1",
             "tripped": true,
             "counted": false
           },
@@ -81,15 +81,15 @@
             "class": "UNSTABLE",
             "metric": "employment",
             "stat": "cv",
-            "value": "2.8552116682318388e-2",
-            "tripped": false,
+            "value": "7.368473254997111e-1",
+            "tripped": true,
             "counted": false
           },
           {
             "class": "UNSTABLE",
             "metric": "realwage",
             "stat": "cv",
-            "value": "6.059922681979566e-2",
+            "value": "6.8429882203955e-2",
             "tripped": false,
             "counted": false
           },
@@ -97,7 +97,7 @@
             "class": "DRIFTING",
             "metric": "velocity",
             "stat": "range",
-            "value": "1.3407057097830198e5",
+            "value": "1.7350228582590932e6",
             "tripped": true,
             "counted": false
           },
@@ -105,7 +105,7 @@
             "class": "DRIFTING",
             "metric": "realwage",
             "stat": "range",
-            "value": "2.0679862033660887e4",
+            "value": "3.557077393021852e4",
             "tripped": true,
             "counted": false
           },
@@ -113,7 +113,7 @@
             "class": "SWINGING",
             "metric": "velocity",
             "stat": "osc",
-            "value": "3.4671151165287284e-1",
+            "value": "1.9505461440807004e-1",
             "tripped": false,
             "counted": false
           },
@@ -121,7 +121,7 @@
             "class": "SWINGING",
             "metric": "realwage",
             "stat": "osc",
-            "value": "1.38510007070435e0",
+            "value": "1.0352672358045025e0",
             "tripped": false,
             "counted": false
           },
@@ -129,7 +129,7 @@
             "class": "CURRENCY_DRAIN",
             "metric": "concentration",
             "stat": "mean",
-            "value": "2.5840851598451814e-2",
+            "value": "1.7199694819606023e-2",
             "tripped": false,
             "counted": false
           },
@@ -137,7 +137,7 @@
             "class": "CURRENCY_DRAIN",
             "metric": "concentration",
             "stat": "slope",
-            "value": "-2.110890278750161e-6",
+            "value": "-1.166941877850802e-9",
             "tripped": false,
             "counted": false
           },
@@ -153,8 +153,8 @@
             "class": "DEAD_BUILDING",
             "metric": "bldutil",
             "stat": "frac",
-            "value": "0e0",
-            "tripped": false,
+            "value": "7.520564042303173e-1",
+            "tripped": true,
             "counted": false
           }
         ]
@@ -162,11 +162,13 @@
       {
         "region": "Leeds",
         "issues": [
-          "UNSTABLE(velocity CV=0.75)",
-          "UNSTABLE(employment CV=0.86)",
-          "DRIFTING(velocity range=371877925550666402496512.00x)",
-          "DRIFTING(realwage range=4531.69x)",
-          "SWINGING(realwage osc=1.76)",
+          "UNSTABLE(velocity CV=0.87)",
+          "UNSTABLE(employment CV=0.88)",
+          "DRIFTING(velocity range=1267576338.75x)",
+          "DRIFTING(realwage range=11158.23x)",
+          "SWINGING(velocity osc=3.73)",
+          "SWINGING(realwage osc=2.42)",
+          "CURRENCY_DRAIN(concentration mean=0.98, slope=0.0000)",
           "POP_DESTITUTION(realincome frac=0.99)",
           "DEAD_BUILDING(bldutil frac=1.00)"
         ],
@@ -176,7 +178,7 @@
             "class": "DEAD",
             "metric": "velocity",
             "stat": "frac",
-            "value": "2.3266745005875442e-1",
+            "value": "3.501762632197415e-1",
             "tripped": false,
             "counted": false
           },
@@ -184,7 +186,7 @@
             "class": "DEAD_EMPLOYMENT",
             "metric": "employment",
             "stat": "frac",
-            "value": "4.8531139835487663e-1",
+            "value": "5.205640423031728e-1",
             "tripped": false,
             "counted": false
           },
@@ -192,7 +194,7 @@
             "class": "UNSTABLE",
             "metric": "velocity",
             "stat": "cv",
-            "value": "7.541327340139857e-1",
+            "value": "8.651712628306029e-1",
             "tripped": true,
             "counted": true
           },
@@ -200,7 +202,7 @@
             "class": "UNSTABLE",
             "metric": "employment",
             "stat": "cv",
-            "value": "8.556152193221893e-1",
+            "value": "8.773277798204822e-1",
             "tripped": true,
             "counted": true
           },
@@ -208,7 +210,7 @@
             "class": "UNSTABLE",
             "metric": "realwage",
             "stat": "cv",
-            "value": "8.235181675412118e-2",
+            "value": "8.52927199101797e-2",
             "tripped": false,
             "counted": false
           },
@@ -216,7 +218,7 @@
             "class": "DRIFTING",
             "metric": "velocity",
             "stat": "range",
-            "value": "3.718779255506664e23",
+            "value": "1.267576338754203e9",
             "tripped": true,
             "counted": true
           },
@@ -224,7 +226,7 @@
             "class": "DRIFTING",
             "metric": "realwage",
             "stat": "range",
-            "value": "4.531692739045388e3",
+            "value": "1.1158230244183336e4",
             "tripped": true,
             "counted": true
           },
@@ -232,15 +234,15 @@
             "class": "SWINGING",
             "metric": "velocity",
             "stat": "osc",
-            "value": "8.433119122643047e-1",
-            "tripped": false,
-            "counted": false
+            "value": "3.7295280374265976e0",
+            "tripped": true,
+            "counted": true
           },
           {
             "class": "SWINGING",
             "metric": "realwage",
             "stat": "osc",
-            "value": "1.7556032338937893e0",
+            "value": "2.419288551717103e0",
             "tripped": true,
             "counted": true
           },
@@ -248,23 +250,23 @@
             "class": "CURRENCY_DRAIN",
             "metric": "concentration",
             "stat": "mean",
-            "value": "9.781447867318656e-1",
-            "tripped": false,
-            "counted": false
+            "value": "9.798903053540695e-1",
+            "tripped": true,
+            "counted": true
           },
           {
             "class": "CURRENCY_DRAIN",
             "metric": "concentration",
             "stat": "slope",
-            "value": "-4.04687982168908e-5",
-            "tripped": false,
-            "counted": false
+            "value": "1.2114818841842659e-5",
+            "tripped": true,
+            "counted": true
           },
           {
             "class": "POP_DESTITUTION",
             "metric": "realincome",
             "stat": "frac",
-            "value": "9.894242068155111e-1",
+            "value": "9.929494712103408e-1",
             "tripped": true,
             "counted": true
           },
@@ -281,7 +283,7 @@
       {
         "region": "Birmingham",
         "issues": [
-          "DEAD(velocity frac=0.89)"
+          "DEAD(velocity frac=0.87)"
         ],
         "passed": false,
         "measurements": [
@@ -289,7 +291,7 @@
             "class": "DEAD",
             "metric": "velocity",
             "stat": "frac",
-            "value": "8.883666274970623e-1",
+            "value": "8.683901292596945e-1",
             "tripped": true,
             "counted": true
           },
@@ -297,7 +299,7 @@
             "class": "DEAD_EMPLOYMENT",
             "metric": "employment",
             "stat": "frac",
-            "value": "2.8319623971797886e-1",
+            "value": "0e0",
             "tripped": false,
             "counted": false
           },
@@ -305,7 +307,7 @@
             "class": "UNSTABLE",
             "metric": "velocity",
             "stat": "cv",
-            "value": "1.1832657036921682e-1",
+            "value": "9.966175675194666e-2",
             "tripped": false,
             "counted": false
           },
@@ -313,15 +315,15 @@
             "class": "UNSTABLE",
             "metric": "employment",
             "stat": "cv",
-            "value": "5.556595718684825e-1",
-            "tripped": true,
+            "value": "1.2200281622227459e-2",
+            "tripped": false,
             "counted": false
           },
           {
             "class": "UNSTABLE",
             "metric": "realwage",
             "stat": "cv",
-            "value": "7.521695061845012e-2",
+            "value": "4.964426230368717e-2",
             "tripped": false,
             "counted": false
           },
@@ -329,7 +331,7 @@
             "class": "DRIFTING",
             "metric": "velocity",
             "stat": "range",
-            "value": "1.1739694170068274e5",
+            "value": "1.3777040499664436e5",
             "tripped": true,
             "counted": false
           },
@@ -337,7 +339,7 @@
             "class": "DRIFTING",
             "metric": "realwage",
             "stat": "range",
-            "value": "8.427137579371825e4",
+            "value": "2.424862688762421e3",
             "tripped": true,
             "counted": false
           },
@@ -345,7 +347,7 @@
             "class": "SWINGING",
             "metric": "velocity",
             "stat": "osc",
-            "value": "6.0289366442076e-1",
+            "value": "4.263291176143972e-1",
             "tripped": false,
             "counted": false
           },
@@ -353,15 +355,15 @@
             "class": "SWINGING",
             "metric": "realwage",
             "stat": "osc",
-            "value": "9.774646497420224e-1",
-            "tripped": false,
+            "value": "1.793350207204398e0",
+            "tripped": true,
             "counted": false
           },
           {
             "class": "CURRENCY_DRAIN",
             "metric": "concentration",
             "stat": "mean",
-            "value": "1.5483331849230956e-2",
+            "value": "1.7828977391080608e-2",
             "tripped": false,
             "counted": false
           },
@@ -369,7 +371,7 @@
             "class": "CURRENCY_DRAIN",
             "metric": "concentration",
             "stat": "slope",
-            "value": "-2.6647149013553606e-9",
+            "value": "-1.0419288495502939e-6",
             "tripped": false,
             "counted": false
           },
@@ -385,8 +387,8 @@
             "class": "DEAD_BUILDING",
             "metric": "bldutil",
             "stat": "frac",
-            "value": "6.980023501762632e-1",
-            "tripped": true,
+            "value": "0e0",
+            "tripped": false,
             "counted": false
           }
         ]

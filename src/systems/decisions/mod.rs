@@ -45,6 +45,7 @@ pub fn run(
     match arm {
         crate::kernel::AgentArm::Legacy => {
             building_agent::run(state, game_data, &mut deltas, &mut orders);
+            pop_agent::run(state, game_data, &mut deltas, &mut orders);
         }
         crate::kernel::AgentArm::Kernel => {
             crate::kernel::run(state, game_data, &mut deltas, &mut orders);
@@ -56,6 +57,5 @@ pub fn run(
             building_agent::run_dividends_only(state, game_data, &mut deltas);
         }
     }
-    pop_agent::run(state, game_data, &mut deltas, &mut orders);
     (deltas, orders)
 }

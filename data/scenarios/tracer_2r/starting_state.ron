@@ -19,8 +19,8 @@
           inventory: { "gbp": 60.0, "grain": 1.386 } ),
     ],
     pop_groups: [
-        ( id: (0), region: (0), size: 2.0, wealth: 0.0, inventory: { "gbp": 100.0 }, savings_target: 0.9, labour_good: Some("labour") ),
-        ( id: (1), region: (1), size: 2.0, wealth: 0.0, inventory: { "gbp": 100.0 }, savings_target: 0.9, labour_good: Some("labour") ),
+        ( id: (0), region: (0), size: 2.0, wealth: 0.0, inventory: { "gbp": 100.0 }, savings_target: 0.9, labour_good: Some("labour"), parity: Some(1.0) ),
+        ( id: (1), region: (1), size: 2.0, wealth: 0.0, inventory: { "gbp": 100.0 }, savings_target: 0.9, labour_good: Some("labour"), parity: Some(1.0) ),
     ],
     // The currency return path. One per region, paying its own region's pop.
     extra_recipe_instances: [

@@ -19,7 +19,7 @@
             region: (0),
             recipe: "grain_mill",
             recipe_size: 15.0,
-            chosen_size: 0.0,
+            chosen_size: 15.0,
             efficiency: 1.0,
             inventory: {"GBP": 50.0},
             transfer_target: None,

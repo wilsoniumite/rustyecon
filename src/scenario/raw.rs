@@ -149,6 +149,12 @@ pub struct RawPopGroup {
     /// The good this pop supplies as labour. Optional; if absent the pop posts no labour orders.
     #[serde(default)]
     pub labour_good: Option<String>,
+    /// The pop's outside option in subsistence baskets per unit of labour.
+    /// Required wherever the pop supplies labour, with no code default: it
+    /// drives the participation margin, and a behavioural constant with a live
+    /// consumer belongs in the tape (R2).
+    #[serde(default)]
+    pub parity: Option<f64>,
 }
 
 #[derive(Deserialize)]
@@ -390,14 +396,29 @@ pub fn resolve_sim_state(
     // alongside it. IDs: employed = 0..n, unemployed = n..2n. All employed halves are
     // pushed first so that id.idx() == vec index for both ranges.
     let n_pops = raw.pop_groups.len() as u32;
-    // (id, region, wealth, savings_target, labour_good)
-    let mut stub_data: Vec<(PopGroupId, RegionId, f64, f64, Option<GoodId>)> = Vec::new();
+    // (id, region, wealth, savings_target, labour_good, parity)
+    let mut stub_data: Vec<(PopGroupId, RegionId, f64, f64, Option<GoodId>, Option<f64>)> = Vec::new();
 
     for p in raw.pop_groups {
         let employed_id = p.id;
         let unemployed_id = PopGroupId(n_pops + employed_id.0);
         let pair_id = PopPairId(employed_id.0);
         let labour_good = p.labour_good.map(|n| resolver.good(&n)).transpose()?;
+        // A pop that sells hours must state what those hours are worth to it at
+        // home, or the participation margin has nothing to compare against and
+        // the labour market's imbalance keeps its price-independent pin.
+        if labour_good.is_some() && p.parity.is_none() {
+            return Err(format!(
+                "pop {:?} supplies labour but registers no parity — see                  tools/derive_parity.py, which derives it from the tape's technology",
+                p.id
+            )
+            .into());
+        }
+        if let Some(v) = p.parity {
+            if !(v.is_finite() && v > 0.0) {
+                return Err(format!("pop {:?}: parity must be finite and positive, got {v}", p.id).into());
+            }
+        }
 
         let inv_id = InventoryId(state.inventories.len() as u32);
         state.inventories.push(resolver.inventory(p.inventory)?);
@@ -416,9 +437,12 @@ pub fn resolve_sim_state(
             labour_good,
             is_employed: true,
             last_labour_fill_rate: 1.0,
+            // Full participation at genesis; the margin moves it from there.
+            participation: 1.0,
+            parity: p.parity,
         });
 
-        stub_data.push((unemployed_id, p.region, p.wealth, p.savings_target, labour_good));
+        stub_data.push((unemployed_id, p.region, p.wealth, p.savings_target, labour_good, p.parity));
 
         state.pop_pairs.push(PopPair {
             id: pair_id,
@@ -428,7 +452,7 @@ pub fn resolve_sim_state(
     }
 
     // Push all unemployed stubs after employed halves so id.idx() == vec position.
-    for (unemployed_id, region, wealth, savings_target, labour_good) in stub_data {
+    for (unemployed_id, region, wealth, savings_target, labour_good, parity) in stub_data {
         let inv_id = InventoryId(state.inventories.len() as u32);
         state.inventories.push(Inventory::default());
         state.pop_groups.push(PopGroup {
@@ -445,6 +469,9 @@ pub fn resolve_sim_state(
             labour_good,
             is_employed: false,
             last_labour_fill_rate: 1.0,
+            // Both halves of a pair share one outside option and one margin.
+            participation: 1.0,
+            parity,
         });
     }
 

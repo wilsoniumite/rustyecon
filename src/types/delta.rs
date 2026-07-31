@@ -113,6 +113,10 @@ pub enum StateDelta {
         cost: f64,
     },
 
+    /// Set a pop's participation scale π — the fraction of the pair's hours
+    /// actually offered to the market. Kernel arm only.
+    SetPopParticipation { pop: PopGroupId, participation: f64 },
+
     /// Update a desk's EMA of its own realized sell fill. Kernel arm only.
     SetDeskFill {
         instance: RecipeInstanceId,
