@@ -34,7 +34,7 @@ fn load_lr00() -> (SimState, GameData, EventSchedule) {
 fn hash_seq(state: &mut SimState, gd: &GameData, events: &EventSchedule, ticks: u64) -> Vec<u64> {
     let mut hashes = Vec::with_capacity(ticks as usize);
     for _ in 0..ticks {
-        run_tick(state, gd, events, rustyecon::kernel::AgentArm::Legacy);
+        run_tick(state, gd, events, rustyecon::kernel::AgentArm::Legacy, rustyecon::systems::clearing::PriceRule::Imbalance);
         hashes.push(state_hash(state));
     }
     hashes
@@ -89,7 +89,7 @@ fn replay_delta_stream_reproduces_end_state() {
     let mut live = genesis.clone();
     let mut stream: Vec<StateDelta> = Vec::new();
     for _ in 0..TICKS {
-        stream.extend(run_tick_capture(&mut live, &gd, &events, rustyecon::kernel::AgentArm::Legacy));
+        stream.extend(run_tick_capture(&mut live, &gd, &events, rustyecon::kernel::AgentArm::Legacy, rustyecon::systems::clearing::PriceRule::Imbalance));
     }
     let live_hash = state_hash(&live);
 

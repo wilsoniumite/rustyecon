@@ -8,6 +8,7 @@
 
 use rustyecon::{
     kernel::AgentArm,
+    systems::clearing::PriceRule,
     scenario::loader,
     systems::run_tick,
 };
@@ -73,6 +74,6 @@ fn main() {
                 stock.join(",")
             );
         }
-        run_tick(&mut state, &gd, &events, AgentArm::Kernel);
+        run_tick(&mut state, &gd, &events, AgentArm::Kernel, PriceRule::Imbalance);
     }
 }

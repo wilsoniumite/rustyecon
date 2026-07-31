@@ -60,7 +60,7 @@ fn main() {
     let (mut state, gd, events) = (s.state, s.game_data, s.events);
 
     for _ in 0..ticks {
-        run_tick(&mut state, &gd, &events, rustyecon::kernel::AgentArm::Legacy);
+        run_tick(&mut state, &gd, &events, rustyecon::kernel::AgentArm::Legacy, rustyecon::systems::clearing::PriceRule::Imbalance);
     }
     println!("stepped to tick {} — now probing one tick, good {target}", state.tick);
 
@@ -175,7 +175,7 @@ fn step_and_report(
         println!("  {:<14} net {:+.6e} (Spoilage)", "spoilage", after - before);
     }
 
-    let d = price_update::run(state, gd);
+    let d = price_update::run(state, gd, rustyecon::systems::clearing::PriceRule::Imbalance);
     summarise("price_update", &d, target);
     apply_state_deltas(state, &d);
 }

@@ -315,6 +315,58 @@ constants in code.
 > turn out to be wrong, and a redesign launched off an unverified one would be
 > the third.
 >
+> ### Can the price rule lose its α entirely?
+>
+> Asked directly, and the answer turns out to be *no, and the reason is the
+> interesting part*.
+>
+> **The normaliser destroys magnitude.** `(d − s)/max(d, s)` saturates at ±1, so
+> a market short by 10× and one short by 1000× both get a step of exactly α. At
+> α = 0.1 a market mispriced by 1000× needs **73 ticks** to get there. The rule
+> cannot tell a small shortage from a catastrophic one — the same class of
+> mistake as the detectors Phase 3.5 retired.
+>
+> **There is a parameter-free rule, and it is derivable rather than invented.** A
+> pop wanting `Q` with cash `C` posts `min(Q, C/p)`, so once its budget binds its
+> demand is unit-elastic. Against supply posted from own stock — vertical — the
+> market clears at `p* = C/s = p·d/s`. So `p ← p · d/s`: no α, one step, exact.
+>
+> **Measured, it does not work — and the shape of the failure is the finding.**
+> Implemented as `--price-rule ratio` and run across the corpus under both arms:
+>
+> | arm | price rule | live | median band | within 2.2× |
+> |---|---|---|---|---|
+> | legacy | imbalance | 33 | 1.64e5 | **0/72** |
+> | legacy | ratio | 32 | 2.94e5 | **5/72** |
+> | kernel | imbalance | 8 | 3.32e15 | 0/72 |
+> | kernel | ratio | 0 | 2.21e12 | 0/72 |
+>
+> **Bimodal.** The ratio rule produced the first regions ever to land inside the
+> 2.2× band — 5 of 72, against 0 for every configuration tried before — *and* a
+> worse median and fewer live regions. That is exactly what the derivation
+> predicts: where demand is budget-constrained the rule clears in one step and is
+> perfect; where quantities are posted price-**in**elastically it re-derives the
+> same ratio every tick and diverges geometrically. Damping is what stops that,
+> which is why α was there.
+>
+> **So α is not a tuning parameter. It is a stabiliser standing in for a demand
+> elasticity the model does not have.** No step-size formula removes it, because
+> the loop gain depends on an elasticity that posted scalar quantities do not
+> carry. Removing α needs the market to have something to *solve*, not something
+> to step: agents posting **schedules** — quantity as a function of price, i.e.
+> reservation prices on orders — so the clearing price is computed rather than
+> groped toward. Then there is no step size and no one-tick lag, and the whole
+> α/η timescale question disappears.
+>
+> That is a change to [markets.md](architecture/markets.md)'s clearing design,
+> shared by both arms, and it is upstream of everything Phase 4 has been doing.
+> It is also squarely inside METHODOLOGY R8's territory — rationing is the point,
+> and a limit-order book rations by price and quantity together — so it needs its
+> own design note and criteria before code (R14), not an opportunistic patch.
+>
+> The derivation above said the ratio rule would work. The measurement said it
+> does not. Recorded in that order deliberately.
+>
 > ---
 >
 > **P4.3 LANDED, and the first A/B is a decisive LOSS.** Pop desks are in: the

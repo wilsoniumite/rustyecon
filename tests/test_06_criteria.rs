@@ -25,6 +25,7 @@ fn certify(name: &str, ticks: u64, criteria: Option<Criteria>) -> Certificate {
     let out = tempfile::tempdir().unwrap();
     let config = RunConfig {
         agents: rustyecon::kernel::AgentArm::Legacy,
+        price_rule: rustyecon::systems::clearing::PriceRule::Imbalance,
         ticks,
         checkpoint_every: 0,
         human_save_every: 0,

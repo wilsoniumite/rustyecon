@@ -53,6 +53,11 @@ struct Args {
     /// same tape; PLAN Phase 4 A/Bs them and deletes the loser.
     #[arg(long, default_value = "legacy")]
     agents: rustyecon::kernel::AgentArm,
+
+    /// Which price rule the market uses: `imbalance` (p x (1 + alpha*imb), the
+    /// shipped rule) or `ratio` (p x d/s, which has no alpha at all).
+    #[arg(long, default_value = "imbalance")]
+    price_rule: rustyecon::systems::clearing::PriceRule,
 }
 
 fn main() {
@@ -76,6 +81,7 @@ fn main() {
         certify: args.certify,
         results_dir: args.results,
         agents: args.agents,
+        price_rule: args.price_rule,
     };
     let results_dir = config.results_dir.clone();
 

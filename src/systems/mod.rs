@@ -10,6 +10,7 @@ use crate::certify::{
     ConservationLedger,
 };
 use crate::kernel::AgentArm;
+use crate::systems::clearing::PriceRule;
 use crate::scenario::EventSchedule;
 use crate::state::{apply_state_deltas_ledgered, GameData, SimState};
 use crate::types::delta::StateDelta;
@@ -31,8 +32,9 @@ pub fn run_tick(
     game_data: &GameData,
     events: &EventSchedule,
     arm: AgentArm,
+    price: PriceRule,
 ) {
-    run_tick_inner(state, game_data, events, arm, &mut None);
+    run_tick_inner(state, game_data, events, arm, price, &mut None);
 }
 
 /// Run one tick, returning both the applied delta stream and the tick's audit.
@@ -46,9 +48,10 @@ pub fn run_tick_certified(
     game_data: &GameData,
     events: &EventSchedule,
     arm: AgentArm,
+    price: PriceRule,
 ) -> (Vec<StateDelta>, TickAudit) {
     let mut stream = Vec::new();
-    let audit = run_tick_inner(state, game_data, events, arm, &mut Some(&mut stream));
+    let audit = run_tick_inner(state, game_data, events, arm, price, &mut Some(&mut stream));
     (stream, audit)
 }
 
@@ -64,9 +67,10 @@ pub fn run_tick_capture(
     game_data: &GameData,
     events: &EventSchedule,
     arm: AgentArm,
+    price: PriceRule,
 ) -> Vec<StateDelta> {
     let mut stream = Vec::new();
-    let _audit = run_tick_inner(state, game_data, events, arm, &mut Some(&mut stream));
+    let _audit = run_tick_inner(state, game_data, events, arm, price, &mut Some(&mut stream));
     stream
 }
 
@@ -84,6 +88,7 @@ fn run_tick_inner(
     game_data: &GameData,
     events: &EventSchedule,
     arm: AgentArm,
+    price: PriceRule,
     sink: &mut Option<&mut Vec<StateDelta>>,
 ) -> TickAudit {
     let tick = state.tick;
@@ -137,7 +142,7 @@ fn run_tick_inner(
     record(sink, spoil_deltas);
 
     // Phase 7 — Price update
-    let d = price_update::run(state, game_data);
+    let d = price_update::run(state, game_data, price);
     apply_state_deltas_ledgered(state, &d, &mut ledger);
     record(sink, d);
 

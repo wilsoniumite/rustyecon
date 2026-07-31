@@ -145,7 +145,7 @@ fn make_scenario() -> (SimState, GameData, EventSchedule) {
 fn balanced_market_stabilises_oversupplied_market_falls() {
     let (mut state, game_data, events) = make_scenario();
 
-    for _ in 0..50 { run_tick(&mut state, &game_data, &events, rustyecon::kernel::AgentArm::Legacy); }
+    for _ in 0..50 { run_tick(&mut state, &game_data, &events, rustyecon::kernel::AgentArm::Legacy, rustyecon::systems::clearing::PriceRule::Imbalance); }
 
     let man_price = state.price(MANCHESTER, WHEAT);
     let liv_price = state.price(LIVERPOOL, WHEAT);
@@ -159,7 +159,7 @@ fn balanced_market_stabilises_oversupplied_market_falls() {
 #[test]
 fn markets_are_independent() {
     let (mut state, game_data, events) = make_scenario();
-    for _ in 0..50 { run_tick(&mut state, &game_data, &events, rustyecon::kernel::AgentArm::Legacy); }
+    for _ in 0..50 { run_tick(&mut state, &game_data, &events, rustyecon::kernel::AgentArm::Legacy, rustyecon::systems::clearing::PriceRule::Imbalance); }
 
     let man_price = state.price(MANCHESTER, WHEAT);
     let liv_price = state.price(LIVERPOOL, WHEAT);

@@ -29,6 +29,7 @@ fn certify(scenario: &str, ticks: u64, agents: AgentArm) -> Certificate {
     let out = tempfile::tempdir().unwrap();
     let config = RunConfig {
         agents,
+        price_rule: rustyecon::systems::clearing::PriceRule::Imbalance,
         ticks,
         checkpoint_every: 0,
         human_save_every: 0,
@@ -126,8 +127,8 @@ fn the_arm_is_recorded_so_two_certificates_cannot_be_confused() {
     // two certificates differ in no field that says which is which.
     let legacy = certify("lr_00", 60, AgentArm::Legacy);
     let kernel = certify("lr_00", 60, AgentArm::Kernel);
-    assert_eq!(legacy.identity.agents, "legacy");
-    assert_eq!(kernel.identity.agents, "kernel");
+    assert_eq!(legacy.identity.agents, "legacy+imbalance");
+    assert_eq!(kernel.identity.agents, "kernel+imbalance");
     assert_eq!(legacy.identity.tape_sha, kernel.identity.tape_sha, "same tape");
     assert_ne!(legacy.identity.run, kernel.identity.run, "different runs");
 }

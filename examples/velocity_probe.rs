@@ -7,7 +7,8 @@
 //!
 //!     cargo run --release --example velocity_probe -- <scenario> <ticks> <arm>
 
-use rustyecon::{kernel::AgentArm, scenario::loader, systems::run_tick, types::ids::*};
+use rustyecon::{kernel::AgentArm, scenario::loader, systems::clearing::PriceRule,
+                systems::run_tick, types::ids::*};
 
 fn band(v: &[f64]) -> f64 {
     let mut s: Vec<f64> = v.iter().copied().filter(|x| x.is_finite() && *x > 0.0).collect();
@@ -31,6 +32,10 @@ fn main() {
         Some("kernel") => AgentArm::Kernel,
         _ => AgentArm::Legacy,
     };
+    let price = match a.next().as_deref() {
+        Some("ratio") => PriceRule::Ratio,
+        _ => PriceRule::Imbalance,
+    };
 
     let s = loader::load(std::path::Path::new(&dir)).expect("scenario loads");
     let (mut state, gd, events) = (s.state, s.game_data, s.events);
@@ -43,7 +48,7 @@ fn main() {
     let mut dead_ticks = 0usize;
 
     for t in 1..=ticks {
-        run_tick(&mut state, &gd, &events, arm);
+        run_tick(&mut state, &gd, &events, arm, price);
         if t < 150 {
             continue;
         }
@@ -89,7 +94,7 @@ fn main() {
         level.push(if n > 0 { (lnsum / n as f64).exp() } else { f64::NAN });
     }
 
-    println!("{dir}  arm={arm:?}  ticks 150..{ticks}");
+    println!("{dir}  arm={arm:?}  price={price:?}  ticks 150..{ticks}");
     println!("  velocity        band {:>12.4e}", band(&vel));
     println!("  price level     band {:>12.4e}   (geometric mean of prices)", band(&level));
     println!("  cleared units   band {:>12.4e}   (real trade)", band(&qty));

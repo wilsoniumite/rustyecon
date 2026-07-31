@@ -33,6 +33,8 @@ pub struct RunConfig {
     /// the run id, so two runs of one scenario under different arms cannot be
     /// mistaken for each other.
     pub agents: AgentArm,
+    /// Which price rule the market uses. A/B'd like the agent arm.
+    pub price_rule: crate::systems::clearing::PriceRule,
 }
 
 impl Default for RunConfig {
@@ -47,6 +49,7 @@ impl Default for RunConfig {
             certify: false,
             results_dir: PathBuf::from("results"),
             agents: AgentArm::Legacy,
+            price_rule: crate::systems::clearing::PriceRule::Imbalance,
         }
     }
 }
@@ -137,7 +140,7 @@ impl SimRunner {
         let tape = self.scenario_tape_sha.clone();
         let seed = 0; // No stochastic source exists; recorded so the field is explicit.
         let scenario = self.scenario_name.clone();
-        let agents = self.config.agents.name().to_string();
+        let agents = format!("{}+{}", self.config.agents.name(), self.config.price_rule.name());
         let run =
             certificate::run_id(&git, &tape, &scenario, &agents, self.config.ticks, seed);
         RunIdentity {
@@ -191,7 +194,7 @@ impl SimRunner {
         for _ in 0..total {
             if self.config.certify {
                 let (stream, tick_audit) =
-                    run_tick_certified(&mut self.state, &self.game_data, &self.events, self.config.agents);
+                    run_tick_certified(&mut self.state, &self.game_data, &self.events, self.config.agents, self.config.price_rule);
                 audit.absorb(&tick_audit);
 
                 if let (Some(r), None) = (replay.as_mut(), replay_diverged_at) {
@@ -245,7 +248,7 @@ impl SimRunner {
                     }
                 }
             } else {
-                run_tick(&mut self.state, &self.game_data, &self.events, self.config.agents);
+                run_tick(&mut self.state, &self.game_data, &self.events, self.config.agents, self.config.price_rule);
             }
 
             self.maybe_save_checkpoints();

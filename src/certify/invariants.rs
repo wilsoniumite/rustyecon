@@ -261,7 +261,7 @@ mod tests {
     #[test]
     fn a_constant_imbalance_is_a_pin_however_small() {
         for level in [-1.0 / 6.0, -0.001, 1e-6] {
-            let mut w = BalanceWatch { num_goods: 1, count: vec![0], mean: vec![0.0], m2: vec![0.0] };
+            let mut w = BalanceWatch { num_goods: 1, count: vec![0], mean: vec![0.0], m2: vec![0.0], ..Default::default() };
             for _ in 0..100 {
                 w.count[0] += 1;
                 let d = level - w.mean[0];
@@ -276,7 +276,7 @@ mod tests {
     #[test]
     fn a_market_that_moves_is_not_pinned_and_one_at_zero_is_not_either() {
         // Fluctuating around a level: spread is real, so not a pin.
-        let mut w = BalanceWatch { num_goods: 1, count: vec![0], mean: vec![0.0], m2: vec![0.0] };
+        let mut w = BalanceWatch { num_goods: 1, count: vec![0], mean: vec![0.0], m2: vec![0.0], ..Default::default() };
         for i in 0..100 {
             let x = if i % 2 == 0 { -0.17 } else { -0.16 };
             w.count[0] += 1;
@@ -288,7 +288,7 @@ mod tests {
 
         // Constant at exactly zero is a market that clears, which is the goal,
         // not a fault.
-        let mut z = BalanceWatch { num_goods: 1, count: vec![0], mean: vec![0.0], m2: vec![0.0] };
+        let mut z = BalanceWatch { num_goods: 1, count: vec![0], mean: vec![0.0], m2: vec![0.0], ..Default::default() };
         z.count[0] = 100;
         assert!(z.std_dev(0) < PIN_SPREAD);
         assert!(z.mean[0].abs() <= PIN_LEVEL, "a cleared market is not a pinned one");
