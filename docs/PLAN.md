@@ -367,6 +367,60 @@ constants in code.
 > The derivation above said the ratio rule would work. The measurement said it
 > does not. Recorded in that order deliberately.
 >
+> ### Not schedules — a price-responsive Rule 1
+>
+> The "post schedules" conclusion above was an over-reach, and the correction is
+> the actual finding. An order book is not needed. What is needed is only that
+> **an equilibrium price exist** — that `s(p)` and `d(p)` cross somewhere — and
+> for that an agent need only do what it can already do: read the posted price
+> and decide its quantity from it. Reading a posted price was never forbidden;
+> the invariant bans another agent's *demand or fill*, and names "a posted price"
+> among the things a desk may read.
+>
+> **Measured** with `examples/elasticity_probe.rs`, which perturbs prices by 1%
+> on a clone and re-runs the decision phase — the same differential trick B6
+> uses:
+>
+> | arm | good | posted supply | ε_supply | ε_demand |
+> |---|---|---|---|---|
+> | legacy | flour | 10.94 | 7.03 | −0.013 |
+> | legacy | labour | 21.80 | **0.000** | −0.001 |
+> | legacy | services | 7.33 | **0.000** | 0.000 |
+> | kernel | flour | 13.10 | **0.000** | −1.000 |
+> | kernel | labour | 0.41 | **0.000** | 0.000 |
+>
+> **Posted supply has an instantaneous elasticity of exactly zero, for every
+> good, under the kernel.** Rule 1 — `max(inventory − b_out·scale·qty, 0)` —
+> mentions no price. The labour market is the extreme case: supply 0.41 against
+> demand 73.7, a 180× gap, with *both* sides at zero. No price clears it, so the
+> price rule is chasing a crossing that is not there, and neither α's value nor
+> the ratio rule can matter.
+>
+> Flour's demand elasticity is exactly **−1.000** — the budget cap binding, unit
+> elastic — which is precisely the case where `p·d/s` clears in one step. That is
+> why 5 of 72 regions landed inside the band under the ratio rule and the rest
+> diverged: one mechanism, both outcomes.
+>
+> **This is the same finding as the α/η timescale one, seen from the other side.**
+> Supply *does* respond to price — through `scale` and `π`, at ~1%/tick, with a
+> one-tick lag. A lagged response is what makes a loop oscillate; an instantaneous
+> one is what gives the price rule a crossing to find *now*. The engine has only
+> the former.
+>
+> **The direction, and it is small and inside the kernel's own idiom.** Make Rule
+> 1's posted quantity a function of the posted price against the desk's **own
+> reservation price** — its unit cost, or its own `price_ema`, both own-state.
+> Release more of the buffer when the price is above your cost, hold when it is
+> below. That is price-responsive (a crossing exists), own-state (B6 and the
+> invariant still hold), and **stretched across many ticks by construction**: the
+> inventory buffer is the intertemporal link, held through cheap ticks and
+> released into dear ones. `b_out` stops being an inert constant and becomes the
+> supply curve's slope. The symmetric change applies to Rule 3's buying.
+>
+> That wants its own design note and criteria before code (R14). It is a change
+> to Rule 1, not to markets.md's clearing — the earlier "schedules" claim is
+> **superseded** and left above as the record of a wrong turn.
+>
 > ---
 >
 > **P4.3 LANDED, and the first A/B is a decisive LOSS.** Pop desks are in: the
