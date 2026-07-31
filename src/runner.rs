@@ -1,4 +1,5 @@
 use crate::certify::{
+    invariants::{own_state_scan, BalanceWatch},
     certificate::{self, Battery, Certificate, RunIdentity},
     ledger::TickAudit,
     metrics::MetricsCollector,
@@ -56,6 +57,15 @@ impl Default for RunConfig {
 /// throttled, because serialising the whole state twice per tick dominates the
 /// cost of a certified run at the 11,700-tick horizon.
 const REPLAY_CHECK_EVERY: u64 = 64;
+
+/// How often the own-state posting invariant is probed (B6).
+///
+/// Each probe clones the state and runs the decision phase twice, so it is
+/// sampled rather than continuous. A rule that reads foreign demand reads it
+/// every tick, so any sampling interval finds it; the interval only bounds how
+/// long a violation could hide, and it is instrumentation cadence rather than
+/// a behavioural constant.
+const OWN_STATE_CHECK_EVERY: u64 = 64;
 
 pub struct SimRunner {
     pub state: SimState,
@@ -168,6 +178,10 @@ impl SimRunner {
         let mut replay_diverged_at: Option<u64> = None;
         let mut audit = TickAudit::default();
         let mut nan_hits: Vec<String> = Vec::new();
+        // kernel.md, "Price formation": two things Phase 4 must check rather
+        // than assume. Both are engine checks (R3/R5), not notebook checks.
+        let mut own_state_hits: Vec<String> = Vec::new();
+        let mut balance = self.config.certify.then(|| BalanceWatch::new(&self.game_data));
         let mut collector = match (self.config.certify, &self.criteria) {
             (true, Some(c)) => Some(MetricsCollector::new(&self.game_data, c)),
             _ => None,
@@ -206,6 +220,19 @@ impl SimRunner {
                             self.telemetry_error
                                 .get_or_insert(format!("tick {}: {e}", self.state.tick));
                         }
+                    }
+                }
+
+                // Sampled before the tick's own decisions are overwritten by
+                // the next tick's clearing: this reads the same state a decision
+                // would, which is the point.
+                if own_state_hits.is_empty() && self.state.tick % OWN_STATE_CHECK_EVERY == 0 {
+                    own_state_hits =
+                        own_state_scan(&self.state, &self.game_data, self.config.agents);
+                }
+                if let (Some(b), Some(c)) = (balance.as_mut(), self.criteria.as_ref()) {
+                    if c.in_analysis(self.state.tick) {
+                        b.observe(&self.state, &self.game_data);
                     }
                 }
 
@@ -253,9 +280,16 @@ impl SimRunner {
             _ => None,
         };
 
-        self.config
-            .certify
-            .then(|| self.build_certificate(audit, replay_diverged_at, &nan_hits, stability))
+        self.config.certify.then(|| {
+            self.build_certificate(
+                audit,
+                replay_diverged_at,
+                &nan_hits,
+                stability,
+                &own_state_hits,
+                balance.as_ref(),
+            )
+        })
     }
 
     fn build_certificate(
@@ -264,6 +298,8 @@ impl SimRunner {
         replay_diverged_at: Option<u64>,
         nan_hits: &[String],
         stability: Option<verdict::StabilityReport>,
+        own_state_hits: &[String],
+        balance: Option<&BalanceWatch>,
     ) -> Certificate {
         let replay_ok = replay_diverged_at.is_none();
         let hash = state_hash(&self.state);
@@ -317,6 +353,45 @@ impl SimRunner {
                 audit.shortfalls == 0,
                 format!("{} (total {:.3e} missing)", audit.shortfalls, audit.shortfall_qty),
             ),
+            // kernel.md's invariant, stated so it can be checked: every posted
+            // quantity is a function of the posting desk's own state. Checked
+            // differentially — foreign market volumes are perturbed and the
+            // decision phase re-run — because how a number was computed cannot
+            // be read off the number.
+            Battery::new(
+                "B6",
+                "own-state posting",
+                own_state_hits.is_empty(),
+                if own_state_hits.is_empty() {
+                    "no posting moved on foreign demand or supply".into()
+                } else {
+                    format!("{} violation(s): {}", own_state_hits.len(), own_state_hits[0])
+                },
+            ),
+            // And the other half: a settled market must reach imbalance ~ 0
+            // rather than a smaller pin. A pin is a CONSTANT, not a small
+            // number — the legacy defect sat at -1/6 with standard deviation
+            // exactly zero for 10,100 ticks — so this tests for constancy.
+            match balance {
+                Some(b) => {
+                    let pins = b.pinned(&self.game_data);
+                    Battery::new(
+                        "B7",
+                        "no pinned market",
+                        pins.is_empty(),
+                        if pins.is_empty() {
+                            format!(
+                                "{} markets, median |imbalance| {:.3e}",
+                                b.markets_watched(),
+                                b.median_abs_imbalance()
+                            )
+                        } else {
+                            format!("{} pinned: {}", pins.len(), pins[0])
+                        },
+                    )
+                }
+                None => Battery::new("B7", "no pinned market", true, "unscored".into()),
+            },
         ];
 
         Certificate::with_stability(self.identity(), batteries, stability)

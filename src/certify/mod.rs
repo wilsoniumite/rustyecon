@@ -9,6 +9,7 @@
 
 pub mod certificate;
 pub mod criteria;
+pub mod invariants;
 pub mod hash;
 pub mod ledger;
 pub mod metrics;

@@ -1,6 +1,6 @@
 {
-  "run": "33177d8968191fd7",
-  "git": "0242823",
+  "run": "6f81de6096372e06",
+  "git": "1ce881b",
   "tape_sha": "00d591b60f3874c9",
   "seed": 0,
   "scenario": "lr_12",
@@ -36,6 +36,18 @@
       "label": "clamp/shortfall events",
       "pass": true,
       "detail": "0 (total 0.000e0 missing)"
+    },
+    {
+      "id": "B6",
+      "label": "own-state posting",
+      "pass": false,
+      "detail": "10 violation(s): node0/wheat posted demand moved 1.007254 -> 2.556993 on foreign volumes alone"
+    },
+    {
+      "id": "B7",
+      "label": "no pinned market",
+      "pass": true,
+      "detail": "12 markets, median |imbalance| 2.460e-2"
     }
   ],
   "stability": {

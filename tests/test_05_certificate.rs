@@ -37,8 +37,21 @@ fn a_certified_run_reports_every_battery_and_a_verdict() {
     let cert = certify("lr_00", 120);
 
     let ids: Vec<&str> = cert.batteries.iter().map(|b| b.id.as_str()).collect();
-    assert_eq!(ids, ["B1", "B2", "B3", "B4", "B5"], "all batteries present");
-    assert!(cert.passed(), "lr_00 should certify clean: {}", cert.render());
+    assert_eq!(ids, ["B1", "B2", "B3", "B4", "B5", "B6", "B7"], "all batteries present");
+
+    // NO LONGER CLEAN, and deliberately so (v2 Phase 4, P4.5). This asserted
+    // `cert.passed()` until B6 — the own-state posting invariant — was added,
+    // and B6 fires on the legacy layer because the legacy layer really does
+    // compute its postings from other agents' orders. The assertion was true
+    // only because nothing was looking. Engine correctness proper is B1..B5.
+    for b in cert.batteries.iter().filter(|b| b.id != "B6") {
+        assert!(b.pass, "battery {} should pass: {}", b.id, b.detail);
+    }
+    assert!(
+        !cert.batteries.iter().find(|b| b.id == "B6").unwrap().pass,
+        "B6 must keep firing on legacy: {}",
+        cert.render()
+    );
 
     // Each battery carries its measurement, so a PASS is auditable rather than
     // merely reassuring.
@@ -88,5 +101,5 @@ fn certificate_persists_as_json() {
     let text = std::fs::read_to_string(&path).unwrap();
     let back: rustyecon::certify::Certificate = serde_json::from_str(&text).unwrap();
     assert_eq!(back.verdict, cert.verdict);
-    assert_eq!(back.batteries.len(), 5);
+    assert_eq!(back.batteries.len(), 7);
 }

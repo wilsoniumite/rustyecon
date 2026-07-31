@@ -80,7 +80,11 @@ fn engine_batteries_pass_while_stability_fails() {
     let cert = certify("lr_00", 1000, None);
 
     // Engine correctness is a separate claim from economic stability.
-    for b in &cert.batteries {
+    //
+    // B6 excepted: it checks an agent-design invariant rather than engine
+    // correctness, and the legacy agent violates it — see test_10_invariants.
+    // Excluded here rather than dropped, so the distinction stays visible.
+    for b in cert.batteries.iter().filter(|b| b.id != "B6") {
         assert!(b.pass, "engine battery {} should pass: {}", b.id, b.detail);
     }
     let s = cert.stability.as_ref().expect("scored against criteria");

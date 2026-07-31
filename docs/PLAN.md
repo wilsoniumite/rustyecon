@@ -201,8 +201,69 @@ constants in code.
 >    participation margin π that kernel.md calls "the load-bearing mechanism" is
 >    exactly what is missing.
 >
-> **Remaining: P4.4 Rule 3 overflow routing, P4.5 the own-state assertion and
-> imbalance telemetry, P4.6 the A/B proper, P4.7 the deletions.**
+> **Remaining: P4.6 the A/B proper, P4.7 the deletions — and the decision
+> below, which now blocks both.**
+>
+> ---
+>
+> **P4.4 and P4.5 landed 2026-07-31. The A/B is still a LOSS, and the gap
+> narrowed on one axis while widening on another.**
+>
+> **P4.4 — Rule 3's overflow routing replaced the dividend desk.** Cash above the
+> band leaves a firm because the rule says so, not because a separate desk
+> decided to pay out; the claim-holder pointer is read from the existing
+> `DividendPayout` wiring until Phase 6's `OwnershipRegister` replaces it. The
+> effect is visible and large: `DEAD_BUILDING` went **27 → 0**, and live regions
+> 0 → 8. Buildings now run.
+>
+> **P4.5 — both of kernel.md's "check rather than assume" items are batteries**,
+> B6 and B7, falsified in `tests/test_10_invariants.rs` before being trusted.
+> Details in kernel.md; the two results that matter:
+>
+> - **B6 fires on all 28 legacy scenarios** and names the mechanism —
+>   `node0/grain posted supply moved 1.200000 → 1.386000 on foreign volumes
+>   alone`, the `1.2 × demand` cap caught in the act — and **passes under the
+>   kernel**. The invariant Phase 3 paid a phase to discover violated is now
+>   enforced by the certificate.
+> - **B7 reproduces the Phase 3 pin unaided**: `node0/grain pinned at -0.166667
+>   for 10159 of 11551 ticks unbroken`. Its first version, whole-window
+>   constancy, could not — the pin holds only while the cap binds — and that
+>   near-miss is recorded rather than quietly fixed.
+>
+> **A/B after P4.4 + P4.5, all three gates still failing:**
+>
+> | | legacy | kernel |
+> |---|---|---|
+> | live regions | 33 | **8** |
+> | median band, all regions | 1.53e5 × | 3.27e15 × |
+> | DEAD_BUILDING | 27 | **0** |
+> | POP_DESTITUTION | 9 | **60** |
+> | UNSTABLE | 39 | **72** |
+>
+> Buildings stopped being idle and pops became destitute instead: the kernel now
+> produces, and the goods do not reach anyone. Every region is UNSTABLE.
+>
+> **The decision that now blocks P4.6, stated so it is not taken by drift.**
+> METHODOLOGY's kill condition — stop and rethink the agent design if the kernel
+> cannot pass the Phase 4/5 gates after honest effort — is now in scope, because
+> the effort *is* honest-complete: every mechanism kernel.md specifies is
+> implemented, two spec defects have been found and repaired, and the result is
+> 33 live regions to 8. Three options, and the next session should pick one
+> rather than continue:
+>
+> 1. **Take the timescale ratio to Phase 5 first.** Prices move at the registered
+>    α (10%/tick on the corpus's goods) against scale's ~1%/tick. A kernel whose
+>    quantities cannot answer a price move before the next one arrives is being
+>    tested outside its stable region, and α is not currently a phase-diagram
+>    axis. On this evidence it should be, and the map should come before more
+>    kernel edits.
+> 2. **Rethink the agent design**, per the kill condition.
+> 3. **Neither yet** — accept the kernel as an implemented, certified, losing arm
+>    and keep the legacy layer, which is what R7 already guarantees.
+>
+> P4.7's deletions are **not** available under any of these: the A/B has not been
+> won, and deleting the incumbent because the challenger is finished would be
+> exactly the move R10 exists to forbid.
 >
 > ---
 >

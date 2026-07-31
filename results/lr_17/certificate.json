@@ -1,6 +1,6 @@
 {
-  "run": "597ad98006a84b95",
-  "git": "0242823",
+  "run": "d5298f2202fbd78c",
+  "git": "1ce881b",
   "tape_sha": "cd2162b9ffd86c40",
   "seed": 0,
   "scenario": "lr_17",
@@ -36,6 +36,18 @@
       "label": "clamp/shortfall events",
       "pass": true,
       "detail": "0 (total 0.000e0 missing)"
+    },
+    {
+      "id": "B6",
+      "label": "own-state posting",
+      "pass": false,
+      "detail": "9 violation(s): node0/labour posted demand moved 2.534945 -> 3.088129 on foreign volumes alone"
+    },
+    {
+      "id": "B7",
+      "label": "no pinned market",
+      "pass": true,
+      "detail": "11 markets, median |imbalance| 1.489e-1"
     }
   ],
   "stability": {

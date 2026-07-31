@@ -48,13 +48,11 @@ pub fn run(
             pop_agent::run(state, game_data, &mut deltas, &mut orders);
         }
         crate::kernel::AgentArm::Kernel => {
+            // Everything, including the dividend system: Rule 3's overflow
+            // routing replaced it (P4.4), so cash leaves a firm because the
+            // rule says cash above the band leaves, not because a separate
+            // desk decided to pay out.
             crate::kernel::run(state, game_data, &mut deltas, &mut orders);
-            // Rule 3's overflow routing has not landed yet (P4.4), so the
-            // dividend desks keep running under the legacy handler. Without
-            // them cash pools in buildings and never returns to pops, which is
-            // a difference between the arms that has nothing to do with the
-            // kernel's rules — and the A/B has to isolate the rules.
-            building_agent::run_dividends_only(state, game_data, &mut deltas);
         }
     }
     (deltas, orders)

@@ -294,6 +294,45 @@ unimplemented and everything in this section is derivation:
 2. **That a settled market actually reaches `imbalance ≈ 0`** rather than merely
    a smaller pin — reported as telemetry, per market, over the scored window.
 
+> **BOTH DONE 2026-07-31 (v2 Phase 4, P4.5)**, as run-certificate batteries —
+> `src/certify/invariants.rs`, falsified in `tests/test_10_invariants.rs`.
+>
+> **B6 — own-state posting.** The invariant is about *how* a quantity was
+> computed, which cannot be read off the quantity, so it is established
+> **differentially**: last tick's aggregated `supply` and `demand` are the only
+> foreign-agent data a decision can reach, so they are perturbed on a clone and
+> the decision phase re-run. A rule naming only its own state returns identical
+> orders. Sampled every 64 ticks; the clone is discarded, so the check cannot
+> touch the delta stream.
+>
+> It fires on **all 28 legacy scenarios**, and names the mechanism rather than
+> merely the fact — on the tracer: `node0/grain posted supply moved 1.200000 →
+> 1.386000 on foreign volumes alone`, which is the `1.2 × demand` cap caught in
+> the act. It **passes under the kernel**, which is the assertion asked for here.
+>
+> **B7 — no pinned market.** The question is not whether the imbalance is small,
+> since a pin can be small, but whether it *moves*. A market whose imbalance is
+> a constant is not clearing at some level; it is reporting a number decided by
+> something other than the market.
+>
+> Written first as whole-window constancy, and **that version was too weak to
+> catch the defect it exists for**: the legacy pin holds only *while the cap
+> binds*, a long unbroken stretch inside a series that also does other things,
+> so "was it constant throughout" answered no and the run passed. As a
+> longest-unbroken-run test it reproduces the Phase 3 finding unaided —
+> `node0/grain pinned at -0.166667 for 10159 of 11551 ticks unbroken` — which
+> [engine.md](engine.md) records as having taken an investigation to find. The
+> threshold is a *fraction* of the market's history, not a tick count, so it
+> means the same thing at 850 ticks and at 11,550.
+>
+> **The two arms fail opposite checks, and that is the finding.** Legacy
+> violates the invariant everywhere but its lr-window markets are not pinned;
+> the kernel satisfies the invariant everywhere and pins markets anyway —
+> `node0/services pinned at -1.000000`, which is the signature of *no demand at
+> all*, because the consumption desk drives pops to the bottom basket tier where
+> services do not appear. Satisfying the invariant is necessary for the price
+> signal to mean anything. It is not sufficient for a market to clear.
+
 ## Worked traces
 
 One activation of each desk kind, to show the kernel is closed:

@@ -80,6 +80,7 @@
 use crate::state::{GameData, SimState};
 use crate::types::{
     delta::StateDelta,
+    provenance::Provenance,
     ids::{GoodId, InventoryId, MarketNodeId, OwnerId},
     order::{Order, OrderSide},
     recipe::{RecipeDef, StrategyKind},
@@ -187,6 +188,13 @@ pub fn run(
     for ri in &state.recipe_instances {
         let recipe = game_data.recipe(ri.recipe);
         if !is_desk(recipe) {
+            // Rule 3's overflow routing has replaced the dividend desk, so its
+            // instance must not also run: a GBP-in/GBP-out recipe left with a
+            // nonzero scale would move the same cash a second time in the
+            // production phase.
+            if ri.chosen_size != 0.0 {
+                deltas.push(StateDelta::SetChosenSize { instance: ri.id, size: 0.0 });
+            }
             continue;
         }
         let (buy_node, sell_node) = nodes(ri, game_data);
@@ -198,7 +206,7 @@ pub fn run(
         }
     }
 
-    rule_3_buy_and_route(state, game_data, orders);
+    rule_3_buy_and_route(state, game_data, deltas, orders);
     pop_desks(state, game_data, deltas, orders);
 }
 
@@ -455,10 +463,18 @@ fn rule_1_sell(
             // somewhere σ can see it.
             (stock - k.b_out * flow).max(0.0)
         } else {
-            // No stock to integrate anything. See the module header: this is
-            // kernel.md's rule, and it is the one that keys a posted quantity to
-            // a fill.
-            (flow * ri.last_fill).max(k.epsilon * flow).min(stock)
+            // No stock to integrate anything, so the flow itself is the offer:
+            // one activation's production, capped by what the desk actually has.
+            // Both terms name only this desk's own scale and its own stock.
+            //
+            // kernel.md's Rule 1 says `scale · last_fill` here. That is dropped,
+            // because the same document's price-formation section forbids a desk
+            // computing what it offers "from the fill it most recently
+            // received", and B6 now enforces that. `last_fill` is still read —
+            // by σ, to steer *scale* — which is the placement kernel.md's own
+            // analysis argues for: a flow case is corrected by its state
+            // variable moving, not by its offer being re-derived every tick.
+            flow.min(stock).max(0.0)
         };
 
         // The desk's own realized rate on what it posted. Under pro-rata
@@ -593,6 +609,23 @@ fn rule_2_nudge(
 
 // ── Rule 3 — BUY below the band ───────────────────────────────────────────────
 
+/// Where an owner's overflow goes: the inventories of its claim holders.
+///
+/// Read from the legacy `DividendPayout` wiring — `input_inv` is the firm,
+/// `output_inv` is the holder — because that wiring already encodes exactly the
+/// pointer Rule 3 needs, and Phase 6's `OwnershipRegister` is what replaces it
+/// with real fractional claims. Until then a firm's holders are whoever its
+/// dividend instances pointed at, and the split is even rather than pro-rata by
+/// share, because no share sizes are registered anywhere yet.
+fn claim_holders(state: &SimState, game_data: &GameData, inv: InventoryId) -> Vec<InventoryId> {
+    state
+        .recipe_instances
+        .iter()
+        .filter(|ri| ri.input_inv == inv && !is_desk(game_data.recipe(ri.recipe)))
+        .map(|ri| ri.output_inv)
+        .collect()
+}
+
 /// Buy inputs for the owners whose activation this is.
 ///
 /// Evaluated once per inventory *owner*, not once per desk: desks sharing an
@@ -601,7 +634,12 @@ fn rule_2_nudge(
 /// same pound. The pass is keyed off the inventory id so the phase is a
 /// property of the owner, and iteration is over the inventory index so the
 /// order of the emitted deltas never depends on a hash.
-fn rule_3_buy_and_route(state: &SimState, game_data: &GameData, orders: &mut Vec<Order>) {
+fn rule_3_buy_and_route(
+    state: &SimState,
+    game_data: &GameData,
+    deltas: &mut Vec<StateDelta>,
+    orders: &mut Vec<Order>,
+) {
     let k = &game_data.kernel;
 
     for inv_idx in 0..state.inventories.len() {
@@ -654,6 +692,39 @@ fn rule_3_buy_and_route(state: &SimState, game_data: &GameData, orders: &mut Vec
         let ration = if want > budget && want > 0.0 { budget / want } else { 1.0 };
         for ri in &residents {
             post_input_orders(state, game_data, ri, ration, orders, Some(currency));
+        }
+
+        // Rule 3, second half: cash above the band leaves the firm.
+        //
+        // This IS the dividend system, and it is the reason cash cannot pool in
+        // a firm by construction rather than by a separate desk deciding to pay
+        // out. It is taken here, in the decisions phase, from cash the desk has
+        // already reserved and already committed — `overflow` is what is left
+        // over after both — so it can never strand a purchase this desk just
+        // posted.
+        let planned = want * ration;
+        let overflow = (cash - reserve - planned).max(0.0);
+        if overflow > 1e-12 {
+            let holders = claim_holders(state, game_data, inv);
+            if !holders.is_empty() {
+                let share = overflow / holders.len() as f64;
+                let life = game_data.good(currency).shelf_life.initial_life();
+                for h in holders {
+                    deltas.push(StateDelta::RemoveFromInventory {
+                        inv,
+                        good: currency,
+                        qty: share,
+                        prov: Provenance::Transfer,
+                    });
+                    deltas.push(StateDelta::AddToInventory {
+                        inv: h,
+                        good: currency,
+                        qty: share,
+                        life,
+                        prov: Provenance::Transfer,
+                    });
+                }
+            }
         }
     }
 }
