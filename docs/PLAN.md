@@ -267,6 +267,56 @@ constants in code.
 >
 > ---
 >
+> ### Zooming out: the α sweep, and what the criterion is actually testing
+>
+> Before choosing among those three, the obvious question was asked — **is the
+> kernel the problem at all, or is something both arms share?** An α sweep
+> answers it, with outcomes fixed before the run: if both arms improve, the price
+> rule binds; if only the kernel, a timescale mismatch; if neither, the
+> hypothesis is wrong. Diagnostic on a modified tape; the registered A/B stands.
+>
+> **1. Half the DRIFTING criterion is a statement about the price rule, not
+> about agents.** `RealWage` is a ratio of two prices, so its log-drift is
+> mechanically `α · Σ imbalance` over the window. At the registered α = 0.1 and
+> a window of 850 ticks, **a mean imbalance of 0.0093 exhausts the entire 2.2×
+> band** — the criterion demands markets clear to within 1% and stay there for
+> 850 ticks. Zero-mean imbalance *noise* alone exhausts it at a standard
+> deviation of 0.082. Legacy's best scenario measures a median |imbalance| of
+> 0.0097; most sit 3–40× above. Scaling α by 1/100 brings RealWage to **2.59×
+> (legacy) and 2.24× (kernel)** — both arms, both landing on the threshold. No
+> agent design changes this; α × window does.
+>
+> **2. The other half is not price-driven at all.** `Velocity` is nominal
+> turnover over regional currency, and its band does *not* fall with α. At
+> α/100 on `lr_00`: price level band **1.21** — effectively frozen — while
+> cleared units band **4.4e5** and 23.5% of ticks fall below the DEAD threshold.
+> Velocity is measuring real trade volume collapsing and restarting.
+>
+> **3. There is no α that fixes both, and this is the finding.** Fast α:
+> prices diverge, bands 1e5 and up. Slow α: markets **stop clearing entirely** —
+> under the kernel at α/100, region 0 of `lr_00` trades **zero units for the
+> whole scored window**, with desks sitting at full nameplate and zero output
+> stock. The sweep's apparent improvement was prices freezing, not an economy
+> working. Numbers in `examples/velocity_probe.rs`.
+>
+> **The hypothesis this points at, stated as a hypothesis.** Posted quantities
+> are price-inelastic on *both* sides: sellers post from own stock, buyers post a
+> fixed physical basket capped by cash. Neither side is a schedule in price, so
+> the price does no allocative work within a tick — it is a slow outer feedback
+> loop acting through budget constraints and margins, with a lag. Whether that
+> loop converges is a timescale question, and neither α = 0.1 nor α = 0.001
+> answers it. If that is right, the binding constraint is in
+> [markets.md](architecture/markets.md)'s clearing design, which both arms share,
+> and no amount of Rule 1/2/3 work reaches it.
+>
+> **Not established, and it must be before this is acted on:** whether the
+> kernel's zero-trade at low α is that mechanism or a bug in the kernel. It has
+> to be run down first — this project has twice had a clean analytical story
+> turn out to be wrong, and a redesign launched off an unverified one would be
+> the third.
+>
+> ---
+>
 > **P4.3 LANDED, and the first A/B is a decisive LOSS.** Pop desks are in: the
 > labour pair scaled by participation π driven by σ_π, the consumption desk on
 > `(cash − reserve)/reserve` capped at the top basket tier, and a price logit
