@@ -122,6 +122,34 @@ unobservable under the legacy agent and load-bearing under the kernel, and it
 cannot flatter a scored series, since nameplate is the value a kernel must
 adjust *down* from if capacity is excessive.
 
+### Caveat on the corpus, recorded 2026-07-31 (not an amendment)
+
+The rule above takes all 72 lr regions as equally valid units. Its author has
+since recorded that the lr set was generated as a **sweep over region types
+looking for one that was stable**, not as 24 worlds each expected to work —
+`lr_manifest.csv` is a factorial grid over
+`labour_supply × channel_size × wheat_supply × start_state`. On that account
+most cells are unrealistically broken by design, and perhaps only one or two are
+realistic enough to be a target.
+
+If that is right, G1 and G3 average over cells that were never targets, and
+"0/72 passing" is not the indictment of either agent layer it appears to be.
+
+**Nothing is changed here on the strength of it.** Narrowing the target set
+requires a dated amendment beside this file naming the set *and the rule that
+picked it*, written before it is scored — and that rule must come from tape
+properties or stated design intent, never from which cells an arm happens to do
+well on. The receipts already produced stand as measured, with this attached.
+
+One measurement bears on it and is recorded now because it constrains any future
+amendment: across every configuration run so far — both agent arms, both price
+rules, two α settings — exactly **5 of 72 regions have ever scored inside the
+2.2× band, and all five were DEAD**, one of them at a perfect 1.000 because its
+metrics were flat. **No region has ever been both alive and in-band.** So the
+corpus cannot presently discriminate "broken by design" from "broken by the
+engine", and an amendment cannot be justified by pointing at which cells did
+well — because none did.
+
 ## What the rule was shown to detect
 
 `tools/test_ab.py`, run against the shipped certificates. A comparison that

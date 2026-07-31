@@ -421,6 +421,55 @@ constants in code.
 > to Rule 1, not to markets.md's clearing — the earlier "schedules" claim is
 > **superseded** and left above as the record of a wrong turn.
 >
+> ### What the lr corpus actually is, and what that does to the A/B
+>
+> **Provenance, from its author (2026-07-31):** the lr set was generated as a
+> *sweep over region types looking for one that was stable* — not as 24 worlds
+> each expected to work. Most were expected to be unrealistically broken, fixable
+> only by development, tech discovery and population dynamics that do not exist
+> yet. Possibly only one or two cells are realistic enough to be a target at all.
+>
+> `lr_manifest.csv` confirms the shape: a factorial grid over
+> `labour_supply × channel_size × wheat_supply × start_state`, 24 cells. That is
+> a design-of-experiments search, and the evidence agrees that it has structure —
+> `start=G` dominates `start=I` across every configuration tried.
+>
+> **But the data cannot yet name the viable cells, and that is the finding.**
+> Ranking all 24 by median band across six configurations (two agent arms × two
+> price rules, plus two α settings) gives a *smooth gradient* of mean rank from
+> 7.2 to 17.7, not the bimodal split that one or two genuinely viable worlds
+> would produce. Rank instability is severe: nearly every scenario has placed
+> both top-3 and bottom-5 depending on configuration. **The engine's dynamics
+> dominate the world's parameters.**
+>
+> And the sharpest number: across every configuration run, exactly **5 of 72
+> regions have ever landed inside the 2.2× band — and all five were DEAD.**
+> `lr_20/Birmingham` scores a perfect 1.000 because its metrics are flat, not
+> because it is healthy. **No region has ever been both alive and in-band.** So
+> the corpus currently cannot discriminate "broken by design" from "broken by the
+> engine", because the engine breaks all of it.
+>
+> **Two consequences, and they pull in opposite directions.**
+>
+> 1. **"0/72" was never a fair indictment of the kernel** — nor of the legacy
+>    layer. A search grid is not a validation set, and scoring an agent design on
+>    cells that were never meant to clear measures the wrong thing.
+> 2. **The A/B's pre-registered gates use the wrong unit.** They aggregate over
+>    72 regions treated as equally valid targets. If most were never targets, G1
+>    and G3 are averaging over noise.
+>
+> **What a legitimate fix looks like, and what it must not be.** Narrowing to the
+> realistic cells requires a **dated amendment** to `results/ab/preregistration.md`
+> naming the target set *and the rule that picked it*, written before it is
+> scored (R6). The rule must come from **tape properties or stated design
+> intent** — never "whichever cells the kernel does best on", which is the one
+> move that would make the whole comparison worthless. The author's original
+> design intent is a legitimate, non-fitted input; it is also the one input the
+> repository does not contain, so it has to be supplied rather than inferred.
+>
+> Until then the A/B receipts stand as measured, with this caveat attached to
+> them rather than quietly folded into them.
+>
 > ---
 >
 > **P4.3 LANDED, and the first A/B is a decisive LOSS.** Pop desks are in: the
