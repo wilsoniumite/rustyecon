@@ -3,7 +3,7 @@
 //! 'static` (E3).
 
 use rustyecon_agents::{AgentError, Agents, Hook};
-use rustyecon_core::{ActorId, CheckpointError, CoreError, LoadError, Phase, StateDelta};
+use rustyecon_core::{ActorId, CoreError, LoadError, Phase, StateDelta};
 use rustyecon_markets::{Order, OrderError, PriceError};
 use std::fmt;
 
@@ -92,13 +92,13 @@ impl fmt::Display for RunErrorKind {
 
 impl std::error::Error for RunError {}
 
-/// A resume that is refused (§7.6, N11).
+/// A resume that is refused (§7.6, N11). A checkpoint of another format, or one whose state
+/// does not match its digest, is refused earlier, when it is decoded
+/// ([`CheckpointError`](rustyecon_core::CheckpointError)).
 #[derive(Debug, Clone, PartialEq)]
 pub enum ResumeError {
     /// The tape does not load.
     Load(LoadError),
-    /// The checkpoint is of another format.
-    Checkpoint(CheckpointError),
     /// The checkpoint belongs to another world: the tape's world content or genesis differs.
     WrongWorld {
         /// The tape's `world_id`.
@@ -124,7 +124,6 @@ impl fmt::Display for ResumeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ResumeError::Load(e) => write!(f, "the tape does not load: {e}"),
-            ResumeError::Checkpoint(e) => write!(f, "{e}"),
             ResumeError::WrongWorld { tape, checkpoint } => write!(
                 f,
                 "the checkpoint belongs to world 0x{checkpoint:016x}, but the tape is world \

@@ -229,6 +229,11 @@ fn goods(
     for (k, a) in list {
         let field = format!("{side}[{k}]");
         let g = r.good(k, &field)?;
+        // A recipe that burned or minted money would make a currency-denominated cost, or
+        // money with a production provenance (R14): costs are goods.
+        if r.is_currency(g) {
+            return Err(r.error(&field, LoadErrorKind::CurrencyInRecipe));
+        }
         if out.iter().any(|(h, _)| *h == g) {
             return Err(duplicate(r, &field, "recipe good", k.to_string()));
         }

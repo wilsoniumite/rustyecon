@@ -51,7 +51,7 @@ pub use units::{
 };
 pub use world::{
     ActorDecl, ChannelDef, Firing, GoodDef, KeyIndex, Keyed, Life, MarketConfig, NodeDef, OneSided,
-    PriceRule, Recurring, Schedule, Tolerances, World,
+    PriceRule, Recurring, Schedule, ScheduleParam, Tolerances, World,
 };
 
 #[cfg(test)]

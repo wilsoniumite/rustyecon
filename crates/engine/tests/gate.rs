@@ -1,21 +1,37 @@
 //! The gate world's run (docs/ENGINE.md §10 and §11, engine): conservation every tick, events in
-//! date order, ids kept apart, rationing recorded by class, lots bounded, and the world's own bar.
+//! date order, ids kept apart, rationing recorded by class, settlement by one filled quantity,
+//! hooks on the phase-start state, lots bounded, and the world's own bar.
 //!
-//! One bar here is relative, `REL` in `gate_ids_apart`: a holding's measured change
-//! (`after − before`) and the signed sum of the quantities the trace moved round differently, each
-//! operation within 2⁻⁵³ of the magnitudes involved, with a few dozen operations per holder and
-//! tick. 1e-12 of those magnitudes is ample for that, and a payment into the wrong holder is off
-//! by the whole payment. Everything else is compared exactly.
+//! One bar here is relative, `REL`, used where two computations of one quantity round
+//! differently, each operation within 2⁻⁵³ of the magnitudes involved and a few dozen operations
+//! deep:
+//!
+//! - in `gate_ids_apart`, a holding's measured change (`after − before`) against the signed sum
+//!   of the quantities the trace moved;
+//! - in `gate_settles_by_one_filled_quantity`, a quantity taken from a holding of several lots
+//!   (the sum of the lots taken) or by a last taker's `All` (what the escrow held) against its
+//!   nominal `q·fill`, and a market's sums against each other;
+//! - in `gate_rations_and_records_by_class`, the recorded demand `D`, folded over lines in actor
+//!   order, against the class lines' feasible quantities, folded in class order.
+//!
+//! 1e-12 of those magnitudes is ample for rounding, and a payment into the wrong holder, or for
+//! the wrong quantity, is off by far more. Everything else is compared exactly.
 
 mod common;
 
 use common::*;
 use rustyecon_engine::prelude::*;
 use rustyecon_engine::rustyecon_core::{apply, resolve, state_hash, Ledger, Life};
+use rustyecon_engine::rustyecon_markets::Line;
 use std::collections::BTreeMap;
 
-/// The relative bar of `gate_ids_apart` (see the module comment).
+/// The relative bar of this file (see the module comment).
 const REL: f64 = 1e-12;
+
+/// Whether `a` and `b` agree within `REL` of the larger.
+fn close(a: f64, b: f64) -> bool {
+    (a - b).abs() <= REL * a.abs().max(b.abs())
+}
 
 #[test]
 fn gate_conserves_every_tick() {
@@ -224,18 +240,86 @@ fn gate_ids_apart() {
     }
 }
 
+/// Check that every rationing line of a tick is the fold, in actor order, of its class's members
+/// on that side of that market: their order quantities, their feasible quantities and what their
+/// settle lines moved (R12). Returns how many lines had more than one member.
+fn class_lines_are_folds(r: &Rebuilt) -> usize {
+    type Key = (NodeId, GoodId, ClassId, SideTag);
+    let mut folds: BTreeMap<Key, (f64, f64, f64, usize)> = BTreeMap::new();
+    assert_eq!(r.lines.len(), r.report.settlements.len());
+    // Lines and settle lines are both in (actor, node, good, side) order, so each group folds
+    // in actor order.
+    for (l, s) in r.lines.iter().zip(&r.report.settlements) {
+        let o = &l.order;
+        assert_eq!(
+            (s.actor, s.node, s.good, s.side),
+            (o.actor, o.node, o.good, o.side.tag())
+        );
+        let e = folds
+            .entry((o.node, o.good, o.class, o.side.tag()))
+            .or_insert((0.0, 0.0, 0.0, 0));
+        e.0 += o.qty;
+        e.1 += l.feasible;
+        e.2 += s.qty;
+        e.3 += 1;
+    }
+    let recorded: BTreeMap<Key, (f64, f64, f64)> = r
+        .report
+        .rationing
+        .iter()
+        .map(|x| {
+            (
+                (x.node, x.good, x.class, x.side),
+                (x.requested, x.feasible, x.filled),
+            )
+        })
+        .collect();
+    assert_eq!(
+        recorded.len(),
+        r.report.rationing.len(),
+        "one line per class"
+    );
+    let expected: BTreeMap<Key, (f64, f64, f64)> =
+        folds.iter().map(|(k, v)| (*k, (v.0, v.1, v.2))).collect();
+    assert_eq!(recorded, expected, "tick {}", r.report.tick);
+    folds.values().filter(|v| v.3 > 1).count()
+}
+
 #[test]
 fn gate_rations_and_records_by_class() {
     // R12 and N7: bread rations at tick 0 and again after the 1760 cut; the pensioners ask for
     // more bread than their budget pays for, every tick, at both nodes; and at every rationed
     // tick the recorded demand is the sum of the feasible quantities, below what was requested.
+    // Every class line is the fold of its members' orders, feasible quantities and settle
+    // lines; from 1768 the producers have two members on one side of several markets (the mill
+    // and the oven both buy town grain and fuel and sell village bread).
     let t = tape();
-    let mut sim = sim_of(&t);
-    let w = sim.world().clone();
+    let w = sim_of(&t).world().clone();
     let bread = good(&w, "bread");
     let pensioners = class(&w, "pensioners");
     let cut = tick_of(&w, "1760-03-01");
-    let all = reports(&mut sim, TICKS);
+    let mut all = Vec::new();
+    let mut shared = 0;
+    rebuild(&t, TICKS, |_, r| {
+        shared += class_lines_are_folds(r);
+        // D is the left fold of the feasible buys in actor order (N7), exactly.
+        for m in &r.report.markets {
+            let d = r
+                .lines
+                .iter()
+                .filter(|l| {
+                    let o = &l.order;
+                    (o.node, o.good, o.side.tag()) == (m.node, m.good, SideTag::Buy)
+                })
+                .fold(0.0, |acc, l| acc + l.feasible);
+            assert_eq!(m.demand, d, "tick {}", r.report.tick);
+        }
+        all.push(r.report.clone());
+    });
+    assert!(
+        shared > 100,
+        "class lines with several members: {shared} market-ticks"
+    );
     let town_bread = |r: &TickReport| {
         *r.markets
             .iter()
@@ -292,12 +376,15 @@ fn gate_rations_and_records_by_class() {
             );
             if m.buyer_fill < 1.0 {
                 rationed += 1;
+                // The class lines fold in class order and D in actor order, so the two agree
+                // up to rounding, not bit for bit.
                 let feasible = buyers.iter().fold(0.0, |acc, l| acc + l.feasible);
                 let requested = buyers.iter().fold(0.0, |acc, l| acc + l.requested);
-                assert_eq!(
-                    m.demand, feasible,
-                    "tick {}: D is feasible demand (N7)",
-                    r.tick
+                assert!(
+                    close(m.demand, feasible),
+                    "tick {}: D is feasible demand (N7): {} against {feasible}",
+                    r.tick,
+                    m.demand
                 );
                 assert!(feasible < requested);
             }
@@ -307,6 +394,112 @@ fn gate_rations_and_records_by_class() {
         rationed > 100,
         "bread rations often: {rationed} market-ticks"
     );
+}
+
+#[test]
+fn gate_settles_by_one_filled_quantity() {
+    // §3.2 on every gate tick: one filled quantity per order serves both sides. In a market
+    // that trades, each buyer pays exactly p·(feasible·buyer_fill) and receives that quantity;
+    // each seller ships qty·seller_fill, and each seller but the last is paid exactly
+    // p·(qty·seller_fill). Quantities taken from a holding of several lots, and the last
+    // takers' `All`, match their nominal values within REL. Per market, the buyers paid p times
+    // what they received, and the sellers received what the buyers paid (expenditure equals
+    // receipts), within REL. A market that does not trade moves nothing.
+    let t = tape();
+    let (mut buyers_rationed, mut sellers_rationed) = (0, 0);
+    rebuild(&t, TICKS, |_, r| {
+        let tick = r.report.tick;
+        for m in &r.report.markets {
+            let trades =
+                m.supply > 0.0 && m.demand > 0.0 && m.buyer_fill > 0.0 && m.seller_fill > 0.0;
+            let here: Vec<(&SettleLine, &Line)> = r
+                .report
+                .settlements
+                .iter()
+                .filter(|s| (s.node, s.good) == (m.node, m.good))
+                .map(|s| {
+                    let l = r.line(s.actor, s.node, s.good, s.side);
+                    (s, l.expect("every settle line has its admitted line"))
+                })
+                .collect();
+            for side in [SideTag::Buy, SideTag::Sell] {
+                let takers: Vec<&(&SettleLine, &Line)> =
+                    here.iter().filter(|(s, _)| s.side == side).collect();
+                let (fill, nominal): (f64, fn(&Line, f64) -> f64) = match side {
+                    SideTag::Buy => (m.buyer_fill, |l, f| l.feasible * f),
+                    SideTag::Sell => (m.seller_fill, |l, f| l.order.qty * f),
+                };
+                // The last taker: the largest filled quantity, ties to the highest id.
+                let last = takers
+                    .iter()
+                    .max_by(|a, b| {
+                        nominal(a.1, fill)
+                            .total_cmp(&nominal(b.1, fill))
+                            .then(a.0.actor.cmp(&b.0.actor))
+                    })
+                    .map(|x| x.0.actor);
+                for (s, l) in &takers {
+                    if !trades {
+                        assert_eq!((s.qty, s.value), (0.0, 0.0), "tick {tick}: {s:?}");
+                        continue;
+                    }
+                    let q = nominal(l, fill);
+                    let due = m.price * q;
+                    assert!(
+                        close(s.qty, q),
+                        "tick {tick}: {s:?} moved {}, not {q}",
+                        s.qty
+                    );
+                    let exact = side == SideTag::Buy || Some(s.actor) != last;
+                    if exact {
+                        assert_eq!(s.value, due, "tick {tick}: {s:?}");
+                    } else {
+                        assert!(close(s.value, due), "tick {tick}: {s:?}, due {due}");
+                    }
+                }
+                if trades && fill < 1.0 && takers.len() > 1 {
+                    match side {
+                        SideTag::Buy => buyers_rationed += 1,
+                        SideTag::Sell => sellers_rationed += 1,
+                    }
+                }
+            }
+            let sum = |side: SideTag, value: bool| {
+                here.iter()
+                    .filter(|(s, _)| s.side == side)
+                    .fold(0.0, |acc, (s, _)| acc + if value { s.value } else { s.qty })
+            };
+            let (bought, paid) = (sum(SideTag::Buy, false), sum(SideTag::Buy, true));
+            let received = sum(SideTag::Sell, true);
+            assert!(close(paid, m.price * bought), "tick {tick}: {m:?}");
+            assert!(close(received, paid), "tick {tick}: {m:?}");
+        }
+    });
+    assert!(
+        buyers_rationed > 100 && sellers_rationed > 0,
+        "several takers at a fill below 1: {buyers_rationed} buyer sides, {sellers_rationed} \
+         seller sides"
+    );
+}
+
+#[test]
+fn hooks_read_the_phase_start_state_every_tick() {
+    // E6 end to end, on every gate tick: the deltas the engine applied in phases 1 and 4 are
+    // exactly what each actor's hook returns on the state its phase began with, in ActorId
+    // order, and the volumes it cleared are what admission makes of the orders `decide`
+    // returns on that state. A tick loop that let an actor see the output of another actor's
+    // hook in the same phase (July's sequential form) fails here: the pensioners and the
+    // workers would budget the payouts the desks send them in phase 1.
+    let t = tape();
+    let mut ticks = 0;
+    rebuild(&t, TICKS, |_, r| {
+        let tick = r.report.tick;
+        assert_eq!(r.applied(Phase::Decisions), r.decided, "tick {tick}");
+        assert_eq!(r.applied(Phase::Clearing), r.volumes, "tick {tick}");
+        assert_eq!(r.applied(Phase::Production), r.produced, "tick {tick}");
+        ticks += 1;
+    });
+    assert_eq!(ticks, TICKS);
 }
 
 #[test]

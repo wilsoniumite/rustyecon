@@ -12,8 +12,8 @@ use crate::tick::run_tick;
 use crate::{Checkpoint, Tape, World};
 use rustyecon_agents::{ActorState, Agents, Cast};
 use rustyecon_core::{
-    resolve, state_hash, ActorId, CheckpointError, GoodId, Holder, Inventory, LoadError, NodeId,
-    ParamId, Phase, SimState, CHECKPOINT_FORMAT,
+    resolve, state_hash, ActorId, GoodId, Holder, Inventory, LoadError, NodeId, ParamId, Phase,
+    SimState,
 };
 
 /// Whether a `Sim` can step.
@@ -61,36 +61,32 @@ impl Sim {
         Ok(Sim::from_parts(world, state, cast))
     }
 
-    /// A run of `tape` from a checkpoint (§7.6, N11). The checkpoint must be of this format,
-    /// belong to the tape's world (`world_id`), agree with everything the tape fires before its
-    /// tick (`prefix_id`), and fit the world's shape. So a checkpoint survives an edit dated at
-    /// or after its tick, and is refused after any edit to the world or to the past.
+    /// A run of `tape` from a checkpoint (§7.6, N11). The checkpoint must belong to the tape's
+    /// world (`world_id`), agree with everything the tape fires before its tick (`prefix_id`),
+    /// and fit the world's shape. So a checkpoint survives an edit dated at or after its tick,
+    /// a dated `SetParam` to a new value included, and is refused after any edit to the world or
+    /// to the past. Its format and digest were checked when it was decoded, and its fields
+    /// cannot change since.
     pub fn resume(tape: &Tape, cp: &Checkpoint) -> Result<Sim, ResumeError> {
         let (world, _) = resolve(tape).map_err(ResumeError::Load)?;
-        if cp.format != CHECKPOINT_FORMAT {
-            return Err(ResumeError::Checkpoint(CheckpointError::Format {
-                found: cp.format,
-                expected: CHECKPOINT_FORMAT,
-            }));
-        }
-        if cp.world_id != world.world_id {
+        if cp.world_id() != world.world_id {
             return Err(ResumeError::WrongWorld {
                 tape: world.world_id,
-                checkpoint: cp.world_id,
+                checkpoint: cp.world_id(),
             });
         }
-        let tick = cp.state.tick();
+        let tick = cp.state().tick();
         let prefix = world.prefix_id(tick);
-        if cp.prefix_id != prefix {
+        if cp.prefix_id() != prefix {
             return Err(ResumeError::WrongPrefix {
                 tick,
                 tape: prefix,
-                checkpoint: cp.prefix_id,
+                checkpoint: cp.prefix_id(),
             });
         }
         cp.validate(&world).map_err(ResumeError::Invalid)?;
         let cast = Cast::new(&world).map_err(ResumeError::Load)?;
-        Ok(Sim::from_parts(world, cp.state.clone(), cast))
+        Ok(Sim::from_parts(world, cp.state().clone(), cast))
     }
 
     fn poisoned(&self) -> Result<(), RunError> {

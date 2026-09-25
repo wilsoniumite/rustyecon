@@ -212,6 +212,12 @@ pub enum LoadErrorKind {
     LastBeforeFirst,
     /// An order line on a currency.
     CurrencyOrder,
+    /// A currency on either side of a recipe: every cost is a good (R14), and money is made
+    /// and destroyed only by tape events.
+    CurrencyInRecipe,
+    /// A ledger tolerance of 1 or more, which would pass a leak of the whole stock or flow and
+    /// so switch conservation off (R2).
+    ToleranceNotBelowOne(f64),
     /// A currency that is not `Indefinite` or has a `price_rate`.
     CurrencyGood,
     /// A non-currency good without a `price_rate`.
@@ -282,6 +288,15 @@ impl fmt::Display for LoadErrorKind {
             }
             LastBeforeFirst => write!(f, "the last date is before the first"),
             CurrencyOrder => write!(f, "an order line on a currency"),
+            CurrencyInRecipe => write!(
+                f,
+                "a currency cannot be a recipe input or output: costs are goods (R14)"
+            ),
+            ToleranceNotBelowOne(v) => write!(
+                f,
+                "a ledger tolerance of {v:e} is not below 1: it would pass a leak of the whole \
+                 stock or flow"
+            ),
             CurrencyGood => write!(f, "a currency must be Indefinite and have no price_rate"),
             NoPriceRate => write!(f, "a non-currency good needs a price_rate"),
             GoodOnBothSides { good } => write!(f, "{good} is on both sides of the recipe"),
@@ -313,6 +328,14 @@ pub enum CheckpointError {
     /// The bytes or text do not decode, or hold a value core rejects (NaN, `-0.0`, a negative
     /// quantity, a book of the wrong shape).
     Decode(String),
+    /// The decoded state's hash is not the digest stored with it: the state was edited or
+    /// corrupted after it was saved.
+    Digest {
+        /// The digest the checkpoint carries.
+        stored: u64,
+        /// The hash of the state it carries.
+        computed: u64,
+    },
 }
 
 impl fmt::Display for CheckpointError {
@@ -324,6 +347,11 @@ impl fmt::Display for CheckpointError {
                 "checkpoint format {found}, but this build reads format {expected} only"
             ),
             CheckpointError::Decode(m) => write!(f, "checkpoint does not decode: {m}"),
+            CheckpointError::Digest { stored, computed } => write!(
+                f,
+                "the checkpoint's state hashes to 0x{computed:016x}, not its digest \
+                 0x{stored:016x}: it was edited or corrupted after it was saved"
+            ),
         }
     }
 }

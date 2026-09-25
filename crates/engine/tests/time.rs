@@ -21,20 +21,35 @@ struct Year {
     ticks: u64,
 }
 
-/// The 1750 endowments of the gate world at `tpy` ticks a year, and the tick each dated event
-/// fired in, run until 1771.
-fn run(tpy: u32) -> (Year, Vec<(String, u64, u64)>, World) {
+/// What a run of the gate world at `tpy` ticks a year shows, until 1771.
+struct Run {
+    /// The 1750 endowments.
+    year: Year,
+    /// The tick each dated event fired in (its first occurrence), with the tick of its date.
+    fired: Vec<(String, u64, u64)>,
+    /// The tick of every occurrence of the yearly pension.
+    pensions: Vec<u64>,
+    /// The ticks, from mint to spoilage, that the longest-lived bread lot lasts.
+    bread_life: u32,
+    world: World,
+}
+
+fn run(tpy: u32) -> Run {
     let text = edit("ticks_per_year: 52,", &format!("ticks_per_year: {tpy},"));
     let t = tape_of(&text);
     let mut sim = sim_of(&t);
     let w = sim.world().clone();
     let (grain, fuel) = (good(&w, "grain"), good(&w, "fuel"));
+    let bread = good(&w, "bread");
     let mut year = Year {
         grain: 0.0,
         fuel: 0.0,
         ticks: 0,
     };
     let mut fired = Vec::new();
+    let mut pensions = Vec::new();
+    // The longest life any bread lot carries after ageing, plus the tick it was minted in.
+    let mut bread_life = 0;
     loop {
         let r = sim.step().expect("the run succeeds");
         if r.date.y == 1750 {
@@ -43,6 +58,9 @@ fn run(tpy: u32) -> (Year, Vec<(String, u64, u64)>, World) {
             year.ticks += 1;
         }
         for e in &r.events {
+            if e.key.as_str() == "pension" {
+                pensions.push(r.tick);
+            }
             if e.occurrence == 0 {
                 let date = t
                     .events
@@ -55,19 +73,34 @@ fn run(tpy: u32) -> (Year, Vec<(String, u64, u64)>, World) {
                 fired.push((e.key.to_string(), r.tick, expected));
             }
         }
+        for a in &w.actors {
+            let inv = sim.holding(Holder::Actor(a.id)).expect("an inventory");
+            for lot in inv.lots(bread) {
+                bread_life = bread_life.max(lot.life.expect("bread spoils") + 1);
+            }
+        }
         if r.date.y > 1770 {
             break;
         }
     }
-    (year, fired, w)
+    Run {
+        year,
+        fired,
+        pensions,
+        bread_life,
+        world: w,
+    }
 }
 
 #[test]
 fn a13_annual_quantities_invariant() {
-    let (weekly, weekly_events, w52) = run(52);
-    let (monthly, monthly_events, w12) = run(12);
-    assert_eq!((weekly.ticks, monthly.ticks), (52, 12));
-    for (a, b) in [(weekly.grain, monthly.grain), (weekly.fuel, monthly.fuel)] {
+    let (weekly, monthly) = (run(52), run(12));
+    let (w52, w12) = (&weekly.world, &monthly.world);
+    assert_eq!((weekly.year.ticks, monthly.year.ticks), (52, 12));
+    for (a, b) in [
+        (weekly.year.grain, monthly.year.grain),
+        (weekly.year.fuel, monthly.year.fuel),
+    ] {
         assert!(a > 0.0);
         assert!(
             (a - b).abs() <= REL * a,
@@ -75,20 +108,40 @@ fn a13_annual_quantities_invariant() {
         );
     }
     // Each is the registered annual capacity.
-    assert!((weekly.grain - 104.0).abs() <= REL * 104.0);
-    assert!((weekly.fuel - 52.0).abs() <= REL * 52.0);
+    assert!((weekly.year.grain - 104.0).abs() <= REL * 104.0);
+    assert!((weekly.year.fuel - 52.0).abs() <= REL * 52.0);
     // Every event fires in the tick its date falls in, at either tick length.
-    for events in [&weekly_events, &monthly_events] {
+    for events in [&weekly.fired, &monthly.fired] {
         assert_eq!(events.len(), 5, "{events:?}");
         for (key, tick, expected) in events {
             assert_eq!(tick, expected, "{key}");
         }
     }
     // The dates of those ticks agree to within one tick (§6): at most a month apart.
-    for ((key, t52, _), (other, t12, _)) in weekly_events.iter().zip(&monthly_events) {
+    let days = |w: &World, t: u64| w.clock.date_of(t).unwrap().days();
+    for ((key, t52, _), (other, t12, _)) in weekly.fired.iter().zip(&monthly.fired) {
         assert_eq!(key, other);
-        let d52 = w52.clock.date_of(*t52).unwrap().days();
-        let d12 = w12.clock.date_of(*t12).unwrap().days();
+        let (d52, d12) = (days(w52, *t52), days(w12, *t12));
         assert!((d52 - d12).abs() <= 31, "{key}: day {d52} and day {d12}");
+    }
+    // A recurring period is a span in years (§6: `ticks`): the yearly pension fires once a
+    // year at either tick length, every occurrence within a month of the other run's.
+    assert_eq!(weekly.pensions.len(), 21, "1751 to 1771");
+    assert_eq!(weekly.pensions.len(), monthly.pensions.len());
+    for (k, (t52, t12)) in weekly.pensions.iter().zip(&monthly.pensions).enumerate() {
+        let (d52, d12) = (days(w52, *t52), days(w12, *t12));
+        assert!(
+            (d52 - d12).abs() <= 31,
+            "pension {k}: day {d52} and day {d12}"
+        );
+    }
+    // A shelf life is a span in years too: three weeks is 3 weekly ticks and 1 monthly tick,
+    // and a bread lot lasts that long, to within half a tick of 0.0577 years, at either length.
+    assert_eq!((weekly.bread_life, monthly.bread_life), (3, 1));
+    for (life, tpy) in [(weekly.bread_life, 52.0), (monthly.bread_life, 12.0)] {
+        assert!(
+            (f64::from(life) - 0.0577 * tpy).abs() <= 0.5,
+            "{life} ticks at {tpy}"
+        );
     }
 }

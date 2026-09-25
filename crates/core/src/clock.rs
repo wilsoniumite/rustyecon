@@ -319,10 +319,15 @@ mod tests {
                 assert_eq!(z.to_bits(), 0, "tpy {tpy}");
             }
         }
-        // Ticks: round(v·tpy), and zero is an error.
+        // Ticks: round(v·tpy) at every tick length (A13: a year is 52 weekly ticks, 12 monthly
+        // and 365 daily; three weeks is 3, 1 and 21), and zero is an error.
+        for (tpy, year, bread) in [(52, 52, 3), (12, 12, 1), (365, 365, 21)] {
+            let c = clock(tpy);
+            assert_eq!(c.ticks(Years(1.0)), Ok(year), "tpy {tpy}");
+            assert_eq!(c.ticks(Years(0.0577)), Ok(bread), "tpy {tpy}");
+            assert_eq!(c.ticks(Years(2.0)), Ok(year * 2), "tpy {tpy}");
+        }
         let c = clock(52);
-        assert_eq!(c.ticks(Years(0.0577)), Ok(3));
-        assert_eq!(c.ticks(Years(1.0)), Ok(52));
         assert!(matches!(
             c.ticks(Years(0.0)),
             Err(ClockError::ZeroTicks { .. })

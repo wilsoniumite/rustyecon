@@ -21,6 +21,7 @@ whose raw types are documented the same way in `rustyecon_agents::spec` (which a
 |---|---|---|---|
 | 1 | 2026-09-25 | P0.3 | First version. |
 | 1 | 2026-09-25 | P0.5 | The agents' spec, `Scripted(..)`, and tape action, `Actor(SetActive(..))`, are defined. No tape with an agent spec existed before, and core's fields are unchanged, so the number stays 1. |
+| 1 | 2026-09-25 | P0.6 | No field changes, so the number stays 1. Two load checks are added (a ledger tolerance must be below 1; a recipe may not name a currency), and a param read by the schedule alone leaves the world's identity (see Params). |
 
 The loader reads its own version only; anything else is refused as a schema error before any
 other field is looked at. Since no field has a default, every change to the schema bumps the
@@ -49,7 +50,13 @@ number and adds a row here.
   least once, with the unit it is registered in. A reference is *live* (read at use time, and a
   dated `SetParam` may change it) or *fixed* (turned into structure at load: a shelf life, a
   recurring period, a value a `SetParam` copies, or a ledger tolerance). A fixed param cannot be
-  the target of a `SetParam`.
+  the target of a `SetParam`. A ledger tolerance must be below 1.
+- **Schedule params.** A param that only the schedule reads, the value a `SetParam` copies or a
+  recurring entry's period, and nothing in the world, belongs to the schedule: it is not in the
+  run's state or in `world_id`, and the firings it shapes are in `prefix_id` (ENGINE §2.6). So a
+  dial change, a new param with a dated `SetParam` that copies it, keeps every checkpoint taken
+  before it fires, and so does a new value for such a param. A param the world also reads (a
+  price rate a `SetParam` copies, say) stays registered, and changing it is a world edit.
 - **Dates** are `"YYYY-MM-DD"`, proleptic Gregorian. A date maps to the tick it falls in,
   `floor(days·ticks_per_year·10⁴ / 3,652,425)` in integers. No event may be dated before `start`.
 - **Currencies.** A node's `currency` good is a currency: `Indefinite`, with `price_rate: None`, no
@@ -136,7 +143,8 @@ variants. Every field is required and none has a default:
 - `active`: whether it acts from genesis. A dormant actor (`false`) posts and produces nothing
   until a dated `SetActive` wakes it.
 - `recipe`: `None`, or `Some((inputs, outputs, capacity))`. `inputs` and `outputs` are
-  `(good, coefficient)` pairs, each coefficient finite and positive; no good is on both sides.
+  `(good, coefficient)` pairs, each coefficient finite and positive; no good is on both sides,
+  and no currency is on either (R14).
   `capacity` is a `FlowPerYear` param. Each tick it runs at `x = min(capacity per tick, held_k /
   a_k)` (to the last representable bit), burning `a_k·x` of each input and minting `o_l·x` of
   each output. No inputs is an endowment; no outputs is consumption.

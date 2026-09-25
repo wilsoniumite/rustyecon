@@ -10,7 +10,8 @@ use crate::hash::Fnv;
 use crate::ids::{
     ActorId, ChannelId, ClassId, DeskId, EventId, GoodId, Holder, Key, NodeId, ParamId, PopId,
 };
-use crate::registry::Registry;
+use crate::registry::{Basis, Registry};
+use crate::units::Unit;
 use serde::{Deserialize, Serialize};
 
 /// A good's shelf life.
@@ -139,8 +140,9 @@ pub struct Firing<E: Ext> {
     pub occurrence: u32,
     /// The resolved action.
     pub action: StateDelta<E>,
-    /// For a `SetParam`, the param its value was copied from, which carries the value's basis.
-    pub source: Option<ParamId>,
+    /// For a `SetParam`, the key of the param its value was copied from, which carries the
+    /// value's basis: a [`ScheduleParam`], or a registered param the world also reads.
+    pub source: Option<Key>,
 }
 
 /// A recurring tape entry: it fires at `first + k·period` for k = 0, 1, … up to `last`.
@@ -157,8 +159,8 @@ pub struct Recurring<E: Ext> {
     pub last: Option<u64>,
     /// The resolved action.
     pub action: StateDelta<E>,
-    /// For a `SetParam`, the param its value was copied from.
-    pub source: Option<ParamId>,
+    /// For a `SetParam`, the key of the param its value was copied from.
+    pub source: Option<Key>,
 }
 
 impl<E: Ext> Recurring<E> {
@@ -180,25 +182,54 @@ impl<E: Ext> Recurring<E> {
             event: self.event,
             occurrence,
             action: self.action.clone(),
-            source: self.source,
+            source: self.source.clone(),
         }
     }
 }
 
-/// The tape's events, resolved and sorted (N1).
+/// A param only the schedule reads: a value a `SetParam` copies, or a recurring entry's period,
+/// that nothing in the world references. The loader turns it into schedule content (the value on
+/// each firing, the period in ticks), so it lives here with its unit and basis, and not in the
+/// registry or the state. Like the rest of the schedule it is not part of `world_id`, and the
+/// firings it shapes are in `prefix_id`. So a dated `SetParam` to a new value, or a new recurring
+/// entry, keeps every checkpoint taken before it first fires (docs/ENGINE.md §2.6, §7.6; E1).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ScheduleParam {
+    /// Its stable key, from the tape's `params` list.
+    pub key: Key,
+    /// Its unit.
+    pub unit: Unit,
+    /// Its value, which the loader copies into each firing or turns into ticks.
+    pub value: f64,
+    /// Where the value comes from (R4).
+    pub basis: Basis,
+}
+
+/// The tape's events, resolved and sorted (N1), with the params only they read.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Schedule<E: Ext> {
     /// Dated events, sorted by (tick, key).
     once: Vec<Firing<E>>,
     /// Recurring entries, by key.
     every: Vec<Recurring<E>>,
+    /// The params only the schedule reads, by key.
+    params: Vec<ScheduleParam>,
 }
 
 impl<E: Ext> Schedule<E> {
-    pub(crate) fn new(mut once: Vec<Firing<E>>, mut every: Vec<Recurring<E>>) -> Schedule<E> {
+    pub(crate) fn new(
+        mut once: Vec<Firing<E>>,
+        mut every: Vec<Recurring<E>>,
+        mut params: Vec<ScheduleParam>,
+    ) -> Schedule<E> {
         once.sort_by_key(|f| (f.tick, f.event));
         every.sort_by_key(|r| r.event);
-        Schedule { once, every }
+        params.sort_by(|a, b| a.key.cmp(&b.key));
+        Schedule {
+            once,
+            every,
+            params,
+        }
     }
 
     /// Everything that fires at `tick`, in key order: the dated events found by
@@ -245,6 +276,19 @@ impl<E: Ext> Schedule<E> {
     /// The recurring entries, by key.
     pub fn every(&self) -> &[Recurring<E>] {
         &self.every
+    }
+
+    /// The params only the schedule reads, by key.
+    pub fn params(&self) -> &[ScheduleParam] {
+        &self.params
+    }
+
+    /// The schedule param with this key, if it is one.
+    pub fn param(&self, key: &str) -> Option<&ScheduleParam> {
+        self.params
+            .binary_search_by(|p| p.key.as_str().cmp(key))
+            .ok()
+            .map(|i| &self.params[i])
     }
 }
 

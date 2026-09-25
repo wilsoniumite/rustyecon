@@ -4,7 +4,7 @@
 
 mod common;
 
-use common::scan::{shipped, sources, strip};
+use common::scan::{api_violations, shipped, sources, strip};
 use common::*;
 use rustyecon_engine::prelude::*;
 use rustyecon_engine::rustyecon_core::state_hash;
@@ -22,7 +22,7 @@ fn observation_matches_accessors() {
         assert_eq!(r.tick + 1, sim.tick());
         assert_eq!(Some(r.date), w.clock.date_of(r.tick));
         assert_eq!(r.hash, sim.hash());
-        assert_eq!(state_hash(&sim.checkpoint().unwrap().state), sim.hash());
+        assert_eq!(state_hash(sim.checkpoint().unwrap().state()), sim.hash());
         assert_eq!(sim.last_report(), Some(&r));
         let order: Vec<(NodeId, GoodId)> = r.markets.iter().map(|m| (m.node, m.good)).collect();
         assert_eq!(order, markets);
@@ -69,7 +69,7 @@ fn observe(sim: &Sim) -> u64 {
     touched ^= sim.observe_holdings().0.len() as u64;
     touched ^= u64::from(sim.status() == Status::Ready);
     touched ^= sim.last_report().map_or(0, |r| r.tick);
-    touched ^= sim.checkpoint().unwrap().prefix_id;
+    touched ^= sim.checkpoint().unwrap().prefix_id();
     touched
 }
 
@@ -220,25 +220,48 @@ fn failed_step_poisons_the_sim() {
 
 #[test]
 fn no_public_api_hands_out_mut_state() {
-    // E4: no public engine function returns `&mut` anything, so nothing reaches the SimState or
-    // the World to change it; the Sim's fields are private. Checked on the source and, for the
+    // E1, E4: no public engine function hands a frontend a way to change a run. Only `step`,
+    // `step_traced` and `run_until` take `&mut self` (so there is no setter on Sim); no
+    // signature names `&mut` to a SimState, World or Inventory, a closure's parameters
+    // included; no return type holds `&mut` anything; and the Sim's fields are private.
+    // Checked on the source, the scanner on regression fixtures first, and, for the
     // accessors, by their types.
+    const ALLOWED: [&str; 3] = ["step", "step_traced", "run_until"];
+    let fixtures = r"
+        impl Sim {
+            pub fn set_param(&mut self, p: ParamId, value: f64) -> Result<(), RunError> { todo!() }
+            pub fn with_state<R>(&mut self, f: impl FnOnce(&mut SimState<Agents>) -> R) -> R { todo!() }
+            pub fn state_mut(&self) -> &mut SimState<Agents> { todo!() }
+            pub fn edit(&self, f: &mut dyn FnMut(&'a mut rustyecon_core::World)) { todo!() }
+            pub fn step(&mut self) -> Result<TickReport, RunError> { todo!() }
+            pub fn run_until(&mut self, until: u64, on_tick: &mut dyn FnMut(&TickReport)) { todo!() }
+            pub fn holding(&self, h: Holder) -> Option<&Inventory> { todo!() }
+        }
+    ";
+    let mut n = 0;
+    let flagged = api_violations(&shipped(&strip(fixtures)), &ALLOWED, &mut n);
+    assert_eq!(n, 7);
+    let names: Vec<&str> = flagged
+        .iter()
+        .map(|f| {
+            f.split(['(', '<'])
+                .next()
+                .unwrap()
+                .trim_start_matches("pub fn ")
+        })
+        .collect();
+    assert_eq!(
+        names,
+        ["set_param", "with_state", "state_mut", "edit"],
+        "{flagged:#?}"
+    );
+    // The engine's own sources.
     let mut found = Vec::new();
     let mut public = 0;
     for (path, text) in sources("engine") {
-        let code = strip(&text);
-        let code = shipped(&code);
-        let mut rest = code;
-        while let Some(k) = rest.find("pub fn ") {
-            let sig_end = rest[k..].find(['{', ';']).map_or(rest.len(), |e| k + e);
-            let sig = &rest[k..sig_end];
-            public += 1;
-            if let Some(ret) = sig.split("->").nth(1) {
-                if ret.contains("mut") {
-                    found.push(format!("{path}: {}", sig.trim()));
-                }
-            }
-            rest = &rest[sig_end..];
+        let code = shipped(&strip(&text));
+        for f in api_violations(&code, &ALLOWED, &mut public) {
+            found.push(format!("{path}: {f}"));
         }
         // The Sim's fields: no `pub` inside its body.
         if let Some(k) = code.find("pub struct Sim {") {
@@ -253,7 +276,7 @@ fn no_public_api_hands_out_mut_state() {
     );
     assert!(
         found.is_empty(),
-        "public functions returning &mut: {found:#?}"
+        "public functions that could change a run: {found:#?}"
     );
     // The accessors' types: shared references and owned values only.
     let _: fn(&Sim) -> &World = Sim::world;
@@ -263,4 +286,11 @@ fn no_public_api_hands_out_mut_state() {
     let _: fn(&Sim) -> Result<Checkpoint, RunError> = Sim::checkpoint;
     let _: fn(&Sim) -> HoldingTotals = Sim::observe_holdings;
     let _: fn(&Sim, NodeId, GoodId) -> Option<f64> = Sim::price;
+    // A checkpoint is read-only too: its state comes out as a shared reference (the fields
+    // are private; core's doc test shows that `&mut cp.state` does not compile).
+    let _: fn(
+        &Checkpoint,
+    ) -> &rustyecon_engine::rustyecon_core::SimState<
+        rustyecon_engine::rustyecon_agents::Agents,
+    > = Checkpoint::state;
 }

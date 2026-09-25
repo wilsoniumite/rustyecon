@@ -116,12 +116,168 @@ pub fn strip(src: &str) -> String {
     out
 }
 
-/// The part of a stripped source before its first `#[cfg(test)]`: the code that ships.
-pub fn shipped(stripped: &str) -> &str {
-    match stripped.find("#[cfg(test)]") {
-        Some(k) => &stripped[..k],
-        None => stripped,
+/// The code that ships: stripped source with every `#[cfg(test)]` item removed, the attribute
+/// and the item or statement after it. The item ends at the `;` or the closing `}` that brings
+/// its bracket depth back to 0, so shipped code after an early test item (a test-only helper
+/// method, say) is still scanned.
+pub fn shipped(stripped: &str) -> String {
+    const ATTR: &str = "#[cfg(test)]";
+    let mut out = String::with_capacity(stripped.len());
+    let mut rest = stripped;
+    while let Some(k) = rest.find(ATTR) {
+        out.push_str(&rest[..k]);
+        let item = &rest[k + ATTR.len()..];
+        let mut depth = 0usize;
+        let mut end = item.len();
+        for (i, ch) in item.char_indices() {
+            match ch {
+                '{' | '(' | '[' => depth += 1,
+                ')' | ']' => depth = depth.saturating_sub(1),
+                '}' => {
+                    depth = depth.saturating_sub(1);
+                    if depth == 0 {
+                        end = i + 1;
+                        break;
+                    }
+                }
+                ';' if depth == 0 => {
+                    end = i + 1;
+                    break;
+                }
+                _ => {}
+            }
+        }
+        rest = &item[end..];
     }
+    out.push_str(rest);
+    out
+}
+
+/// Float literals other than `0.0` and `1.0`, and named float constants (`EPSILON`,
+/// `MIN_POSITIVE`, an `f64::` or `f32::` associated constant, anything under `consts`), in
+/// shipped tokens (R4, A12). `num` is whether the file is `core::num`, the one module that may
+/// name the float limits it searches between.
+pub fn float_violations(toks: &[Tok], num: bool) -> Vec<String> {
+    let ident = |i: usize| match toks.get(i) {
+        Some(Tok::Ident(s)) => Some(s.as_str()),
+        _ => None,
+    };
+    let path = |i: usize| {
+        matches!(toks.get(i), Some(Tok::Punct(':')))
+            && matches!(toks.get(i + 1), Some(Tok::Punct(':')))
+    };
+    let float_type = |s: Option<&str>| matches!(s, Some("f64" | "f32"));
+    let mut found = Vec::new();
+    for (i, t) in toks.iter().enumerate() {
+        match t {
+            Tok::Num(s, true) if s != "0.0" && s != "1.0" => found.push(s.clone()),
+            Tok::Ident(s) if !num => {
+                // `f64::NAME`, a constant (all capitals) of a float type.
+                let constant = ident(i + 3)
+                    .is_some_and(|c| c.chars().all(|ch| ch.is_ascii_uppercase() || ch == '_'));
+                let assoc = float_type(Some(s)) && path(i + 1) && constant;
+                // A named constant reached another way (imported, or under `consts`), unless
+                // it was the `NAME` of an `f64::NAME` just counted.
+                let after_float = i >= 3 && path(i - 2) && float_type(ident(i - 3));
+                let named = ["EPSILON", "MIN_POSITIVE", "consts"].contains(&s.as_str())
+                    && !(after_float && s != "consts");
+                if assoc || named {
+                    found.push(format!("{s} {:?}", ident(i + 3)));
+                }
+            }
+            _ => {}
+        }
+    }
+    found
+}
+
+/// Public engine functions that could hand a frontend a way to change a run (E1, E4): a
+/// `&mut self` method outside `allowed`, or `&mut` to a `SimState`, `World` or `Inventory`
+/// anywhere in a signature (a closure's parameters and where clauses included), or `&mut`
+/// anything in a return type. `code` is shipped source; returns the offending signatures, and
+/// counts the public functions read in `public`.
+pub fn api_violations(code: &str, allowed: &[&str], public: &mut usize) -> Vec<String> {
+    const GUARDED: [&str; 3] = ["SimState", "World", "Inventory"];
+    let mut found = Vec::new();
+    let mut rest = code;
+    while let Some(k) = rest.find("pub fn ") {
+        let sig_end = rest[k..].find(['{', ';']).map_or(rest.len(), |e| k + e);
+        let sig = &rest[k..sig_end];
+        *public += 1;
+        let toks = tokens(sig);
+        let name = match toks.get(2) {
+            Some(Tok::Ident(n)) => n.clone(),
+            _ => String::new(),
+        };
+        let mut bad = Vec::new();
+        for (i, t) in toks.iter().enumerate() {
+            if !matches!(t, Tok::Punct('&')) {
+                continue;
+            }
+            // `&mut`, or `&'a mut`.
+            let mut m = i + 1;
+            if matches!(toks.get(m), Some(Tok::Punct('\''))) {
+                m += 2;
+            }
+            if !matches!(toks.get(m), Some(Tok::Ident(s)) if s == "mut") {
+                continue;
+            }
+            // `&mut self` needs to be allowed; `&mut` a path ending in a guarded type is never.
+            match toks.get(m + 1) {
+                Some(Tok::Ident(s)) if s == "self" => {
+                    if !allowed.contains(&name.as_str()) {
+                        bad.push("&mut self");
+                    }
+                }
+                _ => {
+                    let mut j = m + 1;
+                    let mut last = None;
+                    while let Some(Tok::Ident(seg)) = toks.get(j) {
+                        last = Some(seg.as_str());
+                        if matches!(toks.get(j + 1), Some(Tok::Punct(':')))
+                            && matches!(toks.get(j + 2), Some(Tok::Punct(':')))
+                        {
+                            j += 3;
+                        } else {
+                            break;
+                        }
+                    }
+                    if last.is_some_and(|l| GUARDED.contains(&l)) {
+                        bad.push("&mut to the state or world");
+                    }
+                }
+            }
+        }
+        // The return type: whatever follows the parameter list's `->`, at bracket depth 0.
+        let mut depth = 0i32;
+        let mut ret = None;
+        let chars: Vec<char> = sig.chars().collect();
+        for (i, ch) in chars.iter().enumerate() {
+            match ch {
+                '(' | '[' | '<' => depth += 1,
+                ')' | ']' => depth -= 1,
+                '>' if i > 0 && chars[i - 1] == '-' => {
+                    if depth == 0 {
+                        ret = Some(chars[i + 1..].iter().collect::<String>());
+                        break;
+                    }
+                }
+                '>' => depth -= 1,
+                _ => {}
+            }
+        }
+        if ret.is_some_and(|r| r.contains("mut")) {
+            bad.push("&mut in the return type");
+        }
+        if !bad.is_empty() {
+            found.push(format!(
+                "{}: {bad:?}",
+                sig.split_whitespace().collect::<Vec<_>>().join(" ")
+            ));
+        }
+        rest = &rest[sig_end..];
+    }
+    found
 }
 
 /// A token of stripped source.
@@ -225,7 +381,7 @@ pub fn engine_path_tokens() -> Vec<(String, Vec<Tok>)> {
     let mut out = Vec::new();
     for name in ENGINE_PATH {
         for (path, text) in sources(name) {
-            out.push((path, tokens(shipped(&strip(&text)))));
+            out.push((path, tokens(&shipped(&strip(&text)))));
         }
     }
     out

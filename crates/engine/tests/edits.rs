@@ -113,11 +113,11 @@ fn world_edit_refuses_every_checkpoint() {
             match Sim::resume(&edited, cp) {
                 Err(ResumeError::WrongWorld { tape, checkpoint }) => {
                     assert_ne!(tape, checkpoint);
-                    assert_eq!(checkpoint, cp.world_id);
+                    assert_eq!(checkpoint, cp.world_id());
                 }
                 other => panic!(
                     "{to} at {}: expected WrongWorld, got {other:?}",
-                    cp.state.tick()
+                    cp.state().tick()
                 ),
             }
         }
@@ -205,4 +205,168 @@ fn entrant_activates_on_its_date() {
         .settlements
         .iter()
         .any(|l| l.actor == oven && l.side == SideTag::Sell)));
+}
+
+#[test]
+fn resume_after_a_new_dial_value_equals_full_rerun() {
+    // E1, §7.6: a dial change is a dated SetParam, and a checkpoint taken before it fires stays
+    // valid when the SetParam's value is new: the value a SetParam copies is read by the
+    // schedule alone, so it is not part of the world. Two edits, each resumed from tick 520
+    // (before the 1760 cut, which falls in tick 528): the cut's own value changed, and a new
+    // dial with a new event in 1775 that sets the mine's capacity from it. Each resumed tail
+    // equals the edited tape rerun from genesis.
+    let t = tape();
+    let cut = tick_of(sim_of(&t).world(), "1760-03-01");
+    let early = checkpoint_at(&t, 520);
+    let late = checkpoint_at(&t, 600);
+    assert!(520 < cut && cut < 600);
+    let deeper = edit(
+        r#"(key: "mine.capacity.cut", value: 26.0,"#,
+        r#"(key: "mine.capacity.cut", value: 20.0,"#,
+    );
+    let dial = edit(
+        "    params: [\n",
+        "    params: [\n        (key: \"mine.capacity.dial\", value: 40.0, unit: FlowPerYear, \
+         basis: Assumed(\"a dial\")),\n",
+    )
+    .replacen(
+        "    events: [\n",
+        "    events: [\n        (key: \"mine.dial\", at: \"1775-01-01\", basis: Assumed(\"a dial\"), \
+         act: SetParam(param: \"mine.capacity\", to: \"mine.capacity.dial\")),\n",
+        1,
+    );
+    let reference = hashes(&t, TICKS);
+    for (what, text) in [("the cut's value", deeper), ("a new dial", dial)] {
+        let edited = tape_of(&text);
+        let w = sim_of(&edited).world().clone();
+        assert_eq!(
+            w.world_id,
+            early.world_id(),
+            "{what}: the world is the same"
+        );
+        let rerun = hashes(&edited, TICKS);
+        assert_ne!(rerun, reference, "{what}: the edit changes the run");
+        assert_eq!(rerun[..cut as usize], reference[..cut as usize], "{what}");
+        let mut resumed = Sim::resume(&edited, &early).expect("a future dial keeps the checkpoint");
+        let mut tail = Vec::new();
+        resumed
+            .run_until(TICKS, &mut |r| tail.push(r.hash))
+            .unwrap();
+        assert_eq!(tail.as_slice(), &rerun[520..], "{what}");
+    }
+    // After the cut has fired, its value is part of the past: that checkpoint is refused. The
+    // 1775 dial is still in the future of tick 600.
+    match Sim::resume(
+        &tape_of(&edit(
+            r#"(key: "mine.capacity.cut", value: 26.0,"#,
+            r#"(key: "mine.capacity.cut", value: 20.0,"#,
+        )),
+        &late,
+    ) {
+        Err(ResumeError::WrongPrefix { tick, .. }) => assert_eq!(tick, 600),
+        other => panic!("expected WrongPrefix, got {other:?}"),
+    }
+    let dial = tape_of(
+        &edit(
+            "    params: [\n",
+            "    params: [\n        (key: \"mine.capacity.dial\", value: 40.0, unit: FlowPerYear, \
+             basis: Assumed(\"a dial\")),\n",
+        )
+        .replacen(
+            "    events: [\n",
+            "    events: [\n        (key: \"mine.dial\", at: \"1775-01-01\", basis: Assumed(\"a dial\"), \
+             act: SetParam(param: \"mine.capacity\", to: \"mine.capacity.dial\")),\n",
+            1,
+        ),
+    );
+    Sim::resume(&dial, &late).expect("the dial fires after tick 600");
+}
+
+/// Replace, in a RON checkpoint, the text between the first `open` at or after `from` and the
+/// next `close` with `with`.
+fn replace_after(text: &str, from: &str, open: &str, close: &str, with: &str) -> String {
+    let at = text.find(from).expect("the anchor");
+    let start = at + text[at..].find(open).expect("the opening") + open.len();
+    let end = start + text[start..].find(close).expect("the closing");
+    format!("{}{with}{}", &text[..start], &text[end..])
+}
+
+/// The RON text with its digest set to what its state hashes to, as a forger would do.
+fn with_matching_digest(text: &str) -> String {
+    match Checkpoint::from_ron(text) {
+        Err(CheckpointError::Digest { stored, computed }) => text.replacen(
+            &format!("digest: {stored},"),
+            &format!("digest: {computed},"),
+            1,
+        ),
+        other => panic!("expected a digest mismatch, got {other:?}"),
+    }
+}
+
+#[test]
+fn resume_refuses_an_invalid_state() {
+    // N11, §7.6: resume checks the state against the world before it runs anything. A state
+    // edited after saving is first refused by its digest when it is decoded; one whose digest
+    // was recomputed to match decodes, and resume refuses it as Invalid. Five edits of a RON
+    // checkpoint at tick 100: a lot life its good cannot have, a written currency book slot, an
+    // actor's holding dropped, an escrow held between ticks, and an actor's state dropped.
+    let t = tape();
+    let cp = checkpoint_at(&t, 100);
+    let text = cp.to_ron();
+    let edits: Vec<(&str, String)> = vec![
+        (
+            "a bread life of 1000 ticks",
+            replace_after(&text, "holdings: {", "Some(", ")", "1000"),
+        ),
+        ("the currency slot's supply", {
+            // The book is flat, node by node: slot 1 is (town, coin), whose supply is 0.
+            let first = text.find("            supply: [\n").unwrap() + "            supply: [\n".len();
+            let second = first + text[first..].find('\n').unwrap() + 1;
+            let end = second + text[second..].find('\n').unwrap();
+            assert_eq!(&text[second..end], "                0.0,");
+            format!("{}                5.0,{}", &text[..second], &text[end..])
+        }),
+        ("the pensioners' holding dropped", {
+            let start = text.find("            Actor(Pop((0))): [").unwrap();
+            let end = start + text[start..].find("\n            ],\n").unwrap() + "\n            ],\n".len();
+            format!("{}{}", &text[..start], &text[end..])
+        }),
+        (
+            "an escrow between ticks",
+            text.replacen(
+                "        holdings: {\n",
+                "        holdings: {\n            Escrow((0), (0)): [\n                ((0), [\n                    (1.0, Some(1)),\n                ]),\n            ],\n",
+                1,
+            ),
+        ),
+        (
+            "the oven's state dropped",
+            text.replacen(
+                "            Desk((3)): Scripted((\n                active: false,\n            )),\n",
+                "",
+                1,
+            ),
+        ),
+    ];
+    for (what, edited) in edits {
+        assert_ne!(edited, text, "{what}: the edit applies");
+        assert!(
+            matches!(
+                Checkpoint::from_ron(&edited),
+                Err(CheckpointError::Digest { .. })
+            ),
+            "{what}: the digest refuses the edit"
+        );
+        let forged = Checkpoint::from_ron(&with_matching_digest(&edited))
+            .unwrap_or_else(|e| panic!("{what}: the forged text decodes: {e}"));
+        match Sim::resume(&t, &forged) {
+            Err(ResumeError::Invalid(e)) => {
+                assert!(!e.to_string().is_empty(), "{what}");
+            }
+            other => panic!("{what}: expected Invalid, got {other:?}"),
+        }
+    }
+    // The untouched text resumes.
+    Sim::resume(&t, &Checkpoint::from_ron(&text).unwrap())
+        .expect("the untouched checkpoint resumes");
 }

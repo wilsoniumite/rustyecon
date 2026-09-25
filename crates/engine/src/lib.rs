@@ -31,7 +31,7 @@ pub use rustyecon_core;
 pub use rustyecon_markets;
 
 pub use error::{ReplayError, ResumeError, RunError, RunErrorKind};
-pub use registry::{registry, Entry, RegistryLine};
+pub use registry::{registry, Entry, RegistryLine, Use};
 pub use replay::audit_replay;
 pub use report::{FiredEvent, HoldingTotals, MarketLine, TickReport, Trace, TraceEntry};
 pub use sim::{Sim, Status};

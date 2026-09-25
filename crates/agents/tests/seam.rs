@@ -443,6 +443,66 @@ fn dormant_actor_does_nothing() {
 }
 
 #[test]
+fn tiny_cash_and_stocks_still_pay_out_and_produce() {
+    // A12: no absolute threshold stands between a positive amount and its delta (July dropped
+    // flows under absolute epsilons). With 1e-300 coin the mill still pays the workers its
+    // payout share, and with 1e-300 grain and fuel it still produces at its Leontief scale.
+    let (w, mut s) = load();
+    let cast = Cast::new(&w).unwrap();
+    let (mill, workers) = (actor(&w, "mill"), actor(&w, "workers"));
+    let (coin, grain, fuel, bread) = (
+        good(&w, "coin"),
+        good(&w, "grain"),
+        good(&w, "fuel"),
+        good(&w, "bread"),
+    );
+    for g in [coin, grain, fuel, bread] {
+        burn_all(&mut s, &w, mill, g);
+        if g != bread {
+            mint(&mut s, &w, mill, g, 1e-300);
+        }
+    }
+    let rate = s.param(w.id_of("mill.payout").unwrap()).unwrap();
+    let pay = w.clock.share(RatePerYear(rate)) * 1e-300;
+    assert!(pay > 0.0);
+    let d = cast.decide(mill, &s, &w).unwrap();
+    assert_eq!(
+        d.deltas,
+        vec![StateDelta::Transfer {
+            from: Holder::Actor(mill),
+            to: Holder::Actor(workers),
+            good: coin,
+            amount: Amount::Qty(pay),
+        }]
+    );
+    let ds = cast.produce(mill, &s, &w).unwrap();
+    let x = num::max_scale(1e-300, 2.0)
+        .unwrap()
+        .min(num::max_scale(1e-300, 1.0).unwrap());
+    assert!(x > 0.0);
+    let burn = |good, q| StateDelta::Burn {
+        from: Holder::Actor(mill),
+        good,
+        amount: Amount::Qty(q),
+        prov: Provenance::Production,
+    };
+    assert_eq!(
+        ds,
+        vec![
+            burn(fuel, 1.0 * x),
+            burn(grain, 2.0 * x),
+            StateDelta::Mint {
+                to: Holder::Actor(mill),
+                good: bread,
+                qty: 3.0 * x,
+                prov: Provenance::Production,
+            },
+        ]
+    );
+    apply_in(&mut s, &w, Phase::Production, &ds).expect("the tiny burns fit");
+}
+
+#[test]
 fn scripted_specs_are_checked_at_load() {
     // Every spec error is a load error that names its tape path (N2).
     let cases: [(&str, &str, &str); 7] = [
@@ -485,6 +545,23 @@ fn scripted_specs_are_checked_at_load() {
     for (from, to, path) in cases {
         let e = load_text(&edit(from, to)).unwrap_err();
         assert_eq!(e.path, path, "{e}");
+    }
+    // A currency on either side of a recipe (R14): burning coin would be a cost in money, and
+    // minting it would make money with a production provenance.
+    let mine = r#"inputs: [], outputs: [("fuel", 1.0)], capacity: "mine.capacity""#;
+    for (to, path) in [
+        (
+            r#"inputs: [("coin", 1.0)], outputs: [("fuel", 1.0)], capacity: "mine.capacity""#,
+            "actors[mine].spec.recipe.inputs[coin]",
+        ),
+        (
+            r#"inputs: [], outputs: [("coin", 1.0)], capacity: "mine.capacity""#,
+            "actors[mine].spec.recipe.outputs[coin]",
+        ),
+    ] {
+        let e = load_text(&edit(mine, to)).unwrap_err();
+        assert_eq!(e.path, path, "{e}");
+        assert_eq!(e.kind, LoadErrorKind::CurrencyInRecipe, "{e}");
     }
     // A missing Option field is an error, not a silent None.
     let e = load_text(&edit(

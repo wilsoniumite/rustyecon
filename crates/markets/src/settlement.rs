@@ -17,8 +17,11 @@
 //! Every fill is at most 1 and rounding is monotone, so `ship_i <= qty_i` and `p·r_j <=
 //! budget_j`, which admission took from the same holdings in the same order; receipts only add.
 //! The largest taker goes last, so no earlier take exceeds the escrow, and every escrow ends
-//! empty. Only the last takers' quantities differ from nominal, by rounding, which is why the
-//! lines are built from what `apply` actually moved.
+//! empty. Payments are nominal. A quantity can differ from nominal by rounding in two places:
+//! the last taker's `All`, and any take from a holding of several lots, which moves the sum of
+//! the lots it takes (a seller's bread, or a bread escrow). So `shipped <= offered` and
+//! `filled <= feasible` hold only up to that rounding, and the lines are built from what
+//! `apply` actually moved.
 
 use crate::clearing::{canonical, Fills, MarketFill};
 use crate::order::{Line, OrderError, Side, SideTag};
@@ -51,7 +54,9 @@ pub struct SettleLine {
 ///
 /// For a buyer class the cash shortfall is `requested − feasible` and the market shortfall
 /// `feasible − filled`. For a seller class `requested = feasible` = offered, and `filled` is what
-/// it shipped.
+/// it shipped. `filled` is what `apply` moved, so when a take spans several lots or is a last
+/// taker's `All` it can exceed `feasible` (or what was offered) by rounding, a few ulps: the
+/// market shortfall is then a few ulps below zero, not an invariant to test exactly.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct RationLine {
     /// The node.

@@ -455,9 +455,18 @@ fn settle_lines_carry_moved_quantities() {
 
 #[test]
 fn rationing_is_recorded_per_class() {
-    let (w, mut s) = load();
-    let (town, bread) = (node(&w, "town"), good(&w, "bread"));
-    // Supply 3 against feasible demand 6: every buyer gets half of what it can pay for.
+    // The pensioners also hold grain, to sell in the village.
+    let text = edit(
+        r#"(holder: "pensioners", goods: [("coin", 6.0)])"#,
+        r#"(holder: "pensioners", goods: [("coin", 6.0), ("grain", 3.0)])"#,
+    );
+    let (w, mut s) = load_text(&text);
+    let (town, village) = (node(&w, "town"), node(&w, "village"));
+    let (bread, grain) = (good(&w, "bread"), good(&w, "grain"));
+    // Town bread: supply 3 against feasible demand 6, so every buyer gets half of what it can
+    // pay for. Village grain: the two producers buy, and the mill is cash-short (1.8 buys 2 of
+    // the 5 it asks at 0.9); supply 3 against feasible demand 6 again. So the producers' buy
+    // line of village grain sums two members: 4 + 5 asked, 4 + 2 affordable, 2 + 1 received.
     let t = market_tick(
         &mut s,
         &w,
@@ -466,29 +475,179 @@ fn rationing_is_recorded_per_class() {
             buy(&w, "farm", "town", "bread", 2.0, 4.0),
             buy(&w, "pensioners", "town", "bread", 4.0, 2.0),
             buy(&w, "workers", "town", "bread", 3.0, 6.0),
+            sell(&w, "pensioners", "village", "grain", 3.0),
+            buy(&w, "farm", "village", "grain", 4.0, 10.0),
+            buy(&w, "mill", "village", "grain", 5.0, 1.8),
         ],
     )
     .unwrap();
-    let line = |c: &str, side, requested, feasible, filled| RationLine {
-        node: town,
-        good: bread,
+    let line = |n, g, c: &str, side, requested, feasible, filled| RationLine {
+        node: n,
+        good: g,
         class: class(&w, c),
         side,
         requested,
         feasible,
         filled,
     };
-    // One line per (node, good, class, side) with an order, in that order.
+    // One line per (node, good, class, side) with an order, in that order, each the sum of its
+    // members' orders in actor order.
     assert_eq!(
         t.rationing,
         vec![
-            line("households", SideTag::Buy, 3.0, 3.0, 1.5),
-            line("pensioners", SideTag::Buy, 4.0, 1.0, 0.5),
-            line("producers", SideTag::Buy, 2.0, 2.0, 1.0),
-            line("producers", SideTag::Sell, 3.0, 3.0, 3.0),
+            line(town, bread, "households", SideTag::Buy, 3.0, 3.0, 1.5),
+            line(town, bread, "pensioners", SideTag::Buy, 4.0, 1.0, 0.5),
+            line(town, bread, "producers", SideTag::Buy, 2.0, 2.0, 1.0),
+            line(town, bread, "producers", SideTag::Sell, 3.0, 3.0, 3.0),
+            line(village, grain, "pensioners", SideTag::Sell, 3.0, 3.0, 3.0),
+            line(village, grain, "producers", SideTag::Buy, 9.0, 6.0, 3.0),
         ]
     );
+    // Each member's own share is on its settle line.
+    let farm = line_of(&t, actor(&w, "farm"), village, grain, true);
+    let mill = line_of(&t, actor(&w, "mill"), village, grain, true);
+    assert_eq!((farm.qty, mill.qty), (2.0, 1.0));
     // The recorded demand is the feasible sum, below what was asked.
     assert_eq!(s.demand(town, bread), Some(6.0));
     assert_eq!(s.supply(town, bread), Some(3.0));
+    assert_eq!(s.demand(village, grain), Some(6.0));
+}
+
+#[test]
+fn one_filled_quantity_serves_many_takers() {
+    // §3.2 with several takers on a rationed side. Town bread is short: two sellers offer 4
+    // against 4.5 feasible, so two buyers are filled at 8/9. Village grain is long: two sellers
+    // offer 17 against 5 feasible, so two sellers ship at 5/17. On every line: a buyer pays
+    // exactly p·(feasible·buyer_fill), and every buyer but the last receives exactly
+    // feasible·buyer_fill; a seller ships exactly qty·seller_fill, and every seller but the
+    // last is paid exactly p·(qty·seller_fill). Each escrow holds one lot here (the bread lots
+    // share a life), so no take splits across lots and every nominal quantity is exact.
+    let text = edit(
+        r#"(holder: "farm", goods: [("coin", 100.0), ("grain", 16.0)])"#,
+        r#"(holder: "farm", goods: [("bread", 5.0), ("coin", 100.0), ("grain", 16.0)])"#,
+    );
+    let text = edit_text(
+        &text,
+        r#"("bread", 9.0), ("coin", 50.0), ("florin", 30.0)"#,
+        r#"("bread", 9.0), ("coin", 50.0), ("florin", 30.0), ("grain", 7.0)"#,
+    );
+    let (w, mut s) = load_text(&text);
+    let (town, village) = (node(&w, "town"), node(&w, "village"));
+    let (bread, grain) = (good(&w, "bread"), good(&w, "grain"));
+    let orders = vec![
+        sell(&w, "farm", "town", "bread", 1.5),
+        sell(&w, "mill", "town", "bread", 2.5),
+        buy(&w, "pensioners", "town", "bread", 10.0, 3.0),
+        buy(&w, "workers", "town", "bread", 3.0, 6.0),
+        sell(&w, "farm", "village", "grain", 10.0),
+        sell(&w, "mill", "village", "grain", 7.0),
+        buy(&w, "pensioners", "village", "grain", 2.0, 3.0),
+        buy(&w, "workers", "village", "grain", 3.0, 5.0),
+    ];
+    let prices = [
+        (town, bread, s.price(town, bread).unwrap()),
+        (village, grain, s.price(village, grain).unwrap()),
+    ];
+    let t = market_tick(&mut s, &w, orders).unwrap();
+    let mut rationed = [0, 0];
+    for (n, g, p) in prices {
+        let f = *t.fills.get(n, g).unwrap();
+        assert!(f.trades());
+        let lines: Vec<&rustyecon_markets::Line> = t
+            .lines
+            .iter()
+            .filter(|l| (l.order.node, l.order.good) == (n, g))
+            .collect();
+        for (side, fill, i) in [
+            (SideTag::Buy, f.buyer_fill, 0),
+            (SideTag::Sell, f.seller_fill, 1),
+        ] {
+            let nominal = |l: &rustyecon_markets::Line| match side {
+                SideTag::Buy => l.feasible * fill,
+                SideTag::Sell => l.order.qty * fill,
+            };
+            let takers: Vec<&&rustyecon_markets::Line> = lines
+                .iter()
+                .filter(|l| l.order.side.tag() == side)
+                .collect();
+            let last = takers
+                .iter()
+                .max_by(|a, b| {
+                    nominal(a)
+                        .total_cmp(&nominal(b))
+                        .then(a.order.actor.cmp(&b.order.actor))
+                })
+                .unwrap()
+                .order
+                .actor;
+            if fill < 1.0 && takers.len() > 1 {
+                rationed[i] += 1;
+            }
+            for l in takers {
+                let q = nominal(l);
+                let sl = line_of(&t, l.order.actor, n, g, side == SideTag::Buy);
+                match side {
+                    SideTag::Buy => {
+                        assert_eq!(sl.value, p * q, "{sl:?}");
+                        if l.order.actor != last {
+                            assert_eq!(sl.qty, q, "{sl:?}");
+                        }
+                    }
+                    SideTag::Sell => {
+                        assert_eq!(sl.qty, q, "{sl:?}");
+                        if l.order.actor != last {
+                            assert_eq!(sl.value, p * q, "{sl:?}");
+                        }
+                    }
+                }
+            }
+        }
+    }
+    assert_eq!(
+        rationed,
+        [1, 1],
+        "two rationed buyers in one market, two sellers in another"
+    );
+    // The fills are the ones described: 8/9 of the bread buys and 5/17 of the grain sells.
+    let bread_fill = t.fills.get(town, bread).unwrap();
+    assert_eq!(bread_fill.buyer_fill, 4.0 / 4.5);
+    assert_eq!(t.fills.get(village, grain).unwrap().seller_fill, 5.0 / 17.0);
+    assert!(!t.escrow_left);
+    assert!(t.audit.max_margin <= 1.0);
+}
+
+#[test]
+fn a_market_whose_fill_underflows_does_not_trade() {
+    // Amendment 5: with both sides posted, a fill is 0 only when S/D underflows below 2⁻¹⁰⁷⁴;
+    // then nothing trades, rather than the sellers shipping into the escrow unpaid and the last
+    // buyer taking the goods for nothing. Here the mill offers 1e-24 bread and the workers can
+    // pay for 1e300 at a price of 1e-300.
+    let (w, mut s) = load();
+    let (town, bread, coin) = (node(&w, "town"), good(&w, "bread"), good(&w, "coin"));
+    set_price(&mut s, &w, town, bread, 1e-300);
+    let before = s.clone();
+    let t = market_tick(
+        &mut s,
+        &w,
+        vec![
+            sell(&w, "mill", "town", "bread", 1e-24),
+            buy(&w, "workers", "town", "bread", 1e300, 20.0),
+        ],
+    )
+    .unwrap();
+    let f = *t.fills.get(town, bread).unwrap();
+    assert_eq!((f.supply, f.demand), (1e-24, 1e300));
+    assert_eq!((f.buyer_fill, f.seller_fill), (0.0, 1.0));
+    assert!(!f.trades());
+    assert!(t.plan.is_empty(), "{:?}", t.plan);
+    for key in ["mill", "workers"] {
+        for g in [bread, coin] {
+            assert_eq!(
+                held(&s, holder(&w, key), g),
+                held(&before, holder(&w, key), g)
+            );
+        }
+    }
+    let settled: Vec<(f64, f64)> = t.settled.iter().map(|l| (l.qty, l.value)).collect();
+    assert_eq!(settled, [(0.0, 0.0), (0.0, 0.0)]);
 }

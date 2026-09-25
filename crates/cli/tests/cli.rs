@@ -302,6 +302,10 @@ fn registry_lists_every_number() {
         "params[mine.capacity]\t5.2e1\tFlowPerYear live\tflow 1e0 per tick\tAssumed(gate world)",
         "params[life.bread]\t5.77e-2\tYears fixed\tticks 3e0 per tick\tAssumed(three weeks)",
         "params[rate.grain]\t5.2e0\tRatePerYear live\tlog_step 1e-1 per tick",
+        // Read by the schedule alone: a SetParam's source converts as the param it sets, and a
+        // recurring period is whole ticks.
+        "params[mine.capacity.cut]\t2.6e1\tFlowPerYear schedule\tflow 5e-1 per tick\tAssumed(gate world: half)",
+        "params[pension.period]\t1e0\tYears schedule\tticks 5.2e1 per tick\tAssumed(yearly)",
         "actors[mill].spec.recipe.inputs[grain]\t2e0\tDimensionless inline",
         "genesis.prices[town/bread].price\t2e0\tDimensionless inline",
         "recurring[pension].act.qty\t5e0\tDimensionless inline",
@@ -325,4 +329,70 @@ fn no_behaviour_switches() {
         let out = rustyecon(&["run", s(&tape), "--until", "10", flag, value]);
         assert_eq!(code(&out), 1, "{flag}: {}", stderr(&out));
     }
+}
+
+#[test]
+fn resume_refuses_an_edited_checkpoint() {
+    // R2, E1, N11: a RON checkpoint is readable, which invites editing it. An edit that is not
+    // matched by the stored digest (a million coin for the workers) is refused before the run
+    // resumes, exit 3; before format 2 it resumed with the coin in no ledger line. A forger who
+    // recomputes the digest gets past that check, but a state that does not fit the world (a
+    // bread lot with a life bread cannot have) is still refused by the resume's validation,
+    // exit 3.
+    let dir = tempfile::tempdir().unwrap();
+    let tape = write_tape(dir.path(), "gate.ron", GATE);
+    let cps = dir.path().join("cps");
+    let out = rustyecon(&[
+        "run",
+        s(&tape),
+        "--until",
+        "100",
+        "--out",
+        s(&cps),
+        "--format",
+        "ron",
+    ]);
+    assert_eq!(code(&out), 0, "{}", stderr(&out));
+    let text = fs::read_to_string(cps.join("tick_00000100.ron")).unwrap();
+    let resume = |name: &str, text: &str| {
+        let p = dir.path().join(name);
+        fs::write(&p, text).unwrap();
+        rustyecon(&["resume", s(&p), "--tape", s(&tape), "--until", "200"])
+    };
+    // The workers are Pop(1); their coin, good 1, is one lot: 1e6 is written in front of it.
+    let at = text.find("Actor(Pop((1))): [").unwrap();
+    let start =
+        at + text[at..].find("                    (").unwrap() + "                    (".len();
+    let richer = format!("{}1000000{}", &text[..start], &text[start..]);
+    let out = resume("richer.ron", &richer);
+    assert_eq!(code(&out), 3, "{}", stderr(&out));
+    assert!(
+        stderr(&out).contains("edited or corrupted"),
+        "{}",
+        stderr(&out)
+    );
+    // A bread lot with a life of 1000 ticks, its digest recomputed to match.
+    let at = text.find("holdings: {").unwrap();
+    let life = at + text[at..].find("Some(").unwrap() + "Some(".len();
+    let close = life + text[life..].find(')').unwrap();
+    let edited = format!("{}1000{}", &text[..life], &text[close..]);
+    let forged = match rustyecon_engine::Checkpoint::from_ron(&edited) {
+        Err(rustyecon_engine::prelude::CheckpointError::Digest { stored, computed }) => edited
+            .replacen(
+                &format!("digest: {stored},"),
+                &format!("digest: {computed},"),
+                1,
+            ),
+        other => panic!("expected a digest mismatch, got {other:?}"),
+    };
+    let out = resume("forged.ron", &forged);
+    assert_eq!(code(&out), 3, "{}", stderr(&out));
+    assert!(
+        stderr(&out).contains("which bread cannot have"),
+        "{}",
+        stderr(&out)
+    );
+    // The untouched checkpoint resumes.
+    let out = resume("same.ron", &text);
+    assert_eq!(code(&out), 0, "{}", stderr(&out));
 }

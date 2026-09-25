@@ -153,7 +153,7 @@ fn save(sim: &Sim, dir: &Path, format: Format) -> Result<(), Exit> {
         Format::Ron => ("ron", cp.to_ron().into_bytes()),
     };
     fs::create_dir_all(dir).map_err(|e| io_error("cannot create the directory", dir, e))?;
-    let path = dir.join(format!("tick_{:08}.{ext}", cp.state.tick()));
+    let path = dir.join(format!("tick_{:08}.{ext}", cp.state().tick()));
     fs::write(&path, bytes).map_err(|e| io_error("cannot write the checkpoint", &path, e))
 }
 

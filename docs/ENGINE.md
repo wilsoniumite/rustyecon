@@ -2,10 +2,12 @@
 
 Final, 2026-09-25, committed as P0.2. It folds in the frontend requirement of 2026-09-25 (an
 engine crate, a read-only observation API, no frontend mutation, `Send` types, a stable tape
-schema) and an adversarial review of the draft. Four steps follow it in order, one commit each:
-**P0.3 core**, **P0.4 markets**, **P0.5 agents + engine + cli**, **P0.6 housekeeping** (P0.1 is
-the skeleton; P0.2 is this file and the empty `crates/engine`). The draft had agents and engine +
-cli as two steps; they were merged at P0.5 (amendment 1 below).
+schema) and an adversarial review of the draft. Steps follow it in order, one commit each:
+**P0.3 core**, **P0.4 markets**, **P0.5 agents + engine + cli**, **P0.6 fixes from adversarial
+review, round 1**, then housekeeping (P0.1 is the skeleton; P0.2 is this file and the empty
+`crates/engine`). The draft had agents and engine + cli as two steps; they were merged at P0.5
+(amendment 1 below). Housekeeping was P0.6 until the review's fixes took that number (P0.6
+amendment 8).
 
 It covers PLAN §3 (phase order), §3.1, §3.3, §3.8 and §3.9; R2–R4, R8 and R12–R14; and ADDENDUM
 A2, A3, A5, A12 and A13. Salvage comes from tag `july-v2-phase-3` (`ff01284`); `v2p3:` paths name
@@ -81,7 +83,12 @@ place in the section named.
 6. The no-shortfall argument of §3.2 assumes normal numbers. Where a payment or a fill falls into
    the subnormal range its rounding is no longer relative, and a non-last take could exceed its
    escrow by a subnormal amount. That would be a `CoreError::Shortfall`, which stops the run with
-   its ledger line (R2); no guard is added (A12) (§3.2).
+   its ledger line (R2); no guard is added (A12) (§3.2). The same rounding can also settle one
+   side alone, with no error (found at P0.6): with a subnormal `seller_fill` every shipment can
+   round to 0 while the buyers pay a subnormal amount (4.94e-24 coin for no bread, at a price of
+   1e300), and a last buyer can receive up to a fifth more than its feasible quantity. Both sides
+   still conserve; the run records it and goes on. Session 2's certificate can flag a market
+   whose fills are subnormal.
 7. The pure rules are public: `imbalance`, `step` (`p·exp(k·x)`) and `next_price(rule,
    one_sided, p, k, S, D)`. Under `Saturate` a one-sided market's `x` is the imbalance itself,
    which is exactly ±1. `Ratio` computes `p·(D/S)`, July's order of operations (§3.3).
@@ -155,15 +162,69 @@ place in the section named.
    `clap` and `tempfile` join the workspace dependencies, and `Cargo.lock` pins clap 4.6.1 and
    tempfile 3.27.0 (July's versions) with a dependency closure both machines have cached.
 
+**Amended at P0.6** (fixes from adversarial review, round 1), the same way.
+
+1. Checkpoints (R2, E1, N11). Format 2 stores the state's hash as a digest in both forms, and
+   the decoders refuse a state that does not hash to it (`CheckpointError::Digest`), before any
+   resume sees it: under format 1 a RON checkpoint with a million coin added resumed, and the
+   coin appeared in no ledger line. `Checkpoint`'s fields are private. It is made only by
+   `Checkpoint::of` and the decoders and read through `world_id()`, `prefix_id()`, `state()` and
+   `digest()`, so nothing reaches `&mut` its state (a doc test pins that `&mut cp.state` does not
+   compile). The in-memory `format` field is gone, since a value in memory is always of this
+   build's format, and with it `ResumeError::Checkpoint` and the resume's unreachable format
+   check. §7.6 states the trust boundary that remains (§2.5, §7.5, §7.6).
+2. Schedule params (E1). E1 promised that a dial change, a dated `SetParam`, keeps a checkpoint
+   taken before it; but a `SetParam`'s value was a registered param, in `world_id` and in the
+   state, so any new value refused every checkpoint as `WrongWorld` and changed the hash stream
+   from tick 1. A param read by the schedule alone (a value a `SetParam` copies, a recurring
+   period) is now a `ScheduleParam` held by the `Schedule`: not registered, not in the state and
+   not in `world_id`, while the firings it shapes stay in `prefix_id`. The loader learns which
+   params those are in a first pass and resolves again without them. `Firing::source` is the
+   source's key. A source the world also reads stays registered and fixed (§2.1, §2.6, §7.6).
+3. Load checks (§2.6, §4): a ledger tolerance of 1 or more (`ToleranceNotBelowOne`), which would
+   make R2 vacuous, and a currency on either side of a recipe (`CurrencyInRecipe`), which would
+   make a cost in money or money with a production provenance (R14).
+4. Settlement (§3.2): not only the last taker's quantity differs from nominal. Any take from a
+   holding of several lots moves the sum of the lots taken, so `shipped <= offered` and `filled
+   <= feasible` hold only up to rounding. Payments stay nominal.
+5. Income (§2.5): Phase 0 asserts the market-level identity, expenditure equals receipts, on
+   every gate tick (`gate_settles_by_one_filled_quantity`). The income identity proper,
+   `I = wN_a + rT`, needs wages and rents, which arrive with Phase 2.
+6. The registry listing (§5) gives each param's use as `live`, `fixed` or `schedule`.
+7. Tests (§11). Added: `checkpoint_digest_refuses_an_edited_state`,
+   `schedule_params_stay_out_of_the_world`, `ledger_tolerances_must_be_below_one` (core);
+   `one_filled_quantity_serves_many_takers`, `a_market_whose_fill_underflows_does_not_trade`
+   (markets); `tiny_cash_and_stocks_still_pay_out_and_produce` (agents);
+   `resume_after_a_new_dial_value_equals_full_rerun`, `resume_refuses_an_invalid_state`,
+   `gate_settles_by_one_filled_quantity`, `hooks_read_the_phase_start_state_every_tick`
+   (engine); `resume_refuses_an_edited_checkpoint` (cli). Strengthened:
+   `rationing_is_recorded_per_class` (two members of one class on one side, one cash-short),
+   `gate_rations_and_records_by_class` (every class line is the fold of its members; `D` against
+   the class lines under a relative bar, since the two fold in different orders, and against the
+   actor-order fold exactly), `clock_conversions` (`ticks` at 12, 52 and 365 ticks a year),
+   `a13_annual_quantities_invariant` (every pension occurrence and the bread's life),
+   `no_public_api_hands_out_mut_state` (no `&mut self` method on `Sim` but `step`,
+   `step_traced` and `run_until`; no `&mut` to a `SimState`, `World` or `Inventory` anywhere in a
+   signature; regression fixtures), the source scans (a `#[cfg(test)]` item is cut out rather
+   than the file cut at it, so shipped code after an early test helper is scanned; named float
+   constants such as `f64::EPSILON` are refused outside `core::num`), and
+   `scripted_specs_are_checked_at_load` (a currency in a recipe). Each was checked against the
+   mutation that showed the gap.
+8. Steps (§12): P0.6 is this round's fixes; the housekeeping of §12 follows as its own step.
+
 ## 0. Engine invariants
 
 Numbered so tests and reviews can cite them. Each has at least one test in §11.
 
 - **E1 — A frontend never mutates state.** Every live intervention (a dial, a shock, a world
   edit) is a dated tape event, or a tape edit followed by a rerun from genesis or a resume from a
-  compatible checkpoint (§7.6). A dial change is a dated `SetParam` event (§2.4). Nothing enters a
-  run except through the tape: no command-line override, no setter on `Sim`. So every experiment
-  is reproducible (R8) and every number keeps its provenance (R4).
+  compatible checkpoint (§7.6). A dial change is a dated `SetParam` event (§2.4) that copies a
+  param only the schedule reads, so a checkpoint taken before it fires resumes under the edited
+  tape, whatever the new value (§2.6). Nothing enters a run except through the tape: no
+  command-line override, no setter on `Sim`, no `&mut` to a checkpoint's state, and no checkpoint
+  whose state does not match its digest. So every experiment is reproducible (R8) and every
+  number keeps its provenance (R4). A checkpoint is the one input besides the tape; §7.6 states
+  what a resume trusts in it.
 - **E2 — No global state and no I/O on the engine path.** `core`, `markets`, `agents` and
   `engine` hold no `static mut`, `thread_local!`, `Rc`, `RefCell`, `Cell`, `OnceCell`,
   `OnceLock`, `LazyLock`, `Mutex`, `RwLock` or atomics. They use no `std::fs`, `std::time`,
@@ -271,7 +332,9 @@ impl Params<'_> { pub fn get<U: UnitKind>(&self, p: ParamId) -> Result<U, CoreEr
   caches a param's value beyond the call that read it. A param is `fixed` when the loader turns
   it into structure (a shelf life, a recurring period, or the value a `SetParam` copies) or when
   changing it would change what a past tick meant (the ledger tolerances). A `SetParam` on a
-  fixed param is a load error, and `apply` refuses one too (`FixedParam`).
+  fixed param is a load error, and `apply` refuses one too (`FixedParam`). A param that only the
+  schedule reads (a value a `SetParam` copies, a recurring period) is not registered at all: it
+  is a `ScheduleParam`, schedule content like the events (§2.6; amended at P0.6).
 - **Units.** `Clock`'s methods each take one unit type (§6), so using a rate as a flow does not
   compile.
 
@@ -414,10 +477,14 @@ pub struct ShortfallLine { pub tick: u64, pub phase: Phase, pub holder: Holder, 
                            pub requested: f64, pub held: f64, pub prov: Option<Provenance> }
 pub struct TickAudit { pub lines: Vec<(GoodId, Provenance, f64)>, pub max_margin: f64, pub max_drift: f64 }
 pub fn state_hash<E: Ext>(s: &SimState<E>) -> u64; // FNV-1a 64 over bincode 1 (v2p3: certify/hash.rs:16-30)
-pub struct Checkpoint<E: Ext> { pub format: u32, pub world_id: u64, pub prefix_id: u64, pub state: SimState<E> }
+pub struct Checkpoint<E: Ext> { world_id: u64, prefix_id: u64, state: SimState<E> }  // private
 impl<E: Ext> Checkpoint<E> {
+    pub fn of(w: &World<E>, state: SimState<E>) -> Self;   // world_id and prefix_id(state.tick())
+    pub fn world_id(&self) -> u64;  pub fn prefix_id(&self) -> u64;  pub fn state(&self) -> &SimState<E>;
+    pub fn digest(&self) -> u64;                            // state_hash(state)
     pub fn to_bytes(&self) -> Vec<u8>;  pub fn from_bytes(b: &[u8]) -> Result<Self, CheckpointError>;
     pub fn to_ron(&self) -> String;     pub fn from_ron(s: &str) -> Result<Self, CheckpointError>; }
+// CheckpointError: Magic | Format { found, expected } | Decode(String) | Digest { stored, computed }
 pub mod num {
     pub fn exp(x: f64) -> f64; pub fn expm1(x: f64) -> f64; pub fn ln(x: f64) -> f64;
     pub fn ln1p(x: f64) -> f64; pub fn pow(x: f64, y: f64) -> f64;       // one libm call each (A5)
@@ -454,22 +521,30 @@ pub mod num {
   failure is `CoreError::Conservation { good, drift, tol, lines }`. With no stock and no flow,
   `tol = 0` and the drift must be exactly zero. The margin is 0 when `drift == 0` and `|drift|/tol`
   otherwise, so `max_margin <= 1` is the pass condition and 0/0 never occurs. July's
-  `ABS_TOLERANCE` does not move (A12).
-- **Income.** It is not checked in Phase 0. Phase 2 can check it from the (good, provenance)
-  lines, the settlement lines with their moved quantities (§3.2) and the audit, which always
-  reaches the caller (§7).
+  `ABS_TOLERANCE` does not move (A12). A tolerance must be below 1, checked at load: at 1 or
+  more a leak of the whole stock or flow would pass (amended at P0.6).
+- **Income.** Phase 0 asserts the market-level identity: in every market and tick, what the
+  sellers received equals what the buyers paid, and the buyers paid the posted price times what
+  they received, both under the gate test's relative bar (`gate_settles_by_one_filled_quantity`).
+  The income identity proper, `I = wN_a + rT`, needs wages and rents, which arrive in Phase 2; it
+  can then be checked from the (good, provenance) lines, the settlement lines with their moved
+  quantities (§3.2) and the audit, which always reaches the caller (§7).
 - **Hash.** It covers the whole `SimState`: tick, params, market book, every holding with its lot
   lives, and the extension state. It does not cover the tape.
 - **Checkpoints (N11).** A checkpoint carries `world_id` and `prefix_id` (§2.6), and
   `Sim::resume` refuses a mismatch (§7.6). The bytes form opens with the magic `RUSTYECK` and
-  `format` as a little-endian `u32`, then bincode 1 of `(world_id, prefix_id, state)` with no
-  trailing bytes; the RON form's first field is `format`, read by a probe that skips the rest
-  undecoded. Either way a wrong format is refused before the state is decoded. Decoding re-sorts
-  and re-coalesces lots and rejects NaN, `-0.0` and negative values (and non-positive prices);
-  `Checkpoint::validate(&world)` (that is, `SimState::validate`) then checks every id and shape
-  against the `World`. `Checkpoint::of(&world, state)` records `world_id` and `prefix_id(tick)`.
-  `to_bytes` and `to_ron` cannot fail for core's types; should an extension's `Serialize` fail,
-  they return output the loaders reject.
+  the format, 2, as a little-endian `u32`, then bincode 1 of `(world_id, prefix_id, digest,
+  state)` with no trailing bytes; the RON form's first field is `format`, read by a probe that
+  skips the rest undecoded, then `world_id`, `prefix_id`, `digest` and `state`. Either way a
+  wrong format (format 1 included) is refused before the state is decoded. Decoding re-sorts and
+  re-coalesces lots and rejects NaN, `-0.0` and negative values (and non-positive prices); the
+  decoded state must then hash to `digest`, or the decoder returns `CheckpointError::Digest`, so a
+  checkpoint edited or corrupted after it was saved is refused (R2). `Checkpoint::validate(&world)`
+  (that is, `SimState::validate`) then checks every id and shape against the `World`. The fields
+  are private: a `Checkpoint` is made only by `Checkpoint::of(&world, state)`, which records
+  `world_id` and `prefix_id(tick)`, and by the decoders. `to_bytes` and `to_ron` cannot fail for
+  core's types; should an extension's `Serialize` fail, they return output the loaders reject
+  (amended at P0.6).
 
 ### 2.6 The tape: schema, resolution, identity (N1, N2, N10 in part; E8)
 
@@ -492,9 +567,11 @@ pub struct MarketConfig { pub rule: PriceRule, pub one_sided: OneSided, pub ema_
 pub enum PriceRule { Imbalance, Ratio }     // N13: required, no Default
 pub enum OneSided { Saturate, Hold }        // F8: required, no Default
 pub struct Firing<E: Ext> { pub tick: u64, pub event: EventId, pub occurrence: u32, pub action: StateDelta<E>,
-                           pub source: Option<ParamId> }  // a SetParam's source param, for its basis
-pub struct Schedule<E: Ext> { once: Vec<Firing<E>>, every: Vec<Recurring<E>> }
-impl<E: Ext> Schedule<E> { pub fn fire(&self, tick: u64) -> Vec<Firing<E>>; }
+                           pub source: Option<Key> }  // a SetParam's source param, for its basis
+pub struct ScheduleParam { pub key: Key, pub unit: Unit, pub value: f64, pub basis: Basis }
+pub struct Schedule<E: Ext> { once: Vec<Firing<E>>, every: Vec<Recurring<E>>, params: Vec<ScheduleParam> }
+impl<E: Ext> Schedule<E> { pub fn fire(&self, tick: u64) -> Vec<Firing<E>>;
+                           pub fn params(&self) -> &[ScheduleParam]; pub fn param(&self, key: &str) -> Option<&ScheduleParam>; }
 ```
 
 - **Schema version.** `schema: 1`. The loader reads only its own version; anything else is
@@ -521,8 +598,19 @@ impl<E: Ext> Schedule<E> { pub fn fire(&self, tick: u64) -> Vec<Firing<E>>; }
   with the genesis `SimState`. The run content is everything except the schedule, the tape's
   `name` and the basis texts, none of which changes a number the run computes. Reformatting,
   comments, CRLF line endings, list order and a `to_ron` round trip therefore keep `world_id`. Any
-  edit to a number, a unit, a key or the structure changes it. It is also the identifier N10's
-  manifest needs in session 2.
+  edit to a number, a unit, a key or the structure changes it, except the schedule's. It is also
+  the identifier N10's manifest needs in session 2.
+- **Schedule params** (amended at P0.6). A param whose every reference is the schedule's (the
+  `to` of a `SetParam`, the `every` of a recurring entry) belongs to the schedule: the loader
+  copies its value into each firing or turns it into a period, and keeps it, with its unit and
+  basis, as a `ScheduleParam`. It is not registered, has no `ParamId`, is not in the state and is
+  not in `world_id`. The firings it shapes are in `prefix_id`. So adding a dial and a dated
+  `SetParam` that copies it, or changing such a param's value or a period, keeps the world and
+  every checkpoint taken before the first firing that changes. A param the world also reads
+  stays registered, and is fixed. Since the extension's specs reference params too, the loader
+  learns which params are the schedule's alone in a first pass, with every param registered,
+  and then resolves again with those params moved out; the first pass reports every load
+  error.
 - **Prefix identity.** `prefix_id(t)` is FNV-1a 64 over bincode 1 of every firing with `tick < t`,
   in firing order, each as (tick, event key, occurrence, resolved action), with recurring entries
   expanded. A checkpoint of the state whose tick is t stores `world_id` and `prefix_id(t)`.
@@ -535,9 +623,9 @@ impl<E: Ext> Schedule<E> { pub fn fire(&self, tick: u64) -> Vec<Firing<E>>; }
 - **Actions.** Each resolves to one of:
   - `Mint` or `Burn` (provenance `Event`);
   - `Transfer`;
-  - `SetParam { param, to }`, where `to` is another registered param's key with the same unit. The
-    value comes from that param at load, and its key stays on the firing, so the new value keeps
-    a basis (R4). The target must not be fixed.
+  - `SetParam { param, to }`, where `to` is another param's key with the same unit. The value
+    comes from that param at load, and its key stays on the firing, so the new value keeps a
+    basis (R4). The target must not be fixed. A source nothing else reads is a schedule param.
   - `Actor(E::RawAction)`.
 - **Resolver.** The extension resolves through `Resolver`: `good`, `node`, `class`, `actor`,
   `channel` (key to id), `param(key, unit, ParamUse::Live | Fixed, field)`, `ticks(key, field)` (a
@@ -560,7 +648,9 @@ impl<E: Ext> Schedule<E> { pub fn fire(&self, tick: u64) -> Vec<Firing<E>>; }
   - buy or payout weights whose left fold in canonical order is not exactly 1.0 (§4);
   - an actor `home` that is not a node;
   - `ticks_per_year: 0`, a channel from a node to itself, a genesis price on a currency, a
-    recurring `last` before its `first`, a duplicate genesis holding or held good.
+    recurring `last` before its `first`, a duplicate genesis holding or held good;
+  - a ledger tolerance of 1 or more; a currency on either side of a recipe (§4) (both amended
+    at P0.6).
 
 ## 3. rustyecon-markets (N5–N8, N13; R12; F8)
 
@@ -640,10 +730,14 @@ good) order, with posted price `p`, currency `c` and escrow `X = Holder::Escrow(
 **Why no step falls short.** Every fill is at most 1 and rounding is monotone, so `ship_i <=
 qty_i` and `pay_j <= budget_j`. A buyer pays in the order its budgets were admitted, and receipts
 only add. The largest taker goes last, so no earlier take can exceed the escrow, and every escrow
-ends empty. Only the last taker's quantity differs from nominal, by rounding; payments are
-nominal. The argument assumes normal numbers; in the subnormal range a take could still fall
-short, and that stops the run with its ledger line (amendment 6). A transfer whose nominal
-quantity is exactly 0 is not planned, and its line reports 0.
+ends empty. Payments are nominal. A quantity can differ from nominal by rounding in two
+places: the last taker's `All`, and any take from a holding of several lots, which moves the sum
+of the lots it takes (a seller's bread, a bread escrow). So `ship_i <= qty_i` and `filled <=
+feasible` hold only up to that rounding, a few ulps, and a consumer of R12's lines must not treat
+them as exact invariants (amended at P0.6). The argument assumes normal numbers; in the subnormal
+range a take could still fall short, which stops the run with its ledger line, or one side could
+round to nothing (amendment 6). A transfer whose nominal quantity is exactly 0 is not planned,
+and its line reports 0.
 
 **Moved quantities.** `apply` returns what each delta moved, and `realize` turns the plan into
 `SettleLine`s and `RationLine`s from those actual quantities. A buyer's line has `qty` = the good
@@ -725,7 +819,8 @@ The scripted spec (`RawSpec::Scripted(RawScript)`, documented field by field in 
 lines `(node, good, qty: FlowPerYear param, weight)`, `sell` lines `(node, good, qty:
 Flow(FlowPerYear param) | AllHeld)`, `spend: Option<RatePerYear param>` (`Some` exactly when there
 are buy lines) and `payout: Option<(rate: RatePerYear param, to: [(actor, weight)])>`.
-Coefficients and weights are finite and positive, and a payout never names the payer.
+Coefficients and weights are finite and positive, no recipe names a currency (R14; amended at
+P0.6), and a payout never names the payer.
 
 The scripted actor (either kind) reads its lines' quantities and rates from the current params,
 so a dated `SetParam` retargets it. It does nothing while `active` is false.
@@ -803,7 +898,8 @@ a named entry in `params`, referenced by key. Dimensionless structural data may 
 its entry's `basis`: recipe coefficients, weights, genesis stocks and prices, and event
 quantities (open question 3). `spec: Scripted(...)` is an enum, so Phase 2's kinds are new
 variants, not a new schema shape. `rustyecon registry <tape>` prints both kinds of number, each
-param with its unit, its per-tick value (§6) and its basis.
+param with its unit, its use (`live`, `fixed`, or `schedule` for a param only the schedule reads),
+its per-tick value (§6) and its basis.
 
 ## 6. Time (A13)
 
@@ -958,7 +1054,7 @@ pub enum RunErrorKind { Core(CoreError), Order(OrderError), Price(PriceError),
     Agent { actor: ActorId, hook: Hook, error: AgentError },           // a hook that cannot run
     ForeignWrite { actor: ActorId, hook: Hook, delta: StateDelta<Agents> },
     ForeignOrder { actor: ActorId, order: Order }, Poisoned }
-pub enum ResumeError { Load(LoadError), Checkpoint(CheckpointError),
+pub enum ResumeError { Load(LoadError),   // a wrong format or digest is refused at decoding
     WrongWorld { tape: u64, checkpoint: u64 }, WrongPrefix { tick: u64, tape: u64, checkpoint: u64 },
     Invalid(CoreError) }
 pub enum ReplayError { Load(LoadError), Run(RunError), Mismatch { tick: u64, live: u64, shadow: u64 },
@@ -975,13 +1071,28 @@ invariant holds for it, and `hash()` is of that state. A `Sim` is rebuilt with `
 
 ### 7.6 Checkpoints, resume and the replay audit (N11, E1)
 
-- **`checkpoint`** stores `world_id`, `prefix_id(state.tick)` and the state.
-- **`Sim::resume(tape, cp)`** resolves the tape and checks the format. It then requires `cp.world_id
-  == world.world_id` (`WrongWorld` otherwise) and `cp.prefix_id == world.prefix_id(cp.state.tick)`
-  (`WrongPrefix`), and validates the state against the world: every declared actor holds an
-  inventory, every id is in range, and params, book and extension state have the right shape.
-  So a checkpoint stays valid across an edit dated at or after its tick, such as a new shock or a
-  dated `SetParam`. It is refused after any edit to the world or to anything that fired before it.
+- **`checkpoint`** stores `world_id`, `prefix_id(state.tick)` and the state; its encodings add
+  the format and the state's digest.
+- **`Sim::resume(tape, cp)`** resolves the tape. It then requires `cp.world_id() ==
+  world.world_id` (`WrongWorld` otherwise) and `cp.prefix_id() ==
+  world.prefix_id(cp.state().tick())` (`WrongPrefix`), and validates the state against the world:
+  every declared actor holds an inventory, every id is in range, no escrow is held, every lot's
+  life fits its good, and params, book and extension state have the right shape (`Invalid`). A
+  checkpoint's format and digest were checked when it was decoded, and its fields cannot change
+  since. So a checkpoint stays valid across an edit dated at or after its tick, such as a new
+  shock or a dated `SetParam` to a new value (§2.6). It is refused after any edit to the world or
+  to anything that fired before it.
+- **What a resume trusts** (amended at P0.6). A checkpoint is the one input besides the tape. The
+  digest catches a checkpoint edited or corrupted after it was saved, and validation catches a
+  state that does not fit the world, but the digest is FNV-1a, not a signature: bytes written
+  with a recomputed digest, or a state built with core's own writer (`resolve`, then `apply`)
+  and passed to `Checkpoint::of`, resume as given if they fit the world. That is the trust
+  boundary. The `Sim` and `Checkpoint` API offers no way across it (`Sim` has no setter,
+  `Checkpoint` hands out no `&mut`, and `Sim::checkpoint` is the engine's only maker of one);
+  core's writer stays reachable through the engine's re-export of core, which the replay audit
+  and the tests need, and a frontend that calls it is building its own state, not running the
+  tape. A run that must be trusted from its tape is proved by `audit_replay` from genesis, and
+  session 2's manifest can record the digest of any checkpoint a run resumed from.
 - **`audit_replay(tape, until)`** runs a `Sim` with `step_traced`. Beside it runs a shadow
   `SimState` from the same genesis, which applies each tick's trace through `core::apply` alone,
   with no behaviour, clearing or settlement code, and a ledger of its own. The two `state_hash`es
@@ -1017,7 +1128,7 @@ rustyecon registry <tape.ron>
   | 0 | ok |
   | 1 | load or argument error: an unreadable tape, an unknown checkpoint extension, a resume whose tape does not load; clap's own argument errors are mapped here |
   | 2 | run error: the error or ledger line and the last good tick go to stderr (`replay` too, when the live run fails) |
-  | 3 | I/O or checkpoint error: an unreadable or undecodable checkpoint, a failed write, a refused resume |
+  | 3 | I/O or checkpoint error: an unreadable or undecodable checkpoint (one whose state does not match its digest included), a failed write, a refused resume |
   | 4 | replay mismatch, or a traced delta the shadow refuses |
 
 - July's `--agents`, `--price-rule` and `--supply-rule` switches do not return (N13), and no
@@ -1101,10 +1212,10 @@ size; none is absolute (A12). Gate tests read `tapes/gate.ron` through `include_
 | ledger through apply (salvaged, `v2p3: tests/test_04:42-121`) | `untagged_creation_is_caught_through_apply` (the untagged add is a direct write, since every `Mint` needs a provenance), `shortfall_is_captured_and_not_silently_clamped` (and stops with `CoreError::Shortfall`). The third, `unbalanced_transfer_through_apply_is_a_breach`, is replaced by `atomic_transfer_cannot_mint`, since a `Transfer` can no longer be unbalanced | defect 9, N3 |
 | ledger (new) | `undefined_good_is_an_error_in_release`, `nan_drift_is_a_breach`, `zero_stock_zero_flow_requires_exact_zero`, `margin_is_zero_when_drift_is_zero`, `direct_state_write_is_caught`, `burn_shortfall_stops_with_a_ledger_line`, `atomic_transfer_cannot_mint`, `escrow_outside_settlement_is_an_error`, `instant_mint_outside_phases_0_and_1_is_an_error`, `book_writes_outside_their_phase_are_errors` | N2, N3, A12 |
 | hash | `identical_states_hash_equal_and_tick_changes_it` (salvaged), `hash_covers_holdings_lives_params_and_ext_state` | R8 |
-| checkpoint (salvaged, `v2p3: output/checkpoint.rs:84-102`) | `binary_round_trip` and `human_readable_round_trip` (now by full hash, not by tick), `checkpoint_format_is_checked`, `checkpoint_rejects_nan_and_unknown_ids` | N11 |
+| checkpoint (salvaged, `v2p3: output/checkpoint.rs:84-102`) | `binary_round_trip` and `human_readable_round_trip` (now by full hash, not by tick), `checkpoint_format_is_checked` (format 1 refused), `checkpoint_rejects_nan_and_unknown_ids`, `checkpoint_digest_refuses_an_edited_state` (P0.6: one lot changed, in each form), and the module's doc tests (`&mut cp.state` does not compile) | N11, R2, E1 |
 | tape | `unsorted_events_fire_in_order` (ticks listed 5, 2, 9, 9 all fire; key order within a tick), `every_zero_is_rejected`, `undefined_good_is_a_load_error`, `unknown_actor_or_param_is_a_load_error`, `duplicate_keys_are_rejected`, `missing_genesis_price_is_rejected`, `unused_param_is_rejected`, `unit_mismatch_is_rejected`, `event_before_start_is_rejected`, `set_param_on_fixed_or_other_unit_is_rejected`, `ratio_with_saturate_is_rejected`, `date_to_tick_is_integer_exact`, `date_of_inverts_date_to_tick` | N1, N2, R4, N13 |
-| tape schema | `schema_version_is_checked`, `unknown_field_is_rejected`, `missing_optional_field_is_rejected`, `tape_round_trips` (parse, `to_ron`, parse: equal `Tape`, equal `world_id`), `file_order_is_irrelevant` (permuting every list: same `world_id` and prefix ids), `reformatted_tape_keeps_its_ids` (whitespace, comments, CRLF: same ids), `new_entity_keeps_existing_ids` (adding a good, an actor and an event leaves every existing key naming the same entity with the same resolved content), `prefix_id_covers_only_past_firings` | E8, N11 |
-| other | `clock_conversions` (all units and methods of §6), `num_matches_libm_bits`, `num_helpers_are_exact` (each result fits and its `next_up` does not), `core_has_no_workspace_dependencies` (core's `Cargo.toml` names no `rustyecon-` crate; a `NoExt` tape resolves, fires its events through `apply` and closes its ledger) | A13, A5, N14 |
+| tape schema | `schema_version_is_checked`, `unknown_field_is_rejected`, `missing_optional_field_is_rejected`, `tape_round_trips` (parse, `to_ron`, parse: equal `Tape`, equal `world_id`), `file_order_is_irrelevant` (permuting every list: same `world_id` and prefix ids), `reformatted_tape_keeps_its_ids` (whitespace, comments, CRLF: same ids), `new_entity_keeps_existing_ids` (adding a good, an actor and an event leaves every existing key naming the same entity with the same resolved content), `prefix_id_covers_only_past_firings`, `schedule_params_stay_out_of_the_world` (P0.6: a new source value, a new dial and its event, a new period keep `world_id` and the past before they fire; a source the world reads stays registered), `ledger_tolerances_must_be_below_one` (P0.6) | E8, N11, E1, R2 |
+| other | `clock_conversions` (all units and methods of §6; `ticks` at 12, 52 and 365 ticks a year), `num_matches_libm_bits`, `num_helpers_are_exact` (each result fits and its `next_up` does not), `core_has_no_workspace_dependencies` (core's `Cargo.toml` names no `rustyecon-` crate; a `NoExt` tape resolves, fires its events through `apply` and closes its ledger) | A13, A5, N14 |
 | added at P0.3 | `desk_and_pop_sharing_a_number_are_distinct_holders`, `transfers_keep_lot_lives`, `set_param_respects_the_registry`, `unknown_holders_and_reserved_provenance_are_errors`, `currencies_and_prices_rates_are_checked`, `genesis_holdings_start_with_full_lives`, `extension_errors_name_their_path`, `core_types_cross_threads`, `keys_check_their_character_set`, `actor_and_holder_orders_are_canonical`, `dates_parse_print_and_count_days`, `fnv_matches_the_published_vectors` | defect 10, E3 |
 
 **markets**
@@ -1116,32 +1227,33 @@ size; none is absolute (A12). Gate tests read `tapes/gate.ron` through `include_
 | admission, settlement | `over_budget_is_an_order_error`, `over_posting_seller_is_an_order_error`, `sells_at_two_nodes_are_checked_cumulatively`, `duplicate_order_is_rejected`, `two_kinds_same_number_settle_apart`, `no_forgiveness_currency_moves_only_by_transfers`, `escrow_is_empty_after_settlement`, `settlement_is_invariant_to_order_input_order`, `all_taker_is_largest_then_highest_id`, `settle_lines_carry_moved_quantities` | defect 10, N8, R8 |
 | prices | `tiny_prices_move_by_rule` (at 1e-15 and 1e-300 each step is exactly `p·exp(k·x)`), `huge_price_overflow_is_a_run_error`, `tiny_and_huge_prices_settle_without_guards` (1e-200 flows move at prices 1e-15 and 1e200), `price_rule_comes_from_the_tape` (no rule, no load; `Ratio` and `Imbalance` hash apart), `one_sided_rule_comes_from_the_tape` (at S = 0 < D, `Saturate` multiplies by `exp(k)` each tick and `Hold` keeps the bits), `ratio_nonfinite_is_an_error`, `genesis_ema_is_the_genesis_price`, `params_are_read_at_use_time` | N5, N6, N13, F8 |
 | time | `ema_is_tick_length_invariant`, `imbalance_path_is_tick_length_invariant` | A13 |
-| added at P0.4 | `orders_are_checked_against_the_world`, `budgets_bind_per_currency`, `feasible_quantity_is_what_the_budget_buys`, `rationing_is_recorded_per_class`, `markets_types_cross_threads` | N2, N6, N7, R12, E3 |
+| added at P0.4 | `orders_are_checked_against_the_world`, `budgets_bind_per_currency`, `feasible_quantity_is_what_the_budget_buys`, `rationing_is_recorded_per_class` (from P0.6 a class line of two members, one cash-short, with exact sums), `markets_types_cross_threads` | N2, N6, N7, R12, E3 |
+| added at P0.6 | `one_filled_quantity_serves_many_takers` (two rationed buyers in one market and two rationed sellers in another: every payment, and every non-last taker's quantity and receipt, exactly nominal), `a_market_whose_fill_underflows_does_not_trade` (amendment 5) | §3.2 |
 
 **agents**
 
 | Area | Tests | Checks |
 |---|---|---|
-| seam | `leontief_never_overdraws`, `scripted_actor_reads_only_its_view` (foreign holdings change; the decision does not), `extreme_spend_rate_never_overbudgets` (v·Δ = 40, so `share` = 1.0; payouts and budgets pass admission), `weights_must_sum_exactly_to_one`, `dormant_actor_does_nothing` | R13, R4 |
+| seam | `leontief_never_overdraws`, `scripted_actor_reads_only_its_view` (foreign holdings change; the decision does not), `extreme_spend_rate_never_overbudgets` (v·Δ = 40, so `share` = 1.0; payouts and budgets pass admission), `weights_must_sum_exactly_to_one`, `dormant_actor_does_nothing`, `tiny_cash_and_stocks_still_pay_out_and_produce` (P0.6: 1e-300 coin, grain and fuel) | R13, R4, A12 |
 
 **engine**
 
 | Area | Tests | Checks |
 |---|---|---|
 | determinism | `gate_repeat_identical_hashes` (2,080 ticks; the state evolves), `gate_resume_from_checkpoints` (checkpoints at ticks 1, 520, 1,040 and 2,079 through `to_bytes`/`from_bytes` and `to_ron`/`from_ron`; the tails equal the uninterrupted run), `gate_replay_matches_every_tick` (`audit_replay`), `file_order_is_irrelevant_to_the_hash_stream` | R8, N11, E8 |
-| conservation, rationing | `gate_conserves_every_tick` (every report has `max_margin <= 1` and no shortfall). `gate_events_fire_in_date_order`. `gate_ids_apart`: for `Desk(0)`/`Pop(0)` and `Desk(1)`/`Pop(1)`, every tick and good, the holding's change equals the signed sum of the trace entries naming that holder, and each of its settle lines names it. `gate_rations_and_records_by_class`: bread rations at tick 0 and after the 1760 cut; pensioners' requested > feasible; at every rationed tick the recorded demand equals Σ feasible, which is below Σ requested. `gate_lots_bounded`: 20,000 ticks; lots per good ≤ life + 1; currency one lot | R2, N1, defect 10, R12, N7, N9 |
-| edits (E1) | `resume_after_future_event_edit_equals_full_rerun`, `resume_after_past_edit_is_refused`, `world_edit_refuses_every_checkpoint`, `dated_param_change_takes_effect_at_its_tick` (the 1760 cut: capacity changes at `tick_of(1760-03-01)` and not before), `entrant_activates_on_its_date` | E1, N11 |
+| conservation, rationing | `gate_conserves_every_tick` (every report has `max_margin <= 1` and no shortfall). `gate_events_fire_in_date_order`. `gate_ids_apart`: for `Desk(0)`/`Pop(0)` and `Desk(1)`/`Pop(1)`, every tick and good, the holding's change equals the signed sum of the trace entries naming that holder, and each of its settle lines names it. `gate_rations_and_records_by_class`: bread rations at tick 0 and after the 1760 cut; pensioners' requested > feasible; every class line is the fold, in actor order, of its members' order quantities, feasible quantities and settle lines (from 1768 two producers share a side); the recorded demand is the actor-order fold of the feasible buys exactly, and at every rationed tick equals the class lines' Σ feasible up to fold order (a relative bar), which is below Σ requested. `gate_settles_by_one_filled_quantity` (P0.6): §3.2 on every tick and market, and expenditure equals receipts. `gate_lots_bounded`: 20,000 ticks; lots per good ≤ life + 1; currency one lot | R2, N1, defect 10, R12, N7, N9 |
+| edits (E1) | `resume_after_future_event_edit_equals_full_rerun`, `resume_after_past_edit_is_refused`, `world_edit_refuses_every_checkpoint`, `dated_param_change_takes_effect_at_its_tick` (the 1760 cut: capacity changes at `tick_of(1760-03-01)` and not before), `entrant_activates_on_its_date`, `resume_after_a_new_dial_value_equals_full_rerun` (P0.6), `resume_refuses_an_invalid_state` (P0.6: five edits of a RON checkpoint, refused by the digest, then as `Invalid` once the digest is forged) | E1, N11 |
 | frontend contract | `observation_matches_accessors` (every gate tick), `observing_changes_no_hash`, `engine_types_are_send` (compile time: `Send + Sync + 'static` for `Sim`, `Tape`, `World`, `Checkpoint`, `TickReport`, `HoldingTotals`, `RunError`, `LoadError`, `ResumeError`, `ReplayError`), `failed_step_poisons_the_sim` | E3, E4, E5 |
-| hooks | `decisions_read_phase_start_state`: from a fixed state, visiting actors in id order and in reverse gives identical outputs; renaming keys so that the id order reverses leaves every actor's tick-0 orders unchanged. `behaviour_output_is_whitelisted`: each forbidden arm from each hook (a mint to or burn from another holder, an escrow transfer, `SetPrice`, `SetEma`, `SetVolumes`, `SetParam`, `Age`, `AdvanceTick`, a foreign `Actor` delta, a foreign order) is `ForeignWrite` or `ForeignOrder` | E6, E7, R13, R2 |
-| time | `a13_annual_quantities_invariant`: at `ticks_per_year: 12` the 1750 farm and mine mints equal the 52-tick run's within a relative bar of 1e-12, and event ticks match their dates | A13 |
-| source scans (read the sources of core, markets, agents and engine, comments stripped) | `no_raw_transcendentals`, `no_hashed_collections`, `no_behavioural_float_literals` (source before the first `#[cfg(test)]` may hold only `0.0` and `1.0`), `engine_path_does_no_io` (E2's list) | A5, R8, R4, E2 |
+| hooks | `hooks_read_the_phase_start_state_every_tick` (P0.6, in `gate.rs`): on every gate tick the applied phase-1 and phase-4 deltas are what each hook returns on its phase's start state, and the cleared volumes are what admission makes of those orders. `decisions_read_phase_start_state`: from a fixed state, visiting actors in id order and in reverse gives identical outputs; renaming keys so that the id order reverses leaves every actor's tick-0 orders unchanged. `behaviour_output_is_whitelisted`: each forbidden arm from each hook (a mint to or burn from another holder, an escrow transfer, `SetPrice`, `SetEma`, `SetVolumes`, `SetParam`, `Age`, `AdvanceTick`, a foreign `Actor` delta, a foreign order) is `ForeignWrite` or `ForeignOrder` | E6, E7, R13, R2 |
+| time | `a13_annual_quantities_invariant`: at `ticks_per_year: 12` the 1750 farm and mine mints equal the 52-tick run's within a relative bar of 1e-12, event ticks match their dates, every pension occurrence falls within a month of the 52-tick run's, and a bread lot lasts 3 weekly or 1 monthly tick | A13 |
+| source scans (read the sources of core, markets, agents and engine, comments stripped and `#[cfg(test)]` items cut out) | `the_scanner_reads_what_it_should`, `no_raw_transcendentals`, `no_hashed_collections`, `no_behavioural_float_literals` (shipped code may hold only `0.0` and `1.0`, and no named float constant outside `core::num`), `engine_path_does_no_io` (E2's list) | A5, R8, R4, A12, E2 |
 
 **cli**
 
 | Area | Tests | Checks |
 |---|---|---|
 | product path | `gate_resume_through_product_path`: `run` with checkpoints in both formats, then `resume` from ticks 1, 520, 1,040 and 2,079; the `--hashes` tails equal the uninterrupted run. `replay_command_passes_on_the_gate` (exit 0) | N11 |
-| failures | `shortfall_stops_the_run` (exit 2, with the ledger line on stderr), `undefined_good_fails_to_load` (exit 1), `resume_refuses_another_tape` (exit 3), `unknown_extension_errors` (exit 1), `failed_checkpoint_save_stops_the_run` (`--out` names a regular file: exit 3, and the `--hashes` file ends at the failed checkpoint's tick) | N3, N2, N11 |
+| failures | `shortfall_stops_the_run` (exit 2, with the ledger line on stderr), `undefined_good_fails_to_load` (exit 1), `resume_refuses_another_tape` (exit 3), `unknown_extension_errors` (exit 1), `failed_checkpoint_save_stops_the_run` (`--out` names a regular file: exit 3, and the `--hashes` file ends at the failed checkpoint's tick), `resume_refuses_an_edited_checkpoint` (P0.6: a digest mismatch and, with a forged digest, an invalid life, each exit 3) | N3, N2, N11, R2 |
 
 ## 12. Steps
 
@@ -1150,9 +1262,10 @@ size; none is absolute (A12). Gate tests read `tapes/gate.ron` through `include_
 | P0.3 core | §2 and its tests; `docs/TAPE.md` |
 | P0.4 markets | §3 and its tests |
 | P0.5 agents + engine + cli | §4, §7 and §8, `tapes/gate.ron` (§10), and the agents, engine and cli tests (one commit, amended at P0.5) |
-| P0.6 housekeeping | the items below (P0.7 in the draft) |
+| P0.6 review fixes | the fixes from adversarial review, round 1 (amended at P0.6) |
+| housekeeping | the items below (P0.7 in the draft, P0.6 until the review fixes took that number) |
 
-P0.6 (PLAN Phase 0 steps 2 and 6; A3):
+Housekeeping (PLAN Phase 0 steps 2 and 6; A3):
 
 - Move `docs/reboot/PLAN.md` to `docs/PLAN.md`, and fix the links to it in REVIEW.md, ADDENDUM.md,
   the root `Cargo.toml` and this file.
@@ -1212,3 +1325,7 @@ P0.6 (PLAN Phase 0 steps 2 and 6; A3):
      legitimate. Even at tick 0 a payout split runs in `ActorId` order (the last recipient takes
      the remainder), so the test compares orders exactly and payout recipients as a set.
    - **The steps start at P0.3, not P0.2**, because this contract is P0.2.
+7. Is the checkpoint boundary of §7.6 enough? A checkpoint's digest catches edits but not a
+   forger, and a frontend that depends on core directly can build a state with core's writer and
+   resume it. The alternatives are a keyed digest, which needs a secret the engine does not have,
+   or a resume that replays from genesis, which costs what a checkpoint saves.

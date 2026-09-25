@@ -42,7 +42,7 @@ fn gate_resume_from_checkpoints() {
         let mut sim = sim_of(&t);
         sim.run_until(at, &mut |_| {}).unwrap();
         let cp = sim.checkpoint().unwrap();
-        assert_eq!(cp.state.tick(), at);
+        assert_eq!(cp.state().tick(), at);
         let from_bytes = Checkpoint::from_bytes(&cp.to_bytes()).expect("the bytes decode");
         let from_ron = Checkpoint::from_ron(&cp.to_ron()).expect("the text decodes");
         assert_eq!(from_bytes, cp);

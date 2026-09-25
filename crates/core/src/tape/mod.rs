@@ -25,7 +25,7 @@ use crate::state::{MarketBook, SimState};
 use crate::units::{Unit, Years};
 use crate::world::{
     ActorDecl, ChannelDef, Firing, GoodDef, KeyIndex, Life, MarketConfig, NodeDef, OneSided,
-    PriceRule, Recurring, Schedule, Tolerances, World,
+    PriceRule, Recurring, Schedule, ScheduleParam, Tolerances, World,
 };
 use raw::{
     RawAct, RawActorEntry, RawChannel, RawEvent, RawGenesis, RawGood, RawHeader, RawLife, RawNode,
@@ -163,8 +163,10 @@ fn check_schema(found: u32) -> Result<(), LoadError> {
 pub enum ParamUse {
     /// Read at use time from the current value; a dated `SetParam` may change it.
     Live,
-    /// Turned into structure at load (a shelf life, a period, a value a `SetParam` copies) or
-    /// fixing what a past tick meant (a ledger tolerance). A fixed param cannot be set.
+    /// Turned into structure at load (a shelf life) or fixing what a past tick meant (a ledger
+    /// tolerance). A fixed param cannot be set. The schedule's own references (the value a
+    /// `SetParam` copies, a recurring period) are recorded apart, so that a param only the
+    /// schedule reads can live in the schedule (docs/ENGINE.md §2.6).
     Fixed,
 }
 
@@ -173,8 +175,26 @@ struct ParamInfo {
     key: Key,
     unit: Unit,
     value: f64,
+    /// Read at use time by the world.
     live: bool,
+    /// Turned into world structure, or fixing a past tick's meaning.
     fixed: bool,
+    /// Copied by a `SetParam`.
+    copied: bool,
+    /// A recurring entry's period.
+    period: bool,
+}
+
+impl ParamInfo {
+    /// Whether the loader turns it into structure, so no `SetParam` may target it.
+    fn is_fixed(&self) -> bool {
+        self.fixed || self.copied || self.period
+    }
+
+    /// Whether only the schedule reads it.
+    fn schedule_only(&self) -> bool {
+        (self.copied || self.period) && !self.live && !self.fixed
+    }
 }
 
 /// Resolves keys to ids during loading, records every param reference with its unit and use,
@@ -185,6 +205,8 @@ pub struct Resolver<'a> {
     currency: &'a [bool],
     clock: Clock,
     params: Vec<ParamInfo>,
+    /// The params only the schedule reads, by key; not in `params`.
+    schedule: &'a [ScheduleParam],
     path: Vec<String>,
 }
 
@@ -313,7 +335,12 @@ impl<'a> Resolver<'a> {
     pub fn ticks(&mut self, key: &Key, field: &str) -> Result<(ParamId, u32), LoadError> {
         let p = self.param(key, Unit::Years, ParamUse::Fixed, field)?;
         let v = self.value(p, field)?;
-        self.clock.ticks(Years(v)).map(|t| (p, t)).map_err(|e| {
+        self.whole_ticks(v, field).map(|t| (p, t))
+    }
+
+    /// `v` years as whole ticks; a value that rounds to 0 ticks does not load.
+    fn whole_ticks(&self, v: f64, field: &str) -> Result<u32, LoadError> {
+        self.clock.ticks(Years(v)).map_err(|e| {
             self.error(
                 field,
                 match e {
@@ -322,6 +349,47 @@ impl<'a> Resolver<'a> {
                 },
             )
         })
+    }
+
+    /// A reference from the schedule (a `SetParam`'s source, a recurring period): the param's
+    /// unit and value. A schedule param is read from the schedule's list; any other is a
+    /// registered param, recorded as copied or as a period, which makes it fixed.
+    fn schedule_ref(
+        &mut self,
+        key: &Key,
+        period: bool,
+        field: &str,
+    ) -> Result<(Unit, f64), LoadError> {
+        if let Ok(i) = self.schedule.binary_search_by(|p| p.key.cmp(key)) {
+            let p = &self.schedule[i];
+            return Ok((p.unit, p.value));
+        }
+        let Some(i) = self.lookup(&self.keys.params, key) else {
+            return Err(self.unknown(field, "param", key));
+        };
+        let info = &mut self.params[i as usize];
+        if period {
+            info.period = true;
+        } else {
+            info.copied = true;
+        }
+        Ok((info.unit, info.value))
+    }
+
+    /// A recurring entry's period: a `Years` param as whole ticks.
+    fn period(&mut self, key: &Key, field: &str) -> Result<u32, LoadError> {
+        let (unit, v) = self.schedule_ref(key, true, field)?;
+        if unit != Unit::Years {
+            return Err(self.error(
+                field,
+                LoadErrorKind::UnitMismatch {
+                    key: key.to_string(),
+                    registered: unit,
+                    expected: Unit::Years,
+                },
+            ));
+        }
+        self.whole_ticks(v, field)
     }
 
     /// A param's genesis value, for a reference the loader turns into structure (record it
@@ -391,7 +459,7 @@ fn sorted_keys<'k>(
 /// What a resolved action carries besides its delta.
 struct Resolved<E: Ext> {
     action: StateDelta<E>,
-    source: Option<ParamId>,
+    source: Option<Key>,
     /// A `SetParam`'s target and the path to name if it turns out fixed.
     target: Option<(ParamId, String)>,
 }
@@ -439,7 +507,7 @@ fn resolve_act<E: Ext>(
         }),
         RawAct::SetParam { param, to } => {
             let (p, unit) = r.param_any(param, ParamUse::Live, "act.param")?;
-            let (src, src_unit) = r.param_any(to, ParamUse::Fixed, "act.to")?;
+            let (src_unit, value) = r.schedule_ref(to, false, "act.to")?;
             if unit != src_unit {
                 return Err(r.error(
                     "act.to",
@@ -450,11 +518,8 @@ fn resolve_act<E: Ext>(
                 ));
             }
             Resolved {
-                action: StateDelta::SetParam {
-                    param: p,
-                    value: r.value(src, "act.to")?,
-                },
-                source: Some(src),
+                action: StateDelta::SetParam { param: p, value },
+                source: Some(to.clone()),
                 target: Some((p, r.path("act.param"))),
             }
         }
@@ -486,7 +551,36 @@ struct RunContent<'w, E: Ext> {
 
 /// Resolve a tape into its world and genesis state, checking everything §2.6 lists. Nothing
 /// here depends on file order: every list is read in key order.
+///
+/// A param only the schedule reads (a value a `SetParam` copies, a recurring period, and
+/// nothing in the world) belongs to the schedule, not to the registry or the state, so that it
+/// stays out of `world_id` (§2.6, E1). Which params those are is known only once everything has
+/// resolved, since the extension's specs reference params too; so a first pass resolves with
+/// every param registered and records each one's uses, and, when some param turns out to be the
+/// schedule's alone, a second pass resolves again with those params moved to the schedule. The
+/// first pass reports every load error.
 pub fn resolve<E: Ext>(t: &Tape<E>) -> Result<(World<E>, SimState<E>), LoadError> {
+    let (world, state, only) = resolve_with(t, &[])?;
+    if only.is_empty() {
+        return Ok((world, state));
+    }
+    let (world, state, again) = resolve_with(t, &only)?;
+    if !again.is_empty() {
+        // Unreachable: the second pass registers exactly the params the world referenced.
+        return Err(LoadError::new(
+            "params",
+            LoadErrorKind::Invalid("the schedule's params did not settle".into()),
+        ));
+    }
+    Ok((world, state))
+}
+
+/// What one resolution pass makes: the world, its genesis state, and the registered params that
+/// turned out to be read by the schedule alone.
+type Pass<E> = (World<E>, SimState<E>, Vec<Key>);
+
+/// One resolution pass, with the params keyed in `schedule` held by the schedule.
+fn resolve_with<E: Ext>(t: &Tape<E>, schedule: &[Key]) -> Result<Pass<E>, LoadError> {
     check_schema(t.schema)?;
     let h = &t.header;
     if h.ticks_per_year == 0 {
@@ -526,16 +620,19 @@ pub fn resolve<E: Ext>(t: &Tape<E>) -> Result<(World<E>, SimState<E>), LoadError
         nodes: sorted_keys(t.nodes.iter().map(|n| &n.key), "node", "nodes")?,
         channels: sorted_keys(t.channels.iter().map(|c| &c.key), "channel", "channels")?,
         classes: sorted_keys(t.classes.iter(), "class", "classes")?,
-        params: sorted_keys(t.params.iter().map(|p| &p.key), "param", "params")?,
+        params: sorted_keys(t.params.iter().map(|p| &p.key), "param", "params")?
+            .into_iter()
+            .filter(|k| !schedule.contains(k))
+            .collect(),
         desks: by_kind(ActorKind::Desk),
         pops: by_kind(ActorKind::Pop),
         events: event_keys,
     };
 
-    // Params, in key order, each value finite and not negative.
+    // Params, in key order, each value finite and not negative: the registered ones, numbered
+    // densely, and the schedule's own.
     let mut raw_params: Vec<&RawParam> = t.params.iter().collect();
     raw_params.sort_by(|a, b| a.key.cmp(&b.key));
-    let mut infos = Vec::with_capacity(raw_params.len());
     for p in &raw_params {
         if !is_clean(p.value) {
             return Err(LoadError::new(
@@ -543,14 +640,31 @@ pub fn resolve<E: Ext>(t: &Tape<E>) -> Result<(World<E>, SimState<E>), LoadError
                 LoadErrorKind::BadValue(p.value),
             ));
         }
-        infos.push(ParamInfo {
+    }
+    let (held, raw_params): (Vec<&RawParam>, Vec<&RawParam>) = raw_params
+        .into_iter()
+        .partition(|p| schedule.contains(&p.key));
+    let sched: Vec<ScheduleParam> = held
+        .iter()
+        .map(|p| ScheduleParam {
+            key: p.key.clone(),
+            unit: p.unit,
+            value: p.value,
+            basis: p.basis.clone(),
+        })
+        .collect();
+    let infos: Vec<ParamInfo> = raw_params
+        .iter()
+        .map(|p| ParamInfo {
             key: p.key.clone(),
             unit: p.unit,
             value: p.value,
             live: false,
             fixed: false,
-        });
-    }
+            copied: false,
+            period: false,
+        })
+        .collect();
 
     // Nodes first, since they decide which goods are currencies.
     let mut raw_nodes: Vec<&RawNode> = t.nodes.iter().collect();
@@ -563,6 +677,7 @@ pub fn resolve<E: Ext>(t: &Tape<E>) -> Result<(World<E>, SimState<E>), LoadError
             currency: &[],
             clock,
             params: Vec::new(),
+            schedule: &[],
             path: Vec::new(),
         };
         for (i, n) in raw_nodes.iter().enumerate() {
@@ -583,6 +698,7 @@ pub fn resolve<E: Ext>(t: &Tape<E>) -> Result<(World<E>, SimState<E>), LoadError
         currency: &currency,
         clock,
         params: infos,
+        schedule: &sched,
         path: Vec::new(),
     };
 
@@ -615,6 +731,17 @@ pub fn resolve<E: Ext>(t: &Tape<E>) -> Result<(World<E>, SimState<E>), LoadError
             "ledger.rel_stock",
         )?,
     };
+    // A relative tolerance of 1 or more would pass a leak of the whole stock or flow, which
+    // switches R2 off; it is refused as a structural check, not as a behavioural bound.
+    for (field, p) in [
+        ("ledger.rel_flow", tol.rel_flow),
+        ("ledger.rel_stock", tol.rel_stock),
+    ] {
+        let v = r.value(p, field)?;
+        if v >= 1.0 {
+            return Err(r.error(field, LoadErrorKind::ToleranceNotBelowOne(v)));
+        }
+    }
     r.leave();
 
     // Goods.
@@ -745,7 +872,7 @@ pub fn resolve<E: Ext>(t: &Tape<E>) -> Result<(World<E>, SimState<E>), LoadError
     for e in &t.recurring {
         r.enter(format!("recurring[{}]", e.key));
         let first = r.tick_of(e.first, "first")?;
-        let period = u64::from(r.ticks(&e.every, "every")?.1);
+        let period = u64::from(r.period(&e.every, "every")?);
         let last = match e.last {
             Some(d) => {
                 let l = r.tick_of(d, "last")?;
@@ -773,7 +900,7 @@ pub fn resolve<E: Ext>(t: &Tape<E>) -> Result<(World<E>, SimState<E>), LoadError
     targets.sort();
     for (p, path) in &targets {
         let info = &r.params[p.idx()];
-        if info.fixed {
+        if info.is_fixed() {
             return Err(LoadError::new(
                 path.clone(),
                 LoadErrorKind::SetParamOnFixed {
@@ -783,13 +910,19 @@ pub fn resolve<E: Ext>(t: &Tape<E>) -> Result<(World<E>, SimState<E>), LoadError
         }
     }
     for info in &r.params {
-        if !info.live && !info.fixed {
+        if !(info.live || info.is_fixed()) {
             return Err(LoadError::new(
                 format!("params[{}]", info.key),
                 LoadErrorKind::UnusedParam,
             ));
         }
     }
+    let only: Vec<Key> = r
+        .params
+        .iter()
+        .filter(|info| info.schedule_only())
+        .map(|info| info.key.clone())
+        .collect();
     let registry = Registry::new(
         raw_params
             .iter()
@@ -801,7 +934,7 @@ pub fn resolve<E: Ext>(t: &Tape<E>) -> Result<(World<E>, SimState<E>), LoadError
                 unit: raw.unit,
                 genesis: raw.value,
                 basis: raw.basis.clone(),
-                fixed: info.fixed,
+                fixed: info.is_fixed(),
             })
             .collect(),
     );
@@ -820,12 +953,12 @@ pub fn resolve<E: Ext>(t: &Tape<E>) -> Result<(World<E>, SimState<E>), LoadError
         channels,
         classes: keys.classes.clone(),
         actors,
-        schedule: Schedule::new(once, every),
+        schedule: Schedule::new(once, every, sched),
         keys,
         currency,
     };
     world.world_id = world_id(&world, &state);
-    Ok((world, state))
+    Ok((world, state, only))
 }
 
 type Genesis = (MarketBook, BTreeMap<Holder, Inventory>);
@@ -1433,24 +1566,146 @@ mod tests {
             )
         );
         // The good case: the value comes from the source at load, and its key stays on the
-        // firing, so the new value keeps a basis.
+        // firing, so the new value keeps a basis. Only the schedule reads the source, so the
+        // schedule holds it, not the registry.
         let (w, _) = testkit::load();
         let f = &w.schedule.once()[1];
         assert_eq!(w.key_of(f.event).unwrap().as_str(), "rate.up");
         assert_eq!(describe(&w, &f.action), "set rate.grain 10.4");
-        assert_eq!(f.source, w.id_of("rate.grain.high"));
+        assert_eq!(f.source.as_ref().map(Key::as_str), Some("rate.grain.high"));
         assert!(
             !w.registry
                 .get(w.id_of("rate.grain").unwrap())
                 .unwrap()
                 .fixed
         );
-        assert!(
-            w.registry
-                .get(w.id_of("rate.grain.high").unwrap())
-                .unwrap()
-                .fixed
+        assert_eq!(w.id_of::<ParamId>("rate.grain.high"), None);
+        let source = w.schedule.param("rate.grain.high").unwrap();
+        assert_eq!((source.unit, source.value), (Unit::RatePerYear, 10.4));
+    }
+
+    #[test]
+    fn schedule_params_stay_out_of_the_world() {
+        // E1, §2.6: a param only the schedule reads (a SetParam's source, a recurring period)
+        // is schedule content, like the events themselves. It is not registered, not in the
+        // state and not in world_id, and the firings it shapes are in prefix_id. So a dated
+        // SetParam to a new value, or a new period, keeps the world and every past.
+        let (w0, s0) = testkit::load();
+        let only: Vec<&str> = w0
+            .schedule
+            .params()
+            .iter()
+            .map(|p| p.key.as_str())
+            .collect();
+        assert_eq!(only, ["pension.period", "rate.grain.high"]);
+        assert_eq!(w0.registry.len(), testkit::tape().params.len() - 2);
+        assert_eq!(s0.param_values().len(), w0.registry.len());
+        let rate_up = 103;
+        assert_eq!(
+            w0.schedule.fire(rate_up)[1].action,
+            StateDelta::SetParam {
+                param: w0.id_of("rate.grain").unwrap(),
+                value: 10.4
+            }
         );
+        // A new value for the source: the same world, the same past until the SetParam fires.
+        let (w, s) = load_text(&edit(
+            r#"(key: "rate.grain.high", value: 10.4,"#,
+            r#"(key: "rate.grain.high", value: 15.6,"#,
+        ))
+        .unwrap();
+        assert_eq!((w.world_id, state_hash(&s)), (w0.world_id, state_hash(&s0)));
+        assert_eq!(w.prefix_id(rate_up), w0.prefix_id(rate_up));
+        assert_ne!(w.prefix_id(rate_up + 1), w0.prefix_id(rate_up + 1));
+        // A new dial and a new event that sets it: the same world, the same past until then.
+        let text = edit(
+            "    params: [\n",
+            "    params: [\n        (key: \"rate.grain.dial\", value: 20.8, unit: RatePerYear, basis: Assumed(\"a dial\")),\n",
+        );
+        let text = text.replacen(
+            "    events: [\n",
+            "    events: [\n        (key: \"dial\", at: \"1753-01-01\", basis: Assumed(\"a dial\"), act: SetParam(param: \"rate.grain\", to: \"rate.grain.dial\")),\n",
+            1,
+        );
+        let (w, s) = load_text(&text).unwrap();
+        assert_eq!((w.world_id, state_hash(&s)), (w0.world_id, state_hash(&s0)));
+        let dial = w
+            .schedule
+            .once()
+            .iter()
+            .find(|f| w.key_of(f.event).unwrap().as_str() == "dial");
+        let at = dial.unwrap().tick;
+        assert_eq!(w.prefix_id(at), w0.prefix_id(at));
+        assert_ne!(w.prefix_id(at + 1), w0.prefix_id(at + 1));
+        // A new period: the same world; the past changes from the first firing that moves.
+        let (w, s) = load_text(&edit(
+            r#"(key: "pension.period", value: 1.0,"#,
+            r#"(key: "pension.period", value: 2.0,"#,
+        ))
+        .unwrap();
+        assert_eq!((w.world_id, state_hash(&s)), (w0.world_id, state_hash(&s0)));
+        assert_eq!(w.prefix_id(rate_up), w0.prefix_id(rate_up));
+        assert_ne!(w.prefix_id(rate_up + 1), w0.prefix_id(rate_up + 1));
+        // A source the world also reads (here a price rate) stays registered and fixed.
+        let (w, _) = load_text(&edit(
+            r#"act: Mint(holder: "pensioners", good: "grain", qty: 2.0)"#,
+            r#"act: SetParam(param: "rate.grain", to: "rate.bread")"#,
+        ))
+        .unwrap();
+        let bread_rate = w.registry.get(w.id_of("rate.bread").unwrap()).unwrap();
+        assert!(bread_rate.fixed);
+        assert!(w.schedule.param("rate.bread").is_none());
+        let gift = &w.schedule.once()[0];
+        assert_eq!(w.key_of(gift.event).unwrap().as_str(), "grain.gift");
+        assert_eq!(gift.source.as_ref().map(Key::as_str), Some("rate.bread"));
+        // A period of the wrong unit is refused as a schedule reference too.
+        let e = load_err(&edit(
+            r#"every: "pension.period""#,
+            r#"every: "rate.grain.high""#,
+        ));
+        assert!(
+            matches!(
+                kind_at(&e),
+                (
+                    "recurring[pension].every",
+                    LoadErrorKind::UnitMismatch { .. }
+                )
+            ),
+            "{e}"
+        );
+    }
+
+    #[test]
+    fn ledger_tolerances_must_be_below_one() {
+        // R2: a relative tolerance of 1 or more would pass a leak of a whole stock or flow, so
+        // a tape could switch conservation off. It does not load.
+        for (from, field) in [
+            (
+                r#"(key: "ledger.rel_flow", value: 1e-12,"#,
+                "header.ledger.rel_flow",
+            ),
+            (
+                r#"(key: "ledger.rel_stock", value: 1e-11,"#,
+                "header.ledger.rel_stock",
+            ),
+        ] {
+            for v in ["1.0", "1e300"] {
+                let to = from.replace(&from[from.find("value: ").unwrap()..], "")
+                    + &format!("value: {v},");
+                let e = load_err(&edit(from, &to));
+                assert_eq!(e.path, field, "{e}");
+                assert!(
+                    matches!(e.kind, LoadErrorKind::ToleranceNotBelowOne(x) if x >= 1.0),
+                    "{e}"
+                );
+            }
+        }
+        // Below 1 still loads: the check is structural, not a tuning bar.
+        let text = edit(
+            r#"(key: "ledger.rel_stock", value: 1e-11,"#,
+            r#"(key: "ledger.rel_stock", value: 0.5,"#,
+        );
+        assert!(load_text(&text).is_ok());
     }
 
     #[test]
