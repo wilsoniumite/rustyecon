@@ -1,0 +1,24 @@
+# Line endings are normalised to LF in the repository.
+#
+# Certificates and criteria are committed *verdicts* (METHODOLOGY R5/R6) — they
+# get diffed across runs and across machines to see what changed about the
+# result. Without this, a Windows checkout rewrites every line of a file whose
+# content is identical, and the diff that is supposed to carry evidence carries
+# line endings instead.
+* text=auto eol=lf
+
+# Explicit for the evidence formats, so intent survives someone editing the
+# glob above.
+*.rs      text eol=lf
+*.ron     text eol=lf
+*.json    text eol=lf
+*.toml    text eol=lf
+*.md      text eol=lf
+*.py      text eol=lf
+*.csv     text eol=lf
+*.ipynb   text eol=lf
+
+# Binary: never touched, never diffed as text.
+*.parquet binary
+*.bin     binary
+*.png     binary
