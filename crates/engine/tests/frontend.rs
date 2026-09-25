@@ -4,10 +4,10 @@
 
 mod common;
 
-use common::scan::{api_violations, shipped, sources, strip};
+use common::scan::{api_violations, shipped, sources, strip, writer_reexports};
 use common::*;
+use rustyecon_core::state_hash;
 use rustyecon_engine::prelude::*;
-use rustyecon_engine::rustyecon_core::state_hash;
 use std::sync::mpsc;
 
 #[test]
@@ -290,7 +290,51 @@ fn no_public_api_hands_out_mut_state() {
     // are private; core's doc test shows that `&mut cp.state` does not compile).
     let _: fn(
         &Checkpoint,
-    ) -> &rustyecon_engine::rustyecon_core::SimState<
-        rustyecon_engine::rustyecon_agents::Agents,
-    > = Checkpoint::state;
+    ) -> &rustyecon_core::SimState<rustyecon_engine::rustyecon_agents::Agents> = Checkpoint::state;
+}
+
+#[test]
+fn no_reexport_hands_out_core_writer() {
+    // E1: a frontend that depends on the engine alone cannot reach core's writer. The engine
+    // re-exports core's read-only types in its prelude and never core itself, and neither
+    // markets nor agents, which the engine does re-export, re-exports core. The doc tests of
+    // the engine's lib.rs pin the same from outside: `rustyecon_engine::rustyecon_core::apply`
+    // does not compile. Checked on the source, the scanner on regression fixtures first.
+    let fixtures = r"
+        pub use rustyecon_core;
+        pub use rustyecon_core as core;
+        pub use rustyecon_core::*;
+        pub use rustyecon_core::{Date, apply};
+        pub use rustyecon_core::{
+            Key,
+            Ledger,
+        };
+        pub use rustyecon_core::{Date, Key, SimState};
+        pub use rustyecon_agents;
+        pub use crate::prelude::*;
+    ";
+    let mut seen = 0;
+    let flagged = writer_reexports(&shipped(&strip(fixtures)), &mut seen);
+    assert_eq!(seen, 8);
+    assert_eq!(
+        flagged,
+        [
+            "pub use rustyecon_core",
+            "pub use rustyecon_core as core",
+            "pub use rustyecon_core::*",
+            "pub use rustyecon_core::{Date, apply}",
+            "pub use rustyecon_core::{ Key, Ledger, }",
+        ]
+    );
+    let mut found = Vec::new();
+    let mut seen = 0;
+    for krate in ["engine", "markets", "agents"] {
+        for (path, text) in sources(krate) {
+            for stmt in writer_reexports(&shipped(&strip(&text)), &mut seen) {
+                found.push(format!("{path}: {stmt}"));
+            }
+        }
+    }
+    assert!(seen > 10, "the scan found the re-exports ({seen})");
+    assert!(found.is_empty(), "re-exports of core's writer: {found:#?}");
 }

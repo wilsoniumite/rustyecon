@@ -42,6 +42,17 @@ pub fn is_clean(x: f64) -> bool {
     x.is_finite() && !x.is_sign_negative()
 }
 
+/// `s = fl(a + b)` and its rounding error `e`, with `a + b = s + e` exactly: Knuth's TwoSum, six
+/// additions and no fused multiply-add, exact for any finite `a` and `b` whose sum does not
+/// overflow (an overflow gives a NaN error). The inventory uses it to measure what splitting or
+/// merging a lot creates or destroys (docs/ENGINE.md §2.2).
+pub fn two_sum(a: f64, b: f64) -> (f64, f64) {
+    let s = a + b;
+    let bb = s - a;
+    let e = (a - (s - bb)) + (b - bb);
+    (s, e)
+}
+
 /// Why a helper could not answer.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum NumError {
@@ -319,5 +330,40 @@ mod tests {
         // largest q whose cost still rounds to at most the budget.
         let q = max_qty(1.0, 3.0).unwrap();
         assert!(3.0 * q <= 1.0 && 3.0 * q.next_up() > 1.0);
+    }
+
+    #[test]
+    fn two_sum_is_exact() {
+        // a + b = s + e exactly. Checked in integers: every double in [2^-8, 2^8) is a multiple
+        // of 2^-60, so is the exact sum of two of them, and so is the error; scaled by 2^60
+        // they are integers an i128 holds exactly.
+        let scale = libm::pow(2.0, 60.0);
+        let exact = |x: f64| (x * scale) as i128;
+        let mut g = Lcg(0x2026_0926);
+        let mut pick = || {
+            let mantissa = (g.next() % (1 << 52)) as f64 / (1u64 << 52) as f64;
+            let exponent = (g.next() % 16) as i32 - 8;
+            (1.0 + mantissa) * libm::pow(2.0, f64::from(exponent))
+        };
+        let mut inexact = 0;
+        for i in 0..20_000 {
+            let a = pick();
+            let b = pick();
+            let b = if i % 2 == 0 { b } else { -b };
+            let (s, e) = two_sum(a, b);
+            assert_eq!(s.to_bits(), (a + b).to_bits());
+            assert_eq!(exact(a) + exact(b), exact(s) + exact(e), "{a:e} + {b:e}");
+            if e != 0.0 {
+                inexact += 1;
+            }
+        }
+        assert!(inexact > 1000, "the sample rounds often: {inexact}");
+        // The absorption that motivates it: 1 added to 1e17 (ulp 16) is lost, and e says so.
+        assert_eq!(two_sum(1e17, 1.0), (1e17, 1.0));
+        assert_eq!(two_sum(1e17, -1.0), (1e17, -1.0));
+        assert_eq!(two_sum(1e17, 6.0), (1e17, 6.0));
+        assert_eq!(two_sum(1e17, 9.0), (1e17 + 16.0, -7.0));
+        // Exact sums have no error.
+        assert_eq!(two_sum(16.0, -6.25), (9.75, 0.0));
     }
 }

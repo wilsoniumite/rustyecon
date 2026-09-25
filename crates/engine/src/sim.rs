@@ -12,8 +12,8 @@ use crate::tick::run_tick;
 use crate::{Checkpoint, Tape, World};
 use rustyecon_agents::{ActorState, Agents, Cast};
 use rustyecon_core::{
-    resolve, state_hash, ActorId, GoodId, Holder, Inventory, LoadError, NodeId, ParamId, Phase,
-    SimState,
+    resolve, state_hash, ActorId, CoreError, GoodId, Holder, Inventory, LoadError, LoadErrorKind,
+    NodeId, ParamId, Phase, RunLedger, SimState,
 };
 
 /// Whether a `Sim` can step.
@@ -36,29 +36,35 @@ pub struct Sim {
     world: World,
     state: SimState<Agents>,
     cast: Cast,
+    ledger: RunLedger,
     status: Status,
     hash: u64,
     last: Option<TickReport>,
 }
 
 impl Sim {
-    fn from_parts(world: World, state: SimState<Agents>, cast: Cast) -> Sim {
+    fn from_parts(world: World, state: SimState<Agents>, cast: Cast) -> Result<Sim, CoreError> {
         let hash = state_hash(&state);
-        Sim {
+        let ledger = RunLedger::open(&state, &world)?;
+        Ok(Sim {
             world,
             state,
             cast,
+            ledger,
             status: Status::Ready,
             hash,
             last: None,
-        }
+        })
     }
 
     /// A run of `tape` from its genesis.
     pub fn new(tape: &Tape) -> Result<Sim, LoadError> {
         let (world, state) = resolve(tape)?;
         let cast = Cast::new(&world)?;
-        Ok(Sim::from_parts(world, state, cast))
+        // A resolved genesis fits its world, so the run's ledger opens on it; should it not,
+        // that is the genesis's fault.
+        Sim::from_parts(world, state, cast)
+            .map_err(|e| LoadError::new("genesis", LoadErrorKind::Invalid(e.to_string())))
     }
 
     /// A run of `tape` from a checkpoint (§7.6, N11). The checkpoint must belong to the tape's
@@ -86,7 +92,7 @@ impl Sim {
         }
         cp.validate(&world).map_err(ResumeError::Invalid)?;
         let cast = Cast::new(&world).map_err(ResumeError::Load)?;
-        Ok(Sim::from_parts(world, cp.state().clone(), cast))
+        Sim::from_parts(world, cp.state().clone(), cast).map_err(ResumeError::Invalid)
     }
 
     fn poisoned(&self) -> Result<(), RunError> {
@@ -107,6 +113,7 @@ impl Sim {
             &self.world,
             &mut self.state,
             &self.cast,
+            &mut self.ledger,
             trace.map(|t| &mut t.0),
         ) {
             Ok(report) => {

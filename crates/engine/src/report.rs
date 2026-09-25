@@ -7,7 +7,7 @@
 //! ship it across a channel or a wire.
 
 use rustyecon_agents::Agents;
-use rustyecon_core::{Date, GoodId, Holder, Key, NodeId, Phase, StateDelta, TickAudit};
+use rustyecon_core::{Date, GoodId, Holder, Key, NodeId, Phase, RunAudit, StateDelta, TickAudit};
 use rustyecon_markets::{RationLine, SettleLine};
 use serde::{Deserialize, Serialize};
 
@@ -27,8 +27,11 @@ pub struct TickReport {
     pub settlements: Vec<SettleLine>,
     /// One per (node, good, class, side) that had an order (R12).
     pub rationing: Vec<RationLine>,
-    /// The ledger's (good, provenance) lines and margins (R2).
+    /// The tick's ledger: its (good, provenance) lines, `Rounding` included, and margins (R2).
     pub audit: TickAudit,
+    /// The run's ledger so far, since the `Sim`'s starting tick: its lines summed, each good's
+    /// drift over the run, and the run's margin (R2).
+    pub run: RunAudit,
     /// The tape events that fired, in firing order.
     pub events: Vec<FiredEvent>,
 }

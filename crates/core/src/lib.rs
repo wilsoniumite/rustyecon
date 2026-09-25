@@ -39,8 +39,8 @@ pub use ids::{
     ActorId, ActorKind, ChannelId, ClassId, DeskId, EventId, GoodId, Holder, InvalidKey, Key,
     NodeId, ParamId, PopId,
 };
-pub use inventory::{Amount, Inventory, Lot, Shortfall, TakeError};
-pub use ledger::{Breach, Ledger, ShortfallLine, TickAudit};
+pub use inventory::{Amount, Inventory, Lot, Shortfall, TakeError, Taken};
+pub use ledger::{Breach, Ledger, RunAudit, RunLedger, ShortfallLine, TickAudit};
 pub use num::NumError;
 pub use registry::{Basis, ParamDef, Params, Registry};
 pub use state::{MarketBook, Quote, SimState};

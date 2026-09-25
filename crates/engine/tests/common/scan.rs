@@ -191,6 +191,38 @@ pub fn float_violations(toks: &[Tok], num: bool) -> Vec<String> {
     found
 }
 
+/// The `pub use` statements in `code` (shipped source) that would hand a frontend core's
+/// writer (E1): core itself, whole or by glob, under any name, or one of its writer items.
+/// Returns each offending statement, whitespace collapsed, and counts the `pub use`
+/// statements read in `seen`.
+pub fn writer_reexports(code: &str, seen: &mut usize) -> Vec<String> {
+    const WRITERS: [&str; 6] = ["apply", "resolve", "Ledger", "RunLedger", "Resolver", "Ext"];
+    let mut found = Vec::new();
+    let mut rest = code;
+    while let Some(k) = rest.find("pub use ") {
+        let end = rest[k..].find(';').map_or(rest.len(), |e| k + e);
+        let stmt = rest[k..end]
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ");
+        rest = &rest[end..];
+        *seen += 1;
+        let path = stmt.trim_start_matches("pub use ").trim();
+        let Some(tail) = path.strip_prefix("rustyecon_core") else {
+            continue;
+        };
+        let words: Vec<&str> = tail
+            .split(|c: char| !(c.is_alphanumeric() || c == '_'))
+            .filter(|w| !w.is_empty())
+            .collect();
+        let whole = tail.is_empty() || tail.starts_with(" as ") || tail.contains('*');
+        if whole || WRITERS.iter().any(|w| words.contains(w)) {
+            found.push(stmt);
+        }
+    }
+    found
+}
+
 /// Public engine functions that could hand a frontend a way to change a run (E1, E4): a
 /// `&mut self` method outside `allowed`, or `&mut` to a `SimState`, `World` or `Inventory`
 /// anywhere in a signature (a closure's parameters and where clauses included), or `&mut`

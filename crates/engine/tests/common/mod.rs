@@ -4,9 +4,9 @@
 // Each test file is its own crate and uses part of this module.
 #![allow(dead_code)]
 
+use rustyecon_core::{apply, resolve, state_hash, Ledger};
 use rustyecon_engine::prelude::*;
 use rustyecon_engine::rustyecon_agents::{Agents, Cast};
-use rustyecon_engine::rustyecon_core::{apply, resolve, state_hash, Ledger};
 use rustyecon_engine::rustyecon_markets::{admit, clear, Line};
 
 pub mod scan;

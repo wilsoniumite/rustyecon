@@ -6,9 +6,9 @@
 mod common;
 
 use common::*;
+use rustyecon_core::{apply, resolve, state_hash, Ledger};
 use rustyecon_engine::prelude::*;
 use rustyecon_engine::rustyecon_agents::RawSpec;
-use rustyecon_engine::rustyecon_core::{apply, resolve, state_hash, Ledger};
 
 #[test]
 fn gate_repeat_identical_hashes() {

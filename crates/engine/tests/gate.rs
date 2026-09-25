@@ -20,8 +20,8 @@
 mod common;
 
 use common::*;
+use rustyecon_core::{apply, resolve, state_hash, Ledger, Life};
 use rustyecon_engine::prelude::*;
-use rustyecon_engine::rustyecon_core::{apply, resolve, state_hash, Ledger, Life};
 use rustyecon_engine::rustyecon_markets::Line;
 use std::collections::BTreeMap;
 
@@ -42,6 +42,8 @@ fn gate_conserves_every_tick() {
     let w = sim.world().clone();
     let (grain, fuel, bread) = (good(&w, "grain"), good(&w, "fuel"), good(&w, "bread"));
     let mut spoiled = 0.0;
+    let mut run_lines: BTreeMap<(GoodId, Provenance), f64> = BTreeMap::new();
+    let mut rounded = 0;
     for _ in 0..TICKS {
         let r = sim.step().expect("no tick stops");
         assert!(r.audit.max_margin <= 1.0, "tick {}: {:?}", r.tick, r.audit);
@@ -52,10 +54,147 @@ fn gate_conserves_every_tick() {
         assert!(audit_line(&r, bread, Provenance::Production) > 0.0);
         assert!(audit_line(&r, bread, Provenance::Consumption) < 0.0);
         spoiled += audit_line(&r, bread, Provenance::Spoilage);
+        if r.audit.lines.iter().any(|l| l.1 == Provenance::Rounding) {
+            rounded += 1;
+        }
+        // The run's ledger: every tick since genesis folded together, and the run checked as a
+        // whole within the same registered tolerances.
+        for &(g, p, q) in &r.audit.lines {
+            *run_lines.entry((g, p)).or_insert(0.0) += q;
+        }
+        let folded: Vec<(GoodId, Provenance, f64)> =
+            run_lines.iter().map(|(&(g, p), &q)| (g, p, q)).collect();
+        assert_eq!(r.run.since, 0);
+        assert_eq!(r.run.lines, folded, "tick {}", r.tick);
+        assert!(r.run.max_margin <= 1.0, "tick {}: {:?}", r.tick, r.run);
+        assert_eq!(r.run.drift.len(), w.n_goods());
     }
     assert!(
         spoiled < 0.0,
         "unsold bread spoils, with its own ledger line"
+    );
+    // Splits and merges of f64 lots round, and each rounding is declared (§2.4).
+    assert!(rounded > 0, "the gate run rounds somewhere");
+}
+
+#[test]
+fn gate_breach_stops_the_run() {
+    // R2 and N3: a conservation breach stops the run in phase 7 and poisons the Sim; nothing
+    // discards the ledger's verdict, as July's run_tick did. Tolerances of 0 are below 1, so
+    // they load, and then the walk's own rounding breaches.
+    let text = edit(
+        r#"(key: "ledger.rel_flow", value: 1e-12,"#,
+        r#"(key: "ledger.rel_flow", value: 0.0,"#,
+    );
+    let text = edit_text(
+        &text,
+        r#"(key: "ledger.rel_stock", value: 1e-11,"#,
+        r#"(key: "ledger.rel_stock", value: 0.0,"#,
+    );
+    let mut sim = sim_of(&tape_of(&text));
+    let e = loop {
+        assert!(sim.tick() < TICKS, "a zero tolerance breaches somewhere");
+        if let Err(e) = sim.step() {
+            break e;
+        }
+    };
+    assert_eq!(e.phase, Phase::Measure);
+    let RunErrorKind::Core(CoreError::Conservation(b)) = &e.kind else {
+        panic!("expected a conservation breach, got {e}");
+    };
+    assert_eq!((b.tick, b.tol), (e.tick, 0.0));
+    assert!(b.drift != 0.0);
+    assert!(
+        e.to_string().contains("conservation failure at tick"),
+        "{e}"
+    );
+    assert_eq!(
+        sim.status(),
+        Status::Poisoned {
+            tick: e.tick,
+            phase: Phase::Measure
+        }
+    );
+    assert!(matches!(
+        sim.checkpoint(),
+        Err(RunError {
+            kind: RunErrorKind::Poisoned,
+            ..
+        })
+    ));
+    assert!(matches!(
+        sim.step(),
+        Err(RunError {
+            kind: RunErrorKind::Poisoned,
+            ..
+        })
+    ));
+}
+
+#[test]
+fn gate_rounding_is_declared() {
+    // The limit of f64 lots (§2.2, §2.4): with the mill's genesis coin at 1e17 (ulp 16), its
+    // payments and receipts round in its lot, so its coin moves by other than the signed sum of
+    // its traced transfers. Each tick's coin Rounding line declares that difference, up to the
+    // other holders' own rounding, and every tick and the run conserve. The mill's payout rate
+    // is 0 here, so that its riches stay in its own lot and every other holder's rounding stays
+    // at a few ulps of its own small holding, far below REL of the tick's coin flow.
+    let text = edit(
+        r#"(holder: "mill", goods: [("coin", 100.0),"#,
+        r#"(holder: "mill", goods: [("coin", 1e17),"#,
+    );
+    let text = edit_text(
+        &text,
+        r#"(key: "mill.payout", value: 5.2,"#,
+        r#"(key: "mill.payout", value: 0.0,"#,
+    );
+    let mut sim = sim_of(&tape_of(&text));
+    let w = sim.world().clone();
+    let coin = good(&w, "coin");
+    let mill = Holder::Actor(actor(&w, "mill"));
+    let held = |sim: &Sim| sim.holding(mill).map_or(0.0, |i| i.get(coin));
+    let (mut off, mut declared) = (0, 0.0);
+    for _ in 0..520 {
+        let before = held(&sim);
+        let (r, trace) = sim.step_traced().expect("every tick conserves");
+        assert!(r.audit.max_margin <= 1.0 && r.run.max_margin <= 1.0);
+        let (mut traced, mut flow) = (0.0, 0.0);
+        for e in &trace.0 {
+            if let StateDelta::Transfer { from, to, good, .. } = e.delta {
+                if good == coin {
+                    flow += e.moved;
+                    if from == mill {
+                        traced -= e.moved;
+                    }
+                    if to == mill {
+                        traced += e.moved;
+                    }
+                }
+            }
+        }
+        let unexplained = (held(&sim) - before) - traced;
+        let rounding = audit_line(&r, coin, Provenance::Rounding);
+        assert!(
+            (unexplained - rounding).abs() <= REL * flow,
+            "tick {}: the mill's coin moved {unexplained:+e} beyond its transfers, and the \
+             ledger declared {rounding:+e}",
+            r.tick
+        );
+        if unexplained != 0.0 {
+            off += 1;
+        }
+        declared += rounding;
+        let run = r
+            .run
+            .lines
+            .iter()
+            .find(|l| (l.0, l.1) == (coin, Provenance::Rounding))
+            .map_or(0.0, |l| l.2);
+        assert_eq!(run, declared, "tick {}", r.tick);
+    }
+    assert!(
+        off > 100,
+        "the rich mill's coin rounds on most ticks: {off}"
     );
 }
 

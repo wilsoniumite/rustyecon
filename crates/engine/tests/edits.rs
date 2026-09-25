@@ -6,8 +6,8 @@
 mod common;
 
 use common::*;
+use rustyecon_core::FlowPerYear;
 use rustyecon_engine::prelude::*;
-use rustyecon_engine::rustyecon_core::FlowPerYear;
 
 /// A checkpoint of the gate world's run at `tick`.
 fn checkpoint_at(t: &Tape, tick: u64) -> Checkpoint {
@@ -77,6 +77,66 @@ fn resume_after_past_edit_is_refused() {
     let early = checkpoint_at(&t, 100);
     let edited = tape_of(&edit(edits[0].0, edits[0].1));
     Sim::resume(&edited, &early).expect("an edit after the checkpoint's tick is allowed");
+}
+
+#[test]
+fn resume_boundary_is_the_firing_tick() {
+    // N11, E1: a checkpoint "at tick t" holds the state before tick t runs, so whatever fires in
+    // tick t is still its future. An edit that moves such a firing later keeps the checkpoint,
+    // and the resumed run equals the edited tape's full rerun; one tick later the firing is in
+    // the checkpoint's past, and the same edit is refused. Checked at a dated event, at a
+    // recurring entry's first occurrence and at tick 0, so an off-by-one in the prefix a
+    // checkpoint stores or in the one a resume computes is caught.
+    let t = tape();
+    let w = sim_of(&t).world().clone();
+    let tail = |edited: &Tape, cp: &Checkpoint| -> Result<Vec<u64>, ResumeError> {
+        let mut sim = Sim::resume(edited, cp)?;
+        let mut out = Vec::new();
+        sim.run_until(TICKS, &mut |r| out.push(r.hash)).unwrap();
+        Ok(out)
+    };
+    let cases = [
+        // The dated cut, a year later.
+        (
+            tick_of(&w, "1760-03-01"),
+            edit(
+                r#"(key: "mine.cut", at: "1760-03-01""#,
+                r#"(key: "mine.cut", at: "1761-03-01""#,
+            ),
+        ),
+        // The pension's first occurrence, and every later one, paid 6 instead of 5.
+        (
+            tick_of(&w, "1751-01-01"),
+            edit(
+                r#"act: Mint(holder: "pensioners", good: "coin", qty: 5.0)"#,
+                r#"act: Mint(holder: "pensioners", good: "coin", qty: 6.0)"#,
+            ),
+        ),
+        // A new event on the start date, which fires in tick 0.
+        (
+            0,
+            edit(
+                "    events: [\n",
+                "    events: [\n        (key: \"a.day.one\", at: \"1750-01-01\", basis: \
+                 Assumed(\"test\"), act: Mint(holder: \"workers\", good: \"coin\", qty: 11.0)),\n",
+            ),
+        ),
+    ];
+    for (at, text) in cases {
+        let edited = tape_of(&text);
+        let rerun = hashes(&edited, TICKS);
+        assert_ne!(rerun, hashes(&t, TICKS), "the edit at {at} changes the run");
+        let before = checkpoint_at(&t, at);
+        assert_eq!(
+            tail(&edited, &before).expect("the firing is in the checkpoint's future"),
+            &rerun[at as usize..],
+            "resumed at {at}"
+        );
+        match tail(&edited, &checkpoint_at(&t, at + 1)) {
+            Err(ResumeError::WrongPrefix { tick, .. }) => assert_eq!(tick, at + 1),
+            other => panic!("at {}: expected WrongPrefix, got {other:?}", at + 1),
+        }
+    }
 }
 
 #[test]

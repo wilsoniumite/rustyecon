@@ -1,9 +1,11 @@
 //! The delta set, provenance and phases (docs/ENGINE.md §2.4).
 //!
 //! Salvaged from `v2p3: types/delta.rs`: its seven core arms, with July's paired Remove/Add
-//! replaced by an atomic `Transfer` (which moves exactly what it takes, or nothing, so it cannot
-//! mint) and by `Mint` and `Burn` with a required provenance, plus `SetParam`, and one
-//! extension seam, `Actor`, in place of July's other 19 agent variants (N14).
+//! replaced by an atomic `Transfer` (it moves the lots it takes, or nothing when the source is
+//! short) and by `Mint` and `Burn` with a required provenance, plus `SetParam`, and one
+//! extension seam, `Actor`, in place of July's other 19 agent variants (N14). Lots are `f64`, so
+//! splitting or merging one can round; `apply` declares what that creates or destroys as a
+//! `Rounding` line, so no delta moves a unit without a provenance.
 
 use crate::ext::Ext;
 use crate::ids::{GoodId, Holder, NodeId, ParamId};
@@ -66,6 +68,9 @@ pub enum Provenance {
     Construction,
     /// A tape mint or burn.
     Event,
+    /// What splitting or merging `f64` lots created or destroyed, measured exactly (TwoSum).
+    /// Reserved: only `apply` posts it. Last, so the other provenances keep their encoding.
+    Rounding,
 }
 
 /// Every change the state can undergo. `apply` is the only writer.
@@ -101,8 +106,10 @@ pub enum StateDelta<E: Ext> {
         /// Feasible demand, `D`.
         demand: f64,
     },
-    /// Move lots, lives kept, from one holder to another. It is all or nothing: it moves exactly what it
-    /// takes, or nothing when the source is short, so it cannot mint.
+    /// Move lots, lives kept, from one holder to another. It is all or nothing: it moves the lots
+    /// it takes, or nothing when the source is short. Splitting the source's last lot and merging
+    /// into the destination's round, creating or destroying up to half an ulp of the larger
+    /// operand; `apply` declares that exactly as a `Rounding` line (docs/ENGINE.md §2.4).
     Transfer {
         /// The source.
         from: Holder,

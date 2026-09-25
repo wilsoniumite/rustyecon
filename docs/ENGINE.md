@@ -4,10 +4,10 @@ Final, 2026-09-25, committed as P0.2. It folds in the frontend requirement of 20
 engine crate, a read-only observation API, no frontend mutation, `Send` types, a stable tape
 schema) and an adversarial review of the draft. Steps follow it in order, one commit each:
 **P0.3 core**, **P0.4 markets**, **P0.5 agents + engine + cli**, **P0.6 fixes from adversarial
-review, round 1**, then housekeeping (P0.1 is the skeleton; P0.2 is this file and the empty
-`crates/engine`). The draft had agents and engine + cli as two steps; they were merged at P0.5
-(amendment 1 below). Housekeeping was P0.6 until the review's fixes took that number (P0.6
-amendment 8).
+review, round 1**, **P0.7 fixes from adversarial review, round 2**, then housekeeping (P0.1 is the
+skeleton; P0.2 is this file and the empty `crates/engine`). The draft had agents and engine + cli
+as two steps; they were merged at P0.5 (amendment 1 below). Housekeeping was P0.6 until the
+reviews' fixes took that number and the next (P0.6 amendment 8, P0.7 amendment 7).
 
 It covers PLAN §3 (phase order), §3.1, §3.3, §3.8 and §3.9; R2–R4, R8 and R12–R14; and ADDENDUM
 A2, A3, A5, A12 and A13. Salvage comes from tag `july-v2-phase-3` (`ff01284`); `v2p3:` paths name
@@ -212,6 +212,56 @@ place in the section named.
    mutation that showed the gap.
 8. Steps (§12): P0.6 is this round's fixes; the housekeeping of §12 follows as its own step.
 
+**Amended at P0.7** (fixes from adversarial review, round 2), the same way.
+
+1. Rounding (R2; §2.2, §2.4, §2.5). Lots are `f64`, so a take's split (`old − rest`) and a
+   merge (`a + b`) round, and the rounding creates or destroys up to half an ulp of the larger
+   operand: a transfer of 1 from a lot of 1e17 (ulp 16) left the source at 1e17 while the taker
+   gained 1, and 6 merged into such a lot vanished. The claim that a transfer "moves exactly what
+   it takes, so it cannot mint" was false, and the ledger let the units through: its walk rounds
+   the same way, and its tolerance, `rel_stock` of the stock, is millions of units at 1e17. Now
+   `Inventory::take` returns a `Taken { lots, rounding }` and `put` returns the merges'
+   rounding, each measured exactly by TwoSum (`num::two_sum`), and `apply` declares them as a
+   ledger line with the new provenance `Rounding`, reserved to it like `Spoilage`. Takes stay
+   nominal, so payments stay nominal and §3.2's argument is unchanged; the state and every hash
+   are unchanged too. Nothing appears or vanishes without a provenance, and the ledger's
+   tolerance now covers only the walk's own rounding and the fold of the declared lines. The
+   alternatives were exact quantities (integer quanta), which would give up the range that §3.3's
+   tiny and huge prices test, and exact takes (the taker gets `old − fl(old − rest)`), which make
+   payments non-nominal and let a buyer pay for goods whose shipment rounded to nothing.
+2. The run's ledger (R2; §2.5, §7.4). A leak below each tick's tolerance could add up over a run
+   unseen. `RunLedger` closes each tick's ledger, folds it into run totals and checks the run as
+   one tick, from its first open to this close, with the same registered tolerances and the
+   run's gross flow; the walks' rounding telescopes, a leak does not. A run breach stops the run
+   in phase 7 like a tick's (`CoreError::Conservation`, whose `Breach` now carries `since`). The
+   `Sim` holds one from its starting tick (genesis, or a resumed checkpoint's), and every
+   `TickReport` carries its `RunAudit`: the run's lines, each good's drift over the run, and its
+   margin.
+3. E1's boundary (§0, §1, §7.6). The engine re-exported core whole, so a frontend depending on
+   the engine alone could reach `apply` and `resolve`, write a state and resume it through
+   `Checkpoint::of`. The engine now re-exports markets and agents, and core's read-only types in
+   its prelude (`SimState`, `RunAudit`, `Breach`, `Clock` and `Life` added), never core itself;
+   its tests use core as the engine's own dependency. §7.6 said the re-export was needed by the
+   replay audit, which was wrong: the audit is engine code and uses core directly. What a resume
+   still trusts is stated in E1 and §7.6.
+4. Load checks: none new. A ledger tolerance of 1 or more and a currency in a recipe were refused
+   at P0.6 (amendment 3 there).
+5. The API (§2.2, §2.5): `Taken`, `RunLedger`, `RunAudit` and `num::two_sum` are public;
+   `Inventory::put` and `put_qty` return `Result<f64, CoreError>`, the rounding they created.
+6. Tests (§11). Added: `two_sum_is_exact`, `split_and_merge_rounding_is_measured`,
+   `transfer_rounding_is_declared`, `run_ledger_catches_a_leak_below_each_ticks_tolerance`,
+   `recurring_last_is_inclusive` (core); `gate_breach_stops_the_run`,
+   `gate_rounding_is_declared`, `resume_boundary_is_the_firing_tick`,
+   `no_reexport_hands_out_core_writer` and the engine's doc tests (engine);
+   `conservation_breach_stops_the_run` (cli). Strengthened: `two_kinds_same_number_settle_apart`
+   (a pop sells beside the desk with its number, which holds the same good and coin),
+   `no_forgiveness_currency_moves_only_by_transfers` (its only ledger lines are `Rounding`, and
+   they are exact: each good's lots, summed exactly, move by exactly those lines),
+   `gate_conserves_every_tick` (the run's ledger every tick). `atomic_transfer_cannot_mint` keeps
+   its name: a transfer mints nothing unrecorded. Each was checked against the mutation that
+   showed the gap.
+7. Steps (§12): P0.7 is this round's fixes; the housekeeping of §12 follows as its own step.
+
 ## 0. Engine invariants
 
 Numbered so tests and reviews can cite them. Each has at least one test in §11.
@@ -221,10 +271,12 @@ Numbered so tests and reviews can cite them. Each has at least one test in §11.
   compatible checkpoint (§7.6). A dial change is a dated `SetParam` event (§2.4) that copies a
   param only the schedule reads, so a checkpoint taken before it fires resumes under the edited
   tape, whatever the new value (§2.6). Nothing enters a run except through the tape: no
-  command-line override, no setter on `Sim`, no `&mut` to a checkpoint's state, and no checkpoint
-  whose state does not match its digest. So every experiment is reproducible (R8) and every
-  number keeps its provenance (R4). A checkpoint is the one input besides the tape; §7.6 states
-  what a resume trusts in it.
+  command-line override, no setter on `Sim`, no `&mut` to a checkpoint's state, no checkpoint
+  whose state does not match its digest, and no writer of the state in the engine's API (it
+  re-exports core's read-only types, never `apply`, `resolve` or the ledger). So every
+  experiment is reproducible (R8) and every number keeps its provenance (R4). A checkpoint is
+  the one input besides the tape, and its digest catches corruption, not forgery; a program that
+  depends on core directly holds core's writer. §7.6 states what a resume trusts.
 - **E2 — No global state and no I/O on the engine path.** `core`, `markets`, `agents` and
   `engine` hold no `static mut`, `thread_local!`, `Rc`, `RefCell`, `Cell`, `OnceCell`,
   `OnceLock`, `LazyLock`, `Mutex`, `RwLock` or atomics. They use no `std::fs`, `std::time`,
@@ -271,10 +323,12 @@ tapes/gate.ron                     the gate world (§10)
 Dependencies run one way: core ← markets ← agents ← engine ← cli, and a future frontend crate
 depends on engine the same way. Core depends on no workspace crate (N14). `crates/oracle` comes
 from another run, joins through the glob and depends at most on core; nothing on the engine path
-depends on it (R13). The engine re-exports the three crates under their own names, plus a
+depends on it (R13). The engine re-exports markets and agents under their own names, plus a
 `prelude` of the types a frontend names (ids, keys, `Holder`, `Date`, `Tape`, `World`,
-`Checkpoint`, `TickReport` and its lines, the errors), so a frontend depends on the engine alone.
-P0.2 points the cli's `Cargo.toml` at the engine only.
+`Checkpoint`, the `SimState` a checkpoint holds, `TickReport` and its lines, the errors), so a
+frontend depends on the engine alone. It does not re-export core: core's writer (`apply`,
+`resolve`, the ledgers) stays out of a frontend's reach (E1; amended at P0.7). P0.2 points the
+cli's `Cargo.toml` at the engine only.
 
 External crates, all cached on both machines: `serde 1.0.228` (derive), `ron 0.8.1`, `bincode
 1.3.3`, `libm 0.2.16`, `clap 4.6.1` (cli only), `tempfile 3.27.0` (dev only). Not used: `rayon`,
@@ -345,9 +399,10 @@ pub struct Lot { pub qty: f64, pub life: Option<u32> }  // None = indefinite; So
 pub struct Inventory(Vec<(GoodId, Vec<Lot>)>);          // goods ascending; lots by life, None last
 pub enum Amount { Qty(f64), All }
 impl Inventory { pub fn get(&self, g: GoodId) -> f64;   // lot sum, left fold in lot order
-    pub fn put(&mut self, g: GoodId, lots: Vec<Lot>) -> Result<(), CoreError>;
-    pub fn take(&mut self, g: GoodId, a: Amount) -> Result<Vec<Lot>, TakeError>;
+    pub fn put(&mut self, g: GoodId, lots: Vec<Lot>) -> Result<f64, CoreError>; // merges' rounding
+    pub fn take(&mut self, g: GoodId, a: Amount) -> Result<Taken, TakeError>;
     // TakeError: Shortfall(Shortfall { requested, held }) | Invalid(q); nothing moves on either
+    // Taken { lots: Vec<Lot>, rounding: f64 }: the lots taken, and what the split created
     pub fn age(&mut self) -> Vec<(GoodId, f64)>;        // spoiled per good
     pub fn lot_count(&self) -> usize; }
 ```
@@ -362,6 +417,13 @@ impl Inventory { pub fn get(&self, g: GoodId) -> f64;   // lot sum, left fold in
   remainder is left, every lot is taken, so a request with `q <= get(g)` never falls short. A
   single-lot good (every currency) is taken as `lot.qty − q`, which is the arithmetic admission
   mirrors (§3.1).
+- **Rounding** (amended at P0.7). Lots are `f64`, so the split's `fl(old − rest)` and a merge's
+  `fl(a + b)` round, and the rounding creates or destroys up to half an ulp of the larger
+  operand: 1 taken from a lot of 1e17 (ulp 16) leaves the lot at 1e17, and 6 merged into it
+  vanish. The taker always gets exactly `rest`, so takes are nominal, and each rounding is
+  measured exactly by TwoSum (`num::two_sum`: `a + b = s + e` exactly, with no fused
+  multiply-add): `take` returns it as `Taken::rounding`, `put` returns the merges' sum, each
+  `fl(..) − exact`, 0 when exact and never `-0.0`. `apply` declares it (§2.4).
 - **Rules.** Non-finite quantities, and any quantity whose sign bit is set (`-0.0` included), are
   rejected in every build profile. A lot at exactly `+0.0` is dropped, with no epsilon. `age`
   drops lots at `Some(0)` and then decrements the rest, so a lot minted in tick t with `Ticks(L)`
@@ -434,15 +496,20 @@ pub enum StateDelta<E: Ext> {
     Actor(E::Delta),
     AdvanceTick,
 }
-pub enum Provenance { Production, Consumption, Spoilage, Endowment, Depreciation, Construction, Event }
+pub enum Provenance { Production, Consumption, Spoilage, Endowment, Depreciation, Construction, Event,
+                      Rounding }   // last, so the others keep their encoding (P0.7)
 ```
 
 These are July's seven core arms (`v2p3: types/delta.rs`), with Add and Remove replaced by
 `Transfer`, `Mint` and `Burn`, plus `SetParam`, and one seam, `Actor`, in place of July's other 19
-variants. A transfer moves exactly what it takes, or nothing when its source is short, so it
-cannot mint; July's paired Remove/Add trap (`v2p3: docs/architecture/engine.md:440-445`) is gone.
-Every mint and burn carries a typed provenance, with no `Default` and no serde default;
-`Transfer` carries none. `apply` matches exhaustively.
+variants. A transfer moves the lots it takes, or nothing when its source is short; July's paired
+Remove/Add trap (`v2p3: docs/architecture/engine.md:440-445`) is gone. It is not exact: with
+`f64` lots, the split of the source's last lot and the merge into the destination's can each
+create or destroy up to half an ulp of the larger operand (§2.2), and `apply` declares that
+exactly as a `Rounding` line, as it does for a mint's merge and a burn's split (amended at P0.7).
+So no delta moves a unit without a provenance, and the ledger's registered tolerance covers only
+its own walk's rounding (§2.5). Every mint and burn carries a typed provenance, with no `Default`
+and no serde default; `Transfer` carries none. `apply` matches exhaustively.
 
 | Provenance | Used for |
 |---|---|
@@ -452,16 +519,18 @@ Every mint and burn carries a typed provenance, with no `Default` and no serde d
 | `Endowment` | output of a recipe with no inputs (Phase 0); Instant labour and parcel services (Phase 2) |
 | `Depreciation`, `Construction` | Phase 3's capital; declared now so the ledger lines exist |
 | `Event` | tape mints and burns |
+| `Rounding` | what splitting or merging `f64` lots created or destroyed, measured exactly; `apply`'s alone (P0.7) |
 
 **Phase rules in `apply`** (`CoreError::WrongPhase`): an escrow holder appears only in
 `Settlement`; `SetVolumes` only in `Clearing`; `SetPrice`, `SetEma` and `AdvanceTick` only in
 `Prices`; `SetParam` only in `Events`; `Age` only in `Upkeep`; a `Mint` of an Instant good only in
 `Events` or `Decisions`. Which actor may emit what inside a phase is the engine's whitelist (E7,
-§7.3), not core's. Besides: `Spoilage` is ageing's alone, so a `Mint` or `Burn` carrying it is
-`ReservedProvenance`; a `SetPrice`, `SetEma` or `SetVolumes` on a (node, currency) slot is
-`NoMarket`; a price or EMA must be positive. `apply` returns the quantity each delta moved: what a
-transfer delivered, a mint created, a burn destroyed, or an `Age` spoiled (summed over goods); 0
-for the rest.
+§7.3), not core's. Besides: `Spoilage` is ageing's alone and `Rounding` is `apply`'s, so a `Mint`
+or `Burn` carrying either is `ReservedProvenance`; a `SetPrice`, `SetEma` or `SetVolumes` on a
+(node, currency) slot is `NoMarket`; a price or EMA must be positive. `apply` returns the quantity
+each delta moved: what a transfer delivered, a mint created, a burn destroyed, or an `Age`
+spoiled (summed over goods); 0 for the rest. The rounding of a delta's split and merges is not
+in that quantity; it is the delta's `Rounding` line (P0.7).
 
 ### 2.5 Apply, ledger, conservation, hash, checkpoints (R2; defect 9; N2, N3, N11)
 
@@ -476,6 +545,14 @@ impl Ledger { pub fn open<E: Ext>(s: &SimState<E>, w: &World<E>) -> Result<Ledge
 pub struct ShortfallLine { pub tick: u64, pub phase: Phase, pub holder: Holder, pub good: GoodId,
                            pub requested: f64, pub held: f64, pub prov: Option<Provenance> }
 pub struct TickAudit { pub lines: Vec<(GoodId, Provenance, f64)>, pub max_margin: f64, pub max_drift: f64 }
+pub struct RunLedger { /* since, next, opening, declared, gross, lines: the run's totals */ }   // P0.7
+impl RunLedger { pub fn open<E: Ext>(s: &SimState<E>, w: &World<E>) -> Result<RunLedger, CoreError>;
+                 pub fn close_tick<E: Ext>(&mut self, l: Ledger, s: &SimState<E>, w: &World<E>)
+                     -> Result<(TickAudit, RunAudit), CoreError>; }
+pub struct RunAudit { pub since: u64, pub lines: Vec<(GoodId, Provenance, f64)>,
+                      pub drift: Vec<(GoodId, f64)>, pub max_margin: f64 }
+// Breach { tick, since, good, opening, closing, declared, gross, drift, tol, lines }: since == tick
+// for a tick's breach, the run's first tick for a run's
 pub fn state_hash<E: Ext>(s: &SimState<E>) -> u64; // FNV-1a 64 over bincode 1 (v2p3: certify/hash.rs:16-30)
 pub struct Checkpoint<E: Ext> { world_id: u64, prefix_id: u64, state: SimState<E> }  // private
 impl<E: Ext> Checkpoint<E> {
@@ -492,6 +569,7 @@ pub mod num {
     pub fn max_scale(held: f64, coef: f64) -> Result<f64, NumError>;     // largest x: fl(coef·x) <= held
     pub fn max_remainder(total: f64, spent: f64) -> Result<f64, NumError>; // largest d: fl(spent+d) <= total
     pub fn is_clean(x: f64) -> bool;                                     // finite, sign bit clear
+    pub fn two_sum(a: f64, b: f64) -> (f64, f64);                        // (s, e): a + b = s + e exactly (P0.7)
     pub enum NumError { Invalid { what, value }, Exceeded { total, spent } }
 }
 ```
@@ -522,7 +600,20 @@ pub mod num {
   `tol = 0` and the drift must be exactly zero. The margin is 0 when `drift == 0` and `|drift|/tol`
   otherwise, so `max_margin <= 1` is the pass condition and 0/0 never occurs. July's
   `ABS_TOLERANCE` does not move (A12). A tolerance must be below 1, checked at load: at 1 or
-  more a leak of the whole stock or flow would pass (amended at P0.6).
+  more a leak of the whole stock or flow would pass (amended at P0.6). `declared` includes the
+  `Rounding` lines (§2.4), so what lots create or destroy is declared, exactly, and the drift is
+  only the rounding of the walk and of the declared fold. The walk is a float sum, so it cannot
+  see a unit below half an ulp of the good's total; that is why the tolerance remains, and why
+  rounding is declared by `apply` rather than found by the walk (amended at P0.7).
+- **The run's ledger** (amended at P0.7). A leak below each tick's tolerance, every tick, would
+  pass every tick and add up. `RunLedger::close_tick` closes the tick's ledger (the tick's check
+  first), folds its declared quantities, gross flows and lines into run totals, and checks the
+  run as if it were one tick: `drift = (closing − opening) − declared` from the run's first open
+  to this close, against `rel_flow·gross + rel_stock·max(|opening|, |closing|)` with the run's
+  gross flow. Each tick opens on the state the last closed on, so the walks' rounding
+  telescopes and the run's drift stays the size of one tick's; a leak grows with the run. A
+  run breach is `CoreError::Conservation` with `since` the run's first tick, and stops the run
+  like a tick's. A ledger of any tick but the next is a shape error.
 - **Income.** Phase 0 asserts the market-level identity: in every market and tick, what the
   sellers received equals what the buyers paid, and the buyers paid the posted price times what
   they received, both under the gate test's relative bar (`gate_settles_by_one_filled_quantity`).
@@ -737,7 +828,9 @@ feasible` hold only up to that rounding, a few ulps, and a consumer of R12's lin
 them as exact invariants (amended at P0.6). The argument assumes normal numbers; in the subnormal
 range a take could still fall short, which stops the run with its ledger line, or one side could
 round to nothing (amendment 6). A transfer whose nominal quantity is exactly 0 is not planned,
-and its line reports 0.
+and its line reports 0. Every split and merge that rounds in these transfers, a payment out of a
+buyer's cash or a receipt into a seller's, is a `Rounding` line in the tick's ledger (§2.4;
+amended at P0.7); settlement declares nothing else.
 
 **Moved quantities.** `apply` returns what each delta moved, and `realize` turns the plan into
 `SettleLine`s and `RationLine`s from those actual quantities. A buyer's line has `qty` = the good
@@ -991,7 +1084,7 @@ deltas pass through `apply` with that phase.
 | 4 | production | `produce` for every actor on the phase-start state; checked, then applied in `ActorId` order |
 | 5 | upkeep | 5a, core ageing: `Age` per holder in `Holder` order. 5b, the `upkeep` hook, handled as in phase 4 (a no-op for scripted actors) |
 | 6 | price update | `update_prices`, then `AdvanceTick` |
-| 7 | measure | `ledger.close` (the audit), `state_hash`, the `TickReport` |
+| 7 | measure | the run's ledger closes the tick's ledger (the tick's audit) and checks the run (the run's audit); `state_hash`; the `TickReport` |
 
 The report's `hash` is of the state after `AdvanceTick`, whose tick is t + 1. A checkpoint "at
 tick t" holds the state whose tick is t, before tick t runs.
@@ -1027,6 +1120,7 @@ pub struct TickReport {
     pub settlements: Vec<SettleLine>,   // one per admitted order, with moved quantities (§3.2)
     pub rationing: Vec<RationLine>,     // one per (node, good, class, side) that had an order
     pub audit: TickAudit,               // the ledger's (good, provenance) lines and margins
+    pub run: RunAudit,                  // the run's ledger since the Sim's starting tick (P0.7)
     pub events: Vec<FiredEvent>,        // in firing order
 }
 pub struct MarketLine { pub node: NodeId, pub good: GoodId,
@@ -1039,7 +1133,10 @@ pub struct FiredEvent { pub key: Key, pub occurrence: u32, pub action: StateDelt
 pub struct HoldingTotals(pub Vec<(Holder, GoodId, f64)>);   // (holder, good) order
 ```
 
-A report costs O(markets + orders + events) and never copies holdings; `observe_holdings` does
+`run` counts from the `Sim`'s starting tick: genesis for `Sim::new`, the checkpoint's tick for
+`Sim::resume`, whose earlier ticks the run that reached the checkpoint audited. So a resumed run's
+reports equal the uninterrupted run's except in `run`. A report costs O(markets + orders +
+events) and never copies holdings; `observe_holdings` does
 that, O(holders × goods held), when a frontend asks. Ids in a report are dense and are read
 against `Sim::world()`; a frontend that compares runs of two tapes maps them by key. Each report
 agrees with the accessors read after its step: each line's `next_price`, `ema`, `supply` and
@@ -1067,7 +1164,9 @@ then `Poisoned { tick, phase }`: `step`, `run_until` and `checkpoint` return
 `RunErrorKind::Poisoned`, and `last_report` still returns the last good tick's report. The
 accessors still answer, reading the state as the failed delta left it, for diagnosis only; no
 invariant holds for it, and `hash()` is of that state. A `Sim` is rebuilt with `Sim::new` or
-`Sim::resume`. No step discards the audit (N3); July's did (`v2p3: systems/mod.rs:37`).
+`Sim::resume`. No step discards the audit (N3); July's did (`v2p3: systems/mod.rs:37`). A
+breach of the tick's ledger or of the run's is `RunErrorKind::Core(CoreError::Conservation(_))`
+in phase 7, and poisons the `Sim` like any other (`gate_breach_stops_the_run`).
 
 ### 7.6 Checkpoints, resume and the replay audit (N11, E1)
 
@@ -1082,17 +1181,20 @@ invariant holds for it, and `hash()` is of that state. A `Sim` is rebuilt with `
   since. So a checkpoint stays valid across an edit dated at or after its tick, such as a new
   shock or a dated `SetParam` to a new value (§2.6). It is refused after any edit to the world or
   to anything that fired before it.
-- **What a resume trusts** (amended at P0.6). A checkpoint is the one input besides the tape. The
-  digest catches a checkpoint edited or corrupted after it was saved, and validation catches a
-  state that does not fit the world, but the digest is FNV-1a, not a signature: bytes written
-  with a recomputed digest, or a state built with core's own writer (`resolve`, then `apply`)
-  and passed to `Checkpoint::of`, resume as given if they fit the world. That is the trust
-  boundary. The `Sim` and `Checkpoint` API offers no way across it (`Sim` has no setter,
-  `Checkpoint` hands out no `&mut`, and `Sim::checkpoint` is the engine's only maker of one);
-  core's writer stays reachable through the engine's re-export of core, which the replay audit
-  and the tests need, and a frontend that calls it is building its own state, not running the
-  tape. A run that must be trusted from its tape is proved by `audit_replay` from genesis, and
-  session 2's manifest can record the digest of any checkpoint a run resumed from.
+- **What a resume trusts** (amended at P0.6 and P0.7). A checkpoint is the one input besides the
+  tape. The digest catches a checkpoint edited or corrupted after it was saved, and validation
+  catches a state that does not fit the world, but the digest is FNV-1a, not a signature: bytes
+  or RON written with a recomputed digest (a decoder's `Digest` error even reports the digest the
+  edited state has) resume as given if they fit the world. That is the trust boundary, and it is
+  the only way across it for a frontend that depends on the engine alone: `Sim` has no setter,
+  `Checkpoint` hands out no `&mut`, and the engine re-exports none of core's writer (`apply`,
+  `resolve`, the ledgers), so `Checkpoint::of`, which the type alias does expose, can only wrap a
+  state some `Sim` made or a decoder accepted, for any world whose shape it fits: no more than a
+  forged digest allows (`no_reexport_hands_out_core_writer` and the engine's doc tests). Until P0.7 the engine re-exported core whole, and ENGINE said the replay audit needed
+  that; it did not, since the audit is engine code and uses core directly. A program that
+  depends on core itself holds core's writer and builds its own states; that is outside the
+  engine's API. A run that must be trusted from its tape is proved by `audit_replay` from
+  genesis, and session 2's manifest can record the digest of any checkpoint a run resumed from.
 - **`audit_replay(tape, until)`** runs a `Sim` with `step_traced`. Beside it runs a shadow
   `SimState` from the same genesis, which applies each tick's trace through `core::apply` alone,
   with no behaviour, clearing or settlement code, and a ledger of its own. The two `state_hash`es
@@ -1207,15 +1309,15 @@ size; none is absolute (A12). Gate tests read `tapes/gate.ron` through `include_
 | Area | Tests | Checks |
 |---|---|---|
 | inventory (salvaged, `v2p3: types/inventory.rs:159-251`, renamed for the new API) | `add_and_get`, `take_partial` (was `remove_partial`), `take_more_than_held_is_a_shortfall_and_moves_nothing` (was `remove_more_than_held`), `stays_sorted`, `age_removes_expired_and_decrements` (was `spoil_lots_…`), `serde_preserves_lot_lives`, `take_fefo` (was `remove_fifo`) | defect 5; atomic take |
-| inventory (new) | `lots_coalesce_by_life`, `take_all_of_multi_lot_holding_never_falls_short` (lots 0.1 + 0.2), `nonfinite_negative_or_negative_zero_qty_is_rejected`, `instant_lot_dies_at_5a` | N9 |
+| inventory (new) | `lots_coalesce_by_life`, `take_all_of_multi_lot_holding_never_falls_short` (lots 0.1 + 0.2), `nonfinite_negative_or_negative_zero_qty_is_rejected`, `instant_lot_dies_at_5a`, `split_and_merge_rounding_is_measured` (P0.7: 1 from 1e17, 6 and 9 into it; before + rounding = after + taken, exactly, in integers) | N9, R2 |
 | ledger (salvaged: the 11 tests at `v2p3: certify/ledger.rs:359-488`, names kept) | `balanced_transfer_conserves`, `unbalanced_transfer_is_a_breach`, `declared_mint_and_burn_conserve`, `untagged_creation_is_a_breach`, `stock_appearing_beyond_what_was_declared_is_a_breach`, `mutation_that_skips_the_ledger_is_caught`, `tolerance_covers_scan_noise_on_large_stock`, `tolerance_still_catches_a_real_leak_at_the_same_stock`, `margin_ratio_reports_headroom`, `shortfall_is_recorded` (now also returns the error), `reset_clears_state` (now: a fresh ledger has no lines). An unbalanced move or untagged creation can only be a direct state write now, so those tests write state directly | defect 9, A12 |
-| ledger through apply (salvaged, `v2p3: tests/test_04:42-121`) | `untagged_creation_is_caught_through_apply` (the untagged add is a direct write, since every `Mint` needs a provenance), `shortfall_is_captured_and_not_silently_clamped` (and stops with `CoreError::Shortfall`). The third, `unbalanced_transfer_through_apply_is_a_breach`, is replaced by `atomic_transfer_cannot_mint`, since a `Transfer` can no longer be unbalanced | defect 9, N3 |
-| ledger (new) | `undefined_good_is_an_error_in_release`, `nan_drift_is_a_breach`, `zero_stock_zero_flow_requires_exact_zero`, `margin_is_zero_when_drift_is_zero`, `direct_state_write_is_caught`, `burn_shortfall_stops_with_a_ledger_line`, `atomic_transfer_cannot_mint`, `escrow_outside_settlement_is_an_error`, `instant_mint_outside_phases_0_and_1_is_an_error`, `book_writes_outside_their_phase_are_errors` | N2, N3, A12 |
+| ledger through apply (salvaged, `v2p3: tests/test_04:42-121`) | `untagged_creation_is_caught_through_apply` (the untagged add is a direct write, since every `Mint` needs a provenance), `shortfall_is_captured_and_not_silently_clamped` (and stops with `CoreError::Shortfall`). The third, `unbalanced_transfer_through_apply_is_a_breach`, is replaced by `atomic_transfer_cannot_mint`, since a `Transfer` can no longer be unbalanced unrecorded: its rounding is a declared line (`transfer_rounding_is_declared`, P0.7) | defect 9, N3 |
+| ledger (new) | `undefined_good_is_an_error_in_release`, `nan_drift_is_a_breach`, `zero_stock_zero_flow_requires_exact_zero`, `margin_is_zero_when_drift_is_zero`, `direct_state_write_is_caught`, `burn_shortfall_stops_with_a_ledger_line`, `atomic_transfer_cannot_mint`, `escrow_outside_settlement_is_an_error`, `instant_mint_outside_phases_0_and_1_is_an_error`, `book_writes_outside_their_phase_are_errors`; from P0.7 `transfer_rounding_is_declared` (the limit pinned: a thousand transfers of 1 from a lot of 1e17 each move 1 and declare +1 as `Rounding`, 6 merged into it declare −6, a mint and a burn declare theirs beside their own lines; every total checked exactly in integers; `Rounding` reserved) and `run_ledger_catches_a_leak_below_each_ticks_tolerance` (a leak of 1e-10 a tick on a stock of 16 passes each tick and breaches the run at its second tick; a clean run's lines are the ticks' sums) | N2, N3, A12, R2 |
 | hash | `identical_states_hash_equal_and_tick_changes_it` (salvaged), `hash_covers_holdings_lives_params_and_ext_state` | R8 |
 | checkpoint (salvaged, `v2p3: output/checkpoint.rs:84-102`) | `binary_round_trip` and `human_readable_round_trip` (now by full hash, not by tick), `checkpoint_format_is_checked` (format 1 refused), `checkpoint_rejects_nan_and_unknown_ids`, `checkpoint_digest_refuses_an_edited_state` (P0.6: one lot changed, in each form), and the module's doc tests (`&mut cp.state` does not compile) | N11, R2, E1 |
-| tape | `unsorted_events_fire_in_order` (ticks listed 5, 2, 9, 9 all fire; key order within a tick), `every_zero_is_rejected`, `undefined_good_is_a_load_error`, `unknown_actor_or_param_is_a_load_error`, `duplicate_keys_are_rejected`, `missing_genesis_price_is_rejected`, `unused_param_is_rejected`, `unit_mismatch_is_rejected`, `event_before_start_is_rejected`, `set_param_on_fixed_or_other_unit_is_rejected`, `ratio_with_saturate_is_rejected`, `date_to_tick_is_integer_exact`, `date_of_inverts_date_to_tick` | N1, N2, R4, N13 |
+| tape | `unsorted_events_fire_in_order` (ticks listed 5, 2, 9, 9 all fire; key order within a tick), `recurring_last_is_inclusive` (P0.7: a `last` on an occurrence's date fires there and never after, and `prefix_id` at every tick around it is the hash of what `fire` produced), `every_zero_is_rejected`, `undefined_good_is_a_load_error`, `unknown_actor_or_param_is_a_load_error`, `duplicate_keys_are_rejected`, `missing_genesis_price_is_rejected`, `unused_param_is_rejected`, `unit_mismatch_is_rejected`, `event_before_start_is_rejected`, `set_param_on_fixed_or_other_unit_is_rejected`, `ratio_with_saturate_is_rejected`, `date_to_tick_is_integer_exact`, `date_of_inverts_date_to_tick` | N1, N2, R4, N13 |
 | tape schema | `schema_version_is_checked`, `unknown_field_is_rejected`, `missing_optional_field_is_rejected`, `tape_round_trips` (parse, `to_ron`, parse: equal `Tape`, equal `world_id`), `file_order_is_irrelevant` (permuting every list: same `world_id` and prefix ids), `reformatted_tape_keeps_its_ids` (whitespace, comments, CRLF: same ids), `new_entity_keeps_existing_ids` (adding a good, an actor and an event leaves every existing key naming the same entity with the same resolved content), `prefix_id_covers_only_past_firings`, `schedule_params_stay_out_of_the_world` (P0.6: a new source value, a new dial and its event, a new period keep `world_id` and the past before they fire; a source the world reads stays registered), `ledger_tolerances_must_be_below_one` (P0.6) | E8, N11, E1, R2 |
-| other | `clock_conversions` (all units and methods of §6; `ticks` at 12, 52 and 365 ticks a year), `num_matches_libm_bits`, `num_helpers_are_exact` (each result fits and its `next_up` does not), `core_has_no_workspace_dependencies` (core's `Cargo.toml` names no `rustyecon-` crate; a `NoExt` tape resolves, fires its events through `apply` and closes its ledger) | A13, A5, N14 |
+| other | `clock_conversions` (all units and methods of §6; `ticks` at 12, 52 and 365 ticks a year), `num_matches_libm_bits`, `num_helpers_are_exact` (each result fits and its `next_up` does not), `two_sum_is_exact` (P0.7), `core_has_no_workspace_dependencies` (core's `Cargo.toml` names no `rustyecon-` crate; a `NoExt` tape resolves, fires its events through `apply` and closes its ledger) | A13, A5, N14 |
 | added at P0.3 | `desk_and_pop_sharing_a_number_are_distinct_holders`, `transfers_keep_lot_lives`, `set_param_respects_the_registry`, `unknown_holders_and_reserved_provenance_are_errors`, `currencies_and_prices_rates_are_checked`, `genesis_holdings_start_with_full_lives`, `extension_errors_name_their_path`, `core_types_cross_threads`, `keys_check_their_character_set`, `actor_and_holder_orders_are_canonical`, `dates_parse_print_and_count_days`, `fnv_matches_the_published_vectors` | defect 10, E3 |
 
 **markets**
@@ -1224,7 +1326,7 @@ size; none is absolute (A12). Gate tests read `tapes/gate.ron` through `include_
 |---|---|---|
 | clearing (salvaged, `v2p3: systems/clearing/mod.rs:147-176`, retargeted) | `price_rises_on_excess_demand`, `price_falls_on_excess_supply`, `balanced_market_stable`, `imbalance_excess_demand`, `imbalance_excess_supply`. July's `abs() < 1e-12` checks become bit equality: `exp(0) = 1` exactly, and the imbalances are exactly ±0.5 | A12 |
 | settlement | `cash_short_buyer_settles_both_sides_from_one_fill`: the buyer asks 10 at price 2 on budget 6, so 3 is feasible; the seller offers 5. Asserts `SetVolumes { supply: 5, demand: 3 }`, `buyer_fill` 1 and `seller_fill` 0.6; the buyer gets 3 and pays 6, the seller ships 3 and gets 6; the class line is 10 / 3 / 3; `update_prices` lowers the price (x = −0.4), where July's settlement would have read D = 10 and raised it | N7, R12 |
-| admission, settlement | `over_budget_is_an_order_error`, `over_posting_seller_is_an_order_error`, `sells_at_two_nodes_are_checked_cumulatively`, `duplicate_order_is_rejected`, `two_kinds_same_number_settle_apart`, `no_forgiveness_currency_moves_only_by_transfers`, `escrow_is_empty_after_settlement`, `settlement_is_invariant_to_order_input_order`, `all_taker_is_largest_then_highest_id`, `settle_lines_carry_moved_quantities` | defect 10, N8, R8 |
+| admission, settlement | `over_budget_is_an_order_error`, `over_posting_seller_is_an_order_error`, `sells_at_two_nodes_are_checked_cumulatively`, `duplicate_order_is_rejected`, `two_kinds_same_number_settle_apart` (from P0.7 also the sell side: each pop sells grain beside the desk with its number, which holds grain and coin, and ships from and is paid into its own holding), `no_forgiveness_currency_moves_only_by_transfers` (from P0.7 its only ledger lines are `Rounding`, exact against each good's lots summed exactly), `escrow_is_empty_after_settlement`, `settlement_is_invariant_to_order_input_order`, `all_taker_is_largest_then_highest_id`, `settle_lines_carry_moved_quantities` | defect 10, N8, R8 |
 | prices | `tiny_prices_move_by_rule` (at 1e-15 and 1e-300 each step is exactly `p·exp(k·x)`), `huge_price_overflow_is_a_run_error`, `tiny_and_huge_prices_settle_without_guards` (1e-200 flows move at prices 1e-15 and 1e200), `price_rule_comes_from_the_tape` (no rule, no load; `Ratio` and `Imbalance` hash apart), `one_sided_rule_comes_from_the_tape` (at S = 0 < D, `Saturate` multiplies by `exp(k)` each tick and `Hold` keeps the bits), `ratio_nonfinite_is_an_error`, `genesis_ema_is_the_genesis_price`, `params_are_read_at_use_time` | N5, N6, N13, F8 |
 | time | `ema_is_tick_length_invariant`, `imbalance_path_is_tick_length_invariant` | A13 |
 | added at P0.4 | `orders_are_checked_against_the_world`, `budgets_bind_per_currency`, `feasible_quantity_is_what_the_budget_buys`, `rationing_is_recorded_per_class` (from P0.6 a class line of two members, one cash-short, with exact sums), `markets_types_cross_threads` | N2, N6, N7, R12, E3 |
@@ -1241,9 +1343,9 @@ size; none is absolute (A12). Gate tests read `tapes/gate.ron` through `include_
 | Area | Tests | Checks |
 |---|---|---|
 | determinism | `gate_repeat_identical_hashes` (2,080 ticks; the state evolves), `gate_resume_from_checkpoints` (checkpoints at ticks 1, 520, 1,040 and 2,079 through `to_bytes`/`from_bytes` and `to_ron`/`from_ron`; the tails equal the uninterrupted run), `gate_replay_matches_every_tick` (`audit_replay`), `file_order_is_irrelevant_to_the_hash_stream` | R8, N11, E8 |
-| conservation, rationing | `gate_conserves_every_tick` (every report has `max_margin <= 1` and no shortfall). `gate_events_fire_in_date_order`. `gate_ids_apart`: for `Desk(0)`/`Pop(0)` and `Desk(1)`/`Pop(1)`, every tick and good, the holding's change equals the signed sum of the trace entries naming that holder, and each of its settle lines names it. `gate_rations_and_records_by_class`: bread rations at tick 0 and after the 1760 cut; pensioners' requested > feasible; every class line is the fold, in actor order, of its members' order quantities, feasible quantities and settle lines (from 1768 two producers share a side); the recorded demand is the actor-order fold of the feasible buys exactly, and at every rationed tick equals the class lines' Σ feasible up to fold order (a relative bar), which is below Σ requested. `gate_settles_by_one_filled_quantity` (P0.6): §3.2 on every tick and market, and expenditure equals receipts. `gate_lots_bounded`: 20,000 ticks; lots per good ≤ life + 1; currency one lot | R2, N1, defect 10, R12, N7, N9 |
-| edits (E1) | `resume_after_future_event_edit_equals_full_rerun`, `resume_after_past_edit_is_refused`, `world_edit_refuses_every_checkpoint`, `dated_param_change_takes_effect_at_its_tick` (the 1760 cut: capacity changes at `tick_of(1760-03-01)` and not before), `entrant_activates_on_its_date`, `resume_after_a_new_dial_value_equals_full_rerun` (P0.6), `resume_refuses_an_invalid_state` (P0.6: five edits of a RON checkpoint, refused by the digest, then as `Invalid` once the digest is forged) | E1, N11 |
-| frontend contract | `observation_matches_accessors` (every gate tick), `observing_changes_no_hash`, `engine_types_are_send` (compile time: `Send + Sync + 'static` for `Sim`, `Tape`, `World`, `Checkpoint`, `TickReport`, `HoldingTotals`, `RunError`, `LoadError`, `ResumeError`, `ReplayError`), `failed_step_poisons_the_sim` | E3, E4, E5 |
+| conservation, rationing | `gate_conserves_every_tick` (every report has `max_margin <= 1` and no shortfall; from P0.7 the run's audit too, whose lines are the fold of the ticks', and some tick declares `Rounding`). `gate_breach_stops_the_run` (P0.7: the gate tape with both tolerances at 0 stops in phase 7 with `CoreError::Conservation`, the `Sim` poisoned and its checkpoint refused). `gate_rounding_is_declared` (P0.7: the mill's genesis coin at 1e17 and its payout off; every tick its coin moves beyond its traced transfers by the tick's coin `Rounding` line, within `REL` of the tick's coin flow, on more than 100 of 520 ticks, and the run's line is their sum). `gate_events_fire_in_date_order`. `gate_ids_apart`: for `Desk(0)`/`Pop(0)` and `Desk(1)`/`Pop(1)`, every tick and good, the holding's change equals the signed sum of the trace entries naming that holder, and each of its settle lines names it. `gate_rations_and_records_by_class`: bread rations at tick 0 and after the 1760 cut; pensioners' requested > feasible; every class line is the fold, in actor order, of its members' order quantities, feasible quantities and settle lines (from 1768 two producers share a side); the recorded demand is the actor-order fold of the feasible buys exactly, and at every rationed tick equals the class lines' Σ feasible up to fold order (a relative bar), which is below Σ requested. `gate_settles_by_one_filled_quantity` (P0.6): §3.2 on every tick and market, and expenditure equals receipts. `gate_lots_bounded`: 20,000 ticks; lots per good ≤ life + 1; currency one lot | R2, N1, defect 10, R12, N7, N9 |
+| edits (E1) | `resume_after_future_event_edit_equals_full_rerun`, `resume_after_past_edit_is_refused`, `resume_boundary_is_the_firing_tick` (P0.7: at the 1760 cut's tick, the pension's first occurrence and tick 0 with a new start-date event, the checkpoint at the firing tick resumes under the edit and equals its full rerun, and the one a tick later is `WrongPrefix`), `world_edit_refuses_every_checkpoint`, `dated_param_change_takes_effect_at_its_tick` (the 1760 cut: capacity changes at `tick_of(1760-03-01)` and not before), `entrant_activates_on_its_date`, `resume_after_a_new_dial_value_equals_full_rerun` (P0.6), `resume_refuses_an_invalid_state` (P0.6: five edits of a RON checkpoint, refused by the digest, then as `Invalid` once the digest is forged) | E1, N11 |
+| frontend contract | `observation_matches_accessors` (every gate tick), `observing_changes_no_hash`, `no_reexport_hands_out_core_writer` (P0.7: no `pub use` in engine, markets or agents hands out core whole or its writer, the scanner checked on fixtures first; the engine's doc tests show `rustyecon_engine::rustyecon_core::apply` does not compile), `engine_types_are_send` (compile time: `Send + Sync + 'static` for `Sim`, `Tape`, `World`, `Checkpoint`, `TickReport`, `HoldingTotals`, `RunError`, `LoadError`, `ResumeError`, `ReplayError`), `failed_step_poisons_the_sim` | E3, E4, E5 |
 | hooks | `hooks_read_the_phase_start_state_every_tick` (P0.6, in `gate.rs`): on every gate tick the applied phase-1 and phase-4 deltas are what each hook returns on its phase's start state, and the cleared volumes are what admission makes of those orders. `decisions_read_phase_start_state`: from a fixed state, visiting actors in id order and in reverse gives identical outputs; renaming keys so that the id order reverses leaves every actor's tick-0 orders unchanged. `behaviour_output_is_whitelisted`: each forbidden arm from each hook (a mint to or burn from another holder, an escrow transfer, `SetPrice`, `SetEma`, `SetVolumes`, `SetParam`, `Age`, `AdvanceTick`, a foreign `Actor` delta, a foreign order) is `ForeignWrite` or `ForeignOrder` | E6, E7, R13, R2 |
 | time | `a13_annual_quantities_invariant`: at `ticks_per_year: 12` the 1750 farm and mine mints equal the 52-tick run's within a relative bar of 1e-12, event ticks match their dates, every pension occurrence falls within a month of the 52-tick run's, and a bread lot lasts 3 weekly or 1 monthly tick | A13 |
 | source scans (read the sources of core, markets, agents and engine, comments stripped and `#[cfg(test)]` items cut out) | `the_scanner_reads_what_it_should`, `no_raw_transcendentals`, `no_hashed_collections`, `no_behavioural_float_literals` (shipped code may hold only `0.0` and `1.0`, and no named float constant outside `core::num`), `engine_path_does_no_io` (E2's list) | A5, R8, R4, A12, E2 |
@@ -1253,7 +1355,7 @@ size; none is absolute (A12). Gate tests read `tapes/gate.ron` through `include_
 | Area | Tests | Checks |
 |---|---|---|
 | product path | `gate_resume_through_product_path`: `run` with checkpoints in both formats, then `resume` from ticks 1, 520, 1,040 and 2,079; the `--hashes` tails equal the uninterrupted run. `replay_command_passes_on_the_gate` (exit 0) | N11 |
-| failures | `shortfall_stops_the_run` (exit 2, with the ledger line on stderr), `undefined_good_fails_to_load` (exit 1), `resume_refuses_another_tape` (exit 3), `unknown_extension_errors` (exit 1), `failed_checkpoint_save_stops_the_run` (`--out` names a regular file: exit 3, and the `--hashes` file ends at the failed checkpoint's tick), `resume_refuses_an_edited_checkpoint` (P0.6: a digest mismatch and, with a forged digest, an invalid life, each exit 3) | N3, N2, N11, R2 |
+| failures | `shortfall_stops_the_run` (exit 2, with the ledger line on stderr), `conservation_breach_stops_the_run` (P0.7: zero tolerances, exit 2, the breach line and the last good tick on stderr, the hashes file ending there), `undefined_good_fails_to_load` (exit 1), `resume_refuses_another_tape` (exit 3), `unknown_extension_errors` (exit 1), `failed_checkpoint_save_stops_the_run` (`--out` names a regular file: exit 3, and the `--hashes` file ends at the failed checkpoint's tick), `resume_refuses_an_edited_checkpoint` (P0.6: a digest mismatch and, with a forged digest, an invalid life, each exit 3) | N3, N2, N11, R2 |
 
 ## 12. Steps
 
@@ -1263,7 +1365,8 @@ size; none is absolute (A12). Gate tests read `tapes/gate.ron` through `include_
 | P0.4 markets | §3 and its tests |
 | P0.5 agents + engine + cli | §4, §7 and §8, `tapes/gate.ron` (§10), and the agents, engine and cli tests (one commit, amended at P0.5) |
 | P0.6 review fixes | the fixes from adversarial review, round 1 (amended at P0.6) |
-| housekeeping | the items below (P0.7 in the draft, P0.6 until the review fixes took that number) |
+| P0.7 review fixes | the fixes from adversarial review, round 2 (amended at P0.7) |
+| housekeeping | the items below (P0.7 in the draft; P0.6, then P0.7, until the review fixes took those numbers) |
 
 Housekeeping (PLAN Phase 0 steps 2 and 6; A3):
 
@@ -1326,6 +1429,7 @@ Housekeeping (PLAN Phase 0 steps 2 and 6; A3):
      the remainder), so the test compares orders exactly and payout recipients as a set.
    - **The steps start at P0.3, not P0.2**, because this contract is P0.2.
 7. Is the checkpoint boundary of §7.6 enough? A checkpoint's digest catches edits but not a
-   forger, and a frontend that depends on core directly can build a state with core's writer and
-   resume it. The alternatives are a keyed digest, which needs a secret the engine does not have,
-   or a resume that replays from genesis, which costs what a checkpoint saves.
+   forger, who can recompute it, and a frontend that depends on core directly can build a state
+   with core's writer and resume it. Since P0.7 the engine alone offers no writer. The
+   alternatives are a keyed digest, which needs a secret the engine does not have, or a resume
+   that replays from genesis, which costs what a checkpoint saves.

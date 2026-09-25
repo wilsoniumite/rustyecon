@@ -7,8 +7,8 @@ mod common;
 
 use common::*;
 use rustyecon_core::{
-    apply, ActorId, Amount, DeskId, GoodId, Holder, Ledger, NodeId, Phase, PopId, RatePerYear,
-    StateDelta,
+    apply, ActorId, Amount, DeskId, GoodId, Holder, Ledger, NodeId, Phase, PopId, Provenance,
+    RatePerYear, StateDelta,
 };
 use rustyecon_markets::{
     admit, clear, imbalance, settle, step, OrderError, RationLine, SettleLine, SideTag,
@@ -28,6 +28,23 @@ fn outs(plan: &[Delta], n: NodeId, g: GoodId, of: GoodId) -> Vec<(Holder, Amount
             _ => None,
         })
         .collect()
+}
+
+/// `x` in units of 2^-60, in which every quantity these tests move is a whole number (checked),
+/// so sums of them are exact.
+fn exact(x: f64) -> i128 {
+    let scaled = x * (1u64 << 60) as f64;
+    assert_eq!(scaled, scaled.trunc(), "{x:e} is not a multiple of 2^-60");
+    scaled as i128
+}
+
+/// Every lot of `g` in the state, summed exactly.
+fn exact_total(s: &S, g: GoodId) -> i128 {
+    s.holdings()
+        .values()
+        .flat_map(|inv| inv.lots(g))
+        .map(|lot| exact(lot.qty))
+        .sum()
 }
 
 /// The quantity `apply` moved for the transfer of `good` from `from` to `to`.
@@ -99,7 +116,17 @@ fn cash_short_buyer_settles_both_sides_from_one_fill() {
 
 #[test]
 fn two_kinds_same_number_settle_apart() {
-    let (w, mut s) = load();
+    // The pops also hold grain, to sell in the second tick below.
+    let text = edit(
+        r#"(holder: "pensioners", goods: [("coin", 6.0)])"#,
+        r#"(holder: "pensioners", goods: [("coin", 6.0), ("grain", 3.0)])"#,
+    );
+    let text = edit_text(
+        &text,
+        r#"(holder: "workers", goods: [("coin", 20.0), ("florin", 10.0)])"#,
+        r#"(holder: "workers", goods: [("coin", 20.0), ("florin", 10.0), ("grain", 2.0)])"#,
+    );
+    let (w, mut s) = load_text(&text);
     // Desk(0) is the farm and Pop(0) the pensioners; Desk(1) is the mill and Pop(1) the
     // workers. July keyed currency flows by bare (u32, u32) and paid the wrong kind.
     assert_eq!(actor(&w, "farm"), ActorId::Desk(DeskId(0)));
@@ -160,6 +187,65 @@ fn two_kinds_same_number_settle_apart() {
     let desk = |n| Holder::Actor(ActorId::Desk(DeskId(n)));
     let pop = |n| Holder::Actor(ActorId::Pop(PopId(n)));
     assert_eq!(payers, vec![desk(0), pop(0), pop(1)]);
+
+    // The sell side, which Phase 2's labour sellers will use: each pop sells grain while the
+    // desk with its number holds grain and coin of its own and buys in the other market. Each
+    // pop ships from its own holding and is paid into it; each desk only buys.
+    let grain = good(&w, "grain");
+    let before = s.clone();
+    let orders = vec![
+        sell(&w, "pensioners", "village", "grain", 3.0),
+        buy(&w, "mill", "village", "grain", 3.0, 10.0),
+        sell(&w, "workers", "town", "grain", 2.0),
+        buy(&w, "farm", "town", "grain", 2.0, 5.0),
+    ];
+    let t = market_tick(&mut s, &w, orders).unwrap();
+    let change = |key: &str, g| held(&s, holder(&w, key), g) - held(&before, holder(&w, key), g);
+    // Each holder moved exactly its one settle line in coin and in grain, as its one lot of each
+    // computes it, and no bread.
+    for key in ["farm", "mill", "pensioners", "workers"] {
+        let a = actor(&w, key);
+        let h = Holder::Actor(a);
+        let mine: Vec<&SettleLine> = t.settled.iter().filter(|l| l.actor == a).collect();
+        assert_eq!(mine.len(), 1, "{key}");
+        let l = mine[0];
+        assert!(l.qty > 0.0 && l.value > 0.0, "{key}");
+        let (coin0, grain0) = (held(&before, h, coin), held(&before, h, grain));
+        let (coin1, grain1) = match l.side {
+            SideTag::Sell => (coin0 + l.value, grain0 - l.qty),
+            SideTag::Buy => (coin0 - l.value, grain0 + l.qty),
+        };
+        assert_eq!(held(&s, h, coin), coin1, "{key}'s coin");
+        assert_eq!(held(&s, h, grain), grain1, "{key}'s grain");
+        assert_eq!(change(key, bread), 0.0, "{key}'s bread");
+    }
+    let village = node(&w, "village");
+    let sold = |key: &str, n| line_of(&t, actor(&w, key), n, grain, false);
+    assert_eq!(sold("pensioners", village).qty, 3.0);
+    assert_eq!(sold("workers", node(&w, "town")).qty, 2.0);
+    // The desks that share the pops' numbers gained the grain they bought, not lost the pops'.
+    assert_eq!(
+        (change("pensioners", grain), change("farm", grain)),
+        (-3.0, 2.0)
+    );
+    assert_eq!(
+        (change("workers", grain), change("mill", grain)),
+        (-2.0, 3.0)
+    );
+    let receivers: Vec<Holder> = t
+        .plan
+        .iter()
+        .filter_map(|d| match d {
+            StateDelta::Transfer {
+                from: Holder::Escrow(..),
+                to: to @ Holder::Actor(_),
+                good,
+                ..
+            } if *good == coin => Some(*to),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(receivers, vec![pop(1), pop(0)], "town, then the village");
 }
 
 #[test]
@@ -179,13 +265,32 @@ fn no_forgiveness_currency_moves_only_by_transfers() {
         buy(&w, "workers", "port", "bread", 3.0, 10.0),
     ];
     let t = market_tick(&mut s, &w, orders).unwrap();
-    // Settlement mints and burns nothing: every delta is a transfer, and the ledger has no
-    // line at all.
+    // Settlement mints and burns nothing: every delta is a transfer, and the only ledger lines
+    // are Rounding, what splitting and merging f64 lots created or destroyed (docs/ENGINE.md
+    // §2.2). Those are exact: each good's lots, summed exactly, moved by exactly its lines.
     assert!(t
         .plan
         .iter()
         .all(|d| matches!(d, StateDelta::Transfer { .. })));
-    assert!(t.audit.lines.is_empty());
+    assert!(
+        t.audit.lines.iter().all(|l| l.1 == Provenance::Rounding),
+        "{:?}",
+        t.audit.lines
+    );
+    for g in ["bread", "coin", "florin", "grain"].map(|k| good(&w, k)) {
+        let declared: i128 = t
+            .audit
+            .lines
+            .iter()
+            .filter(|l| l.0 == g)
+            .map(|l| exact(l.2))
+            .sum();
+        assert_eq!(
+            exact_total(&s, g) - exact_total(&before, g),
+            declared,
+            "{g}"
+        );
+    }
     // Each holding of each currency is exactly its opening balance with the transfers that name
     // it applied in plan order: one lot, so a payment subtracts and a receipt adds. Nothing
     // else touches it; July clipped a desk's balance with `(old + revenue).min(0.0)`.

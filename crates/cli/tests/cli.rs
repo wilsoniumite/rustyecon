@@ -157,6 +157,47 @@ fn shortfall_stops_the_run() {
 }
 
 #[test]
+fn conservation_breach_stops_the_run() {
+    // R2 and N3: a conservation breach, not only a shortfall, stops the run with exit 2, the
+    // breach's ledger line and the last good tick on stderr; the hashes file ends at the last
+    // good tick. Tolerances of 0 load (they are below 1), and the walk's rounding then breaches.
+    let dir = tempfile::tempdir().unwrap();
+    let text = edit(
+        r#"(key: "ledger.rel_flow", value: 1e-12,"#,
+        r#"(key: "ledger.rel_flow", value: 0.0,"#,
+    );
+    let from = r#"(key: "ledger.rel_stock", value: 1e-11,"#;
+    assert_eq!(text.matches(from).count(), 1);
+    let text = text.replacen(from, r#"(key: "ledger.rel_stock", value: 0.0,"#, 1);
+    let tape = write_tape(dir.path(), "strict.ron", &text);
+    let hashes = dir.path().join("h.txt");
+    let out = rustyecon(&["run", s(&tape), "--until", "2080", "--hashes", s(&hashes)]);
+    assert_eq!(code(&out), 2, "{}", stderr(&out));
+    let err = stderr(&out);
+    let at: u64 = err
+        .strip_prefix("run error: tick ")
+        .and_then(|rest| rest.split(',').next())
+        .and_then(|t| t.parse().ok())
+        .unwrap_or_else(|| panic!("no failing tick in {err}"));
+    assert!(
+        err.contains(&format!(
+            "tick {at}, phase 7 (measure): conservation failure at tick {at}: "
+        )),
+        "{err}"
+    );
+    assert!(err.contains("(tolerance 0e0)"), "{err}");
+    let last = if at == 0 {
+        "no tick completed; the run started at tick 0".to_string()
+    } else {
+        format!("the last good tick is {}", at - 1)
+    };
+    assert!(err.contains(&last), "{err}");
+    let h = lines(&hashes);
+    assert_eq!(h.len() as u64, at);
+    assert!(stdout(&out).is_empty());
+}
+
+#[test]
 fn undefined_good_fails_to_load() {
     // N2: an undefined good is a load error in every profile, exit 1, naming its tape path.
     let dir = tempfile::tempdir().unwrap();

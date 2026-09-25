@@ -10,8 +10,8 @@ use crate::error::RunErrorKind;
 use crate::report::{FiredEvent, MarketLine, TickReport, TraceEntry};
 use rustyecon_agents::{Agents, Cast, Hook};
 use rustyecon_core::{
-    apply, state_hash, ActorId, CoreError, Ext, Holder, Ledger, Life, Phase, Provenance, SimState,
-    StateDelta, World,
+    apply, state_hash, ActorId, CoreError, Ext, Holder, Ledger, Life, Phase, Provenance, RunLedger,
+    SimState, StateDelta, World,
 };
 use rustyecon_markets::{admit, clear, settle, update_prices, Order, SideTag};
 
@@ -187,12 +187,14 @@ impl Run<'_, '_> {
     }
 }
 
-/// Run one tick on `s`: phases 0 to 7 (§7.2). On an error the state is left partway through the
-/// tick, and the caller poisons the `Sim`.
+/// Run one tick on `s`: phases 0 to 7 (§7.2). Its ledger closes through the run's ledger, which
+/// checks the tick and then the run so far (R2). On an error the state is left partway through
+/// the tick, and the caller poisons the `Sim`.
 pub(crate) fn run_tick(
     w: &World<Agents>,
     s: &mut SimState<Agents>,
     cast: &Cast,
+    ledger: &mut RunLedger,
     trace: Option<&mut Vec<TraceEntry>>,
 ) -> Result<TickReport, Failure> {
     let t = s.tick();
@@ -285,9 +287,10 @@ pub(crate) fn run_tick(
     prices.push(StateDelta::AdvanceTick);
     run.apply(Phase::Prices, &prices)?;
 
-    // 7. Measure: the audit, the hash, the report.
+    // 7. Measure: the tick's audit and the run's, the hash, the report. A breach of either
+    // stops the run here (R2); nothing discards it (N3).
     let Run { s, l, .. } = run;
-    let audit = l.close(s, w).map_err(core(Phase::Measure))?;
+    let (audit, run_audit) = ledger.close_tick(l, s, w).map_err(core(Phase::Measure))?;
     let hash = state_hash(s);
     let date = w
         .clock
@@ -330,6 +333,7 @@ pub(crate) fn run_tick(
         settlements,
         rationing,
         audit,
+        run: run_audit,
         events,
     })
 }
@@ -358,8 +362,9 @@ mod tests {
         // E6: from a fixed state, visiting the actors in id order and in reverse gives identical
         // outputs, for every hook.
         let (w, mut s, cast) = gate(GATE);
+        let mut ledger = RunLedger::open(&s, &w).unwrap();
         for _ in 0..100 {
-            run_tick(&w, &mut s, &cast, None).expect("the gate world runs");
+            run_tick(&w, &mut s, &cast, &mut ledger, None).expect("the gate world runs");
         }
         let ids: Vec<ActorId> = cast.actors().collect();
         for hook in [Hook::Decide, Hook::Produce, Hook::Upkeep] {

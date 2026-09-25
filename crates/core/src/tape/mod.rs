@@ -1212,6 +1212,55 @@ mod tests {
     }
 
     #[test]
+    fn recurring_last_is_inclusive() {
+        // ENGINE §2.6: `last` is the last tick a recurring entry may fire in. The fixture's
+        // pension fires at ticks 51, 103, 155, ...; with `last` on the date of tick 155 it fires
+        // there and never after (N1), and the prefix a checkpoint stores covers exactly the
+        // firings `fire` produced (N11), on both sides of `last`.
+        let (w0, _) = testkit::load();
+        let pension = |w: &World<NoExt>| -> Vec<(u64, u32)> {
+            firings(w, 0..400)
+                .into_iter()
+                .filter(|f| f.1 == "pension")
+                .map(|f| (f.0, f.2))
+                .collect()
+        };
+        let fired_hash = |w: &World<NoExt>, until: u64| {
+            let mut h = Fnv::new();
+            for tick in 0..until {
+                for f in w.schedule.fire(tick) {
+                    let key = w.key_of(f.event).map_or("", Key::as_str);
+                    h.write_serialized(&(f.tick, key, f.occurrence, &f.action));
+                }
+            }
+            h.finish()
+        };
+        let last = 155;
+        for (at, fires) in [
+            (last, vec![(51, 0), (103, 1), (155, 2)]),
+            (last - 1, vec![(51, 0), (103, 1)]),
+            (last + 1, vec![(51, 0), (103, 1), (155, 2)]),
+        ] {
+            let mut t = testkit::tape();
+            t.recurring[0].last = Some(w0.clock.date_of(at).unwrap());
+            let (w, _) = resolve(&t).unwrap();
+            assert_eq!(w.schedule.every()[0].last, Some(at));
+            assert_eq!(pension(&w), fires, "last at {at}");
+            for until in [0, 51, 52, 103, 104, 154, 155, 156, 157, 207, 208, 400] {
+                assert_eq!(
+                    w.prefix_id(until),
+                    fired_hash(&w, until),
+                    "last at {at}, prefix at {until}"
+                );
+            }
+            // Until the entry would have fired past `last`, its prefix is the open entry's.
+            let first_cut = fires.last().unwrap().0 + 1;
+            assert_eq!(w.prefix_id(first_cut), w0.prefix_id(first_cut), "{at}");
+            assert_ne!(w.prefix_id(208), w0.prefix_id(208), "{at}");
+        }
+    }
+
+    #[test]
     fn every_zero_is_rejected() {
         // July's `every = 0` never fired (`v2p3: scenario/mod.rs:42`); now it does not load.
         for v in ["0.0", "0.005"] {

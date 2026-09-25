@@ -5,10 +5,16 @@
 //! `max_life + 1` lots and an indefinite good exactly one (N9: July's lots never merged, and run
 //! cost grew with the horizon). `take` is atomic: it takes all it is asked for or nothing, so a
 //! shortfall is never a silent clamp (defect 9).
+//!
+//! Lots are `f64`, so splitting a lot (`old − rest`) or merging into one (`a + b`) rounds, and
+//! the rounding creates or destroys up to half an ulp of the larger operand: 1 taken from a lot
+//! of 1e17 (ulp 16) leaves it at 1e17, and 6 merged into it vanish. `take` and `put` measure that
+//! exactly, by TwoSum, and return it as `rounding`, so `apply` can declare it to the ledger with
+//! the provenance `Rounding` (docs/ENGINE.md §2.2, §2.4). Nothing appears or vanishes unrecorded.
 
 use crate::error::CoreError;
 use crate::ids::GoodId;
-use crate::num::is_clean;
+use crate::num::{is_clean, two_sum};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 
@@ -28,6 +34,26 @@ pub enum Amount {
     Qty(f64),
     /// Whatever is there.
     All,
+}
+
+/// What a take moved out of an inventory.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Taken {
+    /// The lots taken, with their lives, soonest-expiring first.
+    pub lots: Vec<Lot>,
+    /// What the split of the last lot created, exactly: the source keeps `fl(old − rest)` while
+    /// `rest` leaves it, so `(fl(old − rest) + rest) − old` units appeared (negative: vanished).
+    /// Zero when the take split nothing or the subtraction was exact; never `-0.0`.
+    pub rounding: f64,
+}
+
+/// The quantity a rounded sum created: `fl(a + b) − (a + b)`, from TwoSum's exact error.
+fn created(err: f64) -> f64 {
+    if err == 0.0 {
+        0.0
+    } else {
+        -err
+    }
 }
 
 /// A take that asked for more than was held. Nothing moved.
@@ -117,29 +143,31 @@ impl Inventory {
 
     /// Add lots of `g`, each merging into the lot of equal life if there is one. A lot of
     /// exactly `+0.0` is dropped. Every quantity is checked first, so a rejected call changes
-    /// nothing.
-    pub fn put(&mut self, g: GoodId, lots: Vec<Lot>) -> Result<(), CoreError> {
+    /// nothing. Returns what the merges created by rounding (negative: destroyed), exactly per
+    /// merge: `fl(a + b) − (a + b)`; 0 when every merge was exact.
+    pub fn put(&mut self, g: GoodId, lots: Vec<Lot>) -> Result<f64, CoreError> {
         if let Some(bad) = lots.iter().find(|lot| !is_clean(lot.qty)) {
             return Err(CoreError::BadValue {
                 what: "lot quantity",
                 value: bad.qty,
             });
         }
+        let mut rounding = 0.0;
         for lot in lots {
-            self.merge(g, lot);
+            rounding += self.merge(g, lot);
         }
-        Ok(())
+        Ok(rounding)
     }
 
     /// Add `qty` of `g` with one life, as [`Inventory::put`] does.
-    pub fn put_qty(&mut self, g: GoodId, qty: f64, life: Option<u32>) -> Result<(), CoreError> {
+    pub fn put_qty(&mut self, g: GoodId, qty: f64, life: Option<u32>) -> Result<f64, CoreError> {
         self.put(g, vec![Lot { qty, life }])
     }
 
-    /// Merge one checked lot.
-    fn merge(&mut self, g: GoodId, lot: Lot) {
+    /// Merge one checked lot, and return what the merge created by rounding.
+    fn merge(&mut self, g: GoodId, lot: Lot) -> f64 {
         if lot.qty == 0.0 {
-            return;
+            return 0.0;
         }
         let i = match self.find(g) {
             Ok(i) => i,
@@ -150,8 +178,15 @@ impl Inventory {
         };
         let lots = &mut self.0[i].1;
         match lots.binary_search_by_key(&life_order(lot.life), |l| life_order(l.life)) {
-            Ok(j) => lots[j].qty += lot.qty,
-            Err(j) => lots.insert(j, lot),
+            Ok(j) => {
+                let (sum, err) = two_sum(lots[j].qty, lot.qty);
+                lots[j].qty = sum;
+                created(err)
+            }
+            Err(j) => {
+                lots.insert(j, lot);
+                0.0
+            }
         }
     }
 
@@ -159,10 +194,14 @@ impl Inventory {
     ///
     /// `Qty(q)` with `q > get(g)` is [`TakeError::Shortfall`] and changes nothing. `q == get(g)`
     /// and `All` take every lot. Otherwise whole lots go first and the last one is split, its
-    /// remainder being `lot.qty − rest`; for a single lot (every currency) that is `lot.qty − q`,
-    /// the subtraction admission mirrors. If rounding uses up the lots while a remainder is
-    /// left, every lot is taken, so a request with `q <= get(g)` never falls short.
-    pub fn take(&mut self, g: GoodId, a: Amount) -> Result<Vec<Lot>, TakeError> {
+    /// remainder being `fl(lot.qty − rest)`; for a single lot (every currency) that is
+    /// `fl(lot.qty − q)`, the subtraction admission mirrors. If rounding uses up the lots while a
+    /// remainder is left, every lot is taken, so a request with `q <= get(g)` never falls short.
+    ///
+    /// The lots taken hold exactly `rest` of the split lot, so a split that rounds creates or
+    /// destroys units; [`Taken::rounding`] says exactly how many. The whole lots taken are
+    /// moved as they are, so their sum can differ from `q` by the rounding of `rest`.
+    pub fn take(&mut self, g: GoodId, a: Amount) -> Result<Taken, TakeError> {
         let q = match a {
             Amount::All => return Ok(self.take_all(g)),
             Amount::Qty(q) => q,
@@ -175,19 +214,26 @@ impl Inventory {
             return Err(TakeError::Shortfall(Shortfall { requested: q, held }));
         }
         if q == 0.0 {
-            return Ok(Vec::new());
+            return Ok(Taken {
+                lots: Vec::new(),
+                rounding: 0.0,
+            });
         }
         if q == held {
             return Ok(self.take_all(g));
         }
         let Ok(i) = self.find(g) else {
             // Unreachable: 0 < q <= held means the good is present.
-            return Ok(Vec::new());
+            return Ok(Taken {
+                lots: Vec::new(),
+                rounding: 0.0,
+            });
         };
         let lots = &mut self.0[i].1;
         let mut rest = q;
         let mut whole = 0;
         let mut split = None;
+        let mut rounding = 0.0;
         for lot in lots.iter_mut() {
             if lot.qty <= rest {
                 rest -= lot.qty;
@@ -196,7 +242,10 @@ impl Inventory {
                     break;
                 }
             } else {
-                lot.qty -= rest;
+                // lot.qty > rest, so the remainder is positive however it rounds.
+                let (remainder, err) = two_sum(lot.qty, -rest);
+                lot.qty = remainder;
+                rounding = created(err);
                 split = Some(Lot {
                     qty: rest,
                     life: lot.life,
@@ -209,13 +258,20 @@ impl Inventory {
         if lots.is_empty() {
             self.0.remove(i);
         }
-        Ok(taken)
+        Ok(Taken {
+            lots: taken,
+            rounding,
+        })
     }
 
-    fn take_all(&mut self, g: GoodId) -> Vec<Lot> {
-        match self.find(g) {
+    fn take_all(&mut self, g: GoodId) -> Taken {
+        let lots = match self.find(g) {
             Ok(i) => self.0.remove(i).1,
             Err(_) => Vec::new(),
+        };
+        Taken {
+            lots,
+            rounding: 0.0,
         }
     }
 
@@ -306,8 +362,9 @@ mod tests {
     fn take_partial() {
         let mut inv = inv_with(&[(0, 10.0, None)]);
         let taken = inv.take(g(0), Amount::Qty(4.0)).unwrap();
+        assert_eq!(taken.rounding, 0.0);
         assert_eq!(
-            taken,
+            taken.lots,
             vec![Lot {
                 qty: 4.0,
                 life: None
@@ -385,7 +442,7 @@ mod tests {
         let mut inv = inv_with(&[(0, 6.0, None), (0, 4.0, Some(1))]);
         let taken = inv.take(g(0), Amount::Qty(5.0)).unwrap();
         assert_eq!(
-            taken,
+            taken.lots,
             vec![
                 Lot {
                     qty: 4.0,
@@ -446,14 +503,14 @@ mod tests {
         for a in [Amount::Qty(held), Amount::All] {
             let mut inv = fresh();
             let taken = inv.take(g(0), a).unwrap();
-            assert_eq!(taken.len(), 2);
+            assert_eq!(taken.lots.len(), 2);
             assert!(inv.is_empty());
         }
         // Just under the held total: the sequential subtraction must not fall short either.
         for q in [0.3, held.next_down(), 0.1, 0.2] {
             let mut inv = fresh();
             let taken = inv.take(g(0), Amount::Qty(q)).unwrap();
-            assert!(!taken.is_empty(), "{q}");
+            assert!(!taken.lots.is_empty(), "{q}");
         }
     }
 
@@ -504,6 +561,71 @@ mod tests {
         )
         .unwrap();
         assert_eq!(loaded, inv_with(&[(0, 3.0, Some(2)), (2, 1.0, None)]));
+    }
+
+    #[test]
+    fn split_and_merge_rounding_is_measured() {
+        // Lots are f64. One taken from a lot of 1e17 (ulp 16) leaves it at 1e17: the taker has
+        // 1 and the source lost nothing, so one unit appeared, and the take says so.
+        let mut inv = inv_with(&[(0, 1e17, None)]);
+        let t = inv.take(g(0), Amount::Qty(1.0)).unwrap();
+        assert_eq!(
+            t.lots,
+            vec![Lot {
+                qty: 1.0,
+                life: None
+            }]
+        );
+        assert_eq!(t.rounding, 1.0);
+        assert_eq!(inv.get(g(0)), 1e17);
+        // Six merged into it vanish; nine round up to 16, creating seven.
+        assert_eq!(inv.put_qty(g(0), 6.0, None).unwrap(), -6.0);
+        assert_eq!(inv.get(g(0)), 1e17);
+        assert_eq!(inv.put_qty(g(0), 9.0, None).unwrap(), 7.0);
+        assert_eq!(inv.get(g(0)), 1e17 + 16.0);
+        // Exact splits and merges, and takes of whole lots, create nothing; never -0.0.
+        let mut inv = inv_with(&[(0, 16.0, None)]);
+        assert_eq!(
+            inv.take(g(0), Amount::Qty(6.25))
+                .unwrap()
+                .rounding
+                .to_bits(),
+            0
+        );
+        assert_eq!(inv.put_qty(g(0), 0.25, None).unwrap().to_bits(), 0);
+        assert_eq!(inv.take(g(0), Amount::All).unwrap().rounding.to_bits(), 0);
+        // In general, before + rounding = after + taken, exactly: checked in integers on
+        // integer-valued lots up to 2^62, whose ulps reach 1024.
+        let mut state = 0x2026_0927_u64;
+        let mut next = move || {
+            state = state
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
+            state >> 2
+        };
+        let (mut rounded, int) = (0, |x: f64| x as i128);
+        for _ in 0..10_000 {
+            let old = (next() >> (next() % 60)).max(2) as f64;
+            let rest = ((next() % (old as u64)).max(1)) as f64;
+            let mut inv = inv_with(&[(0, old, None)]);
+            let t = inv.take(g(0), Amount::Qty(rest)).unwrap();
+            let left = inv.get(g(0));
+            assert_eq!(
+                int(old) + int(t.rounding),
+                int(left) + int(t.lots[0].qty),
+                "{old} - {rest}"
+            );
+            let back = inv.put(g(0), t.lots).unwrap();
+            assert_eq!(
+                int(left) + int(rest) + int(back),
+                int(inv.get(g(0))),
+                "{left} + {rest}"
+            );
+            if t.rounding != 0.0 || back != 0.0 {
+                rounded += 1;
+            }
+        }
+        assert!(rounded > 100, "the sample rounds: {rounded}");
     }
 
     #[test]

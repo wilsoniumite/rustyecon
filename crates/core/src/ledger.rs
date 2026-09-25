@@ -21,6 +21,13 @@
 //! error that stops the tick (N3), never a clamp; July only logged burn shortfalls, and its
 //! `run_tick` then discarded the audit. Every id is checked in every profile (N2): July skipped
 //! an undefined good behind a `debug_assert`.
+//!
+//! What `f64` lots create or destroy when a split or a merge rounds is declared, measured
+//! exactly, under the provenance `Rounding`, so the tolerance covers only the walk's own
+//! rounding and the fold of the declared lines. A leak below each tick's tolerance could still
+//! add up over a run, so a [`RunLedger`] folds every tick's ledger into run totals and checks
+//! the same identity, with the same registered tolerances, over the whole run: the walks'
+//! rounding telescopes, and a leak does not.
 
 use crate::delta::{Phase, Provenance};
 use crate::error::CoreError;
@@ -73,20 +80,23 @@ impl fmt::Display for ShortfallLine {
     }
 }
 
-/// One good's failure to conserve.
+/// One good's failure to conserve, over one tick or over a run.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Breach {
-    /// The tick the ledger opened at.
+    /// The tick whose close found it.
     pub tick: u64,
+    /// The tick the accounting opened at: `tick` for a tick's ledger, the run's first tick for
+    /// a [`RunLedger`]'s.
+    pub since: u64,
     /// The good.
     pub good: GoodId,
     /// Its measured total at the open.
     pub opening: f64,
     /// Its measured total at the close.
     pub closing: f64,
-    /// The signed sum of its mints and burns.
+    /// The signed sum of its mints, burns, spoilage and rounding.
     pub declared: f64,
-    /// The quantity of it moved, minted, burned or spoiled.
+    /// The quantity of it moved, minted, burned, spoiled or rounded.
     pub gross: f64,
     /// `(closing − opening) − declared`.
     pub drift: f64,
@@ -98,11 +108,19 @@ pub struct Breach {
 
 impl fmt::Display for Breach {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.since == self.tick {
+            write!(f, "conservation failure at tick {}", self.tick)?;
+        } else {
+            write!(
+                f,
+                "run conservation failure over ticks {} to {}",
+                self.since, self.tick
+            )?;
+        }
         write!(
             f,
-            "conservation failure at tick {}: {} drifted {:+e} (tolerance {:e}); measured \
-             change {:+e} from {:e} to {:e}, declared {:+e}, gross flow {:e}; lines {:?}",
-            self.tick,
+            ": {} drifted {:+e} (tolerance {:e}); measured change {:+e} from {:e} to {:e}, \
+             declared {:+e}, gross flow {:e}; lines {:?}",
             self.good,
             self.drift,
             self.tol,
@@ -154,6 +172,81 @@ fn walk<E: Ext>(s: &SimState<E>, w: &World<E>) -> Result<Vec<f64>, CoreError> {
     Ok(totals)
 }
 
+/// The registered tolerances, read from the current params.
+fn tolerances<E: Ext>(s: &SimState<E>, w: &World<E>) -> Result<(f64, f64), CoreError> {
+    let params = s.params(&w.registry);
+    let rel_flow = params.get::<Dimensionless>(w.tol.rel_flow)?.0;
+    let rel_stock = params.get::<Dimensionless>(w.tol.rel_stock)?.0;
+    Ok((rel_flow, rel_stock))
+}
+
+/// The lines in (good, provenance) order.
+fn flat(lines: &BTreeMap<(GoodId, Provenance), f64>) -> Vec<(GoodId, Provenance, f64)> {
+    lines.iter().map(|(&(g, p), &q)| (g, p, q)).collect()
+}
+
+/// One accounting to check, a tick's or a run's: per good, what was measured at its open and
+/// close, and what was declared and moved in between.
+struct Totals<'a> {
+    tick: u64,
+    since: u64,
+    opening: &'a [f64],
+    closing: &'a [f64],
+    declared: &'a [f64],
+    gross: &'a [f64],
+    lines: &'a BTreeMap<(GoodId, Provenance), f64>,
+}
+
+impl Totals<'_> {
+    /// Check every good: `|drift| <= tol`, with `drift = (closing − opening) − declared` and
+    /// `tol = rel_flow·gross + rel_stock·max(|opening|, |closing|)`. Returns the largest margin,
+    /// the largest `|drift|` and each good's drift, or the first good's breach.
+    fn check(&self, rel_flow: f64, rel_stock: f64) -> Result<(f64, f64, Vec<f64>), CoreError> {
+        let n = self.opening.len();
+        if [self.closing.len(), self.declared.len(), self.gross.len()] != [n, n, n] {
+            return Err(CoreError::Shape(format!(
+                "a ledger over {n} goods closed on a world of {}",
+                self.closing.len()
+            )));
+        }
+        let mut max_margin = 0.0_f64;
+        let mut max_drift = 0.0_f64;
+        let mut drifts = Vec::with_capacity(n);
+        for (i, (&open, &close)) in self.opening.iter().zip(self.closing).enumerate() {
+            let drift = (close - open) - self.declared[i];
+            let tol = rel_flow * self.gross[i] + rel_stock * open.abs().max(close.abs());
+            // NaN fails this comparison, so a NaN drift is a breach.
+            let conserved = drift.abs() <= tol;
+            if !conserved {
+                let good = GoodId(u32::try_from(i).unwrap_or(u32::MAX));
+                let lines = self
+                    .lines
+                    .iter()
+                    .filter(|(&(g, _), _)| g == good)
+                    .map(|(&(_, p), &q)| (p, q))
+                    .collect();
+                return Err(CoreError::Conservation(Box::new(Breach {
+                    tick: self.tick,
+                    since: self.since,
+                    good,
+                    opening: open,
+                    closing: close,
+                    declared: self.declared[i],
+                    gross: self.gross[i],
+                    drift,
+                    tol,
+                    lines,
+                })));
+            }
+            let margin = if drift == 0.0 { 0.0 } else { drift.abs() / tol };
+            max_margin = max_margin.max(margin);
+            max_drift = max_drift.max(drift.abs());
+            drifts.push(drift);
+        }
+        Ok((max_margin, max_drift, drifts))
+    }
+}
+
 fn no_escrow<E: Ext>(s: &SimState<E>) -> Result<(), CoreError> {
     match s
         .holdings()
@@ -189,57 +282,37 @@ impl Ledger {
     /// good again and check it against what was declared, with the tolerances read from the
     /// current params.
     pub fn close<E: Ext>(self, s: &SimState<E>, w: &World<E>) -> Result<TickAudit, CoreError> {
+        self.close_totals(s, w).map(|(audit, _)| audit)
+    }
+
+    /// [`Ledger::close`], also returning the closing walk.
+    fn close_totals<E: Ext>(
+        self,
+        s: &SimState<E>,
+        w: &World<E>,
+    ) -> Result<(TickAudit, Vec<f64>), CoreError> {
         if let Some(line) = self.shortfall {
             return Err(CoreError::Shortfall(line));
         }
         no_escrow(s)?;
         let closing = walk(s, w)?;
-        if closing.len() != self.opening.len() {
-            return Err(CoreError::Shape(format!(
-                "a ledger over {} goods closed on a world of {}",
-                self.opening.len(),
-                closing.len()
-            )));
-        }
-        let params = s.params(&w.registry);
-        let rel_flow = params.get::<Dimensionless>(w.tol.rel_flow)?.0;
-        let rel_stock = params.get::<Dimensionless>(w.tol.rel_stock)?.0;
-        let mut max_margin = 0.0_f64;
-        let mut max_drift = 0.0_f64;
-        for (i, (&open, &close)) in self.opening.iter().zip(&closing).enumerate() {
-            let drift = (close - open) - self.declared[i];
-            let tol = rel_flow * self.gross[i] + rel_stock * open.abs().max(close.abs());
-            // NaN fails this comparison, so a NaN drift is a breach.
-            let conserved = drift.abs() <= tol;
-            if !conserved {
-                let good = GoodId(u32::try_from(i).unwrap_or(u32::MAX));
-                let lines = self
-                    .lines
-                    .iter()
-                    .filter(|(&(g, _), _)| g == good)
-                    .map(|(&(_, p), &q)| (p, q))
-                    .collect();
-                return Err(CoreError::Conservation(Box::new(Breach {
-                    tick: self.tick,
-                    good,
-                    opening: open,
-                    closing: close,
-                    declared: self.declared[i],
-                    gross: self.gross[i],
-                    drift,
-                    tol,
-                    lines,
-                })));
-            }
-            let margin = if drift == 0.0 { 0.0 } else { drift.abs() / tol };
-            max_margin = max_margin.max(margin);
-            max_drift = max_drift.max(drift.abs());
-        }
-        Ok(TickAudit {
-            lines: self.lines.iter().map(|(&(g, p), &q)| (g, p, q)).collect(),
+        let (rel_flow, rel_stock) = tolerances(s, w)?;
+        let totals = Totals {
+            tick: self.tick,
+            since: self.tick,
+            opening: &self.opening,
+            closing: &closing,
+            declared: &self.declared,
+            gross: &self.gross,
+            lines: &self.lines,
+        };
+        let (max_margin, max_drift, _) = totals.check(rel_flow, rel_stock)?;
+        let audit = TickAudit {
+            lines: flat(&self.lines),
             max_margin,
             max_drift,
-        })
+        };
+        Ok((audit, closing))
     }
 
     /// The tick the ledger opened at.
@@ -274,9 +347,124 @@ impl Ledger {
         *self.lines.entry((g, prov)).or_insert(0.0) += q;
     }
 
+    /// Post what a split or a merge created by rounding (negative: destroyed), if anything.
+    pub(crate) fn round(&mut self, g: GoodId, q: f64) {
+        if q != 0.0 {
+            self.declare(g, Provenance::Rounding, q);
+        }
+    }
+
     /// Record the shortfall that stops the tick.
     pub(crate) fn record_shortfall(&mut self, line: ShortfallLine) {
         self.shortfall = Some(line);
+    }
+}
+
+/// What a run's ledger found so far: every tick's ledger since the run began, folded together.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RunAudit {
+    /// The run's first tick: the `Sim`'s starting tick, genesis or a resumed checkpoint's.
+    pub since: u64,
+    /// The net declared quantity per (good, provenance) over the run: the ticks' lines summed.
+    pub lines: Vec<(GoodId, Provenance, f64)>,
+    /// Per good, in good order, the run's drift: `(closing − opening) − declared` from the
+    /// run's first open to this close.
+    pub drift: Vec<(GoodId, f64)>,
+    /// The largest `|drift|/tol` over goods, with the run's gross flow in `tol`; at most 1.
+    pub max_margin: f64,
+}
+
+/// A run's conservation accounting (R2). Each tick's [`Ledger`] passes through
+/// [`RunLedger::close_tick`], which closes it and folds its declared quantities, gross flows and
+/// lines into run totals. The run is then checked like a tick, from the run's opening walk to
+/// this tick's closing walk, with the same registered tolerances and the run's gross flow. The
+/// walks' own rounding telescopes, since each tick opens on the state the last one closed on,
+/// so the run's drift stays at the size of one tick's; a leak below each tick's tolerance adds
+/// up and is caught.
+#[derive(Debug, Clone, PartialEq)]
+pub struct RunLedger {
+    since: u64,
+    next: u64,
+    opening: Vec<f64>,
+    declared: Vec<f64>,
+    gross: Vec<f64>,
+    lines: BTreeMap<(GoodId, Provenance), f64>,
+}
+
+impl RunLedger {
+    /// Open a run's ledger on the state its first tick runs on: measure every good.
+    pub fn open<E: Ext>(s: &SimState<E>, w: &World<E>) -> Result<RunLedger, CoreError> {
+        no_escrow(s)?;
+        let opening = walk(s, w)?;
+        let n = opening.len();
+        Ok(RunLedger {
+            since: s.tick(),
+            next: s.tick(),
+            opening,
+            declared: vec![0.0; n],
+            gross: vec![0.0; n],
+            lines: BTreeMap::new(),
+        })
+    }
+
+    /// The run's first tick.
+    pub fn since(&self) -> u64 {
+        self.since
+    }
+
+    /// Close the run's next tick: close `l` as [`Ledger::close`] does, fold it into the run,
+    /// and check the run. A ledger of another tick than the next is a shape error; a tick's
+    /// breach, or the run's, is [`CoreError::Conservation`].
+    pub fn close_tick<E: Ext>(
+        &mut self,
+        l: Ledger,
+        s: &SimState<E>,
+        w: &World<E>,
+    ) -> Result<(TickAudit, RunAudit), CoreError> {
+        if l.tick != self.next || l.width() != self.opening.len() {
+            return Err(CoreError::Shape(format!(
+                "a run ledger at tick {} over {} goods given tick {}'s ledger over {}",
+                self.next,
+                self.opening.len(),
+                l.tick,
+                l.width()
+            )));
+        }
+        let tick = l.tick;
+        let (declared, gross, lines) = (l.declared.clone(), l.gross.clone(), l.lines.clone());
+        let (audit, closing) = l.close_totals(s, w)?;
+        for (run, q) in self.declared.iter_mut().zip(&declared) {
+            *run += q;
+        }
+        for (run, q) in self.gross.iter_mut().zip(&gross) {
+            *run += q;
+        }
+        for (key, q) in lines {
+            *self.lines.entry(key).or_insert(0.0) += q;
+        }
+        self.next = tick.saturating_add(1);
+        let (rel_flow, rel_stock) = tolerances(s, w)?;
+        let totals = Totals {
+            tick,
+            since: self.since,
+            opening: &self.opening,
+            closing: &closing,
+            declared: &self.declared,
+            gross: &self.gross,
+            lines: &self.lines,
+        };
+        let (max_margin, _, drifts) = totals.check(rel_flow, rel_stock)?;
+        let run = RunAudit {
+            since: self.since,
+            lines: flat(&self.lines),
+            drift: drifts
+                .into_iter()
+                .enumerate()
+                .map(|(i, d)| (GoodId(u32::try_from(i).unwrap_or(u32::MAX)), d))
+                .collect(),
+            max_margin,
+        };
+        Ok((audit, run))
     }
 }
 
@@ -682,6 +870,105 @@ mod tests {
         })
         .unwrap_err();
         assert_eq!(breach(err).good, labour);
+    }
+
+    #[test]
+    fn run_ledger_catches_a_leak_below_each_ticks_tolerance() {
+        // The farm holds the fixture's only grain, 16, so a tick's tolerance on grain is
+        // 1e-11 · 16 = 1.6e-10 when nothing flows. A leak of 1e-10 a tick passes every tick's
+        // check; over two ticks the run has drifted 2e-10, and the run ledger stops it.
+        let (w, mut s) = testkit::load();
+        let (farm, grain) = (holder(&w, "farm"), good(&w, "grain"));
+        let leak = 1e-10;
+        let mut run = RunLedger::open(&s, &w).unwrap();
+        assert_eq!(run.since(), 0);
+        let mut passed = Vec::new();
+        let err = loop {
+            // Ten ticks of the leak are 6.25 times the tolerance; a run ledger that has not
+            // stopped by then never will.
+            assert!(
+                passed.len() < 10,
+                "the run ledger let the leak run: {passed:?}"
+            );
+            let mut l = Ledger::open(&s, &w).unwrap();
+            write_direct(&mut s, farm, grain, leak);
+            crate::apply(
+                &mut s,
+                &w,
+                Phase::Prices,
+                &[StateDelta::AdvanceTick],
+                &mut l,
+            )
+            .unwrap();
+            match run.close_tick(l, &s, &w) {
+                Ok((audit, r)) => passed.push((audit.max_margin, r.max_margin)),
+                Err(e) => break e,
+            }
+        };
+        assert_eq!(passed.len(), 1);
+        let (tick_margin, run_margin) = passed[0];
+        assert!(tick_margin > 0.5 && tick_margin <= 1.0, "{tick_margin}");
+        assert_eq!(run_margin.to_bits(), tick_margin.to_bits());
+        // The breach is the run's (since 0), found at tick 1, whose own check passed.
+        let b = breach(err.clone());
+        assert_eq!((b.good, b.since, b.tick), (grain, 0, 1));
+        assert!(b.drift > b.tol && b.drift <= 2.0 * leak * (1.0 + LIMIT_BAR));
+        assert!(err
+            .to_string()
+            .contains("run conservation failure over ticks 0 to 1"));
+        // A tick's ledger closed alone passes the same leak.
+        let mut l = Ledger::open(&s, &w).unwrap();
+        write_direct(&mut s, farm, grain, leak);
+        crate::apply(
+            &mut s,
+            &w,
+            Phase::Prices,
+            &[StateDelta::AdvanceTick],
+            &mut l,
+        )
+        .unwrap();
+        assert!(l.close(&s, &w).is_ok());
+
+        // A clean run folds its ticks: the run's lines are the sums of the ticks' lines, and
+        // the run's drift stays inside its tolerance. A ledger out of turn is refused.
+        let (w, mut s) = testkit::load();
+        let (mill, bread) = (holder(&w, "mill"), good(&w, "bread"));
+        let mut run = RunLedger::open(&s, &w).unwrap();
+        let mut made = 0.0;
+        for t in 0..5 {
+            let mut l = Ledger::open(&s, &w).unwrap();
+            let make = StateDelta::Mint {
+                to: mill,
+                good: bread,
+                qty: 0.1,
+                prov: Provenance::Production,
+            };
+            crate::apply(&mut s, &w, Phase::Production, &[make], &mut l).unwrap();
+            crate::apply(
+                &mut s,
+                &w,
+                Phase::Prices,
+                &[StateDelta::AdvanceTick],
+                &mut l,
+            )
+            .unwrap();
+            let (_, r) = run.close_tick(l, &s, &w).unwrap();
+            made += 0.1;
+            assert_eq!(r.since, 0);
+            assert!(r.max_margin <= 1.0, "tick {t}: {}", r.max_margin);
+            assert_eq!(r.drift.len(), w.n_goods());
+            let line = r
+                .lines
+                .iter()
+                .find(|&&(g, p, _)| g == bread && p == Provenance::Production)
+                .map(|&(_, _, q)| q);
+            assert_eq!(line, Some(made), "tick {t}");
+        }
+        let stale = Ledger::open(&testkit::load().1, &w).unwrap();
+        assert!(matches!(
+            run.close_tick(stale, &s, &w),
+            Err(CoreError::Shape(_))
+        ));
     }
 
     #[test]

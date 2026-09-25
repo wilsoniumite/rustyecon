@@ -6,12 +6,17 @@
 //! §2.4 are enforced here; which actor may emit what is the engine's whitelist, not core's.
 //! Each delta is atomic: on an error nothing of it has applied, though the deltas before it
 //! have, so the caller stops the tick.
+//!
+//! Lots are `f64`, so a transfer's split and merge, and a mint's or burn's, can round, creating
+//! or destroying up to half an ulp of the larger operand. The inventory measures that exactly
+//! and `apply` declares it as a `Rounding` line, so no unit appears or vanishes without a
+//! provenance; the ledger's walk checks the rest within its registered tolerances (§2.5).
 
 use crate::delta::{Phase, Provenance, StateDelta};
 use crate::error::CoreError;
 use crate::ext::Ext;
 use crate::ids::{GoodId, Holder, NodeId};
-use crate::inventory::{Amount, Inventory, Lot, TakeError};
+use crate::inventory::{Amount, Inventory, Lot, TakeError, Taken};
 use crate::ledger::{Ledger, ShortfallLine};
 use crate::num::is_clean;
 use crate::state::SimState;
@@ -87,12 +92,14 @@ fn apply_one<E: Ext>(
             holder(s, w, *to)?;
             escrow_phase(phase, *from)?;
             escrow_phase(phase, *to)?;
-            let lots = take(s, *from, *good, *amount, phase, None, l)?;
-            let q = total(&lots);
-            put(s, *to, *good, lots)?;
+            let taken = take(s, *from, *good, *amount, phase, None, l)?;
+            let q = total(&taken.lots);
+            let merged = put(s, *to, *good, taken.lots)?;
             drop_if_empty_escrow(s, *from);
             drop_if_empty_escrow(s, *to);
             l.moved(*good, q);
+            l.round(*good, taken.rounding);
+            l.round(*good, merged);
             Ok(q)
         }
         StateDelta::Mint {
@@ -116,11 +123,12 @@ fn apply_one<E: Ext>(
                 qty: *qty,
                 life: def.life.initial(),
             };
-            put(s, *to, *good, vec![lot])?;
+            let merged = put(s, *to, *good, vec![lot])?;
             drop_if_empty_escrow(s, *to);
             if *qty > 0.0 {
                 l.declare(*good, *prov, *qty);
             }
+            l.round(*good, merged);
             Ok(*qty)
         }
         StateDelta::Burn {
@@ -133,12 +141,13 @@ fn apply_one<E: Ext>(
             holder(s, w, *from)?;
             escrow_phase(phase, *from)?;
             reserved(*prov)?;
-            let lots = take(s, *from, *good, *amount, phase, Some(*prov), l)?;
-            let q = total(&lots);
+            let taken = take(s, *from, *good, *amount, phase, Some(*prov), l)?;
+            let q = total(&taken.lots);
             drop_if_empty_escrow(s, *from);
             if q > 0.0 {
                 l.declare(*good, *prov, -q);
             }
+            l.round(*good, taken.rounding);
             Ok(q)
         }
         StateDelta::SetParam { param, value } => {
@@ -207,7 +216,7 @@ fn escrow_phase(phase: Phase, h: Holder) -> Result<(), CoreError> {
 }
 
 fn reserved(prov: Provenance) -> Result<(), CoreError> {
-    if prov == Provenance::Spoilage {
+    if matches!(prov, Provenance::Spoilage | Provenance::Rounding) {
         return Err(CoreError::ReservedProvenance(prov));
     }
     Ok(())
@@ -272,14 +281,14 @@ fn take<E: Ext>(
     phase: Phase,
     prov: Option<Provenance>,
     l: &mut Ledger,
-) -> Result<Vec<Lot>, CoreError> {
+) -> Result<Taken, CoreError> {
     let tick = s.tick;
     let result = match s.holdings.get_mut(&h) {
         Some(inv) => inv.take(g, a),
         None => Inventory::new().take(g, a),
     };
     match result {
-        Ok(lots) => Ok(lots),
+        Ok(taken) => Ok(taken),
         Err(TakeError::Shortfall(sf)) => {
             let line = ShortfallLine {
                 tick,
@@ -300,7 +309,13 @@ fn take<E: Ext>(
     }
 }
 
-fn put<E: Ext>(s: &mut SimState<E>, h: Holder, g: GoodId, lots: Vec<Lot>) -> Result<(), CoreError> {
+/// Put lots into a holding, returning what the merges created by rounding (§2.2).
+fn put<E: Ext>(
+    s: &mut SimState<E>,
+    h: Holder,
+    g: GoodId,
+    lots: Vec<Lot>,
+) -> Result<f64, CoreError> {
     s.holdings.entry(h).or_default().put(g, lots)
 }
 
@@ -416,7 +431,9 @@ mod tests {
             Err(CoreError::Shortfall(_))
         ));
         assert_eq!(s, before);
-        // A transfer moves exactly what it takes, and declares nothing.
+        // A transfer moves the lots it takes. Here every split and merge is exact, so it
+        // declares nothing; one that rounds declares a Rounding line
+        // (`transfer_rounding_is_declared`), so no transfer mints unrecorded.
         let audit = tick(&mut s, &w, |s, l| {
             let ds = [
                 StateDelta::Transfer {
@@ -441,6 +458,112 @@ mod tests {
         assert_eq!(audit.max_drift, 0.0);
         assert_eq!(held(&s, farm, grain), 0.0);
         assert_eq!(held(&s, mill, grain) + held(&s, pensioners, grain), 16.0);
+    }
+
+    #[test]
+    fn transfer_rounding_is_declared() {
+        // The limit of f64 lots (§2.2, §2.4): the farm holds 1e17 coin, whose ulp is 16.
+        let text = testkit::edit(
+            r#"("coin", 100.0), ("grain", 16.0)"#,
+            r#"("coin", 1e17), ("grain", 16.0)"#,
+        );
+        let (w, mut s) = testkit::load_text(&text).unwrap();
+        let (farm, mill, coin) = (holder(&w, "farm"), holder(&w, "mill"), good(&w, "coin"));
+        let holders: Vec<Holder> = w.actors.iter().map(|a| Holder::Actor(a.id)).collect();
+        // Every quantity here is a whole number below 2^63, so the totals are exact in i128.
+        let exact = |s: &SimState<NoExt>| -> i128 {
+            holders.iter().map(|&h| held(s, h, coin) as i128).sum()
+        };
+        let declared = |audit: &crate::ledger::TickAudit| -> i128 {
+            audit.lines.iter().map(|&(_, _, q)| q as i128).sum()
+        };
+        // A transfer of 1 takes 1 from a lot that stays at 1e17: the split rounds, so one coin
+        // appears. Each transfer reports 1 moved and declares +1 as Rounding; a thousand
+        // declare a thousand.
+        let unit = StateDelta::Transfer {
+            from: farm,
+            to: mill,
+            good: coin,
+            amount: Amount::Qty(1.0),
+        };
+        let before = exact(&s);
+        let audit = tick(&mut s, &w, |s, l| {
+            let moved = apply(s, &w, Phase::Decisions, &vec![unit.clone(); 1000], l)?;
+            assert!(moved.iter().all(|&m| m == 1.0));
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(held(&s, farm, coin), 1e17, "the source's lot did not move");
+        assert_eq!(held(&s, mill, coin), 1050.0);
+        assert_eq!(audit.lines, vec![(coin, Provenance::Rounding, 1000.0)]);
+        assert_eq!(exact(&s) - before, declared(&audit));
+        // Six merged into the lot vanish: the merge declares -6.
+        let six = StateDelta::Transfer {
+            from: mill,
+            to: farm,
+            good: coin,
+            amount: Amount::Qty(6.0),
+        };
+        let before = exact(&s);
+        let audit = tick(&mut s, &w, |s, l| {
+            assert_eq!(apply(s, &w, Phase::Decisions, &[six], l)?, vec![6.0]);
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!((held(&s, mill, coin), held(&s, farm, coin)), (1044.0, 1e17));
+        assert_eq!(audit.lines, vec![(coin, Provenance::Rounding, -6.0)]);
+        assert_eq!(exact(&s) - before, declared(&audit));
+        // A mint of 9 into it rounds up to 1e17 + 16 (+7), and a burn of 1 from that leaves it
+        // there (+1). Each declares its own provenance and the rounding beside it.
+        let before = exact(&s);
+        let audit = tick(&mut s, &w, |s, l| {
+            let ds = [
+                StateDelta::Mint {
+                    to: farm,
+                    good: coin,
+                    qty: 9.0,
+                    prov: Provenance::Event,
+                },
+                StateDelta::Burn {
+                    from: farm,
+                    good: coin,
+                    amount: Amount::Qty(1.0),
+                    prov: Provenance::Event,
+                },
+            ];
+            assert_eq!(apply(s, &w, Phase::Events, &ds, l)?, vec![9.0, 1.0]);
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(held(&s, farm, coin), 1e17 + 16.0);
+        assert_eq!(
+            audit.lines,
+            vec![
+                (coin, Provenance::Event, 8.0),
+                (coin, Provenance::Rounding, 8.0)
+            ]
+        );
+        assert_eq!(exact(&s) - before, declared(&audit));
+        // Rounding is apply's alone, like Spoilage.
+        for d in [
+            StateDelta::Mint {
+                to: farm,
+                good: coin,
+                qty: 1.0,
+                prov: Provenance::Rounding,
+            },
+            StateDelta::Burn {
+                from: farm,
+                good: coin,
+                amount: Amount::Qty(1.0),
+                prov: Provenance::Rounding,
+            },
+        ] {
+            assert_eq!(
+                one(&mut s.clone(), &w, Phase::Events, d),
+                Err(CoreError::ReservedProvenance(Provenance::Rounding))
+            );
+        }
     }
 
     #[test]
