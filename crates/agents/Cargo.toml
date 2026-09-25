@@ -1,0 +1,13 @@
+[package]
+name = "rustyecon-agents"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+# Never add rustyecon-oracle here: no agent reads the oracle (R13).
+[dependencies]
+rustyecon-core.workspace = true
+rustyecon-markets.workspace = true
+
+[lints]
+workspace = true

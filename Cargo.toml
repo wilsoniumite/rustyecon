@@ -1,18 +1,35 @@
-[package]
-name = "rustyecon"
-version = "0.1.0"
-edition = "2021"
+# The rustyecon workspace. The plan it follows is docs/reboot/PLAN.md.
+# Every crate lives in crates/<short name> and is named rustyecon-<short name>, so that no
+# package shadows a standard crate (a package called `core` would).
 
-[dependencies]
-rayon = "1"
+[workspace]
+members = ["crates/*"]
+resolver = "2"
+
+[workspace.package]
+version = "0.2.0"
+edition = "2021"
+publish = false
+
+[workspace.dependencies]
+# Third-party: what Phase 0 needs, nothing more.
 serde = { version = "1", features = ["derive"] }
 ron = "0.8"
 bincode = "1"
-clap = { version = "4", features = ["derive"] }
+libm = "0.2"
 
-[features]
-test-utils = []
+# The workspace's own crates.
+rustyecon-core = { path = "crates/core" }
+rustyecon-markets = { path = "crates/markets" }
+rustyecon-agents = { path = "crates/agents" }
+rustyecon-worldgen = { path = "crates/worldgen" }
+rustyecon-certify = { path = "crates/certify" }
 
-[dev-dependencies]
-approx = "0.5"
-tempfile = "3"
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+# The lists these two lints enforce are in clippy.toml: the std hash containers (R8) and
+# the platform maths library's transcendentals (ADDENDUM A5).
+disallowed_types = "deny"
+disallowed_methods = "deny"

@@ -1,0 +1,6 @@
+# One toolchain for WSL (where the gates run) and Windows (the secondary check).
+# rustup installs it on first use.
+[toolchain]
+channel = "1.97.1"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

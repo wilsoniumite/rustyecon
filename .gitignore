@@ -1,12 +1,15 @@
-/venv
-.vscode
-tmp
+# Cargo build output. The gates build out of tree through CARGO_TARGET_DIR.
+target/
+
+# Python analysis environment
+venv/
 **/__pycache__/
 **/*.pyc
 **/*.pyo
 **/*.pyd
+
+# Local scratch and editor state
+tmp
+.vscode
+
 CLAUDE.md
-
-# Added by cargo
-
-/target

@@ -1,56 +1,80 @@
 # rustyecon
 
-A headless global economic simulation in Rust. Inspired by Victoria 3 but
-stripped of game concerns and extended with modern economic systems. Primary
-motivation: testing high-VAT / UBI policy. Broader goal: a high-fidelity,
-extensible simulator fast enough for real economic experiments.
+rustyecon runs 300 years of economic history, 1750–2050, as an agent economy in a
+granular world. History is scored against the record from 1750 to 2025; from 2025 to
+2050 the engine runs forward branches.
+
+Every decision an agent makes is one of the margins of the pinning paper (*Pinning the
+Wage to Scarcity and Technology*): producers choose between people and machines task by
+task, machine makers sell machine-hours at what their inputs cost them, land and sites
+rent for what their users pay, and households choose between work and a life outside
+it. Nothing is solved centrally. Agents read posted prices and their own state, and
+markets clear by rationing. A separate equilibrium solver, the oracle, computes where the
+economy must settle when history stands still, and the agents are tested against it.
+
+What it is for, in order:
+
+1. Generate the long record for England and the UK, 1750–2025, from one set of
+   parameters.
+2. Run the forward branches, 2025–2050, from a certified 2025 state.
+3. Run the policy lab: a rent tax with a uniform transfer, a consumption gate tax,
+   payroll and income taxes, Poor Law regimes, and historical counterfactuals.
+4. Explain.
 
 ## Status
 
-v1 engine implemented (~3.3k lines: market core + three-strategy agent layer);
-stability suite was failing when v1 work paused. **v2 redesign ruled 2026-07-18**
-— see the three documents below; the fourth deliverable is the section-by-section
-triage verdicts inline in every existing doc.
+Phase 0, the reboot, is under way. The workspace is laid out and the crates fill in phase
+by phase:
 
-## Documentation
+| Crate | What it holds | Fills in |
+|---|---|---|
+| `crates/core` | ids, goods, inventories, deltas, state, the conservation ledger, the state hash, checkpoints, the tape's runtime form | Phase 0 |
+| `crates/markets` | clearing, settlement, the price update | Phase 0 |
+| `crates/certify` | certificates, criteria, verdicts, Parquet telemetry | Phase 0, second session |
+| `crates/cli` | the `rustyecon` binary: tick loop, replay audit, resume | Phase 0 |
+| `crates/oracle` | the equilibrium solver | joins in Phase 1 |
+| `crates/agents` | the agent rules | Phase 2 |
+| `crates/worldgen` | the tape compiler | Phase 4 |
 
-**v2 (authoritative):**
-- [Architecture](docs/ARCHITECTURE.md) — overview: the modules and how they fit
-- [architecture/](docs/architecture/) — subsystem specs: objects, kernel, markets, ownership, pops, money, engine, worldgen
-- [Methodology](docs/METHODOLOGY.md) — why the design is shaped this way + the standing rules (R1–R14)
-- [Plan](docs/PLAN.md) — the phased route from the current code to the architecture, with gates
+Packages are named `rustyecon-<crate>`.
 
-**v1 (triaged, kept as record):**
-- [Design](docs/DESIGN.md) — v1 architecture; superseded by ARCHITECTURE.md, verdicts inline
-- [Glossary](docs/glossary.md) — canonical term definitions, per-term verdicts inline
-- [Systems](docs/systems/) — one doc per simulation system, verdicts inline (04/05 = deferred module design records)
-- [Timeline](docs/timeline/) — historical era reference; feeds worldgen (kept)
+## Documents
 
-## Key Constraints
+- [docs/reboot/PLAN.md](docs/reboot/PLAN.md): the plan. Architecture, the standing rules
+  R1–R15, the phases and their gates.
+- [docs/reboot/REVIEW.md](docs/reboot/REVIEW.md): the review of the repository at the
+  reboot, with the rulings made after it.
+- [docs/reboot/ADDENDUM.md](docs/reboot/ADDENDUM.md): what the review missed (the July
+  branches), with the rulings on amendments A1–A13.
+- [docs/timeline/eras.md](docs/timeline/eras.md): era research that feeds worldgen.
 
-- Global scale: 673+ regions, 100+ countries
-- 225-year simulation (1800–2025, ~11,700 weekly ticks) completes in under 24 hours
-- Weekly ticks by default; tick duration is configurable
-- Headless-first; Python notebooks are the primary analysis interface
-- Rust, intermediate level
+## Build and test
 
-## Current project state:
+`rust-toolchain.toml` pins Rust 1.97.1 with rustfmt and clippy; rustup installs it on
+first use. The gates ask for zero warnings and a clean clippy on both machines.
 
-- ./src contains the rust program that runs scenarios. You don't need to pass --scenario to the binary
-- We generally output to ./tmp
-- We store example scenarios in ./data/scenarios
-- When running python make sure to use the venv in ./venv
-- We have some test and analysis scripts in python in ./notebooks
-- There are python utilities in ./tools
-- There is a streamlit app for creating, editing, running, and visualizing scenarios in ./tools
-- There is a scenario, multi_region, that is used as a base by ./notebooks/06_labour_test_suite.py to generate other scenarios with the prefix lr. They represent the stability suite that can be evaluated by ./notebooks/07_stability_suite.py
+WSL Ubuntu is the primary build machine, and the gates run there:
 
+```sh
+cargo build --release
+cargo test --workspace --release
+cargo clippy --workspace --all-targets
+```
 
-### next steps:
-- Superseded by [docs/PLAN.md](docs/PLAN.md) — start at Phase 0 (bugfix floor).
+From a Windows shell, run them through `wsl -d ubuntu --exec bash -lc '<command>'`. Use
+`--exec`: with a plain `--` the exit code is lost.
 
-### old TODOs (all absorbed by the v2 docs)
-- "stabilize test regions" → PLAN Phases 4–5 (desk kernel + phase map)
-- "docs out of date" → triage verdicts inline in every doc, 2026-07-18
-- "more tests" → PLAN Phase 1 (certification stack)
-- "use ema prices more / remove storage_cost_per_tick" → both moot under the kernel (architecture/objects.md + kernel.md; dead attributes cut)
+Windows is the secondary check. The same three commands run there. Hash equality between
+the two platforms is recorded, not gated.
+
+`clippy.toml` enforces two standing rules: no std hash containers (R8, no unordered
+iteration on the delta path), and no platform transcendentals (`exp`, `ln`, `powf` and
+the rest go through one module backed by the `libm` crate).
+
+## History
+
+The v1 engine, its Python tooling and notebooks, the scenario corpus, and the v1 and July
+design documents left HEAD at the reboot. They stay reachable at the tag
+`pre-reboot-2026-09-25`. The July v2 engine, never merged, is at the tags
+`july-v2-phase-0`, `july-v2-phase-1` and `july-v2-phase-3`; Phase 0 salvages from
+`july-v2-phase-3`. Read any of them with `git show <tag>:<path>`.
