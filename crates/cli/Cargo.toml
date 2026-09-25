@@ -8,12 +8,10 @@ publish.workspace = true
 name = "rustyecon"
 path = "src/main.rs"
 
+# A thin frontend: everything it runs comes through the engine (docs/ENGINE.md §8). The certify
+# and worldgen stubs join when session 2 and Phase 4 fill them.
 [dependencies]
-rustyecon-core.workspace = true
-rustyecon-markets.workspace = true
-rustyecon-agents.workspace = true
-rustyecon-worldgen.workspace = true
-rustyecon-certify.workspace = true
+rustyecon-engine.workspace = true
 
 [lints]
 workspace = true

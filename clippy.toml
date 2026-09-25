@@ -67,4 +67,8 @@ disallowed-methods = [
     { path = "f32::asinh", reason = "A5: use the libm-backed module" },
     { path = "f32::acosh", reason = "A5: use the libm-backed module" },
     { path = "f32::atanh", reason = "A5: use the libm-backed module" },
+    # docs/ENGINE.md §9: without the fma target feature a fused multiply-add calls the platform C
+    # library, whose fma has not always agreed across platforms. Write a * b + c.
+    { path = "f64::mul_add", reason = "ENGINE §9: write a * b + c" },
+    { path = "f32::mul_add", reason = "ENGINE §9: write a * b + c" },
 ]

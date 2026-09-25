@@ -21,16 +21,21 @@ dependencies = [
 name = "rustyecon-cli"
 version = "0.2.0"
 dependencies = [
- "rustyecon-agents",
- "rustyecon-certify",
- "rustyecon-core",
- "rustyecon-markets",
- "rustyecon-worldgen",
+ "rustyecon-engine",
 ]
 
 [[package]]
 name = "rustyecon-core"
 version = "0.2.0"
+
+[[package]]
+name = "rustyecon-engine"
+version = "0.2.0"
+dependencies = [
+ "rustyecon-agents",
+ "rustyecon-core",
+ "rustyecon-markets",
+]
 
 [[package]]
 name = "rustyecon-markets"
