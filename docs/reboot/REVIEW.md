@@ -2,7 +2,7 @@
 
 Dated 2026-09-25. Scope: the whole repository at `f614792` (engine, tooling, scenario
 corpus, the July v2 design), read against laborformal at `31b3482`. It is the input to
-[PLAN.md](PLAN.md). Verdicts: **KEEP** (carries forward as is), **ADAPT** (the idea
+[PLAN.md](../PLAN.md). Verdicts: **KEEP** (carries forward as is), **ADAPT** (the idea
 carries, the form changes), **ARCHIVE** (leaves HEAD, kept at a tag), **RETIRE** (does
 not return).
 

@@ -4,10 +4,10 @@ Final, 2026-09-25, committed as P0.2. It folds in the frontend requirement of 20
 engine crate, a read-only observation API, no frontend mutation, `Send` types, a stable tape
 schema) and an adversarial review of the draft. Steps follow it in order, one commit each:
 **P0.3 core**, **P0.4 markets**, **P0.5 agents + engine + cli**, **P0.6 fixes from adversarial
-review, round 1**, **P0.7 fixes from adversarial review, round 2**, then housekeeping (P0.1 is the
-skeleton; P0.2 is this file and the empty `crates/engine`). The draft had agents and engine + cli
-as two steps; they were merged at P0.5 (amendment 1 below). Housekeeping was P0.6 until the
-reviews' fixes took that number and the next (P0.6 amendment 8, P0.7 amendment 7).
+review, round 1**, **P0.7 fixes from adversarial review, round 2**, then **P0.8 housekeeping**
+(P0.1 is the skeleton; P0.2 is this file and the empty `crates/engine`). The draft had agents and
+engine + cli as two steps; they were merged at P0.5 (amendment 1 below). Housekeeping was P0.6
+until the reviews' fixes took that number and the next (P0.6 amendment 8, P0.7 amendment 7).
 
 It covers PLAN §3 (phase order), §3.1, §3.3, §3.8 and §3.9; R2–R4, R8 and R12–R14; and ADDENDUM
 A2, A3, A5, A12 and A13. Salvage comes from tag `july-v2-phase-3` (`ff01284`); `v2p3:` paths name
@@ -224,8 +224,9 @@ place in the section named.
    rounding, each measured exactly by TwoSum (`num::two_sum`), and `apply` declares them as a
    ledger line with the new provenance `Rounding`, reserved to it like `Spoilage`. Takes stay
    nominal, so payments stay nominal and §3.2's argument is unchanged; the state and every hash
-   are unchanged too. Nothing appears or vanishes without a provenance, and the ledger's
-   tolerance now covers only the walk's own rounding and the fold of the declared lines. The
+   are unchanged too. Nothing appears or vanishes without a provenance (for one lot; not
+   across several, P0.8 amendment 2), and the ledger's tolerance now covers only the walk's
+   own rounding and the fold of the declared lines. The
    alternatives were exact quantities (integer quanta), which would give up the range that §3.3's
    tiny and huge prices test, and exact takes (the taker gets `old − fl(old − rest)`), which make
    payments non-nominal and let a buyer pay for goods whose shipment rounded to nothing.
@@ -261,6 +262,32 @@ place in the section named.
    its name: a transfer mints nothing unrecorded. Each was checked against the mutation that
    showed the gap.
 7. Steps (§12): P0.7 is this round's fixes; the housekeeping of §12 follows as its own step.
+
+**Amended at P0.8** (housekeeping), the same way. No crate changed.
+
+1. Steps and CI (§12). Housekeeping is P0.8. The CI skeleton is `scripts/gate.sh` and
+   `.github/workflows/ci.yml`, not `ci/gate.sh` and `ci/gate.ps1`. The script runs the whole gate
+   in WSL, or on any Linux machine, with the build outside the tree: formatting, clippy with
+   warnings denied, the tests, `gate_repeat_identical_hashes` by name (so a rename cannot drop it),
+   and two runs of the gate tape through the binary, whose hash streams must be identical; then
+   the wasm32 check, recorded and not gated. Hosted CI runs the same script on GitHub's Ubuntu
+   runner once the branch is pushed. The Windows check is run by hand with the same commands, and
+   the two platforms' hash streams are compared by hand and recorded in STATE.md.
+2. This contract was checked against the code after round 3 of the adversarial review, whose
+   findings are open in STATE.md (O5 to O13). Where the text claimed more than the code does, it
+   now says what the code does, each place marked "open at P0.8":
+   - §2.2, §2.4, §2.5: a split or a merge of one lot is declared exactly, which covers every
+     currency. A burn declares the float fold of the lots it takes, and `put` returns the float
+     sum of its merges' errors, so a burn or a transfer across several lots of a perishable good
+     can leave the rounding of that fold undeclared. It is below half an ulp of the larger operand,
+     so no tolerance can see it (O5).
+   - §2.5, §7.6: the digest covers the state, not `world_id` or `prefix_id`. Edited to the value
+     a refusal prints, either one lets a refused checkpoint resume (O7).
+   - §2.5, §7.4: the run's ledger lives in the `Sim`, not in the checkpoint. A resumed run audits
+     from its checkpoint, so a slow leak that stops an uninterrupted run can pass a run resumed in
+     short segments (O8).
+   - §2.6: two dated events that fall in one tick fire in key order, not in date order, so their
+     order can change with `ticks_per_year` (O9).
 
 ## 0. Engine invariants
 
@@ -423,7 +450,9 @@ impl Inventory { pub fn get(&self, g: GoodId) -> f64;   // lot sum, left fold in
   vanish. The taker always gets exactly `rest`, so takes are nominal, and each rounding is
   measured exactly by TwoSum (`num::two_sum`: `a + b = s + e` exactly, with no fused
   multiply-add): `take` returns it as `Taken::rounding`, `put` returns the merges' sum, each
-  `fl(..) − exact`, 0 when exact and never `-0.0`. `apply` declares it (§2.4).
+  `fl(..) − exact`, 0 when exact and never `-0.0`. `apply` declares it (§2.4). The merges'
+  sum is itself a float sum, so when several merges round it is exact only up to its own
+  rounding (open at P0.8, O5).
 - **Rules.** Non-finite quantities, and any quantity whose sign bit is set (`-0.0` included), are
   rejected in every build profile. A lot at exactly `+0.0` is dropped, with no epsilon. `age`
   drops lots at `Some(0)` and then decrements the rest, so a lot minted in tick t with `Ticks(L)`
@@ -507,8 +536,11 @@ Remove/Add trap (`v2p3: docs/architecture/engine.md:440-445`) is gone. It is not
 `f64` lots, the split of the source's last lot and the merge into the destination's can each
 create or destroy up to half an ulp of the larger operand (§2.2), and `apply` declares that
 exactly as a `Rounding` line, as it does for a mint's merge and a burn's split (amended at P0.7).
-So no delta moves a unit without a provenance, and the ledger's registered tolerance covers only
-its own walk's rounding (§2.5). Every mint and burn carries a typed provenance, with no `Default`
+So no delta that splits or merges one lot moves a unit without a provenance, and the ledger's
+registered tolerance covers only its own walk's rounding (§2.5). A burn declares the float fold of
+the lots it takes, and a transfer of several lots declares the float sum of its merges' errors, so
+either can leave the rounding of that fold undeclared, below half an ulp of the larger operand
+(open at P0.8, O5). Every mint and burn carries a typed provenance, with no `Default`
 and no serde default; `Transfer` carries none. `apply` matches exhaustively.
 
 | Provenance | Used for |
@@ -601,10 +633,11 @@ pub mod num {
   otherwise, so `max_margin <= 1` is the pass condition and 0/0 never occurs. July's
   `ABS_TOLERANCE` does not move (A12). A tolerance must be below 1, checked at load: at 1 or
   more a leak of the whole stock or flow would pass (amended at P0.6). `declared` includes the
-  `Rounding` lines (§2.4), so what lots create or destroy is declared, exactly, and the drift is
-  only the rounding of the walk and of the declared fold. The walk is a float sum, so it cannot
-  see a unit below half an ulp of the good's total; that is why the tolerance remains, and why
-  rounding is declared by `apply` rather than found by the walk (amended at P0.7).
+  `Rounding` lines (§2.4), so what lots create or destroy is declared, exactly where one lot
+  splits or merges and up to the rounding of a fold where several do (open at P0.8, O5), and the
+  drift is only the rounding of the walk and of the declared fold. The walk is a float sum, so it
+  cannot see a unit below half an ulp of the good's total; that is why the tolerance remains, and
+  why rounding is declared by `apply` rather than found by the walk (amended at P0.7).
 - **The run's ledger** (amended at P0.7). A leak below each tick's tolerance, every tick, would
   pass every tick and add up. `RunLedger::close_tick` closes the tick's ledger (the tick's check
   first), folds its declared quantities, gross flows and lines into run totals, and checks the
@@ -613,7 +646,10 @@ pub mod num {
   gross flow. Each tick opens on the state the last closed on, so the walks' rounding
   telescopes and the run's drift stays the size of one tick's; a leak grows with the run. A
   run breach is `CoreError::Conservation` with `since` the run's first tick, and stops the run
-  like a tick's. A ledger of any tick but the next is a shape error.
+  like a tick's. A ledger of any tick but the next is a shape error. The run's ledger lives in
+  the `Sim` and is not in a checkpoint, so a resumed run's ledger opens at the checkpoint's tick,
+  and a slow leak that stops an uninterrupted run can pass a run resumed in short segments (open
+  at P0.8, O8).
 - **Income.** Phase 0 asserts the market-level identity: in every market and tick, what the
   sellers received equals what the buyers paid, and the buyers paid the posted price times what
   they received, both under the gate test's relative bar (`gate_settles_by_one_filled_quantity`).
@@ -630,7 +666,9 @@ pub mod num {
   wrong format (format 1 included) is refused before the state is decoded. Decoding re-sorts and
   re-coalesces lots and rejects NaN, `-0.0` and negative values (and non-positive prices); the
   decoded state must then hash to `digest`, or the decoder returns `CheckpointError::Digest`, so a
-  checkpoint edited or corrupted after it was saved is refused (R2). `Checkpoint::validate(&world)`
+  checkpoint whose state was edited or corrupted after it was saved is refused (R2). The digest
+  does not cover `world_id` or `prefix_id`: either one, edited to the value a refused resume
+  prints, lets that checkpoint resume (open at P0.8, O7). `Checkpoint::validate(&world)`
   (that is, `SimState::validate`) then checks every id and shape against the `World`. The fields
   are private: a `Checkpoint` is made only by `Checkpoint::of(&world, state)`, which records
   `world_id` and `prefix_id(tick)`, and by the decoders. `to_bytes` and `to_ron` cannot fail for
@@ -707,7 +745,9 @@ impl<E: Ext> Schedule<E> { pub fn fire(&self, tick: u64) -> Vec<Firing<E>>;
   expanded. A checkpoint of the state whose tick is t stores `world_id` and `prefix_id(t)`.
 - **Sorting (N1).** Dates become ticks (§6). `once` is sorted by (tick, key), and `fire` returns
   its `partition_point` range merged with the recurring firings due that tick, all in key order.
-  July binary-searched an unsorted list (`v2p3: scenario/mod.rs:14, 25-42`).
+  July binary-searched an unsorted list (`v2p3: scenario/mod.rs:14, 25-42`). A firing keeps no
+  date, so two dated events that fall in one tick fire by key, not by date, and which of them
+  fires last can change with `ticks_per_year` (open at P0.8, O9).
 - **Recurring entries** are `(key, first: Date, every: Years param, last: Option<Date>, act)`,
   firing at `first_tick + k·period`. A period that rounds to 0 ticks is a load error, so `every =
   0` cannot load.
@@ -1135,9 +1175,10 @@ pub struct HoldingTotals(pub Vec<(Holder, GoodId, f64)>);   // (holder, good) or
 
 `run` counts from the `Sim`'s starting tick: genesis for `Sim::new`, the checkpoint's tick for
 `Sim::resume`, whose earlier ticks the run that reached the checkpoint audited. So a resumed run's
-reports equal the uninterrupted run's except in `run`. A report costs O(markets + orders +
-events) and never copies holdings; `observe_holdings` does
-that, O(holders × goods held), when a frontend asks. Ids in a report are dense and are read
+reports equal the uninterrupted run's except in `run`, and a slow leak that the uninterrupted
+run's `run` would stop can pass a resumed one (open at P0.8, O8). A report costs O(markets +
+orders + events) and never copies holdings; `observe_holdings` does that, O(holders × goods
+held), when a frontend asks. Ids in a report are dense and are read
 against `Sim::world()`; a frontend that compares runs of two tapes maps them by key. Each report
 agrees with the accessors read after its step: each line's `next_price`, `ema`, `supply` and
 `demand` equal `Sim::price`, `ema`, `supply` and `demand` for its (node, good), and `hash` equals
@@ -1180,9 +1221,11 @@ in phase 7, and poisons the `Sim` like any other (`gate_breach_stops_the_run`).
   checkpoint's format and digest were checked when it was decoded, and its fields cannot change
   since. So a checkpoint stays valid across an edit dated at or after its tick, such as a new
   shock or a dated `SetParam` to a new value (§2.6). It is refused after any edit to the world or
-  to anything that fired before it.
+  to anything that fired before it, unless its own `world_id` or `prefix_id` was edited to match,
+  which the digest does not cover (open at P0.8, O7).
 - **What a resume trusts** (amended at P0.6 and P0.7). A checkpoint is the one input besides the
-  tape. The digest catches a checkpoint edited or corrupted after it was saved, and validation
+  tape. The digest catches a state edited or corrupted after it was saved (not an edit of
+  `world_id` or `prefix_id`, O7), and validation
   catches a state that does not fit the world, but the digest is FNV-1a, not a signature: bytes
   or RON written with a recomputed digest (a decoder's `Digest` error even reports the digest the
   edited state has) resume as given if they fit the world. That is the trust boundary, and it is
@@ -1366,7 +1409,7 @@ size; none is absolute (A12). Gate tests read `tapes/gate.ron` through `include_
 | P0.5 agents + engine + cli | §4, §7 and §8, `tapes/gate.ron` (§10), and the agents, engine and cli tests (one commit, amended at P0.5) |
 | P0.6 review fixes | the fixes from adversarial review, round 1 (amended at P0.6) |
 | P0.7 review fixes | the fixes from adversarial review, round 2 (amended at P0.7) |
-| housekeeping | the items below (P0.7 in the draft; P0.6, then P0.7, until the review fixes took those numbers) |
+| P0.8 housekeeping | the items below (P0.7 in the draft; P0.6, then P0.7, until the review fixes took those numbers; amended at P0.8) |
 
 Housekeeping (PLAN Phase 0 steps 2 and 6; A3):
 
@@ -1379,15 +1422,19 @@ Housekeeping (PLAN Phase 0 steps 2 and 6; A3):
   - the result of `cargo check --target wasm32-unknown-unknown -p rustyecon-engine` once the target
     is installed, recorded and not gated;
   - what session 2 starts from.
-- Put up a CI skeleton:
-  - `ci/gate.sh` runs `cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings`
-    and `cargo test --workspace --release`, then prints the gate hash from `rustyecon run
-    tapes/gate.ron --until 2080`.
-  - `ci/gate.ps1` runs it under `wsl -d ubuntu --exec bash -lc` with a target directory outside the
-    tree, then natively on Windows, and reports whether the two hashes agree without failing on a
-    difference.
+- Put up a CI skeleton (amended at P0.8):
+  - `scripts/gate.sh` runs `cargo fmt --all --check`, `cargo clippy --workspace --all-targets --
+    -D warnings` and `cargo test --workspace --release` with warnings denied, then
+    `gate_repeat_identical_hashes` by name, then `rustyecon run tapes/gate.ron --until 2080` twice,
+    requiring identical `--hashes` files and printing the gate hash, and last the wasm32 check,
+    recorded and not gated. Its target directory is outside the tree. In WSL it runs under
+    `wsl -d ubuntu --exec bash -lc`.
+  - `.github/workflows/ci.yml` runs the same script on `ubuntu-latest` with the toolchain file. It
+    runs only once the branch is pushed.
+  - The Windows check runs the same commands by hand, and STATE.md records whether the two
+    platforms' hash streams agree, without gating on it.
 
-  Whether hosted CI is wanted is the user's choice (A5).
+  Whether hosted CI is wanted is the user's choice (A5); the workflow is inert until a push.
 
 ## 13. Left for later: do not build now
 

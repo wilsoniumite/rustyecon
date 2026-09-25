@@ -1,0 +1,27 @@
+# The Phase 0 gate on GitHub's Ubuntu runner: scripts/gate.sh, the same script WSL runs
+# (formatting, clippy, cargo test --workspace --release, the repeat-hash test by name, and
+# two runs of tapes/gate.ron through the binary). The toolchain comes from
+# rust-toolchain.toml, and the build goes to the script's default target directory in the
+# runner's home, outside the checkout. Windows stays a local, secondary check
+# (docs/PLAN.md ruling 7), and hash equality across platforms is recorded in STATE.md, not
+# gated.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the pinned toolchain (rust-toolchain.toml)
+        run: rustup toolchain install
+      - name: Gate
+        run: bash scripts/gate.sh

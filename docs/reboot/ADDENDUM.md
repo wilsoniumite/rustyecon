@@ -1,6 +1,6 @@
 # Addendum — what the review missed
 
-Dated 2026-09-25, the same day as [REVIEW.md](REVIEW.md) and [PLAN.md](PLAN.md). It
+Dated 2026-09-25, the same day as [REVIEW.md](REVIEW.md) and [PLAN.md](../PLAN.md). It
 rewrites neither. It records what the review did not see, checks it, and proposes
 amendments A1–A13 (§6) for you to accept or veto; each names the PLAN section it would
 change. `v2p3:` paths are on branch `v2-phase-3` at `ff01284`, `main:` is `f614792`, `lf:`

@@ -1,9 +1,14 @@
 # rustyecon v2 — the reboot plan
 
+Amended on 2026-09-25 by the rulings in [ADDENDUM.md](reboot/ADDENDUM.md), folded in
+where they change the text: A1, A5 and A8 as ruled (A5's ruling replaces ruling 7), and
+the rest of A2–A13 as written. REVIEW.md and ADDENDUM.md cite this plan's lines as they
+stood at `87d95d7`, in `docs/reboot/`.
+
 Dated 2026-09-25, revised the same day after your rulings. On your go, this supersedes
 the July v2 (`docs/ARCHITECTURE.md`, `docs/METHODOLOGY.md`, `docs/PLAN.md`,
-`docs/architecture/`). The reasons are in [REVIEW.md](REVIEW.md), read together with its
-rulings block.
+`docs/architecture/`). The reasons are in [REVIEW.md](reboot/REVIEW.md), read together
+with its rulings block.
 
 **Fixed:** rustyecon runs 300 years of economic history, 1750–2050. History is scored
 from 1750 to 2025; from 2025 to 2050 the engine runs forward branches.
@@ -19,8 +24,10 @@ from 1750 to 2025; from 2025 to 2050 the engine runs forward branches.
    rustyecon's runs by commit. The long-record thread's Breakpoint A questions still
    need answers before Phase 5.
 6. **Public data only, and a public repository**, as in laborformal.
-7. **The toolchain:** build on the Linux machine. The Windows machine has no Rust
-   toolchain and serves analysis only.
+7. **The toolchain: WSL primary, and Windows too.** WSL Ubuntu on this machine is the
+   Linux machine, and the gates run there. Windows is a secondary build and test check.
+   Cross-platform hash equality is recorded, not gated. (ADDENDUM ruling 2; the first
+   ruling 7's premise, that Windows had no Rust toolchain, was false.)
 
 ## 1. The idea
 
@@ -111,7 +118,9 @@ tape (dated history) ─► phase 0: events
   competes at its operating cost.
 - **Parcels:** non-produced inputs, each in a region with a quality, an endowment of
   service per tick and an enclosure status. They are owned by owner pops and sell their
-  service on the regional market. An idle parcel's reservation rent is zero.
+  service on the regional market. An idle parcel's reservation rent is zero. Parcel
+  quality and the idle margin come from the paper's 2026-09-21 revision (`main.tex`),
+  together with the default exit form (§3.2).
 - **Pops:** region × worker type (entrant, trained) × class (workers, owners). Each
   worker pop is an employed/unemployed pair (v1's pair survives) with a shared
   inventory. Owners hold claims on parcels and desks.
@@ -120,10 +129,17 @@ tape (dated history) ─► phase 0: events
 
 ### 3.2 Agent rules: the paper's margins as decisions
 
-- **Scale** (every desk). The July stability package survives, since it is the
-  standard structural stabiliser: small asymmetric multiplicative steps, a dead-band,
-  output and cash buffers, and staggered activation. It carries no clamps, caps or
-  forgiveness (R3).
+- **Scale** (every desk). The July stability package, the standard structural
+  stabiliser, is the starting point, with a measured failure: small asymmetric
+  multiplicative steps, a dead-band, output and cash buffers, and staggered activation.
+  On July's rules it held a solved fixed point exactly, and displaced beyond about 5% it
+  did not return but for one configuration (ADDENDUM §3). It carries no clamps, caps or
+  forgiveness (R3). Phase 2 first re-tests July's price-responsive posting (`47381ed`;
+  basin about ±5%) with the changes July named, a rent-aware reservation price and a
+  rule for one-sided markets, and two more: the user cost in the reservation price, and
+  stagger on the scale decision only, with non-storables bought every tick. Until Phase
+  3, desk capacity is fixed at the oracle's free-entry stock, or the oracle takes
+  installed capacity as state (tentative).
 - **Technique: the task margin** (producer desks). For each task cell, the share done
   by labour type k or machine type m moves toward the input that is cheaper at posted
   prices, w_k/γ_Lk against c_m/γ_Mm. Installed machine capacity bounds how far it can
@@ -141,7 +157,10 @@ tape (dated history) ─► phase 0: events
   the outside option s = max(s₀ − q·h_e, s̲), where q is the market price of site and
   land services relative to goods. Exit is real: hours withheld produce home output
   using land and site services the pop must hold or rent. On unenclosed land those
-  services are free, which is what a commons is.
+  services are free, which is what a commons is. This s(q), with the idle margin and
+  parcel quality, is `main.tex`'s form and the default for the historical runs. The
+  posted SSRN version prices exit as dependence, s = (e^χ − 1)P_s; that form is the
+  named alternative (R6).
 - **Consumption.** Category demand around a subsistence basket; the Allen basket anchors
   the welfare ratio. Within a category, a logit over goods. Owners also demand
   human-required services; domestic service was among England's largest occupations
@@ -185,7 +204,8 @@ numbers. It has three jobs:
   long-record reduced-form fit over 1250–1750, pinned to a commit, or an unscored burn-in
   world from 1700. Decide at Phase 6.
 - **Enclosure:** the tape switches open access off per parish or county and land class,
-  dated by Turner's acreage. Price closes it too, once no suitable land lies idle.
+  dated by Turner's acreage. Price closes it too, once no suitable land lies idle: the
+  idle margin of the default exit form (§3.2).
 - **Technology:** the tape publishes machine types, schedule shifts and recipe versions,
   per region and date. A schedule shift is either how far machines reach or how good
   they are where they already reach; `dynamics/` T5 shows the two have opposite wage
@@ -231,7 +251,9 @@ the genesis. Granularity is a compiler setting.
 
 ### 3.8 Certification and telemetry
 
-The July engine spec, kept:
+The July engine spec, kept. Most of it was built and tested on the July branch; the
+ledger and the state hash move into `core` in Phase 0, and the rest in Phase 0's second
+session:
 
 - a conservation ledger with provenance, where a shortfall is a ledger line and never a
   clamp;
@@ -240,17 +262,22 @@ The July engine spec, kept:
 - verdict-first certificates persisted to `results/`, with dated criteria files;
 - tidy long Parquet telemetry.
 
-New batteries: the oracle convergence battery, the oracle gap, and the scorecard
-against the record. The observables are the record's own: welfare ratio, rent/wage,
-land's share, labour's share, participation, category deflators (the fork), λ, κ, the
-labour-income share of tax revenue, GDP per head, urbanisation. Analysis runs in Python
-over the Parquet.
+New batteries: the oracle convergence battery, the oracle gap, a price-runaway detector
+(R14), and the scorecard against the record. The observables are the record's own:
+welfare ratio, rent/wage, land's share, labour's share, participation, category
+deflators (the fork), λ, κ, the labour-income share of tax revenue, GDP per head,
+urbanisation. Analysis runs in Python over the Parquet.
 
 ### 3.9 Scale budget
 
-Tick length stays configurable: weekly by default, as in July. A criterion checks that
-results do not depend on it (the July tick-time rule). 1750–2050 at weekly ticks is
-15,600 ticks. Initial performance targets, recorded as gates:
+Tick length stays configurable: weekly by default, as in July. It is new work: July's
+tick-time rule was three v1 doc sections, and no branch had a tick-length parameter. The
+tape registers the tick length as `ticks_per_year`, and every dial carries a time unit,
+the EMA span in years first. A criterion checks that results do not depend on the tick
+length. The oracle solves per period, so either the tick is its period or its inputs
+are restated at tick length, with Δ = 1/`ticks_per_year`: ρ_tick = (1+ρ)^Δ − 1,
+δ_tick = 1 − (1−δ)^Δ, and J_b in ticks. 1750–2050 at weekly ticks is 15,600 ticks.
+Initial performance targets, recorded as gates:
 
 - the England county world (about 40 regions) runs 1750–2050 in minutes on one machine;
 - a world of several hundred regions runs in under an hour.
@@ -285,7 +312,9 @@ These replace R1–R14 and are numbered so checks and certificates can cite them
   risk 3.)
 - **R8 — Determinism is a tested property.** Repeat, resume and replay give identical
   hashes. There is no unordered iteration on the delta path, and any randomness is
-  seeded per actor. (July R4.)
+  seeded per actor. Transcendentals on the state and verdict paths go through one
+  pure-Rust implementation (the `libm` crate). Hash equality across platforms is
+  recorded, not gated. (July R4; ADDENDUM A5.)
 - **R9 — Checks gate; runs certify themselves.** Certificates are verdict-first,
   fail-closed and persisted, and NaN fails. (July R5; laborformal.)
 - **R10 — Complexity and simplicity both need receipts.** A mechanism ships with the
@@ -299,11 +328,14 @@ These replace R1–R14 and are numbered so checks and certificates can cite them
 - **R13 — Bounded rationality.** Agents read posted prices and their own state. No agent
   simulates another, and no agent reads the oracle. (July R13.)
 - **R14 — Costs are quantities of goods.** No cost, floor or instrument is a hardcoded
-  currency amount. (July R12.)
+  currency amount. The rule covers engine thresholds too: no guard on a price change, a
+  currency flow or a quantity is an absolute epsilon, and a tolerance is relative and
+  registered. (July R12; ADDENDUM A12.)
 - **R15 — The firewall, revised.** Scoring this model against the record is a
   rejectable test of the configuration reading. It is never evidence for the paper's
   theorems, which stand on their proofs and checks. Anything borrowed from laborformal
-  is pinned to a commit. (July R11.)
+  is pinned to a commit and read from that commit, never from a checkout; a re-pin is a
+  dated entry. (July R11; ADDENDUM A6.)
 
 ## 5. The registry at founding (2026-09-25)
 
@@ -349,71 +381,115 @@ Any change to these lists is a dated entry with a reason.
 Each phase leaves one engine green under one harness, and each has an explicit gate. A
 unit is one working session with its own tests. Session counts are honest guesses.
 
-### Phase 0 — Reboot (1–2 sessions)
+### Phase 0 — Reboot (2 sessions)
 
-1. Tag `pre-reboot-2026-09-25`.
-2. Build on the Linux machine (ruling 7); record the toolchain version in STATE.md.
+1. Tag the July work first: `july-v2-phase-0` (`cf7e78f`), `july-v2-phase-1` (`bb57eea`)
+   and `july-v2-phase-3` (`ff01284`), pushed to `origin` with `pre-foundations`. Then tag
+   `pre-reboot-2026-09-25`.
+2. Build in WSL Ubuntu, where the gates run through `wsl --exec`, and on Windows as the
+   secondary check (ruling 7). `rust-toolchain.toml` pins one version for both; record
+   it in STATE.md.
 3. Lay out a cargo workspace: `core` (ids, goods, inventories, deltas, state, ledger),
    `markets` (clearing, settlement, price update), `oracle`, `agents`, `worldgen`
    (the tape compiler), `certify`, and a `cli`.
-4. Salvage from v1, with its defects fixed as the code moves: ids; inventories (with
-   lot lives serialized); the delta pattern (canonical order, shortfalls returned to the
-   ledger); clearing; the price update (its EMA constant registered); the event
-   schedule, as the tape's runtime form.
+4. Salvage from the July branch, tag `july-v2-phase-3` (`ff01284`), not from v1: the
+   `core`, `markets` and `cli` rows of ADDENDUM §2.4's salvage map, with defect 10 and
+   N1–N3, N5–N9, N11, N13 and N14 fixed as the code moves: ids; inventories (with lot
+   lives serialized, and lots coalescing by life before the first golden hash); the
+   delta pattern (canonical order, shortfalls returned to the ledger); clearing; the
+   price update (its EMA span registered in years); the event schedule, as the tape's
+   runtime form. July's `test_03` is the hash suite's template. The 11 absolute-epsilon
+   sites behind N5 and N6 are removed, not registered (R14). The tape registers the tick
+   length, and every dial carries a time unit (§3.9).
 5. Archive the rest: the v1 agents, tools, notebooks, the lr corpus, the July and v1
-   docs. `docs/timeline/eras.md` stays and extends back to 1750.
+   docs. `test_01` leaves with the v1 agents, and STATE.md logs it as failing at every
+   commit where its tests compile. `docs/timeline/eras.md` stays and extends back to
+   1750.
 6. Move this plan to `docs/PLAN.md`, write STATE.md as the resume point, and put up a
    CI skeleton with the repeat-hash test.
+7. In a second session, move the certification stack from the July branch (certificate,
+   criteria, verdicts, the NaN scan, the manifest, telemetry, Parquet), with N4, N10,
+   N12 and N15 fixed, its thresholds moved into criteria, and a price-runaway detector
+   added (R14). The July tracer certifies FAIL today, so nothing certified in July
+   carries as a verdict.
 
-**Gate:** `cargo test` is green, including the salvaged unit tests and a two-run
-identical-hash test.
+**Gate:** on a scripted-desk world, `cargo test` is green in WSL and on Windows, with the
+salvaged unit tests and:
+
+- repeat, resume and replay give identical hashes, the resume through the product's own
+  resume path (N11);
+- conservation holds every tick;
+- one test per fixed defect, among them: a cash-short buyer settles both sides from one
+  fill; two actor kinds sharing an id settle apart; a burn shortfall stops the run;
+  unsorted events fire or fail.
+
+The second session keeps this gate green and adds the certification stack's tests.
 
 ### Phase 1 — The oracle (2–3 sessions)
 
-Build it outward from Appendix B:
+Build it outward from the SSRN version's Appendix B:
 
-- 1a. One category, with durability and interest.
+- 1a. One category, with durability and interest, and the scalar user cost
+  u = (ρ+δ)(1+ρ)^(J_b−1). Exit takes the SSRN dependence form, s = (e^χ − 1)P_s, since
+  the published Appendix B numbers use it.
 - 1b. Many categories and the fork.
-- 1c. Many machine types, the Leontief inverse and the user cost.
+- 1c. Many machine types, the Leontief inverse, and per-type user costs and build
+  recipes.
 - 1d. Worker types and the wall.
-- 1e. Parcels with quality schedules, the idle margin and exit.
+- 1e. Parcels with quality schedules, the idle margin, and exit as s(q), the default
+  form (§3.2).
 - 1f. Households and government.
 
-The golden numbers are pinned to laborformal `31b3482`.
+The golden numbers are pinned to laborformal `31b3482` and read from that commit (R15).
+Their source is the SSRN version (SSRN 7226858), whose only executable form is
+`paths/code/macro.py` with `paths/checks/check_macro.py` P1; `main.tex`'s Appendix B is
+another economy and is never the source.
 
 **Gate:**
 
-- the SSRN Appendix B instance to five decimals (x\* 0.86315, v 0.54344, Y 7.88061,
-  N_a 1.34338);
+- the SSRN Appendix B instance: the published values (x\* 0.86315, v 0.54344,
+  Y 7.88061, N_a 1.34338) to 5e-6, and ADDENDUM §5's full-precision values to 1e-12
+  relative;
 - the replacement closure's worked instance (c = 1, w = 3; at λ = 0, c = 0.4 and
   w = 1.2);
 - the fork identity and the category bounds on random instances;
-- the income identity to 1e-10;
+- the income identity to 1e-12;
 - three-taxes' resolution ledger, (φ_w, φ_r) = (0.6, 0.4) on its worked instance;
-- constructed wall and interior cases recognised correctly.
+- constructed wall and interior cases recognised correctly;
+- each exit form on its own gate: the dependence form in 1a, s(q) in 1e. The 1d and 1e
+  gates are constructed (ADDENDUM §5 item 4).
 
 ### Phase 2 — Agents meet the oracle (3–5 sessions)
 
-One region, stationary history. Build the ontology and agent rules of §3.1–3.2 on the
-salvaged markets, with the conservation ledger live. Then run the convergence battery.
-Four stationary configurations: the Appendix B instance, a wall-regime instance, an
-open-commons instance, and a 1750-like instance. From perturbed starts, the agent
-economy must reach each oracle equilibrium within tolerance and stay there. Then map
-the phase diagram over the stability dials (step ratio, buffers, stagger), the July
-Phase 5 folded in here.
+One region, stationary history. The phase opens with July's battery (ADDENDUM §3): the
+five solvable worlds and their closed forms, re-expressed as tapes; `test_12`'s mode A
+(hold) and mode B (2× displacement, on the four worlds that register one); `test_15`'s
+sweep and basin scan; and the elasticity probe, which measures ε_s per market before any
+battery. Build the ontology and agent rules of §3.1–3.2 on the salvaged markets, with
+the conservation ledger live; the scale rule is re-tested first, with §3.2's changes.
+Then run the convergence battery. Four stationary configurations: the Appendix B
+instance, a wall-regime instance, an open-commons instance, and a 1750-like instance.
+From perturbed starts, which exceed ±dead and include cost shocks, the agent economy
+must reach each oracle equilibrium within tolerance and stay there. Then map the phase
+diagram over the stability dials (dead, July's axis, and α; step ratio, buffers,
+stagger), the July Phase 5 folded in here.
 
-**Gate:** the convergence battery is green with margin, and a stable region is
-documented and referenced by the default dials.
+**Gate:** the convergence battery is green with margin, judged jointly: cleared volumes
+against the oracle's quantities, contraction over the whole series, the band, and
+relative prices against a numeraire whose market cleared. Every A/B gate has an
+absolute liveness floor. A stable region is documented and referenced by the default
+dials.
 
-**Kill condition, stated once:** if the agents cannot reach the oracle after honest
-work on their rules, stop and rethink the rules before anything is built on them. The
-fallback is to run the oracle as the per-period core, with agents as an overlay for
-adjustment and rationing.
+**Kill condition, stated in advance:** once §3.2's changes are measured on the solvable
+family and the basin is mapped against dead and α, within a session budget you set, a
+failing mode B triggers the fallback. The fallback is to run the oracle as the
+per-period core, with agents as an overlay for adjustment and rationing; it is planned
+as a real branch.
 
 ### Phase 3 — Time, capital and the tape (2–3 sessions)
 
-Vintages, investment at the user cost, population, enclosure, technology on the tape,
-checkpoints (lossless), Parquet, certificates.
+Vintages, investment at the user cost, population, enclosure, technology on the tape.
+Checkpoints (lossless), Parquet and certificates arrive earlier, in Phase 0.
 
 **Gate:**
 
@@ -421,7 +497,8 @@ checkpoints (lossless), Parquet, certificates.
   steady states at both ends;
 - resume and replay hashes equal;
 - a 1750–2050 single-region tracer at weekly ticks passes its certificate within the
-  §3.9 performance target.
+  §3.9 performance target, over a window named relative to the run; a frozen or ramping
+  window is rejected (`31f27e5`).
 
 ### Phase 4 — Worldgen and county England (2–4 sessions)
 
@@ -515,8 +592,10 @@ agent economy known to find it.
 
 **Risks:**
 
-1. **Agent convergence (Phase 2).** This is the review's main open risk, now tested
-   early, against a known answer, with a stated fallback.
+1. **Agent convergence (Phase 2).** This is the review's main open risk. Tested on
+   July's rules: it held, and did not return beyond about 5% but for one configuration.
+   It is now tested again early, against a known answer, with a kill condition stated in
+   advance and the fallback planned as a real branch.
 2. **Fitting an agent model is expensive.** The parameter budget (R7), ensembles on the
    Rust headroom, and scoring by bands rather than point-matching are the defence.
 3. **County-level data before 1841 are thin.** Where a county series does not exist,
@@ -554,5 +633,5 @@ back is runs a paper can cite by commit hash.
 
 ## 9. The first session
 
-Phase 0 on the Linux machine, then oracle unit 1a with its gate green. Every ruling is
+Phase 0 in WSL (ruling 7), then oracle unit 1a with its gate green. Every ruling is
 in; nothing blocks the start.

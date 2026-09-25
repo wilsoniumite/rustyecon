@@ -1,4 +1,4 @@
-# The rustyecon workspace. The plan it follows is docs/reboot/PLAN.md, and the engine contract
+# The rustyecon workspace. The plan it follows is docs/PLAN.md, and the engine contract
 # is docs/ENGINE.md.
 # Every crate lives in crates/<short name> and is named rustyecon-<short name>, so that no
 # package shadows a standard crate (a package called `core` would).

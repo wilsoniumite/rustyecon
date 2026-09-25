@@ -23,25 +23,32 @@ What it is for, in order:
 
 ## Status
 
-Phase 0, the reboot, is under way. The workspace is laid out and the crates fill in phase
-by phase:
+Phase 0, the reboot, is half done: its first session is complete and its gate is green
+(see [STATE.md](STATE.md)). The second session moves the certification stack. The crates
+fill in phase by phase:
 
 | Crate | What it holds | Fills in |
 |---|---|---|
-| `crates/core` | ids, goods, inventories, deltas, state, the conservation ledger, the state hash, checkpoints, the tape's runtime form | Phase 0 |
-| `crates/markets` | clearing, settlement, the price update | Phase 0 |
+| `crates/core` | ids and keys, goods, the clock and time units, inventories, deltas, state, the conservation ledger, the state hash, checkpoints, the tape's schema and runtime form, the `libm`-backed maths | Phase 0 |
+| `crates/markets` | orders and admission, clearing, settlement, the price update | Phase 0 |
+| `crates/agents` | the behaviour seam and the scripted actor; the agent rules | Phase 0; rules in Phase 2 |
+| `crates/engine` | `Sim`: the tick loop, checkpoints, resume, the replay audit, the read-only per-tick report a frontend drives and reads | Phase 0 |
+| `crates/cli` | the `rustyecon` binary (`run`, `resume`, `replay`, `registry`): arguments, files, exit codes | Phase 0 |
 | `crates/certify` | certificates, criteria, verdicts, Parquet telemetry | Phase 0, second session |
-| `crates/cli` | the `rustyecon` binary: tick loop, replay audit, resume | Phase 0 |
 | `crates/oracle` | the equilibrium solver | joins in Phase 1 |
-| `crates/agents` | the agent rules | Phase 2 |
 | `crates/worldgen` | the tape compiler | Phase 4 |
 
-Packages are named `rustyecon-<crate>`.
+Packages are named `rustyecon-<crate>`. `tapes/gate.ron` is the Phase 0 gate world.
 
 ## Documents
 
-- [docs/reboot/PLAN.md](docs/reboot/PLAN.md): the plan. Architecture, the standing rules
-  R1–R15, the phases and their gates.
+- [STATE.md](STATE.md): the resume point. Where things stand, the decisions open to veto,
+  and the next session's first step.
+- [docs/PLAN.md](docs/PLAN.md): the plan, amended by the addendum's rulings. Architecture,
+  the standing rules R1–R15, the phases and their gates.
+- [docs/ENGINE.md](docs/ENGINE.md): the Phase 0 engine contract, with each step's
+  amendments.
+- [docs/TAPE.md](docs/TAPE.md): the tape's schema, with the gate tape as its example.
 - [docs/reboot/REVIEW.md](docs/reboot/REVIEW.md): the review of the repository at the
   reboot, with the rulings made after it.
 - [docs/reboot/ADDENDUM.md](docs/reboot/ADDENDUM.md): what the review missed (the July
@@ -51,25 +58,34 @@ Packages are named `rustyecon-<crate>`.
 ## Build and test
 
 `rust-toolchain.toml` pins Rust 1.97.1 with rustfmt and clippy; rustup installs it on
-first use. The gates ask for zero warnings and a clean clippy on both machines.
+first use. The gates ask for zero warnings, a clean clippy and clean formatting on both
+machines.
 
-WSL Ubuntu is the primary build machine, and the gates run there:
+WSL Ubuntu is the primary build machine, and the gates run there. `scripts/gate.sh` runs
+the whole gate with the build directory outside the tree: formatting, clippy, the tests,
+the repeat-hash test by name, and two runs of the gate tape through the binary, whose
+hash streams must agree. From a Windows shell:
 
 ```sh
-cargo build --release
-cargo test --workspace --release
-cargo clippy --workspace --all-targets
+wsl -d ubuntu --exec bash -lc '/mnt/c/<path to the repository>/scripts/gate.sh'
 ```
 
-From a Windows shell, run them through `wsl -d ubuntu --exec bash -lc '<command>'`. Use
-`--exec`: with a plain `--` the exit code is lost.
+Use `--exec`: with a plain `--` the exit code is lost. The same steps by hand:
 
-Windows is the secondary check. The same three commands run there. Hash equality between
-the two platforms is recorded, not gated.
+```sh
+cargo fmt --all --check
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace --release
+cargo run --release -p rustyecon-cli -- run tapes/gate.ron --until 2080
+```
+
+Windows is the secondary check, with the same commands. Hash equality between the two
+platforms is recorded in STATE.md, not gated. `.github/workflows/ci.yml` runs
+`scripts/gate.sh` on GitHub's Ubuntu runner; it runs only once the branch is pushed.
 
 `clippy.toml` enforces two standing rules: no std hash containers (R8, no unordered
 iteration on the delta path), and no platform transcendentals (`exp`, `ln`, `powf` and
-the rest go through one module backed by the `libm` crate).
+the rest go through one module backed by the `libm` crate; `mul_add` is banned too).
 
 ## History
 
