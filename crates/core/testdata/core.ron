@@ -1,0 +1,70 @@
+// Core's test fixture: a small world with no behaviour (docs/ENGINE.md §11, core). Actors hold
+// goods and have the spec `()`. Tests make variants of it by editing this text or the parsed
+// tape; it is not the gate world (tapes/gate.ron, P0.6).
+Tape(
+    schema: 1,
+    header: (
+        name: "core-fixture",
+        start: "1750-01-01",
+        ticks_per_year: 52,
+        market: (rule: Imbalance, one_sided: Hold, ema_time_constant: "price.ema_tc"),
+        ledger: (rel_flow: "ledger.rel_flow", rel_stock: "ledger.rel_stock"),
+    ),
+    params: [
+        (key: "ledger.rel_flow", value: 1e-12, unit: Dimensionless, basis: Assumed("July REL_FLOW")),
+        (key: "ledger.rel_stock", value: 1e-11, unit: Dimensionless, basis: Assumed("July REL_STOCK")),
+        (key: "price.ema_tc", value: 0.5, unit: Years, basis: Approximate("July 2/53 at 52 ticks a year")),
+        (key: "rate.bread", value: 5.2, unit: RatePerYear, basis: Assumed("July alpha 0.1 per weekly tick")),
+        (key: "rate.grain", value: 5.2, unit: RatePerYear, basis: Assumed("July alpha 0.1 per weekly tick")),
+        (key: "rate.grain.high", value: 10.4, unit: RatePerYear, basis: Assumed("twice the base rate")),
+        (key: "rate.labour", value: 5.2, unit: RatePerYear, basis: Assumed("as grain")),
+        (key: "life.bread", value: 0.0577, unit: Years, basis: Assumed("three weeks")),
+        (key: "pension.period", value: 1.0, unit: Years, basis: Assumed("yearly")),
+    ],
+    goods: [
+        (key: "bread", life: Years("life.bread"), price_rate: Some("rate.bread")),
+        (key: "coin", life: Indefinite, price_rate: None),
+        (key: "grain", life: Indefinite, price_rate: Some("rate.grain")),
+        (key: "labour", life: Instant, price_rate: Some("rate.labour")),
+    ],
+    nodes: [
+        (key: "town", currency: "coin"),
+        (key: "village", currency: "coin"),
+    ],
+    channels: [
+        (key: "road", from: "village", to: "town"),
+    ],
+    classes: ["households", "producers"],
+    actors: [
+        (key: "farm", kind: Desk, class: "producers", home: "village", basis: Assumed("core fixture"), spec: ()),
+        (key: "mill", kind: Desk, class: "producers", home: "town", basis: Assumed("core fixture"), spec: ()),
+        (key: "pensioners", kind: Pop, class: "households", home: "village", basis: Assumed("core fixture"), spec: ()),
+        (key: "workers", kind: Pop, class: "households", home: "town", basis: Assumed("core fixture"), spec: ()),
+    ],
+    genesis: (
+        basis: Assumed("core fixture"),
+        prices: [
+            (node: "town", good: "bread", price: 2.0),
+            (node: "town", good: "grain", price: 1.0),
+            (node: "town", good: "labour", price: 1.0),
+            (node: "village", good: "bread", price: 2.2),
+            (node: "village", good: "grain", price: 0.9),
+            (node: "village", good: "labour", price: 0.8),
+        ],
+        holdings: [
+            (holder: "farm", goods: [("bread", 4.0), ("coin", 100.0), ("grain", 16.0)]),
+            (holder: "mill", goods: [("bread", 3.0), ("coin", 50.0)]),
+            (holder: "workers", goods: [("coin", 20.0)]),
+        ],
+    ),
+    events: [
+        (key: "rate.up", at: "1752-01-01", basis: Assumed("core fixture"),
+         act: SetParam(param: "rate.grain", to: "rate.grain.high")),
+        (key: "grain.gift", at: "1751-06-01", basis: Assumed("core fixture"),
+         act: Mint(holder: "pensioners", good: "grain", qty: 2.0)),
+    ],
+    recurring: [
+        (key: "pension", first: "1750-12-31", every: "pension.period", last: None,
+         basis: Assumed("core fixture"), act: Mint(holder: "pensioners", good: "coin", qty: 5.0)),
+    ],
+)

@@ -15,6 +15,44 @@ A step is done when `cargo test --workspace --release` is green and `cargo clipp
 --all-targets` and `cargo fmt --check` are clean, with zero warnings, on WSL (primary) and on
 Windows (secondary). Commit as `P0.n: <what>`.
 
+**Amended at P0.3** (core), where the text below was wrong or silent; each change is made in
+place in the section named.
+
+1. `NoExt`'s `RawActor` and `Actor` are `()`, not `Never`, so a tape with no behaviour can still
+   declare actors that hold goods: core's tests and markets' (which sits below agents) need
+   holders (§2.3).
+2. `Ext` has the supertraits `Clone + Debug + PartialEq` (its implementors are unit markers, and
+   the std derives on `StateDelta<E>`, `SimState<E>` and `Tape<E>` need them) and three more
+   required methods: `validate` (a resumed checkpoint's extension state is checked, §7.6), and
+   `canonical_actor` and `canonical_action` (`to_ron` writes the extension's own lists in
+   canonical order too) (§2.3).
+3. The `num` helpers return the exact largest fitting value by a search over bit patterns, not
+   by at most 4 `next_down` steps. The stepping rule could not meet §11's own test (the result
+   fits and its `next_up` does not) without stepping up as well, and a small remainder such as
+   `max_remainder(1, 0.999)` lies hundreds of ulps of the difference from its answer, so a
+   4-step cap would fail ordinary payouts. `NumError` is `Invalid` or `Exceeded`; there is no
+   `Precision`. A zero bound gives exactly 0 and an infinite quotient gives `+∞` (§2.5).
+4. `Inventory::take` returns `Result<Vec<Lot>, TakeError>`, since an invalid request (NaN,
+   negative, `-0.0`) must be refused and is not a shortfall (§2.2).
+5. `SimState::params(&registry)` takes the registry, which lives in the `World`; book readers
+   return `Option<f64>` instead of panicking on an id outside the book (§2.3).
+6. `Firing` and `Recurring` carry `source: Option<ParamId>`, the param a `SetParam` copied its
+   value from: the key "that stays on the firing" (§2.6). A `SetParam`'s source is a fixed use,
+   since its value becomes structure at load (§2.1).
+7. Errors from the RON parser itself (syntax, an unknown or missing field, a malformed key or
+   date) carry the parser's line and column, not a tape path: serde gives no path without a
+   crate outside §1's list. Every resolution error names its path. The schema number is probed
+   first, so a newer tape is refused as a schema error even if it has fields this loader does not
+   know (§2.6).
+8. `apply` also refuses `Spoilage` on a mint or burn (it is ageing's), a book write to a currency
+   slot (`NoMarket`) and a `SetParam` on a fixed param (`FixedParam`, behind the load check)
+   (§2.4). The loader also refuses `ticks_per_year: 0`, a channel from a node to itself, a
+   genesis price on a currency, a recurring `last` before its `first`, and duplicate genesis
+   holdings (§2.6).
+9. Core's tests are unit tests inside `crates/core/src`, each module's after its first
+   `#[cfg(test)]`, on the fixture `crates/core/testdata/core.ron`. Source comments cite sections
+   such as §2.4, so the source scans of §11 strip comments before looking for literals.
+
 ## 0. Engine invariants
 
 Numbered so tests and reviews can cite them. Each has at least one test in §11.
@@ -129,8 +167,9 @@ impl Params<'_> { pub fn get<U: UnitKind>(&self, p: ParamId) -> Result<U, CoreEr
 - **Params.** The genesis value, unit and basis live in `World`. The current value lives in
   `SimState` (hashed) and changes only by `SetParam`. Every reader reads at use time, and nothing
   caches a param's value beyond the call that read it. A param is `fixed` when the loader turns
-  it into structure (a shelf life or a recurring period) or when changing it would change what a
-  past tick meant (the ledger tolerances). A `SetParam` on a fixed param is a load error.
+  it into structure (a shelf life, a recurring period, or the value a `SetParam` copies) or when
+  changing it would change what a past tick meant (the ledger tolerances). A `SetParam` on a
+  fixed param is a load error, and `apply` refuses one too (`FixedParam`).
 - **Units.** `Clock`'s methods each take one unit type (§6), so using a rate as a flow does not
   compile.
 
@@ -142,7 +181,8 @@ pub struct Inventory(Vec<(GoodId, Vec<Lot>)>);          // goods ascending; lots
 pub enum Amount { Qty(f64), All }
 impl Inventory { pub fn get(&self, g: GoodId) -> f64;   // lot sum, left fold in lot order
     pub fn put(&mut self, g: GoodId, lots: Vec<Lot>) -> Result<(), CoreError>;
-    pub fn take(&mut self, g: GoodId, a: Amount) -> Result<Vec<Lot>, Shortfall>;
+    pub fn take(&mut self, g: GoodId, a: Amount) -> Result<Vec<Lot>, TakeError>;
+    // TakeError: Shortfall(Shortfall { requested, held }) | Invalid(q); nothing moves on either
     pub fn age(&mut self) -> Vec<(GoodId, f64)>;        // spoiled per good
     pub fn lot_count(&self) -> usize; }
 ```
@@ -150,7 +190,8 @@ impl Inventory { pub fn get(&self, g: GoodId) -> f64;   // lot sum, left fold in
 - **Coalescing (N9).** `put` merges lots of equal life. All lives fall together, so a good holds
   at most `max_life + 1` lots, and an indefinite good (currency included) holds exactly one. The
   form is canonical and lands before the first golden hash (A2).
-- **Atomic `take`.** `Qty(q)` with `q > get(g)` returns `Err(Shortfall)` and changes nothing.
+- **Atomic `take`.** `Qty(q)` with `q > get(g)` returns `Err(TakeError::Shortfall)` and changes
+  nothing; a non-finite or sign-bit-set `q` is `Err(TakeError::Invalid)`.
   `q == get(g)` or `All` takes every lot. Otherwise lots go soonest-expiring first (July's FIFO
   when a good has one life), splitting the last one taken. If rounding uses up the lots while a
   remainder is left, every lot is taken, so a request with `q <= get(g)` never falls short. A
@@ -166,7 +207,7 @@ impl Inventory { pub fn get(&self, g: GoodId) -> f64;   // lot sum, left fold in
 ### 2.3 State and the extension seam (N14)
 
 ```rust
-pub trait Ext: Send + Sync + 'static {
+pub trait Ext: Clone + Debug + PartialEq + Send + Sync + 'static {   // unit markers
     type State: Clone + Debug + PartialEq + Serialize + DeserializeOwned + Send + Sync;  // hashed
     type Delta: Clone + Debug + PartialEq + Serialize + DeserializeOwned + Send + Sync;
     type RawActor: Clone + Debug + PartialEq + Serialize + DeserializeOwned + Send + Sync; // tape form
@@ -177,8 +218,12 @@ pub trait Ext: Send + Sync + 'static {
     fn genesis(actors: &[ActorDecl<Self::Actor>]) -> Result<Self::State, LoadError>;
     fn apply(s: &mut Self::State, d: &Self::Delta) -> Result<(), CoreError>;
     fn owner(d: &Self::Delta) -> Option<ActorId>;  // None: a world-level delta, legal only from the tape
+    fn validate(s: &Self::State, actors: &[ActorDecl<Self::Actor>]) -> Result<(), CoreError>; // resume
+    fn canonical_actor(raw: &mut Self::RawActor);   // for to_ron: the spec's own lists in canonical order
+    fn canonical_action(raw: &mut Self::RawAction);
 }
-pub struct NoExt;   // core's own tests: State = (), and Delta, RawActor, RawAction = `enum Never {}`
+pub struct NoExt;   // no behaviour: State = (), RawActor = Actor = () (actors hold goods, spec `()`),
+                    // Delta = RawAction = `enum Never {}`
 pub struct SimState<E: Ext> {           // fields private to core
     tick: u64,
     params: Vec<f64>,                    // current value per ParamId
@@ -191,8 +236,10 @@ pub struct SimState<E: Ext> {           // fields private to core
 - **Resolver.** It turns keys into ids and records each param reference with its use (`live` or
   `fixed`) and its unit, checked against the registry. The unused-param and fixed-param load
   checks read that record.
-- **Readers.** `tick()`, `param(p)`, `params()`, `price(n, g)`, `ema`, `supply`, `demand`,
-  `holding(h)`, `holdings()` and `ext()` are public. `apply` is the only writer (`v2p3:
+- **Readers.** `tick()`, `param(p)`, `params(&registry)` (typed by unit), `param_values()`,
+  `book()`, `price(n, g)`, `ema`, `supply`, `demand` (each `Option<f64>`, `None` for an id outside
+  the book), `holding(h)`, `holdings()`, `ext()` and `validate(&world)` (§7.6's shape check) are
+  public. `apply` is the only writer (`v2p3:
   state/apply.rs:7-9`). Core holds no v1 or July agent struct (N14), and no constructor takes a
   default price.
 - **Genesis book.** Each (node, non-currency good) gets its price from the tape, exactly once.
@@ -245,7 +292,11 @@ Every mint and burn carries a typed provenance, with no `Default` and no serde d
 `Settlement`; `SetVolumes` only in `Clearing`; `SetPrice`, `SetEma` and `AdvanceTick` only in
 `Prices`; `SetParam` only in `Events`; `Age` only in `Upkeep`; a `Mint` of an Instant good only in
 `Events` or `Decisions`. Which actor may emit what inside a phase is the engine's whitelist (E7,
-§7.3), not core's.
+§7.3), not core's. Besides: `Spoilage` is ageing's alone, so a `Mint` or `Burn` carrying it is
+`ReservedProvenance`; a `SetPrice`, `SetEma` or `SetVolumes` on a (node, currency) slot is
+`NoMarket`; a price or EMA must be positive. `apply` returns the quantity each delta moved: what a
+transfer delivered, a mint created, a burn destroyed, or an `Age` spoiled (summed over goods); 0
+for the rest.
 
 ### 2.5 Apply, ledger, conservation, hash, checkpoints (R2; defect 9; N2, N3, N11)
 
@@ -271,12 +322,20 @@ pub mod num {
     pub fn max_qty(budget: f64, price: f64) -> Result<f64, NumError>;    // largest q: fl(price·q) <= budget
     pub fn max_scale(held: f64, coef: f64) -> Result<f64, NumError>;     // largest x: fl(coef·x) <= held
     pub fn max_remainder(total: f64, spent: f64) -> Result<f64, NumError>; // largest d: fl(spent+d) <= total
+    pub fn is_clean(x: f64) -> bool;                                     // finite, sign bit clear
+    pub enum NumError { Invalid { what, value }, Exceeded { total, spent } }
 }
 ```
 
-- **The `num` helpers** start from the quotient or difference and step `f64::next_down` while the
-  bound fails. More than 4 steps is `NumError::Precision`, which callers turn into their own error.
-  Nothing in the engine panics.
+- **The `num` helpers** return the exact largest value whose rounded product or sum stays within
+  the bound: they start from the quotient or difference and search the bit patterns of the
+  non-negative doubles (ordered like their values), galloping to bracket the boundary and then
+  bisecting, so the result fits and its `next_up` does not. Usually 2 to 4 evaluations, at most
+  about 130, and no precision failure. A zero budget, holding or remainder gives exactly 0
+  (nothing is bought with nothing). An infinite quotient (a tiny or zero price, a zero
+  coefficient) gives `+∞`, so the quantity binds (N6). An input that is not finite or has its
+  sign bit set is `NumError::Invalid`, and spending more than `total` is `NumError::Exceeded`;
+  callers turn these into their own errors. Nothing in the engine panics.
 - **Undefined ids (N2).** Every good, node, holder and param is checked against `World` before
   anything moves: `UnknownGood`, `UnknownHolder` or `UnknownParam` in every profile, never a
   `debug_assert` (July's defect, `v2p3: certify/ledger.rs:99-108, 160-181`).
@@ -300,10 +359,15 @@ pub mod num {
 - **Hash.** It covers the whole `SimState`: tick, params, market book, every holding with its lot
   lives, and the extension state. It does not cover the tape.
 - **Checkpoints (N11).** A checkpoint carries `world_id` and `prefix_id` (§2.6), and
-  `Sim::resume` refuses a mismatch (§7.6). The bytes form opens with a magic and `format`, and the
-  RON form's first field is `format`, so a wrong format is refused before the state is read.
-  Loading re-sorts and re-coalesces lots, rejects NaN and `-0.0`, and checks every id against the
-  `World`.
+  `Sim::resume` refuses a mismatch (§7.6). The bytes form opens with the magic `RUSTYECK` and
+  `format` as a little-endian `u32`, then bincode 1 of `(world_id, prefix_id, state)` with no
+  trailing bytes; the RON form's first field is `format`, read by a probe that skips the rest
+  undecoded. Either way a wrong format is refused before the state is decoded. Decoding re-sorts
+  and re-coalesces lots and rejects NaN, `-0.0` and negative values (and non-positive prices);
+  `Checkpoint::validate(&world)` (that is, `SimState::validate`) then checks every id and shape
+  against the `World`. `Checkpoint::of(&world, state)` records `world_id` and `prefix_id(tick)`.
+  `to_bytes` and `to_ron` cannot fail for core's types; should an extension's `Serialize` fail,
+  they return output the loaders reject.
 
 ### 2.6 The tape: schema, resolution, identity (N1, N2, N10 in part; E8)
 
@@ -325,18 +389,20 @@ pub struct ActorDecl<A> { pub id: ActorId, pub key: Key, pub class: ClassId, pub
 pub struct MarketConfig { pub rule: PriceRule, pub one_sided: OneSided, pub ema_time_constant: ParamId }
 pub enum PriceRule { Imbalance, Ratio }     // N13: required, no Default
 pub enum OneSided { Saturate, Hold }        // F8: required, no Default
-pub struct Firing<E: Ext> { pub tick: u64, pub event: EventId, pub occurrence: u32, pub action: StateDelta<E> }
+pub struct Firing<E: Ext> { pub tick: u64, pub event: EventId, pub occurrence: u32, pub action: StateDelta<E>,
+                           pub source: Option<ParamId> }  // a SetParam's source param, for its basis
 pub struct Schedule<E: Ext> { once: Vec<Firing<E>>, every: Vec<Recurring<E>> }
 impl<E: Ext> Schedule<E> { pub fn fire(&self, tick: u64) -> Vec<Firing<E>>; }
 ```
 
 - **Schema version.** `schema: 1`. The loader reads only its own version; anything else is
-  `LoadError::Schema`. Every schema change bumps the number, since there are no defaults to absorb
-  one.
+  `LoadErrorKind::Schema`, found by a probe of `schema` alone before the rest is parsed. Every
+  schema change bumps the number, since there are no defaults to absorb one.
 - **No silent fields.** Unknown fields are rejected (`deny_unknown_fields`), and nothing carries
   `#[serde(default)]`. An `Option` field must be written as `None` or `Some(..)`: serde would
   otherwise read a missing one as `None`, so each raw `Option` field uses a `deserialize_with`
-  helper, which makes serde treat it as required (probed on serde 1.0.228 and ron 0.8.1).
+  helper, which makes serde treat it as required (probed on serde 1.0.228 and ron 0.8.1). The
+  helper is public, `core::tape::raw::required`, for the extension's raw types.
 - **Documented.** `core::tape::raw` carries `#![deny(missing_docs)]`. Each field's rustdoc gives
   its type, its unit (or "dimensionless"), that it is required, and that it has no default.
   `docs/TAPE.md` (written in P0.3) points to that rustdoc, keeps the schema-version history, and
@@ -371,8 +437,14 @@ impl<E: Ext> Schedule<E> { pub fn fire(&self, tick: u64) -> Vec<Firing<E>>; }
     value comes from that param at load, and its key stays on the firing, so the new value keeps
     a basis (R4). The target must not be fixed.
   - `Actor(E::RawAction)`.
+- **Resolver.** The extension resolves through `Resolver`: `good`, `node`, `class`, `actor`,
+  `channel` (key to id), `param(key, unit, ParamUse::Live | Fixed, field)`, `ticks(key, field)` (a
+  fixed `Years` param as whole ticks), `value(p, field)`, `quantity(v, field)`, `is_currency(g)`,
+  `tick_of(date, field)`, `clock()`, and `enter(segment)`, `leave()` and `error(field, kind)` for
+  paths.
 - **Load errors (N2)** occur in every profile, and each names its tape path, for example
-  `actors[mill].spec.buy[village/grain].qty`. They are:
+  `actors[mill].spec.buy[village/grain].qty`. The RON parser's own errors (syntax, an unknown or
+  missing field, a malformed key or date) carry its line and column instead. They are:
   - a wrong schema version, an unknown field or a missing field;
   - an invalid, unknown or duplicate key;
   - a missing or duplicate genesis price, or a genesis price that is not finite and > 0;
@@ -384,7 +456,9 @@ impl<E: Ext> Schedule<E> { pub fn fire(&self, tick: u64) -> Vec<Firing<E>>; }
   - a life or period that rounds to 0 ticks;
   - `Ratio` with `Saturate`;
   - buy or payout weights whose left fold in canonical order is not exactly 1.0 (§4);
-  - an actor `home` that is not a node.
+  - an actor `home` that is not a node;
+  - `ticks_per_year: 0`, a channel from a node to itself, a genesis price on a currency, a
+    recurring `last` before its `first`, a duplicate genesis holding or held good.
 
 ## 3. rustyecon-markets (N5–N8, N13; R12; F8)
 
@@ -873,6 +947,7 @@ size; none is absolute (A12). Gate tests read `tapes/gate.ron` through `include_
 | tape | `unsorted_events_fire_in_order` (ticks listed 5, 2, 9, 9 all fire; key order within a tick), `every_zero_is_rejected`, `undefined_good_is_a_load_error`, `unknown_actor_or_param_is_a_load_error`, `duplicate_keys_are_rejected`, `missing_genesis_price_is_rejected`, `unused_param_is_rejected`, `unit_mismatch_is_rejected`, `event_before_start_is_rejected`, `set_param_on_fixed_or_other_unit_is_rejected`, `ratio_with_saturate_is_rejected`, `date_to_tick_is_integer_exact`, `date_of_inverts_date_to_tick` | N1, N2, R4, N13 |
 | tape schema | `schema_version_is_checked`, `unknown_field_is_rejected`, `missing_optional_field_is_rejected`, `tape_round_trips` (parse, `to_ron`, parse: equal `Tape`, equal `world_id`), `file_order_is_irrelevant` (permuting every list: same `world_id` and prefix ids), `reformatted_tape_keeps_its_ids` (whitespace, comments, CRLF: same ids), `new_entity_keeps_existing_ids` (adding a good, an actor and an event leaves every existing key naming the same entity with the same resolved content), `prefix_id_covers_only_past_firings` | E8, N11 |
 | other | `clock_conversions` (all units and methods of §6), `num_matches_libm_bits`, `num_helpers_are_exact` (each result fits and its `next_up` does not), `core_has_no_workspace_dependencies` (core's `Cargo.toml` names no `rustyecon-` crate; a `NoExt` tape resolves, fires its events through `apply` and closes its ledger) | A13, A5, N14 |
+| added at P0.3 | `desk_and_pop_sharing_a_number_are_distinct_holders`, `transfers_keep_lot_lives`, `set_param_respects_the_registry`, `unknown_holders_and_reserved_provenance_are_errors`, `currencies_and_prices_rates_are_checked`, `genesis_holdings_start_with_full_lives`, `extension_errors_name_their_path`, `core_types_cross_threads`, `keys_check_their_character_set`, `actor_and_holder_orders_are_canonical`, `dates_parse_print_and_count_days`, `fnv_matches_the_published_vectors` | defect 10, E3 |
 
 **markets**
 
@@ -900,7 +975,7 @@ size; none is absolute (A12). Gate tests read `tapes/gate.ron` through `include_
 | frontend contract | `observation_matches_accessors` (every gate tick), `observing_changes_no_hash`, `engine_types_are_send` (compile time: `Send + Sync + 'static` for `Sim`, `Tape`, `World`, `Checkpoint`, `TickReport`, `HoldingTotals`, `RunError`, `LoadError`, `ResumeError`, `ReplayError`), `failed_step_poisons_the_sim` | E3, E4, E5 |
 | hooks | `decisions_read_phase_start_state`: from a fixed state, visiting actors in id order and in reverse gives identical outputs; renaming keys so that the id order reverses leaves every actor's tick-0 orders unchanged. `behaviour_output_is_whitelisted`: each forbidden arm from each hook (a mint to or burn from another holder, an escrow transfer, `SetPrice`, `SetEma`, `SetVolumes`, `SetParam`, `Age`, `AdvanceTick`, a foreign `Actor` delta, a foreign order) is `ForeignWrite` or `ForeignOrder` | E6, E7, R13, R2 |
 | time | `a13_annual_quantities_invariant`: at `ticks_per_year: 12` the 1750 farm and mine mints equal the 52-tick run's within a relative bar of 1e-12, and event ticks match their dates | A13 |
-| source scans (read the sources of core, markets, agents and engine) | `no_raw_transcendentals`, `no_hashed_collections`, `no_behavioural_float_literals` (source before the first `#[cfg(test)]` may hold only `0.0` and `1.0`), `engine_path_does_no_io` (E2's list) | A5, R8, R4, E2 |
+| source scans (read the sources of core, markets, agents and engine, comments stripped) | `no_raw_transcendentals`, `no_hashed_collections`, `no_behavioural_float_literals` (source before the first `#[cfg(test)]` may hold only `0.0` and `1.0`), `engine_path_does_no_io` (E2's list) | A5, R8, R4, E2 |
 
 **cli**
 

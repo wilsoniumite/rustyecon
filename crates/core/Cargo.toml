@@ -4,5 +4,14 @@ version.workspace = true
 edition.workspace = true
 publish.workspace = true
 
+# Core depends on no workspace crate (docs/ENGINE.md §1, N14): markets, agents and the engine
+# build on it, never the other way round. The test core_has_no_workspace_dependencies reads this
+# file.
+[dependencies]
+serde.workspace = true
+ron.workspace = true
+bincode.workspace = true
+libm.workspace = true
+
 [lints]
 workspace = true
