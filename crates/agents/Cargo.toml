@@ -4,10 +4,12 @@ version.workspace = true
 edition.workspace = true
 publish.workspace = true
 
+# The agents sit on markets and core: core <- markets <- agents <- engine (docs/ENGINE.md §1).
 # Never add rustyecon-oracle here: no agent reads the oracle (R13).
 [dependencies]
 rustyecon-core.workspace = true
 rustyecon-markets.workspace = true
+serde.workspace = true
 
 [lints]
 workspace = true

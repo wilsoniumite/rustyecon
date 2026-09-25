@@ -10,6 +10,7 @@ publish.workspace = true
 rustyecon-core.workspace = true
 rustyecon-markets.workspace = true
 rustyecon-agents.workspace = true
+serde.workspace = true
 
 [lints]
 workspace = true

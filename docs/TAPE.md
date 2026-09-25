@@ -12,13 +12,15 @@ Every field of every raw type is documented in the rustdoc of `rustyecon_core::t
 `#![deny(missing_docs)]`. Each field's doc gives its type, its unit (or says it has none), that it
 is required, and that it has no default. The top-level fields are on `rustyecon_core::Tape`. An
 actor's `spec` and the `Actor(..)` tape action belong to the extension (the agents crate, P0.5),
-whose raw types are documented the same way.
+whose raw types are documented the same way in `rustyecon_agents::spec` (which also carries
+`#![deny(missing_docs)]`) and `rustyecon_agents::ext`.
 
 ## Schema versions
 
 | Schema | Date | Step | Change |
 |---|---|---|---|
 | 1 | 2026-09-25 | P0.3 | First version. |
+| 1 | 2026-09-25 | P0.5 | The agents' spec, `Scripted(..)`, and tape action, `Actor(SetActive(..))`, are defined. No tape with an agent spec existed before, and core's fields are unchanged, so the number stays 1. |
 
 The loader reads its own version only; anything else is refused as a schema error before any
 other field is looked at. Since no field has a default, every change to the schema bumps the
@@ -75,8 +77,8 @@ instead. The full list is in `docs/ENGINE.md` §2.6.
 
 ## Worked example: the gate world
 
-The gate world, `tapes/gate.ron` (written in P0.6, ENGINE §10), is the worked example. Its shape,
-from ENGINE §5, annotated:
+The gate world, `tapes/gate.ron` (written in P0.5, ENGINE §10), is the worked example; read the
+file itself for every entry. Its shape, annotated:
 
 ```ron
 Tape(
@@ -90,7 +92,7 @@ Tape(
     (key: "price.ema_tc", value: 0.5, unit: Years, basis: Approximate("≈ July 2/53 at 52 ticks/yr")),
     (key: "rate.grain", value: 5.2, unit: RatePerYear, basis: Assumed("July alpha 0.1 per weekly tick")),
     (key: "life.bread", value: 0.0577, unit: Years, basis: Assumed("three weeks")),   // 3 ticks
-    (key: "mine.capacity", value: 520.0, unit: FlowPerYear, basis: Assumed("gate world")), …],
+    (key: "mine.capacity", value: 52.0, unit: FlowPerYear, basis: Assumed("gate world")), …],
   goods: [(key: "bread", life: Years("life.bread"), price_rate: Some("rate.bread")),
           (key: "coin", life: Indefinite, price_rate: None),           // the currency
           (key: "grain", life: Indefinite, price_rate: Some("rate.grain")), …],
@@ -98,10 +100,19 @@ Tape(
   channels: [],
   classes: ["households", "pensioners", "producers"],
   actors: [(key: "mill", kind: Desk, class: "producers", home: "town", basis: Assumed("gate world"),
-    spec: Scripted(( … ))), …],                // the agents' spec (P0.5)
+    spec: Scripted((                           // the agents' spec (below)
+      active: true,
+      recipe: Some((inputs: [("grain", 2.0), ("fuel", 1.0)], outputs: [("bread", 3.0)],
+                    capacity: "mill.capacity")),          // a FlowPerYear param, live
+      buy: [(node: "village", good: "grain", qty: "mill.buy.grain.village", weight: 0.375), …],
+      sell: [(node: "town", good: "bread", qty: Flow("mill.sell.town")),
+             (node: "village", good: "bread", qty: AllHeld)],
+      spend: Some("mill.spend"),                          // a RatePerYear param, live
+      payout: Some((rate: "mill.payout", to: [("workers", 1.0)]))))), …],
   genesis: (basis: Assumed("gate world"),
     prices: [(node: "town", good: "bread", price: 2.0), …],   // every (node, non-currency good)
-    holdings: [(holder: "mill", goods: [("coin", 100.0), ("grain", 16.0)]), …]),
+    holdings: [(holder: "mill", goods: [("coin", 100.0), ("grain", 16.0), ("fuel", 8.0),
+                                        ("bread", 3.0)]), …]),
   events: [   // any order: the loader sorts by (tick, key)
     (key: "mine.cut", at: "1760-03-01", basis: Assumed("gate world"),
      act: SetParam(param: "mine.capacity", to: "mine.capacity.cut")),   // the value keeps a basis
@@ -114,7 +125,35 @@ Tape(
 
 Core's own actions are `Mint(holder, good, qty)` and `Burn(holder, good, amount)` (both with
 provenance `Event`), `Transfer(from, to, good, amount)` and `SetParam(param, to)`; an `amount` is
-`Qty(x)` or `All`. `Actor(..)` carries the extension's action.
+`Qty(x)` or `All`. `Actor(..)` carries the extension's action; the agents have one,
+`SetActive(actor: "oven", active: true)`, which wakes or puts to sleep a scripted actor.
+
+## The scripted actor's spec
+
+`spec: Scripted((..))` is the agents' only behaviour kind in Phase 0; Phase 2's kinds are new
+variants. Every field is required and none has a default:
+
+- `active`: whether it acts from genesis. A dormant actor (`false`) posts and produces nothing
+  until a dated `SetActive` wakes it.
+- `recipe`: `None`, or `Some((inputs, outputs, capacity))`. `inputs` and `outputs` are
+  `(good, coefficient)` pairs, each coefficient finite and positive; no good is on both sides.
+  `capacity` is a `FlowPerYear` param. Each tick it runs at `x = min(capacity per tick, held_k /
+  a_k)` (to the last representable bit), burning `a_k·x` of each input and minting `o_l·x` of
+  each output. No inputs is an endowment; no outputs is consumption.
+- `buy`: `(node, good, qty, weight)` lines, one per (node, good). `qty` is a `FlowPerYear` param;
+  `weight` is dimensionless and positive, and the weights, added left to right in (node, good)
+  key order, must be exactly 1. Every node must quote in the actor's home currency.
+- `sell`: `(node, good, qty)` lines, one per (node, good), with `qty` either `Flow(param)` (a
+  `FlowPerYear` param) or `AllHeld`. Lines post in (node, good) key order, each at most what is
+  still held after the lines before it.
+- `spend`: `Some(param)`, a `RatePerYear` param, exactly when there are buy lines: each tick the
+  budget across the buy lines is `share(spend)` of the cash the payouts left.
+- `payout`: `None`, or `Some((rate, to))`: each tick `share(rate)` of the actor's cash is split
+  across `to`, `(actor, weight)` pairs whose weights, added left to right in actor order (desks,
+  then pops, each by key), must be exactly 1. An actor never pays itself.
+
+No cost, floor or budget in the spec is a currency amount (R14): budgets are shares of cash, and
+every quantity is a registered flow of goods.
 
 A complete tape with no behaviour (every actor's spec is `()`) is core's test fixture,
 `crates/core/testdata/core.ron`; it loads with the empty extension, `rustyecon_core::NoExt`.

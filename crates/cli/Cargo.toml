@@ -12,6 +12,10 @@ path = "src/main.rs"
 # and worldgen stubs join when session 2 and Phase 4 fill them.
 [dependencies]
 rustyecon-engine.workspace = true
+clap.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
 
 [lints]
 workspace = true

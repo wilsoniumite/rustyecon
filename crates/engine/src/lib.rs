@@ -1,7 +1,44 @@
-//! The engine: one `Sim` owns a run. It loads a tape, steps one tick at a time in PLAN §3's
-//! phase order, runs to a given tick, checkpoints, resumes, and audits a replay, returning each
-//! tick's `TickReport`. Frontends, the `rustyecon` binary among them, drive it and read it
-//! through read-only accessors. None of them mutates its state: every intervention is a dated
-//! tape event, or a tape edit followed by a rerun or a resume (invariant E1). The engine holds no
-//! global state and does no I/O (E2), its types cross threads (E3), and a failed step poisons the
-//! `Sim` (E5). The contract is `docs/ENGINE.md`; this crate fills in at step P0.6.
+//! The engine (docs/ENGINE.md §7): one [`Sim`] owns a run. It loads a tape, steps one tick at a
+//! time in PLAN §3's phase order, runs to a given tick, checkpoints, resumes, and audits a
+//! replay, returning each tick's [`TickReport`]. Frontends, the `rustyecon` binary among them,
+//! drive it and read it through read-only accessors.
+//!
+//! The invariants of §0 hold here:
+//!
+//! - **E1.** No frontend mutates state: every intervention is a dated tape event, or a tape edit
+//!   followed by a rerun ([`Sim::new`]) or a resume ([`Sim::resume`]). There is no setter.
+//! - **E2.** No global state and no I/O: bytes in, bytes out. Paths live in the cli.
+//! - **E3.** Every type a frontend holds is `Send + Sync + 'static`, so a `Sim` can run on a
+//!   worker thread and send its reports over a channel.
+//! - **E4.** No method hands out `&mut` to the state or the world; reading changes no hash.
+//! - **E5.** A failed step poisons the `Sim` until it is rebuilt.
+//! - **E6, E7.** Every hook reads the state as its phase began, and what it returns is checked
+//!   against its whitelist before anything is applied (R13, R2).
+//!
+//! The engine re-exports the three crates it builds on under their own names, and a [`prelude`]
+//! of the types a frontend names, so a frontend depends on this crate alone.
+
+mod error;
+pub mod prelude;
+pub mod registry;
+mod replay;
+mod report;
+mod sim;
+mod tick;
+
+pub use rustyecon_agents;
+pub use rustyecon_core;
+pub use rustyecon_markets;
+
+pub use error::{ReplayError, ResumeError, RunError, RunErrorKind};
+pub use registry::{registry, Entry, RegistryLine};
+pub use replay::audit_replay;
+pub use report::{FiredEvent, HoldingTotals, MarketLine, TickReport, Trace, TraceEntry};
+pub use sim::{Sim, Status};
+
+/// A tape of this engine's agents.
+pub type Tape = rustyecon_core::Tape<rustyecon_agents::Agents>;
+/// A resolved world of this engine's agents.
+pub type World = rustyecon_core::World<rustyecon_agents::Agents>;
+/// A checkpoint of this engine's agents.
+pub type Checkpoint = rustyecon_core::Checkpoint<rustyecon_agents::Agents>;

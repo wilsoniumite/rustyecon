@@ -18,6 +18,9 @@ serde = { version = "1", features = ["derive"] }
 ron = "0.8"
 bincode = "1"
 libm = "0.2"
+# The cli's argument parser, and temporary directories for the cli's tests only.
+clap = { version = "4.6.1", features = ["derive"] }
+tempfile = "3.27.0"
 
 # The workspace's own crates.
 rustyecon-core = { path = "crates/core" }

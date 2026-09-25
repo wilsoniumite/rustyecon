@@ -1,0 +1,191 @@
+// The gate world (docs/ENGINE.md §10): the one tape the Phase 0 gate runs. Four desks and two
+// pops trade grain, fuel and bread for coin at two nodes for 40 years, 2,080 weekly ticks, with
+// four dated events and a yearly pension. Every number is registered as Assumed and tuned to one
+// bar: every market trades in every year, and no price leaves [1e-3, 1e3] times its genesis
+// value. Failure tests make variants of this file by text substitution or by editing the parsed
+// tape; there is no second hand-kept tape.
+//
+// Ids, in key order: goods bread 0, coin 1, fuel 2, grain 3; nodes town 0, village 1; classes
+// households 0, pensioners 1, producers 2; desks farm 0, mill 1, mine 2, oven 3; pops
+// pensioners 0, workers 1. So Desk(0) (farm) and Pop(0) (pensioners) share a number, as do
+// Desk(1) (mill) and Pop(1) (workers).
+Tape(
+    schema: 1,
+    header: (
+        name: "gate",
+        start: "1750-01-01",
+        ticks_per_year: 52,
+        market: (rule: Imbalance, one_sided: Hold, ema_time_constant: "price.ema_tc"),
+        ledger: (rel_flow: "ledger.rel_flow", rel_stock: "ledger.rel_stock"),
+    ),
+    params: [
+        // The ledger's tolerances: relative, with no absolute term (A12).
+        (key: "ledger.rel_flow", value: 1e-12, unit: Dimensionless, basis: Assumed("July REL_FLOW")),
+        (key: "ledger.rel_stock", value: 1e-11, unit: Dimensionless, basis: Assumed("July REL_STOCK")),
+        // Prices.
+        (key: "price.ema_tc", value: 0.5, unit: Years, basis: Approximate("July's EMA weight 2/53 at 52 ticks a year")),
+        (key: "rate.bread", value: 5.2, unit: RatePerYear, basis: Assumed("July alpha 0.1 per weekly tick")),
+        (key: "rate.fuel", value: 5.2, unit: RatePerYear, basis: Assumed("July alpha 0.1 per weekly tick")),
+        (key: "rate.grain", value: 5.2, unit: RatePerYear, basis: Assumed("July alpha 0.1 per weekly tick")),
+        // Structure.
+        (key: "life.bread", value: 0.0577, unit: Years, basis: Assumed("three weeks")),
+        (key: "pension.period", value: 1.0, unit: Years, basis: Assumed("yearly")),
+        // The farm: a grain endowment.
+        (key: "farm.capacity", value: 104.0, unit: FlowPerYear, basis: Assumed("gate world")),
+        (key: "farm.sell.town", value: 26.0, unit: FlowPerYear, basis: Assumed("gate world")),
+        (key: "farm.payout", value: 5.2, unit: RatePerYear, basis: Assumed("gate world")),
+        // The mine: a fuel endowment, cut in 1760 and restored in 1770.
+        (key: "mine.capacity", value: 52.0, unit: FlowPerYear, basis: Assumed("gate world")),
+        (key: "mine.capacity.base", value: 52.0, unit: FlowPerYear, basis: Assumed("gate world")),
+        (key: "mine.capacity.cut", value: 26.0, unit: FlowPerYear, basis: Assumed("gate world: half")),
+        (key: "mine.sell.town", value: 13.0, unit: FlowPerYear, basis: Assumed("gate world")),
+        (key: "mine.payout", value: 5.2, unit: RatePerYear, basis: Assumed("gate world")),
+        // The mill: grain 2 + fuel 1 -> bread 3.
+        (key: "mill.capacity", value: 52.0, unit: FlowPerYear, basis: Assumed("gate world")),
+        (key: "mill.buy.grain.town", value: 52.0, unit: FlowPerYear, basis: Assumed("gate world")),
+        (key: "mill.buy.grain.village", value: 156.0, unit: FlowPerYear, basis: Assumed("gate world")),
+        (key: "mill.buy.fuel.town", value: 26.0, unit: FlowPerYear, basis: Assumed("gate world")),
+        (key: "mill.buy.fuel.village", value: 78.0, unit: FlowPerYear, basis: Assumed("gate world")),
+        (key: "mill.spend", value: 10.4, unit: RatePerYear, basis: Assumed("gate world")),
+        (key: "mill.sell.town", value: 52.0, unit: FlowPerYear, basis: Assumed("gate world")),
+        (key: "mill.payout", value: 5.2, unit: RatePerYear, basis: Assumed("gate world")),
+        // The oven: a second bread desk, dormant until 1768 (the entrant pattern).
+        (key: "oven.capacity", value: 26.0, unit: FlowPerYear, basis: Assumed("gate world")),
+        (key: "oven.buy.grain", value: 104.0, unit: FlowPerYear, basis: Assumed("gate world")),
+        (key: "oven.buy.fuel", value: 52.0, unit: FlowPerYear, basis: Assumed("gate world")),
+        (key: "oven.spend", value: 10.4, unit: RatePerYear, basis: Assumed("gate world")),
+        (key: "oven.payout", value: 5.2, unit: RatePerYear, basis: Assumed("gate world")),
+        // The workers: buy and eat bread in town; their line rises in 1765.
+        (key: "workers.buy.bread", value: 260.0, unit: FlowPerYear, basis: Assumed("gate world")),
+        (key: "workers.buy.bread.high", value: 390.0, unit: FlowPerYear, basis: Assumed("gate world: half as much again")),
+        (key: "workers.spend", value: 10.4, unit: RatePerYear, basis: Assumed("gate world")),
+        (key: "workers.eat", value: 520.0, unit: FlowPerYear, basis: Assumed("gate world: more than they can buy")),
+        // The pensioners: the cash-short buyer, at both nodes.
+        (key: "pensioners.buy.bread.town", value: 260.0, unit: FlowPerYear, basis: Assumed("gate world")),
+        (key: "pensioners.buy.bread.village", value: 260.0, unit: FlowPerYear, basis: Assumed("gate world")),
+        (key: "pensioners.spend", value: 10.4, unit: RatePerYear, basis: Assumed("gate world")),
+        (key: "pensioners.eat", value: 520.0, unit: FlowPerYear, basis: Assumed("gate world: more than they can buy")),
+    ],
+    goods: [
+        (key: "bread", life: Years("life.bread"), price_rate: Some("rate.bread")),
+        (key: "coin", life: Indefinite, price_rate: None),
+        (key: "fuel", life: Indefinite, price_rate: Some("rate.fuel")),
+        (key: "grain", life: Indefinite, price_rate: Some("rate.grain")),
+    ],
+    nodes: [
+        (key: "town", currency: "coin"),
+        (key: "village", currency: "coin"),
+    ],
+    channels: [],
+    classes: ["households", "pensioners", "producers"],
+    actors: [
+        (key: "mill", kind: Desk, class: "producers", home: "town", basis: Assumed("gate world"),
+         spec: Scripted((
+            active: true,
+            recipe: Some((inputs: [("grain", 2.0), ("fuel", 1.0)], outputs: [("bread", 3.0)], capacity: "mill.capacity")),
+            buy: [
+                (node: "village", good: "grain", qty: "mill.buy.grain.village", weight: 0.375),
+                (node: "town", good: "grain", qty: "mill.buy.grain.town", weight: 0.125),
+                (node: "town", good: "fuel", qty: "mill.buy.fuel.town", weight: 0.125),
+                (node: "village", good: "fuel", qty: "mill.buy.fuel.village", weight: 0.375),
+            ],
+            sell: [
+                (node: "town", good: "bread", qty: Flow("mill.sell.town")),
+                (node: "village", good: "bread", qty: AllHeld),
+            ],
+            spend: Some("mill.spend"),
+            payout: Some((rate: "mill.payout", to: [("workers", 1.0)])),
+         ))),
+        (key: "farm", kind: Desk, class: "producers", home: "village", basis: Assumed("gate world"),
+         spec: Scripted((
+            active: true,
+            recipe: Some((inputs: [], outputs: [("grain", 1.0)], capacity: "farm.capacity")),
+            buy: [],
+            sell: [
+                (node: "town", good: "grain", qty: Flow("farm.sell.town")),
+                (node: "village", good: "grain", qty: AllHeld),
+            ],
+            spend: None,
+            payout: Some((rate: "farm.payout", to: [("workers", 0.75), ("pensioners", 0.25)])),
+         ))),
+        (key: "mine", kind: Desk, class: "producers", home: "town", basis: Assumed("gate world"),
+         spec: Scripted((
+            active: true,
+            recipe: Some((inputs: [], outputs: [("fuel", 1.0)], capacity: "mine.capacity")),
+            buy: [],
+            sell: [
+                (node: "town", good: "fuel", qty: Flow("mine.sell.town")),
+                (node: "village", good: "fuel", qty: AllHeld),
+            ],
+            spend: None,
+            payout: Some((rate: "mine.payout", to: [("workers", 1.0)])),
+         ))),
+        (key: "oven", kind: Desk, class: "producers", home: "town", basis: Assumed("gate world"),
+         spec: Scripted((
+            active: false,
+            recipe: Some((inputs: [("grain", 2.0), ("fuel", 1.0)], outputs: [("bread", 3.0)], capacity: "oven.capacity")),
+            buy: [
+                (node: "town", good: "grain", qty: "oven.buy.grain", weight: 0.5),
+                (node: "town", good: "fuel", qty: "oven.buy.fuel", weight: 0.5),
+            ],
+            sell: [(node: "village", good: "bread", qty: AllHeld)],
+            spend: Some("oven.spend"),
+            payout: Some((rate: "oven.payout", to: [("workers", 1.0)])),
+         ))),
+        (key: "workers", kind: Pop, class: "households", home: "town", basis: Assumed("gate world"),
+         spec: Scripted((
+            active: true,
+            recipe: Some((inputs: [("bread", 1.0)], outputs: [], capacity: "workers.eat")),
+            buy: [(node: "town", good: "bread", qty: "workers.buy.bread", weight: 1.0)],
+            sell: [],
+            spend: Some("workers.spend"),
+            payout: None,
+         ))),
+        (key: "pensioners", kind: Pop, class: "pensioners", home: "village", basis: Assumed("gate world"),
+         spec: Scripted((
+            active: true,
+            recipe: Some((inputs: [("bread", 1.0)], outputs: [], capacity: "pensioners.eat")),
+            buy: [
+                (node: "village", good: "bread", qty: "pensioners.buy.bread.village", weight: 0.5),
+                (node: "town", good: "bread", qty: "pensioners.buy.bread.town", weight: 0.5),
+            ],
+            sell: [],
+            spend: Some("pensioners.spend"),
+            payout: None,
+         ))),
+    ],
+    genesis: (
+        basis: Assumed("gate world"),
+        prices: [
+            (node: "village", good: "grain", price: 1.0),
+            (node: "village", good: "fuel", price: 2.0),
+            (node: "village", good: "bread", price: 2.2),
+            (node: "town", good: "grain", price: 1.0),
+            (node: "town", good: "fuel", price: 2.0),
+            (node: "town", good: "bread", price: 2.0),
+        ],
+        holdings: [
+            (holder: "mill", goods: [("coin", 100.0), ("grain", 16.0), ("fuel", 8.0), ("bread", 3.0)]),
+            (holder: "farm", goods: [("coin", 100.0)]),
+            (holder: "mine", goods: [("coin", 100.0)]),
+            (holder: "oven", goods: [("coin", 50.0)]),
+            (holder: "workers", goods: [("coin", 60.0)]),
+            (holder: "pensioners", goods: [("coin", 6.0)]),
+        ],
+    ),
+    // Listed out of order on purpose: the loader sorts events by (tick, key).
+    events: [
+        (key: "mine.restored", at: "1770-06-15", basis: Assumed("gate world"),
+         act: SetParam(param: "mine.capacity", to: "mine.capacity.base")),
+        (key: "mine.cut", at: "1760-03-01", basis: Assumed("gate world"),
+         act: SetParam(param: "mine.capacity", to: "mine.capacity.cut")),
+        (key: "oven.opens", at: "1768-04-01", basis: Assumed("gate world"),
+         act: Actor(SetActive(actor: "oven", active: true))),
+        (key: "bread.line.up", at: "1765-09-01", basis: Assumed("gate world"),
+         act: SetParam(param: "workers.buy.bread", to: "workers.buy.bread.high")),
+    ],
+    recurring: [
+        (key: "pension", first: "1751-01-01", every: "pension.period", last: None,
+         basis: Assumed("gate world"), act: Mint(holder: "pensioners", good: "coin", qty: 5.0)),
+    ],
+)

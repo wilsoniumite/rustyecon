@@ -2,9 +2,10 @@
 
 Final, 2026-09-25, committed as P0.2. It folds in the frontend requirement of 2026-09-25 (an
 engine crate, a read-only observation API, no frontend mutation, `Send` types, a stable tape
-schema) and an adversarial review of the draft. Five steps follow it in order, one commit each:
-**P0.3 core**, **P0.4 markets**, **P0.5 agents**, **P0.6 engine + cli**, **P0.7 housekeeping**
-(P0.1 is the skeleton; P0.2 is this file and the empty `crates/engine`).
+schema) and an adversarial review of the draft. Four steps follow it in order, one commit each:
+**P0.3 core**, **P0.4 markets**, **P0.5 agents + engine + cli**, **P0.6 housekeeping** (P0.1 is
+the skeleton; P0.2 is this file and the empty `crates/engine`). The draft had agents and engine +
+cli as two steps; they were merged at P0.5 (amendment 1 below).
 
 It covers PLAN §3 (phase order), §3.1, §3.3, §3.8 and §3.9; R2–R4, R8 and R12–R14; and ADDENDUM
 A2, A3, A5, A12 and A13. Salvage comes from tag `july-v2-phase-3` (`ff01284`); `v2p3:` paths name
@@ -87,6 +88,72 @@ place in the section named.
 8. Markets' tests are integration tests in `crates/markets/tests/` (`admission`, `settlement`,
    `prices`, `time`) on the fixture `crates/markets/testdata/markets.ron`, except July's five
    clearing tests, which stay unit tests of `prices` (§11).
+
+**Amended at P0.5** (agents, engine and cli), the same way. Core and markets did not change.
+
+1. One commit, P0.5, delivers the agents, the engine, the cli, `tapes/gate.ron` and all their
+   tests; the steps table merges the draft's P0.5 and P0.6, and housekeeping is P0.6 (§12).
+2. Hooks return `Result<_, AgentError>`: a param read or a `num` helper can refuse, and nothing
+   panics. `AgentError` is `Core`, `Num`, `Take` or `Mismatch` (an actor whose state is not of its
+   spec's kind); the engine reports it as `RunErrorKind::Agent { actor, hook, error }` (§4, §7.5).
+3. `View` also carries `currency`, the home node's currency, since a node's currency is not
+   otherwise visible to an actor. `Hook` lives in agents, next to `Behaviour`. `Cast::new(&World)`
+   returns `Result<Cast, LoadError>` and makes the two checks that need the whole world: a
+   scripted actor budgets in its home currency, so every buy line's node must quote in it, and a
+   payout never names the payer (§4).
+4. The scripted spec (§4, §5): `spend` is `Option<Key>`, `Some` exactly when there are buy lines,
+   so an actor that buys nothing registers no spending dial. A sell line's `qty` is
+   `Flow(param)` or `AllHeld`; lines post in (node, good) order, each at most what a copy of the
+   holding still holds after the lines before it, taken as admission takes it, so a `Flow` sell
+   never over-posts and `AllHeld` means what is left at its turn. Recipe coefficients and all
+   weights are finite and positive. The tape action is `Actor(SetActive(actor, active))`.
+5. The accessors `price`, `ema`, `supply`, `demand` and `param` return `Option<f64>`, `None`
+   outside the book or the registry, like core's readers (P0.3 amendment 5). `Trace` is
+   `Trace(pub Vec<TraceEntry>)` with `TraceEntry { phase, delta, moved }`. `Sim` is `Clone`. The
+   registry listing is the engine's `registry(&Tape) -> Result<Vec<RegistryLine>, LoadError>`,
+   which the cli prints (§7.1).
+6. `ReplayError::Shadow { tick, phase, error }` is a traced delta the shadow cannot apply, a
+   divergence like `Mismatch` (exit 4). After a failed step `hash()` is of the state as the
+   failure left it (§7.5).
+7. Hook outputs are collected in any visiting order and then sorted by `ActorId`. A payout split
+   runs in `ActorId` order (the last recipient takes the remainder), so renaming keys moves its
+   last-bit rounding; the renaming half of `decisions_read_phase_start_state` compares tick-0
+   orders exactly and payout recipients as a set (§11, §14).
+8. The cli (§8): a `--hashes` line is `{t} 0x{hash:016x}`, where `t` is the state's tick after
+   each step, so a run to `T` writes ticks 1 to `T` and a resume from `c` writes `c+1` to `T`;
+   stdout's last line has the same form. Checkpoints are written only for states a step
+   reached, never the starting state, so a resume cannot overwrite its own input.
+   `--checkpoint-every` needs `--out` and N ≥ 1. The output directory is made at the first
+   write, so an `--out` that names a file fails there (exit 3). An unreadable tape is a load
+   error (exit 1); an unreadable or undecodable checkpoint is exit 3; a resume whose tape does
+   not load is exit 1; `--until` before the starting tick is exit 1; clap's own argument errors
+   become exit 1 (clap's default, 2, is the run-error code here). `replay` exits 2 when the live
+   run fails and 4 on a mismatch or a shadow failure.
+9. The gate world (§10). As first written, with the mill buying grain only in the village and fuel
+   only in town and selling bread only in town, three of the six markets would never trade, which
+   fails §10's own bar. So every desk trades at both nodes: the farm and the mine sell a
+   registered flow in town and the rest in the village; the mill buys grain and fuel at both
+   nodes and sells a flow of bread in town and the rest in the village; the dormant oven buys in
+   town and sells in the village. The pensioners buy bread at both nodes, so each bread market
+   always has a cash-short buyer; the workers buy in town. The mill's fuel stock carries it for
+   about 16 ticks after the 1760 cut, and then the village's bread rations hard.
+10. Tests (§11): the engine's are integration tests in `crates/engine/tests/` (`determinism`,
+   `gate`, `edits`, `frontend`, `time`, `scans`), except the two hooks tests, which need the
+   crate's internals and are unit tests in `tick.rs`; the agents' are in
+   `crates/agents/tests/seam.rs` and the cli's in `crates/cli/tests/cli.rs`. Added:
+   `engine_runs_on_a_worker_thread`, `no_public_api_hands_out_mut_state`,
+   `gate_world_meets_its_bar`, `the_scanner_reads_what_it_should`,
+   `scripted_specs_are_checked_at_load`, `specs_round_trip_in_canonical_form`,
+   `agents_types_cross_threads`, `registry_lists_every_number` and `no_behaviour_switches`. The
+   scan for E2 also bans `std::io`, which nothing on the engine path uses.
+   `gate_rations_and_records_by_class` reads "rations again after the cut" as: over both bread
+   markets, the year after the cut has more than twice the bread shortfall of the year before and
+   less than half its worst fill. `gate_ids_apart` compares each holding's change with the signed
+   sum of the traced quantities under a relative bar of 1e-12, named in its file (the two round
+   differently), and matches every settlement transfer to its settle line exactly.
+11. Dependencies (§1): agents and engine use `serde` (specs and reports are serialisable).
+   `clap` and `tempfile` join the workspace dependencies, and `Cargo.lock` pins clap 4.6.1 and
+   tempfile 3.27.0 (July's versions) with a dependency closure both machines have cached.
 
 ## 0. Engine invariants
 
@@ -622,26 +689,43 @@ For each non-currency market, with `k`, `w` and the one-sided rule read from the
 
 ```rust
 pub struct View<'a, S> { pub tick: u64, pub clock: &'a Clock, pub me: ActorId, pub class: ClassId,
-    pub home: NodeId, pub own: &'a Inventory, pub own_state: &'a S,
+    pub home: NodeId, pub currency: GoodId,   // the home node's currency (amended at P0.5)
+    pub own: &'a Inventory, pub own_state: &'a S,
     pub posted: Posted<'a>,            // price and ema per (node, good), read-only
     pub params: Params<'a> }           // current values, typed by unit
 pub trait Behaviour: Send + Sync {     // Phase 2 implements it for new kinds
     type Own;                          // the actor's own extension state
-    fn decide(&self, v: &View<Self::Own>) -> Decision;                     // phase 1
-    fn produce(&self, v: &View<Self::Own>) -> Vec<StateDelta<Agents>>;     // phase 4
-    fn upkeep(&self, v: &View<Self::Own>) -> Vec<StateDelta<Agents>>; }    // phase 5b
+    fn decide(&self, v: &View<Self::Own>) -> Result<Decision, AgentError>;                  // phase 1
+    fn produce(&self, v: &View<Self::Own>) -> Result<Vec<StateDelta<Agents>>, AgentError>;  // phase 4
+    fn upkeep(&self, v: &View<Self::Own>) -> Result<Vec<StateDelta<Agents>>, AgentError>; } // phase 5b
+pub enum Hook { Decide, Produce, Upkeep }
+pub enum AgentError { Core(CoreError), Num(NumError), Take(TakeError), Mismatch(ActorId) }
 pub struct Decision { pub orders: Vec<Order>, pub deltas: Vec<StateDelta<Agents>> }
 pub struct Agents;  // impl Ext: State = BTreeMap<ActorId, ActorState>, Delta = AgentDelta,
                     //           RawActor = RawSpec, Actor = Spec, RawAction = RawAgentAction
 pub enum ActorState { Scripted(ScriptState) }   // one variant per behaviour kind
 pub struct ScriptState { pub active: bool }
 pub enum AgentDelta { SetActive { actor: ActorId, active: bool } } // owner: Some(actor)
-pub struct Cast { /* one Behaviour per kind, built from World.actors */ }
+pub enum RawAgentAction { SetActive { actor: Key, active: bool } } // Actor(SetActive(..)) on the tape
+pub struct Cast { /* one Behaviour per actor, by kind, built from World.actors */ }
+impl Cast { pub fn new(w: &World<Agents>) -> Result<Cast, LoadError>;
+    pub fn decide(&self, a: ActorId, s: &SimState<Agents>, w: &World<Agents>) -> Result<Decision, AgentError>;
+    /* produce and upkeep alike */ }
 ```
 
-`Cast` dispatches each actor to its kind's `Behaviour` by its `ActorState` variant. R13 holds by
-construction: a `View` cannot reach another actor's holdings, orders or state, and agents never
-depends on the oracle. The engine enforces the rest (§7.3).
+`Cast` dispatches each actor to its kind's `Behaviour`, and checks that its `ActorState` variant
+matches (`AgentError::Mismatch` otherwise). `Cast::new` makes the load checks that need the
+whole world: every buy line's node quotes in the actor's home currency, and no payout names the
+payer; each is a `LoadError` with its tape path. R13 holds by construction: a `View` cannot reach
+another actor's holdings, orders or state, nor the cleared volumes, and agents never depends on
+the oracle. The engine enforces the rest (§7.3).
+
+The scripted spec (`RawSpec::Scripted(RawScript)`, documented field by field in the rustdoc of
+`rustyecon_agents::spec`) has `active`, `recipe: Option<(inputs, outputs, capacity)>`, `buy`
+lines `(node, good, qty: FlowPerYear param, weight)`, `sell` lines `(node, good, qty:
+Flow(FlowPerYear param) | AllHeld)`, `spend: Option<RatePerYear param>` (`Some` exactly when there
+are buy lines) and `payout: Option<(rate: RatePerYear param, to: [(actor, weight)])>`.
+Coefficients and weights are finite and positive, and a payout never names the payer.
 
 The scripted actor (either kind) reads its lines' quantities and rates from the current params,
 so a dated `SetParam` retargets it. It does nothing while `active` is false.
@@ -658,7 +742,10 @@ so a dated `SetParam` retargets it. It does nothing while `active` is false.
     rem)`.
 
   A valid tape can therefore never produce `OverBudget`, even when `share` rounds to exactly 1.
-  Last, each sell line posts `flow(line)`, or `own.get(good)` for `AllHeld`.
+  Last, each sell line, in (node, good) order, posts `min(flow(line), left)`, or `left` for
+  `AllHeld`, where `left` is what a copy of the holding still holds after the earlier sell lines,
+  taken as admission takes it. Scripted actors move only currency in phase 1, so admission sees
+  the same holding of every good, and a valid scripted tape never produces `OverPosted` either.
 - **`produce`** is Leontief: `x = min(flow(capacity), min_k max_scale(held_k, a_k))`. It burns
   `a_k·x` of each input in good order (`Production` for a Desk, `Consumption` for a Pop). It then
   mints `o_l·x` of each output in good order, as `Production`, or as `Endowment` when the recipe
@@ -775,21 +862,24 @@ impl Sim {
     pub fn last_report(&self) -> Option<&TickReport>;
     // read-only accessors (E4)
     pub fn world(&self) -> &World;  pub fn tick(&self) -> u64;  pub fn hash(&self) -> u64; // cached
-    pub fn price(&self, n: NodeId, g: GoodId) -> f64;  /* ema, supply, demand alike */
-    pub fn param(&self, p: ParamId) -> f64;
+    pub fn price(&self, n: NodeId, g: GoodId) -> Option<f64>;  /* ema, supply, demand alike */
+    pub fn param(&self, p: ParamId) -> Option<f64>;            // None outside the book or registry
     pub fn holding(&self, h: Holder) -> Option<&Inventory>;
     pub fn holdings_of(&self, g: GoodId) -> impl Iterator<Item = (Holder, f64)> + '_;
     pub fn actor_state(&self, a: ActorId) -> Option<&ActorState>;
     pub fn observe_holdings(&self) -> HoldingTotals;   // owned, for another thread
 }
+pub struct Trace(pub Vec<TraceEntry>);
+pub struct TraceEntry { pub phase: Phase, pub delta: StateDelta<Agents>, pub moved: f64 }
 pub fn audit_replay(tape: &Tape, until: u64) -> Result<u64, ReplayError>;   // §7.6; the final hash
+pub fn registry(tape: &Tape) -> Result<Vec<RegistryLine>, LoadError>;       // §5's listing
 ```
 
-`run_until(T)` steps until the state's tick is `T`, calling `on_tick` after each step. `Tape`,
-`World`, `Checkpoint` and `TickReport` are `Clone`, so a frontend on another thread keeps its own
-`World` for key lookups. A frontend
-on a worker thread steps and sends each `TickReport` (and, at its own cadence, `HoldingTotals`)
-over a channel; the cli is one such frontend, on the main thread.
+`run_until(T)` steps until the state's tick is `T`, calling `on_tick` after each step; it runs
+nothing when the tick is already at or past `T`. `Sim`, `Tape`, `World`, `Checkpoint` and
+`TickReport` are `Clone`, so a frontend on another thread keeps its own `World` for key lookups.
+A frontend on a worker thread steps and sends each `TickReport` (and, at its own cadence,
+`HoldingTotals`) over a channel; the cli is one such frontend, on the main thread.
 
 ### 7.2 The tick
 
@@ -865,12 +955,14 @@ agrees with the accessors read after its step: each line's `next_price`, `ema`, 
 ```rust
 pub struct RunError { pub tick: u64, pub phase: Phase, pub kind: RunErrorKind }
 pub enum RunErrorKind { Core(CoreError), Order(OrderError), Price(PriceError),
+    Agent { actor: ActorId, hook: Hook, error: AgentError },           // a hook that cannot run
     ForeignWrite { actor: ActorId, hook: Hook, delta: StateDelta<Agents> },
     ForeignOrder { actor: ActorId, order: Order }, Poisoned }
 pub enum ResumeError { Load(LoadError), Checkpoint(CheckpointError),
     WrongWorld { tape: u64, checkpoint: u64 }, WrongPrefix { tick: u64, tape: u64, checkpoint: u64 },
     Invalid(CoreError) }
-pub enum ReplayError { Load(LoadError), Run(RunError), Mismatch { tick: u64, live: u64, shadow: u64 } }
+pub enum ReplayError { Load(LoadError), Run(RunError), Mismatch { tick: u64, live: u64, shadow: u64 },
+    Shadow { tick: u64, phase: Phase, error: CoreError } }   // a traced delta the shadow refuses
 ```
 
 `Display` gives the ledger line for a shortfall or a conservation breach. `apply` is atomic per
@@ -878,8 +970,8 @@ delta, not per tick, so a failed step leaves the state partway through its tick.
 then `Poisoned { tick, phase }`: `step`, `run_until` and `checkpoint` return
 `RunErrorKind::Poisoned`, and `last_report` still returns the last good tick's report. The
 accessors still answer, reading the state as the failed delta left it, for diagnosis only; no
-invariant holds for it. A `Sim` is rebuilt with `Sim::new` or `Sim::resume`. No step discards the
-audit (N3); July's did (`v2p3: systems/mod.rs:37`).
+invariant holds for it, and `hash()` is of that state. A `Sim` is rebuilt with `Sim::new` or
+`Sim::resume`. No step discards the audit (N3); July's did (`v2p3: systems/mod.rs:37`).
 
 ### 7.6 Checkpoints, resume and the replay audit (N11, E1)
 
@@ -908,22 +1000,25 @@ rustyecon replay   <tape.ron> --until <tick>                                    
 rustyecon registry <tape.ron>
 ```
 
-- `--until T` runs until the state's tick is `T`.
+- `--until T` runs until the state's tick is `T`; a `T` before the starting tick is exit 1.
 - **Checkpoints.** With `--out DIR`, the final state always goes to `DIR/tick_{:08}.{bin|ron}`,
-  named by the state's tick. With `--checkpoint-every N` as well, so does every state whose tick is
-  a multiple of `N`. Without `--out`, nothing is written. A failed write stops the run with exit 3,
-  and no further tick runs; July only printed it (`v2p3: runner.rs:488-505`).
-- **Hashes.** `--hashes` writes one `tick 0x{hash:016x}` line per tick, and stdout ends with the
-  final tick and hash.
+  named by the state's tick (`--format`, default `bin`). With `--checkpoint-every N` (which needs
+  `--out`, N ≥ 1) as well, so does every state a step reaches whose tick is a multiple of `N`;
+  the starting state is never written, so a resume cannot overwrite its own input. Without
+  `--out`, nothing is written. `DIR` is made at the first write. A failed write stops the run with
+  exit 3, and no further tick runs; July only printed it (`v2p3: runner.rs:488-505`).
+- **Hashes.** `--hashes` writes one `{t} 0x{hash:016x}` line per step, `t` the state's tick after
+  it (1 to `T` for a run, `c+1` to `T` for a resume from tick `c`), and stdout ends with the same
+  line for the final state.
 - **Exit codes:**
 
   | Code | Meaning |
   |---|---|
   | 0 | ok |
-  | 1 | load or argument error, an unknown checkpoint extension included |
-  | 2 | run error: the error or ledger line and the last good tick go to stderr |
-  | 3 | I/O or checkpoint error, a refused resume included |
-  | 4 | replay mismatch |
+  | 1 | load or argument error: an unreadable tape, an unknown checkpoint extension, a resume whose tape does not load; clap's own argument errors are mapped here |
+  | 2 | run error: the error or ledger line and the last good tick go to stderr (`replay` too, when the live run fails) |
+  | 3 | I/O or checkpoint error: an unreadable or undecodable checkpoint, a failed write, a refused resume |
+  | 4 | replay mismatch, or a traced delta the shadow refuses |
 
 - July's `--agents`, `--price-rule` and `--supply-rule` switches do not return (N13), and no
   command-line override of any kind exists (E1).
@@ -959,15 +1054,18 @@ It starts on 1750-01-01 at 52 ticks a year and runs 2,080 ticks, 40 years.
 - **Goods:** `coin` (currency), `grain` and `fuel` (indefinite), `bread` (three-week life).
   **Nodes:** `town` and `village`, both in coin. **Classes:** producers, households, pensioners.
   **Market:** `Imbalance`, `one_sided: Hold`.
-- **Desks** (key order gives `Desk(0)` … `Desk(3)`):
-  - `farm` (home village) and `mine` (home town) are endowments of grain and fuel.
-  - `mill` (home town) is Leontief: grain 2 + fuel 1 → bread 3. It buys grain in the village and
-    fuel in town, and sells all its bread in town.
-  - `oven` (home town) is a second bread desk, declared dormant; the entrant pattern.
-  - Farm, mine and mill pay the workers, and the farm pays the pensioners a little.
-- **Pops:** `pensioners` (home village, `Pop(0)`) hold a bread line that their budget cannot cover
-  at genesis prices, which makes them the cash-short buyer. `workers` (home town, `Pop(1)`) buy and
-  consume bread.
+- **Desks** (key order gives `Desk(0)` … `Desk(3)`); every desk trades at both nodes, so that
+  all six markets trade (amended at P0.5):
+  - `farm` (home village) and `mine` (home town) are endowments of grain and fuel. Each sells a
+    registered flow in town and the rest of what it holds in the village.
+  - `mill` (home town) is Leontief: grain 2 + fuel 1 → bread 3. It buys grain and fuel at both
+    nodes, and sells a registered flow of bread in town and the rest in the village.
+  - `oven` (home town) is a second bread desk, declared dormant; the entrant pattern. Awake, it
+    buys grain and fuel in town and sells bread in the village.
+  - Mine, mill and oven pay the workers; the farm pays the workers and the pensioners.
+- **Pops:** `pensioners` (home village, `Pop(0)`) hold bread lines at both nodes that their budget
+  cannot cover at genesis prices, which makes them the cash-short buyer in both bread markets.
+  `workers` (home town, `Pop(1)`) buy bread in town. Both consume bread.
 - **Shared numbers.** `Desk(0)` (farm) and `Pop(0)` (pensioners) share a number, as do `Desk(1)`
   (mill) and `Pop(1)` (workers). At genesis, bread demand exceeds the mill's capacity.
 - **Events.** Four dated events, listed out of order:
@@ -976,12 +1074,16 @@ It starts on 1750-01-01 at 52 ticks a year and runs 2,080 ticks, 40 years.
   - the oven activates in 1768;
   - the mine's capacity is restored in 1770.
 
-  Bread rations again after the cut. A yearly recurring mint pays the pensioners coin.
+  Bread rations again after the cut: the mill's fuel stock carries it for about 16 ticks, and then
+  the village's bread fills at under a quarter for weeks. A yearly recurring mint pays the
+  pensioners coin.
 
 The implementer tunes the numbers, registered as `Assumed`, to one bar: every market trades in
-every year, and no price leaves [1e-3, 1e3] × its genesis value. Failure tests make variants of
-this one file, by text substitution or by editing the parsed `Tape`. No second hand-kept tape
-exists.
+every year, and no price leaves [1e-3, 1e3] × its genesis value (`gate_world_meets_its_bar`; the
+widest excursion is about 16× genesis, the village's bread in 1769). The pension grows the money
+stock, so prices drift up about 1% a year; over the 20,000 ticks of `gate_lots_bounded` they reach
+about 70× genesis, still finite. Failure tests make variants of this one file, by text
+substitution or by editing the parsed `Tape`. No second hand-kept tape exists.
 
 ## 11. Tests (the A3 gate)
 
@@ -1047,11 +1149,10 @@ size; none is absolute (A12). Gate tests read `tapes/gate.ron` through `include_
 |---|---|
 | P0.3 core | §2 and its tests; `docs/TAPE.md` |
 | P0.4 markets | §3 and its tests |
-| P0.5 agents | §4 and its tests |
-| P0.6 engine + cli | §7 and §8, `tapes/gate.ron` (§10), the engine and cli tests |
-| P0.7 housekeeping | the items below |
+| P0.5 agents + engine + cli | §4, §7 and §8, `tapes/gate.ron` (§10), and the agents, engine and cli tests (one commit, amended at P0.5) |
+| P0.6 housekeeping | the items below (P0.7 in the draft) |
 
-P0.7 (PLAN Phase 0 steps 2 and 6; A3):
+P0.6 (PLAN Phase 0 steps 2 and 6; A3):
 
 - Move `docs/reboot/PLAN.md` to `docs/PLAN.md`, and fix the links to it in REVIEW.md, ADDENDUM.md,
   the root `Cargo.toml` and this file.
@@ -1108,5 +1209,6 @@ P0.7 (PLAN Phase 0 steps 2 and 6; A3):
      computes, so correcting a note should not invalidate checkpoints.
    - **The permutation half of `decisions_read_phase_start_state` is asserted at tick 0 only.** From
      tick 1 the canonical sums fold in the new id order and may round differently, which is
-     legitimate.
+     legitimate. Even at tick 0 a payout split runs in `ActorId` order (the last recipient takes
+     the remainder), so the test compares orders exactly and payout recipients as a set.
    - **The steps start at P0.3, not P0.2**, because this contract is P0.2.
