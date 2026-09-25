@@ -1,0 +1,64 @@
+// Markets' test fixture (docs/ENGINE.md §11, markets): a small world with no behaviour. Actors
+// hold goods and have the spec `()`; the tests post orders for them directly. Tests make
+// variants of it by editing this text. It is not the gate world (tapes/gate.ron, P0.6).
+//
+// Ids, in key order: goods bread 0, coin 1, florin 2, grain 3; nodes port 0 (florin), town 1
+// and village 2 (coin); classes households 0, pensioners 1, producers 2; desks farm 0 and mill 1;
+// pops pensioners 0 and workers 1. So Desk(0) and Pop(0) share a number, as do Desk(1) and
+// Pop(1).
+Tape(
+    schema: 1,
+    header: (
+        name: "markets-fixture",
+        start: "1750-01-01",
+        ticks_per_year: 52,
+        market: (rule: Imbalance, one_sided: Hold, ema_time_constant: "price.ema_tc"),
+        ledger: (rel_flow: "ledger.rel_flow", rel_stock: "ledger.rel_stock"),
+    ),
+    params: [
+        (key: "ledger.rel_flow", value: 1e-12, unit: Dimensionless, basis: Assumed("July REL_FLOW")),
+        (key: "ledger.rel_stock", value: 1e-11, unit: Dimensionless, basis: Assumed("July REL_STOCK")),
+        (key: "price.ema_tc", value: 0.5, unit: Years, basis: Approximate("July 2/53 at 52 ticks a year")),
+        (key: "rate.bread", value: 5.2, unit: RatePerYear, basis: Assumed("July alpha 0.1 per weekly tick")),
+        (key: "rate.grain", value: 5.2, unit: RatePerYear, basis: Assumed("July alpha 0.1 per weekly tick")),
+        (key: "life.bread", value: 0.0577, unit: Years, basis: Assumed("three weeks")),
+    ],
+    goods: [
+        (key: "bread", life: Years("life.bread"), price_rate: Some("rate.bread")),
+        (key: "coin", life: Indefinite, price_rate: None),
+        (key: "florin", life: Indefinite, price_rate: None),
+        (key: "grain", life: Indefinite, price_rate: Some("rate.grain")),
+    ],
+    nodes: [
+        (key: "port", currency: "florin"),
+        (key: "town", currency: "coin"),
+        (key: "village", currency: "coin"),
+    ],
+    channels: [],
+    classes: ["households", "pensioners", "producers"],
+    actors: [
+        (key: "farm", kind: Desk, class: "producers", home: "village", basis: Assumed("markets fixture"), spec: ()),
+        (key: "mill", kind: Desk, class: "producers", home: "town", basis: Assumed("markets fixture"), spec: ()),
+        (key: "pensioners", kind: Pop, class: "pensioners", home: "village", basis: Assumed("markets fixture"), spec: ()),
+        (key: "workers", kind: Pop, class: "households", home: "town", basis: Assumed("markets fixture"), spec: ()),
+    ],
+    genesis: (
+        basis: Assumed("markets fixture"),
+        prices: [
+            (node: "port", good: "bread", price: 3.0),
+            (node: "port", good: "grain", price: 1.5),
+            (node: "town", good: "bread", price: 2.0),
+            (node: "town", good: "grain", price: 1.0),
+            (node: "village", good: "bread", price: 2.2),
+            (node: "village", good: "grain", price: 0.9),
+        ],
+        holdings: [
+            (holder: "farm", goods: [("coin", 100.0), ("grain", 16.0)]),
+            (holder: "mill", goods: [("bread", 9.0), ("coin", 50.0), ("florin", 30.0)]),
+            (holder: "pensioners", goods: [("coin", 6.0)]),
+            (holder: "workers", goods: [("coin", 20.0), ("florin", 10.0)]),
+        ],
+    ),
+    events: [],
+    recurring: [],
+)

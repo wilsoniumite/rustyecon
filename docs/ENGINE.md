@@ -53,6 +53,41 @@ place in the section named.
    `#[cfg(test)]`, on the fixture `crates/core/testdata/core.ron`. Source comments cite sections
    such as §2.4, so the source scans of §11 strip comments before looking for literals.
 
+**Amended at P0.4** (markets), the same way. Core did not change.
+
+1. `clear`, `settle` and `SettlePlan::realize` return `Result<_, OrderError>`: a line or fill for
+   a market the world does not have is `UnknownMarket`, and a moved list whose length is not the
+   plan's is `Moved`, never a panic or a silent skip (N2). `OrderError` also has `Core` (a state
+   that does not fit its world) and `Num`; `PriceError` also has `NonFiniteEma` and `Core` (a
+   param read that fails) (§3.1–§3.3).
+2. `Line` is `#[non_exhaustive]`: its fields are public to read, but only `admit` makes one, so a
+   budget binds at admission and nowhere else (§3.1).
+3. Admission runs the takes settlement will make, in the same order, on a copy of each actor's
+   holding. For a currency, which is one lot, that is exactly `rem = rem − budget`. For a
+   perishable good held in several lots it is not the same as subtracting from the lot sum: with
+   lots of 0.1 and 0.2, a sell of 0.1 leaves 0.2, but `0.30000000000000004 − 0.1 =
+   0.20000000000000004`, so a second sell of that much would pass the subtraction and fall short
+   at settlement (§3.1).
+4. Duplicate keys are checked before zero-quantity orders are dropped, so a zero-quantity second
+   post is still `Duplicate`, and a dropped order binds no cash. Every check runs in canonical
+   order, so which error is reported does not depend on input order either (§3.1).
+5. A market trades when `S > 0`, `D > 0` and both fills are positive (`MarketFill::trades`). With
+   both sides posted, a fill is 0 only when `S/D` or `D/S` underflows below 2⁻¹⁰⁷⁴; nothing then
+   trades, rather than one side alone (sellers shipping what the last buyer would take unpaid,
+   say). A transfer whose
+   nominal quantity is exactly 0 is left out of the plan, except each escrow's last taker, whose
+   `All` is always planned (§3.2).
+6. The no-shortfall argument of §3.2 assumes normal numbers. Where a payment or a fill falls into
+   the subnormal range its rounding is no longer relative, and a non-last take could exceed its
+   escrow by a subnormal amount. That would be a `CoreError::Shortfall`, which stops the run with
+   its ledger line (R2); no guard is added (A12) (§3.2).
+7. The pure rules are public: `imbalance`, `step` (`p·exp(k·x)`) and `next_price(rule,
+   one_sided, p, k, S, D)`. Under `Saturate` a one-sided market's `x` is the imbalance itself,
+   which is exactly ±1. `Ratio` computes `p·(D/S)`, July's order of operations (§3.3).
+8. Markets' tests are integration tests in `crates/markets/tests/` (`admission`, `settlement`,
+   `prices`, `time`) on the fixture `crates/markets/testdata/markets.ron`, except July's five
+   clearing tests, which stay unit tests of `prices` (§11).
+
 ## 0. Engine invariants
 
 Numbered so tests and reviews can cite them. Each has at least one test in §11.
@@ -468,8 +503,14 @@ impl<E: Ext> Schedule<E> { pub fn fire(&self, tick: u64) -> Vec<Firing<E>>; }
 pub struct Order { pub actor: ActorId, pub class: ClassId, pub node: NodeId, pub good: GoodId,
                    pub qty: f64, pub side: Side }
 pub enum Side { Buy { budget: f64 }, Sell }         // budget in the node's currency
-pub struct Line { pub order: Order, pub feasible: f64 }
+pub enum SideTag { Buy, Sell }                      // Side without the budget; Buy < Sell
+#[non_exhaustive] pub struct Line { pub order: Order, pub feasible: f64 }  // made by admit only
 pub fn admit<E: Ext>(orders: Vec<Order>, s: &SimState<E>, w: &World<E>) -> Result<Vec<Line>, OrderError>;
+pub enum OrderError { UnknownActor(ActorId), UnknownNode(NodeId), UnknownGood(GoodId),
+    NoMarket { node, good }, WrongClass { actor, class, registered }, BadValue { order, what, value },
+    Duplicate { actor, node, good, side }, OverBudget { order, currency, remaining },
+    OverPosted { order, remaining }, UnknownMarket { node, good }, Moved { deltas, moved },
+    Core(CoreError), Num(NumError) }
 ```
 
 - **Feasible quantity.** A buy's `feasible = min(qty, num::max_qty(budget, price)?)`. No price
@@ -481,10 +522,14 @@ pub fn admit<E: Ext>(orders: Vec<Order>, s: &SimState<E>, w: &World<E>) -> Resul
     single currency lot performs at settlement, so a payment that fits here fits there
     (`OverBudget`).
   - The sells of one good are checked cumulatively across nodes against `get(good)` in the same
-    way (`OverPosted`).
-  - One order per (actor, node, good, side).
-  - The class is the actor's registered class.
-  - Values are finite with a clear sign bit, and zero-quantity orders are dropped.
+    way (`OverPosted`). Both checks run the inventory's own takes, in settlement's order, on a
+    copy of the actor's holding: for a currency that is the subtraction above, and for a good
+    held in several lots it is the lot-by-lot arithmetic settlement will perform (amendment 3).
+  - One order per (actor, node, good, side), checked before zero-quantity orders are dropped.
+  - The order names a declared actor, a node and a non-currency good, and its class is the
+    actor's registered class.
+  - Values are finite with a clear sign bit, and zero-quantity orders are dropped; a dropped
+    order binds no cash.
 - Budgets bind here and nowhere else. Settlement never cuts a buyer, so the volumes the price
   reads are all demand that can pay (N7).
 - **Phase 0 trades across nodes.** An actor may post at any node, and nothing crosses a channel or
@@ -493,15 +538,19 @@ pub fn admit<E: Ext>(orders: Vec<Order>, s: &SimState<E>, w: &World<E>) -> Resul
   order, `S` is the sum of sells and `D` the sum of feasible buys, both left folds in canonical
   line order. `buyer_fill = if D > 0 { (S/D).min(1.0) } else { 0.0 }`, and `seller_fill` mirrors
   it. Every (node, non-currency good) gets `SetVolumes { supply: S, demand: D }`, with 0 and 0
-  where nothing was posted.
+  where nothing was posted. A line for a market the world does not have is `UnknownMarket`.
 
 ### 3.2 Settlement: one fill, both sides, through an escrow
 
 ```rust
-pub fn clear<E: Ext>(lines: &[Line], w: &World<E>) -> (Vec<StateDelta<E>>, Fills); // S, D, both fills per market
-pub fn settle<E: Ext>(lines: &[Line], f: &Fills, s: &SimState<E>, w: &World<E>) -> SettlePlan<E>;
+pub fn clear<E: Ext>(lines: &[Line], w: &World<E>) -> Result<(Vec<StateDelta<E>>, Fills), OrderError>;
+pub struct Fills { /* one MarketFill per market, (node, good) order */ }  // markets(), get(node, good)
+pub struct MarketFill { pub node: NodeId, pub good: GoodId, pub supply: f64, pub demand: f64,
+                        pub buyer_fill: f64, pub seller_fill: f64 }      // trades(): S, D, both fills > 0
+pub fn settle<E: Ext>(lines: &[Line], f: &Fills, s: &SimState<E>, w: &World<E>)
+    -> Result<SettlePlan<E>, OrderError>;
 impl<E: Ext> SettlePlan<E> { pub fn deltas(&self) -> &[StateDelta<E>];
-    pub fn realize(self, moved: &[f64]) -> (Vec<SettleLine>, Vec<RationLine>); }  // after apply
+    pub fn realize(self, moved: &[f64]) -> Result<(Vec<SettleLine>, Vec<RationLine>), OrderError>; }
 pub struct SettleLine { pub actor: ActorId, pub class: ClassId, pub node: NodeId, pub good: GoodId,
                         pub side: SideTag, pub qty: f64, pub value: f64 }       // moved, one per order
 pub struct RationLine { pub node: NodeId, pub good: GoodId, pub class: ClassId, pub side: SideTag,
@@ -509,8 +558,8 @@ pub struct RationLine { pub node: NodeId, pub good: GoodId, pub class: ClassId, 
 pub fn update_prices<E: Ext>(s: &SimState<E>, w: &World<E>) -> Result<Vec<StateDelta<E>>, PriceError>; // §3.3
 ```
 
-For each market with `S > 0 && D > 0`, in (node, good) order, with posted price `p`, currency `c`
-and escrow `X = Holder::Escrow(node, good)`:
+For each market that trades (`S > 0`, `D > 0` and both fills positive; amendment 5), in (node,
+good) order, with posted price `p`, currency `c` and escrow `X = Holder::Escrow(node, good)`:
 
 1. Each seller, in actor order, transfers `ship_i = qty_i·seller_fill` of the good to `X`.
 2. Each buyer, in actor order, transfers `pay_j = p·r_j` of `c` to `X`, where `r_j =
@@ -525,7 +574,9 @@ and escrow `X = Holder::Escrow(node, good)`:
 qty_i` and `pay_j <= budget_j`. A buyer pays in the order its budgets were admitted, and receipts
 only add. The largest taker goes last, so no earlier take can exceed the escrow, and every escrow
 ends empty. Only the last taker's quantity differs from nominal, by rounding; payments are
-nominal.
+nominal. The argument assumes normal numbers; in the subnormal range a take could still fall
+short, and that stops the run with its ledger line (amendment 6). A transfer whose nominal
+quantity is exactly 0 is not planned, and its line reports 0.
 
 **Moved quantities.** `apply` returns what each delta moved, and `realize` turns the plan into
 `SettleLine`s and `RationLine`s from those actual quantities. A buyer's line has `qty` = the good
@@ -538,6 +589,8 @@ lots to the lowest id (open question 4).
 There is one `RationLine` per (node, good, class, side) for each market that had an order. For a
 buyer class, the cash shortfall is `requested − feasible` and the market shortfall is `feasible −
 filled`. For a seller class, `requested = feasible` = offered, and `filled` = shipped.
+`SettleLine`s come one per admitted line in (actor, node, good, side) order, and `RationLine`s in
+(node, good, class, side) order, each sum a left fold in actor order.
 
 ### 3.3 Price update (N5, N13; F8; A13)
 
@@ -553,14 +606,17 @@ For each non-currency market, with `k`, `w` and the one-sided rule read from the
     every tick until it leaves the finite positive range, which is a `PriceError`. At `k = 0.1` a
     tick that takes about 7,450 ticks. Session 2's runaway detector watches for it.
   - `Hold`: `p' = p`. A one-sided market carries no price evidence.
-- **`Ratio`.** `p' = p·D/S` when both are positive, else `p' = p`. `Ratio` with `Saturate` does not
-  load.
+- **`Ratio`.** `p' = p·(D/S)` when both are positive (July's order of operations), else `p' =
+  p`. `Ratio` with `Saturate` does not load.
 - **EMA.** `ema' = w·p + (1 − w)·ema`, with `w = clock.weight(ema_time_constant)` read at use time
   and `p` this tick's posted price.
 - **Changes and errors.** `SetPrice` and `SetEma` are emitted only when the bits change. That is an
   exact test, not a tolerance; July's `1e-12` gates were N5's floor. A non-finite or non-positive
-  price is `PriceError::NonFinite { node, good, from, to }` and stops the run. There is no floor,
-  ceiling or fallback; N13's fallback, `v2p3: clearing/mod.rs:124-132`, goes.
+  price is `PriceError::NonFinite { node, good, from, to }` and stops the run, and an EMA likewise
+  `NonFiniteEma`; a param read that fails is `PriceError::Core`. Nothing is emitted on an error.
+  There is no floor, ceiling or fallback; N13's fallback, `v2p3: clearing/mod.rs:124-132`, goes.
+- **Public rules.** `imbalance(S, D)`, `step(p, k, x) = p·exp(k·x)` and `next_price(rule,
+  one_sided, p, k, S, D)` are the pure functions `update_prices` applies to each market.
 
 ## 4. rustyecon-agents: the seam and the scripted actor
 
@@ -958,6 +1014,7 @@ size; none is absolute (A12). Gate tests read `tapes/gate.ron` through `include_
 | admission, settlement | `over_budget_is_an_order_error`, `over_posting_seller_is_an_order_error`, `sells_at_two_nodes_are_checked_cumulatively`, `duplicate_order_is_rejected`, `two_kinds_same_number_settle_apart`, `no_forgiveness_currency_moves_only_by_transfers`, `escrow_is_empty_after_settlement`, `settlement_is_invariant_to_order_input_order`, `all_taker_is_largest_then_highest_id`, `settle_lines_carry_moved_quantities` | defect 10, N8, R8 |
 | prices | `tiny_prices_move_by_rule` (at 1e-15 and 1e-300 each step is exactly `p·exp(k·x)`), `huge_price_overflow_is_a_run_error`, `tiny_and_huge_prices_settle_without_guards` (1e-200 flows move at prices 1e-15 and 1e200), `price_rule_comes_from_the_tape` (no rule, no load; `Ratio` and `Imbalance` hash apart), `one_sided_rule_comes_from_the_tape` (at S = 0 < D, `Saturate` multiplies by `exp(k)` each tick and `Hold` keeps the bits), `ratio_nonfinite_is_an_error`, `genesis_ema_is_the_genesis_price`, `params_are_read_at_use_time` | N5, N6, N13, F8 |
 | time | `ema_is_tick_length_invariant`, `imbalance_path_is_tick_length_invariant` | A13 |
+| added at P0.4 | `orders_are_checked_against_the_world`, `budgets_bind_per_currency`, `feasible_quantity_is_what_the_budget_buys`, `rationing_is_recorded_per_class`, `markets_types_cross_threads` | N2, N6, N7, R12, E3 |
 
 **agents**
 

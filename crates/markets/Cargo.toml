@@ -4,8 +4,10 @@ version.workspace = true
 edition.workspace = true
 publish.workspace = true
 
+# Markets depend on core alone (docs/ENGINE.md §1): core ← markets ← agents ← engine ← cli.
 [dependencies]
 rustyecon-core.workspace = true
+serde.workspace = true
 
 [lints]
 workspace = true
