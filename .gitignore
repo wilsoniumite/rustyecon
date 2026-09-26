@@ -13,3 +13,21 @@ tmp
 .vscode
 
 CLAUDE.md
+
+# Data spine (docs/spine/DATA_NOTES.md). Raw downloads, hand entries of copyrighted
+# tables and derived series live outside the repository (D:/rustyecon-spine) because
+# most licences forbid redistribution. These guards keep them out if a path is pointed
+# inside the tree. BNS's CC0 files are the exception, in data/spine/cc0/.
+data/spine/raw/
+data/spine/series/
+data/spine/digitised/
+data/spine/eyeball/
+data/spine/**/*.xlsx
+data/spine/**/*.xls
+data/spine/**/*.pdf
+!data/spine/cc0/**
+# BNS's malthus_data.csv is CC0 as deposited but compiles third-party numbers (Clark,
+# the Bank's Broadberry, Allen, Humphries-Weisdorf, MalthusFigures): fetched, not committed.
+data/spine/cc0/**/malthus_data.*
+# The eyeball figures plot third-party numbers: generated locally, never committed.
+docs/spine/figs/
