@@ -1,0 +1,16 @@
+setup,runs,converged,diverged,dead,orbiting,other,median_ticks_to_tol,max_ticks_to_tol,max_dead_ticks,max_dead_ticks_in_W,min_trough_good
+battery (registered),57,57,0,0,0,0,445,677,111,0,0.135
+tier 3 at 10L,21,21,0,0,0,0,523,677,111,0,0.135
+stocks,21,21,0,0,0,0,472,569,107,0,0.000
+joint x/÷2,60,60,0,0,0,0,536,612,128,0,0.000
+joint x/÷4,40,40,0,0,0,0,571,698,202,0,0.000
+"history bcycle(1500,80), 20,000 ticks",1,0,0,1,0,0,,,611,368,0.000
+"history bcycle(1500,80), 121,500 ticks",1,0,0,1,0,0,,,3888,1944,0.000
+variant: ex-post assignment,57,57,0,0,0,0,344,630,89,0,0.215
+variant: ceiling payout,57,57,0,0,0,0,445,677,165,0,0.045
+variant: Hold,57,57,0,0,0,0,445,677,111,0,0.135
+variant: tilt = 1,57,57,0,0,0,0,297,422,88,0,0.000
+negative control: July's step rule,57,0,57,0,0,0,,,337,0,0.000
+12 a year,57,57,0,0,0,0,276,725,30,0,0.177
+"365 a year, L 20,000",57,57,0,0,0,0,2618,3698,782,0,0.098
+"365 a year, L 104,000",57,57,0,0,0,0,2618,3698,782,0,0.098
