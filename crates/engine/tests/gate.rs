@@ -737,3 +737,52 @@ fn gate_world_meets_its_bar() {
         assert!(markets.iter().all(|&t| t), "{year}: a market did not trade");
     }
 }
+
+#[test]
+fn market_line_trades_as_markets_do() {
+    // docs/CERTIFY.md §2.4 (S2.3): `MarketLine::trades` is markets' own predicate,
+    // `MarketFill::trades` (both sides posted and both fills positive), so certify and the probe
+    // read one definition of a market that traded. On every gate tick and market it agrees with
+    // the fill's, and a market with no supply does not trade.
+    use rustyecon_engine::rustyecon_markets::MarketFill;
+    let mut sim = sim_of(&tape());
+    let mut lines = 0;
+    for r in reports(&mut sim, TICKS) {
+        for l in &r.markets {
+            let fill = MarketFill {
+                node: l.node,
+                good: l.good,
+                supply: l.supply,
+                demand: l.demand,
+                buyer_fill: l.buyer_fill,
+                seller_fill: l.seller_fill,
+            };
+            assert_eq!(l.trades(), fill.trades());
+            assert_eq!(
+                l.trades(),
+                l.supply > 0.0 && l.demand > 0.0 && l.buyer_fill > 0.0 && l.seller_fill > 0.0
+            );
+            lines += 1;
+        }
+    }
+    assert_eq!(lines, 6 * TICKS as usize);
+    let line = *reports(&mut sim_of(&tape()), 1)[0].markets.first().unwrap();
+    assert!(line.trades());
+    let idle = MarketLine {
+        supply: 0.0,
+        seller_fill: 0.0,
+        buyer_fill: 0.0,
+        ..line
+    };
+    assert!(!idle.trades());
+    // Both sides posted, but a fill that underflowed to 0 (ENGINE amendment P0.4 5): no trade.
+    for (buyer_fill, seller_fill) in [(0.0, 1.0), (1.0, 0.0)] {
+        let under = MarketLine {
+            buyer_fill,
+            seller_fill,
+            ..line
+        };
+        assert!(under.supply > 0.0 && under.demand > 0.0);
+        assert!(!under.trades());
+    }
+}

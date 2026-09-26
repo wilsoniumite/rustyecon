@@ -532,6 +532,12 @@ mod tests {
             },
             StateDelta::Age { holder: me },
             StateDelta::AdvanceTick,
+            // The kick's price shock is the tape's alone (docs/CERTIFY.md §2.4, S2.3).
+            StateDelta::ScalePrice {
+                node: town,
+                good: bread,
+                factor: 1.0,
+            },
             set_active(farm),
         ];
         let forbidden: [(Hook, Vec<Delta>); 3] = [

@@ -1,0 +1,133 @@
+// Written by `appb-tape --scale step --perturb w*2` (crates/probe; docs/CERTIFY.md §13).
+// The Appendix B world (docs/probe/RULES.md): the SSRN Appendix B flow economy on the
+// engine, run by the four Appendix B roles, for the Phase 2 probe (PROBE-SPEC,
+// 2026-09-26).
+//
+// Generated: do not edit. `cargo run -p rustyecon-probe --bin appb-tape -- <path>` writes
+// it, and the test `appb_tape_is_its_generators_output` checks this file against the
+// generator.
+//
+// Genesis is the oracle's equilibrium (PROBE-SPEC §4.6, mode A): crates/oracle (unit 1a,
+// P1.1) solved at the instance's per-tick values, N = 4.0 and T = 10.0 at 52 ticks a
+// year, and b = 0.4, gives
+//   x* = 0.863150418162437, 1 - x* = 0.136849581837563,
+//   v = w/r = 0.5434359606967785, p_m/r = 0.6102454257640557, p/r = 0.36157583177980934,
+//   P_s/r = 1.3615758317798092, Y = 7.880605524972908, K = 5.298486187567731, N_a = 1.3433818800977175.
+// The genesis prices are those ratios with r = 1 coin. The good desk holds Y of the good
+// and the machine desk K of machine services, one tick's output each, and the good desk's
+// human share 1 - x is 1 - x*. Each actor's coin is its stationary balance under the
+// dials, with share(v) = 1 - exp(-v/52) (Clock::share; docs/probe/RULES.md §4):
+//   desk.good  p*Y/share(buffer.desk.good.cash)               = 29.94282457255491
+//   desk.mach  (lam*w + b*r)*K/share(buffer.desk.mach.cash)   = 23.78417887464776
+//   provider   N*P_s + (r*T - N*P_s)/share(spend.provider)    = 26.03270836105176
+//   workers    (N*P_s + w*N*F)/share(spend.workers)           = 27.922094099033625
+//              with F = ln1p(w/P_s)/chi_max, the share of hours offered.
+// No agent reads the oracle at run time (R13): it seeds genesis here and scores runs in
+// the harness (crates/probe), outside the Sim.
+Tape(
+    schema: 1,
+    header: (
+        name: "appb",
+        start: "1750-01-01",
+        ticks_per_year: 52,
+        market: (rule: Imbalance, one_sided: Saturate, ema_time_constant: "price.ema_tc"),
+        ledger: (rel_flow: "ledger.rel_flow", rel_stock: "ledger.rel_stock"),
+    ),
+    params: [
+        // The ledger's tolerances, as in the gate world (A12).
+        (key: "ledger.rel_flow", value: 1e-12, unit: Dimensionless, basis: Assumed("July REL_FLOW, as the gate world")),
+        (key: "ledger.rel_stock", value: 1e-11, unit: Dimensionless, basis: Assumed("July REL_STOCK, as the gate world")),
+        // The instance (PROBE-SPEC §1.5).
+        (key: "inst.workers", value: 208.0, unit: FlowPerYear, basis: Literature("SSRN 7226858 App. B via laborformal 31b3482 paths/code/macro.py")),
+        (key: "inst.land", value: 520.0, unit: FlowPerYear, basis: Literature("SSRN 7226858 App. B via laborformal 31b3482 paths/code/macro.py")),
+        (key: "inst.space", value: 1.0, unit: Dimensionless, basis: Literature("SSRN 7226858 App. B via laborformal 31b3482 paths/code/macro.py")),
+        (key: "inst.a", value: 0.3, unit: Dimensionless, basis: Literature("SSRN 7226858 App. B via laborformal 31b3482 paths/code/macro.py")),
+        (key: "inst.lam", value: 0.05, unit: Dimensionless, basis: Literature("SSRN 7226858 App. B via laborformal 31b3482 paths/code/macro.py")),
+        (key: "inst.b", value: 0.4, unit: Dimensionless, basis: Literature("SSRN 7226858 App. B via laborformal 31b3482 paths/code/macro.py")),
+        (key: "inst.eta", value: 1.0, unit: Dimensionless, basis: Literature("SSRN 7226858 App. B via laborformal 31b3482 paths/code/macro.py")),
+        (key: "inst.g0", value: 0.2, unit: Dimensionless, basis: Literature("SSRN 7226858 App. B via laborformal 31b3482 paths/code/macro.py")),
+        (key: "inst.g1", value: 0.8, unit: Dimensionless, basis: Literature("SSRN 7226858 App. B via laborformal 31b3482 paths/code/macro.py")),
+        (key: "inst.k", value: 1.0, unit: Dimensionless, basis: Literature("SSRN 7226858 App. B via laborformal 31b3482 paths/code/macro.py")),
+        (key: "inst.chi_max", value: 1.0, unit: Dimensionless, basis: Literature("SSRN 7226858 App. B via laborformal 31b3482 paths/code/macro.py")),
+        // Structure: machine services and the good last one tick (PROBE-SPEC §1.2).
+        (key: "life.one_tick", value: 0.019230769230769232, unit: Years, basis: Assumed("one tick: J_b = 1 with delta = 1 (PROBE-SPEC §1.2)")),
+        // The design's dials (docs/probe/RULES.md §3). The wage is the fastest price.
+        (key: "price.ema_tc", value: 0.5, unit: Years, basis: Approximate("the gate world's value; no rule reads the EMA")),
+        (key: "rate.labour", value: 5.2, unit: RatePerYear, basis: Assumed("design-analytic-first C2, registered 2026-09-26 (docs/probe/RULES.md)")),
+        (key: "rate.land", value: 1.3, unit: RatePerYear, basis: Assumed("design-analytic-first C2, registered 2026-09-26 (docs/probe/RULES.md)")),
+        (key: "rate.mach", value: 1.3, unit: RatePerYear, basis: Assumed("design-analytic-first C2, registered 2026-09-26 (docs/probe/RULES.md)")),
+        (key: "rate.good", value: 2.6, unit: RatePerYear, basis: Assumed("design-analytic-first C2, registered 2026-09-26 (docs/probe/RULES.md)")),
+        (key: "adjust.technique", value: 2.6, unit: RatePerYear, basis: Assumed("design-analytic-first C2, registered 2026-09-26 (docs/probe/RULES.md)")),
+        (key: "spend.workers", value: 13.0, unit: RatePerYear, basis: Assumed("design-analytic-first C2, registered 2026-09-26 (docs/probe/RULES.md)")),
+        (key: "spend.provider", value: 13.0, unit: RatePerYear, basis: Assumed("design-analytic-first C2, registered 2026-09-26 (docs/probe/RULES.md)")),
+        (key: "buffer.desk.good.cash", value: 5.2, unit: RatePerYear, basis: Assumed("design-analytic-first C2, registered 2026-09-26 (docs/probe/RULES.md)")),
+        (key: "buffer.desk.mach.cash", value: 5.2, unit: RatePerYear, basis: Assumed("design-analytic-first C2, registered 2026-09-26 (docs/probe/RULES.md)")),
+        (key: "step.desk.good.up", value: 2.6, unit: RatePerYear, basis: Assumed("negative control: July's margin-step rule as design-analytic-first's ablation ran it (docs/probe/RULES.md §5)")),
+        (key: "step.desk.good.down", value: 2.6, unit: RatePerYear, basis: Assumed("negative control: July's margin-step rule as design-analytic-first's ablation ran it (docs/probe/RULES.md §5)")),
+        (key: "dead.desk.good", value: 0.0, unit: Dimensionless, basis: Assumed("negative control: July's margin-step rule as design-analytic-first's ablation ran it (docs/probe/RULES.md §5)")),
+        (key: "payout.desk.good", value: 26.0, unit: RatePerYear, basis: Assumed("negative control: July's margin-step rule as design-analytic-first's ablation ran it (docs/probe/RULES.md §5)")),
+        (key: "step.desk.mach.up", value: 2.6, unit: RatePerYear, basis: Assumed("negative control: July's margin-step rule as design-analytic-first's ablation ran it (docs/probe/RULES.md §5)")),
+        (key: "step.desk.mach.down", value: 2.6, unit: RatePerYear, basis: Assumed("negative control: July's margin-step rule as design-analytic-first's ablation ran it (docs/probe/RULES.md §5)")),
+        (key: "dead.desk.mach", value: 0.0, unit: Dimensionless, basis: Assumed("negative control: July's margin-step rule as design-analytic-first's ablation ran it (docs/probe/RULES.md §5)")),
+        (key: "payout.desk.mach", value: 26.0, unit: RatePerYear, basis: Assumed("negative control: July's margin-step rule as design-analytic-first's ablation ran it (docs/probe/RULES.md §5)")),
+    ],
+    goods: [
+        (key: "coin", life: Indefinite, price_rate: None),
+        (key: "good", life: Years("life.one_tick"), price_rate: Some("rate.good")),
+        (key: "labour", life: Instant, price_rate: Some("rate.labour")),
+        (key: "land", life: Instant, price_rate: Some("rate.land")),
+        (key: "mach", life: Years("life.one_tick"), price_rate: Some("rate.mach")),
+    ],
+    nodes: [(key: "home", currency: "coin")],
+    channels: [],
+    classes: ["good_desks", "mach_desks", "owners", "workers"],
+    actors: [
+        (key: "desk.good", kind: Desk, class: "good_desks", home: "home", basis: Assumed("design-analytic-first with the judges' grafts (docs/probe/RULES.md)"),
+         spec: GoodDesk((
+            output: "good", labour: "labour", mach: "mach",
+            schedule: (eta: "inst.eta", g0: "inst.g0", g1: "inst.g1", k: "inst.k"),
+            technique: (adjust: "adjust.technique", share: 0.136849581837563),
+            assign: Planned,
+            scale: Step((up: "step.desk.good.up", down: "step.desk.good.down", dead: "dead.desk.good",
+                buffer: "buffer.desk.good.cash", payout: (to: "provider", rate: "payout.desk.good"), scale: 7.880605524972908)),
+         ))),
+        (key: "desk.mach", kind: Desk, class: "mach_desks", home: "home", basis: Assumed("design-analytic-first with the judges' grafts (docs/probe/RULES.md)"),
+         spec: MachDesk((
+            output: "mach", labour: "labour", land: "land",
+            recipe: (own: "inst.a", labour: "inst.lam", land: "inst.b"),
+            scale: Step((up: "step.desk.mach.up", down: "step.desk.mach.down", dead: "dead.desk.mach",
+                buffer: "buffer.desk.mach.cash", payout: (to: "provider", rate: "payout.desk.mach"), scale: 5.298486187567731)),
+         ))),
+        (key: "provider", kind: Pop, class: "owners", home: "home", basis: Assumed("design-analytic-first with the judges' grafts (docs/probe/RULES.md)"),
+         spec: Provider((
+            land: "land", endowment: "inst.land",
+            transfer: (to: "workers", heads: "inst.workers"),
+            basket: (good: "good", space: "land", per_basket: "inst.space"),
+            spend: "spend.provider",
+         ))),
+        (key: "workers", kind: Pop, class: "workers", home: "home", basis: Assumed("design-analytic-first with the judges' grafts (docs/probe/RULES.md)"),
+         spec: Workers((
+            labour: "labour", heads: "inst.workers", chi_max: "inst.chi_max",
+            basket: (good: "good", space: "land", per_basket: "inst.space"),
+            spend: "spend.workers",
+         ))),
+    ],
+    genesis: (
+        basis: Approximate("oracle unit 1a (crates/oracle, P1.1) at the SSRN Appendix B instance, N = 4.0 and T = 10.0 per tick, b = 0.4; stationary coins per docs/probe/RULES.md §4; written by rustyecon-probe's appb-tape"),
+        prices: [
+            (node: "home", good: "good", price: 0.36157583177980934),
+            (node: "home", good: "labour", price: 1.086871921393557),
+            (node: "home", good: "land", price: 1.0),
+            (node: "home", good: "mach", price: 0.6102454257640557),
+        ],
+        holdings: [
+            (holder: "desk.good", goods: [("coin", 29.94282457255491), ("good", 7.880605524972908)]),
+            (holder: "desk.mach", goods: [("coin", 23.78417887464776), ("mach", 5.298486187567731)]),
+            (holder: "provider", goods: [("coin", 26.03270836105176)]),
+            (holder: "workers", goods: [("coin", 27.922094099033625)]),
+        ],
+    ),
+    events: [
+    ],
+    recurring: [],
+)

@@ -147,7 +147,8 @@ pub struct Firing<E: Ext> {
     /// The resolved action.
     pub action: StateDelta<E>,
     /// For a `SetParam`, the key of the param its value was copied from, which carries the
-    /// value's basis: a [`ScheduleParam`], or a registered param the world also reads.
+    /// value's basis, and for a `ScalePrice` the key of its factor (amended at S2.3): a
+    /// [`ScheduleParam`], or a registered param the world also reads.
     pub source: Option<Key>,
 }
 
@@ -194,8 +195,8 @@ impl<E: Ext> Recurring<E> {
     }
 }
 
-/// A param only the schedule reads: a value a `SetParam` copies, or a recurring entry's period,
-/// that nothing in the world references. The loader turns it into schedule content (the value on
+/// A param only the schedule reads: a value a `SetParam` copies, a recurring entry's period, or
+/// a `ScalePrice`'s factor (amended at S2.3), that nothing in the world references. The loader turns it into schedule content (the value on
 /// each firing, the period in ticks), so it lives here with its unit and basis, and not in the
 /// registry or the state. Like the rest of the schedule it is not part of `world_id`, and the
 /// firings it shapes are in `prefix_id`. So a dated `SetParam` to a new value, or a new recurring
@@ -211,7 +212,8 @@ pub struct ScheduleParam {
     /// Where the value comes from (R4).
     pub basis: Basis,
     /// Its uses, in (path, method) order: a `SetParam` source takes its target's methods at the
-    /// event's `to`, and a period `Ticks` at the entry's `every` (amended at S2.2, D10 item 4).
+    /// event's `to`, a period `Ticks` at the entry's `every` (amended at S2.2, D10 item 4), and a
+    /// `ScalePrice`'s factor `Value` at the event's `by` (amended at S2.3).
     pub sites: Vec<ParamSite>,
 }
 

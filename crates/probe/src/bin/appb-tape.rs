@@ -4,30 +4,19 @@
 //! cargo run -p rustyecon-probe --bin appb-tape -- tapes/appb.ron
 //! ```
 //!
-//! `--tpy N` writes the same setup at N ticks a year instead (for the tick-length checks).
+//! Options (`probe::setup::TapeArgs`): `--tpy N` writes the setup at N ticks a year (for the
+//! tick-length checks); `--set KEY=VALUE`, `--assign`, `--scale` and `--one-sided` vary it as
+//! `probe` does; `--perturb NAME` applies a named run, with `--ticks L` dating a `b=B@dated`
+//! shock at L/4. Certify's testdata is written this way (docs/CERTIFY.md §13), each file opening
+//! with a comment naming its options.
 
-use probe::setup::{tape_ron, Setup};
+use probe::setup::TapeArgs;
 use std::process::ExitCode;
 
 fn main() -> ExitCode {
-    let mut tpy = 52;
-    let mut path = None;
-    let mut args = std::env::args().skip(1);
-    while let Some(a) = args.next() {
-        if a == "--tpy" {
-            match args.next().and_then(|v| v.parse().ok()) {
-                Some(v) => tpy = v,
-                None => {
-                    eprintln!("appb-tape: --tpy takes a whole number of ticks a year");
-                    return ExitCode::FAILURE;
-                }
-            }
-        } else {
-            path = Some(a);
-        }
-    }
-    let text = match tape_ron(&Setup::registered(tpy)) {
-        Ok(t) => t,
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    let (text, path) = match TapeArgs::parse(&args).and_then(|a| Ok((a.text()?, a.path))) {
+        Ok(x) => x,
         Err(e) => {
             eprintln!("appb-tape: {e}");
             return ExitCode::FAILURE;

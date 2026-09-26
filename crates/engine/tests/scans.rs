@@ -6,7 +6,8 @@
 mod common;
 
 use common::scan::{
-    engine_path_tokens, float_violations, int_float_violations, shipped, strip, tokens, Tok,
+    engine_path_tokens, float_violations, int_float_violations, shipped, sources, strip, tokens,
+    Tok,
 };
 
 fn ident(t: &Tok, name: &str) -> bool {
@@ -254,6 +255,20 @@ fn no_behavioural_float_literals() {
 fn engine_path_does_no_io() {
     // E2: no global or interior-mutable state, no file, clock, thread, environment, process or
     // network access, and no printing on the engine path. All I/O is bytes in and bytes out.
+    let mut found = Vec::new();
+    for (path, toks) in engine_path_tokens() {
+        found.extend(io_violations(&path, &toks, false));
+    }
+    assert!(
+        found.is_empty(),
+        "I/O or global state on the engine path: {found:#?}"
+    );
+}
+
+/// The global state, standard modules and print macros the engine path and certify never name
+/// (E2), in `toks`, the shipped tokens of one file. `io` names `std::io` allowed (certify's
+/// telemetry writer, docs/CERTIFY.md §1).
+fn io_violations(path: &str, toks: &[Tok], io: bool) -> Vec<String> {
     const STATE: [&str; 9] = [
         "thread_local",
         "Rc",
@@ -267,50 +282,196 @@ fn engine_path_does_no_io() {
     ];
     const STD: [&str; 7] = ["fs", "time", "thread", "env", "process", "net", "io"];
     const PRINT: [&str; 5] = ["println", "print", "eprintln", "eprint", "dbg"];
+    let banned = |m: &str| STD.contains(&m) && !(io && m == "io");
     let mut found = Vec::new();
-    for (path, toks) in engine_path_tokens() {
-        for (i, t) in toks.iter().enumerate() {
-            let next = |k: usize| toks.get(i + k);
-            let Tok::Ident(s) = t else { continue };
-            let bad = STATE.contains(&s.as_str())
-                || s.starts_with("Atomic")
-                || s == "atomic"
-                || (s == "static" && next(1).is_some_and(|n| ident(n, "mut")))
-                || (PRINT.contains(&s.as_str()) && next(1).is_some_and(|n| punct(n, '!')));
-            if bad {
-                found.push(format!("{path}: {s}"));
-            }
-            // std::fs and the rest, alone or inside a `std::{..}` group.
-            if s == "std" && next(1).is_some_and(|n| punct(n, ':')) {
-                match next(3) {
-                    Some(Tok::Ident(m)) if STD.contains(&m.as_str()) => {
-                        found.push(format!("{path}: std::{m}"));
-                    }
-                    Some(Tok::Punct('{')) => {
-                        let mut depth = 0;
-                        for u in &toks[i + 3..] {
-                            match u {
-                                Tok::Punct('{') => depth += 1,
-                                Tok::Punct('}') => {
-                                    depth -= 1;
-                                    if depth == 0 {
-                                        break;
-                                    }
+    for (i, t) in toks.iter().enumerate() {
+        let next = |k: usize| toks.get(i + k);
+        let Tok::Ident(s) = t else { continue };
+        let bad = STATE.contains(&s.as_str())
+            || s.starts_with("Atomic")
+            || s == "atomic"
+            || (s == "static" && next(1).is_some_and(|n| ident(n, "mut")))
+            || (PRINT.contains(&s.as_str()) && next(1).is_some_and(|n| punct(n, '!')));
+        if bad {
+            found.push(format!("{path}: {s}"));
+        }
+        // std::fs and the rest, alone or inside a `std::{..}` group.
+        if s == "std" && next(1).is_some_and(|n| punct(n, ':')) {
+            match next(3) {
+                Some(Tok::Ident(m)) if banned(m) => {
+                    found.push(format!("{path}: std::{m}"));
+                }
+                Some(Tok::Punct('{')) => {
+                    let mut depth = 0;
+                    for u in &toks[i + 3..] {
+                        match u {
+                            Tok::Punct('{') => depth += 1,
+                            Tok::Punct('}') => {
+                                depth -= 1;
+                                if depth == 0 {
+                                    break;
                                 }
-                                Tok::Ident(m) if depth == 1 && STD.contains(&m.as_str()) => {
-                                    found.push(format!("{path}: std::{{{m}}}"));
-                                }
-                                _ => {}
                             }
+                            Tok::Ident(m) if depth == 1 && banned(m) => {
+                                found.push(format!("{path}: std::{{{m}}}"));
+                            }
+                            _ => {}
                         }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    found
+}
+
+/// Certify's shipped sources, each file's tokens with its path (docs/CERTIFY.md §1, §13).
+fn certify_tokens() -> Vec<(String, Vec<Tok>)> {
+    sources("certify")
+        .into_iter()
+        .map(|(path, text)| (path, tokens(&shipped(&strip(&text)))))
+        .collect()
+}
+
+#[test]
+fn certify_holds_no_threshold() {
+    // R4 on certify (docs/CERTIFY.md §1): every bar a verdict compares with is in a dated
+    // criteria file, so certify's shipped code spells no float but 0.0 and 1.0, names no float
+    // constant, and makes no integer but 0 and 1 float. July had 13 certification thresholds in
+    // code (ledger 3, verdict 6, invariants 4).
+    let fixture = tokens(&shipped(&strip(
+        "const PIN_SPREAD: f64 = 1e-12; let s = x < f64::EPSILON; let n = 32 as f64;",
+    )));
+    assert_eq!(float_violations(&fixture, false).len(), 2);
+    assert_eq!(int_float_violations(&fixture, &[]).len(), 1);
+    let mut found = Vec::new();
+    for (path, toks) in certify_tokens() {
+        for v in float_violations(&toks, false) {
+            found.push(format!("{path}: {v}"));
+        }
+        for v in int_float_violations(&toks, &[]) {
+            found.push(format!("{path}: {v}"));
+        }
+    }
+    assert!(found.is_empty(), "thresholds in certify's code: {found:#?}");
+}
+
+#[test]
+fn certify_does_no_file_io() {
+    // E2's rule, carried to certify (docs/CERTIFY.md §1): no global state, no print macro, and
+    // no std::fs, env, process, net, thread or time anywhere; only the telemetry writer names
+    // std::io or parquet. Paths live in the cli.
+    let fixture = tokens(&shipped(&strip(
+        "use std::{fs, io::Write}; let t = std::time::Instant::now(); println!(\"x\"); \
+         let w: parquet::W = todo!();",
+    )));
+    assert_eq!(io_violations("fixture", &fixture, false).len(), 4);
+    assert_eq!(io_violations("fixture", &fixture, true).len(), 3);
+    let mut found = Vec::new();
+    for (path, toks) in certify_tokens() {
+        let telemetry = path
+            .replace('\\', "/")
+            .ends_with("certify/src/telemetry.rs");
+        found.extend(io_violations(&path, &toks, telemetry));
+        if !telemetry && toks.iter().any(|t| ident(t, "parquet")) {
+            found.push(format!("{path}: parquet"));
+        }
+    }
+    assert!(
+        found.is_empty(),
+        "I/O or global state in certify: {found:#?}"
+    );
+}
+
+/// What in `toks` hands out core's writer (E1): a re-export of core or of the engine (whose
+/// prelude holds core's types), a call to core's writer (`apply`, `resolve`, `Ledger`,
+/// `RunLedger`, `Checkpoint::of`), or a public function that returns a `Checkpoint`, `Sim` or
+/// `SimState`.
+fn writer_violations(toks: &[Tok]) -> Vec<String> {
+    const WRITER: [&str; 4] = ["apply", "resolve", "Ledger", "RunLedger"];
+    const MADE: [&str; 3] = ["Checkpoint", "Sim", "SimState"];
+    let mut found = Vec::new();
+    for (i, t) in toks.iter().enumerate() {
+        let at = |k: usize| toks.get(i + k);
+        let Tok::Ident(s) = t else { continue };
+        if WRITER.contains(&s.as_str()) {
+            found.push(s.clone());
+        }
+        if s == "Checkpoint"
+            && at(1).is_some_and(|n| punct(n, ':'))
+            && at(3).is_some_and(|n| ident(n, "of"))
+        {
+            found.push("Checkpoint::of".to_string());
+        }
+        let public = s == "pub" && !at(1).is_some_and(|n| punct(n, '('));
+        if public
+            && (at(1).is_some_and(|n| ident(n, "use")) || at(1).is_some_and(|n| ident(n, "extern")))
+        {
+            let names_core = toks[i..]
+                .iter()
+                .take_while(|u| !punct(u, ';'))
+                .any(|u| ident(u, "rustyecon_core") || ident(u, "rustyecon_engine"));
+            if names_core {
+                found.push("a re-export of core or the engine".to_string());
+            }
+        }
+        if public && at(1).is_some_and(|n| ident(n, "fn")) {
+            // The return type: from `->` to the body or `;`, outside the parameters.
+            let mut depth = 0i32;
+            let mut ret = false;
+            for u in &toks[i..] {
+                match u {
+                    Tok::Punct('(' | '[' | '<') if !ret => depth += 1,
+                    Tok::Punct(')' | ']') if !ret => depth -= 1,
+                    Tok::Punct('>') if !ret => depth -= 1,
+                    Tok::Punct('-') if depth == 0 => ret = true,
+                    Tok::Punct('{' | ';') if depth == 0 => break,
+                    Tok::Ident(n) if ret && MADE.contains(&n.as_str()) => {
+                        found.push(format!("a public fn returning {n}"));
                     }
                     _ => {}
                 }
             }
         }
     }
+    found
+}
+
+#[test]
+fn certify_hands_out_no_core_writer() {
+    // E1 on certify (docs/CERTIFY.md §1): it depends on core for read-only helpers, re-exports
+    // nothing of core, calls none of core's writer, and no public function returns a
+    // Checkpoint, Sim or SimState it built. The scanner is checked on fixtures first.
+    for (src, n) in [
+        ("pub use rustyecon_core::Tape;", 1),
+        ("pub use rustyecon_engine::prelude::*;", 1),
+        ("let x = rustyecon_core::apply(s, w, p, d, l);", 1),
+        ("let (w, s) = resolve(t)?; let l = Ledger::open(&s, &w);", 2),
+        ("let cp = Checkpoint::of(&w, s, r)?;", 1),
+        (
+            "pub fn kicked(&self) -> Result<Checkpoint, String> { todo!() }",
+            1,
+        ),
+        ("pub fn run(t: &Tape) -> Sim { todo!() }", 1),
+        (
+            "pub fn take(cp: &Checkpoint, f: fn(u8) -> u8) -> u64 { 0 }",
+            0,
+        ),
+        ("pub(crate) fn inner() -> Sim { todo!() }", 0),
+        ("use rustyecon_core::Basis;", 0),
+    ] {
+        let toks = tokens(&shipped(&strip(src)));
+        assert_eq!(writer_violations(&toks).len(), n, "{src}");
+    }
+    let mut found = Vec::new();
+    for (path, toks) in certify_tokens() {
+        for v in writer_violations(&toks) {
+            found.push(format!("{path}: {v}"));
+        }
+    }
     assert!(
         found.is_empty(),
-        "I/O or global state on the engine path: {found:#?}"
+        "certify hands out core's writer: {found:#?}"
     );
 }

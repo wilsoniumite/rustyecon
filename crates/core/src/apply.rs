@@ -208,6 +208,17 @@ fn apply_one<E: Ext>(
                 .ok_or_else(|| CoreError::Shape("the tick counter overflowed".into()))?;
             Ok(0.0)
         }
+        StateDelta::ScalePrice { node, good, factor } => {
+            // A dated price shock (docs/CERTIFY.md §2.4): the posted price becomes fl(p·factor),
+            // which must be clean and positive; the EMA is left alone. Tape events only.
+            let i = market(s, w, *node, *good)?;
+            only(phase, Phase::Events, "ScalePrice")?;
+            positive("price factor", *factor)?;
+            let p = s.book.price(i) * *factor;
+            positive("scaled price", p)?;
+            s.book.set_price(i, p);
+            Ok(0.0)
+        }
     }
 }
 
@@ -365,6 +376,7 @@ mod tests {
     //! of docs/ENGINE.md §2.4, and typed holders (defect 10).
 
     use super::*;
+    use crate::error::LoadErrorKind;
     use crate::ids::{ActorId, DeskId, PopId};
     use crate::testkit::{self, good, held, holder, tick, write_direct};
     use crate::NoExt;
@@ -1089,6 +1101,186 @@ mod tests {
         assert_eq!(
             one(&mut s.clone(), &w, Phase::Production, rot),
             Err(CoreError::ReservedProvenance(Provenance::Spoilage))
+        );
+    }
+
+    #[test]
+    fn scale_price_is_an_event_only_delta() {
+        // docs/CERTIFY.md §2.4 (S2.3): the kick's action, a dated price shock. apply takes it in
+        // phase 0 only, sets the posted price to fl(p·factor), leaves the EMA alone, and refuses
+        // a factor or a result that is not clean and positive, leaving the state as it was. The
+        // loader refuses a currency, a bad factor and a recurring one, which would be a periodic
+        // price nudge (R3).
+        let (w, s) = testkit::load();
+        let town: NodeId = w.id_of("town").unwrap();
+        let (grain, coin) = (good(&w, "grain"), good(&w, "coin"));
+        let scale = |good, factor| StateDelta::ScalePrice {
+            node: town,
+            good,
+            factor,
+        };
+        let p = s.price(town, grain).unwrap();
+        let factor = 1.0 + 1e-9;
+        for phase in ALL_PHASES {
+            let mut t = s.clone();
+            let r = one(&mut t, &w, phase, scale(grain, factor));
+            if phase == Phase::Events {
+                assert_eq!(r, Ok(0.0));
+                assert_eq!(
+                    t.price(town, grain).unwrap().to_bits(),
+                    (p * factor).to_bits()
+                );
+                assert_ne!(t.price(town, grain), Some(p), "the kick moved the price");
+                assert_eq!(
+                    t.ema(town, grain),
+                    s.ema(town, grain),
+                    "the EMA is left alone"
+                );
+                assert_eq!(
+                    t.price(town, good(&w, "bread")),
+                    s.price(town, good(&w, "bread"))
+                );
+            } else {
+                assert!(
+                    matches!(
+                        r,
+                        Err(CoreError::WrongPhase {
+                            what: "ScalePrice",
+                            ..
+                        })
+                    ),
+                    "{phase}: {r:?}"
+                );
+                assert_eq!(t.price(town, grain), Some(p), "{phase}: nothing moved");
+            }
+        }
+        let refused = |d: StateDelta<NoExt>| {
+            let mut t = s.clone();
+            let r = one(&mut t, &w, Phase::Events, d);
+            assert_eq!(
+                crate::state_hash(&t),
+                crate::state_hash(&s),
+                "{r:?} moved the state"
+            );
+            r
+        };
+        for bad in [0.0, -0.0, -1.0, f64::NAN, f64::INFINITY] {
+            assert!(
+                matches!(
+                    refused(scale(grain, bad)),
+                    Err(CoreError::BadValue {
+                        what: "price factor",
+                        ..
+                    })
+                ),
+                "factor {bad}"
+            );
+        }
+        // A result that is not clean and positive: an overflow (bread in town is at 2), and an
+        // underflow to zero.
+        let bread = good(&w, "bread");
+        assert_eq!(s.price(town, bread), Some(2.0));
+        assert!(matches!(
+            refused(scale(bread, f64::MAX)),
+            Err(CoreError::BadValue {
+                what: "scaled price",
+                ..
+            })
+        ));
+        let mut tiny = s.clone();
+        one(&mut tiny, &w, Phase::Events, scale(grain, 1e-300)).unwrap();
+        let r = one(&mut tiny.clone(), &w, Phase::Events, scale(grain, 1e-300));
+        assert!(
+            matches!(
+                r,
+                Err(CoreError::BadValue {
+                    what: "scaled price",
+                    ..
+                })
+            ),
+            "{r:?}"
+        );
+        assert_eq!(
+            refused(scale(coin, factor)),
+            Err(CoreError::NoMarket {
+                node: town,
+                good: coin
+            })
+        );
+        assert_eq!(
+            refused(StateDelta::ScalePrice {
+                node: NodeId(9),
+                good: grain,
+                factor
+            }),
+            Err(CoreError::UnknownNode(NodeId(9)))
+        );
+
+        // On the tape: a dated event with a factor param only the schedule reads. It keeps the
+        // world (the factor is a schedule param) and names its factor as the firing's source.
+        let shock = r#"(key: "shock.up", value: 1.5, unit: Dimensionless, basis: Assumed("test")),
+        (key: "pension.period","#;
+        let with = |act: &str| {
+            testkit::edit(r#"(key: "pension.period","#, shock).replacen(
+                "    events: [\n",
+                &format!(
+                    "    events: [\n        (key: \"grain.shock\", at: \"1751-03-01\", basis: \
+                     Assumed(\"test\"), act: {act}),\n"
+                ),
+                1,
+            )
+        };
+        let act = r#"ScalePrice(node: "town", good: "grain", by: "shock.up")"#;
+        let (w2, s2) = testkit::load_text(&with(act)).expect("a dated price shock loads");
+        assert_eq!(w2.world_id, w.world_id, "the factor stays out of the world");
+        assert_eq!(s2, s);
+        let fired: Vec<_> = (0..200).flat_map(|t| w2.schedule.fire(t)).collect();
+        let f = fired
+            .iter()
+            .find(|f| w2.key_of(f.event).unwrap().as_str() == "grain.shock")
+            .expect("the shock fires");
+        assert_eq!(f.action, scale(grain, 1.5));
+        assert_eq!(f.source.as_ref().map(|k| k.as_str()), Some("shock.up"));
+        let p = w2.schedule.param("shock.up").expect("a schedule param");
+        assert_eq!(p.sites.len(), 1);
+        assert_eq!(p.sites[0].method, crate::ClockMethod::Value);
+        assert_eq!(p.sites[0].path, "events[grain.shock].act.by");
+        // Refused at load, each at its path.
+        let e = testkit::load_err(&with(
+            r#"ScalePrice(node: "town", good: "coin", by: "shock.up")"#,
+        ));
+        assert_eq!(
+            (e.path.as_str(), &e.kind),
+            ("events[grain.shock].act.good", &LoadErrorKind::NoMarket)
+        );
+        let e = testkit::load_err(&with(act).replace(
+            "value: 1.5, unit: Dimensionless",
+            "value: 0.0, unit: Dimensionless",
+        ));
+        assert_eq!(
+            (e.path.as_str(), &e.kind),
+            ("events[grain.shock].act.by", &LoadErrorKind::BadValue(0.0))
+        );
+        let e = testkit::load_err(
+            &with(act).replace("value: 1.5, unit: Dimensionless", "value: 1.5, unit: Years"),
+        );
+        assert!(
+            matches!(&e.kind, LoadErrorKind::UnitMismatch { .. })
+                && e.path == "events[grain.shock].act.by",
+            "{e}"
+        );
+        let recurring = testkit::edit(r#"(key: "pension.period","#, shock).replacen(
+            r#"Mint(holder: "pensioners", good: "coin", qty: 5.0)"#,
+            act,
+            1,
+        );
+        let e = testkit::load_err(&recurring);
+        assert_eq!(
+            (e.path.as_str(), &e.kind),
+            (
+                "recurring[pension].act",
+                &LoadErrorKind::RecurringPriceShock
+            )
         );
     }
 }

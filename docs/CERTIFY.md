@@ -32,6 +32,67 @@ change is made in place in the section named.
 7. Added tests: `clock_methods_convert_as_the_clock` and `param_sites_are_recorded` (core), and
    the scan of point 4.
 
+**Amended at S2.3** (2026-09-26: certify and the kick), where this text was wrong or silent.
+Each change is made in place in the section named.
+
+1. **The kick bounds its peak** (§4, §6, §7, §14). `BatterySpec::Kick` gains `max_peak`, a
+   `Ratio` above 1, and Kick passes only when every kick's `gain_peak` is at most it. The tail
+   alone passed the desk-turnover ×16 cell. Its converged run (w×1.05, in `appb-freeze.ron`)
+   rests at an unstable point: six of its eight 1e-9 kicks swing out ×2.9e9 through dead
+   markets and come back to the point they left, where rounding freezes them again, so each
+   `gain_tail` read 1e-6. The measurement review's own criterion was the peak: a kick whose gap
+   passes the probe's tolerance, 1e-3 in log, is unstable. So appb registers `max_peak` 1e6,
+   1e-3 over the 1e-9 kick; C2's eight kicks peak below 6.
+2. **H is checked where it runs** (§6, §7). Kick records `kick.horizon`, the ticks the base
+   continuation ran, per segment, with `ticks(horizon)` as its bar, and fails any other length.
+3. **The freeze testdata** (§13; §15.1 question 5, answered). `appb-freeze.ron` is `appb-tape
+   --set buffer.*=16 --perturb w*1.05`: a run the classifier scored CONVERGED at turnover ×16.
+   It passes Settles and fails Kick. No hand-built tape is needed.
+4. **The certificate records why a run stopped** (§8). `Certificate` gains `stopped:
+   Option<String>`, the `RunError` that ended the run early. The seal's first failure line is
+   built from it, so readback can seal it again.
+5. **The seal fails any battery that failed** (§8), listed or not. An unscored run's
+   Conservation counts too. §8 said "a listed battery"; this is stricter.
+6. **Criteria for another tape are still scored** (§4, §8). `certify` fits and runs criteria
+   whenever they are given. With another tape's `tape_hash` the verdict is UNSCORED at best, and
+   any failed battery still fails it. §4 said the fit runs "when the `tape_hash` matches".
+7. **An unscored run** (`Scoring::Unscored`) runs Conservation alone, and has no segments and no
+   reports, since both need the criteria's bars (§6, §10).
+8. **Names and readings** (§5, §6). `MarketObs` carries its node and good, so `trades()` is
+   `MarketFill::trades` itself. `Names::of(&World)` gives each market as `node/good`. Every
+   battery's readings, and every report, are named in §6.
+9. **Reports poison a non-finite input** (§6). A report sample made from any non-finite input
+   is NaN, so a non-finite input reaches the seal even where a fold would not carry it (a
+   `D > 0` test with D NaN, say).
+10. **Determinism compares hash tails too** (§6). Each resumed run's hashes are compared with
+    the base run's from the resume tick, as well as its last report.
+11. **Core's hasher is public** (§3, §9). `core::Fnv` (`new`, `write`, `finish`, `resume`) folds
+    the manifest's hash lines; `resume` continues FNV-1a from a digest. So `Manifest` holds no
+    hidden state, and a manifest read back continues folding.
+12. **What landed early** (§13, §14). `appb-tape`'s `--perturb NAME`, `--ticks L`, `--set`,
+    `--scale`, `--assign` and `--one-sided` (`probe::setup::TapeArgs`), the three testdata files
+    and `certify_testdata_is_generated` land in S2.3, since S2.3's tests read the testdata. The
+    probe's delegation to certify (C11) and its pins stay at S2.6.
+13. **The transient test's dead ticks** (§13). By certify's definition, a tick with no trade,
+    bcycle's b′ = 0.8 segment has no dead tick. It has the trough (the good's volume falls 88%)
+    and the transfer shortfall. The dead tick is at the 0.8 → 0.2 change: one tick with no supply
+    of the good and no consumption (REPORT §5). The probe's 125 dead ticks per 0.8 segment use
+    `LIVE_FLOOR`, which is relative to the oracle and waits for `crates/observe` (§11).
+14. **Public for tests.** `kick::kick_segment` is public, so a test can feed it another world's
+    checkpoint. `RawCertificate` is `Serialize`, so a test can name the path of a number in it.
+15. **Added tests**, beyond §13's: `folds_keep_a_nan`, `every_scalar_has_its_path`,
+    `a_listed_battery_with_no_result_fails`, `a_kick_that_swings_out_and_back_fails`,
+    `manifest_records_the_hash_stream_and_reads_back`, `a_resume_verifies_against_its_manifest`,
+    `obs_reads_the_report` (certify) and `market_line_trades_as_markets_do` (engine).
+16. **Recorded at S2.3.** No state hash, `prefix_id` or `world_id` moved: all 2,080 gate and
+    20,000 appb per-tick hashes, and the four fixtures' `world_id`s, equal S2.2's on WSL and on
+    Windows (finals `0x61f9c8529131ff17` and `0xe1fa082b26995867`). `scripts/gate.sh` passes 398
+    tests on each machine. `cargo check --target wasm32-unknown-unknown -p rustyecon-certify`
+    passes in WSL (recorded, not gated). Every new test was checked against its mutation: 83
+    mutants, 82 killed. The one left, `!(gain_tail > max_gain)`, is equivalent: a NaN in the
+    tail is in the peak too, which `gain_peak ≤ max_peak` fails; with both comparisons mutated
+    the finite tests kill it.
+
 ## 0. Decisions this contract makes
 
 Numbered for the veto window, each with its alternative.
@@ -55,10 +116,11 @@ Numbered for the veto window, each with its alternative.
 ## 1. Crates, features, dependencies
 
 ```
-crates/certify  rustyecon-certify  lib `certify`; depends on core, engine, ron, serde; optional parquet
+crates/certify  rustyecon-certify  lib `certify`; depends on core, engine, ron, serde; optional parquet (S2.4)
   src/criteria.rs     Criteria, Bar, BatterySpec: RON text in and out, load checks, fit to a tape
   src/manifest.rs     Hex, Build, RunKey, tape_hash, Manifest, the named hashes header, verify
-  src/obs.rs          Obs from (&TickReport, &Sim); segments from the World's dated firings
+  src/obs.rs          Obs from (&TickReport, &Sim); Names; segments from the World's dated firings
+  src/leaves.rs       crate-private: every scalar a value serialises, with its path (the finite scan)
   src/fold.rs         NaN-propagating max, min and sum; ln_range; the finite gate
   src/battery.rs      the batteries and reports, each pure over its inputs; BalanceWatch; trough
   src/kick.rs         deferred_tape, kicked_tape, kick_gain, the kick runs
@@ -239,7 +301,8 @@ pub enum BatterySpec {
     Trades { every: Bar },                             // Years
     Balance { level: Bar, spread: Bar, min_samples: Count, run_share: Bar },   // Imbalance, Share
     Settles { w_from: Bar, f_from: Bar, dead_share: Bar, band: Bar },          // Share, LogWidth
-    Kick { size: Bar, horizon: Bar, tail: Bar, max_gain: Bar },  // Relative, Years, Share, Gain
+    Kick { size: Bar, horizon: Bar, tail: Bar, max_gain: Bar,    // Relative, Years, Share, Gain
+           max_peak: Bar },                                    // Ratio (amended at S2.3)
 }
 pub struct ReportSpec { pub rationed_below: Bar }      // Relative: a fill below 1 − this is rationed
 impl Criteria { pub fn from_ron(s: &str, file: &str) -> Result<Criteria, CriteriaError>;
@@ -249,7 +312,7 @@ impl Criteria { pub fn from_ron(s: &str, file: &str) -> Result<Criteria, Criteri
 **Load checks** (`from_ron`), each a `CriteriaError` with its path:
 - every value is finite and in its field's unit: a `Share` in [0, 1], with `w_from ≤ f_from < 1`,
   `tail` and `run_share` in (0, 1], and `dead_share` below 1; each `resume_at` in the open (0, 1);
-  a `Relative` in (0, 1); a `Ratio` bound above 1; a `Gain` in the open (0, 1); an `Imbalance` in
+  a `Relative` in (0, 1); a `Ratio` bound or peak above 1; a `Gain` in the open (0, 1); an `Imbalance` in
   (0, 1); a span in `Years` above 0;
 - the kick's size moves a float: `fl(1 − size) < 1 < fl(1 + size)`;
 - `min_samples` is at least 2, since a spread needs two samples;
@@ -258,7 +321,8 @@ impl Criteria { pub fn from_ron(s: &str, file: &str) -> Result<Criteria, Criteri
 - `format` is 1; `date` equals the file name's date; `supersedes`, when given, names an earlier
   file for the same tape name. A retune is a new dated file with its reason, never an edit.
 
-**Fit checks** (`fit`, run by certify against the tape's clock when the `tape_hash` matches; a
+**Fit checks** (`fit`, run by certify against the tape's clock whenever criteria are given, for
+another tape's `tape_hash` too, which then seals UNSCORED at best (amended at S2.3); a
 failure is exit 1 and nothing runs). With n = `tick_of(until)` ticks in the run and
 m = `ticks(min_segment)`:
 - n ≥ m, and n ≥ `ticks(every)`, so the run holds a full segment and a full Trades window;
@@ -278,7 +342,8 @@ Criteria(format: 1, date: "2026-09-26", reason: "first registration, before any 
     Kick(size: (value: 1e-9, unit: Relative, basis: Literature("docs/probe/REPORT.md §5–§6")),
          horizon: (value: 385.0, unit: Years, basis: Literature("RULES §3: one L, 20,020 ticks at 52 a year")),
          tail: (value: 0.1, unit: Share, basis: Assumed("the horizon's last tenth")),
-         max_gain: (value: 1e-3, unit: Gain, basis: Assumed("REPORT §3, §5: a decaying 1e-9 kick ends near its rounding floor, a gain near 1e-6; a neutral one stays near 1"))), …],
+         max_gain: (value: 1e-3, unit: Gain, basis: Assumed("REPORT §3, §5: a decaying 1e-9 kick ends near its rounding floor, a gain near 1e-6; a neutral one stays near 1")),
+         max_peak: (value: 1e6, unit: Ratio, basis: Literature("REPORT §5; the measurement review's kick check: a gap past the probe's tolerance, 1e-3 in log, is unstable"))), …],
   reports: (rationed_below: (value: 1e-9, unit: Relative, basis: Literature("PROBE-SPEC §4.6"))))
 ```
 
@@ -291,7 +356,8 @@ pub struct Obs { pub tick: u64, pub markets: Vec<MarketObs>,   // the report's (
     pub transfers: Vec<(ActorId, f64, f64)>,                   // each Provider's (due, paid)
     pub margin: f64, pub run_margin: f64,                      // audit.max_margin, run.max_margin
     pub price_shocks: u32 }                                    // ScalePrice firings this tick
-pub struct MarketObs { pub price: f64, pub next_price: f64, pub supply: f64, pub demand: f64,
+pub struct MarketObs { pub node: NodeId, pub good: GoodId,     // node and good: S2.3
+    pub price: f64, pub next_price: f64, pub supply: f64, pub demand: f64,
     pub cleared: f64, pub buyer_fill: f64, pub seller_fill: f64 }
 impl MarketObs { pub fn trades(&self) -> bool; }               // markets' predicate, after the finite gate
 pub struct RationObs { pub market: u32, pub class: ClassId, pub side: SideTag,
@@ -338,7 +404,17 @@ genesis)`, `trades(&[Obs], &[Window])`, `balance(&[Obs], &[Segment], …)`, `set
 | Trades | per market, `supply`, `demand`, `buyer_fill` and `seller_fill`, then `trades()` | each market trades in every window. The windows are `[k·E, (k+1)·E)` from the start with E = `ticks(every)`, plus `[n − E, n)` when E does not divide n, so the last full window ends at `until`. Trades does not restart at shocks: it is a liveness check over the run |
 | Balance (BalanceWatch) | per market, `supply` and `demand`, then `markets::imbalance`; per segment | in every segment, every market has at least `min_samples` observations and is not pinned. A tick is an observation unless S = D = 0; a one-sided tick counts at ±1 (C13). A market is pinned when sd < `spread` and \|mean\| > `level`, or when an unbroken run of one exact value v, \|v\| > `level`, covers at least `run_share` of its observations. Too few observations FAILs as "too few samples": it cannot tell a pin from a quiet market |
 | Settles (REPORT §6, criteria 1 and 3) | per segment and market: `supply`, `demand`, the fills, `price` and `cleared` | a dead tick is one on which some market does not trade. In W, dead ticks ≤ ⌊dead_share·\|W\|⌋; in F, none; for every market, `ln_range` of price and of cleared over F is ≤ `band` |
-| Kick (REPORT §6, criterion 1) | per segment end and market, the `price` of every market in the base continuation and each kicked run, over the horizon | the realized kick is not zero, every kick's `gain_tail` ≤ `max_gain`, and no kicked or base run fails (§7) |
+| Kick (REPORT §6, criterion 1) | per segment end and market, the `price` of every market in the base continuation and each kicked run, over the horizon | the realized kick is not zero, every kick's `gain_tail` ≤ `max_gain` and `gain_peak` ≤ `max_peak` (amended at S2.3), the base continuation ran H ticks, and no kicked or base run fails (§7) |
+
+The readings (amended at S2.3), each at its market (`node/good`), market and sign (`home/good +`)
+or `run`, per segment where the battery has segments: `conservation.reached`, `.max_margin` and
+`.max_run_margin`; `determinism.repeat`, `.replay` and, per resume, `.resume` (counts of
+differing hashes and report fields, bar 0); `runaway.max_ratio` and `.min_ratio`;
+`trades.windows` and, per market, `trades.silent_windows`; `balance.samples`, `.mean`, `.sd`,
+`.longest_run` (its bar `run_share` of the observations) and `.run_value`; `settles.dead_w`,
+`.dead_f`, `.price_range` and `.cleared_range`; `kick.horizon`, and per kick `kick.size`,
+`.gain_tail` and `.gain_peak`. A battery the finite gate fails records `nonfinite.tick`, and one
+with nothing to score records `samples`, 0.
 
 **Reports** are computed per segment and per market, good or class, and never scored. They are
 REPORT §6's criterion 2, the transient statistics, and O14's first instrument:
@@ -356,8 +432,15 @@ REPORT §6's criterion 2, the transient statistics, and O14's first instrument:
 - ticks with a subnormal fill or `cleared` (P0.4 amendment 6);
 - the run's count of `ScalePrice` firings, so a tape that sets its own prices says so.
 
-Reports have no gate. They fold with the same NaN-propagating max, min and sum, so a non-finite
-input reaches the certificate and the seal fails it (§8). No report is a ratio that could be 0/0.
+Reports have no gate. They fold with the same NaN-propagating max, min and sum, and a sample
+made from any non-finite input is NaN (amended at S2.3), so a non-finite input reaches the
+certificate and the seal fails it (§8). No report is a ratio that could be 0/0. Their names, per
+segment: `trough.cleared`, `.tick` and `.end`; `dead.ticks`, `.no_supply` and `.no_demand`;
+`fill.worst_buyer`, `.worst_seller`, `.rationed_buyer_ticks`, `.rationed_seller_ticks` and
+`.subnormal_ticks`, per market; `ration.worst`, `.rationed_ticks`, `.budget_short` and
+`.market_short`, at `node/good/class/side`; `consumption.none_ticks` and `spoiled.total`, per good;
+`transfer.short` and `.short_ticks`, per provider. The run's `ScalePrice` count is the
+certificate's `price_shocks`. An unscored run has no reports (amended at S2.3).
 
 ## 7. The kick check (C1; REPORT §5, and §6 criterion 1)
 
@@ -380,7 +463,8 @@ every segment:
    ticks. Let g(t) be the NaN-propagating max over markets of |ln(p_kick(t)/p_base(t))| on
    `MarketLine.price`. The realized kick is g(T), from the kicked run's first report; g(T) = 0
    fails as a zero kick. The readings are `gain_tail`, the max of g(t)/g(T) over the last
-   ⌈tail·H⌉ ticks, and `gain_peak`, the max over all H. `kick_gain` is a pure function of the two
+   ⌈tail·H⌉ ticks, and `gain_peak`, the max over all H, which `max_peak` bounds (amended at
+   S2.3: a kick that swings out and back reads as decayed in its tail). `kick_gain` is a pure function of the two
    price series. The notes give each kicked tape's `tape_hash`; a rerun of `certify` reruns them.
 
 Every failure after the base tape loads is inside the certificate: a kicked tape that does not
@@ -406,7 +490,9 @@ pub struct CriteriaRef { pub file: String /* base name */, pub date: Date, pub h
                          pub tape_hash: Hex, pub listed: Vec<BatteryId> }
 #[serde(try_from = "RawCertificate")]
 pub struct Certificate { verdict: Verdict, failures: Vec<String>, run: RunKey, tape: String,
-    criteria: Option<CriteriaRef>, until: u64, reached: u64, genesis_hash: Hex, final_hash: Hex,
+    criteria: Option<CriteriaRef>, until: u64, reached: u64,
+    stopped: Option<String>,                           // the RunError, if the run stopped (S2.3)
+    genesis_hash: Hex, final_hash: Hex,
     price_shocks: u64, segments: Vec<Segment>, batteries: Vec<BatteryResult>, reports: Vec<Reading>,
     nonfinite: Vec<String> }
 impl Certificate { /* getters */ pub fn render(&self) -> String; pub fn to_ron(&self) -> String;
@@ -424,7 +510,7 @@ pub fn certify(tape: &Tape, scoring: Scoring<'_>, build: &Build,
   - **FAIL** if any f64 anywhere in the parts (reading values, bars, reports) is non-finite, each
     path a failure line (R9: NaN fails, with or without criteria); or `reached < until` (a
     `RunError`), its ledger line first; or the criteria lack a battery C12 requires; or a listed
-    battery has no result or did not pass;
+    battery has no result, or any battery did not pass (amended at S2.3: listed or not);
   - else **UNSCORED** if there are no criteria, or criteria for another `tape_hash` (N4; July
     certified PASS here, `v2p3: runner.rs:473-478`, `certificate.rs:78`);
   - else **PASS**. UNSCORED is never PASS. Every number a verdict reads is a `Reading`; notes are
@@ -520,7 +606,13 @@ rustyecon certify  <tape> (--criteria FILE | --until T) --out DIR [--telemetry]
 
 ## 11. crates/probe: what moves now, what waits for observe (D13)
 
-**Moves now** (oracle-free; certify owns them and probe's harness calls certify): the runaway
+**Moves now** (oracle-free; certify owns them and probe's harness calls certify, from S2.6). At
+S2.3 each is in certify with the entry point probe will call: `battery::within_bound` (the
+runaway bound), `MarketLine::trades` and `MarketObs::trades` (the trades half of dead),
+`battery::rationed` (rationed ticks), `obs::burned` and `Obs::spoiled` (spoilage per good),
+`Obs::transfers` (the provider's due and paid), `fold::trough` (a trough of a series),
+`fold::ln_range` and `fold::range` (at rest in F), `battery::dead_share_ok` (the dead-share rule)
+and `Obs::margin` (the ledger margin). They are: the runaway
 bound (`RUNAWAY`; A12); a tick with no trade (the `trades` half of `dead`); rationed ticks per
 market side (`HOLD_TOL`, now `rationed_below`); spoilage per good; the provider's Σ(due − paid);
 the trough, as a function of a series and a reference (probe passes the oracle volume, certify the
@@ -606,9 +698,9 @@ and `appb-july.ron` (July's step rule from `w*2`, the negative control).
 | N12, the seal | `seal_fails_every_nonfinite_path` (certify): on synthetic parts, NaN, +inf and −inf at each f64 path (reading values, bars, reports) make the verdict FAIL, with criteria and without. `reports_carry_a_nonfinite_input_to_the_seal` (certify): a NaN `cleared` makes the trough NaN and the certificate FAIL. `finite_scan_reads_every_rendered_number` (certify): each float token of a real PASS certificate's RON, replaced by `NaN`, is refused by `from_ron` as `NonFinite` at that path, not as a parse error. `render_prints_only_serialised_numbers` (certify): every number in `render()` is bit-equal to one in `to_ron()` | seal step deleted; UNSCORED before the finite rule; a scan of a subtree; arithmetic in `render` |
 | R2, R8, liveness | `conservation_fails_on_a_margin_over_one` (a tick margin above 1, a run margin above 1, a NaN margin, a run short of `until`); `determinism_fails_on_one_differing_hash` (one flipped hash, one differing field in a resumed report, a replay final-hash mismatch); `trades_fails_on_a_silent_window` (a whole window silent, the last window ending at `until` silent) (all certify) | each comparison deleted; the base stream compared with itself; the resumed report not compared; the last window skipped |
 | A12 | `runaway_bound_is_relative` (certify): gate with every genesis price, coin holding and pension ×2⁴⁰ gives bit-identical runaway readings. `runaway_detector_catches_a_runaway` (certify): `appb-july.ron` fails and names the good market | an absolute bound; the bound read from code |
-| REPORT §6 criterion 1, the kick | `kick_check_passes_a_stable_rest` (certify): appb's eight kicks decay below `max_gain`. `kick_check_fails_a_rounding_freeze` (certify): `appb-freeze.ron` passes Settles and fails Kick. `a_zero_kick_fails` (certify): g(T) = 0 fails. `a_neutral_direction_fails` (certify): a synthetic pair whose gap stays at the kick fails; one whose gap is near zero only at the last tick of an orbit fails. `kicked_tape_keeps_world_and_past` (engine). `scale_price_is_an_event_only_delta` (core) | a kick of 0; the kicked run compared with itself; dividing by ln(1 ± size); scoring one tick |
+| REPORT §6 criterion 1, the kick | `kick_check_passes_a_stable_rest` (certify): appb's eight kicks decay below `max_gain`. `kick_check_fails_a_rounding_freeze` (certify): `appb-freeze.ron` passes Settles and fails Kick, six kicks at the peak with their tails decayed (amended at S2.3). `a_kick_that_swings_out_and_back_fails` (certify, S2.3). `a_zero_kick_fails` (certify): g(T) = 0 fails. `a_neutral_direction_fails` (certify): a synthetic pair whose gap stays at the kick fails; one whose gap is near zero only at the last tick of an orbit fails. `kicked_tape_keeps_world_and_past` (engine). `scale_price_is_an_event_only_delta` (core) | a kick of 0; the kicked run compared with itself; dividing by ln(1 ± size); scoring one tick |
 | Kick, after the base run | `deferred_tape_keeps_every_param` (certify): a gate variant whose only reference to a registered param is a `SetParam` after T keeps `world_id` and the registry. `a_failed_kick_is_a_fail_not_an_error` (certify): the kick runner fed another world's checkpoint gives Kick `pass: false` with a note, and `certify` returns a sealed FAIL. `reserved_keys_do_not_load` (certify): a tape with a `certify.` key is refused | dropping events and params; `?` on a kick error; no reservation |
-| REPORT §6 criterion 2, transients | `transient_statistics_are_reported` (certify): on `appb-bcycle.ron`, every report equals an independent fold of the `TickReport`s written in the test; the b′ = 0.8 segment has a trough, dead ticks and a transfer shortfall; fills skip ticks where their side is empty; rationing is reported per (market, class, side) with Σ(requested − feasible) | a report over the wrong segment, market or class; dead ticks counted as rationing |
+| REPORT §6 criterion 2, transients | `transient_statistics_are_reported` (certify): on `appb-bcycle.ron`, every report equals an independent fold of the `TickReport`s written in the test; the b′ = 0.8 segment has a trough and a transfer shortfall, and the segment the 0.8 → 0.2 change opens a dead tick with no supply and a tick with no consumption (amended at S2.3); fills skip ticks where their side is empty; rationing is reported per (market, class, side) with Σ(requested − feasible) | a report over the wrong segment, market or class; dead ticks counted as rationing |
 | REPORT §6 criterion 3, windows per shock | `a_history_whose_segments_return_passes` (certify): `appb-bcycle.ron` passes Settles and Kick in all five segments, under test bars with m below 1,500 ticks | windows across shocks |
 | D10 item 1 | `new_source_event_keeps_world_id` (engine) | hashing `p.fixed`; hashing a param's sites |
 | D10 item 2 | `fired_event_names_its_source` (engine) | `source: None` |
@@ -631,10 +723,10 @@ and `appb-july.ron` (July's step rule from `w*2`, the negative control).
 |---|---|
 | S2.1 | this contract (`785ab19`) |
 | S2.2 | §2.1–§2.3 and §2.5: D10 items 1, 2 and 4 with `Site`; item 3's loop; ENGINE amendments (§2.1, §2.6, §4, §5, §6, §7.1, §7.4, §11, §13); TAPE.md's row; the hash comparison and the new `world_id`s recorded (§2.5) |
-| S2.3 | §2.4: `ScalePrice` and `MarketLine::trades`, with their ENGINE amendments (§2.4, §2.6, §7.3) and TAPE.md's row; certify: criteria, manifest, obs, folds, batteries, kick, certificate and seal, the finite scan; their tests on synthetic observations and testdata |
+| S2.3 | §2.4: `ScalePrice` and `MarketLine::trades`, with their ENGINE amendments (§2.4, §2.6, §7.3) and TAPE.md's row; certify: criteria, manifest, obs, folds, batteries, kick, certificate and seal, the finite scan; their tests on synthetic observations and testdata; `appb-tape --perturb`, the testdata and `certify_testdata_is_generated` (amended at S2.3) |
 | S2.4 | telemetry behind `parquet`; `Cargo.lock` |
 | S2.5 | cli: the build stamp, named hashes, the manifest, verified resume, `certify`; `gate.sh` |
-| S2.6 | probe: the moved measures delegated, `appb-tape --perturb`, the testdata, the pins |
+| S2.6 | probe: the moved measures delegated, and the pins (`appb-tape --perturb` and the testdata landed at S2.3) |
 | S2.7 | `criteria/gate-2026-09-26.ron` and `criteria/appb-2026-09-26.ron`, committed alone, before any certified run of either tape |
 | S2.8 | `results/{gate,appb}/{certificate,manifest}.ron` from a clean build of S2.7, without `--telemetry`. A FAIL is committed as a FAIL and reported, never retuned in place |
 | S2.9 | docs: this file's amendments, ENGINE, TAPE, README, PLAN §3.2's text for decision 39, STATE, and GUI.md: §3.3's `tape_hash` definition and `RunKey` (`Hex` fields, `Build` with target and rustc), and §7.2 (items 1, 2 and 4 met; `source: Option<Key>`) |
@@ -648,7 +740,7 @@ and `appb-july.ron` (July's step rule from `w*2`, the negative control).
   bars: level 1e-9, spread 1e-12, 32 samples, run share 0.5 (`v2p3: invariants.rs`, the −1/6 pin).
   `rationed_below` 1e-9. No Settles and no Kick: the gate world claims no rest, since its prices
   drift with the pension (ENGINE §10).
-- **appb.** §4's excerpt, plus Trades every 1.0 year, Balance as gate, and Settles with W at 0.5,
+- **appb.** §4's excerpt (with `max_peak` 1e6, amended at S2.3), plus Trades every 1.0 year, Balance as gate, and Settles with W at 0.5,
   F at 0.9, dead share 0.01 and band 1e-4 in log (PROBE-SPEC §4.5; tol/10).
 
 **Gate additions** (`scripts/gate.sh` in WSL; the same commands on Windows). Gated on both:
@@ -682,7 +774,8 @@ cross-platform comparison compares the bodies of the hash files.
    If gate certifies FAIL on it, S2.8 commits the FAIL and reports it.
 4. **C11 edits probe code that REPORT cites at `55c9e88`.** `probe_battery_csv_unchanged` guards
    it; the alternative keeps two definitions until Phase 2 proper.
-5. **The freeze testdata depends on the sweep.** If no candidate freezes at rest within 20,000
+5. *(Answered at S2.3: `appb-freeze.ron` is the turnover ×16 cell's w×1.05 run; its kicks fail
+   at the peak, amendment 1.)* **The freeze testdata depends on the sweep.** If no candidate freezes at rest within 20,000
    ticks, the Kick battery's negative test needs a hand-built unstable tape. S2.6 says which.
 6. **The horizon is one L.** An instability slower than L passes: REPORT §5's rates ×4 cell needs
    about 55,000 ticks to grow a 1e-9 kick past tolerance. C2 sits 4× inside that edge. A longer

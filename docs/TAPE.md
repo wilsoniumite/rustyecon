@@ -25,6 +25,7 @@ whose raw types are documented the same way in `rustyecon_agents::spec` (which a
 | 1 | 2026-09-26 | P0.9 | No field changes, so the number stays 1. Two dated events that fall in one tick now fire in date order, not key order (see Dates). |
 | 1 | 2026-09-26 | P2.0.1 | The agents' spec gains four variants, `Provider`, `Workers`, `GoodDesk` and `MachDesk` (see below). No existing field or variant changes, and every schema-1 tape loads and means what it did, so the number stays 1: ENGINE §5 has the spec an enum so that Phase 2's kinds are new variants, not a new schema shape. |
 | 1 | 2026-09-26 | S2.2 | No field changes, so the number stays 1, and every tape loads and means what it did. A registered param that becomes a `SetParam`'s source keeps the world (see Params), and each use of a param now carries the conversion it takes, so every `world_id` changed once (ENGINE, amended at S2.2). `rustyecon registry` lists each use of a param with its method, per-tick value and path. |
+| 1 | 2026-09-26 | S2.3 | Core's actions gain `ScalePrice(node, good, by)`, appended last, a dated price shock: the posted price times a `Dimensionless` param the schedule reads (see Actions). No existing field or variant changes, and every tape loads and means what it did, so the number stays 1. Certify's kick is this action (docs/CERTIFY.md §2.4, §7). |
 
 The loader reads its own version only; anything else is refused as a schema error before any
 other field is looked at. Since no field has a default, every change to the schema bumps the
@@ -54,8 +55,9 @@ number and adds a row here.
   dated `SetParam` may change it) or *fixed* (turned into structure at load: a shelf life, a
   recurring period, a value a `SetParam` copies, or a ledger tolerance). A fixed param cannot be
   the target of a `SetParam`. A ledger tolerance must be below 1.
-- **Schedule params.** A param that only the schedule reads, the value a `SetParam` copies or a
-  recurring entry's period, and nothing in the world, belongs to the schedule: it is not in the
+- **Schedule params.** A param that only the schedule reads, the value a `SetParam` copies, a
+  recurring entry's period or a `ScalePrice`'s factor, and nothing in the world, belongs to the
+  schedule: it is not in the
   run's state or in `world_id`, and the firings it shapes are in `prefix_id` (ENGINE §2.6). So a
   dial change, a new param with a dated `SetParam` that copies it, keeps every checkpoint taken
   before it fires, and so does a new value for such a param. A param the world also reads (a
@@ -138,8 +140,14 @@ Tape(
 ```
 
 Core's own actions are `Mint(holder, good, qty)` and `Burn(holder, good, amount)` (both with
-provenance `Event`), `Transfer(from, to, good, amount)` and `SetParam(param, to)`; an `amount` is
-`Qty(x)` or `All`. `Actor(..)` carries the extension's action; the agents have one,
+provenance `Event`), `Transfer(from, to, good, amount)`, `SetParam(param, to)` and, since S2.3,
+`ScalePrice(node, good, by)`; an `amount` is `Qty(x)` or `All`. `ScalePrice` multiplies the posted
+price of (node, good) by the value of `by`, a `Dimensionless` param, once, in the tick its date
+falls in, and leaves the EMA alone. The factor must be finite and positive, the good must have a
+market there (not a currency), and only a dated event may carry it: in a recurring entry it does
+not load, since a periodic price nudge would be an exogenous stabiliser (R3). Like a
+`SetParam`'s source, a factor nothing else reads is a schedule param, so a price shock keeps the
+world's identity and every checkpoint taken before it fires. `Actor(..)` carries the extension's action; the agents have one,
 `SetActive(actor: "oven", active: true)`, which wakes or puts to sleep a scripted actor.
 
 ## The scripted actor's spec

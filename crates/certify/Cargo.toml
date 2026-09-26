@@ -3,9 +3,21 @@ name = "rustyecon-certify"
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
+description = "Certification: dated criteria, the batteries, the kick check, the sealed certificate and the run's manifest (docs/CERTIFY.md)."
+
+# Certify reads runs through the engine and uses core's read-only helpers (fnv1a_64, Fnv, num,
+# Basis, Date) directly; it calls none of core's writer and re-exports nothing of core
+# (docs/CERTIFY.md §1). No I/O: paths live in the cli. Parquet telemetry joins behind a feature
+# at S2.4, so the manifest and verdicts compile without it.
+[lib]
+name = "certify"
+path = "src/lib.rs"
 
 [dependencies]
 rustyecon-core.workspace = true
+rustyecon-engine.workspace = true
+serde.workspace = true
+ron.workspace = true
 
 [lints]
 workspace = true

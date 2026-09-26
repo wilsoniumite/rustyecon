@@ -265,4 +265,18 @@ pub enum RawAct<A> {
     },
     /// The extension's action.
     Actor(A),
+    /// Multiply one market's posted price by a param's value, once: a dated price shock
+    /// (docs/CERTIFY.md §2.4, amended at S2.3). The EMA is left alone. Only a dated event may
+    /// carry it: a recurring price nudge would be an exogenous stabiliser (R3), so a recurring
+    /// `ScalePrice` does not load. Appended last, so the other actions keep their meaning.
+    ScalePrice {
+        /// Node key. Required, no default.
+        node: Key,
+        /// Good key, not a currency: a market the world has. Required, no default.
+        good: Key,
+        /// Param key, unit `Dimensionless`, finite and positive: the factor. The schedule
+        /// reads it, so a param nothing else reads stays out of the world's identity; fixed by
+        /// this use. Required, no default.
+        by: Key,
+    },
 }

@@ -34,7 +34,7 @@ pub use clock::{Clock, ClockError, ClockMethod, Date, DateError, ParamSite, Site
 pub use delta::{Phase, Provenance, StateDelta};
 pub use error::{CheckpointError, CoreError, LoadError, LoadErrorKind};
 pub use ext::{Ext, Never, NoExt};
-pub use hash::{fnv1a_64, state_hash};
+pub use hash::{fnv1a_64, state_hash, Fnv};
 pub use ids::{
     ActorId, ActorKind, ChannelId, ClassId, DeskId, EventId, GoodId, Holder, InvalidKey, Key,
     NodeId, ParamId, PopId,

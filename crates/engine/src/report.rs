@@ -8,7 +8,7 @@
 
 use rustyecon_agents::Agents;
 use rustyecon_core::{Date, GoodId, Holder, Key, NodeId, Phase, RunAudit, StateDelta, TickAudit};
-use rustyecon_markets::{RationLine, SettleLine};
+use rustyecon_markets::{MarketFill, RationLine, SettleLine};
 use serde::{Deserialize, Serialize};
 
 /// What one tick did.
@@ -61,6 +61,24 @@ pub struct MarketLine {
     pub seller_fill: f64,
 }
 
+impl MarketLine {
+    /// Whether the market traded this tick: markets' own predicate, [`MarketFill::trades`] (both
+    /// sides posted and both fills positive), so certify and the probe share one definition of a
+    /// market that traded (docs/CERTIFY.md §2.4, amended at S2.3). A reader that may meet a
+    /// non-finite field checks it first: a NaN reads as no trade here.
+    pub fn trades(&self) -> bool {
+        MarketFill {
+            node: self.node,
+            good: self.good,
+            supply: self.supply,
+            demand: self.demand,
+            buyer_fill: self.buyer_fill,
+            seller_fill: self.seller_fill,
+        }
+        .trades()
+    }
+}
+
 /// A tape event that fired.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct FiredEvent {
@@ -71,8 +89,8 @@ pub struct FiredEvent {
     /// The resolved action.
     pub action: StateDelta<Agents>,
     /// For a `SetParam`, the key of the param its value was copied from, which carries the new
-    /// value's basis (`Firing::source`); `None` for any other action (amended at S2.2, D10
-    /// item 2).
+    /// value's basis (`Firing::source`; amended at S2.2, D10 item 2), and for a `ScalePrice` the
+    /// key of its factor (amended at S2.3); `None` for any other action.
     pub source: Option<Key>,
 }
 

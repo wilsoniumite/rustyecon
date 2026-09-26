@@ -170,6 +170,18 @@ pub enum ParamUse {
     Fixed,
 }
 
+/// How the schedule reads a param: the value a `SetParam` copies, a recurring period, or the
+/// factor of a `ScalePrice` (amended at S2.3).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ScheduleRead {
+    /// A `SetParam`'s source: its sites wait for its target's methods.
+    Source,
+    /// A recurring entry's period: a `Ticks` site.
+    Period,
+    /// A `ScalePrice`'s factor: a `Value` site.
+    Factor,
+}
+
 #[derive(Debug, Clone)]
 struct ParamInfo {
     key: Key,
@@ -179,7 +191,7 @@ struct ParamInfo {
     live: bool,
     /// Turned into world structure, or fixing a past tick's meaning.
     fixed: bool,
-    /// Copied by a `SetParam`.
+    /// Copied into a firing: a `SetParam`'s source, or a `ScalePrice`'s factor.
     copied: bool,
     /// A recurring entry's period.
     period: bool,
@@ -367,20 +379,25 @@ impl<'a> Resolver<'a> {
         })
     }
 
-    /// A reference from the schedule (a `SetParam`'s source, a recurring period): the param's
-    /// unit and value. A schedule param is read from the schedule's list; any other is a
-    /// registered param, recorded as copied or as a period, which makes it fixed. A period
-    /// records a `Ticks` site at `field`; a source's sites wait for its target's
-    /// ([`Resolver::source_sites`]).
+    /// A reference from the schedule (a `SetParam`'s source, a recurring period, a
+    /// `ScalePrice`'s factor): the param's unit and value. A schedule param is read from the
+    /// schedule's list; any other is a registered param, recorded as copied or as a period,
+    /// which makes it fixed. A period records a `Ticks` site at `field` and a factor a `Value`
+    /// site; a source's sites wait for its target's ([`Resolver::source_sites`]).
     fn schedule_ref(
         &mut self,
         key: &Key,
-        period: bool,
+        read: ScheduleRead,
         field: &str,
     ) -> Result<(Unit, f64), LoadError> {
-        let site = period.then(|| ParamSite {
+        let method = match read {
+            ScheduleRead::Source => None,
+            ScheduleRead::Period => Some(ClockMethod::Ticks),
+            ScheduleRead::Factor => Some(ClockMethod::Value),
+        };
+        let site = method.map(|method| ParamSite {
             path: self.path(field),
-            method: ClockMethod::Ticks,
+            method,
         });
         if let Ok(i) = self.schedule.binary_search_by(|p| p.key.cmp(key)) {
             let p = &self.schedule[i];
@@ -393,10 +410,9 @@ impl<'a> Resolver<'a> {
             return Err(self.unknown(field, "param", key));
         };
         let info = &mut self.params[i as usize];
-        if period {
-            info.period = true;
-        } else {
-            info.copied = true;
+        match read {
+            ScheduleRead::Period => info.period = true,
+            ScheduleRead::Source | ScheduleRead::Factor => info.copied = true,
         }
         info.sites.extend(site);
         Ok((info.unit, info.value))
@@ -441,7 +457,7 @@ impl<'a> Resolver<'a> {
 
     /// A recurring entry's period: a `Years` param as whole ticks.
     fn period(&mut self, key: &Key, field: &str) -> Result<u32, LoadError> {
-        let (unit, v) = self.schedule_ref(key, true, field)?;
+        let (unit, v) = self.schedule_ref(key, ScheduleRead::Period, field)?;
         if unit != Unit::Years {
             return Err(self.error(
                 field,
@@ -527,8 +543,11 @@ struct Resolved<E: Ext> {
     target: Option<(ParamId, String)>,
 }
 
+/// Resolve a tape action. `recurring` is whether it belongs to a recurring entry, where a
+/// `ScalePrice` does not load (amended at S2.3).
 fn resolve_act<E: Ext>(
     act: &RawAct<E::RawAction>,
+    recurring: bool,
     r: &mut Resolver<'_>,
 ) -> Result<Resolved<E>, LoadError> {
     let plain = |action| Resolved {
@@ -570,7 +589,7 @@ fn resolve_act<E: Ext>(
         }),
         RawAct::SetParam { param, to } => {
             let (p, unit) = r.param_any(param, ParamUse::Live, "act.param")?;
-            let (src_unit, value) = r.schedule_ref(to, false, "act.to")?;
+            let (src_unit, value) = r.schedule_ref(to, ScheduleRead::Source, "act.to")?;
             if unit != src_unit {
                 return Err(r.error(
                     "act.to",
@@ -593,6 +612,37 @@ fn resolve_act<E: Ext>(
             let d = E::resolve_action(a, r);
             r.leave();
             plain(StateDelta::Actor(d?))
+        }
+        RawAct::ScalePrice { node, good, by } => {
+            // A dated price shock (docs/CERTIFY.md §2.4). A recurring one would be a periodic
+            // price nudge, an exogenous stabiliser (R3), and would not restart a window (C5).
+            if recurring {
+                return Err(r.error("act", LoadErrorKind::RecurringPriceShock));
+            }
+            let node = r.node(node, "act.node")?;
+            let good = r.good(good, "act.good")?;
+            if r.is_currency(good) {
+                return Err(r.error("act.good", LoadErrorKind::NoMarket));
+            }
+            let (unit, factor) = r.schedule_ref(by, ScheduleRead::Factor, "act.by")?;
+            if unit != Unit::Dimensionless {
+                return Err(r.error(
+                    "act.by",
+                    LoadErrorKind::UnitMismatch {
+                        key: by.to_string(),
+                        registered: unit,
+                        expected: Unit::Dimensionless,
+                    },
+                ));
+            }
+            if !(is_clean(factor) && factor > 0.0) {
+                return Err(r.error("act.by", LoadErrorKind::BadValue(factor)));
+            }
+            Resolved {
+                action: StateDelta::ScalePrice { node, good, factor },
+                source: Some(by.clone()),
+                target: None,
+            }
         }
     })
 }
@@ -931,7 +981,7 @@ fn resolve_with<E: Ext>(t: &Tape<E>, schedule: &[Key]) -> Result<Pass<E>, LoadEr
     for e in &t.events {
         r.enter(format!("events[{}]", e.key));
         let tick = r.tick_of(e.at, "at")?;
-        let res = resolve_act::<E>(&e.act, &mut r)?;
+        let res = resolve_act::<E>(&e.act, false, &mut r)?;
         r.leave();
         targets.extend(res.target);
         once.push(Firing {
@@ -958,7 +1008,7 @@ fn resolve_with<E: Ext>(t: &Tape<E>, schedule: &[Key]) -> Result<Pass<E>, LoadEr
             }
             None => None,
         };
-        let res = resolve_act::<E>(&e.act, &mut r)?;
+        let res = resolve_act::<E>(&e.act, true, &mut r)?;
         r.leave();
         targets.extend(res.target);
         every.push(Recurring {

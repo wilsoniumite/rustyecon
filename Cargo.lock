@@ -259,7 +259,10 @@ dependencies = [
 name = "rustyecon-certify"
 version = "0.2.0"
 dependencies = [
+ "ron",
  "rustyecon-core",
+ "rustyecon-engine",
+ "serde",
 ]
 
 [[package]]

@@ -512,6 +512,46 @@ No state hash and no `prefix_id` moved: all 2,080 gate and 20,000 appb per-tick 
 7. docs/CERTIFY.md §2.4's `ScalePrice` and `MarketLine::trades` are not in this step. They land
    with the kick, which is their only user (CERTIFY §14).
 
+**Amended at S2.3** (2026-09-26: Phase 0 session 2, certification; docs/CERTIFY.md §2.4 and C1),
+the same way. Core and engine changed; markets and agents did not. No state hash and no
+`prefix_id` moved: the new action and delta are appended, so every existing encoding stands, and
+the gate world's final hash is `0x61f9c8529131ff17` as before.
+
+1. The kick's action (§2.4, §2.6): `RawAct::ScalePrice { node, good, by }`, appended to the tape's
+   actions, resolves to `StateDelta::ScalePrice { node, good, factor }`, appended after
+   `AdvanceTick`. `by` is a `Dimensionless` param the schedule reads, as a `SetParam`'s source is:
+   a param nothing else reads is a `ScheduleParam`, outside `world_id`, and a registered one is
+   fixed by the use. Its one site is `Value` at the event's `act.by`, and the firing's `source`
+   names it, so a fired `ScalePrice` names its factor in `FiredEvent::source` (§7.4). Load
+   errors, each at its path: a factor that is not finite and positive (`BadValue`), a good with
+   no market, a currency (`NoMarket`, new), and a `ScalePrice` in a recurring entry
+   (`RecurringPriceShock`, new): a periodic price nudge would be an exogenous stabiliser (R3),
+   and it would not restart a certify window (CERTIFY C5). The schema stays 1 (docs/TAPE.md).
+2. `apply` (§2.4) takes a `ScalePrice` in `Phase::Events` only (`WrongPhase` otherwise), sets the
+   posted price to `fl(p·factor)`, refuses a factor or a result that is not finite and positive
+   (`BadValue`, the state untouched), and leaves the EMA alone. Hooks cannot emit it (§7.3): the
+   whitelist is an allow-list, and `behaviour_output_is_whitelisted` gains the arm.
+3. `MarketLine::trades()` (§7.4) is markets' `MarketFill::trades` predicate on the line's fields,
+   so certify and the probe read one definition of a market that traded.
+4. `core::hash::Fnv`, the incremental FNV-1a 64 hasher, is public with `new`, `write`, `finish`
+   and `resume(digest)`, which continues a hash from the digest of what came before (FNV-1a's
+   running state is its digest). Certify's manifest folds a hash file's lines with it (CERTIFY
+   §9). It hashes bytes; it is not a writer of anything.
+5. `crates/certify` (§1) is certify, `rustyecon-certify`, lib `certify`: criteria, the
+   batteries, the kick check, the sealed certificate and the manifest (docs/CERTIFY.md). It
+   depends on core (read-only helpers) and the engine; nothing on the engine path depends on it.
+   The source scans read it too (§11): no threshold, no I/O, no core writer.
+6. Tests (§11). In core: `scale_price_is_an_event_only_delta` (`apply.rs`: the phase, the EMA, a
+   currency, bad factors and results, the tape's load checks, the factor as a schedule param
+   with its `Value` site). In engine: `kicked_tape_keeps_world_and_past` (`edits.rs`: the gate
+   with a kick at tick 1,000 keeps `world_id` and every prefix through 1,000; the tick-1,000
+   checkpoint resumes under it, that tick's posted price is `fl(p·factor)`, the event names its
+   factor, and the resumed run's hashes equal the kicked tape's run from genesis),
+   `market_line_trades_as_markets_do` (`gate.rs`), and three scans of `crates/certify/src`,
+   `certify_holds_no_threshold`, `certify_does_no_file_io` and `certify_hands_out_no_core_writer`
+   (`scans.rs`, each checked on fixtures first). `behaviour_output_is_whitelisted` gains
+   `ScalePrice`. Each was checked against the mutation it guards (CERTIFY, amended at S2.3).
+
 ## 0. Engine invariants
 
 Numbered so tests and reviews can cite them. Each has at least one test in §11.
@@ -567,7 +607,9 @@ crates/agents   rustyecon-agents   the Behaviour seam, View, the scripted actor
 crates/engine   rustyecon-engine   Sim: the tick loop, step, run, checkpoint, resume, the replay audit;
                                    TickReport; the hook whitelist
 crates/cli      rustyecon-cli      bin `rustyecon`: argument parsing, file I/O, exit codes
-crates/certify  rustyecon-certify  empty until session 2 (A4); nothing depends on it yet
+crates/certify  rustyecon-certify  lib `certify`: criteria, batteries, the kick, the certificate and
+                                   the manifest (docs/CERTIFY.md; S2.3); nothing on the engine path
+                                   depends on it
 crates/oracle   rustyecon-oracle   the equilibrium solver, Phase 1 (unit 1a at P1.1); lib `oracle`
 crates/worldgen rustyecon-worldgen empty until Phase 4; nothing depends on it yet
 crates/probe    rustyecon-probe    the Phase 2 probe's harness (P2.0.1); lib `probe`; nothing depends on it
@@ -769,6 +811,7 @@ pub enum StateDelta<E: Ext> {
     Age { holder: Holder },
     Actor(E::Delta),
     AdvanceTick,
+    ScalePrice { node: NodeId, good: GoodId, factor: f64 },               // appended at S2.3: a price shock
 }
 pub enum Provenance { Production, Consumption, Spoilage, Endowment, Depreciation, Construction, Event,
                       Rounding }   // last, so the others keep their encoding (P0.7)
@@ -801,11 +844,13 @@ carries a typed provenance, with no `Default` and no serde default; `Transfer` c
 
 **Phase rules in `apply`** (`CoreError::WrongPhase`): an escrow holder appears only in
 `Settlement`; `SetVolumes` only in `Clearing`; `SetPrice`, `SetEma` and `AdvanceTick` only in
-`Prices`; `SetParam` only in `Events`; `Age` only in `Upkeep`; a `Mint` of an Instant good only in
+`Prices`; `SetParam` and `ScalePrice` only in `Events`; `Age` only in `Upkeep`; a `Mint` of an Instant good only in
 `Events` or `Decisions`. Which actor may emit what inside a phase is the engine's whitelist (E7,
 §7.3), not core's. Besides: `Spoilage` is ageing's alone and `Rounding` is `apply`'s, so a `Mint`
 or `Burn` carrying either is `ReservedProvenance`; a `SetPrice`, `SetEma` or `SetVolumes` on a
-(node, currency) slot is `NoMarket`; a price or EMA must be positive. `apply` returns the quantity
+(node, currency) slot is `NoMarket`; a price or EMA must be positive. A `ScalePrice` sets the
+posted price to `fl(p·factor)`, leaves the EMA alone, and refuses a factor or a result that is not
+finite and positive (amended at S2.3; docs/CERTIFY.md §2.4). `apply` returns the quantity
 each delta moved: what a transfer delivered, a mint created, a burn destroyed, or an `Age`
 spoiled (summed over goods); 0 for the rest. A burn's is the float sum of the lots it took. The
 rounding of a delta's split, merges and sum is not in that quantity; it is the delta's `Rounding`
@@ -836,6 +881,7 @@ pub struct RunAudit { pub since: u64, pub lines: Vec<(GoodId, Provenance, f64)>,
 // Breach { tick, since, good, opening, closing, declared, gross, drift, tol, lines }: since == tick
 // for a tick's breach, the run's first tick for a run's
 pub fn state_hash<E: Ext>(s: &SimState<E>) -> u64; // FNV-1a 64 over bincode 1 (v2p3: certify/hash.rs:16-30)
+pub struct Fnv;  // incremental FNV-1a 64: new, write, finish, resume(digest) (public at S2.3)
 pub struct Checkpoint<E: Ext> { world_id: u64, prefix_id: u64, state: SimState<E>,
                                 run: RunLedger }                    // private; run since P0.9
 impl<E: Ext> Checkpoint<E> {
@@ -1029,7 +1075,10 @@ impl<E: Ext> Schedule<E> { pub fn fire(&self, tick: u64) -> Vec<Firing<E>>;
   - `SetParam { param, to }`, where `to` is another param's key with the same unit. The value
     comes from that param at load, and its key stays on the firing, so the new value keeps a
     basis (R4). The target must not be fixed. A source nothing else reads is a schedule param.
-  - `Actor(E::RawAction)`.
+  - `Actor(E::RawAction)`;
+  - `ScalePrice { node, good, by }` (amended at S2.3), a dated price shock: the posted price times
+    `by`, a `Dimensionless` param the schedule reads (a `Value` site at `act.by`; the firing's
+    `source`). Only a dated event may carry it.
 - **Resolver.** The extension resolves through `Resolver`: `good`, `node`, `class`, `actor`,
   `channel` (key to id), `param(key, method, ParamUse::Live | Fixed, field) -> Site` (amended at
   S2.2: the `ClockMethod` replaces the unit, which it implies, and the use is recorded as a
@@ -1056,7 +1105,9 @@ impl<E: Ext> Schedule<E> { pub fn fire(&self, tick: u64) -> Vec<Firing<E>>;
   - `ticks_per_year: 0`, a channel from a node to itself, a genesis price on a currency, a
     recurring `last` before its `first`, a duplicate genesis holding or held good;
   - a ledger tolerance of 1 or more; a currency on either side of a recipe (§4) (both amended
-    at P0.6).
+    at P0.6);
+  - a `ScalePrice` on a currency (`NoMarket`), with a factor that is not finite and positive, or
+    in a recurring entry (`RecurringPriceShock`) (amended at S2.3).
 
 ## 3. rustyecon-markets (N5–N8, N13; R12; F8)
 
@@ -1442,7 +1493,7 @@ ordered reduction across region shards will need.
 | `upkeep` | `Burn { from: Actor(me) }` with `Depreciation`; `Actor(d)` owned by me |
 
 Anything else — a mint to or burn from another holder, any escrow, `SetPrice`, `SetEma`,
-`SetVolumes`, `SetParam`, `Age`, `AdvanceTick`, a foreign order — is `RunError::ForeignWrite`
+`SetVolumes`, `SetParam`, `Age`, `AdvanceTick`, `ScalePrice` (S2.3), a foreign order — is `RunError::ForeignWrite`
 (or `ForeignOrder`), and core's phase rules still apply underneath. Phase 3 adds `Construction`
 burns to `produce`'s list; the list lives in the engine, so core does not reopen. Tape events
 (phase 0) are the world's hand and are not whitelisted; an `Ext` delta with `owner == None` is
@@ -1470,11 +1521,15 @@ pub struct MarketLine { pub node: NodeId, pub good: GoodId,
 pub struct FiredEvent { pub key: Key, pub occurrence: u32, pub action: StateDelta<Agents>,
                         pub source: Option<Key> }  // Firing::source: a SetParam's source (S2.2)
 pub struct HoldingTotals(pub Vec<(Holder, GoodId, f64)>);   // (holder, good) order
+impl MarketLine { pub fn trades(&self) -> bool; }  // markets' MarketFill::trades (S2.3)
 ```
 
 A fired `SetParam` names the param its value was copied from, which carries the new value's
-basis, so a frontend can explain a number from the report alone; every other firing names none
-(amended at S2.2, D10 item 2; `fired_event_names_its_source`).
+basis, so a frontend can explain a number from the report alone, and a fired `ScalePrice` names
+its factor (amended at S2.3); every other firing names none (amended at S2.2, D10 item 2;
+`fired_event_names_its_source`). `MarketLine::trades` is markets' own predicate, both sides
+posted and both fills positive, so certify and the probe read one definition of a market that
+traded (S2.3; `market_line_trades_as_markets_do`).
 
 `run` counts from the run's first tick: genesis for `Sim::new`, and for `Sim::resume` whatever
 the checkpoint's run counted from, since a checkpoint carries the run's ledger (amended at P0.9,
@@ -1668,7 +1723,7 @@ size; none is absolute (A12). Gate tests read `tapes/gate.ron` through `include_
 | ledger (new) | `undefined_good_is_an_error_in_release`, `nan_drift_is_a_breach`, `zero_stock_zero_flow_requires_exact_zero`, `margin_is_zero_when_drift_is_zero`, `direct_state_write_is_caught`, `burn_shortfall_stops_with_a_ledger_line`, `atomic_transfer_cannot_mint`, `escrow_outside_settlement_is_an_error`, `instant_mint_outside_phases_0_and_1_is_an_error`, `book_writes_outside_their_phase_are_errors`; from P0.7 `transfer_rounding_is_declared` (the limit pinned: a thousand transfers of 1 from a lot of 1e17 each move 1 and declare +1 as `Rounding`, 6 merged into it declare −6, a mint and a burn declare theirs beside their own lines; every total checked exactly in integers; `Rounding` reserved) and `run_ledger_catches_a_leak_below_each_ticks_tolerance` (a leak of 1e-10 a tick on a stock of 16 passes each tick and breaches the run at its second tick; a clean run's lines are the ticks' sums); from P0.9 `multi_lot_rounding_is_declared_exactly` (a burn of [1e17, 7] declares −1e17 and −7 as `Rounding`, a transfer of [7, 1e-17] into [1e17, 1] declares −7 and −1e-17, and 3,000 awkward multi-lot burns and transfers, whole and partial: every delta's posts add up exactly, by expansion, to what its lots gained or lost) and `flow_tolerance_is_pinned_for_a_tick_and_a_run` (with the flow term dominant, a drift at 0.9 of the tolerance passes and at 1.1 breaches, for a tick and for a run, and the breach's `gross` and `tol` are exactly Σ moved + Σ \|declared\| and the formula) | N2, N3, A12, R2 |
 | hash | `identical_states_hash_equal_and_tick_changes_it` (salvaged), `hash_covers_holdings_lives_params_and_ext_state` | R8 |
 | checkpoint (salvaged, `v2p3: output/checkpoint.rs:84-102`) | `binary_round_trip` and `human_readable_round_trip` (now by full hash, not by tick), `checkpoint_format_is_checked` (format 1 refused), `checkpoint_rejects_nan_and_unknown_ids`, `checkpoint_digest_refuses_an_edited_state` (P0.6: one lot changed, in each form), `checkpoint_digest_covers_identity_and_run` (P0.9: `world_id`, `prefix_id` and the run's ledger each edited, in each form, are refused; a run's ledger that does not fit the state is refused by `of` and `validate`), and the module's doc tests (`&mut cp.state` does not compile) | N11, R2, E1, O7, O8 |
-| tape | `unsorted_events_fire_in_order` (ticks listed 5, 2, 9, 9 all fire; key order within a day, and from P0.9 date order within a tick, the prefix hashing the same order), `recurring_last_is_inclusive` (P0.7: a `last` on an occurrence's date fires there and never after, and `prefix_id` at every tick around it is the hash of what `fire` produced), `every_zero_is_rejected`, `undefined_good_is_a_load_error`, `unknown_actor_or_param_is_a_load_error`, `duplicate_keys_are_rejected`, `missing_genesis_price_is_rejected`, `unused_param_is_rejected`, `unit_mismatch_is_rejected`, `event_before_start_is_rejected`, `set_param_on_fixed_or_other_unit_is_rejected`, `ratio_with_saturate_is_rejected`, `date_to_tick_is_integer_exact`, `date_of_inverts_date_to_tick` | N1, N2, R4, N13 |
+| tape | `unsorted_events_fire_in_order` (ticks listed 5, 2, 9, 9 all fire; key order within a day, and from P0.9 date order within a tick, the prefix hashing the same order), `recurring_last_is_inclusive` (P0.7: a `last` on an occurrence's date fires there and never after, and `prefix_id` at every tick around it is the hash of what `fire` produced), `every_zero_is_rejected`, `undefined_good_is_a_load_error`, `unknown_actor_or_param_is_a_load_error`, `duplicate_keys_are_rejected`, `missing_genesis_price_is_rejected`, `unused_param_is_rejected`, `unit_mismatch_is_rejected`, `event_before_start_is_rejected`, `set_param_on_fixed_or_other_unit_is_rejected`, `ratio_with_saturate_is_rejected`, `date_to_tick_is_integer_exact`, `date_of_inverts_date_to_tick`; from S2.3 `scale_price_is_an_event_only_delta` (in `apply.rs`: phase 0 only, `fl(p·factor)` with the EMA left alone, bad factors and results refused with nothing moved, and at load a currency, a bad factor, a factor in another unit and a recurring one refused, the factor a schedule param with its `Value` site, and the world kept) | N1, N2, R4, N13, C1 |
 | tape schema | `schema_version_is_checked`, `unknown_field_is_rejected`, `missing_optional_field_is_rejected`, `tape_round_trips` (parse, `to_ron`, parse: equal `Tape`, equal `world_id`), `file_order_is_irrelevant` (permuting every list: same `world_id` and prefix ids), `reformatted_tape_keeps_its_ids` (whitespace, comments, CRLF: same ids), `new_entity_keeps_existing_ids` (adding a good, an actor and an event leaves every existing key naming the same entity with the same resolved content), `prefix_id_covers_only_past_firings`, `schedule_params_stay_out_of_the_world` (P0.6: a new source value, a new dial and its event, a new period keep `world_id` and the past before they fire; a source the world reads stays registered, and from S2.2 keeps the world), `ledger_tolerances_must_be_below_one` (P0.6), `param_sites_are_recorded` (S2.2: every use at its path with its method; a source takes its target's methods at the event's `to`, a period `Ticks` at its `every`; a target's `act.param` is not a use) | E8, N11, E1, R2, D10 |
 | other | `clock_conversions` (all units and methods of §6; `ticks` at 12, 52 and 365 ticks a year), `num_matches_libm_bits`, `num_helpers_are_exact` (each result fits and its `next_up` does not), `two_sum_is_exact` (P0.7), `clock_methods_convert_as_the_clock` (S2.2: each `ClockMethod` is its `Clock` conversion bit for bit at 1, 12, 52 and 365 ticks a year, with its unit and name; a `Site` reads only in its method's unit), `core_has_no_workspace_dependencies` (core's `Cargo.toml` names no `rustyecon-` crate; a `NoExt` tape resolves, fires its events through `apply` and closes its ledger) | A13, A5, N14 |
 | added at P0.3 | `desk_and_pop_sharing_a_number_are_distinct_holders`, `transfers_keep_lot_lives`, `set_param_respects_the_registry`, `unknown_holders_and_reserved_provenance_are_errors`, `currencies_and_prices_rates_are_checked`, `genesis_holdings_start_with_full_lives`, `extension_errors_name_their_path`, `core_types_cross_threads`, `keys_check_their_character_set`, `actor_and_holder_orders_are_canonical`, `dates_parse_print_and_count_days`, `fnv_matches_the_published_vectors` | defect 10, E3 |
@@ -1698,12 +1753,12 @@ size; none is absolute (A12). Gate tests read `tapes/gate.ron` through `include_
 | Area | Tests | Checks |
 |---|---|---|
 | determinism | `gate_repeat_identical_hashes` (2,080 ticks; the state evolves), `gate_resume_from_checkpoints` (checkpoints at ticks 1, 520, 1,040 and 2,079 through `to_bytes`/`from_bytes` and `to_ron`/`from_ron`; the tails equal the uninterrupted run, and from P0.9 every resumed report equals the uninterrupted run's in full, its run audit included), `resumed_run_stops_where_the_uninterrupted_run_does` (P0.9, a unit test in `sim.rs`: a leak of 1e-9 coin before every tick stops the uninterrupted run early; resumed from a round-tripped checkpoint every 1, 2, 3 or 7 ticks, the run stops at the same tick with the same breach), `gate_replay_matches_every_tick` (`audit_replay`), `file_order_is_irrelevant_to_the_hash_stream` | R8, N11, E8 |
-| conservation, rationing | `gate_conserves_every_tick` (every report has `max_margin <= 1` and no shortfall; from P0.7 the run's audit too, whose lines are the fold of the ticks', and some tick declares `Rounding`). `gate_breach_stops_the_run` (P0.7: the gate tape with both tolerances at 0 stops in phase 7 with `CoreError::Conservation`, the `Sim` poisoned and its checkpoint refused). `gate_rounding_is_declared` (P0.7: the mill's genesis coin at 1e17 and its payout off; every tick its coin moves beyond its traced transfers by the tick's coin `Rounding` line, within `REL` of the tick's coin flow, on more than 100 of 520 ticks, and the run's line is their sum). `gate_events_fire_in_date_order`. `fired_event_names_its_source` (S2.2: each fired `SetParam` names the param it copied, `mine.cut` `mine.capacity.cut`; `oven.opens` and all 40 pensions name none). `gate_ids_apart`: for `Desk(0)`/`Pop(0)` and `Desk(1)`/`Pop(1)`, every tick and good, the holding's change equals the signed sum of the trace entries naming that holder, and each of its settle lines names it. `gate_rations_and_records_by_class`: bread rations at tick 0 and after the 1760 cut; pensioners' requested > feasible; every class line is the fold, in actor order, of its members' order quantities, feasible quantities and settle lines (from 1768 two producers share a side); the recorded demand is the actor-order fold of the feasible buys exactly, and at every rationed tick equals the class lines' Σ feasible up to fold order (a relative bar), which is below Σ requested. `gate_settles_by_one_filled_quantity` (P0.6): §3.2 on every tick and market, and expenditure equals receipts. `gate_lots_bounded`: 20,000 ticks; lots per good ≤ life + 1; currency one lot | R2, N1, defect 10, R12, N7, N9 |
-| edits (E1) | `resume_after_future_event_edit_equals_full_rerun`, `resume_after_past_edit_is_refused`, `resume_boundary_is_the_firing_tick` (P0.7: at the 1760 cut's tick, the pension's first occurrence and tick 0 with a new start-date event, the checkpoint at the firing tick resumes under the edit and equals its full rerun, and the one a tick later is `WrongPrefix`), `world_edit_refuses_every_checkpoint`, `dated_param_change_takes_effect_at_its_tick` (the 1760 cut: capacity changes at `tick_of(1760-03-01)` and not before), `entrant_activates_on_its_date`, `resume_after_a_new_dial_value_equals_full_rerun` (P0.6), `resume_refuses_an_invalid_state` (P0.6: five edits of a RON checkpoint, refused by the digest, then as `Invalid` once the digest is forged), `resume_refuses_an_edited_identity` (P0.9: the `prefix_id` a refused resume under an earlier cut reports, and the `world_id` one under an edited price rate reports, each written into the checkpoint in each form, are refused by the digest), `new_source_event_keeps_world_id` (S2.2: a 1780 event copying `mill.capacity`, live, into `workers.buy.bread` keeps `world_id` and every `prefix_id` through 1780; the tick-1,040 checkpoint resumes under it and equals its full rerun) | E1, N11, O7, D10 |
+| conservation, rationing | `gate_conserves_every_tick` (every report has `max_margin <= 1` and no shortfall; from P0.7 the run's audit too, whose lines are the fold of the ticks', and some tick declares `Rounding`). `gate_breach_stops_the_run` (P0.7: the gate tape with both tolerances at 0 stops in phase 7 with `CoreError::Conservation`, the `Sim` poisoned and its checkpoint refused). `gate_rounding_is_declared` (P0.7: the mill's genesis coin at 1e17 and its payout off; every tick its coin moves beyond its traced transfers by the tick's coin `Rounding` line, within `REL` of the tick's coin flow, on more than 100 of 520 ticks, and the run's line is their sum). `gate_events_fire_in_date_order`. `fired_event_names_its_source` (S2.2: each fired `SetParam` names the param it copied, `mine.cut` `mine.capacity.cut`; `oven.opens` and all 40 pensions name none). `gate_ids_apart`: for `Desk(0)`/`Pop(0)` and `Desk(1)`/`Pop(1)`, every tick and good, the holding's change equals the signed sum of the trace entries naming that holder, and each of its settle lines names it. `gate_rations_and_records_by_class`: bread rations at tick 0 and after the 1760 cut; pensioners' requested > feasible; every class line is the fold, in actor order, of its members' order quantities, feasible quantities and settle lines (from 1768 two producers share a side); the recorded demand is the actor-order fold of the feasible buys exactly, and at every rationed tick equals the class lines' Σ feasible up to fold order (a relative bar), which is below Σ requested. `gate_settles_by_one_filled_quantity` (P0.6): §3.2 on every tick and market, and expenditure equals receipts. `gate_lots_bounded`: 20,000 ticks; lots per good ≤ life + 1; currency one lot. `market_line_trades_as_markets_do` (S2.3): on every gate tick and market `MarketLine::trades` is `MarketFill::trades` of its fields, and a line with no supply does not trade | R2, N1, defect 10, R12, N7, N9 |
+| edits (E1) | `resume_after_future_event_edit_equals_full_rerun`, `resume_after_past_edit_is_refused`, `resume_boundary_is_the_firing_tick` (P0.7: at the 1760 cut's tick, the pension's first occurrence and tick 0 with a new start-date event, the checkpoint at the firing tick resumes under the edit and equals its full rerun, and the one a tick later is `WrongPrefix`), `world_edit_refuses_every_checkpoint`, `dated_param_change_takes_effect_at_its_tick` (the 1760 cut: capacity changes at `tick_of(1760-03-01)` and not before), `entrant_activates_on_its_date`, `resume_after_a_new_dial_value_equals_full_rerun` (P0.6), `resume_refuses_an_invalid_state` (P0.6: five edits of a RON checkpoint, refused by the digest, then as `Invalid` once the digest is forged), `resume_refuses_an_edited_identity` (P0.9: the `prefix_id` a refused resume under an earlier cut reports, and the `world_id` one under an edited price rate reports, each written into the checkpoint in each form, are refused by the digest), `new_source_event_keeps_world_id` (S2.2: a 1780 event copying `mill.capacity`, live, into `workers.buy.bread` keeps `world_id` and every `prefix_id` through 1780; the tick-1,040 checkpoint resumes under it and equals its full rerun), `kicked_tape_keeps_world_and_past` (S2.3: the gate with a dated `ScalePrice` at tick 1,000, its factor a schedule param, keeps `world_id` and every prefix through 1,000; the tick-1,000 checkpoint resumes under it, that tick's posted price is `fl(p·factor)`, the event names its factor, and the resumed run equals the kicked tape's run from genesis) | E1, N11, O7, D10, C1 |
 | frontend contract | `observation_matches_accessors` (every gate tick), `observing_changes_no_hash` (from S2.2 also by `run_until` seven ticks at a time, D10 item 3), `no_reexport_hands_out_core_writer` (P0.7: no `pub use` in engine, markets or agents hands out core whole or its writer, the scanner checked on fixtures first; the engine's doc tests show `rustyecon_engine::rustyecon_core::apply` does not compile; from P0.9 core's re-exports are an allow-list equal to the prelude's, and `{self ..}`, `self as`, `::`, a private alias and `pub extern crate` count as core whole), `no_public_api_hands_out_mut_state` (from P0.9 also every public function of markets and agents, `&mut` to a `Sim` or `Checkpoint`, every impl of `Sim`, `Checkpoint` and `SimState` with trait impls, and their fields; the review's five writers are fixtures, and the engine's doc tests show `state_mut`, `holdings_mut`, `&mut **sim` and `sim.as_mut()` do not compile), `engine_types_are_send` (compile time: `Send + Sync + 'static` for `Sim`, `Tape`, `World`, `Checkpoint`, `TickReport`, `HoldingTotals`, `RunError`, `LoadError`, `ResumeError`, `ReplayError`), `failed_step_poisons_the_sim` | E3, E4, E5 |
-| hooks | `hooks_read_the_phase_start_state_every_tick` (P0.6, in `gate.rs`): on every gate tick the applied phase-1 and phase-4 deltas are what each hook returns on its phase's start state, and the cleared volumes are what admission makes of those orders. `decisions_read_phase_start_state`: from a fixed state, visiting actors in id order and in reverse gives identical outputs; renaming keys so that the id order reverses leaves every actor's tick-0 orders unchanged. `behaviour_output_is_whitelisted`: each forbidden arm from each hook (a mint to or burn from another holder, an escrow transfer, `SetPrice`, `SetEma`, `SetVolumes`, `SetParam`, `Age`, `AdvanceTick`, a foreign `Actor` delta, a foreign order) is `ForeignWrite` or `ForeignOrder` | E6, E7, R13, R2 |
+| hooks | `hooks_read_the_phase_start_state_every_tick` (P0.6, in `gate.rs`): on every gate tick the applied phase-1 and phase-4 deltas are what each hook returns on its phase's start state, and the cleared volumes are what admission makes of those orders. `decisions_read_phase_start_state`: from a fixed state, visiting actors in id order and in reverse gives identical outputs; renaming keys so that the id order reverses leaves every actor's tick-0 orders unchanged. `behaviour_output_is_whitelisted`: each forbidden arm from each hook (a mint to or burn from another holder, an escrow transfer, `SetPrice`, `SetEma`, `SetVolumes`, `SetParam`, `Age`, `AdvanceTick`, from S2.3 `ScalePrice`, a foreign `Actor` delta, a foreign order) is `ForeignWrite` or `ForeignOrder` | E6, E7, R13, R2 |
 | time | `a13_annual_quantities_invariant`: at `ticks_per_year: 12` the 1750 farm and mine mints equal the 52-tick run's within a relative bar of 1e-12, event ticks match their dates, every pension occurrence falls within a month of the 52-tick run's, and a bread lot lasts 3 weekly or 1 monthly tick. `same_tick_events_fire_in_date_order` (P0.9): a cut keyed `z.cut` and a restore twenty days later keyed `a.restore` fire in date order at 12, 52 and 365 ticks a year, and the restore wins at each | A13, E8, O9 |
-| source scans (read the sources of core, markets, agents and engine, comments stripped and `#[cfg(test)]` items cut out) | `the_scanner_reads_what_it_should`, `no_raw_transcendentals`, `no_hashed_collections`, `no_behavioural_float_literals` (shipped code may hold only `0.0` and `1.0`, and no named float constant outside `core::num`; from P0.9 no integer but 0 and 1 made float, by `as`, `from` or `into`, no named integer constant made float but clock.rs's calendar, no `from_bits` of a literal and no `parse::<f64>`), `engine_path_does_no_io` (E2's list), `params_are_read_only_through_sites` (S2.2: outside `core::clock` no conversion is called and no param is read by type; checked on fixtures first) | A5, R8, R4, A12, E2, D10 |
+| source scans (read the sources of core, markets, agents and engine, comments stripped and `#[cfg(test)]` items cut out) | `the_scanner_reads_what_it_should`, `no_raw_transcendentals`, `no_hashed_collections`, `no_behavioural_float_literals` (shipped code may hold only `0.0` and `1.0`, and no named float constant outside `core::num`; from P0.9 no integer but 0 and 1 made float, by `as`, `from` or `into`, no named integer constant made float but clock.rs's calendar, no `from_bits` of a literal and no `parse::<f64>`), `engine_path_does_no_io` (E2's list), `params_are_read_only_through_sites` (S2.2: outside `core::clock` no conversion is called and no param is read by type; checked on fixtures first). From S2.3 three read `crates/certify/src` too: `certify_holds_no_threshold` (no float but `0.0` and `1.0`, no named float constant, no integer made float: every bar is in criteria), `certify_does_no_file_io` (E2's list; only `telemetry.rs` may name `std::io` or `parquet`) and `certify_hands_out_no_core_writer` (no re-export of core or the engine, no `apply`, `resolve`, `Ledger`, `RunLedger` or `Checkpoint::of`, no public function returning a `Checkpoint`, `Sim` or `SimState`), each checked on fixtures first | A5, R8, R4, A12, E2, D10, E1 |
 | registry (S2.2) | `registry_names_each_use` (a gate variant whose mill spends at `rate.bread` lists `share` at `actors[mill].spec.spend` and `log_step` at `goods[bread].price_rate`, each equal to the `Clock`'s; one row of each kind of use on the gate, schedule params included; every param of gate and appb is read somewhere, and each site's per-tick value is its method's conversion) | R4, D10 |
 
 **cli**
@@ -1754,7 +1809,7 @@ Housekeeping (PLAN Phase 0 steps 2 and 6; A3):
 
 | Item | Phase |
 |---|---|
-| Certificate, criteria, verdicts, NaN scan, manifest (it records `world_id`), telemetry, BalanceWatch, price-runaway detector (A12); N4, N10, N12, N15; the GUI's engine asks (A14, D10; GUI.md §7.2): `world_id` without the `fixed` flag the schedule sets (§2.6, `new_source_event_keeps_world_id`), `FiredEvent` naming its source (§7.4, `fired_event_names_its_source`), and `engine::registry` listing each use of a param with its `ClockMethod` (§2.6, §6, §4, §7.1, `registry_names_each_use`); the three engine asks landed at S2.2 | Phase 0 session 2 (A4) |
+| Certificate, criteria, verdicts, NaN scan, manifest (it records `world_id`), telemetry, BalanceWatch, price-runaway detector (A12); N4, N10, N12, N15; the GUI's engine asks (A14, D10; GUI.md §7.2): `world_id` without the `fixed` flag the schedule sets (§2.6, `new_source_event_keeps_world_id`), `FiredEvent` naming its source (§7.4, `fired_event_names_its_source`), and `engine::registry` listing each use of a param with its `ClockMethod` (§2.6, §6, §4, §7.1, `registry_names_each_use`); the three engine asks landed at S2.2, and certify with the kick's `ScalePrice` at S2.3 (docs/CERTIFY.md) | Phase 0 session 2 (A4) |
 | Parquet writer (moves as is; `TickReport` is its input) | Phase 0 session 2 |
 | Oracle | Phase 1 (other run; unit 1a joined at P1.1) |
 | Pops as rules (pairs, participation, logit); labour and parcel services as Instant goods; machines and (A, Λ, B) desks; the task margin; the income-identity check | Phase 2 |

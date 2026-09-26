@@ -845,3 +845,108 @@ pub fn tape_ron(s: &Setup) -> Result<String, String> {
     text.push('\n');
     Ok(text)
 }
+
+/// What `appb-tape` writes, from its arguments (docs/CERTIFY.md §11, §13; S2.3): the setup's
+/// options (`--tpy N`, `--set KEY=VALUE`, `--assign planned|expost`, `--scale cash|ceiling|step`,
+/// `--one-sided saturate|hold`), any run applied to it (`--perturb NAME`, dated at `--ticks L`,
+/// default [`crate::protocol::RUN_TICKS`]), and the path to write, if one. With no option the
+/// text is [`tape_ron`] of the registered setup, which is `tapes/appb.ron`; with any, it opens
+/// with a comment naming them, so a testdata file says how it was made.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TapeArgs {
+    /// The options as given, in order, without the path.
+    pub given: Vec<String>,
+    /// The setup, with every option applied.
+    pub setup: Setup,
+    /// The path to write, if one.
+    pub path: Option<String>,
+}
+
+impl TapeArgs {
+    /// Parse `appb-tape`'s arguments.
+    pub fn parse(args: &[String]) -> Result<TapeArgs, String> {
+        let mut tpy = 52;
+        let mut sets: Vec<(String, f64)> = Vec::new();
+        let mut assign = Assign::Planned;
+        let mut scale = ScaleRule::Cash;
+        let mut one_sided = OneSided::Saturate;
+        let mut perturb: Vec<String> = Vec::new();
+        let mut ticks = crate::protocol::RUN_TICKS;
+        let mut given = Vec::new();
+        let mut path = None;
+        let mut it = args.iter();
+        while let Some(a) = it.next() {
+            let mut val = || {
+                it.next()
+                    .cloned()
+                    .ok_or_else(|| format!("{a} takes a value"))
+            };
+            let v = match a.as_str() {
+                "--tpy" | "--set" | "--assign" | "--scale" | "--one-sided" | "--perturb"
+                | "--ticks" => val()?,
+                _ if a.starts_with("--") => return Err(format!("unknown option {a}")),
+                _ => {
+                    path = Some(a.clone());
+                    continue;
+                }
+            };
+            given.push(a.clone());
+            given.push(v.clone());
+            match a.as_str() {
+                "--tpy" => tpy = v.parse().map_err(|_| "--tpy takes a whole number")?,
+                "--ticks" => ticks = v.parse().map_err(|_| "--ticks takes a whole number")?,
+                "--set" => {
+                    let (k, x) = v.split_once('=').ok_or("--set KEY=VALUE")?;
+                    let x: f64 = x.parse().map_err(|_| format!("--set {v}: not a number"))?;
+                    sets.push((k.to_string(), x));
+                }
+                "--assign" => {
+                    assign = match v.as_str() {
+                        "planned" => Assign::Planned,
+                        "expost" => Assign::ExPost,
+                        x => return Err(format!("--assign {x}: planned or expost")),
+                    }
+                }
+                "--scale" => {
+                    scale = match v.as_str() {
+                        "cash" => ScaleRule::Cash,
+                        "ceiling" => ScaleRule::ceiling(),
+                        "step" => ScaleRule::july_step(),
+                        x => return Err(format!("--scale {x}: cash, ceiling or step")),
+                    }
+                }
+                "--one-sided" => {
+                    one_sided = match v.as_str() {
+                        "saturate" => OneSided::Saturate,
+                        "hold" => OneSided::Hold,
+                        x => return Err(format!("--one-sided {x}: saturate or hold")),
+                    }
+                }
+                _ => perturb.push(v),
+            }
+        }
+        let mut setup = Setup::registered(tpy);
+        for (k, x) in sets {
+            setup.dials.set(&k, x)?;
+        }
+        setup.assign = assign;
+        setup.scale = scale;
+        setup.one_sided = one_sided;
+        for name in &perturb {
+            crate::perturb::Perturbation::parse(name)?.apply(&mut setup, ticks)?;
+        }
+        Ok(TapeArgs { given, setup, path })
+    }
+
+    /// The tape's text: [`tape_ron`] of the setup, after a line naming the options if any.
+    pub fn text(&self) -> Result<String, String> {
+        let tape = tape_ron(&self.setup)?;
+        if self.given.is_empty() {
+            return Ok(tape);
+        }
+        Ok(format!(
+            "// Written by `appb-tape {}` (crates/probe; docs/CERTIFY.md §13).\n{tape}",
+            self.given.join(" ")
+        ))
+    }
+}

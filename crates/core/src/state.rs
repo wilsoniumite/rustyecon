@@ -118,6 +118,10 @@ impl MarketBook {
         })
     }
 
+    pub(crate) fn price(&self, i: usize) -> f64 {
+        self.price[i]
+    }
+
     pub(crate) fn set_price(&mut self, i: usize, v: f64) {
         self.price[i] = v;
     }

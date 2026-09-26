@@ -161,6 +161,18 @@ pub enum StateDelta<E: Ext> {
     Actor(E::Delta),
     /// Advance the tick counter. Phase 6 only, last.
     AdvanceTick,
+    /// Multiply one market's posted price by `factor`, once, leaving its EMA alone: a dated
+    /// price shock from the tape. Phase 0 only; the result must be finite and positive.
+    /// Appended after `AdvanceTick`, so every other delta keeps its encoding and every existing
+    /// hash and `prefix_id` stands (docs/CERTIFY.md §2.4, amended at S2.3).
+    ScalePrice {
+        /// The market's node.
+        node: NodeId,
+        /// The market's good (not a currency).
+        good: GoodId,
+        /// The factor, finite and positive.
+        factor: f64,
+    },
 }
 
 impl<E: Ext> StateDelta<E> {
@@ -177,6 +189,7 @@ impl<E: Ext> StateDelta<E> {
             StateDelta::Age { .. } => "Age",
             StateDelta::Actor(_) => "Actor",
             StateDelta::AdvanceTick => "AdvanceTick",
+            StateDelta::ScalePrice { .. } => "ScalePrice",
         }
     }
 }

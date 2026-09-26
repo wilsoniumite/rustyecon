@@ -390,6 +390,82 @@ fn new_source_event_keeps_world_id() {
     assert_eq!(tail.as_slice(), &rerun[1040..]);
 }
 
+#[test]
+fn kicked_tape_keeps_world_and_past() {
+    // docs/CERTIFY.md §2.4 and C1 (S2.3): the kick is a tape event. The gate tape plus a dated
+    // ScalePrice at tick 1,000, whose factor is a param only the schedule reads, keeps the world
+    // and every prefix through the kick's tick, so the tick-1,000 checkpoint resumes under it.
+    // That tick's posted price is fl(p·factor), and the resumed run equals the kicked tape's run
+    // from genesis. The event names its factor as its source.
+    let t = tape();
+    let w0 = sim_of(&t).world().clone();
+    let at = 1000;
+    let date = w0.clock.date_of(at).expect("a date");
+    assert_eq!(w0.clock.tick_of(date).unwrap(), at);
+    let factor = 1.0 + 1e-9;
+    let kicked_text = edit(
+        r#"(key: "pension.period","#,
+        &format!(
+            "(key: \"kick.factor\", value: {factor:?}, unit: Dimensionless, basis: \
+             Assumed(\"test kick\")),\n        (key: \"pension.period\","
+        ),
+    )
+    .replacen(
+        "    events: [\n",
+        &format!(
+            "    events: [\n        (key: \"kick\", at: \"{date}\", basis: Assumed(\"test kick\"), \
+             act: ScalePrice(node: \"village\", good: \"bread\", by: \"kick.factor\")),\n"
+        ),
+        1,
+    );
+    let kicked = tape_of(&kicked_text);
+    let w = sim_of(&kicked).world().clone();
+    assert_eq!(w.world_id, w0.world_id, "a kick keeps the world");
+    assert!(
+        w.schedule.param("kick.factor").is_some(),
+        "the factor is the schedule's"
+    );
+    for tick in (0..=at).step_by(50).chain([at - 1, at]) {
+        assert_eq!(w.prefix_id(tick), w0.prefix_id(tick), "prefix at {tick}");
+    }
+    assert_ne!(
+        w.prefix_id(at + 1),
+        w0.prefix_id(at + 1),
+        "the kick is past after its tick"
+    );
+    let (village, bread) = (node(&w, "village"), good(&w, "bread"));
+    let cp = checkpoint_at(&t, at);
+    let mut base = Sim::resume(&t, &cp).unwrap();
+    let base_first = reports(&mut base, at + 1).remove(0);
+    let mut resumed = Sim::resume(&kicked, &cp).expect("the kick keeps the checkpoint");
+    let p = resumed.price(village, bread).expect("a market");
+    let tail = reports(&mut resumed, TICKS);
+    let line = |r: &TickReport| {
+        *r.markets
+            .iter()
+            .find(|l| l.node == village && l.good == bread)
+            .expect("the market's line")
+    };
+    let (kicked_line, base_line) = (line(&tail[0]), line(&base_first));
+    assert_eq!(base_line.price, p, "unkicked, the tick settles at p");
+    assert_eq!(
+        kicked_line.price.to_bits(),
+        (p * factor).to_bits(),
+        "kicked, at fl(p·factor)"
+    );
+    assert_ne!(kicked_line.price, p);
+    let fired: Vec<(&str, Option<&str>)> = tail[0]
+        .events
+        .iter()
+        .map(|e| (e.key.as_str(), e.source.as_ref().map(|k| k.as_str())))
+        .collect();
+    assert_eq!(fired, [("kick", Some("kick.factor"))]);
+    let rerun = hashes(&kicked, TICKS);
+    assert_ne!(rerun, hashes(&t, TICKS), "a kick of 1e-9 changes the run");
+    let resumed_hashes: Vec<u64> = tail.iter().map(|r| r.hash).collect();
+    assert_eq!(resumed_hashes.as_slice(), &rerun[at as usize..]);
+}
+
 /// Replace, in a RON checkpoint, the text between the first `open` at or after `from` and the
 /// next `close` with `with`.
 fn replace_after(text: &str, from: &str, open: &str, close: &str, with: &str) -> String {

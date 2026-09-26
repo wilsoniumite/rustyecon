@@ -12,16 +12,32 @@ use serde::Serialize;
 const OFFSET_BASIS: u64 = 0xcbf2_9ce4_8422_2325;
 const PRIME: u64 = 0x0000_0100_0000_01b3;
 
-/// An incremental FNV-1a 64 hasher.
-#[derive(Debug, Clone, Copy)]
-pub(crate) struct Fnv(u64);
+/// An incremental FNV-1a 64 hasher: [`fnv1a_64`] over bytes written in pieces. Public since
+/// S2.3, for certify's manifest, which folds a hash file's lines as a run writes them.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Fnv(u64);
+
+impl Default for Fnv {
+    fn default() -> Fnv {
+        Fnv::new()
+    }
+}
 
 impl Fnv {
-    pub(crate) fn new() -> Fnv {
+    /// A hasher over no bytes yet.
+    pub fn new() -> Fnv {
         Fnv(OFFSET_BASIS)
     }
 
-    pub(crate) fn write(&mut self, bytes: &[u8]) {
+    /// A hasher that continues from `digest`, the result of hashing some bytes before: FNV-1a's
+    /// running state is the digest of what it has read, so `resume(fnv1a_64(a))` then `write(b)`
+    /// gives `fnv1a_64(a ‖ b)`.
+    pub fn resume(digest: u64) -> Fnv {
+        Fnv(digest)
+    }
+
+    /// Fold in `bytes`.
+    pub fn write(&mut self, bytes: &[u8]) {
         for &b in bytes {
             self.0 ^= u64::from(b);
             self.0 = self.0.wrapping_mul(PRIME);
@@ -42,7 +58,8 @@ impl Fnv {
         }
     }
 
-    pub(crate) fn finish(self) -> u64 {
+    /// The hash of every byte written.
+    pub fn finish(self) -> u64 {
         self.0
     }
 }

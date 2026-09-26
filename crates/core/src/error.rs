@@ -241,6 +241,11 @@ pub enum LoadErrorKind {
     },
     /// Anything else, described.
     Invalid(String),
+    /// A price shock on a good with no market: a currency (amended at S2.3).
+    NoMarket,
+    /// A `ScalePrice` in a recurring entry: a periodic price nudge would be an exogenous
+    /// stabiliser (R3), so a price shock is a dated event only (amended at S2.3).
+    RecurringPriceShock,
 }
 
 impl fmt::Display for LoadError {
@@ -307,6 +312,12 @@ impl fmt::Display for LoadErrorKind {
                 "weights fold to {sum:e}, not exactly 1 (add them in canonical order)"
             ),
             Invalid(m) => write!(f, "{m}"),
+            NoMarket => write!(f, "a currency has no market, so no price to shock"),
+            RecurringPriceShock => write!(
+                f,
+                "a ScalePrice cannot recur: a periodic price nudge would be an exogenous \
+                 stabiliser (R3), so a price shock is a dated event"
+            ),
         }
     }
 }

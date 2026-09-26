@@ -26,8 +26,8 @@ pub enum Use {
     /// Turned into structure at load, or fixing what a past tick meant; no `SetParam` may
     /// change it.
     Fixed,
-    /// Read by the schedule alone: a value a `SetParam` copies, or a recurring period. It is
-    /// not in the state or in `world_id` (§2.6).
+    /// Read by the schedule alone: a value a `SetParam` copies, a recurring period, or a
+    /// `ScalePrice`'s factor (amended at S2.3). It is not in the state or in `world_id` (§2.6).
     Schedule,
 }
 

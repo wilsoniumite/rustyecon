@@ -11,7 +11,7 @@
 use probe::harness::{run, Stop, Target, OBSERVABLES};
 use probe::perturb::{battery, family, Perturbation};
 use probe::protocol::{RUN_TICKS, TOL_FLOOR};
-use probe::setup::{equilibrium, tape_ron, Assign, OneSided, ScaleRule, Setup};
+use probe::setup::{equilibrium, tape_ron, Assign, OneSided, ScaleRule, Setup, TapeArgs};
 use rustyecon_engine::prelude::{GoodId, Holder, ParamId, Provenance, Sim, Tape};
 
 const APPB: &str = include_str!("../../../tapes/appb.ron");
@@ -31,6 +31,49 @@ fn appb_tape_is_its_generators_output() {
         "tapes/appb.ron differs from its generator: run `cargo run -p rustyecon-probe --bin \
          appb-tape -- tapes/appb.ron`"
     );
+}
+
+#[test]
+fn certify_testdata_is_generated() {
+    // docs/CERTIFY.md §13: certify's testdata is `appb-tape`'s output for the options its first
+    // line names, byte for byte, so its runs are the probe's setups and nobody edits them by
+    // hand. With no option, `appb-tape` writes tapes/appb.ron.
+    let cases: [(&str, &str, &[&str]); 3] = [
+        (
+            "appb-bcycle.ron",
+            include_str!("../../certify/testdata/appb-bcycle.ron"),
+            &["--perturb", "bcycle(1500,4)"],
+        ),
+        (
+            "appb-freeze.ron",
+            include_str!("../../certify/testdata/appb-freeze.ron"),
+            &["--set", "buffer.*=16", "--perturb", "w*1.05"],
+        ),
+        (
+            "appb-july.ron",
+            include_str!("../../certify/testdata/appb-july.ron"),
+            &["--scale", "step", "--perturb", "w*2"],
+        ),
+    ];
+    for (name, text, args) in cases {
+        let args: Vec<String> = args.iter().map(|a| a.to_string()).collect();
+        let generated = TapeArgs::parse(&args)
+            .and_then(|a| a.text())
+            .expect("the generator runs");
+        assert!(
+            generated == text,
+            "crates/certify/testdata/{name} differs from its generator: run `cargo run -p              rustyecon-probe --bin appb-tape -- {} crates/certify/testdata/{name}`",
+            args.join(" ")
+        );
+        assert!(text.starts_with(&format!("// Written by `appb-tape {}`", args.join(" "))));
+    }
+    let plain = TapeArgs::parse(&[]).and_then(|a| a.text()).unwrap();
+    assert!(
+        plain == APPB,
+        "appb-tape with no option writes tapes/appb.ron"
+    );
+    assert!(TapeArgs::parse(&["--perturb".to_string()]).is_err());
+    assert!(TapeArgs::parse(&["--bogus".to_string()]).is_err());
 }
 
 #[test]
