@@ -382,6 +382,17 @@ path changed but core's `num`, which gained one function; no hash moved.
    `cargo test --workspace`. The source scans of §11 do not read it: it is not on the run's
    path.
 
+**Amended at P0.11** (the GUI's design and plan amendment A14, docs/GUI.md), §13 only; no crate
+changed. The rest of A14's ENGINE amendments (the step definition in the preamble, §1 and §12:
+`default-members`, the non-blocking GUI check, the lockfile fetch, and the GUI's own gate script)
+land with the commit that adds `crates/gui`, and §11's scan list gains `crates/observe` when
+Phase 2 creates it.
+
+1. §13: `crates/gui` is built with egui (eframe), its stack pinned in GUI.md §3.1, from G0 after
+   session 2.
+2. §13's session-2 row gains D10's engine items 1, 2 and 4 (GUI.md §7.2, each with its test).
+   Item 3, chunked stepping equal to `run_until`, is met already.
+
 ## 0. Engine invariants
 
 Numbered so tests and reviews can cite them. Each has at least one test in §11.
@@ -1565,7 +1576,7 @@ Housekeeping (PLAN Phase 0 steps 2 and 6; A3):
 
 | Item | Phase |
 |---|---|
-| Certificate, criteria, verdicts, NaN scan, manifest (it records `world_id`), telemetry, BalanceWatch, price-runaway detector (A12); N4, N10, N12, N15 | Phase 0 session 2 (A4) |
+| Certificate, criteria, verdicts, NaN scan, manifest (it records `world_id`), telemetry, BalanceWatch, price-runaway detector (A12); N4, N10, N12, N15; the GUI's engine asks (A14, D10; GUI.md §7.2): `world_id` without the `fixed` flag the schedule sets (§2.6, `new_source_event_keeps_world_id`), `FiredEvent` naming its source (§7.4, `fired_event_names_its_source`), and `engine::registry` listing each use of a param with its `ClockMethod` (§2.6, §6, §4, §7.1, `registry_names_each_use`) | Phase 0 session 2 (A4) |
 | Parquet writer (moves as is; `TickReport` is its input) | Phase 0 session 2 |
 | Oracle | Phase 1 (other run; unit 1a joined at P1.1) |
 | Pops as rules (pairs, participation, logit); labour and parcel services as Instant goods; machines and (A, Λ, B) desks; the task margin; the income-identity check | Phase 2 |
@@ -1574,7 +1585,7 @@ Housekeeping (PLAN Phase 0 steps 2 and 6; A3):
 | Transport desks, channel state, pass-through recipes; home-node trading (Phase 0 lets an actor post at any node with no channel and no crossing cost) | Phases 4 and 9 |
 | Credit, banks, monetary regimes | Phase 8 |
 | Region shards and parallel reduction; sweeps of registered params (each point a tape edit, E1) | when §3.9's budget needs them; Phase 6 |
-| crates/gui — the interactive frontend, stack to be chosen | — |
+| crates/gui — the interactive frontend, built with egui (eframe); the stack is pinned in docs/GUI.md §3.1 (A14) | G0, after session 2, beside Phase 1 |
 
 ## 14. Open questions
 

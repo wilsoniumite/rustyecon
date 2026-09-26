@@ -2,8 +2,10 @@
 
 Amended on 2026-09-25 by the rulings in [ADDENDUM.md](reboot/ADDENDUM.md), folded in
 where they change the text: A1, A5 and A8 as ruled (A5's ruling replaces ruling 7), and
-the rest of A2–A13 as written. REVIEW.md and ADDENDUM.md cite this plan's lines as they
-stood at `87d95d7`, in `docs/reboot/`.
+the rest of A2–A13 as written. A14, an interactive GUI early, was ruled the same day
+(ADDENDUM rulings 5–8) and folded in on 2026-09-26: R16 (§4), the GUI's stages beside the
+phases (§6) and §9. Its design is [GUI.md](GUI.md). REVIEW.md and ADDENDUM.md cite this
+plan's lines as they stood at `87d95d7`, in `docs/reboot/`.
 
 Dated 2026-09-25, revised the same day after your rulings. On your go, this supersedes
 the July v2 (`docs/ARCHITECTURE.md`, `docs/METHODOLOGY.md`, `docs/PLAN.md`,
@@ -336,6 +338,24 @@ These replace R1–R14 and are numbered so checks and certificates can cite them
   theorems, which stand on their proofs and checks. Anything borrowed from laborformal
   is pinned to a commit and read from that commit, never from a checkout; a re-pin is a
   dated entry. (July R11; ADDENDUM A6.)
+- **R16 — Frontends observe; the tape decides.** No frontend mutates engine state. Every
+  intervention (a dial, a shock, a world edit) is a tape edit with provenance. Each entry an
+  edit adds or changes carries its own basis. A number without a basis of its own is not
+  edited until the schema gives it one. A saved edit names its parent tape. The engine
+  runs an edited tape as it runs any tape, and on the same platform and build the hashes
+  equal the cli's.
+
+  A checkpoint is a cache of a run, not an input. A frontend resumes only from a
+  checkpoint that a run of the same tape made, verified by its state hash.
+
+  A simulated number that a frontend shows or exports names its run (build commit and
+  dirty flag, `world_id`, tape hash) and its tick. A record number names its source and
+  vintage. An oracle number names its build and instance. The cli's `resume` and its hash
+  output are held to this paragraph and the one before once ENGINE rules on its §7.6 and
+  §8.
+
+  A frontend copies no record or oracle value into a tape, and the scorecard refuses a
+  tape edited in one. (R4, R5, R8; ENGINE E1, E4; ADDENDUM A14.)
 
 ## 5. The registry at founding (2026-09-25)
 
@@ -381,6 +401,12 @@ Any change to these lists is a dated entry with a reason.
 Each phase leaves one engine green under one harness, and each has an explicit gate. A
 unit is one working session with its own tests. Session counts are honest guesses.
 
+The GUI's stages, G0–G10 and W1 (A14; [GUI.md](GUI.md) §9), sit beside the phases, built
+with egui in `crates/gui`. Each starts after its phase's gate, with two exceptions: G4
+starts on Phase 4's gate or Phase 5's first validated county series, whichever comes
+first, and W1, the reader build, starts when the paper needs it, after G4 at the
+earliest. No stage gates engine work. Their session counts are guesses too.
+
 ### Phase 0 — Reboot (2 sessions)
 
 1. Tag the July work first: `july-v2-phase-0` (`cf7e78f`), `july-v2-phase-1` (`bb57eea`)
@@ -425,6 +451,11 @@ salvaged unit tests and:
 
 The second session keeps this gate green and adds the certification stack's tests.
 
+**GUI:** G0, the shell (2–3 sessions), follows the second session, while Phase 1
+continues: G0.1 the viewer (run, plots, inspector, registry, log), then G0.2 the editor,
+branches, compare and export. The second session lands G0's engine asks first
+([GUI.md](GUI.md) §7.2).
+
 ### Phase 1 — The oracle (2–3 sessions)
 
 Build it outward from the SSRN version's Appendix B:
@@ -459,6 +490,10 @@ another economy and is never the source.
 - each exit form on its own gate: the dependence form in 1a, s(q) in 1e. The 1d and 1e
   gates are constructed (ADDENDUM §5 item 4).
 
+**GUI:** G1, the oracle lab (1–2 sessions), after G0 and this gate: an instance's regime
+and outputs beside their goldens, any field over x, one-parameter sweeps, and the
+price-step explainer.
+
 ### Phase 2 — Agents meet the oracle (3–5 sessions)
 
 One region, stationary history. The phase opens with July's battery (ADDENDUM §3): the
@@ -486,6 +521,10 @@ failing mode B triggers the fallback. The fallback is to run the oracle as the
 per-period core, with agents as an overlay for adjustment and rationing; it is planned
 as a real branch.
 
+**GUI:** G2, lenses (2–3 sessions), after this gate: the oracle line and gap, the
+decision inspector and binding marks, the battery panel, the stability sweep as a
+heatmap, and the first browser build.
+
 ### Phase 3 — Time, capital and the tape (2–3 sessions)
 
 Vintages, investment at the user cost, population, enclosure, technology on the tape.
@@ -500,6 +539,9 @@ Checkpoints (lossless), Parquet and certificates arrive earlier, in Phase 0.
   §3.9 performance target, over a window named relative to the run; a frozen or ramping
   window is rejected (`31f27e5`).
 
+**GUI:** G3, long runs (1–2 sessions), after this gate: the chunked store and its spill,
+seek, and the vintage, investment, population and enclosure panels.
+
 ### Phase 4 — Worldgen and county England (2–4 sessions)
 
 The compiler; England by historic county with parcels, coalfields, ports, towns and
@@ -508,6 +550,11 @@ channels (roads, canals and railways on the tape); world prices at the ports.
 **Gate:** the compiler's validation and signed genesis; after a short burn-in, the 1750
 county world sits within tolerance of the oracle at its states; the England world meets
 its performance target.
+
+**GUI:** G4, the map (2 sessions), starts on this gate or on Phase 5's first validated
+county series, whichever comes first: the county atlas, with Yorkshire in its three
+ridings (42 regions), lenses on the map and the world editor. The atlas ships under ODbL
+with its attribution, in its own data directory.
 
 ### Phase 5 — The data spine (2–4 sessions; can run alongside Phases 1–4)
 
@@ -532,6 +579,9 @@ Validate series by series. Write `DATA_NOTES.md` and a one-page descriptive shee
 fit, the raw series must show three things: the floor era's opposition between
 population and the wage, the escape, and land's exit.
 
+**GUI:** G5, the record (1 session), after this phase: overlays with source, vintage and
+bands, and Breakpoint B's eyeball sheet.
+
 ### Phase 6 — The floor and the escape, 1750–1870 (3–5 sessions)
 
 1. Register the moment table and the fitted/scored split first.
@@ -545,6 +595,9 @@ population and the wage, the escape, and land's exit.
 **Breakpoint C — magnitudes and novelty.** Are the fitted values sane? Does one history
 of schedules and recipes generate both the pause and the escape? Decide the paper's
 vessel with the long-record thread.
+
+**GUI:** G6–7, fitting and scoring (1–2 sessions), after this gate, its ensemble parts
+after Phase 7's: the scorecard viewer, ensemble fans and figure data bundles.
 
 ### Phase 7 — The machine era, to 2025 (3–4 sessions)
 
@@ -565,6 +618,9 @@ Score, don't fit:
 - on, one parameter set scores the UK episodes: the crises of 1825, 1847 and 1866;
   1920–21; 1929–32; 1973–75; 2008–10. Scoring is qualitative, with bands.
 
+**GUI:** G8, money (1 session), after this gate: balance sheets, credit lenses and crisis
+overlays.
+
 ### Phase 9 — The world (3–5 sessions, then open-ended)
 
 Macro-regions, then finer ones through the compiler. Trade on transport desks;
@@ -573,6 +629,9 @@ migration envelopes; the first globalisation.
 **Gate:** score the Atlantic grain gap closing (1870–1913) and the divergence in real
 wages across regions (Allen's international welfare ratios). `paths/`' US 1929–33 and
 2008–10 episodes are scored once the US exists.
+
+**GUI:** G9, the world (1–2 sessions), after this gate: the world atlas, and trade on
+channels.
 
 ### Phase 10 — Forward to 2050, and the policy lab (open-ended)
 
@@ -584,9 +643,13 @@ From the certified 2025 state:
 - three-taxes' counterfactuals;
 - historical counterfactuals.
 
-**Total:** roughly 25–35 sessions to the first certified England run (the end of Phase
-7). Phases 0–2 stand on their own: a checked oracle for the paper's economy, and an
-agent economy known to find it.
+**GUI:** G10, forward branches and the policy lab (1–2 sessions), beside this phase: a
+branch tree from the certified 2025 state, and generators as forms.
+
+**Total:** roughly 35–50 sessions to the first certified England run (the end of Phase
+7): the phases' own ranges sum to 19–30 (Phase 0 at two sessions), which this plan put at
+roughly 25–35, and G0–G7 add about 10–15 (A14). Phases 0–2 stand on their own: a checked
+oracle for the paper's economy, and an agent economy known to find it.
 
 ## 7. Risks and the parking lot
 
@@ -633,5 +696,7 @@ back is runs a paper can cite by commit hash.
 
 ## 9. The first session
 
-Phase 0 in WSL (ruling 7), then oracle unit 1a with its gate green. Every ruling is
-in; nothing blocks the start.
+Phase 0 runs on WSL (ruling 7). Its first session, the salvage and the engine, is followed
+by a second, the certification stack with G0's engine asks (A14), while oracle unit 1a is
+built in parallel by its own run. Then comes G0, the GUI's shell, while Phase 1 continues.
+Every ruling is in; nothing blocks the start.

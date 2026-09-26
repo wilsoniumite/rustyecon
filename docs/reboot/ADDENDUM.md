@@ -7,6 +7,8 @@ change. `v2p3:` paths are on branch `v2-phase-3` at `ff01284`, `main:` is `f6147
 is laborformal at `31b3482`; unmarked `src/` and `tests/` paths are `v2p3:`, and "July
 PLAN" is `v2p3:docs/PLAN.md`. Everything was read or run today on copies, never in either
 repository. Two adversarial checks were run against the draft; their corrections are in.
+A14 (§6), an interactive GUI early, was added on 2026-09-26 with the rulings made on it the
+day before (rulings 5–8); its design is [GUI.md](../GUI.md).
 
 ## Rulings (2026-09-25)
 
@@ -24,6 +26,18 @@ Made after reading this addendum. They amend PLAN.md where they conflict with it
    implements the dependence form, since the published Appendix B numbers use it; unit 1e
    adds s(q), and each form carries its own gate.
 4. **A2–A4, A6, A7 and A9–A13 are accepted** as written in §6.
+
+Rulings 5–8 were made the same day on the GUI's design, and A14 (§6) records them.
+
+5. **A14, the stack.** The GUI is built with egui (eframe) in Rust, as `crates/gui`.
+6. **A14, the timing.** The shell comes right after Phase 0's two sessions (the first, the
+   salvage and the engine; the second, the certification stack), and Phase 1 runs in
+   parallel.
+7. **A14, the map.** Yorkshire is split into its three ridings: 42 regions, from HCBP
+   Definition B with OpenStreetMap's riding lines. The atlas ships under ODbL with
+   attribution, in its own data directory with its own licence file, and the code licence
+   is unaffected.
+8. **A14, R16.** R16, frontends observe and the tape decides, joins PLAN §4.
 
 ## The verdict
 
@@ -464,3 +478,19 @@ price-runaway detector.
 length and gives every dial a time unit, the EMA span in years first. The oracle solves
 per period, so either the tick is its period or its inputs are restated at tick length:
 ρ_tick = (1+ρ)^Δ − 1, δ_tick = 1 − (1−δ)^Δ, J_b in ticks.
+
+**A14. An interactive GUI, early.** *(PLAN §4, §6, §9; ENGINE §13.)* Dated 2026-09-25,
+against `reboot-phase0` at `a8f9ed8`, ruled the same day (rulings 5–8) and folded in on
+2026-09-26. The design is [GUI.md](../GUI.md): a research instrument that runs the engine
+live, plots any recorded series, explains where a number came from, compares a branch
+with its parent and edits the tape, and never carries a number into a run except through
+the tape. [GUI-review-ledger.md](GUI-review-ledger.md) records what became of each issue
+in its two review rounds. R16 joins PLAN §4. The GUI's stages sit beside the phases in
+PLAN §6, and G0–G7 add about 10–15 sessions, so the total to the first certified England
+run becomes roughly 35–50; PLAN §9 is rewritten to match. No stage gates engine work.
+Decisions D1–D13 are the lead engineer's; each stands unless vetoed before G0, and D10's
+window closes at Phase 0's second session. STATE.md lists them. D10 asks that session for
+four engine items (GUI.md §7.2): `world_id` without the `fixed` flag the schedule sets,
+`FiredEvent` naming its source, chunked stepping equal to `run_until` (met already), and
+`engine::registry` listing each use of a param with its Clock method. Every later engine
+item is ruled at its own phase (GUI.md §7.3).

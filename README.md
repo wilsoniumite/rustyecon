@@ -24,8 +24,9 @@ What it is for, in order:
 ## Status
 
 Phase 0, the reboot, is half done: its first session is complete and its gate is green
-(see [STATE.md](STATE.md)). The second session moves the certification stack. The crates
-fill in phase by phase:
+(see [STATE.md](STATE.md)). The second session moves the certification stack. Oracle unit
+1a, the first of Phase 1, has landed. The GUI is designed ([docs/GUI.md](docs/GUI.md)); its
+shell follows Phase 0's second session. The crates fill in phase by phase:
 
 | Crate | What it holds | Fills in |
 |---|---|---|
@@ -37,22 +38,26 @@ fill in phase by phase:
 | `crates/certify` | certificates, criteria, verdicts, Parquet telemetry | Phase 0, second session |
 | `crates/oracle` | the equilibrium solver (library `oracle`): unit 1a, one category with durability and interest, reproduces the SSRN Appendix B ([its README](crates/oracle/README.md)) | Phase 1: 1a landed; 1b–1f to come |
 | `crates/worldgen` | the tape compiler | Phase 4 |
+| `crates/gui` | the interactive frontend, in egui: live runs, plots, lenses, the tape editor, and a county map ([docs/GUI.md](docs/GUI.md)) | from G0, after Phase 0's second session; one stage beside each phase |
 
 Packages are named `rustyecon-<crate>`. `tapes/gate.ron` is the Phase 0 gate world.
 
 ## Documents
 
 - [STATE.md](STATE.md): the resume point. Where things stand, the decisions open to veto,
-  and the next session's first step.
-- [docs/PLAN.md](docs/PLAN.md): the plan, amended by the addendum's rulings. Architecture,
-  the standing rules R1–R15, the phases and their gates.
+  and the next steps in order.
+- [docs/PLAN.md](docs/PLAN.md): the plan, amended by the addendum's rulings, A14 among them.
+  Architecture, the standing rules R1–R16, the phases and their gates, and the GUI's stages
+  beside them.
 - [docs/ENGINE.md](docs/ENGINE.md): the Phase 0 engine contract, with each step's
   amendments.
 - [docs/TAPE.md](docs/TAPE.md): the tape's schema, with the gate tape as its example.
+- [docs/GUI.md](docs/GUI.md): the GUI's design (A14): its rules, architecture, panels, editor,
+  map and roadmap, with its review ledger in `docs/reboot/`.
 - [docs/reboot/REVIEW.md](docs/reboot/REVIEW.md): the review of the repository at the
   reboot, with the rulings made after it.
 - [docs/reboot/ADDENDUM.md](docs/reboot/ADDENDUM.md): what the review missed (the July
-  branches), with the rulings on amendments A1–A13.
+  branches), with the rulings on amendments A1–A14.
 - [docs/timeline/eras.md](docs/timeline/eras.md): era research that feeds worldgen.
 
 ## Build and test
