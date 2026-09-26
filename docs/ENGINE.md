@@ -368,6 +368,20 @@ no fix changes what a state holds or how a tick moves it.
    (`testkit::exactly_zero`). Each was checked against the mutation that showed the gap.
 10. Steps (§12): P0.9 is this round's fixes.
 
+**Amended at P1.1** (oracle unit 1a joins the workspace), the same way. Nothing on the engine
+path changed but core's `num`, which gained one function; no hash moved.
+
+1. `core::num::fma(a, b, c)`: `a·b + c` rounded once, libm's `fma`, which is correctly rounded
+   (the FMA instruction where the CPU has one, an exact software form where not), so it gives
+   the same double on every platform (§2.5, §9). The oracle needs it for `1 − u·a` and
+   `1 − aδ`, which must not round the product first. `f64::mul_add` stays denied, and the state
+   path still writes `a * b + c`. Test: `fma_rounds_once` in core (an exact product-error check
+   in integers, and golden bits).
+2. `crates/oracle` (`rustyecon-oracle`, library `oracle`) is a member (§1). It depends on core
+   alone, for `num`, and nothing on the engine path depends on it (R13). Its 114 tests run under
+   `cargo test --workspace`. The source scans of §11 do not read it: it is not on the run's
+   path.
+
 ## 0. Engine invariants
 
 Numbered so tests and reviews can cite them. Each has at least one test in §11.
@@ -424,14 +438,15 @@ crates/engine   rustyecon-engine   Sim: the tick loop, step, run, checkpoint, re
                                    TickReport; the hook whitelist
 crates/cli      rustyecon-cli      bin `rustyecon`: argument parsing, file I/O, exit codes
 crates/certify  rustyecon-certify  empty until session 2 (A4); nothing depends on it yet
+crates/oracle   rustyecon-oracle   the equilibrium solver, Phase 1 (unit 1a at P1.1); lib `oracle`
 crates/worldgen rustyecon-worldgen empty until Phase 4; nothing depends on it yet
 tapes/gate.ron                     the gate world (§10)
 ```
 
 Dependencies run one way: core ← markets ← agents ← engine ← cli, and a future frontend crate
-depends on engine the same way. Core depends on no workspace crate (N14). `crates/oracle` comes
-from another run, joins through the glob and depends at most on core; nothing on the engine path
-depends on it (R13). The engine re-exports markets and agents under their own names, plus a
+depends on engine the same way. Core depends on no workspace crate (N14). `crates/oracle` came
+from another run and joined through the glob at P1.1; it depends on core alone, for `num`, and
+nothing on the engine path depends on it (R13). The engine re-exports markets and agents under their own names, plus a
 `prelude` of the types a frontend names (ids, keys, `Holder`, `Date`, `Tape`, `World`,
 `Checkpoint`, the `SimState` a checkpoint holds, `TickReport` and its lines, the errors), so a
 frontend depends on the engine alone. It does not re-export core: core's writer (`apply`,
@@ -685,6 +700,7 @@ impl<E: Ext> Checkpoint<E> {
 pub mod num {
     pub fn exp(x: f64) -> f64; pub fn expm1(x: f64) -> f64; pub fn ln(x: f64) -> f64;
     pub fn ln1p(x: f64) -> f64; pub fn pow(x: f64, y: f64) -> f64;       // one libm call each (A5)
+    pub fn fma(a: f64, b: f64, c: f64) -> f64;                           // a·b + c, rounded once (P1.1)
     pub fn max_qty(budget: f64, price: f64) -> Result<f64, NumError>;    // largest q: fl(price·q) <= budget
     pub fn max_scale(held: f64, coef: f64) -> Result<f64, NumError>;     // largest x: fl(coef·x) <= held
     pub fn max_remainder(total: f64, spent: f64) -> Result<f64, NumError>; // largest d: fl(spent+d) <= total
@@ -1399,7 +1415,8 @@ rustyecon registry <tape.ron>
 - **Floats on the state path.**
   - Allowed: `+ − × ÷`, `sqrt`, comparisons, `total_cmp`, `min`, `max`, `abs`, `floor`, `round`,
     `next_down`, `next_up`, and int↔float casts.
-  - Only through `core::num` (libm): `exp`, `expm1`, `ln`, `ln1p`, `pow`.
+  - Only through `core::num` (libm): `exp`, `expm1`, `ln`, `ln1p`, `pow`; and `fma`, correctly
+    rounded, which the oracle uses and the state path does not (P1.1).
   - Banned: `mul_add`, `powi`, `powf`, the inherent transcendentals, `f32`, and fast-math.
   - Sums are left folds in canonical order, and no value is `-0.0` (§2.5).
 
@@ -1550,7 +1567,7 @@ Housekeeping (PLAN Phase 0 steps 2 and 6; A3):
 |---|---|
 | Certificate, criteria, verdicts, NaN scan, manifest (it records `world_id`), telemetry, BalanceWatch, price-runaway detector (A12); N4, N10, N12, N15 | Phase 0 session 2 (A4) |
 | Parquet writer (moves as is; `TickReport` is its input) | Phase 0 session 2 |
-| Oracle | Phase 1 (other run) |
+| Oracle | Phase 1 (other run; unit 1a joined at P1.1) |
 | Pops as rules (pairs, participation, logit); labour and parcel services as Instant goods; machines and (A, Λ, B) desks; the task margin; the income-identity check | Phase 2 |
 | Investment, vintages, depreciation, construction, build lags, user cost; population, technology and enclosure timelines (as world-level `Ext` deltas) | Phase 3 |
 | Worldgen compiler and its human-editable tables (the runtime tape is its target) | Phase 4 |

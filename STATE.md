@@ -9,8 +9,8 @@ The plan is [docs/PLAN.md](docs/PLAN.md), amended by the rulings in
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
 **State as of:** 2026-09-26. Phase 0 session 1 is done: P0.1–P0.9 on branch `reboot-phase0`,
-not pushed. Round 3's findings (O5–O13) are fixed at P0.9. Next: session 2, the certification
-stack.
+not pushed. Round 3's findings (O5–O13) are fixed at P0.9. Oracle unit 1a joined the workspace
+at P1.1 (O3). Next: session 2, the certification stack.
 
 ## Where things stand
 
@@ -29,7 +29,8 @@ library a frontend drives). The v1 and July agents did not carry.
 | `7553a3d` P0.6 | fixes from adversarial review, round 1: checkpoint digest (format 2), schedule params outside `world_id`, new load checks, stronger tests |
 | `443d44c` P0.7 | fixes from adversarial review, round 2: `Rounding` declared by TwoSum, the run's ledger, the engine no longer re-exports core |
 | `4553e5f` P0.8 | housekeeping: docs/PLAN.md moved and amended, this file, the CI skeleton, the docs checked against the code |
-| P0.9 | fixes from adversarial review, round 3 (O5–O13): exact multi-lot rounding, the flow tolerance pinned, checkpoint format 3 (identity and the run's ledger in the digest), dated events in date order, the per-tick conversions pinned, a wider frontend guard and literal scan, the final save tested |
+| `57f3a25` P0.9 | fixes from adversarial review, round 3 (O5–O13): exact multi-lot rounding, the flow tolerance pinned, checkpoint format 3 (identity and the run's ledger in the digest), dated events in date order, the per-tick conversions pinned, a wider frontend guard and literal scan, the final save tested |
+| P1.1 | oracle unit 1a joins the workspace (O3): `crates/oracle`, its maths through `core::num`, which gains `fma` |
 
 **Fixed as the code moved** (REVIEW §2.2's numbers, ADDENDUM §2.3's N-numbers): defect 5 (lot
 lives through checkpoints), 8 (settlement from one fill), 9 and N3 (a shortfall is a ledger
@@ -54,19 +55,21 @@ agent struct). Each has a test that fails when its fix is reverted, checked by m
 | unsorted events fire or fail | `unsorted_events_fire_in_order`, `every_zero_is_rejected` (core), `gate_events_fire_in_date_order`, `same_tick_events_fire_in_date_order` (engine) |
 
 The full list, with what each test checks, is ENGINE §11: 186 `#[test]` functions and 12 doc
-tests. `cargo test --workspace --release` passes 198 of 198 on both machines, with zero
-warnings (built with `-D warnings`), `cargo clippy --workspace --all-targets -- -D warnings`
-clean and `cargo fmt --all --check` clean:
+tests at P0.9. Since P1.1 core has one more (`fma_rounds_once`) and the oracle brings its 114.
+`cargo test --workspace --release` passes 313 of 313 on both machines, with zero warnings
+(built with `-D warnings`), `cargo clippy --workspace --all-targets -- -D warnings` clean and
+`cargo fmt --all --check` clean:
 
 | Crate | WSL | Windows |
 |---|---|---|
-| `rustyecon-core` | 89 unit + 2 doc | 89 unit + 2 doc |
+| `rustyecon-core` | 90 unit + 2 doc | 90 unit + 2 doc |
 | `rustyecon-markets` | 6 unit + 28 integration | 6 unit + 28 integration |
 | `rustyecon-agents` | 1 unit + 9 integration | 1 unit + 9 integration |
 | `rustyecon-engine` | 3 unit + 37 integration + 10 doc | 3 unit + 37 integration + 10 doc |
 | `rustyecon-cli` | 13 integration | 13 integration |
+| `rustyecon-oracle` (P1.1) | 42 unit + 71 gate + 1 doc | 42 unit + 71 gate + 1 doc |
 | `rustyecon-certify`, `rustyecon-worldgen` | none yet | none yet |
-| **Total** | **198** | **198** |
+| **Total** | **313** | **313** |
 
 **Toolchain** (pinned by `rust-toolchain.toml`, installed by rustup on first use):
 
@@ -204,10 +207,13 @@ made while building.
   criteria must not certify PASS), N10 (`tape_sha` must cover every input), N12 (statistics
   must fail closed on NaN) and N15 (stability windows relative to the run) fixed, thresholds
   moved into criteria, and a price-runaway detector (A12).
-- **O3. The oracle** (`crates/oracle`, Phase 1) is being built by another run in the main tree
-  at `C:/Users/wilso/Documents/GitHub/rustyecon`. It joins through the members glob when merged,
-  depends at most on `core`, and nothing on the engine path may depend on it (R13). Merge it and
-  `reboot-phase0` into `reboot` together, and rerun the gate after.
+- **O3. The oracle, unit 1a, landed at P1.1.** Built by another run and verified there (114
+  tests), it joined through the members glob. It depends on `core` alone, for `num`, and nothing
+  on the engine path depends on it (R13). The workspace's `clippy.toml` denies the platform
+  maths, so x^k, ln(1 + z) and its fused multiply-add now go through `core::num` (libm), which
+  gained `fma`. Its outputs are then byte-identical on WSL and Windows (5000 random economies,
+  every regime), no golden moved, and G8's exact tie still ties. Units 1b–1f follow (PLAN
+  Phase 1).
 - **O4. `test_01` is retired with the v1 agents** (A3), not ported. It failed at every commit
   where its tests compile (from `03eb06a`; the April commits do not compile theirs) and on all
   three July branches: `building_inventory_cycles_correctly`, "farm should produce wheat on tick
@@ -262,8 +268,8 @@ REVIEW.md is kept as written; these of its claims do not hold.
 
 ## Next session's first step
 
-On your go, merge `reboot-phase0` and the oracle (O3) into `reboot`, rerun `scripts/gate.sh` in
-WSL and the same commands on Windows, and start session 2 (O2). Session 2's manifest records the
+On your go, merge `reboot-phase0` (which carries the oracle since P1.1) into `reboot`, rerun
+`scripts/gate.sh` in WSL and the same commands on Windows, and start session 2 (O2). Session 2's manifest records the
 digest of any checkpoint a run resumed from; since P0.9 that digest covers the checkpoint's
 identity and the run's ledger too (format 3).
 
@@ -282,6 +288,7 @@ crates/markets           admission, clearing, settlement, prices
 crates/agents            the behaviour seam and the scripted actor
 crates/engine            Sim, the tick, reports, resume, the replay audit, the registry listing
 crates/cli               the rustyecon binary: run, resume, replay, registry
+crates/oracle            the equilibrium solver, unit 1a (P1.1); its README and docs/unit-1a.md
 crates/certify           empty until session 2
 crates/worldgen          empty until Phase 4
 tapes/gate.ron           the gate world

@@ -1,0 +1,19 @@
+[package]
+name = "rustyecon-oracle"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+description = "The static equilibrium of the pinning paper's economy. Unit 1a: one category, with durability and interest."
+
+[lib]
+name = "oracle"
+path = "src/lib.rs"
+
+# The oracle depends at most on core (docs/ENGINE.md §1), and only for core::num: its
+# transcendentals and its fused multiply-add are libm's, the same on every platform (R8, A5).
+# Nothing on the engine path depends on the oracle (R13).
+[dependencies]
+rustyecon-core.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,201 @@
+# rustyecon-oracle
+
+Dated 2026-09-25; joined the workspace on 2026-09-26 (P1.1).
+
+The oracle is a static equilibrium solver for the pinning paper's economy (PLAN §3.4).
+It shares types but not logic with the agents, and no agent may read it (PLAN R13).
+It is built outward in units 1a-1f. This package is **unit 1a**: one category, one
+machine type, one land input, with durability and interest through the scalar user
+cost u = (ρ + δ)(1 + ρ)^(J_b − 1). At (ρ, δ, J_b) = (0, 1, 1) it is the SSRN Appendix B
+economy (SSRN 7226858, pp.28-30).
+
+The package is `rustyecon-oracle`, its library `oracle`, a member of the rustyecon
+workspace. Its one dependency is `rustyecon-core`, for `core::num`: the power, `ln1p` and
+the fused multiply-add go through the pure-Rust `libm` crate there, so every output is the
+same double on every platform (R8, ADDENDUM A5). Nothing on the engine path depends on
+the oracle (R13; docs/ENGINE.md §1).
+
+The specification, with every equation and golden, is [docs/unit-1a.md](docs/unit-1a.md).
+
+## The gate
+
+Unit 1a is green when the workspace's gate is (`scripts/gate.sh`): `cargo test --workspace
+--release` passes on WSL and on Windows, and `cargo clippy --workspace --all-targets -- -D
+warnings` and `cargo fmt --all --check` are clean, under the workspace's lints and
+`clippy.toml`. The tests cover, per docs/unit-1a.md §6:
+
+- **G1**, the SSRN Appendix B instance: the published figures to 5e-6 (x* 0.86315,
+  v 0.54344, Y 7.88061, N_a 1.34338, hours 1.07846 and 0.26492, N·P_s 5.44630), and
+  every full-precision value, bracket value and cost-system total to 1e-12 relative;
+- **G2**, SSRN Figure 3's caption values;
+- **G3**, the automation path γ = η(1 + x), down to η = 1e-20, where x* rounds to 1.0
+  and 1 − x* is 4.6e-21;
+- **G4**, durability, interest and the build lag, with the ρ = 0 nesting test, the
+  labour share and real wage with interest, φ at u = 1 with δ < 1, and an economy at
+  the viability edge (D(x*) = 8.4e-7);
+- **G5**, 180 random interior economies (the identities to 1e-12, and single crossing on
+  a grid), and two general instances with every parameter off the paper's values
+  (k = 4.5 and 2.5, h, χ_max, η ≠ 1, J_b = 2) pinned field by field;
+- **G6** and **G7**, the replacement closure (c = 1, w = 3; at λ = 0, 0.4 and 1.2) and
+  the three-taxes shares (0.6, 0.4);
+- **G8**, the four regimes recognised on constructed cases, including an exact f64 zero
+  at each boundary, funding without Lemma B.1, `NoInteriorAtZero` with T/h > N, the
+  parameter ceilings (k = 1e20 rejected; k = `CURVATURE_CEIL` = 1024 solved against
+  70-digit goldens), `funded` and `lemma_b1` false at exact f64 ties, D(1) = −∞ as
+  `NotViable`, the non-finite errors, and the labour-residual net refusing a γ that jumps;
+- the dump interface: every key it prints equals the solve's field bit for bit, at u = 1,
+  with interest, where `funded` and `lemma_b1` differ, and on a line of fourteen distinct
+  values checked against a solve built without the parser;
+- `goldens.txt` carries digests of `generate.py` and of itself, which the gate checks.
+
+The goldens are pinned to laborformal `31b3482`.
+
+## Layout
+
+| path | what it is |
+|---|---|
+| `src/params.rs` | `Params`, validation (`ParamError`), `Economy`, the user cost u |
+| `src/schedule.rs` | the `Schedule` trait (γ and its integral J) and `PowerSchedule`, γ = η(g0 + g1·x^k) |
+| `src/solve.rs` | `Economy::at(x)`, `Economy::solve`, `Regime`, `Eq1a`, residuals, the cost-system view |
+| `src/closure.rs` | `closure(a, λ, γ*, b, r, u)`, the price block alone |
+| `src/dump.rs` | the one-line text interface behind `examples/dump.rs` |
+| `examples/dump.rs` | reads economies on stdin, writes one result line each |
+| `tests/gate/` | the gate: one test crate, one module per golden group |
+| `goldens/generate.py` | computes every golden with mpmath at 70 digits |
+| `goldens/goldens.txt` | its output, 30 significant digits |
+
+## Running the tests
+
+Keep the build directory outside the repository, as the workspace's gate does, and
+building on a Windows drive from WSL is slow. The whole gate is `scripts/gate.sh` (see the
+root README). For this package alone, from the repository root, on the primary platform,
+WSL Ubuntu, and on the secondary one, Windows with the MSVC toolchain (both Rust 1.97.1,
+pinned by `rust-toolchain.toml`):
+
+```sh
+export CARGO_TARGET_DIR=<a directory outside the repository>
+cargo test --release -p rustyecon-oracle
+cargo clippy -p rustyecon-oracle --all-targets -- -D warnings
+cargo fmt --all --check
+```
+
+In PowerShell, set `$env:CARGO_TARGET_DIR` instead. To drive WSL from Windows, use
+`wsl -d ubuntu --exec bash -lc '…'`; `wsl -- …` loses exit codes.
+
+On 2026-09-25, after the final verification round, both gave 114 tests: 42 unit tests,
+71 gate tests and 1 doc test. In the workspace (P1.1, 2026-09-26) the same 114 pass on
+both.
+
+## The dump example
+
+`examples/dump.rs` is for differential testing against other solvers. Each input line
+is whitespace-separated `key=value` pairs, one for each of `workers land space a lam b
+eta g0 g1 k chi_max rho delta build_lag`. Each output line starts with `regime=<name>`,
+then every output of `Eq1a::outputs` as `key=value` (every `Eq1a` field, including
+`one_minus_x_star`, and each residual), or the non-interior regime's diagnostic. Floats
+use Rust's `{:?}` formatting: the shortest digits that parse back to the same double,
+always with a decimal point or an exponent (`1.0`, `-6.0005e-12`, `1e30`). A bad line,
+including one that is not UTF-8, gives `error=<message>`. Every input line gives exactly
+one output line. The loop is `oracle::dump::run`, which the unit tests drive on raw
+bytes; if stdin cannot be read or stdout cannot be written or flushed, the example says
+so on stderr and exits with status 1.
+
+```sh
+echo "workers=4 land=10 space=1 a=0.3 lam=0.05 b=0.4 eta=1 g0=0.2 g1=0.8 k=1 chi_max=1 rho=0 delta=1 build_lag=1" \
+  | cargo run --release -p rustyecon-oracle --example dump
+```
+
+This prints `regime=Interior x_star=0.863150418162437 one_minus_x_star=0.136849581837563 …
+u=1.0 … v=0.5434359606967785 … y=7.880605524972908 … n_a=1.3433818800977175 …`, which
+is G1.
+
+On 2026-09-25, 2001 random economies through the dump example agreed with laborformal's
+`macro.py` on every regime and on every interior value within 9e-14 relative. That run
+had J_b = 1 only and pooled `BoundaryNoMargin` with `NoInteriorAtZero`. The review of the
+same day compared all four regimes on 3616 economies with J_b from 1 to 12, against a
+macro.py patched for u; it found no disagreement except where the true |f| at a bracket
+end is at most 3.8e-16, where the regime is not decidable in f64 (docs/unit-1a.md §4).
+The largest value gaps are where 1 − x* is small: there both macro.py's brentq xtol and
+the f64 conditioning of 1 − x* matter.
+
+## Regenerating the goldens
+
+`goldens/generate.py` needs a Python with mpmath (1.3.0 was used; laborformal's analysis
+venv has it, WSL's python3 does not). From `crates/oracle`:
+
+```sh
+python goldens/generate.py           # writes goldens/goldens.txt
+python goldens/generate.py --check   # exits 1 if goldens.txt is not what it writes
+```
+
+On Windows, set `PYTHONIOENCODING=utf-8` first. The generator works at 70 digits and
+asserts the published figures, the identities at 65 digits, the ρ = 0 nesting and each G8
+regime as it goes. The constants in `tests/gate/goldens.rs` are `goldens.txt` rounded to
+20 significant digits, and the gate test `goldens_file::constants_match_goldens_txt`
+fails if the two disagree. After a change, update those constants by hand, with a
+provenance comment each.
+
+`goldens.txt`'s header records FNV-1a digests of `generate.py` and of the goldens below
+it, and `goldens_file::goldens_txt_is_from_generate_py` recomputes both. So the gate,
+even where mpmath is missing, fails if `goldens.txt` was edited by hand or not rewritten
+after `generate.py` changed. It cannot prove that the values are what `generate.py`
+computes: **run `generate.py --check` before committing any change to either file.**
+
+## Numerics
+
+- The root is found by bisection on [1e-12, 1] until lo and hi are adjacent doubles.
+  There is no tolerance. `BRACKET_LO` and `MAX_BISECTION_STEPS` are named constants
+  with their reasons in `src/solve.rs`.
+- u and the machine-wealth factor are computed by repeated squaring in this crate, so
+  they are identical on every platform. u's error grows with the build lag, to about
+  J_b·2.2e-16 relative (the `user_cost` doc).
+- Every scale parameter (N, T, h, b, χ_max, and η, g0, g1) must lie in
+  [`SCALE_FLOOR`, `SCALE_CEIL`] = [1e-30, 1e30], δ in [1e-30, 1], and λ and ρ in
+  [0, 1e30]. Within these bounds the products and quotients the regime tests compare stay
+  far from underflow and overflow. u and D are not bounded: a huge u can still overflow
+  a price, and the solve then returns `SolveError::NonFinite`, never a wrong regime.
+  D(1) = −∞ is `NotViable`.
+- k must lie in [1e-30, `CURVATURE_CEIL`] = [1e-30, 1024]. Across one double of x, γ moves
+  by less than max(k, 1)·2^-52 relative, 2.3e-13 at the ceiling, so γ stays resolved by
+  the doubles x* is chosen from. At k = 1e20 it jumped from g0 to g0 + g1 across the last
+  double below 1, and the solve returned a wrong `Interior`.
+- An `Interior` result must clear the labour market: |N_a − n_S(x*)| (`res_labor`) at most
+  `LABOR_RESIDUAL_NET` = 1e-9 of N_a, or the solve returns `SolveError::LaborNotCleared`.
+  This is a safety net, not a tolerance. A root leaves at most about 1e-13 away from the
+  viability edge; a jump in n_D − n_S leaves the jump. It trips on a schedule that breaks
+  the continuity contract, and within about 5e-5 of the viability edge where the root is
+  not resolved in f64 (docs/unit-1a.md §4 step 5).
+- `funded` is `provider_baskets > 0`, so the two never disagree in f64.
+- A negative zero in a, λ or ρ is stored as +0.0, so the same economy prints the same.
+- At an exact f64 zero, the regime follows the spec's convention: D(1) = 0 is
+  `NotViable`, f(1) = 0 `BoundaryNoMargin`, f(1e-12) = 0 `NoInteriorAtZero`. Within a
+  few ulps of a boundary the regime is not decidable in f64. `NoInteriorAtZero` means
+  f(1e-12) ≤ 0; a root can still lie in (0, 1e-12). The band where the regime is not
+  decidable widens near the viability edge and with the build lag: u's error (J_b·2.2e-16)
+  makes D(1) uncertain by about that much, and the prices carry it into f amplified by
+  u(a + λγ)/D (docs/unit-1a.md §4 step 3).
+- Near the viability edge the prices scale as 1/D, and x*'s representation reaches them
+  amplified: at the double x*, the outputs are within about max(k, 1)·2^-53·(1 + uλγ/D)
+  relative of the exact equilibrium, besides D's own rounding, 2^-53·(1 − u·a)/D. An
+  `Interior` result within about 1e-5 of the edge (D(x*) ≲ 1e-5) can carry a labour
+  residual up to the 1e-9 net (docs/unit-1a.md §4 step 4).
+- `x_star` is a double in [1e-12, 1]; it is exactly 1.0 when the root is within half an
+  ulp of 1. 1 − x* is carried separately, as `one_minus_x_star`, interpolated between
+  the two doubles that bracket the root, and every output proportional to 1 − x*
+  (final hours, N_a, participation, the labour share) uses it, so they keep full relative
+  precision however close x* is to 1.
+- D = 1 − u(a + λγ) is computed as (1 − u·a) − u·λγ with a fused multiply-add
+  (`core::num::fma`, correctly rounded), and 1 − aδ likewise, so neither loses precision
+  near the viability edge or as aδ → 1.
+- Interest is computed as ρ·W_K, not (u − δ)·V_m·K, which cancels when ρ is small.
+- The power x^k, ln(1 + z) and the fused multiply-add come from `core::num`, that is from
+  the `libm` crate, so the outputs do not depend on the platform (docs/unit-1a.md §8).
+  On 2026-09-26, 5000 random economies (every regime, J_b up to 12) gave byte-identical
+  dump output on WSL and Windows. Before P1.1 they came from the platform libm, where glibc
+  and MSVC differ in the last bits: the two platforms' outputs differed by up to 2.8e-14
+  relative on the review's set, and by 1.1e-13 on x* (at x* = 9.7e-10, where the root is
+  ill-conditioned) on the 5000. The move to libm changed no regime and no flag on that
+  set, moved the interior outputs (residuals aside) by at most 7.0e-16 relative from the
+  glibc build, and left the goldens' error maxima as they were (docs/unit-1a.md §6); the
+  exact-tie input of G8 still ties. Cross-platform equality is recorded, not gated
+  (ADDENDUM ruling 2).

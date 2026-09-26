@@ -35,7 +35,7 @@ fill in phase by phase:
 | `crates/engine` | `Sim`: the tick loop, checkpoints, resume, the replay audit, the read-only per-tick report a frontend drives and reads | Phase 0 |
 | `crates/cli` | the `rustyecon` binary (`run`, `resume`, `replay`, `registry`): arguments, files, exit codes | Phase 0 |
 | `crates/certify` | certificates, criteria, verdicts, Parquet telemetry | Phase 0, second session |
-| `crates/oracle` | the equilibrium solver | joins in Phase 1 |
+| `crates/oracle` | the equilibrium solver (library `oracle`): unit 1a, one category with durability and interest, reproduces the SSRN Appendix B ([its README](crates/oracle/README.md)) | Phase 1: 1a landed; 1b–1f to come |
 | `crates/worldgen` | the tape compiler | Phase 4 |
 
 Packages are named `rustyecon-<crate>`. `tapes/gate.ron` is the Phase 0 gate world.

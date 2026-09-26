@@ -29,6 +29,7 @@ rustyecon-agents = { path = "crates/agents" }
 rustyecon-engine = { path = "crates/engine" }
 rustyecon-worldgen = { path = "crates/worldgen" }
 rustyecon-certify = { path = "crates/certify" }
+rustyecon-oracle = { path = "crates/oracle" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

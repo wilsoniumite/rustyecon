@@ -300,6 +300,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustyecon-oracle"
+version = "0.2.0"
+dependencies = [
+ "rustyecon-core",
+]
+
+[[package]]
 name = "rustyecon-worldgen"
 version = "0.2.0"
 dependencies = [

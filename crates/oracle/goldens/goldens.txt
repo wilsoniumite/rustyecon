@@ -1,0 +1,256 @@
+# goldens.txt: the golden numbers for oracle unit 1a.
+# Written by goldens/generate.py (mpmath, 70 digits). Do not edit by hand.
+# Each line is KEY = value  # note. Values carry 30 significant digits;
+# PUB_ values are transcribed from the paper and asserted against the solve.
+# Equations: docs/unit-1a.md section 3. laborformal references are at 31b3482.
+# fnv1a64 generate.py = cf9d71a6ac25699d
+# fnv1a64 body = a9310453f121011a
+
+# G1: the SSRN Appendix B instance (SSRN p.30): N 4, T 10, h 1, a 0.3, b 0.4, lambda 0.05, gamma = 0.2 + 0.8x, chi ~ U[0, 1], rho 0, delta 1, J_b 1
+PUB_G1_X_STAR = 0.86315  # published, SSRN p.30; laborformal paths/checks/check_macro.py:31 at 31b3482
+PUB_G1_V = 0.54344  # published, SSRN p.30; laborformal paths/checks/check_macro.py:31 at 31b3482
+PUB_G1_Y = 7.88061  # published, SSRN p.30; laborformal paths/checks/check_macro.py:31 at 31b3482
+PUB_G1_N_A = 1.34338  # published, SSRN p.30; laborformal paths/checks/check_macro.py:31 at 31b3482
+PUB_G1_FINAL_HOURS = 1.07846  # published, SSRN p.30; laborformal paths/checks/check_macro.py:31 at 31b3482
+PUB_G1_MACHINE_HOURS = 0.26492  # published, SSRN p.30; laborformal paths/checks/check_macro.py:31 at 31b3482
+PUB_G1_SUPPORT_COST = 5.44630  # published, SSRN p.30; laborformal paths/checks/check_macro.py:31 at 31b3482
+G1_X_STAR = 0.863150418162437031916392798424  # x*, the root of n_D = n_S (SSRN eq 24, Lemma B.1, p.29)
+G1_GAMMA_STAR = 0.890520334529949625533114238739  # gamma(x*)
+G1_J_STAR = 0.470641541382083369591683903429  # J(x*), SSRN eq 21
+G1_V = 0.543435960696778328420453096896  # v = w/r, SSRN eq 21
+G1_P_M = 0.610245425764055594887175221207  # p_m = V_m at u = 1, SSRN eq 21
+G1_P = 0.361575831779809274639993586449  # p, SSRN eq 22
+G1_P_S = 1.36157583177980927463999358645  # P_s, SSRN eq 22
+G1_Y = 7.88060552497290767677101216703  # Y, SSRN eq 23
+G1_K = 5.29848618756773080807246958242  # K (the SSRN's X), SSRN eq 23
+G1_FINAL_HOURS = 1.07845757071933080571017849602  # Y (1 - x*)
+G1_MACHINE_HOURS = 0.264924309378386540403623479121  # lambda delta K
+G1_N_A = 1.34338188009771734611380197514  # N_a = n_D(x*), SSRN eq 24
+G1_PARTICIPATION = 0.335845470024429336528450493785  # N_a / N
+G1_SUPPORT_COST = 5.4463033271192370985599743458  # N P_s
+G1_INCOME = 10.7300420225935473006388192865  # I = v N_a + T, SSRN eq 15 and p.30
+G1_LABOR_SHARE = 0.068037200698407852313745366934  # v N_a / I
+G1_REAL_WAGE = 0.399122801692518193604986573693  # w / P_s
+G1_WORKER_BASKETS = 4.53617433972756349381416898983  # N + v N_a / P_s, SSRN p.30
+G1_PROVIDER_BASKETS = 3.3444311852453441829568431772  # T / P_s - N, SSRN p.30
+G1_COVERAGE = 1.8361077963113360457392107943  # T / (N P_s)
+G1_FUNDED = true  # T + interest > N P_s(x*), macro.py:113 at 31b3482
+G1_LEMMA_B1 = true  # n_S(1) > n_D(1) and T > N P_s(1), SSRN eq 25
+G1_PHI_W = 0.0636085953235678303952224456242  # lambda gamma(x*) / (1 - a), check_three_taxes.py:48 at 31b3482
+G1_PHI_R = 0.936391404676432169604777554376  # 1 - phi_w
+G1_LAMBDA_TILDE_GOOD = 0.17046683479342606591158462325  # first row of (I - A)^-1 lambda, SSRN eq 4, p.29
+G1_LAMBDA_TILDE_MACHINE = 0.0714285714285714285714285714286  # lambda / (1 - a) = 1/14
+G1_B_TILDE_GOOD = 0.268938023646904782623819373388  # first row of (I - A)^-1 b, SSRN eq 4, p.29
+G1_B_TILDE_MACHINE = 0.571428571428571428571428571429  # b / (1 - a) = 4/7
+G1_L_S = 0.17046683479342606591158462325  # z' lambda-tilde, SSRN p.29
+G1_B_S = 1.26893802364690478262381937339  # z' b-tilde, SSRN p.29
+G1_F_AT_LO = 9.60461666144110059331079014089  # n_D - n_S at x = 1e-12, the bracket's left end
+G1_N_D_AT_1 = 0.319148936170212765957446808511  # n_D(1)
+G1_N_S_AT_1 = 1.48470413851812910620108883839  # n_S(1)
+G1_F_AT_1 = -1.16555520234791634024364202988  # n_D(1) - n_S(1)
+G1_P_S_AT_1 = 1.36923076923076923076923076923  # P_s(1) = 89/65
+G1_SUPPORT_COST_AT_1 = 5.47692307692307692307692307692  # N P_s(1)
+G1_V_AT_1 = 0.615384615384615384615384615385  # v(1) = 8/13
+G1_D_AT_1 = 0.65  # D(1) = 1 - a - lambda gamma(1) = 0.65
+
+# G2: SSRN Figure 3 (SSRN p.12). Captions are published to 2 decimals
+PUB_G2_BASE_REAL_WAGE = 0.40  # published caption, SSRN p.12 (Figure 3)
+PUB_G2_BASE_PARTICIPATION = 0.34  # published caption, SSRN p.12 (Figure 3)
+PUB_G2_LAM0_REAL_WAGE = 0.37  # published caption, SSRN p.12 (Figure 3)
+PUB_G2_LAM0_PARTICIPATION = 0.32  # published caption, SSRN p.12 (Figure 3)
+PUB_G2_HALF_REAL_WAGE = 0.24  # published caption, SSRN p.12 (Figure 3)
+PUB_G2_HALF_PARTICIPATION = 0.21  # published caption, SSRN p.12 (Figure 3)
+G2_LAM0_X_STAR = 0.840586128756123423453021144792  # x*, lambda = 0 (recursive automation)
+G2_LAM0_V = 0.498553658859942136435666809048  # v, lambda = 0 (recursive automation)
+G2_LAM0_Y = 7.95183011530587524632440843413  # Y, lambda = 0 (recursive automation)
+G2_LAM0_N_A = 1.2676320221545510278636174513  # N_a, lambda = 0 (recursive automation)
+G2_LAM0_REAL_WAGE = 0.372876269103074679294644972118  # w / P_s, lambda = 0 (recursive automation)
+G2_LAM0_PARTICIPATION = 0.316908005538637756965904362826  # N_a / N, lambda = 0 (recursive automation)
+G2_HALF_X_STAR = 0.921477557721739641361080604029  # x*, eta = 0.5 (task automation halves gamma)
+G2_HALF_V = 0.277039012796526685374138314453  # v, eta = 0.5 (task automation halves gamma)
+G2_HALF_Y = 8.69793445292252843571137458822  # Y, eta = 0.5 (task automation halves gamma)
+G2_HALF_N_A = 0.845741249404385275410611251957  # N_a, eta = 0.5 (task automation halves gamma)
+G2_HALF_REAL_WAGE = 0.235450044685050307017901691204  # w / P_s, eta = 0.5 (task automation halves gamma)
+G2_HALF_PARTICIPATION = 0.211435312351096318852652812989  # N_a / N, eta = 0.5 (task automation halves gamma)
+
+# G3: the automation path (SSRN p.30; check_macro.py:35-43 at 31b3482): lambda 0, gamma = eta (1 + x)
+G3_ETA_1_PARTICIPATION = 0.430655958581441681091078617353  # N_a / N at eta = 1
+G3_ETA_1_V = 0.988401220292139589517309670143  # v at eta = 1
+G3_ETA_0_3_PARTICIPATION = 0.229277929702242153160362649467  # N_a / N at eta = 0.3
+G3_ETA_0_3_V = 0.323678629033399338435984875842  # v at eta = 0.3
+G3_ETA_0_1_PARTICIPATION = 0.0980667456536989759085609566129  # N_a / N at eta = 0.1
+G3_ETA_0_1_V = 0.111862804791188771611615039278  # v at eta = 0.1
+G3_ETA_0_03_PARTICIPATION = 0.0326630647348129970250793238899  # N_a / N at eta = 0.03
+G3_ETA_0_03_V = 0.0340560821391793034781173750841  # v at eta = 0.03
+G3_ETA_0_01_PARTICIPATION = 0.0112423176716504936908480065982  # N_a / N at eta = 0.01
+G3_ETA_0_01_V = 0.0114026557751972340640113871676  # v at eta = 0.01
+G3_ETA_1E_6_N_S_AT_QUARTER = 0.00000285713984694206844865563719134  # n_S(0.25) at eta = 1e-6, where z = v/P_s is about 7e-7
+G3_ETA_1E_6_ONE_MINUS_X_STAR = 0.000000457142491428958537888019426763  # 1 - x* at eta = 1e-6
+G3_ETA_1E_6_N_A = 0.00000457142099593112005568542375078  # N_a = Y (1 - x*) at eta = 1e-6 (lambda = 0)
+G3_ETA_1E_6_PARTICIPATION = 0.00000114285524898278001392135593769  # N_a / N at eta = 1e-6
+G3_ETA_1E_6_LABOR_SHARE = 0.000000000000522447994403810285851297255913  # v N_a / I at eta = 1e-6
+G3_ETA_1E_20_ONE_MINUS_X_STAR = 0.00000000000000000000457142857142857142853485714286  # 1 - x* at eta = 1e-20
+G3_ETA_1E_20_N_A = 0.0000000000000000000457142857142857142849567346939  # N_a = Y (1 - x*) at eta = 1e-20 (lambda = 0)
+G3_ETA_1E_20_PARTICIPATION = 0.0000000000000000000114285714285714285712391836735  # N_a / N at eta = 1e-20
+G3_ETA_1E_20_LABOR_SHARE = 0.0000000000000000000000000000000000000000522448979591836734684025655977  # v N_a / I at eta = 1e-20
+
+# G4: durability and interest through u = (rho + delta)(1 + rho)^(J_b - 1) (check_dynamics.py:45 at 31b3482; SSRN A.4, pp.27-28)
+G4_A_U = 1.05  # u at (rho, delta, J_b) = (0.05, 1, 1)
+G4_A_X_STAR = 0.856061445021305899851728856262  # x at (rho, delta, J_b) = (0.05, 1, 1)
+G4_A_V = 0.582005029382660138006665255784  # v at (rho, delta, J_b) = (0.05, 1, 1)
+G4_A_Y = 7.90300076138951198813889380005  # Y at (rho, delta, J_b) = (0.05, 1, 1)
+G4_A_N_A = 1.39967141441623660646022594626  # n at (rho, delta, J_b) = (0.05, 1, 1)
+G4_A_P_M = 0.657744911011079791599050986757  # pm at (rho, delta, J_b) = (0.05, 1, 1)
+G4_A_V_M = 0.626423724772456944380048558816  # Vm at (rho, delta, J_b) = (0.05, 1, 1)
+G4_A_INCOME = 10.9788170619103147745772138753  # income at (rho, delta, J_b) = (0.05, 1, 1)
+G4_A_CAPITAL_SHARE = 0.0149561886595779095340177908085  # capital_share at (rho, delta, J_b) = (0.05, 1, 1)
+G4_A_LABOR_SHARE = 0.0741988684281481293033809510619  # labor_share at (rho, delta, J_b) = (0.05, 1, 1)
+G4_A_REAL_WAGE = 0.418950982096368050425497307118  # real_wage at (rho, delta, J_b) = (0.05, 1, 1)
+G4_B_U = 0.15  # u at (0.05, 0.1, 1)
+G4_B_X_STAR = 0.979129088409230147921270027404  # x at (0.05, 0.1, 1)
+G4_B_V = 0.0622589971836278102256194694963  # v at (0.05, 0.1, 1)
+G4_B_Y = 9.7666856299694170223882929686  # Y at (0.05, 0.1, 1)
+G4_B_N_A = 0.23300392857175693251410459976  # n at (0.05, 0.1, 1)
+G4_B_P_M = 0.0633161701349499566248085298652  # pm at (0.05, 0.1, 1)
+G4_B_V_M = 0.422107800899666377498723532434  # Vm at (0.05, 0.1, 1)
+G4_B_K = 5.83285925076457444029267578488  # K at (0.05, 0.1, 1)
+G4_B_INCOME = 10.1376113604975987396998960203  # income at (0.05, 0.1, 1)
+G4_B_CAPITAL_SHARE = 0.0121433703845234982037351320376  # capital_share at (0.05, 0.1, 1)
+G4_B_LABOR_SHARE = 0.00143096735679273295503719739144  # labor_share at (0.05, 0.1, 1)
+G4_B_REAL_WAGE = 0.0599809986304108693467902750875  # real_wage at (0.05, 0.1, 1)
+G4_C_U = 0.1  # u at (0, 0.1, 1)
+G4_C_X_STAR = 0.986949685359398664551532819723  # x at (0, 0.1, 1)
+G4_C_V = 0.0410158019222999656819565124802  # v at (0, 0.1, 1)
+G4_C_Y = 9.76365205591778195617465251173  # Y at (0, 0.1, 1)
+G4_C_N_A = 0.156962224381358414064885168244  # n at (0, 0.1, 1)
+G4_D_U = 0.165375  # u at (0.05, 0.1, 3)
+G4_D_X_STAR = 0.976756911339217258417113387781  # x at (0.05, 0.1, 3)
+G4_D_V = 0.0688972410202038220102983530639  # v at (0.05, 0.1, 3)
+G4_D_Y = 9.76760235425157469366014108453  # Y at (0.05, 0.1, 3)
+G4_D_N_A = 0.256078953241692750369611241169  # n at (0.05, 0.1, 3)
+G4_D_INCOME = 10.178880949831178600857391585  # income at (0.05, 0.1, 3)
+G4_E_X_STAR = 0.743261590934717529741731002748  # x* at (N, rho, delta, J_b) = (7.3, 0.05, 1, 1)
+G4_E_SUPPORT_COST = 10.0340412935113492147653772628  # N P_s at (N, rho, delta, J_b) = (7.3, 0.05, 1, 1), above T = 10
+G4_E_INTEREST = 0.135541593653808310086471232497  # interest at (N, rho, delta, J_b) = (7.3, 0.05, 1, 1)
+G4_E_PROVIDER_BASKETS = 0.0738438451034777302899292037707  # (T + interest)/P_s - N at (N, rho, delta, J_b) = (7.3, 0.05, 1, 1)
+G4_E_FUNDED = true  # funded at (N, rho, delta, J_b) = (7.3, 0.05, 1, 1): only through interest
+G4_E_LABOR_SHARE = 0.106868473312047508939357140478  # v N_a / I at (N, rho, delta, J_b) = (7.3, 0.05, 1, 1)
+G4_E_REAL_WAGE = 0.377439903020445279068670475344  # w / P_s at (N, rho, delta, J_b) = (7.3, 0.05, 1, 1)
+G4_F_X_STAR = 0.86447496527289638279279141548  # x* at (rho, delta, J_b) = (0.5, 0.5, 1), where u = 1
+G4_F_Y = 9.00076326184603656959663783804  # Y at (rho, delta, J_b) = (0.5, 0.5, 1), where u = 1
+G4_F_PHI_W = 0.0636842837298797933024452237417  # phi_w = lambda gamma(x*) / (1 - a) at (rho, delta, J_b) = (0.5, 0.5, 1), where u = 1
+G4_F_PHI_R = 0.936315716270120206697554776258  # phi_r = 1 - phi_w at (rho, delta, J_b) = (0.5, 0.5, 1), where u = 1
+G4_G_D_STAR = 0.000000836446192868696307322446706156  # D(x*) near the viability edge, a = 1 - 2^-19, lambda = 2^-20, b = 0.375, gamma = 0.5 + x, rho = delta = 0.5
+G4_G_X_STAR = 0.622922596866513900853058122646  # x* at a = 1 - 2^-19, lambda = 2^-20, b = 0.375, gamma = 0.5 + x, rho = delta = 0.5
+G4_G_P_M = 448325.311534852988356348076047  # p_m = u b / D at a = 1 - 2^-19, lambda = 2^-20, b = 0.375, gamma = 0.5 + x, rho = delta = 0.5
+G4_G_V = 503434.623069705976712696152095  # v at a = 1 - 2^-19, lambda = 2^-20, b = 0.375, gamma = 0.5 + x, rho = delta = 0.5
+G4_G_P_S = 416453.213517727929830722617919  # P_s at a = 1 - 2^-19, lambda = 2^-20, b = 0.375, gamma = 0.5 + x, rho = delta = 0.5
+G4_G_INCOME = 3500919.73801270016373328325436  # I at a = 1 - 2^-19, lambda = 2^-20, b = 0.375, gamma = 0.5 + x, rho = delta = 0.5
+
+# G5: two general instances, every parameter off the paper's values (constructed on 2026-09-25). Flow: N 5.2, T 12.5, h 0.7, a 0.22, lambda 0.08, b 0.55, gamma = 2.3 (0.15 + 0.9 x^4.5), chi_max 1.6, rho 0, delta 1, J_b 1. Durable: the same with k 2.5, rho 0.04, delta 0.35, J_b 2, so u = 0.39 * 1.04 = 0.4056
+G5_FLOW_X_STAR = 0.868297723620821054887016889874  # x*, flow instance
+G5_FLOW_ONE_MINUS_X_STAR = 0.131702276379178945112983110126  # 1 - x*, flow instance
+G5_FLOW_GAMMA_STAR = 1.4414260022762480671622402456  # gamma(x*), flow instance
+G5_FLOW_J_STAR = 0.472658024084663875033987987655  # J(x*), flow instance
+G5_FLOW_V = 1.1927201669461128271129216057  # v, flow instance
+G5_FLOW_P_M = 0.827458478661139777139786831354  # p_m, flow instance
+G5_FLOW_V_M = 0.827458478661139777139786831354  # V_m, flow instance
+G5_FLOW_P = 0.548188850606233737285047021584  # p, flow instance
+G5_FLOW_P_S = 1.24818885060623373728504702158  # P_s, flow instance
+G5_FLOW_Y = 12.097345841970594874092689382  # Y, flow instance
+G5_FLOW_K = 7.33065074658287925115475896841  # K, flow instance
+G5_FLOW_FINAL_HOURS = 1.59324798553372250501728326945  # Y (1 - x*), flow instance
+G5_FLOW_MACHINE_HOURS = 0.586452059726630340092380717472  # lambda delta K, flow instance
+G5_FLOW_N_A = 2.17970004526035284510966398692  # N_a, flow instance
+G5_FLOW_PARTICIPATION = 0.419173085626990931751858459023  # N_a / N, flow instance
+G5_FLOW_INCOME = 15.099772201875377730717206329  # I, flow instance
+G5_FLOW_INTEREST = 0.0  # interest, flow instance
+G5_FLOW_LABOR_SHARE = 0.172172941890639146838482374852  # v N_a / I, flow instance
+G5_FLOW_CAPITAL_SHARE = 0.0  # interest / I, flow instance
+G5_FLOW_REAL_WAGE = 0.955560664050812274555101498769  # w / P_s, flow instance
+G5_FLOW_SUPPORT_COST = 6.49058202315241543388224451224  # N P_s, flow instance
+G5_FLOW_WORKER_BASKETS = 7.28283562268056833469481588425  # N + v N_a / P_s, flow instance
+G5_FLOW_PROVIDER_BASKETS = 4.81451021929002653939787349772  # (T + interest) / P_s - N, flow instance
+G5_FLOW_FUNDED = true  # funded, flow instance
+G5_FLOW_LEMMA_B1 = true  # lemma_b1, flow instance
+G5_FLOW_PHI_W = 0.14783856433602544278587079442  # phi_w = lambda gamma(x*) / (1 - a), flow instance
+G5_FLOW_PHI_R = 0.85216143566397455721412920558  # phi_r = 1 - phi_w, flow instance
+G5_FLOW_LAMBDA_TILDE_GOOD = 0.180180022439144470757494698604  # lambda-tilde good, flow instance
+G5_FLOW_LAMBDA_TILDE_MACHINE = 0.102564102564102564102564102564  # lambda-tilde machine = lambda / (1 - a), flow instance
+G5_FLOW_B_TILDE_GOOD = 0.333284504162262988806017170782  # b-tilde good, flow instance
+G5_FLOW_B_TILDE_MACHINE = 0.705128205128205128205128205128  # b-tilde machine = b / (1 - a), flow instance
+G5_FLOW_L_S = 0.180180022439144470757494698604  # L_s, flow instance
+G5_FLOW_B_S = 1.03328450416226298880601717078  # B_s = h + b J / (1 - a), flow instance
+G5_DURABLE_U = 0.4056  # u = (rho + delta)(1 + rho), durable instance
+G5_DURABLE_X_STAR = 0.922390541082591820707387092773  # x*, durable instance
+G5_DURABLE_ONE_MINUS_X_STAR = 0.0776094589174081792926129072266  # 1 - x*, durable instance
+G5_DURABLE_GAMMA_STAR = 2.03644331225136650549394882014  # gamma(x*), durable instance
+G5_DURABLE_J_STAR = 0.763987968672942538650910475252  # J(x*), durable instance
+G5_DURABLE_V = 0.537818666943725925629350553277  # v, durable instance
+G5_DURABLE_P_M = 0.264097047881557124135697748222  # p_m, durable instance
+G5_DURABLE_V_M = 0.651126843889440641360201548871  # V_m, durable instance
+G5_DURABLE_P = 0.243506782880735999415047574317  # p, durable instance
+G5_DURABLE_P_S = 0.943506782880735999415047574317  # P_s, durable instance
+G5_DURABLE_Y = 14.546104478511574628242220047  # Y, durable instance
+G5_DURABLE_K = 12.0401395586592091440542647642  # K, durable instance
+G5_DURABLE_FINAL_HOURS = 1.12891529793337117905585642096  # Y (1 - x*), durable instance
+G5_DURABLE_MACHINE_HOURS = 0.337123907642457856033519413398  # lambda delta K, durable instance
+G5_DURABLE_N_A = 1.46603920557582903508937583436  # N_a, durable instance
+G5_DURABLE_PARTICIPATION = 0.281930616456890199055649198915  # N_a / N, durable instance
+G5_DURABLE_INCOME = 13.7243482399675217927232544459  # I, durable instance
+G5_DURABLE_INTEREST = 0.435884988737490452936452144957  # interest, durable instance
+G5_DURABLE_LABOR_SHARE = 0.057449959549547047305256452571  # v N_a / I, durable instance
+G5_DURABLE_CAPITAL_SHARE = 0.031759977313029908957099551611  # interest / I, durable instance
+G5_DURABLE_REAL_WAGE = 0.570020986284429190872082871835  # w / P_s, durable instance
+G5_DURABLE_SUPPORT_COST = 4.90623527097982719695824738645  # N P_s, durable instance
+G5_DURABLE_WORKER_BASKETS = 6.03567311389397510937775882788  # N + v N_a / P_s, durable instance
+G5_DURABLE_PROVIDER_BASKETS = 8.5104313646175995188644612191  # (T + interest) / P_s - N, durable instance
+G5_DURABLE_FUNDED = true  # funded, durable instance
+G5_DURABLE_LEMMA_B1 = true  # lemma_b1, durable instance
+
+# G6: the replacement closure, price block only (main.tex:325-336, check_pinning.py:59-73 at 31b3482); exact rationals
+G6_P_M = 1.0  # p_m (main.tex c) at (a, lambda, gamma*, b, r, u) = (0.5, 0.1, 3, 0.2, 1, 1)
+G6_W = 3.0  # w = gamma* p_m
+G6_D = 0.2  # D = 1 - u (a + lambda gamma*)
+G6_LAM0_P_M = 0.4  # p_m at lambda = 0
+G6_LAM0_W = 1.2  # w at lambda = 0
+G6_LAM0_WAGE_CUT = 0.6  # 1 - w(lambda = 0) / w, the 60% cut
+G6_NOT_VIABLE_D = -0.1  # D at (a, lambda, gamma*) = (0.5, 0.2, 3): not viable
+
+# G7: three-taxes resolution shares on the G6 instance (check_three_taxes.py:58-61 at 31b3482; SSRN p.9)
+G7_PHI_W = 0.6  # phi_w = lambda gamma* / (1 - a)
+G7_PHI_R = 0.4  # phi_r = 1 - phi_w
+G7_LAM0_PHI_W = 0.0  # phi_w at lambda = 0
+G7_LAM0_PHI_R = 1.0  # phi_r at lambda = 0
+
+# G8: regime recognition (constructed on 2026-09-25; laborformal has no instance)
+G8_N025_F_AT_1 = 0.226354927512829696819878756111  # f(1) at N = 0.25: BoundaryNoMargin
+G8_LAM06_F_AT_1 = 0.718968959690519735015117489494  # f(1) at lambda = 0.6: BoundaryNoMargin
+G8_LAM08_D_AT_1 = -0.1  # D(1) at lambda = 0.8: NotViable
+G8_RHO01_D_AT_1 = -0.045  # D(1) at rho = 0.1, a = 0.6, lambda = 0.35: NotViable only through u = 1.1
+G8_N20_F_AT_LO = -10.0000000000110000000000007429  # f(1e-12) at N = 20, chi_max = 0.05: NoInteriorAtZero
+G8_N8_X_STAR = 0.733371199331102348550329805187  # x* at N = 8: Interior although Lemma B.1 fails
+G8_N8_SUPPORT_COST_AT_1 = 10.9538461538461538461538461538  # N P_s(1) at N = 8, above T = 10
+G8_N8_LEMMA_B1 = false  # lemma_b1 at N = 8
+G8_N8_FUNDED = false  # funded at x* when N = 8
+G8_N7_35_X_STAR = 0.752084275168842608896776966193  # x* at N = 7.35: funded although Lemma B.1 fails
+G8_N7_35_SUPPORT_COST = 9.91353662067498678640368515954  # N P_s(x*) at N = 7.35, below T = 10
+G8_N7_35_SUPPORT_COST_AT_1 = 10.0638461538461538461538461538  # N P_s(1) at N = 7.35, above T = 10
+G8_N7_35_LEMMA_B1 = false  # lemma_b1 at N = 7.35
+G8_N7_35_FUNDED = true  # funded at x* when N = 7.35
+G8_LAM07_D_AT_1 = 0.0  # D(1) at lambda = 0.7: exactly 0, NotViable since D(1) <= 0
+G8_A_NEAR_1_F_AT_LO = -2.7587301670408429713150265712  # f(1e-12) at a = 1 - 2^-53, lambda = 0: NoInteriorAtZero although T/h > N
+G8_K_CEIL_X_STAR = 0.997981051310899166806467022348  # x* at N = 1, k = CURVATURE_CEIL = 1024
+G8_K_CEIL_ONE_MINUS_X_STAR = 0.00201894868910083319353297765187  # 1 - x* at N = 1, k = CURVATURE_CEIL = 1024
+G8_K_CEIL_GAMMA_STAR = 0.30099979286523141437635131004  # gamma(x*) at N = 1, k = CURVATURE_CEIL = 1024
+G8_K_CEIL_J_STAR = 0.199694547705561127702490432557  # J(x*) at N = 1, k = CURVATURE_CEIL = 1024
+G8_K_CEIL_V = 0.175779130338848224694598612921  # v at N = 1, k = CURVATURE_CEIL = 1024
+G8_K_CEIL_P_M = 0.583984223595632016049614186637  # p_m at N = 1, k = CURVATURE_CEIL = 1024
+G8_K_CEIL_P_S = 1.11697335444288191610440753477  # P_s at N = 1, k = CURVATURE_CEIL = 1024
+G8_K_CEIL_Y = 8.97576495794910234945481166689  # Y at N = 1, k = CURVATURE_CEIL = 1024
+G8_K_CEIL_K = 2.56058760512724412636297083278  # K at N = 1, k = CURVATURE_CEIL = 1024
+G8_K_CEIL_FINAL_HOURS = 0.018121608895528535362270012732  # Y (1 - x*) at N = 1, k = CURVATURE_CEIL = 1024
+G8_K_CEIL_N_A = 0.146150989151890741680418554371  # N_a at N = 1, k = CURVATURE_CEIL = 1024
+G8_K_CEIL_INCOME = 10.0256902937712817956391164299  # I at N = 1, k = CURVATURE_CEIL = 1024
+G8_K_CEIL_REAL_WAGE = 0.157370925313184765330374867325  # w / P_s at N = 1, k = CURVATURE_CEIL = 1024
+G8_K_CEIL_PROVIDER_BASKETS = 7.95276504155083207469729107971  # T / P_s - N at N = 1, k = CURVATURE_CEIL = 1024

@@ -37,6 +37,15 @@ pub fn pow(x: f64, y: f64) -> f64 {
     libm::pow(x, y)
 }
 
+/// `a·b + c` with one rounding: the fused multiply-add, correctly rounded, so it is the same
+/// double on every platform (libm uses the FMA instruction where the CPU has one and an exact
+/// software form where it does not). `f64::mul_add` is denied because without the `fma` target
+/// feature it calls the platform C library (docs/ENGINE.md §9). The state path writes `a * b + c`;
+/// the oracle uses this where a difference such as `1 − u·a` must not round `u·a` first (P1.1).
+pub fn fma(a: f64, b: f64, c: f64) -> f64 {
+    libm::fma(a, b, c)
+}
+
 /// Whether `x` may sit on the state path: finite, with a clear sign bit (so not `-0.0`).
 pub fn is_clean(x: f64) -> bool {
     x.is_finite() && !x.is_sign_negative()
@@ -269,6 +278,39 @@ mod tests {
         assert_eq!(ln(10.0).to_bits(), 0x4002_6bb1_bbb5_5516);
         assert_eq!(expm1(-0.1).to_bits(), 0xbfb8_5c93_3156_a62c);
         assert_eq!(pow(2.0, 0.5).to_bits(), 0x3ff6_a09e_667f_3bcd);
+    }
+
+    #[test]
+    fn fma_rounds_once() {
+        // p = fl(a·b) and e = fma(a, b, −p) = a·b − p exactly: the error of a product is a
+        // double, and fma rounds only the exact result. Checked in integers: a and b in [1, 2)
+        // are multiples of 2^-52, so a·b, p and e are multiples of 2^-104 below 4; scaled by
+        // 2^104 they are integers an i128 holds exactly.
+        let scale = (1u64 << 52) as f64;
+        let wide = |x: f64| (x * scale * scale) as i128;
+        let mut g = Lcg(0x2026_0926_001a);
+        let mut inexact = 0;
+        for _ in 0..20_000 {
+            let a = 1.0 + (g.next() % (1 << 52)) as f64 / scale;
+            let b = 1.0 + (g.next() % (1 << 52)) as f64 / scale;
+            let p = a * b;
+            let e = fma(a, b, -p);
+            let exact = ((a * scale) as i128) * ((b * scale) as i128);
+            assert_eq!(exact, wide(p) + wide(e), "{a:e} · {b:e}");
+            if e != 0.0 {
+                inexact += 1;
+            }
+        }
+        assert!(inexact > 1000, "the sample rounds often: {inexact}");
+        // The oracle's case: 1 − u·a with u·a = (1 + 2^-30)(1 − 2^-30) = 1 − 2^-60. Unfused,
+        // u·a rounds to 1 and the difference is 0; fused, it is exact.
+        let tiny = 1.0 / (1u64 << 30) as f64;
+        let (u, a) = (1.0 + tiny, 1.0 - tiny);
+        assert_eq!(1.0 - u * a, 0.0);
+        assert_eq!(fma(-u, a, 1.0), tiny * tiny);
+        // Golden bits, from Python's math.fma (3.13), where the unfused form gives 0.
+        assert_eq!(fma(0.1, 10.0, -1.0).to_bits(), 0x3c90_0000_0000_0000);
+        assert_eq!(fma(0.7, 0.3, -0.21).to_bits(), 0xbc6e_b851_eb85_1eb8);
     }
 
     #[test]
