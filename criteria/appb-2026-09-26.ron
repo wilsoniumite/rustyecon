@@ -1,0 +1,45 @@
+// The Appendix B world's criteria (docs/CERTIFY.md §4, §14), registered on 2026-09-26 before
+// any certified run of tapes/appb.ron. Every bar carries its unit and basis (R4). A retune is a
+// new dated file that names this one in `supersedes`, never an edit (C3).
+//
+// The kick check (REPORT §5, §6 criterion 1): at each segment's end a 1e-9 kick in ± each posted
+// price runs one L, and must decay in its last tenth and never swing out past the probe's
+// tolerance. appb has no dated shock, so it has one segment, and the kicks run from its end.
+Criteria(
+    format: 1,
+    date: "2026-09-26",
+    reason: "first registration, before any certified run of appb",
+    supersedes: None,
+    tape: (name: "appb", tape_hash: "0x8973b237f4c00029"),
+    until: "2134-08-14",
+    until_basis: Literature("docs/probe/RULES.md §3: L = 20,000 ticks, 200 tau_max"),
+    min_segment: (value: 20.0, unit: Years, basis: Assumed("about 15 tau_max of RULES §3's 68 ticks; REPORT §3: the slowest return took 783 ticks")),
+    batteries: [
+        Conservation,
+        Determinism(resume_at: [
+            (value: 0.5, unit: Share, basis: Assumed("mid-run")),
+        ]),
+        Runaway(bound: (value: 1e6, unit: Ratio, basis: Literature("PROBE-SPEC §4.5: probe.runaway; REPORT §6"))),
+        Trades(every: (value: 1.0, unit: Years, basis: Assumed("as the gate world (docs/ENGINE.md §10): every market trades in every year"))),
+        Balance(
+            level: (value: 1e-9, unit: Imbalance, basis: Literature("july-v2-phase-3 src/certify/invariants.rs: PIN_LEVEL, BalanceWatch's pin level")),
+            spread: (value: 1e-12, unit: Imbalance, basis: Literature("july-v2-phase-3 src/certify/invariants.rs: PIN_SPREAD, the spread below which an imbalance is a constant (the -1/6 pin)")),
+            min_samples: (value: 32, basis: Literature("july-v2-phase-3 src/certify/invariants.rs: PIN_MIN_SAMPLES, fewer is no evidence of a constant")),
+            run_share: (value: 0.5, unit: Share, basis: Literature("july-v2-phase-3 src/certify/invariants.rs: PIN_RUN_FRACTION, an unbroken constant over this share of the history is a pin")),
+        ),
+        Settles(
+            w_from: (value: 0.5, unit: Share, basis: Literature("PROBE-SPEC §4.5: W, the second half of the run")),
+            f_from: (value: 0.9, unit: Share, basis: Literature("PROBE-SPEC §4.5: F, the last tenth of the run")),
+            dead_share: (value: 0.01, unit: Share, basis: Literature("PROBE-SPEC §4.5: at most 1% of W dead")),
+            band: (value: 1e-4, unit: LogWidth, basis: Literature("PROBE-SPEC §4.5: at rest in F, tol/10 with probe.tol_floor 1e-3")),
+        ),
+        Kick(
+            size: (value: 1e-9, unit: Relative, basis: Literature("docs/probe/REPORT.md §5-§6: the measurement review's 1e-9 kick")),
+            horizon: (value: 385.0, unit: Years, basis: Literature("RULES §3: one L, 20,020 ticks at 52 a year")),
+            tail: (value: 0.1, unit: Share, basis: Assumed("the horizon's last tenth")),
+            max_gain: (value: 1e-3, unit: Gain, basis: Assumed("REPORT §3, §5: a decaying 1e-9 kick ends near its rounding floor, a gain near 1e-6; a neutral one stays near 1")),
+            max_peak: (value: 1e6, unit: Ratio, basis: Literature("REPORT §5; the measurement review's kick check: a gap past the probe's tolerance, 1e-3 in log, is unstable")),
+        ),
+    ],
+    reports: (rationed_below: (value: 1e-9, unit: Relative, basis: Literature("PROBE-SPEC §4.6: probe.hold_tol, the bar on a fill shortfall"))),
+)

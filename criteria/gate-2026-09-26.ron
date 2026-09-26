@@ -1,0 +1,33 @@
+// The gate world's criteria (docs/CERTIFY.md §4, §14), registered on 2026-09-26 before any
+// certified run of tapes/gate.ron. Every bar carries its unit and basis (R4). A retune is a new
+// dated file that names this one in `supersedes`, never an edit (C3).
+//
+// No Settles and no Kick: the gate world claims no rest, since its prices move with the yearly
+// pension (docs/ENGINE.md §10), and C12 lists the two together or not at all.
+Criteria(
+    format: 1,
+    date: "2026-09-26",
+    reason: "first registration, before any certified run of gate",
+    supersedes: None,
+    tape: (name: "gate", tape_hash: "0x54066d053474846b"),
+    until: "1790-01-01",
+    until_basis: Literature("docs/ENGINE.md §10: the gate world runs 40 years, 2,080 weekly ticks"),
+    min_segment: (value: 1.0, unit: Years, basis: Assumed("one pension period, so a segment sees the yearly cycle whole; the closest dated shocks are two years apart")),
+    batteries: [
+        Conservation,
+        Determinism(resume_at: [
+            (value: 0.25, unit: Share, basis: Assumed("a quarter of the run, the spacing of gate_resume_from_checkpoints")),
+            (value: 0.5, unit: Share, basis: Assumed("half the run, the spacing of gate_resume_from_checkpoints")),
+            (value: 0.75, unit: Share, basis: Assumed("three quarters of the run, the spacing of gate_resume_from_checkpoints")),
+        ]),
+        Runaway(bound: (value: 1e3, unit: Ratio, basis: Literature("docs/ENGINE.md §10: no price leaves [1e-3, 1e3] times its genesis value; STATE decision 19"))),
+        Trades(every: (value: 1.0, unit: Years, basis: Literature("docs/ENGINE.md §10: every market trades in every year; STATE decision 19"))),
+        Balance(
+            level: (value: 1e-9, unit: Imbalance, basis: Literature("july-v2-phase-3 src/certify/invariants.rs: PIN_LEVEL, BalanceWatch's pin level")),
+            spread: (value: 1e-12, unit: Imbalance, basis: Literature("july-v2-phase-3 src/certify/invariants.rs: PIN_SPREAD, the spread below which an imbalance is a constant (the -1/6 pin)")),
+            min_samples: (value: 32, basis: Literature("july-v2-phase-3 src/certify/invariants.rs: PIN_MIN_SAMPLES, fewer is no evidence of a constant")),
+            run_share: (value: 0.5, unit: Share, basis: Literature("july-v2-phase-3 src/certify/invariants.rs: PIN_RUN_FRACTION, an unbroken constant over this share of the history is a pin")),
+        ),
+    ],
+    reports: (rationed_below: (value: 1e-9, unit: Relative, basis: Literature("PROBE-SPEC §4.6: probe.hold_tol, the bar on a fill shortfall"))),
+)
