@@ -1,0 +1,27 @@
+Manifest(
+    format: 1,
+    run: (
+        build: (
+            commit: "1ee9b80dc99dced51d6e7403df367401e341b271",
+            dirty: false,
+            target: "x86_64-unknown-linux-gnu",
+            rustc: "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+        ),
+        tape_hash: "0x54066d053474846b",
+        world_id: "0x43628a8e0fd5f695",
+    ),
+    tape: "gate",
+    genesis_hash: "0xf05d0f23826edf87",
+    start: "1750-01-01",
+    ticks_per_year: 52,
+    from: 0,
+    until: 2080,
+    resumed_from: None,
+    hashes: (
+        count: 2080,
+        last: Some((2080, "0x61f9c8529131ff17")),
+        digest: "0x610a8490423b4e3c",
+    ),
+    checkpoints: [],
+    telemetry: None,
+)

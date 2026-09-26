@@ -19,7 +19,9 @@
 #      printed;
 #   7. the build stamp: the binary's `run …` line names `git rev-parse HEAD`, and its dirty flag
 #      is whether `git status --porcelain` over the build's sources is non-empty;
-#   8. telemetry written twice through the binary, from two processes: the Parquet files, and
+#   8. the committed certificates: committed_certificates_recompute by name, which must run and
+#      pass (C10), and each certificate's build commit an ancestor of HEAD;
+#   9. telemetry written twice through the binary, from two processes: the Parquet files, and
 #      the manifests that pin them, must be byte-identical.
 # Then, recorded and never gated: cargo check of rustyecon-engine and of rustyecon-certify
 # (Parquet-free) for wasm32-unknown-unknown, when that target is installed.
@@ -135,6 +137,28 @@ if [ "$stamp_commit" != "$head_commit" ] || [ "$stamp_state" != "$tree_state" ];
     exit 1
 fi
 echo "stamp matches the checkout: $head_commit $tree_state"
+
+step "committed certificates"
+# C10: rerun both certified runs from their registered criteria; the verdict and each battery's
+# pass flag are gated on every machine, the bytes on Linux only (Windows records them).
+out="$(cargo test --locked --release -p rustyecon-certify --test results \
+    -- --ignored --exact committed_certificates_recompute --show-output 2>&1)" || {
+    printf '%s\n' "$out"
+    exit 1
+}
+printf '%s\n' "$out"
+if ! grep -q '^test committed_certificates_recompute \.\.\. ok$' <<<"$out"; then
+    echo "gate: committed_certificates_recompute did not run" >&2
+    exit 1
+fi
+for cert in results/*/certificate.ron; do
+    c="$(sed -n '/^ *commit: "/{s/^ *commit: "\([0-9a-f]*\)",$/\1/p;q;}' "$cert")"
+    if [ "${#c}" != 40 ] || ! git_ merge-base --is-ancestor "$c" HEAD; then
+        echo "gate: $cert names build '$c', which is not an ancestor of HEAD" >&2
+        exit 1
+    fi
+    echo "$cert: build $c, an ancestor of HEAD"
+done
 
 step "telemetry, written from two processes"
 for k in 1 2; do

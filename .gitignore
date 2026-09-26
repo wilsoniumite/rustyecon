@@ -31,3 +31,9 @@ data/spine/**/*.pdf
 data/spine/cc0/**/malthus_data.*
 # The eyeball figures plot third-party numbers: generated locally, never committed.
 docs/spine/figs/
+
+# Certify's results (docs/CERTIFY.md C3): certificate.ron and manifest.ron are committed
+# verdicts; the hash file and telemetry they pin by digest are not, nor are half-written files.
+results/*/hashes.txt
+results/*/telemetry.parquet
+results/*/*.tmp

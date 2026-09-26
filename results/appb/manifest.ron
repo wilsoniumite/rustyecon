@@ -1,0 +1,27 @@
+Manifest(
+    format: 1,
+    run: (
+        build: (
+            commit: "1ee9b80dc99dced51d6e7403df367401e341b271",
+            dirty: false,
+            target: "x86_64-unknown-linux-gnu",
+            rustc: "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+        ),
+        tape_hash: "0x8973b237f4c00029",
+        world_id: "0x26f12f8a0bc27540",
+    ),
+    tape: "appb",
+    genesis_hash: "0x8d12ce44b614110a",
+    start: "1750-01-01",
+    ticks_per_year: 52,
+    from: 0,
+    until: 20000,
+    resumed_from: None,
+    hashes: (
+        count: 20000,
+        last: Some((20000, "0xe1fa082b26995867")),
+        digest: "0xc0cbf751c9821da7",
+    ),
+    checkpoints: [],
+    telemetry: None,
+)

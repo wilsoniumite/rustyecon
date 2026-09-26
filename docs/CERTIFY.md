@@ -141,7 +141,35 @@ this text was wrong or silent. Each change is made in place in the section named
    twox-hash, zerocopy and zerocopy-derive. The gate world's 2,080 ticks write 276,145 rows in
    1,527,113 bytes. Windows fetched the crates it lacked, lz4_flex 0.14.0 and num-bigint 0.5.1
    among them.
-10. **Added tests**, beyond §13's: `telemetry_refuses_a_report_it_cannot_name` (certify).
+10. **Added tests**, beyond §13's: `telemetry_refuses_a_report_it_cannot_name` (certify), and
+    `registered_criteria_load_and_fit` (certify `results.rs`): each registered file loads,
+    fits its tape, and names the tape's current `tape_hash`, so a tape edited without a new
+    dated criteria file fails a fast test, not only the ignored recompute.
+11. **The committed certificates** (§14; the old S2.8). Built from `1ee9b80`, the criteria
+    commit, clean, in WSL. Both verdicts are **PASS**, and every listed battery passes.
+    - `results/gate`: 2,080 ticks, final `0x61f9c8529131ff17`, in five segments opened by
+      `mine.cut`, `bread.line.up`, `oven.opens` and `mine.restored`. Runaway's widest ratios
+      are 18.3 (town/bread) and 0.0996 (village/bread), inside [1e-3, 1e3]. Every market trades
+      in each of the 40 yearly windows, and no market is pinned in any segment.
+    - `results/appb`: 20,000 ticks, final `0xe1fa082b26995867`, one segment (no dated shock).
+      Settles: no dead tick in W or F, and price and volume ranges in F at most 4.4e-16 in log.
+      The eight kicks of 1e-9 decay to gains of 1.9e-6 to 6.0e-6 in the last tenth of the
+      20,020-tick horizon, with peaks at most 3.26, against bars of 1e-3 and 1e6.
+    - `certify` took 0.15 s for the gate and 2.65 s for appb, kicks included (WSL, release).
+    - `committed_certificates_recompute` gives byte-equal certificates and manifests in WSL
+      (gated) and on Windows (recorded).
+    - CI checks out full history (`fetch-depth: 0`), since the gate checks that each committed
+      certificate's build commit is an ancestor of HEAD.
+12. **Recorded at S2.4.** No state hash, `prefix_id` or `world_id` moved. `scripts/gate.sh` is
+    green in WSL and on Windows: 409 tests pass in the workspace on each machine, then certify's
+    Parquet-free tests and `committed_certificates_recompute` by name. The Parquet-free certify
+    checks for wasm32 in WSL. Telemetry is byte-identical from two processes on each machine,
+    and WSL's and Windows' files are byte-identical up to the footer's key-value metadata, which
+    names the build: the first byte that differs is 1,526,863 of 1,527,111, after every data
+    page. Every new test was checked against the mutation it guards: 31 mutants of the code, the
+    committed files and the tape, all killed by a test, and four of the build stamp and the
+    ancestor check, killed by `gate.sh`'s steps. The logs are in
+    `D:/rustyecon-s2/build-telemetry-cli/`.
 
 ## 0. Decisions this contract makes
 
