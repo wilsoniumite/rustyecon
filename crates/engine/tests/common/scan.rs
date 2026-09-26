@@ -191,123 +191,594 @@ pub fn float_violations(toks: &[Tok], num: bool) -> Vec<String> {
     found
 }
 
-/// The `pub use` statements in `code` (shipped source) that would hand a frontend core's
-/// writer (E1): core itself, whole or by glob, under any name, or one of its writer items.
-/// Returns each offending statement, whitespace collapsed, and counts the `pub use`
-/// statements read in `seen`.
-pub fn writer_reexports(code: &str, seen: &mut usize) -> Vec<String> {
-    const WRITERS: [&str; 6] = ["apply", "resolve", "Ledger", "RunLedger", "Resolver", "Ext"];
+/// Integer numbers made float in shipped tokens (R4, A12; amended at P0.9, O13): a behavioural
+/// number spelled as an integer and converted is as much a literal as `1e-9`. Flags an integer
+/// literal other than `0` and `1`, or a named integer constant (a name in capitals, such as
+/// `WEEKS`), that reaches a float through `as f64` or `as f32` (bare or inside the parentheses
+/// before it), `f64::from(..)` or `f32::from(..)`, or `.into()`; any literal but `0` in
+/// `from_bits(..)`, a float spelled as its bits; and a string parsed as a float, `parse::<f64>`.
+/// An integer type's own limits (`u32::MAX`) are not behavioural, and `allowed` names the
+/// constants that may be converted (clock.rs's calendar constants).
+pub fn int_float_violations(toks: &[Tok], allowed: &[&str]) -> Vec<String> {
+    const INTS: [&str; 12] = [
+        "u8", "u16", "u32", "u64", "u128", "usize", "i8", "i16", "i32", "i64", "i128", "isize",
+    ];
+    let ident = |i: usize| match toks.get(i) {
+        Some(Tok::Ident(s)) => Some(s.as_str()),
+        _ => None,
+    };
+    let punct = |i: usize, c: char| matches!(toks.get(i), Some(Tok::Punct(p)) if *p == c);
+    let float = |i: usize| matches!(ident(i), Some("f64" | "f32"));
+    let constant = |s: &str| {
+        s.len() > 1
+            && s.chars().any(|c| c.is_ascii_uppercase())
+            && s.chars()
+                .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == '_')
+    };
+    // What in `toks[lo..hi]` is a behavioural integer: a literal but 0 and 1, or a constant that
+    // is neither allowed nor an integer type's limit.
+    let offenders = |lo: usize, hi: usize| -> Vec<String> {
+        let mut out = Vec::new();
+        for (k, t) in toks.iter().enumerate().take(hi).skip(lo) {
+            match t {
+                Tok::Num(s, false) if s != "0" && s != "1" => out.push(s.clone()),
+                Tok::Ident(s) if constant(s) && !allowed.contains(&s.as_str()) => {
+                    let limit = k >= 3
+                        && punct(k - 1, ':')
+                        && punct(k - 2, ':')
+                        && ident(k - 3).is_some_and(|t| INTS.contains(&t));
+                    if !limit {
+                        out.push(s.clone());
+                    }
+                }
+                _ => {}
+            }
+        }
+        out
+    };
+    // The index after the bracket that closes the one opening at `open`.
+    let close = |open: usize| {
+        let mut depth = 0i32;
+        for (k, t) in toks.iter().enumerate().skip(open) {
+            match t {
+                Tok::Punct('(') => depth += 1,
+                Tok::Punct(')') => {
+                    depth -= 1;
+                    if depth == 0 {
+                        return k;
+                    }
+                }
+                _ => {}
+            }
+        }
+        toks.len()
+    };
     let mut found = Vec::new();
-    let mut rest = code;
-    while let Some(k) = rest.find("pub use ") {
-        let end = rest[k..].find(';').map_or(rest.len(), |e| k + e);
-        let stmt = rest[k..end]
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .join(" ");
-        rest = &rest[end..];
+    for (i, t) in toks.iter().enumerate() {
+        let hits = match t {
+            // `x as f64`: x a literal or constant, or a parenthesised expression holding one.
+            Tok::Ident(s) if s == "as" && float(i + 1) && i > 0 => {
+                if punct(i - 1, ')') {
+                    let mut depth = 0i32;
+                    let mut open = 0;
+                    for (k, t) in toks[..i].iter().enumerate().rev() {
+                        match t {
+                            Tok::Punct(')') => depth += 1,
+                            Tok::Punct('(') => {
+                                depth -= 1;
+                                if depth == 0 {
+                                    open = k;
+                                    break;
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                    offenders(open, i)
+                } else {
+                    offenders(i - 1, i)
+                }
+            }
+            // `f64::from(..)`.
+            Tok::Ident(s)
+                if (s == "f64" || s == "f32")
+                    && punct(i + 1, ':')
+                    && punct(i + 2, ':')
+                    && ident(i + 3) == Some("from")
+                    && punct(i + 4, '(') =>
+            {
+                offenders(i + 4, close(i + 4))
+            }
+            // `2u8.into()`.
+            Tok::Num(_, false) if punct(i + 1, '.') && ident(i + 2) == Some("into") => {
+                offenders(i, i + 1)
+            }
+            // `from_bits(..)`: any literal but 0.
+            Tok::Ident(s) if s == "from_bits" && punct(i + 1, '(') => {
+                let end = close(i + 1);
+                toks[i + 1..end]
+                    .iter()
+                    .filter_map(|t| match t {
+                        Tok::Num(n, _) if n != "0" => Some(n.clone()),
+                        _ => None,
+                    })
+                    .collect()
+            }
+            // `parse::<f64>()`.
+            Tok::Ident(s)
+                if s == "parse" && punct(i + 1, ':') && punct(i + 3, '<') && float(i + 4) =>
+            {
+                vec!["parse::<float>".to_string()]
+            }
+            _ => Vec::new(),
+        };
+        for h in hits {
+            found.push(format!("{h} made float at token {i}"));
+        }
+    }
+    found
+}
+
+/// Core's read-only items, the ones the engine's prelude re-exports. A `pub use` of anything
+/// else from core is flagged, so the list is an allow-list: a new type joins the prelude only
+/// by joining it too (E1; amended at P0.9, O11).
+pub const CORE_READ_ONLY: [&str; 29] = [
+    "ActorId",
+    "ActorKind",
+    "Amount",
+    "Breach",
+    "CheckpointError",
+    "ClassId",
+    "Clock",
+    "CoreError",
+    "Date",
+    "DeskId",
+    "EventId",
+    "GoodId",
+    "Holder",
+    "Inventory",
+    "Key",
+    "Life",
+    "LoadError",
+    "LoadErrorKind",
+    "Lot",
+    "NodeId",
+    "ParamId",
+    "Phase",
+    "PopId",
+    "Provenance",
+    "RunAudit",
+    "ShortfallLine",
+    "SimState",
+    "StateDelta",
+    "TickAudit",
+];
+
+/// The public re-exports in `code` (shipped source) that would hand a frontend core's writer
+/// (E1): core itself, whole, by glob, by `self` in a group, or under any name; `pub extern
+/// crate` of it; or any item of core but [`CORE_READ_ONLY`] (a module path, `apply` and
+/// `Ledger` included). A private alias of core (`use rustyecon_core as c;`) counts as core, and
+/// a leading `::` is ignored. Returns each offending statement, whitespace collapsed, and counts
+/// the statements read in `seen`.
+pub fn writer_reexports(code: &str, seen: &mut usize) -> Vec<String> {
+    let collapse = |s: &str| s.split_whitespace().collect::<Vec<_>>().join(" ");
+    let words = |s: &str| -> Vec<String> {
+        s.split(|c: char| !(c.is_alphanumeric() || c == '_'))
+            .filter(|w| !w.is_empty())
+            .map(str::to_string)
+            .collect()
+    };
+    // Every `use` and `extern crate` statement, collapsed, with whether it is public.
+    let mut stmts = Vec::new();
+    for (i, _) in code
+        .match_indices("use ")
+        .chain(code.match_indices("extern crate "))
+    {
+        let before = code[..i].trim_end();
+        if i > 0 && code[..i].ends_with(|c: char| c.is_alphanumeric() || c == '_') {
+            continue;
+        }
+        let public = before.ends_with("pub");
+        let end = code[i..].find(';').map_or(code.len(), |e| i + e);
+        stmts.push((i, public, collapse(&code[i..end])));
+    }
+    stmts.sort();
+    // The names core goes by here: its own, and any alias.
+    let mut core = vec!["rustyecon_core".to_string()];
+    for (_, _, s) in &stmts {
+        let body = s
+            .trim_start_matches("use ")
+            .trim_start_matches("extern crate ");
+        let body = body.trim_start_matches("::");
+        if let Some(alias) = body.strip_prefix("rustyecon_core as ") {
+            core.push(alias.trim().to_string());
+        }
+    }
+    let mut found = Vec::new();
+    for (_, public, s) in stmts {
+        if !public {
+            continue;
+        }
         *seen += 1;
-        let path = stmt.trim_start_matches("pub use ").trim();
-        let Some(tail) = path.strip_prefix("rustyecon_core") else {
+        let stmt = format!("pub {s}");
+        let crate_stmt = s.starts_with("extern crate ");
+        let body = s
+            .trim_start_matches("use ")
+            .trim_start_matches("extern crate ");
+        let body = body.trim_start_matches("::");
+        let Some(first) = words(body).into_iter().next() else {
             continue;
         };
-        let words: Vec<&str> = tail
-            .split(|c: char| !(c.is_alphanumeric() || c == '_'))
-            .filter(|w| !w.is_empty())
+        if !core.contains(&first) {
+            continue;
+        }
+        let at = body.find(first.as_str()).unwrap_or(0);
+        let tail = &body[at + first.len()..];
+        let tail_words = words(tail);
+        // Words right after `as` name the re-export; they are not items of core.
+        let named: Vec<&String> = tail_words
+            .iter()
+            .enumerate()
+            .filter(|&(k, w)| w != "as" && (k == 0 || tail_words[k - 1] != "as"))
+            .map(|(_, w)| w)
             .collect();
-        let whole = tail.is_empty() || tail.starts_with(" as ") || tail.contains('*');
-        if whole || WRITERS.iter().any(|w| words.contains(w)) {
+        let whole = crate_stmt
+            || tail.trim().is_empty()
+            || tail.trim_start().starts_with("as ")
+            || tail.contains('*')
+            || named.iter().any(|w| *w == "self");
+        if whole || named.iter().any(|w| !CORE_READ_ONLY.contains(&w.as_str())) {
             found.push(stmt);
         }
     }
     found
 }
 
-/// Public engine functions that could hand a frontend a way to change a run (E1, E4): a
-/// `&mut self` method outside `allowed`, or `&mut` to a `SimState`, `World` or `Inventory`
-/// anywhere in a signature (a closure's parameters and where clauses included), or `&mut`
-/// anything in a return type. `code` is shipped source; returns the offending signatures, and
-/// counts the public functions read in `public`.
-pub fn api_violations(code: &str, allowed: &[&str], public: &mut usize) -> Vec<String> {
-    const GUARDED: [&str; 3] = ["SimState", "World", "Inventory"];
-    let mut found = Vec::new();
-    let mut rest = code;
-    while let Some(k) = rest.find("pub fn ") {
-        let sig_end = rest[k..].find(['{', ';']).map_or(rest.len(), |e| k + e);
-        let sig = &rest[k..sig_end];
-        *public += 1;
-        let toks = tokens(sig);
-        let name = match toks.get(2) {
-            Some(Tok::Ident(n)) => n.clone(),
-            _ => String::new(),
+/// Types a frontend holds that must not hand it a writer (E1, E4): `&mut` to any of them in a
+/// public signature is a way to change a run.
+pub const GUARDED: [&str; 5] = ["Sim", "Checkpoint", "SimState", "World", "Inventory"];
+
+/// Trait impls that hand out `&mut` to what they are implemented for.
+pub const MUT_TRAITS: [&str; 4] = ["DerefMut", "AsMut", "BorrowMut", "IndexMut"];
+
+/// What a signature (its tokens, up to its body) hands out.
+struct Muts {
+    /// `&mut self`, `&'a mut self` or `self: &mut Self`.
+    mut_self: bool,
+    /// `&mut` to a type naming a guarded type anywhere in it (inside a generic, a slice or a
+    /// closure's parameters too).
+    guarded: bool,
+    /// `mut` anywhere in the return type.
+    returns_mut: bool,
+}
+
+fn muts(sig: &[Tok]) -> Muts {
+    let mut m = Muts {
+        mut_self: false,
+        guarded: false,
+        returns_mut: false,
+    };
+    let punct = |i: usize, c: char| matches!(sig.get(i), Some(Tok::Punct(p)) if *p == c);
+    let ident = |i: usize| match sig.get(i) {
+        Some(Tok::Ident(s)) => Some(s.as_str()),
+        _ => None,
+    };
+    for i in 0..sig.len() {
+        if !punct(i, '&') {
+            continue;
+        }
+        // `&mut`, or `&'a mut`.
+        let mut k = i + 1;
+        if punct(k, '\'') {
+            k += 2;
+        }
+        if ident(k) != Some("mut") {
+            continue;
+        }
+        if matches!(ident(k + 1), Some("self" | "Self")) {
+            m.mut_self = true;
+            continue;
+        }
+        // The referenced type: up to a `,`, `;`, `=` or `{` at its own depth, or the bracket
+        // that closes around it.
+        let mut depth = 0i32;
+        let mut j = k + 1;
+        while j < sig.len() {
+            match &sig[j] {
+                Tok::Punct('(' | '[' | '<') => depth += 1,
+                Tok::Punct('>') if !punct(j - 1, '-') => depth -= 1,
+                Tok::Punct(')' | ']') => depth -= 1,
+                Tok::Punct(',' | ';' | '=' | '{') if depth == 0 => break,
+                Tok::Ident(s) if GUARDED.contains(&s.as_str()) => m.guarded = true,
+                _ => {}
+            }
+            if depth < 0 {
+                break;
+            }
+            j += 1;
+        }
+    }
+    // The return type: what follows a `->` outside every bracket of the parameters.
+    let mut depth = 0i32;
+    for (i, t) in sig.iter().enumerate() {
+        match t {
+            Tok::Punct('(' | '[') => depth += 1,
+            Tok::Punct(')' | ']') => depth -= 1,
+            Tok::Punct('<') => depth += 1,
+            Tok::Punct('>') if i > 0 && punct(i - 1, '-') => {
+                if depth == 0 {
+                    m.returns_mut = sig[i + 1..]
+                        .iter()
+                        .any(|t| matches!(t, Tok::Ident(s) if s == "mut"));
+                    break;
+                }
+            }
+            Tok::Punct('>') => depth -= 1,
+            _ => {}
+        }
+    }
+    m
+}
+
+/// Every `fn` in `toks`: whether it is `pub` (not `pub(crate)`), its name, and its signature's
+/// tokens, up to its body or `;`.
+fn fns(toks: &[Tok]) -> Vec<(bool, String, &[Tok])> {
+    const QUALIFIERS: [&str; 4] = ["const", "unsafe", "async", "extern"];
+    let mut out = Vec::new();
+    for (i, t) in toks.iter().enumerate() {
+        if !matches!(t, Tok::Ident(s) if s == "fn") {
+            continue;
+        }
+        let Some(Tok::Ident(name)) = toks.get(i + 1) else {
+            continue;
         };
-        let mut bad = Vec::new();
-        for (i, t) in toks.iter().enumerate() {
-            if !matches!(t, Tok::Punct('&')) {
-                continue;
-            }
-            // `&mut`, or `&'a mut`.
-            let mut m = i + 1;
-            if matches!(toks.get(m), Some(Tok::Punct('\''))) {
-                m += 2;
-            }
-            if !matches!(toks.get(m), Some(Tok::Ident(s)) if s == "mut") {
-                continue;
-            }
-            // `&mut self` needs to be allowed; `&mut` a path ending in a guarded type is never.
-            match toks.get(m + 1) {
-                Some(Tok::Ident(s)) if s == "self" => {
-                    if !allowed.contains(&name.as_str()) {
-                        bad.push("&mut self");
-                    }
-                }
-                _ => {
-                    let mut j = m + 1;
-                    let mut last = None;
-                    while let Some(Tok::Ident(seg)) = toks.get(j) {
-                        last = Some(seg.as_str());
-                        if matches!(toks.get(j + 1), Some(Tok::Punct(':')))
-                            && matches!(toks.get(j + 2), Some(Tok::Punct(':')))
-                        {
-                            j += 3;
-                        } else {
-                            break;
-                        }
-                    }
-                    if last.is_some_and(|l| GUARDED.contains(&l)) {
-                        bad.push("&mut to the state or world");
-                    }
-                }
+        // Back over qualifiers (and an `extern "C"`'s blanked string) to a `pub`.
+        let mut b = i;
+        while b > 0 {
+            match &toks[b - 1] {
+                Tok::Ident(s) if QUALIFIERS.contains(&s.as_str()) => b -= 1,
+                Tok::Punct('"') => b -= 1,
+                _ => break,
             }
         }
-        // The return type: whatever follows the parameter list's `->`, at bracket depth 0.
+        let public = b > 0 && matches!(&toks[b - 1], Tok::Ident(s) if s == "pub");
         let mut depth = 0i32;
-        let mut ret = None;
-        let chars: Vec<char> = sig.chars().collect();
-        for (i, ch) in chars.iter().enumerate() {
-            match ch {
-                '(' | '[' | '<' => depth += 1,
-                ')' | ']' => depth -= 1,
-                '>' if i > 0 && chars[i - 1] == '-' => {
-                    if depth == 0 {
-                        ret = Some(chars[i + 1..].iter().collect::<String>());
-                        break;
-                    }
+        let mut end = toks.len();
+        for (j, t) in toks.iter().enumerate().skip(i) {
+            match t {
+                Tok::Punct('(' | '[') => depth += 1,
+                Tok::Punct(')' | ']') => depth -= 1,
+                Tok::Punct('{' | ';') if depth == 0 => {
+                    end = j;
+                    break;
                 }
-                '>' => depth -= 1,
                 _ => {}
             }
         }
-        if ret.is_some_and(|r| r.contains("mut")) {
+        out.push((public, name.clone(), &toks[i..end]));
+    }
+    out
+}
+
+fn text(toks: &[Tok]) -> String {
+    let mut s = String::new();
+    for t in toks {
+        match t {
+            Tok::Ident(w) | Tok::Num(w, _) => {
+                if s.ends_with(|c: char| c.is_alphanumeric() || c == '_') {
+                    s.push(' ');
+                }
+                s.push_str(w);
+            }
+            Tok::Punct(c) => s.push(*c),
+        }
+    }
+    s
+}
+
+/// Public functions in `code` (shipped source) that could hand a frontend a way to change a
+/// run (E1, E4): a `&mut self` method outside `allowed`, `&mut` to a [`GUARDED`] type anywhere
+/// in a signature (a free `fn(&mut Sim)`, a closure's parameters and where clauses included), or
+/// `&mut` anything in a return type. Returns the offending signatures, and counts the public
+/// functions read in `public`.
+pub fn api_violations(code: &str, allowed: &[&str], public: &mut usize) -> Vec<String> {
+    let toks = tokens(code);
+    let mut found = Vec::new();
+    for (is_pub, name, sig) in fns(&toks) {
+        if !is_pub {
+            continue;
+        }
+        *public += 1;
+        let m = muts(sig);
+        let mut bad = Vec::new();
+        if m.mut_self && !allowed.contains(&name.as_str()) {
+            bad.push("&mut self");
+        }
+        if m.guarded {
+            bad.push("&mut to a run's state, world or Sim");
+        }
+        if m.returns_mut {
             bad.push("&mut in the return type");
         }
         if !bad.is_empty() {
-            found.push(format!(
-                "{}: {bad:?}",
-                sig.split_whitespace().collect::<Vec<_>>().join(" ")
-            ));
+            found.push(format!("pub {}: {bad:?}", text(sig)));
         }
-        rest = &rest[sig_end..];
+    }
+    found
+}
+
+/// The `impl` blocks in `code` (shipped source) for the types in `types`, each with the `&mut
+/// self` methods it may have, that could hand a frontend a writer (E1, E4): a trait impl of one
+/// of [`MUT_TRAITS`], a trait method with `&mut self`, `&mut` a [`GUARDED`] type or `&mut` in its
+/// return type (a trait's methods are as public as the trait), or an inherent `pub fn` that
+/// [`api_violations`] would flag. Returns the offenders, and counts the impls of those types
+/// read in `seen`.
+pub fn impl_violations(code: &str, types: &[(&str, &[&str])], seen: &mut usize) -> Vec<String> {
+    let toks = tokens(code);
+    let mut found = Vec::new();
+    let item_start = |i: usize| {
+        i == 0
+            || matches!(&toks[i - 1], Tok::Punct('{' | '}' | ';' | ']'))
+            || matches!(&toks[i - 1], Tok::Ident(s) if s == "unsafe" || s == "default")
+    };
+    // The last identifier of a path, before its generic arguments.
+    let last_name = |ts: &[Tok]| -> Option<String> {
+        let mut depth = 0i32;
+        let mut name = None;
+        for t in ts {
+            match t {
+                Tok::Punct('<') => depth += 1,
+                Tok::Punct('>') => depth -= 1,
+                Tok::Ident(s) if depth == 0 && s != "dyn" && s != "mut" => name = Some(s.clone()),
+                _ => {}
+            }
+        }
+        name
+    };
+    let mut i = 0;
+    while i < toks.len() {
+        if !(matches!(&toks[i], Tok::Ident(s) if s == "impl") && item_start(i)) {
+            i += 1;
+            continue;
+        }
+        // The impl's own generics.
+        let mut j = i + 1;
+        if matches!(toks.get(j), Some(Tok::Punct('<'))) {
+            let mut depth = 0i32;
+            while j < toks.len() {
+                match &toks[j] {
+                    Tok::Punct('<') => depth += 1,
+                    Tok::Punct('>') => depth -= 1,
+                    _ => {}
+                }
+                j += 1;
+                if depth == 0 {
+                    break;
+                }
+            }
+        }
+        // The header, up to the body's `{`; a `for` outside every `<>` splits trait and type.
+        let start = j;
+        let mut depth = 0i32;
+        let mut split = None;
+        while j < toks.len() && !(matches!(&toks[j], Tok::Punct('{')) && depth == 0) {
+            match &toks[j] {
+                Tok::Punct('<') => depth += 1,
+                Tok::Punct('>') => depth -= 1,
+                Tok::Ident(s) if s == "for" && depth == 0 => split = Some(j),
+                Tok::Ident(s) if s == "where" && depth == 0 => break,
+                _ => {}
+            }
+            j += 1;
+        }
+        let header_end = j;
+        while j < toks.len() && !matches!(&toks[j], Tok::Punct('{')) {
+            j += 1;
+        }
+        let (tr, ty) = match split {
+            Some(k) => (
+                last_name(&toks[start..k]),
+                last_name(&toks[k + 1..header_end]),
+            ),
+            None => (None, last_name(&toks[start..header_end])),
+        };
+        // The body, to its matching `}`.
+        let body_start = j + 1;
+        let mut depth = 0i32;
+        let mut end = toks.len();
+        for (k, t) in toks.iter().enumerate().skip(j) {
+            match t {
+                Tok::Punct('{') => depth += 1,
+                Tok::Punct('}') => {
+                    depth -= 1;
+                    if depth == 0 {
+                        end = k;
+                        break;
+                    }
+                }
+                _ => {}
+            }
+        }
+        let body = &toks[body_start.min(end)..end];
+        let guarded = ty
+            .as_deref()
+            .and_then(|t| types.iter().find(|(name, _)| *name == t));
+        if let (Some(&(name, allowed)), Some(ty)) = (guarded, ty.as_deref()) {
+            *seen += 1;
+            let head = text(&toks[i..header_end]);
+            if let Some(tr) = &tr {
+                if MUT_TRAITS.contains(&tr.as_str()) {
+                    found.push(format!("{head}: a trait that hands out &mut {ty}"));
+                }
+            }
+            for (is_pub, f, sig) in fns(body) {
+                let m = muts(sig);
+                let bad = if tr.is_some() {
+                    m.mut_self || m.guarded || m.returns_mut
+                } else {
+                    is_pub
+                        && ((m.mut_self && !allowed.contains(&f.as_str()))
+                            || m.guarded
+                            || m.returns_mut)
+                };
+                if bad {
+                    found.push(format!("{head}: {} ({name})", text(sig)));
+                }
+            }
+        }
+        i = end.max(i + 1);
+    }
+    found
+}
+
+/// Public fields of the structs in `names`, in `code` (shipped source): a `pub` field, braced
+/// or tuple, not `pub(crate)` (E1, E4). Returns `name.field`-like descriptions, and counts the
+/// structs found in `seen`.
+pub fn pub_fields(code: &str, names: &[&str], seen: &mut usize) -> Vec<String> {
+    let toks = tokens(code);
+    let mut found = Vec::new();
+    for (i, t) in toks.iter().enumerate() {
+        let is_struct = matches!(t, Tok::Ident(s) if s == "struct");
+        let Some(Tok::Ident(name)) = toks.get(i + 1) else {
+            continue;
+        };
+        if !is_struct || !names.contains(&name.as_str()) {
+            continue;
+        }
+        *seen += 1;
+        // Skip generics, then read the body at depth 1.
+        let mut j = i + 2;
+        let mut depth = 0i32;
+        while j < toks.len() {
+            match &toks[j] {
+                Tok::Punct('<') => depth += 1,
+                Tok::Punct('>') => depth -= 1,
+                Tok::Punct('{' | '(') if depth == 0 => break,
+                Tok::Punct(';') if depth == 0 => break,
+                _ => {}
+            }
+            j += 1;
+        }
+        let mut depth = 0i32;
+        for (k, t) in toks.iter().enumerate().skip(j) {
+            match t {
+                Tok::Punct('{' | '(' | '[' | '<') => depth += 1,
+                Tok::Punct('}' | ')' | ']' | '>') => {
+                    depth -= 1;
+                    if depth == 0 {
+                        break;
+                    }
+                }
+                Tok::Ident(s)
+                    if s == "pub"
+                        && depth == 1
+                        && !matches!(toks.get(k + 1), Some(Tok::Punct('('))) =>
+                {
+                    found.push(format!("{name}: a pub field before {:?}", toks.get(k + 1)));
+                }
+                _ => {}
+            }
+        }
     }
     found
 }

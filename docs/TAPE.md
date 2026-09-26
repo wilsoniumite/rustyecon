@@ -22,6 +22,7 @@ whose raw types are documented the same way in `rustyecon_agents::spec` (which a
 | 1 | 2026-09-25 | P0.3 | First version. |
 | 1 | 2026-09-25 | P0.5 | The agents' spec, `Scripted(..)`, and tape action, `Actor(SetActive(..))`, are defined. No tape with an agent spec existed before, and core's fields are unchanged, so the number stays 1. |
 | 1 | 2026-09-25 | P0.6 | No field changes, so the number stays 1. Two load checks are added (a ledger tolerance must be below 1; a recipe may not name a currency), and a param read by the schedule alone leaves the world's identity (see Params). |
+| 1 | 2026-09-26 | P0.9 | No field changes, so the number stays 1. Two dated events that fall in one tick now fire in date order, not key order (see Dates). |
 
 The loader reads its own version only; anything else is refused as a schema error before any
 other field is looked at. Since no field has a default, every change to the schema bumps the
@@ -59,6 +60,9 @@ number and adds a row here.
   price rate a `SetParam` copies, say) stays registered, and changing it is a world edit.
 - **Dates** are `"YYYY-MM-DD"`, proleptic Gregorian. A date maps to the tick it falls in,
   `floor(days·ticks_per_year·10⁴ / 3,652,425)` in integers. No event may be dated before `start`.
+  Events that fall in one tick fire in date order, and events of one date in key order; a
+  recurring entry's occurrence counts as dated the first day of its tick. So the order of two
+  events, and what a tape means, does not change with `ticks_per_year` (since P0.9).
 - **Currencies.** A node's `currency` good is a currency: `Indefinite`, with `price_rate: None`, no
   market and no genesis price. Every other good has a `price_rate` and a genesis price at every
   node.
@@ -120,7 +124,7 @@ Tape(
     prices: [(node: "town", good: "bread", price: 2.0), …],   // every (node, non-currency good)
     holdings: [(holder: "mill", goods: [("coin", 100.0), ("grain", 16.0), ("fuel", 8.0),
                                         ("bread", 3.0)]), …]),
-  events: [   // any order: the loader sorts by (tick, key)
+  events: [   // any order: the loader sorts by (tick, date, key)
     (key: "mine.cut", at: "1760-03-01", basis: Assumed("gate world"),
      act: SetParam(param: "mine.capacity", to: "mine.capacity.cut")),   // the value keeps a basis
     (key: "oven.opens", at: "1768-04-01", basis: Assumed("gate world"),

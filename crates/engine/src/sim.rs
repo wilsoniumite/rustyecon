@@ -43,9 +43,18 @@ pub struct Sim {
 }
 
 impl Sim {
-    fn from_parts(world: World, state: SimState<Agents>, cast: Cast) -> Result<Sim, CoreError> {
+    /// A `Sim` at `state`: a new run's ledger opens on it, or a resumed run's continues.
+    fn from_parts(
+        world: World,
+        state: SimState<Agents>,
+        cast: Cast,
+        run: Option<RunLedger>,
+    ) -> Result<Sim, CoreError> {
         let hash = state_hash(&state);
-        let ledger = RunLedger::open(&state, &world)?;
+        let ledger = match run {
+            Some(run) => run,
+            None => RunLedger::open(&state, &world)?,
+        };
         Ok(Sim {
             world,
             state,
@@ -63,7 +72,7 @@ impl Sim {
         let cast = Cast::new(&world)?;
         // A resolved genesis fits its world, so the run's ledger opens on it; should it not,
         // that is the genesis's fault.
-        Sim::from_parts(world, state, cast)
+        Sim::from_parts(world, state, cast, None)
             .map_err(|e| LoadError::new("genesis", LoadErrorKind::Invalid(e.to_string())))
     }
 
@@ -71,8 +80,10 @@ impl Sim {
     /// world (`world_id`), agree with everything the tape fires before its tick (`prefix_id`),
     /// and fit the world's shape. So a checkpoint survives an edit dated at or after its tick,
     /// a dated `SetParam` to a new value included, and is refused after any edit to the world or
-    /// to the past. Its format and digest were checked when it was decoded, and its fields
-    /// cannot change since.
+    /// to the past. Its format and digest, which covers its identity, its state and its run's
+    /// ledger, were checked when it was decoded, and its fields cannot change since. The run
+    /// continues the checkpoint's ledger, so its conservation audit is the uninterrupted run's
+    /// (R2; amended at P0.9, O8).
     pub fn resume(tape: &Tape, cp: &Checkpoint) -> Result<Sim, ResumeError> {
         let (world, _) = resolve(tape).map_err(ResumeError::Load)?;
         if cp.world_id() != world.world_id {
@@ -92,7 +103,8 @@ impl Sim {
         }
         cp.validate(&world).map_err(ResumeError::Invalid)?;
         let cast = Cast::new(&world).map_err(ResumeError::Load)?;
-        Sim::from_parts(world, cp.state().clone(), cast).map_err(ResumeError::Invalid)
+        Sim::from_parts(world, cp.state().clone(), cast, Some(cp.run().clone()))
+            .map_err(ResumeError::Invalid)
     }
 
     fn poisoned(&self) -> Result<(), RunError> {
@@ -164,10 +176,15 @@ impl Sim {
         Ok(())
     }
 
-    /// A checkpoint of the current state: its `world_id`, its `prefix_id` and the state.
+    /// A checkpoint of the current state: its `world_id`, its `prefix_id`, the state and the
+    /// run's ledger.
     pub fn checkpoint(&self) -> Result<Checkpoint, RunError> {
         self.poisoned()?;
-        Ok(Checkpoint::of(&self.world, self.state.clone()))
+        Checkpoint::of(&self.world, self.state.clone(), self.ledger.clone()).map_err(|e| RunError {
+            tick: self.state.tick(),
+            phase: Phase::Measure,
+            kind: RunErrorKind::Core(e),
+        })
     }
 
     /// Whether the `Sim` can step.
@@ -248,5 +265,97 @@ impl Sim {
             }
         }
         HoldingTotals(out)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    //! The run's ledger across a resume (R2; docs/ENGINE.md §7.4 and §7.6; O8). These need the
+    //! `Sim`'s own state, to leak into it the way a writer bug would, so they live here.
+
+    use super::*;
+    use rustyecon_core::{apply, Breach, Ledger, Provenance, StateDelta};
+
+    const GATE: &str = include_str!("../../../tapes/gate.ron");
+
+    /// Leak `q` coin to the first actor between two ticks, past every tick's ledger: the kind of
+    /// writer bug the run's ledger exists for. No tick's audit sees it; the run's does.
+    fn leak(sim: &mut Sim, q: f64) {
+        let coin = sim.world.id_of::<GoodId>("coin").expect("the gate's coin");
+        let to = Holder::Actor(sim.world.actors[0].id);
+        let mut aside = Ledger::open(&sim.state, &sim.world).expect("a ledger opens");
+        let mint = StateDelta::Mint {
+            to,
+            good: coin,
+            qty: q,
+            prov: Provenance::Event,
+        };
+        apply(
+            &mut sim.state,
+            &sim.world,
+            Phase::Events,
+            &[mint],
+            &mut aside,
+        )
+        .expect("the leak applies");
+        sim.hash = state_hash(&sim.state);
+    }
+
+    /// Run `t` with a leak of `q` before every tick until it stops or reaches `until`,
+    /// resuming from a round-tripped checkpoint every `every` ticks. Returns where it ended and
+    /// the error that stopped it.
+    fn leaky(t: &Tape, q: f64, every: Option<u64>, until: u64) -> (u64, Option<RunError>) {
+        let mut sim = Sim::new(t).expect("the gate loads");
+        while sim.tick() < until {
+            if let Some(k) = every.filter(|&k| sim.tick() > 0 && sim.tick().is_multiple_of(k)) {
+                let cp = sim.checkpoint().expect("a checkpoint");
+                let cp = Checkpoint::from_bytes(&cp.to_bytes()).expect("the bytes decode");
+                sim = Sim::resume(t, &cp).expect("the checkpoint resumes");
+                assert_eq!(sim.tick() % k, 0);
+            }
+            leak(&mut sim, q);
+            if let Err(e) = sim.step() {
+                return (sim.tick(), Some(e));
+            }
+        }
+        (sim.tick(), None)
+    }
+
+    #[test]
+    fn resumed_run_stops_where_the_uninterrupted_run_does() {
+        // O8 (P0.9): the run's ledger lived in the Sim and not in the checkpoint, so a resumed
+        // run audited from its checkpoint. A leak of 1e-9 coin a tick stopped an uninterrupted
+        // run within a few ticks and passed all 2,080 when resumed every 2 ticks. Now the
+        // checkpoint carries the run's ledger, and a run resumed every k ticks, for any k,
+        // stops at the same tick with the same breach.
+        let t = Tape::from_ron(GATE).expect("the gate parses");
+        let leak = 1e-9;
+        let (at, stopped) = leaky(&t, leak, None, 520);
+        let e = stopped.expect("the uninterrupted run stops");
+        let RunErrorKind::Core(CoreError::Conservation(b)) = &e.kind else {
+            panic!("expected a conservation breach, got {e}");
+        };
+        let b: &Breach = b;
+        let coin = Sim::new(&t).unwrap().world.id_of::<GoodId>("coin").unwrap();
+        // The run's breach, over the run from genesis; no tick saw the leak.
+        assert_eq!(
+            (e.phase, b.good, b.since, b.tick),
+            (Phase::Measure, coin, 0, e.tick)
+        );
+        assert!(
+            b.drift > b.tol && b.drift <= leak * (e.tick + 1) as f64 * (1.0 + 1e-2),
+            "{b}"
+        );
+        assert!(
+            at > 1 && at < 100,
+            "the leak stops the run early: tick {at}"
+        );
+        for every in [1, 2, 3, 7] {
+            let (end, resumed) = leaky(&t, leak, Some(every), 520);
+            assert_eq!(end, at, "resumed every {every} ticks");
+            assert_eq!(resumed.as_ref(), Some(&e), "resumed every {every} ticks");
+        }
+        // With no leak, runs resumed at any cadence reach 520 unstopped.
+        assert_eq!(leaky(&t, 0.0, Some(2), 520), (520, None));
     }
 }

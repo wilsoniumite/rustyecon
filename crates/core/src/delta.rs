@@ -4,8 +4,9 @@
 //! replaced by an atomic `Transfer` (it moves the lots it takes, or nothing when the source is
 //! short) and by `Mint` and `Burn` with a required provenance, plus `SetParam`, and one
 //! extension seam, `Actor`, in place of July's other 19 agent variants (N14). Lots are `f64`, so
-//! splitting or merging one can round; `apply` declares what that creates or destroys as a
-//! `Rounding` line, so no delta moves a unit without a provenance.
+//! splitting or merging one can round, and so can summing the several lots a burn takes; `apply`
+//! declares what that creates or destroys, exactly, as `Rounding` lines, so no delta moves a unit
+//! without a provenance.
 
 use crate::ext::Ext;
 use crate::ids::{GoodId, Holder, NodeId, ParamId};
@@ -68,8 +69,9 @@ pub enum Provenance {
     Construction,
     /// A tape mint or burn.
     Event,
-    /// What splitting or merging `f64` lots created or destroyed, measured exactly (TwoSum).
-    /// Reserved: only `apply` posts it. Last, so the other provenances keep their encoding.
+    /// What splitting or merging `f64` lots created or destroyed, and what a burn's float sum of
+    /// the lots it took rounded away, measured exactly (TwoSum). Reserved: only `apply` posts
+    /// it. Last, so the other provenances keep their encoding.
     Rounding,
 }
 
@@ -109,7 +111,7 @@ pub enum StateDelta<E: Ext> {
     /// Move lots, lives kept, from one holder to another. It is all or nothing: it moves the lots
     /// it takes, or nothing when the source is short. Splitting the source's last lot and merging
     /// into the destination's round, creating or destroying up to half an ulp of the larger
-    /// operand; `apply` declares that exactly as a `Rounding` line (docs/ENGINE.md §2.4).
+    /// operand; `apply` declares each exactly as a `Rounding` line (docs/ENGINE.md §2.4).
     Transfer {
         /// The source.
         from: Holder,

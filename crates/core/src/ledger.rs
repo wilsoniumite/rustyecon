@@ -33,6 +33,7 @@ use crate::delta::{Phase, Provenance};
 use crate::error::CoreError;
 use crate::ext::Ext;
 use crate::ids::{GoodId, Holder};
+use crate::num::is_clean;
 use crate::state::SimState;
 use crate::units::Dimensionless;
 use crate::world::World;
@@ -155,6 +156,10 @@ pub struct Ledger {
     gross: Vec<f64>,
     lines: BTreeMap<(GoodId, Provenance), f64>,
     shortfall: Option<ShortfallLine>,
+    /// Every declaration in the order it was posted, before the lines fold it, so core's tests
+    /// can check a delta's declarations against its lots exactly.
+    #[cfg(test)]
+    posts: Vec<(GoodId, Provenance, f64)>,
 }
 
 /// Measure every good's total over every holding, a left fold in holder order.
@@ -275,6 +280,8 @@ impl Ledger {
             gross: vec![0.0; n],
             lines: BTreeMap::new(),
             shortfall: None,
+            #[cfg(test)]
+            posts: Vec::new(),
         })
     }
 
@@ -345,6 +352,14 @@ impl Ledger {
         self.declared[g.idx()] += q;
         self.gross[g.idx()] += q.abs();
         *self.lines.entry((g, prov)).or_insert(0.0) += q;
+        #[cfg(test)]
+        self.posts.push((g, prov, q));
+    }
+
+    /// Every declaration posted so far, in order, unfolded.
+    #[cfg(test)]
+    pub(crate) fn posts(&self) -> &[(GoodId, Provenance, f64)] {
+        &self.posts
     }
 
     /// Post what a split or a merge created by rounding (negative: destroyed), if anything.
@@ -381,7 +396,12 @@ pub struct RunAudit {
 /// walks' own rounding telescopes, since each tick opens on the state the last one closed on,
 /// so the run's drift stays at the size of one tick's; a leak below each tick's tolerance adds
 /// up and is caught.
-#[derive(Debug, Clone, PartialEq)]
+///
+/// A checkpoint carries it, inside its digest (amended at P0.9, O8), so a resumed run continues
+/// the audit of the run that reached the checkpoint: a leak that stops an uninterrupted run
+/// stops the resumed one at the same tick, whatever the checkpoint cadence.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(into = "RunRepr", try_from = "RunRepr")]
 pub struct RunLedger {
     since: u64,
     next: u64,
@@ -389,6 +409,74 @@ pub struct RunLedger {
     declared: Vec<f64>,
     gross: Vec<f64>,
     lines: BTreeMap<(GoodId, Provenance), f64>,
+}
+
+/// The serialised form of a [`RunLedger`]: its totals, with the lines as a list in (good,
+/// provenance) order.
+#[derive(Serialize, Deserialize)]
+#[serde(rename = "RunLedger", deny_unknown_fields)]
+struct RunRepr {
+    since: u64,
+    next: u64,
+    opening: Vec<f64>,
+    declared: Vec<f64>,
+    gross: Vec<f64>,
+    lines: Vec<(GoodId, Provenance, f64)>,
+}
+
+impl From<RunLedger> for RunRepr {
+    fn from(r: RunLedger) -> RunRepr {
+        RunRepr {
+            since: r.since,
+            next: r.next,
+            opening: r.opening,
+            declared: r.declared,
+            gross: r.gross,
+            lines: flat(&r.lines),
+        }
+    }
+}
+
+/// Decoding refuses columns of different lengths, a run that ends before it began, a total
+/// that is not finite (or, for a walk or a gross flow, has its sign bit set), a good outside
+/// the columns, and lines out of order or repeated.
+impl TryFrom<RunRepr> for RunLedger {
+    type Error = String;
+
+    fn try_from(r: RunRepr) -> Result<RunLedger, String> {
+        let n = r.opening.len();
+        if r.declared.len() != n || r.gross.len() != n {
+            return Err("the run ledger's columns differ in length".into());
+        }
+        if r.next < r.since {
+            return Err(format!(
+                "the run ledger's next tick {} is before its first {}",
+                r.next, r.since
+            ));
+        }
+        let clean = r.opening.iter().chain(&r.gross).all(|&v| is_clean(v));
+        let finite = r.declared.iter().all(|v| v.is_finite());
+        if !clean || !finite {
+            return Err("the run ledger holds a value that is not allowed".into());
+        }
+        let mut lines = BTreeMap::new();
+        let mut last = None;
+        for (g, p, q) in r.lines {
+            if g.idx() >= n || !q.is_finite() || last.is_some_and(|k| k >= (g, p)) {
+                return Err(format!("the run ledger's line ({g}, {p:?}) is not allowed"));
+            }
+            last = Some((g, p));
+            lines.insert((g, p), q);
+        }
+        Ok(RunLedger {
+            since: r.since,
+            next: r.next,
+            opening: r.opening,
+            declared: r.declared,
+            gross: r.gross,
+            lines,
+        })
+    }
 }
 
 impl RunLedger {
@@ -410,6 +498,30 @@ impl RunLedger {
     /// The run's first tick.
     pub fn since(&self) -> u64 {
         self.since
+    }
+
+    /// The tick whose ledger it closes next: the tick of the state it has reached.
+    pub fn next(&self) -> u64 {
+        self.next
+    }
+
+    /// Whether it can continue a run of `w` from a state at `tick`: it covers `w`'s goods and
+    /// has closed every tick before `tick`. A checkpoint's is checked so on resume.
+    pub fn fits<E: Ext>(&self, w: &World<E>, tick: u64) -> Result<(), CoreError> {
+        if self.opening.len() != w.n_goods() {
+            return Err(CoreError::Shape(format!(
+                "a run ledger over {} goods on a world of {}",
+                self.opening.len(),
+                w.n_goods()
+            )));
+        }
+        if self.next != tick {
+            return Err(CoreError::Shape(format!(
+                "a run ledger at tick {} beside a state at tick {tick}",
+                self.next
+            )));
+        }
+        Ok(())
     }
 
     /// Close the run's next tick: close `l` as [`Ledger::close`] does, fold it into the run,
@@ -969,6 +1081,132 @@ mod tests {
             run.close_tick(stale, &s, &w),
             Err(CoreError::Shape(_))
         ));
+    }
+
+    #[test]
+    fn flow_tolerance_is_pinned_for_a_tick_and_a_run() {
+        // O6 (P0.9): the flow term of the tolerance, rel_flow·gross, with gross = Σ moved +
+        // Σ |declared|, exactly, for a tick and for a run. Nothing pinned it: counting a moved
+        // quantity as q·q + q, or the run's fold as twice the ticks', widened A12's registered
+        // tolerance and every test still passed. Here the flow term dominates, and a drift at
+        // 0.9 of the tolerance passes while one at 1.1 breaches, with the breach's gross and
+        // tolerance exactly what the formula gives.
+        let (w, base) = testkit::load();
+        let (farm, mill, pensioners, grain) = (
+            holder(&w, "farm"),
+            holder(&w, "mill"),
+            holder(&w, "pensioners"),
+            good(&w, "grain"),
+        );
+        let rel_flow = base.param(w.tol.rel_flow).unwrap();
+        let rel_stock = base.param(w.tol.rel_stock).unwrap();
+        assert_eq!((rel_flow, rel_stock), (1e-12, 1e-11));
+        // `n` transfers of the farm's 1000 grain, to the mill and back: each moves exactly 1000.
+        let shuttle = |s: &mut SimState<NoExt>, l: &mut Ledger, n: usize| {
+            for k in 0..n {
+                let (from, to) = if k % 2 == 0 {
+                    (farm, mill)
+                } else {
+                    (mill, farm)
+                };
+                crate::apply(
+                    s,
+                    &w,
+                    Phase::Decisions,
+                    &[transfer(from, to, grain, 1000.0)],
+                    l,
+                )
+                .unwrap();
+            }
+        };
+        let advance = |s: &mut SimState<NoExt>, l: &mut Ledger| {
+            crate::apply(s, &w, Phase::Prices, &[StateDelta::AdvanceTick], l).unwrap();
+        };
+        let at = |x: f64, want: f64| (x - want).abs() <= LIMIT_BAR * want;
+
+        // A tick: a mint of 984 makes the farm's 16 into 1000, and 1000 transfers move 1e6.
+        // gross = 984 + 1e6 exactly; the stock is 16 at the open and 1000 at the close, so
+        // the flow term is 99% of the tolerance.
+        let gross = 984.0 + 1e6;
+        let tol = rel_flow * gross + rel_stock * 1000.0;
+        let tick = |drift: f64| {
+            let mut s = base.clone();
+            let mut l = Ledger::open(&s, &w).unwrap();
+            let mint = StateDelta::Mint {
+                to: farm,
+                good: grain,
+                qty: 984.0,
+                prov: Provenance::Production,
+            };
+            crate::apply(&mut s, &w, Phase::Production, &[mint], &mut l).unwrap();
+            shuttle(&mut s, &mut l, 1000);
+            write_direct(&mut s, pensioners, grain, drift);
+            l.close(&s, &w)
+        };
+        let audit = tick(0.9 * tol).expect("0.9 of the tolerance passes");
+        assert!(at(audit.max_margin, 0.9), "margin {}", audit.max_margin);
+        let b = breach(tick(1.1 * tol).unwrap_err());
+        assert_eq!((b.good, b.tick, b.since), (grain, 0, 0));
+        assert_eq!((b.opening, b.declared, b.gross), (16.0, 984.0, gross));
+        assert_eq!(
+            b.tol.to_bits(),
+            (rel_flow * b.gross + rel_stock * b.opening.abs().max(b.closing.abs())).to_bits()
+        );
+        assert!(at(b.tol, tol) && at(b.drift, 1.1 * tol), "{b}");
+
+        // A run of two ticks, each moving 1e4 over a stock of 1000, so that flow and stock
+        // weigh equally: a tick's tolerance is 2e-8, and the run's after two ticks is
+        // rel_flow·2e4 + rel_stock·1000 = 3e-8, less than the ticks' 4e-8 (the stock term does
+        // not add up over ticks, the flow term does). A drift of 0.45 of the run's tolerance
+        // each tick passes both ticks and the run; 0.55 each passes both ticks and breaches the
+        // run at its second tick.
+        let run_tol = rel_flow * 2e4 + rel_stock * 1000.0;
+        let run = |each: f64| -> Result<Vec<(TickAudit, RunAudit)>, CoreError> {
+            let mut s = base.clone();
+            testkit::apply_ok(
+                &mut s,
+                &w,
+                Phase::Events,
+                &[StateDelta::Mint {
+                    to: farm,
+                    good: grain,
+                    qty: 984.0,
+                    prov: Provenance::Event,
+                }],
+            );
+            let mut r = RunLedger::open(&s, &w).unwrap();
+            let mut audits = Vec::new();
+            for _ in 0..2 {
+                let mut l = Ledger::open(&s, &w).unwrap();
+                shuttle(&mut s, &mut l, 10);
+                write_direct(&mut s, pensioners, grain, each);
+                advance(&mut s, &mut l);
+                audits.push(r.close_tick(l, &s, &w)?);
+            }
+            Ok(audits)
+        };
+        let audits = run(0.45 * run_tol).expect("0.9 of the run's tolerance passes");
+        for (t, (a, _)) in audits.iter().enumerate() {
+            // A tick's drift is 0.45·3e-8 of its tolerance 2e-8.
+            assert!(at(a.max_margin, 0.675), "tick {t}: {}", a.max_margin);
+        }
+        assert!(
+            at(audits[1].1.max_margin, 0.9),
+            "{}",
+            audits[1].1.max_margin
+        );
+        let b = breach(run(0.55 * run_tol).unwrap_err());
+        assert_eq!(
+            (b.good, b.since, b.tick),
+            (grain, 0, 1),
+            "the run's breach, not a tick's"
+        );
+        assert_eq!((b.opening, b.declared, b.gross), (1000.0, 0.0, 2e4));
+        assert_eq!(
+            b.tol.to_bits(),
+            (rel_flow * b.gross + rel_stock * b.opening.abs().max(b.closing.abs())).to_bits()
+        );
+        assert!(at(b.tol, run_tol) && at(b.drift, 1.1 * run_tol), "{b}");
     }
 
     #[test]

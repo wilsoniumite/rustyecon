@@ -4,7 +4,7 @@
 //! no shortfall) are statements about floating-point results, not approximations.
 
 use rustyecon_agents::{
-    ActorState, AgentDelta, Agents, Cast, Decision, RawSellQty, RawSpec, ScriptState, Spec,
+    ActorState, AgentDelta, Agents, Cast, Decision, RawSellQty, RawSpec, ScriptState, SellQty, Spec,
 };
 use rustyecon_core::num;
 use rustyecon_core::{
@@ -635,4 +635,118 @@ fn specs_round_trip_in_canonical_form() {
             }),
         Some(RawSellQty::AllHeld)
     ));
+}
+
+#[test]
+fn per_tick_conversions_follow_the_clock() {
+    // O10 (P0.9), A13: the scripted actor turns every annual dial into a per-tick amount through
+    // the clock, at any tick length. At 12, 52 and 365 ticks a year, on the gate world with the
+    // oven awake and every actor holding stock enough that no flow is capped: each buy line
+    // posts flow(q) = q/ticks_per_year, each Flow sell line the same, an AllHeld line what is
+    // left after the lines before it, and the payout and the spending total are
+    // share(r) = 1 − exp(−r/ticks_per_year) of the cash they draw on. The expected values are
+    // computed here from the registered params, not through the clock. Nothing pinned these:
+    // /52 hard-wired, a per-year quantity, or v·Δ for the share all passed at P0.8.
+    for tpy in [12u32, 52, 365] {
+        let text = edit("ticks_per_year: 52,", &format!("ticks_per_year: {tpy},"));
+        let (w, mut s) = load_text(&text).expect("the variant loads");
+        let cast = Cast::new(&w).unwrap();
+        let (coin, per) = (good(&w, "coin"), f64::from(tpy));
+        let oven = actor(&w, "oven");
+        let wake = StateDelta::Actor(AgentDelta::SetActive {
+            actor: oven,
+            active: true,
+        });
+        apply_in(&mut s, &w, Phase::Events, &[wake]).unwrap();
+        for a in cast.actors().collect::<Vec<_>>() {
+            for g in ["grain", "fuel", "bread"] {
+                mint(&mut s, &w, a, good(&w, g), 1e6);
+            }
+        }
+        let value = |p| s.param(p).expect("a registered param");
+        let share = |p| -num::expm1(-(value(p) / per));
+        let mut seen = (0, 0, 0, 0);
+        for a in cast.actors() {
+            let Spec::Scripted(script) = &w.actor(a).unwrap().spec;
+            let d = cast.decide(a, &s, &w).unwrap();
+            let holding = s.holding(Holder::Actor(a)).unwrap();
+            let mut cash = holding.get(coin);
+            // The payout: share(rate) of the cash, split by weight in actor order.
+            if let Some(p) = &script.payout {
+                let total = share(p.rate) * cash;
+                let paid: Vec<f64> = d
+                    .deltas
+                    .iter()
+                    .map(|d| match d {
+                        StateDelta::Transfer {
+                            amount: Amount::Qty(q),
+                            ..
+                        } => *q,
+                        other => panic!("{a}: {other:?}"),
+                    })
+                    .collect();
+                assert_eq!(paid.len(), p.to.len(), "{tpy}: {a}");
+                assert_eq!(paid[0], p.to[0].1 * total, "{tpy}: {a}'s payout");
+                if p.to.len() == 1 {
+                    assert_eq!(paid[0], total, "{tpy}: {a}'s payout");
+                }
+                for q in paid {
+                    cash -= q;
+                }
+                seen.0 += 1;
+            }
+            let buys: Vec<(f64, f64)> = d
+                .orders
+                .iter()
+                .filter_map(|o| match o.side {
+                    Side::Buy { budget } => Some((o.qty, budget)),
+                    Side::Sell => None,
+                })
+                .collect();
+            assert_eq!(buys.len(), script.buy.len(), "{tpy}: {a}");
+            // Each buy line: its flow per tick; the first budget is its weight of the spending
+            // total, share(spend) of the cash the payouts left (all of it for one line).
+            for (line, (qty, _)) in script.buy.iter().zip(&buys) {
+                assert_eq!(*qty, value(line.qty) / per, "{tpy}: {a}'s buy qty");
+                seen.1 += 1;
+            }
+            if let Some(spend) = script.spend {
+                let total = share(spend) * cash;
+                assert_eq!(
+                    buys[0].1,
+                    script.buy[0].weight * total,
+                    "{tpy}: {a}'s budget"
+                );
+                if buys.len() == 1 {
+                    assert_eq!(buys[0].1, total, "{tpy}: {a}'s budget");
+                }
+                seen.2 += 1;
+            }
+            // Each sell line: its flow per tick, or what is left after the lines before it.
+            let sells: Vec<f64> = d
+                .orders
+                .iter()
+                .filter(|o| matches!(o.side, Side::Sell))
+                .map(|o| o.qty)
+                .collect();
+            assert_eq!(sells.len(), script.sell.len(), "{tpy}: {a}");
+            let mut left = holding.clone();
+            for (line, qty) in script.sell.iter().zip(sells) {
+                let want = match line.qty {
+                    SellQty::Flow(p) => value(p) / per,
+                    SellQty::AllHeld => left.get(line.good),
+                };
+                assert_eq!(qty, want, "{tpy}: {a}'s sell of {:?}", line.qty);
+                assert!(qty > 0.0 && qty < left.get(line.good) || line.qty == SellQty::AllHeld);
+                left.take(line.good, Amount::Qty(qty)).unwrap();
+                if line.qty == SellQty::AllHeld {
+                    assert_eq!(left.get(line.good), 0.0, "all of what was left");
+                }
+                seen.3 += 1;
+            }
+        }
+        // Every kind of line was checked: 4 payouts, the mill's, oven's, workers' and
+        // pensioners' 9 buy lines and their 4 spending totals, and 7 sell lines.
+        assert_eq!(seen, (4, 9, 4, 7), "{tpy} ticks a year");
+    }
 }

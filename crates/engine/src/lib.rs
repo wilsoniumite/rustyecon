@@ -39,6 +39,51 @@
 //! use rustyecon_engine::prelude::{apply, resolve, Ledger};
 //! ```
 //!
+//! Nor does any method hand out `&mut` to a run's state: not on the checkpoint, not on the
+//! state it holds, and not through the `Sim` by dereference (O11; each of these is also a
+//! fixture of the source scans in `tests/frontend.rs`).
+//!
+//! ```compile_fail
+//! fn edit(cp: &mut rustyecon_engine::Checkpoint) {
+//!     let _ = cp.state_mut();
+//! }
+//! ```
+//!
+//! ```compile_fail
+//! use rustyecon_engine::prelude::*;
+//! use rustyecon_engine::rustyecon_agents::Agents;
+//! fn edit(s: &mut SimState<Agents>) {
+//!     let _ = s.holdings_mut();
+//! }
+//! ```
+//!
+//! ```compile_fail
+//! use rustyecon_engine::prelude::*;
+//! use rustyecon_engine::rustyecon_agents::Agents;
+//! fn edit(sim: &mut Sim) {
+//!     let _: &mut SimState<Agents> = &mut **sim;
+//! }
+//! ```
+//!
+//! ```compile_fail
+//! use rustyecon_engine::prelude::*;
+//! use rustyecon_engine::rustyecon_agents::Agents;
+//! fn edit(sim: &mut Sim) {
+//!     let _: &mut SimState<Agents> = sim.as_mut();
+//! }
+//! ```
+//!
+//! Reading them compiles:
+//!
+//! ```
+//! use rustyecon_engine::prelude::*;
+//! use rustyecon_engine::rustyecon_agents::Agents;
+//! fn read(sim: &Sim, cp: &Checkpoint) -> usize {
+//!     let s: &SimState<Agents> = cp.state();
+//!     s.holdings().len() + sim.observe_holdings().0.len()
+//! }
+//! ```
+//!
 //! What a frontend does instead: step a `Sim` and read it.
 //!
 //! ```

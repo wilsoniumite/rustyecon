@@ -862,6 +862,7 @@ fn resolve_with<E: Ext>(t: &Tape<E>, schedule: &[Key]) -> Result<Pass<E>, LoadEr
         targets.extend(res.target);
         once.push(Firing {
             tick,
+            day: e.at.days(),
             event: event_id(&e.key)?,
             occurrence: 0,
             action: res.action,
@@ -953,7 +954,7 @@ fn resolve_with<E: Ext>(t: &Tape<E>, schedule: &[Key]) -> Result<Pass<E>, LoadEr
         channels,
         classes: keys.classes.clone(),
         actors,
-        schedule: Schedule::new(once, every, sched),
+        schedule: Schedule::new(once, every, sched, clock),
         keys,
         currency,
     };
@@ -1182,6 +1183,17 @@ mod tests {
         ] {
             t.events.push(event_at(&w, key, tick, qty));
         }
+        // O9 (P0.9): two events in tick 20 whose key order and date order disagree. A week
+        // is one tick here; at a shorter tick they would fire in two ticks, in date order, so
+        // they fire in date order in one tick too. Before P0.9 they fired in key order.
+        let first = w.clock.date_of(20).unwrap();
+        let later = Date::from_days(first.days() + 4).unwrap();
+        assert_eq!(w.clock.tick_of(later).unwrap(), 20);
+        for (key, at, qty) in [("b.later", later, 20.5), ("y.sooner", first, 20.0)] {
+            let mut e = event_at(&w, key, 20, qty);
+            e.at = at;
+            t.events.push(e);
+        }
         let (w, _) = resolve(&t).unwrap();
         let fired = firings(&w, 0..60);
         let keys: Vec<(u64, &str)> = fired.iter().map(|f| (f.0, f.1.as_str())).collect();
@@ -1192,13 +1204,28 @@ mod tests {
                 (5, "e.five"),
                 (9, "e.nine.a"),
                 (9, "e.nine.b"),
+                (20, "y.sooner"),
+                (20, "b.later"),
                 (51, "a.first"),
                 (51, "pension"),
                 (51, "z.last"),
             ],
-            "every event fires, in (tick, key) order, merged with the recurring entries"
+            "every event fires, in (tick, date, key) order, merged with the recurring entries, \
+             which are dated the first day of their tick"
         );
         assert_eq!(fired[2].3, "mint pensioners grain 9.0 Event");
+        // The prefix a checkpoint stores hashes the same order.
+        let order: Vec<(u64, EventId)> = w
+            .schedule
+            .firings_before(60)
+            .iter()
+            .map(|f| (f.tick, f.event))
+            .collect();
+        let fired_order: Vec<(u64, EventId)> = (0..60)
+            .flat_map(|t| w.schedule.fire(t))
+            .map(|f| (f.tick, f.event))
+            .collect();
+        assert_eq!(order, fired_order);
         // The recurring entry fires once a year from its first date, and counts occurrences.
         let pension: Vec<(u64, u32)> = firings(&w, 0..300)
             .into_iter()

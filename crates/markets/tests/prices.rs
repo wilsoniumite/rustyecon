@@ -350,3 +350,26 @@ fn params_are_read_at_use_time() {
     set(&mut s, tau, 0.5);
     assert_eq!(read(&s), expect(5.2, 0.5));
 }
+
+#[test]
+fn tiny_imbalances_move_the_price() {
+    // O13 (P0.9), N5, A12: no dead band sits on the imbalance. However small x = (D − S)/
+    // max(S, D) is, the price steps by exactly p·exp(k·x), and moves wherever exp(k·x) is not 1
+    // in f64. A hidden absolute threshold on x (|x| below 1e-9 read as 0, say), however it is
+    // spelled, fails here; the source scan (`no_behavioural_float_literals`) catches its
+    // spelling as a float literal or as an integer made float.
+    let (w, mut s) = load();
+    let (town, grain) = (node(&w, "town"), good(&w, "grain"));
+    for gap in [1e-12, 1e-9, 1e-6] {
+        let (supply, demand) = (1000.0, 1000.0 * (1.0 + gap));
+        let x = imbalance(supply, demand);
+        assert!(x > 0.0 && x < 2.0 * gap, "{gap}: x = {x}");
+        let before = s.price(town, grain).unwrap();
+        set_volumes(&mut s, &w, town, grain, supply, demand);
+        price_step(&mut s, &w).unwrap();
+        let after = s.price(town, grain).unwrap();
+        assert_eq!(after, step(before, k(&w), x), "{gap}");
+        assert_eq!(after, before * num::exp(k(&w) * x), "{gap}");
+        assert!(after > before, "{gap}: the price moved");
+    }
+}

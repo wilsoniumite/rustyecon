@@ -325,6 +325,123 @@ fn failed_checkpoint_save_stops_the_run() {
 }
 
 #[test]
+fn failed_final_checkpoint_save_stops_the_run() {
+    // O12 (P0.9): with --out and no --checkpoint-every, the final state is written after the
+    // last tick. When that write fails (--out names a regular file) the run fails with exit 3
+    // and the error, not exit 0 with a final hash: July's N11 was a failed save that reported
+    // success. Every tick ran, so the hashes file is complete.
+    let dir = tempfile::tempdir().unwrap();
+    let tape = write_tape(dir.path(), "gate.ron", GATE);
+    let file = dir.path().join("not-a-dir");
+    fs::write(&file, "a regular file").unwrap();
+    let hashes = dir.path().join("h.txt");
+    let out = rustyecon(&[
+        "run",
+        s(&tape),
+        "--until",
+        "10",
+        "--out",
+        s(&file),
+        "--hashes",
+        s(&hashes),
+    ]);
+    assert_eq!(code(&out), 3, "{}", stderr(&out));
+    assert!(
+        stderr(&out).contains("cannot create the directory"),
+        "{}",
+        stderr(&out)
+    );
+    assert!(stdout(&out).is_empty(), "no final hash after a failed save");
+    let h = lines(&hashes);
+    assert_eq!(h.len(), 10);
+    assert!(h[9].starts_with("10 0x"), "{h:?}");
+    assert_eq!(fs::read_to_string(&file).unwrap(), "a regular file");
+    // The same with --checkpoint-every when --until is not a multiple of it: the periodic
+    // saves are skipped until tick 10 would be one, and the final save at 7 fails.
+    let out = rustyecon(&[
+        "run",
+        s(&tape),
+        "--until",
+        "7",
+        "--out",
+        s(&file),
+        "--checkpoint-every",
+        "10",
+    ]);
+    assert_eq!(code(&out), 3, "{}", stderr(&out));
+    assert!(stdout(&out).is_empty());
+}
+
+#[test]
+fn resume_refuses_an_edited_identity() {
+    // O7 (P0.9), through the product path: a resume under a tape whose past differs is refused
+    // (exit 3) and prints the tape's prefix_id. Writing that value into the RON checkpoint made
+    // the same resume exit 0 under format 2, whose digest covered the state alone; now the
+    // checkpoint is refused as edited, exit 3. The same for world_id under an edited world.
+    let dir = tempfile::tempdir().unwrap();
+    let tape = write_tape(dir.path(), "gate.ron", GATE);
+    let cps = dir.path().join("cps");
+    let out = rustyecon(&[
+        "run",
+        s(&tape),
+        "--until",
+        "600",
+        "--out",
+        s(&cps),
+        "--format",
+        "ron",
+    ]);
+    assert_eq!(code(&out), 0, "{}", stderr(&out));
+    let cp = cps.join("tick_00000600.ron");
+    let text = fs::read_to_string(&cp).unwrap();
+    let past = write_tape(
+        dir.path(),
+        "cut61.ron",
+        &edit(
+            r#"(key: "mine.cut", at: "1760-03-01""#,
+            r#"(key: "mine.cut", at: "1761-03-01""#,
+        ),
+    );
+    let world = write_tape(
+        dir.path(),
+        "bread53.ron",
+        &edit(
+            r#"(key: "rate.bread", value: 5.2,"#,
+            r#"(key: "rate.bread", value: 5.3,"#,
+        ),
+    );
+    for (edited, field, printed) in [
+        (&past, "prefix_id", "(prefix 0x"),
+        (&world, "world_id", "the tape is world 0x"),
+    ] {
+        let out = rustyecon(&["resume", s(&cp), "--tape", s(edited), "--until", "700"]);
+        assert_eq!(code(&out), 3, "{}", stderr(&out));
+        // The refusal prints the tape's value, as 16 hex digits.
+        let err = stderr(&out);
+        let at = err
+            .find(printed)
+            .unwrap_or_else(|| panic!("{printed} in {err}"))
+            + printed.len();
+        let value = u64::from_str_radix(&err[at..at + 16], 16).unwrap();
+        let line = text
+            .lines()
+            .find(|l| l.trim_start().starts_with(&format!("{field}: ")))
+            .unwrap();
+        let forged = text.replacen(line, &format!("    {field}: {value},"), 1);
+        assert_ne!(forged, text);
+        let p = dir.path().join(format!("{field}.ron"));
+        fs::write(&p, &forged).unwrap();
+        let out = rustyecon(&["resume", s(&p), "--tape", s(edited), "--until", "700"]);
+        assert_eq!(code(&out), 3, "{field}: {}", stderr(&out));
+        assert!(
+            stderr(&out).contains("edited or corrupted"),
+            "{field}: {}",
+            stderr(&out)
+        );
+    }
+}
+
+#[test]
 fn registry_lists_every_number() {
     // R4: every param with its unit, per-tick value and basis, and the inline numbers.
     let dir = tempfile::tempdir().unwrap();

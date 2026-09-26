@@ -7,10 +7,13 @@
 //! Each delta is atomic: on an error nothing of it has applied, though the deltas before it
 //! have, so the caller stops the tick.
 //!
-//! Lots are `f64`, so a transfer's split and merge, and a mint's or burn's, can round, creating
-//! or destroying up to half an ulp of the larger operand. The inventory measures that exactly
-//! and `apply` declares it as a `Rounding` line, so no unit appears or vanishes without a
-//! provenance; the ledger's walk checks the rest within its registered tolerances (§2.5).
+//! Lots are `f64`, so a transfer's split and merges, and a mint's or burn's, can round, creating
+//! or destroying up to half an ulp of the larger operand. The inventory measures each rounding
+//! exactly and `apply` declares each as a `Rounding` line. A burn of several lots declares the
+//! float sum of the lots under its provenance and what that sum rounded away as `Rounding`, so
+//! a delta's declarations add up, exactly, to what it created or destroyed, and no unit appears
+//! or vanishes without a provenance; the ledger's walk and its fold of the lines are checked
+//! within its registered tolerances (§2.5).
 
 use crate::delta::{Phase, Provenance, StateDelta};
 use crate::error::CoreError;
@@ -18,7 +21,7 @@ use crate::ext::Ext;
 use crate::ids::{GoodId, Holder, NodeId};
 use crate::inventory::{Amount, Inventory, Lot, TakeError, Taken};
 use crate::ledger::{Ledger, ShortfallLine};
-use crate::num::is_clean;
+use crate::num::{is_clean, two_sum};
 use crate::state::SimState;
 use crate::world::{GoodDef, Life, World};
 
@@ -93,13 +96,17 @@ fn apply_one<E: Ext>(
             escrow_phase(phase, *from)?;
             escrow_phase(phase, *to)?;
             let taken = take(s, *from, *good, *amount, phase, None, l)?;
+            // The lots move as they are, so their float sum is only the gross flow and the
+            // quantity reported; the split and each merge declare what they rounded.
             let q = total(&taken.lots);
             let merged = put(s, *to, *good, taken.lots)?;
             drop_if_empty_escrow(s, *from);
             drop_if_empty_escrow(s, *to);
             l.moved(*good, q);
             l.round(*good, taken.rounding);
-            l.round(*good, merged);
+            for created in merged {
+                l.round(*good, created);
+            }
             Ok(q)
         }
         StateDelta::Mint {
@@ -128,7 +135,9 @@ fn apply_one<E: Ext>(
             if *qty > 0.0 {
                 l.declare(*good, *prov, *qty);
             }
-            l.round(*good, merged);
+            for created in merged {
+                l.round(*good, created);
+            }
             Ok(*qty)
         }
         StateDelta::Burn {
@@ -142,12 +151,17 @@ fn apply_one<E: Ext>(
             escrow_phase(phase, *from)?;
             reserved(*prov)?;
             let taken = take(s, *from, *good, *amount, phase, Some(*prov), l)?;
-            let q = total(&taken.lots);
+            // The lots taken hold exactly q + Σ lost, where q is their float sum: the burn
+            // declares q under its provenance and each step's loss as Rounding (O5).
+            let (q, lost) = fold(&taken.lots);
             drop_if_empty_escrow(s, *from);
             if q > 0.0 {
                 l.declare(*good, *prov, -q);
             }
             l.round(*good, taken.rounding);
+            for e in lost {
+                l.round(*good, -e);
+            }
             Ok(q)
         }
         StateDelta::SetParam { param, value } => {
@@ -309,13 +323,13 @@ fn take<E: Ext>(
     }
 }
 
-/// Put lots into a holding, returning what the merges created by rounding (§2.2).
+/// Put lots into a holding, returning what each merge created by rounding (§2.2).
 fn put<E: Ext>(
     s: &mut SimState<E>,
     h: Holder,
     g: GoodId,
     lots: Vec<Lot>,
-) -> Result<f64, CoreError> {
+) -> Result<Vec<f64>, CoreError> {
     s.holdings.entry(h).or_default().put(g, lots)
 }
 
@@ -325,8 +339,24 @@ fn drop_if_empty_escrow<E: Ext>(s: &mut SimState<E>, h: Holder) {
     }
 }
 
+/// The lots' float sum, a left fold in lot order.
 fn total(lots: &[Lot]) -> f64 {
     lots.iter().fold(0.0, |acc, lot| acc + lot.qty)
+}
+
+/// The lots' float sum, as [`total`] computes it, and what each step of that fold rounded away,
+/// exactly, by TwoSum (the nonzero ones, in order): the lots hold exactly the sum plus those.
+fn fold(lots: &[Lot]) -> (f64, Vec<f64>) {
+    let mut sum = 0.0;
+    let mut lost = Vec::new();
+    for lot in lots {
+        let (s, e) = two_sum(sum, lot.qty);
+        sum = s;
+        if e != 0.0 {
+            lost.push(e);
+        }
+    }
+    (sum, lost)
 }
 
 #[cfg(test)]
@@ -564,6 +594,178 @@ mod tests {
                 Err(CoreError::ReservedProvenance(Provenance::Rounding))
             );
         }
+    }
+
+    #[test]
+    fn multi_lot_rounding_is_declared_exactly() {
+        // O5 (P0.9): a burn declared the float fold of the lots it took, and a transfer the float
+        // sum of its merges' errors, so a burn or transfer across several lots of a perishable
+        // good could leave that fold's own rounding with no line. Now each delta's declarations
+        // (every post to the ledger, before the lines fold them) add up, exactly, to what the
+        // lots gained or lost: checked by an exact expansion sum, not a float fold.
+        let (w, genesis) = testkit::load();
+        let (farm, mill, bread) = (holder(&w, "farm"), holder(&w, "mill"), good(&w, "bread"));
+        let lots = |s: &SimState<NoExt>| -> Vec<f64> {
+            s.holdings()
+                .values()
+                .flat_map(|inv| inv.lots(bread))
+                .map(|lot| lot.qty)
+                .collect()
+        };
+        // Apply one delta under a fresh ledger: what it declared, and whether that is exact.
+        let run = |s: &mut SimState<NoExt>, phase: Phase, d: StateDelta<NoExt>| {
+            let before = lots(s);
+            let mut l = Ledger::open(s, &w).unwrap();
+            apply(s, &w, phase, &[d], &mut l).unwrap();
+            let posts: Vec<(Provenance, f64)> = l
+                .posts()
+                .iter()
+                .filter(|&&(g, _, _)| g == bread)
+                .map(|&(_, p, q)| (p, q))
+                .collect();
+            let terms = lots(s)
+                .into_iter()
+                .chain(before.into_iter().map(|q| -q))
+                .chain(posts.iter().map(|&(_, q)| -q));
+            let exact = testkit::exactly_zero(terms);
+            (posts, exact, l)
+        };
+        // Give holders bread in two lots of two lives: [older, newer].
+        let two_lots = |s: &mut SimState<NoExt>, holders: &[(Holder, f64, f64)]| {
+            for &(h, older, _) in holders {
+                let ds = [
+                    StateDelta::Burn {
+                        from: h,
+                        good: bread,
+                        amount: Amount::All,
+                        prov: Provenance::Event,
+                    },
+                    StateDelta::Mint {
+                        to: h,
+                        good: bread,
+                        qty: older,
+                        prov: Provenance::Event,
+                    },
+                ];
+                testkit::apply_ok(s, &w, Phase::Events, &ds);
+                testkit::apply_ok(s, &w, Phase::Upkeep, &[StateDelta::Age { holder: h }]);
+            }
+            for &(h, _, newer) in holders {
+                let mint = StateDelta::Mint {
+                    to: h,
+                    good: bread,
+                    qty: newer,
+                    prov: Provenance::Event,
+                };
+                testkit::apply_ok(s, &w, Phase::Events, &[mint]);
+            }
+            for &(h, older, newer) in holders {
+                let held: Vec<(f64, Option<u32>)> = s
+                    .holding(h)
+                    .unwrap()
+                    .lots(bread)
+                    .iter()
+                    .map(|l| (l.qty, l.life))
+                    .collect();
+                assert_eq!(held, vec![(older, Some(2)), (newer, Some(3))]);
+            }
+        };
+        let burn = |amount| StateDelta::Burn {
+            from: mill,
+            good: bread,
+            amount,
+            prov: Provenance::Consumption,
+        };
+        // The mill holds [1e17, 7]: all of it, or 1e17 (which is all of it too, since
+        // fl(1e17 + 7) = 1e17), destroys 1e17 + 7. The burn declares −1e17, and the 7 its fold
+        // lost as Rounding; before P0.9 the 7 had no line.
+        for amount in [Amount::All, Amount::Qty(1e17)] {
+            let mut s = genesis.clone();
+            two_lots(&mut s, &[(mill, 1e17, 7.0)]);
+            let (posts, exact, l) = run(&mut s, Phase::Production, burn(amount));
+            assert_eq!(
+                posts,
+                vec![
+                    (Provenance::Consumption, -1e17),
+                    (Provenance::Rounding, -7.0)
+                ]
+            );
+            assert!(exact);
+            assert!(s.holding(mill).unwrap().lots(bread).is_empty());
+            let audit = l.close(&s, &w).unwrap();
+            let declared: i128 = audit.lines.iter().map(|&(_, _, q)| q as i128).sum();
+            assert_eq!(declared, -100_000_000_000_000_007);
+        }
+        // [3, 0.1]: the fold rounds up, so the burn declares a little too much and Rounding
+        // gives it back; a partial burn splits the second lot as well.
+        for amount in [Amount::All, Amount::Qty(3.05), Amount::Qty(3.0000001)] {
+            let mut s = genesis.clone();
+            two_lots(&mut s, &[(mill, 3.0, 0.1)]);
+            let (posts, exact, _) = run(&mut s, Phase::Production, burn(amount));
+            assert!(exact, "{amount:?}: {posts:?}");
+            if amount == Amount::All {
+                assert_eq!(posts[0], (Provenance::Consumption, -(3.0 + 0.1)));
+                assert_eq!(posts.len(), 2, "{posts:?}");
+                assert!(posts[1].0 == Provenance::Rounding && posts[1].1 > 0.0);
+            }
+        }
+        // A transfer of the mill's [7, 1e-17] into the farm's [1e17, 1]: each merge rounds, and
+        // each declares its own loss, −7 and −1e-17. Their float sum is −7, which is all that was
+        // declared before P0.9: the 1e-17 had no line.
+        let mut s = genesis.clone();
+        two_lots(&mut s, &[(farm, 1e17, 1.0), (mill, 7.0, 1e-17)]);
+        let all = StateDelta::Transfer {
+            from: mill,
+            to: farm,
+            good: bread,
+            amount: Amount::All,
+        };
+        let (posts, exact, _) = run(&mut s, Phase::Decisions, all);
+        assert_eq!(
+            posts,
+            vec![(Provenance::Rounding, -7.0), (Provenance::Rounding, -1e-17)]
+        );
+        assert!(exact);
+        // Awkward lots of every size, taken whole or in part, burned or moved into another
+        // holder of awkward lots: every delta's declarations are exact.
+        let mut state = 0x2026_0926_u64;
+        let mut next = move || {
+            state = state
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            state >> 11
+        };
+        let scales = [1e-17, 1e-3, 0.1, 0.3, 1.0, 7.0, 1e3, 1e17];
+        let mut awkward = move || (next() % 997) as f64 * scales[(next() % 8) as usize] + 0.1;
+        let mut rounded = 0;
+        for i in 0..3000 {
+            let mut s = genesis.clone();
+            let (a, b, c, d) = (awkward(), awkward(), awkward(), awkward());
+            two_lots(&mut s, &[(farm, a, b), (mill, c, d)]);
+            let held = s.holding(mill).unwrap().get(bread);
+            let amount = match i % 3 {
+                0 => Amount::All,
+                1 => Amount::Qty(held),
+                _ => Amount::Qty(held * 0.37),
+            };
+            let (delta, phase) = if i % 2 == 0 {
+                (burn(amount), Phase::Production)
+            } else {
+                let t = StateDelta::Transfer {
+                    from: mill,
+                    to: farm,
+                    good: bread,
+                    amount,
+                };
+                (t, Phase::Decisions)
+            };
+            let (posts, exact, _) = run(&mut s, phase, delta);
+            assert!(exact, "{i}: [{a}, {b}] and [{c}, {d}]: {posts:?}");
+            if posts.iter().any(|&(p, _)| p == Provenance::Rounding) {
+                rounded += 1;
+            }
+        }
+        assert!(rounded > 300, "the sample rounds: {rounded}");
     }
 
     #[test]

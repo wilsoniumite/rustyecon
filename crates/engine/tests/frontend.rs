@@ -4,7 +4,10 @@
 
 mod common;
 
-use common::scan::{api_violations, shipped, sources, strip, writer_reexports};
+use common::scan::{
+    api_violations, impl_violations, pub_fields, shipped, sources, strip, writer_reexports,
+    CORE_READ_ONLY, ENGINE_PATH,
+};
 use common::*;
 use rustyecon_core::state_hash;
 use rustyecon_engine::prelude::*;
@@ -220,13 +223,32 @@ fn failed_step_poisons_the_sim() {
 
 #[test]
 fn no_public_api_hands_out_mut_state() {
-    // E1, E4: no public engine function hands a frontend a way to change a run. Only `step`,
-    // `step_traced` and `run_until` take `&mut self` (so there is no setter on Sim); no
-    // signature names `&mut` to a SimState, World or Inventory, a closure's parameters
-    // included; no return type holds `&mut` anything; and the Sim's fields are private.
-    // Checked on the source, the scanner on regression fixtures first, and, for the
-    // accessors, by their types.
+    // E1, E4: nothing a frontend can reach hands it a way to change a run. Only `step`,
+    // `step_traced` and `run_until` take `&mut self` (so there is no setter on Sim); no public
+    // signature in the engine, markets or agents names `&mut` to a Sim, Checkpoint, SimState,
+    // World or Inventory, a free function's or a closure's parameters included; no return type
+    // holds `&mut` anything; no impl of Sim, core's Checkpoint or core's SimState, inherent or
+    // of a trait, hands out `&mut` (`DerefMut`, `AsMut`, `BorrowMut`, `IndexMut`, or a method
+    // with `&mut self`); and none of the three has a public field. Checked on the source, the
+    // scanner on regression fixtures first, and, for the accessors, by their types. Round 3 of
+    // the review (O11) found five writers the P0.8 scan missed; each is a fixture here.
     const ALLOWED: [&str; 3] = ["step", "step_traced", "run_until"];
+    const NONE: [&str; 0] = [];
+    let impls: [(&str, &[&str]); 3] = [
+        ("Sim", &ALLOWED),
+        ("Checkpoint", &NONE),
+        ("SimState", &NONE),
+    ];
+    let names = |flagged: &[String]| -> Vec<String> {
+        flagged
+            .iter()
+            .map(|f| {
+                let f = f.trim_start_matches("pub ").trim_start_matches("fn ");
+                f.split(['(', '<', ':']).next().unwrap().trim().to_string()
+            })
+            .collect()
+    };
+    // Public functions.
     let fixtures = r"
         impl Sim {
             pub fn set_param(&mut self, p: ParamId, value: f64) -> Result<(), RunError> { todo!() }
@@ -236,47 +258,127 @@ fn no_public_api_hands_out_mut_state() {
             pub fn step(&mut self) -> Result<TickReport, RunError> { todo!() }
             pub fn run_until(&mut self, until: u64, on_tick: &mut dyn FnMut(&TickReport)) { todo!() }
             pub fn holding(&self, h: Holder) -> Option<&Inventory> { todo!() }
+            pub(crate) fn advance(&mut self) -> Result<TickReport, RunError> { todo!() }
         }
+        pub fn set_param_of(sim: &mut Sim, p: ParamId, value: f64) { todo!() }
+        pub fn all(sims: &mut Vec<Sim>) { todo!() }
+        pub const fn peek(cp: &mut Option<Checkpoint>) { todo!() }
+        pub fn read(sim: &Sim, cp: &Checkpoint, f: fn(&Sim) -> u64) -> u64 { todo!() }
     ";
     let mut n = 0;
     let flagged = api_violations(&shipped(&strip(fixtures)), &ALLOWED, &mut n);
-    assert_eq!(n, 7);
-    let names: Vec<&str> = flagged
-        .iter()
-        .map(|f| {
-            f.split(['(', '<'])
-                .next()
-                .unwrap()
-                .trim_start_matches("pub fn ")
-        })
-        .collect();
+    assert_eq!(n, 11);
     assert_eq!(
-        names,
-        ["set_param", "with_state", "state_mut", "edit"],
+        names(&flagged),
+        [
+            "set_param",
+            "with_state",
+            "state_mut",
+            "edit",
+            "set_param_of",
+            "all",
+            "peek"
+        ],
         "{flagged:#?}"
     );
-    // The engine's own sources.
-    let mut found = Vec::new();
-    let mut public = 0;
-    for (path, text) in sources("engine") {
-        let code = shipped(&strip(&text));
-        for f in api_violations(&code, &ALLOWED, &mut public) {
-            found.push(format!("{path}: {f}"));
+    // Impls: the trait impl and the inherent methods of the review's mutants 1, 4 and 5, and
+    // what may stay.
+    let fixtures = r"
+        impl std::ops::DerefMut for Sim {
+            fn deref_mut(&mut self) -> &mut SimState<Agents> { todo!() }
         }
-        // The Sim's fields: no `pub` inside its body.
-        if let Some(k) = code.find("pub struct Sim {") {
-            let body = &code[k + "pub struct Sim {".len()..];
-            let body = &body[..body.find('}').unwrap()];
-            assert!(!body.contains("pub"), "{path}: a public field on Sim");
+        impl<E: Ext> Checkpoint<E> {
+            pub fn state(&self) -> &SimState<E> { todo!() }
+            pub fn state_mut(&mut self) -> &mut SimState<E> { todo!() }
+        }
+        impl<E: Ext> SimState<E> {
+            pub(crate) fn genesis(params: Vec<f64>) -> SimState<E> { todo!() }
+            pub fn holdings(&self) -> &BTreeMap<Holder, Inventory> { todo!() }
+            pub fn holdings_mut(&mut self) -> &mut BTreeMap<Holder, Inventory> { todo!() }
+        }
+        impl AsMut<SimState<Agents>> for Sim { fn as_mut(&mut self) -> &mut SimState<Agents> { todo!() } }
+        impl Extend<StateDelta<Agents>> for Sim { fn extend<I>(&mut self, iter: I) { todo!() } }
+        impl std::ops::Deref for Sim {
+            type Target = World;
+            fn deref(&self) -> &World { todo!() }
+        }
+        impl fmt::Display for Checkpoint { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { todo!() } }
+        impl Sim {
+            pub fn step(&mut self) -> Result<TickReport, RunError> { todo!() }
+            fn advance(&mut self) -> Result<TickReport, RunError> { todo!() }
+        }
+        impl Inventory { pub fn put(&mut self, g: GoodId, lots: Vec<Lot>) {} }
+        pub fn with(f: impl FnOnce(&Sim)) {}
+    ";
+    let mut seen = 0;
+    let flagged = impl_violations(&shipped(&strip(fixtures)), &impls, &mut seen);
+    assert_eq!(
+        seen, 8,
+        "the impls of Sim, Checkpoint and SimState: {flagged:#?}"
+    );
+    let expected = [
+        "DerefMut for Sim: a trait that hands out &mut Sim",
+        "fn deref_mut(&mut self)",
+        "fn state_mut(&mut self)",
+        "fn holdings_mut(&mut self)",
+        "for Sim: a trait that hands out &mut Sim",
+        "fn as_mut(&mut self)",
+        "fn extend<I>(&mut self",
+    ];
+    assert_eq!(flagged.len(), expected.len(), "{flagged:#?}");
+    for (f, want) in flagged.iter().zip(expected) {
+        assert!(f.contains(want), "{want:?} in {f:?}");
+    }
+    // Fields.
+    let fixtures = r"
+        pub struct Sim { world: World, pub state: SimState<Agents> }
+        pub struct Checkpoint<E: Ext>(pub SimState<E>, u64);
+        pub struct SimState<E: Ext> { pub(crate) tick: u64, pub(crate) params: Vec<f64> }
+        pub struct Report { pub tick: u64 }
+    ";
+    let mut seen = 0;
+    let flagged = pub_fields(
+        &shipped(&strip(fixtures)),
+        &["Sim", "Checkpoint", "SimState"],
+        &mut seen,
+    );
+    assert_eq!(seen, 3);
+    assert_eq!(names(&flagged), ["Sim", "Checkpoint"], "{flagged:#?}");
+
+    // The sources a frontend can reach: the engine's, markets' and agents' public functions,
+    // every impl of the three types wherever it lives (core's Checkpoint and SimState
+    // included), and their fields.
+    let mut found = Vec::new();
+    let (mut public, mut impls_seen, mut structs) = (0, 0, 0);
+    for krate in ENGINE_PATH {
+        for (path, text) in sources(krate) {
+            let code = shipped(&strip(&text));
+            if krate != "core" {
+                let allowed: &[&str] = if krate == "engine" { &ALLOWED } else { &NONE };
+                for f in api_violations(&code, allowed, &mut public) {
+                    found.push(format!("{path}: {f}"));
+                }
+            }
+            for f in impl_violations(&code, &impls, &mut impls_seen) {
+                found.push(format!("{path}: {f}"));
+            }
+            for f in pub_fields(&code, &["Sim", "Checkpoint", "SimState"], &mut structs) {
+                found.push(format!("{path}: {f}"));
+            }
         }
     }
     assert!(
-        public > 20,
+        public > 40,
         "the scan found the public functions ({public})"
     );
+    assert_eq!(
+        impls_seen, 3,
+        "the inherent impls of Sim, Checkpoint and SimState"
+    );
+    assert_eq!(structs, 3, "the structs Sim, Checkpoint and SimState");
     assert!(
         found.is_empty(),
-        "public functions that could change a run: {found:#?}"
+        "what could hand a frontend a writer: {found:#?}"
     );
     // The accessors' types: shared references and owned values only.
     let _: fn(&Sim) -> &World = Sim::world;
@@ -287,7 +389,8 @@ fn no_public_api_hands_out_mut_state() {
     let _: fn(&Sim) -> HoldingTotals = Sim::observe_holdings;
     let _: fn(&Sim, NodeId, GoodId) -> Option<f64> = Sim::price;
     // A checkpoint is read-only too: its state comes out as a shared reference (the fields
-    // are private; core's doc test shows that `&mut cp.state` does not compile).
+    // are private; core's doc test shows that `&mut cp.state` does not compile, and the
+    // engine's that `state_mut`, `holdings_mut` and `&mut **sim` do not).
     let _: fn(
         &Checkpoint,
     ) -> &rustyecon_core::SimState<rustyecon_engine::rustyecon_agents::Agents> = Checkpoint::state;
@@ -297,9 +400,13 @@ fn no_public_api_hands_out_mut_state() {
 fn no_reexport_hands_out_core_writer() {
     // E1: a frontend that depends on the engine alone cannot reach core's writer. The engine
     // re-exports core's read-only types in its prelude and never core itself, and neither
-    // markets nor agents, which the engine does re-export, re-exports core. The doc tests of
-    // the engine's lib.rs pin the same from outside: `rustyecon_engine::rustyecon_core::apply`
-    // does not compile. Checked on the source, the scanner on regression fixtures first.
+    // markets nor agents, which the engine does re-export, re-exports core. A re-export of
+    // anything from core but the read-only types is flagged (an allow-list, which the
+    // prelude's list must equal), and so is core whole: bare, renamed, by glob, by `self` in a
+    // group (the review's mutant 3, O11), through a private alias, or as `pub extern crate`.
+    // The doc tests of the engine's lib.rs pin the same from outside:
+    // `rustyecon_engine::rustyecon_core::apply` does not compile. Checked on the source, the
+    // scanner on regression fixtures first.
     let fixtures = r"
         pub use rustyecon_core;
         pub use rustyecon_core as core;
@@ -309,13 +416,24 @@ fn no_reexport_hands_out_core_writer() {
             Key,
             Ledger,
         };
+        pub use rustyecon_core::{self as internals};
+        pub use rustyecon_core::{Date, self};
+        pub use ::rustyecon_core::resolve;
+        pub use rustyecon_core::ledger::RunLedger;
+        pub use rustyecon_core::inventory::Inventory;
+        use rustyecon_core as c;
+        pub use c::Resolver;
+        pub extern crate rustyecon_core;
         pub use rustyecon_core::{Date, Key, SimState};
+        pub use rustyecon_core::Inventory as Stock;
+        pub(crate) use rustyecon_core::apply;
+        use rustyecon_core::{apply, Ledger};
         pub use rustyecon_agents;
         pub use crate::prelude::*;
     ";
     let mut seen = 0;
     let flagged = writer_reexports(&shipped(&strip(fixtures)), &mut seen);
-    assert_eq!(seen, 8);
+    assert_eq!(seen, 16);
     assert_eq!(
         flagged,
         [
@@ -324,8 +442,32 @@ fn no_reexport_hands_out_core_writer() {
             "pub use rustyecon_core::*",
             "pub use rustyecon_core::{Date, apply}",
             "pub use rustyecon_core::{ Key, Ledger, }",
+            "pub use rustyecon_core::{self as internals}",
+            "pub use rustyecon_core::{Date, self}",
+            "pub use ::rustyecon_core::resolve",
+            "pub use rustyecon_core::ledger::RunLedger",
+            "pub use rustyecon_core::inventory::Inventory",
+            "pub use c::Resolver",
+            "pub extern crate rustyecon_core",
         ]
     );
+    // The allow-list is exactly what the prelude re-exports from core.
+    let prelude = sources("engine")
+        .into_iter()
+        .find(|(p, _)| p.replace('\\', "/").ends_with("engine/src/prelude.rs"))
+        .expect("the prelude");
+    let code = shipped(&strip(&prelude.1));
+    let group = &code[code
+        .find("pub use rustyecon_core::{")
+        .expect("core's group")..];
+    let group = &group[group.find('{').unwrap() + 1..group.find('}').unwrap()];
+    let mut listed: Vec<&str> = group
+        .split(',')
+        .map(str::trim)
+        .filter(|w| !w.is_empty())
+        .collect();
+    listed.sort_unstable();
+    assert_eq!(listed, CORE_READ_ONLY);
     let mut found = Vec::new();
     let mut seen = 0;
     for krate in ["engine", "markets", "agents"] {

@@ -8,9 +8,9 @@ The plan is [docs/PLAN.md](docs/PLAN.md), amended by the rulings in
 **Collaboration:** as in laborformal. Sequencing, engineering and drafting are delegated to
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
-**State as of:** 2026-09-25 (the session ran past midnight, so P0.7 and P0.8 carry
-2026-09-26). Phase 0 session 1 is done: P0.1–P0.8 on branch `reboot-phase0`, not pushed. Next:
-round 3's findings (O5–O13), then session 2, the certification stack.
+**State as of:** 2026-09-26. Phase 0 session 1 is done: P0.1–P0.9 on branch `reboot-phase0`,
+not pushed. Round 3's findings (O5–O13) are fixed at P0.9. Next: session 2, the certification
+stack.
 
 ## Where things stand
 
@@ -28,7 +28,8 @@ library a frontend drives). The v1 and July agents did not carry.
 | `a8f9ed8` P0.5 | `rustyecon-agents`, `rustyecon-engine`, `rustyecon-cli`, and `tapes/gate.ron`, the gate world |
 | `7553a3d` P0.6 | fixes from adversarial review, round 1: checkpoint digest (format 2), schedule params outside `world_id`, new load checks, stronger tests |
 | `443d44c` P0.7 | fixes from adversarial review, round 2: `Rounding` declared by TwoSum, the run's ledger, the engine no longer re-exports core |
-| P0.8 | this housekeeping: docs/PLAN.md moved and amended, this file, the CI skeleton, the docs checked against the code |
+| `4553e5f` P0.8 | housekeeping: docs/PLAN.md moved and amended, this file, the CI skeleton, the docs checked against the code |
+| P0.9 | fixes from adversarial review, round 3 (O5–O13): exact multi-lot rounding, the flow tolerance pinned, checkpoint format 3 (identity and the run's ledger in the digest), dated events in date order, the per-tick conversions pinned, a wider frontend guard and literal scan, the final save tested |
 
 **Fixed as the code moved** (REVIEW §2.2's numbers, ADDENDUM §2.3's N-numbers): defect 5 (lot
 lives through checkpoints), 8 (settlement from one fill), 9 and N3 (a shortfall is a ledger
@@ -44,28 +45,28 @@ agent struct). Each has a test that fails when its fix is reverted, checked by m
 | Requirement | Tests |
 |---|---|
 | repeat | `gate_repeat_identical_hashes` (engine; also run by name in `scripts/gate.sh`, which then runs the binary twice and compares the hash files) |
-| resume, through the product path (N11) | `gate_resume_from_checkpoints` (engine, both formats), `gate_resume_through_product_path` (cli) |
+| resume, through the product path (N11) | `gate_resume_from_checkpoints` (engine, both formats; every resumed report equal in full, the run's audit included), `resumed_run_stops_where_the_uninterrupted_run_does` (engine), `gate_resume_through_product_path` (cli) |
 | replay | `gate_replay_matches_every_tick` (engine), `replay_command_passes_on_the_gate` (cli) |
-| conservation every tick (R2) | `gate_conserves_every_tick`, `gate_breach_stops_the_run`, `gate_rounding_is_declared` (engine) |
+| conservation every tick (R2) | `gate_conserves_every_tick`, `gate_breach_stops_the_run`, `gate_rounding_is_declared` (engine), `multi_lot_rounding_is_declared_exactly`, `flow_tolerance_is_pinned_for_a_tick_and_a_run` (core) |
 | a cash-short buyer settles both sides from one fill | `cash_short_buyer_settles_both_sides_from_one_fill` (markets) |
 | two actor kinds sharing an id settle apart | `desk_and_pop_sharing_a_number_are_distinct_holders` (core), `two_kinds_same_number_settle_apart` (markets), `gate_ids_apart` (engine) |
 | a burn shortfall stops the run | `burn_shortfall_stops_with_a_ledger_line` (core), `shortfall_stops_the_run` (cli) |
-| unsorted events fire or fail | `unsorted_events_fire_in_order`, `every_zero_is_rejected` (core), `gate_events_fire_in_date_order` (engine) |
+| unsorted events fire or fail | `unsorted_events_fire_in_order`, `every_zero_is_rejected` (core), `gate_events_fire_in_date_order`, `same_tick_events_fire_in_date_order` (engine) |
 
-The full list, with what each test checks, is ENGINE §11: 175 `#[test]` functions and 7 doc
-tests. `cargo test --workspace --release` passes 182 of 182 on both machines, with zero
+The full list, with what each test checks, is ENGINE §11: 186 `#[test]` functions and 12 doc
+tests. `cargo test --workspace --release` passes 198 of 198 on both machines, with zero
 warnings (built with `-D warnings`), `cargo clippy --workspace --all-targets -- -D warnings`
 clean and `cargo fmt --all --check` clean:
 
 | Crate | WSL | Windows |
 |---|---|---|
-| `rustyecon-core` | 85 unit + 2 doc | 85 unit + 2 doc |
-| `rustyecon-markets` | 6 unit + 27 integration | 6 unit + 27 integration |
-| `rustyecon-agents` | 1 unit + 8 integration | 1 unit + 8 integration |
-| `rustyecon-engine` | 2 unit + 35 integration + 5 doc | 2 unit + 35 integration + 5 doc |
-| `rustyecon-cli` | 11 integration | 11 integration |
+| `rustyecon-core` | 89 unit + 2 doc | 89 unit + 2 doc |
+| `rustyecon-markets` | 6 unit + 28 integration | 6 unit + 28 integration |
+| `rustyecon-agents` | 1 unit + 9 integration | 1 unit + 9 integration |
+| `rustyecon-engine` | 3 unit + 37 integration + 10 doc | 3 unit + 37 integration + 10 doc |
+| `rustyecon-cli` | 13 integration | 13 integration |
 | `rustyecon-certify`, `rustyecon-worldgen` | none yet | none yet |
-| **Total** | **182** | **182** |
+| **Total** | **198** | **198** |
 
 **Toolchain** (pinned by `rust-toolchain.toml`, installed by rustup on first use):
 
@@ -78,10 +79,14 @@ clean and `cargo fmt --all --check` clean:
 `rustyecon run tapes/gate.ron --until 2080 --hashes` agree byte for byte, and two runs on each
 machine agree with each other. Tick 1 `0xf2371ea73f47ee1f`; 520 `0xb985a06b853fa899`; 1,040
 `0x30f84912c6a744f9`; **2,080 `0x61f9c8529131ff17`**. At P0.3 the core fixture agreed too
-(`world_id` `0x5482a99c926bdef7`, genesis state hash `0x7060047573ff37da`, and
-`0x5121b67d1feee116` after 2,080 ticks of `num::exp`-driven price and EMA paths). The gate
-world's final hash at P0.5 was `0x1b86507a195b2a40`; P0.6 changed what the state holds
-(schedule params left it), and P0.7 changed no hash.
+(`world_id` `0x5482a99c926bdef7`, genesis state hash `0x7060047573ff37da`, and `0x5121b67d1feee116`
+after 2,080 ticks of `num::exp`-driven price and EMA paths). The gate world's final hash at P0.5 was
+`0x1b86507a195b2a40`; P0.6 changed what the state holds (schedule params left it), and P0.7 changed
+no hash. Nor did P0.9: all 2,080 per-tick hashes equal P0.8's byte for byte (compared on WSL against
+a build of `4553e5f`), and the Windows build's stream equals the WSL one byte for byte (final
+`0x61f9c8529131ff17` on both). P0.9 changes what a checkpoint holds (format 3) and which ledger
+lines a tick declares, not what a state holds or how a tick moves it; the gate world has no two
+firings in one tick.
 
 **WASM (recorded, not gated):** `cargo check --target wasm32-unknown-unknown -p
 rustyecon-engine` passes in WSL, so the engine can compile for a browser frontend (E2).
@@ -118,13 +123,16 @@ made while building.
 5. **One maths module.** `exp`, `expm1`, `ln`, `ln1p` and `pow` go through `core::num`, backed
    by `libm`; `clippy.toml` denies the platform transcendentals, `powi` and `mul_add`, and the
    std hash containers (R8).
-6. **No behavioural literal in shipped code.** A source scan allows only `0.0` and `1.0` and no
-   named float constant outside `core::num` (O13 is a gap in it).
+6. **No behavioural literal in shipped code.** A source scan allows only `0.0` and `1.0`, no
+   named float constant outside `core::num`, and, since P0.9, no integer but 0 and 1 made float
+   (clock.rs's calendar constants may be).
 7. **Conservation is asserted.** Takes are all or nothing; a shortfall is a ledger line and stops
    the run; every tick's ledger and the run's ledger must close within the registered
-   tolerances. Lots stay `f64`, and what a split or merge rounds away is declared with the
-   reserved provenance `Rounding`, measured by TwoSum. Alternatives: integer quanta (gives up the
-   range of tiny and huge prices), or exact takes (makes payments non-nominal).
+   tolerances. Lots stay `f64`, and what a split or merge rounds away, and what a burn's sum of
+   several lots rounds away, is declared with the reserved provenance `Rounding`, measured by
+   TwoSum, one line per rounding, so each delta's declarations are exact (P0.9). The run's
+   ledger travels in checkpoints. Alternatives: integer quanta (gives up the range of tiny and
+   huge prices), or exact takes (makes payments non-nominal).
 8. **Rationing and costs.** Rationing is a `RationLine` per (market, class, side) (R12); a
    currency in a recipe is a load error (R14).
 9. **Agents see only their view.** A `View` holds posted prices, the agent's own holding and
@@ -152,10 +160,14 @@ made while building.
 16. **The tape's identity.** Schema 1: keyed lists, unknown and missing fields refused, no
     defaults, everything ordered by key. `world_id` leaves out the tape's name, the basis texts
     and the schedule; a param only the schedule reads lives outside `world_id`, so a dated dial
-    change keeps earlier checkpoints.
-17. **Checkpoints.** Format 2, bincode or RON, with the state's FNV-1a hash as a digest: it
-    catches corruption, not forgery (ENGINE §14 question 7; O7 is a hole in it). The alternatives
-    were a keyed digest (needs a secret) or a replay from genesis on every resume.
+    change keeps earlier checkpoints. Events in one tick fire by (date, key), so a tape's meaning
+    does not change with its tick length (P0.9); a recurring occurrence is dated its tick's first
+    day. Alternative: refuse two same-tick firings of one target at load.
+17. **Checkpoints.** Format 3, bincode or RON, carrying the run's ledger, with an FNV-1a digest
+    of `(world_id, prefix_id, state, run)`: it catches corruption and edits of any field, not
+    forgery (ENGINE §14 question 7). The alternatives were a keyed digest (needs a secret) or a
+    replay from genesis on every resume; for the run's ledger, stating the limit and re-auditing
+    from genesis in session 2's manifest.
 18. **Phase 0 trades across nodes for free.** An actor may post at any node; nothing crosses a
     channel or pays a crossing cost until transport desks exist.
 19. **The gate world** is `tapes/gate.ron`: coin, grain, fuel and three-week bread; a town and a
@@ -201,55 +213,32 @@ made while building.
   three July branches: `building_inventory_cycles_correctly`, "farm should produce wheat on tick
   0, got 0" (`tests/test_01_single_region.rs:172`, `:153` on v1). Nothing to do; logged here.
 
-Round 3 of the adversarial review (after P0.7) left nine major issues open, and no blocker.
-They are unfixed at `443d44c`. O5, O7, O8 and O9 are defects, confirmed by reading the code at
-P0.8. O6 and O10 to O13 are test gaps, as the reviewers' mutation runs reported them; the code
-behind O12 was read and is correct. ENGINE.md now says what the code does at each place it
-overclaimed (its P0.8 amendment 2).
+Round 3 of the adversarial review (after P0.7) left nine major issues, O5 to O13, and no
+blocker. P0.9 fixed all nine; ENGINE.md's P0.9 amendment has each, and each has a test that fails
+when its fix is reverted, checked by mutation (the review's own mutants among them):
 
-- **O5. Rounding across several lots is not declared exactly.** A burn declares `−q`, where `q`
-  is the float fold of the lots taken (`core/src/apply.rs`, the `Burn` arm and `total`), and
-  `Inventory::put` sums its merges' errors in `f64`. A burn of `All` from mill bread held as
-  [1e17, 7] declares −1e17 while 1e17 + 7 are destroyed. It is below half an ulp of the larger
-  operand, so no breach is possible, but R2's "every unit with provenance" is false there.
-  Mutation T7 (only the last merge counts) survives every test. Fix: fold with `two_sum` and
-  declare the error as `Rounding`; carry a compensated sum in `put`; test exactly with a
-  perishable good in several lots.
-- **O6. The ledger's flow term is unpinned.** Inflating `gross` (for example `+= q*q + q`)
-  survives every test, so a regression could widen A12's registered tolerance silently. Fix:
-  boundary tests with transfers and mints that assert `Breach.gross` and `Breach.tol` exactly,
-  pass at 0.9 of the tolerance and breach at 1.1, for a tick and for the run.
-- **O7. The checkpoint digest covers the state only**, not `world_id` or `prefix_id`
-  (`core/src/checkpoint.rs`, `checked`). Editing `prefix_id` to the value a refused resume
-  prints makes that checkpoint resume under another past, exit 0 (checked on WSL and Windows by
-  the reviewers). Fix: digest (world_id, prefix_id, state), checkpoint format 3, a test per form
-  in core, engine and cli.
-- **O8. The run's ledger is not carried across a resume** (`engine/src/sim.rs`, `from_parts`
-  opens a new one). A leak of 1e-9 coin a tick stops an uninterrupted run at tick 4 but passes
-  all 2,080 ticks when resumed every 2 ticks. Fix: carry the run's ledger in the checkpoint
-  (inside the digest, outside the state hash) and continue it, or state the limit and have O2's
-  manifest re-audit from genesis; either way a test that resumes under a leak.
-- **O9. Dated events in one tick fire by key, not by date** (`core/src/world.rs`, `once` sorted
-  by (tick, event)). At 12 ticks a year a cut (`z.cut`) and a restore (`a.restore`) dated 20
-  days apart share a tick, key order puts the cut last, and the mine stays cut for about 9.6
-  years instead of 20 days; at 52 ticks a year the restore wins. Fix: keep each firing's day and
-  sort by (tick, day, key), or refuse two same-tick firings that write the same target; update
-  ENGINE §2.6, §9 and TAPE.md.
-- **O10. A13's per-tick conversions in the scripted actor are untested across tick lengths.**
-  Replacing `clock.flow`, `share` or the payout share with hard-wired weekly forms survives every
-  test. Fix: run the gate world at 12 and 365 ticks a year and check annual posted quantities and
-  the first tick's spend and payout against the registered values.
-- **O11. The API guard tests miss five routes to a writer**: a `DerefMut` impl on `Sim`, a free
-  `fn(&mut Sim)`, `pub use rustyecon_core::{self as internals}`, and `state_mut` or
-  `holdings_mut` added to core's `Checkpoint` or `SimState`. None exists; the tests would not
-  notice one. Fix: scan the whole frontend-visible surface including trait impls, treat `{self
-  ...}` re-exports as whole-crate, and add compile-fail doc tests.
-- **O12. A failed final checkpoint write is untested** (`cli/src/main.rs`, the `--out` save
-  after the loop). The code propagates it correctly, but ignoring it passes every test. Fix: a
-  cli test with `--out` naming a file and no `--checkpoint-every`, expecting exit 3.
-- **O13. The literal scan misses integers made float** (`f64::from(2u8)`, `52 as f64`), so a
-  hidden absolute dead band or fraction would pass it. None exists in shipped code. Fix: flag
-  integer literals other than 0 and 1 that reach `f64`, with an allow-list for the calendar.
+- **O5.** A burn of several lots declares their float sum and, as `Rounding`, what that sum
+  rounded away; `Inventory::put` returns each merge's rounding, declared one by one. Each delta's
+  declarations are now exact (`multi_lot_rounding_is_declared_exactly`,
+  `several_merges_report_each_rounding`; T7 and four more mutants killed).
+- **O6.** The tolerance's flow term is pinned for a tick and a run
+  (`flow_tolerance_is_pinned_for_a_tick_and_a_run`; U1, U2, U3 killed).
+- **O7, O8.** Checkpoint format 3: the digest covers `world_id`, `prefix_id`, the state and the
+  run's ledger, which the checkpoint now carries and a resume continues
+  (`checkpoint_digest_covers_identity_and_run` in core, `resume_refuses_an_edited_identity` in
+  engine and cli, `resumed_run_stops_where_the_uninterrupted_run_does`,
+  `gate_resume_from_checkpoints` comparing whole reports).
+- **O9.** Dated events in one tick fire by (date, key) (`same_tick_events_fire_in_date_order`,
+  `unsorted_events_fire_in_order`).
+- **O10.** The scripted actor's conversions are pinned at 12, 52 and 365 ticks a year
+  (`per_tick_conversions_follow_the_clock`; eight mutants killed).
+- **O11.** The frontend guard reads every public function of engine, markets and agents, every
+  impl of `Sim`, `Checkpoint` and `SimState` (trait impls included) and their fields; core's
+  re-exports are an allow-list; four more compile-fail doc tests. The review's five writers and
+  two more are killed.
+- **O12.** `failed_final_checkpoint_save_stops_the_run` (cli).
+- **O13.** The literal scan flags integers made float, `from_bits` of a literal and
+  `parse::<f64>`; `tiny_imbalances_move_the_price` pins the price rule at tiny imbalances.
 
 ## Corrections logged (A3; ADDENDUM §1.4)
 
@@ -273,11 +262,10 @@ REVIEW.md is kept as written; these of its claims do not hold.
 
 ## Next session's first step
 
-Fix round 3's findings, O5 to O13, on `reboot-phase0` as P0.9, each with a test checked against
-the mutation that exposed it. Start with O7 and O8: both change what a checkpoint holds (format
-3), and session 2's manifest records checkpoint digests, so they should land first. Then, on
-your go, merge `reboot-phase0` and the oracle (O3) into `reboot`, rerun
-`scripts/gate.sh` in WSL and the same commands on Windows, and start session 2 (O2).
+On your go, merge `reboot-phase0` and the oracle (O3) into `reboot`, rerun `scripts/gate.sh` in
+WSL and the same commands on Windows, and start session 2 (O2). Session 2's manifest records the
+digest of any checkpoint a run resumed from; since P0.9 that digest covers the checkpoint's
+identity and the run's ledger too (format 3).
 
 ## File map
 
@@ -285,7 +273,7 @@ your go, merge `reboot-phase0` and the oracle (O3) into `reboot`, rerun
 STATE.md                 you are here; start here next session
 README.md                what rustyecon is, the crates, how to build and test
 docs/PLAN.md             the plan, amended by the addendum's rulings (2026-09-25)
-docs/ENGINE.md           the Phase 0 engine contract, with each step's amendments (P0.3–P0.8)
+docs/ENGINE.md           the Phase 0 engine contract, with each step's amendments (P0.3–P0.9)
 docs/TAPE.md             the tape's schema guide
 docs/reboot/             REVIEW.md and ADDENDUM.md, kept as written (links fixed)
 docs/timeline/eras.md    era research for worldgen

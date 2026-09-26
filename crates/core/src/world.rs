@@ -134,6 +134,11 @@ pub struct MarketConfig {
 pub struct Firing<E: Ext> {
     /// The tick it fires in.
     pub tick: u64,
+    /// The day it is dated, as [`Date::days`](crate::Date::days) counts them: a dated event's
+    /// date, and for a recurring occurrence the first day of the tick it fires in. Firings in
+    /// one tick run by (day, key), so two dated events keep their date order at any tick
+    /// length (amended at P0.9, O9).
+    pub day: i64,
     /// The event.
     pub event: EventId,
     /// 0 for a dated event; k for the k-th firing of a recurring one.
@@ -176,9 +181,10 @@ impl<E: Ext> Recurring<E> {
         Some(u32::try_from(since / self.period).unwrap_or(u32::MAX))
     }
 
-    fn firing(&self, tick: u64, occurrence: u32) -> Firing<E> {
+    fn firing(&self, tick: u64, occurrence: u32, day: i64) -> Firing<E> {
         Firing {
             tick,
+            day,
             event: self.event,
             occurrence,
             action: self.action.clone(),
@@ -208,12 +214,14 @@ pub struct ScheduleParam {
 /// The tape's events, resolved and sorted (N1), with the params only they read.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Schedule<E: Ext> {
-    /// Dated events, sorted by (tick, key).
+    /// Dated events, sorted by (tick, day, key).
     once: Vec<Firing<E>>,
     /// Recurring entries, by key.
     every: Vec<Recurring<E>>,
     /// The params only the schedule reads, by key.
     params: Vec<ScheduleParam>,
+    /// The run's calendar, which dates each recurring occurrence by its tick.
+    clock: Clock,
 }
 
 impl<E: Ext> Schedule<E> {
@@ -221,34 +229,38 @@ impl<E: Ext> Schedule<E> {
         mut once: Vec<Firing<E>>,
         mut every: Vec<Recurring<E>>,
         mut params: Vec<ScheduleParam>,
+        clock: Clock,
     ) -> Schedule<E> {
-        once.sort_by_key(|f| (f.tick, f.event));
+        once.sort_by_key(|f| (f.tick, f.day, f.event));
         every.sort_by_key(|r| r.event);
         params.sort_by(|a, b| a.key.cmp(&b.key));
         Schedule {
             once,
             every,
             params,
+            clock,
         }
     }
 
-    /// Everything that fires at `tick`, in key order: the dated events found by
+    /// Everything that fires at `tick`, in (day, key) order: the dated events found by
     /// `partition_point` (the list is sorted, unlike July's, `v2p3: scenario/mod.rs:25-42`),
-    /// merged with the recurring entries due.
+    /// merged with the recurring entries due, which are dated the tick's first day. Two dated
+    /// events in one tick fire in date order, as they do when a shorter tick puts them in
+    /// two (O9); events of one day fire in key order.
     pub fn fire(&self, tick: u64) -> Vec<Firing<E>> {
         let lo = self.once.partition_point(|f| f.tick < tick);
         let hi = self.once.partition_point(|f| f.tick <= tick);
         let mut out: Vec<Firing<E>> = self.once[lo..hi].to_vec();
         for r in &self.every {
             if let Some(k) = r.occurrence_at(tick) {
-                out.push(r.firing(tick, k));
+                out.push(r.firing(tick, k, self.clock.first_day(tick)));
             }
         }
-        out.sort_by_key(|f| f.event);
+        out.sort_by_key(|f| (f.day, f.event));
         out
     }
 
-    /// Every firing with `tick < until`, in firing order: by tick, then key.
+    /// Every firing with `tick < until`, in firing order: by tick, then day, then key.
     pub fn firings_before(&self, until: u64) -> Vec<Firing<E>> {
         let hi = self.once.partition_point(|f| f.tick < until);
         let mut out: Vec<Firing<E>> = self.once[..hi].to_vec();
@@ -256,7 +268,7 @@ impl<E: Ext> Schedule<E> {
             let mut tick = r.first;
             let mut k: u32 = 0;
             while tick < until && r.last.is_none_or(|l| tick <= l) {
-                out.push(r.firing(tick, k));
+                out.push(r.firing(tick, k, self.clock.first_day(tick)));
                 k = k.saturating_add(1);
                 match tick.checked_add(r.period) {
                     Some(t) => tick = t,
@@ -264,11 +276,11 @@ impl<E: Ext> Schedule<E> {
                 }
             }
         }
-        out.sort_by_key(|f| (f.tick, f.event));
+        out.sort_by_key(|f| (f.tick, f.day, f.event));
         out
     }
 
-    /// The dated events, sorted by (tick, key).
+    /// The dated events, sorted by (tick, day, key).
     pub fn once(&self) -> &[Firing<E>] {
         &self.once
     }

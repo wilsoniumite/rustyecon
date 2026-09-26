@@ -9,8 +9,9 @@
 //! Lots are `f64`, so splitting a lot (`old − rest`) or merging into one (`a + b`) rounds, and
 //! the rounding creates or destroys up to half an ulp of the larger operand: 1 taken from a lot
 //! of 1e17 (ulp 16) leaves it at 1e17, and 6 merged into it vanish. `take` and `put` measure that
-//! exactly, by TwoSum, and return it as `rounding`, so `apply` can declare it to the ledger with
-//! the provenance `Rounding` (docs/ENGINE.md §2.2, §2.4). Nothing appears or vanishes unrecorded.
+//! exactly, by TwoSum, and return it (one value for a take's one split, one per rounding merge
+//! for a put), so `apply` can declare each to the ledger with the provenance `Rounding`
+//! (docs/ENGINE.md §2.2, §2.4). Nothing appears or vanishes unrecorded.
 
 use crate::error::CoreError;
 use crate::ids::GoodId;
@@ -143,25 +144,32 @@ impl Inventory {
 
     /// Add lots of `g`, each merging into the lot of equal life if there is one. A lot of
     /// exactly `+0.0` is dropped. Every quantity is checked first, so a rejected call changes
-    /// nothing. Returns what the merges created by rounding (negative: destroyed), exactly per
-    /// merge: `fl(a + b) − (a + b)`; 0 when every merge was exact.
-    pub fn put(&mut self, g: GoodId, lots: Vec<Lot>) -> Result<f64, CoreError> {
+    /// nothing. Returns what each merge that rounded created (negative: destroyed), exactly,
+    /// `fl(a + b) − (a + b)`, in merge order; empty when every merge was exact. They are not
+    /// summed: a float sum of two merges' errors rounds in turn (7 and 1e-17 destroyed add to
+    /// 7), so the caller declares each one (amended at P0.9).
+    pub fn put(&mut self, g: GoodId, lots: Vec<Lot>) -> Result<Vec<f64>, CoreError> {
         if let Some(bad) = lots.iter().find(|lot| !is_clean(lot.qty)) {
             return Err(CoreError::BadValue {
                 what: "lot quantity",
                 value: bad.qty,
             });
         }
-        let mut rounding = 0.0;
+        let mut rounding = Vec::new();
         for lot in lots {
-            rounding += self.merge(g, lot);
+            let created = self.merge(g, lot);
+            if created != 0.0 {
+                rounding.push(created);
+            }
         }
         Ok(rounding)
     }
 
-    /// Add `qty` of `g` with one life, as [`Inventory::put`] does.
+    /// Add `qty` of `g` with one life, as [`Inventory::put`] does, and return what its one
+    /// merge created by rounding, exactly; 0 when it was exact.
     pub fn put_qty(&mut self, g: GoodId, qty: f64, life: Option<u32>) -> Result<f64, CoreError> {
-        self.put(g, vec![Lot { qty, life }])
+        let rounding = self.put(g, vec![Lot { qty, life }])?;
+        Ok(rounding.first().copied().unwrap_or(0.0))
     }
 
     /// Merge one checked lot, and return what the merge created by rounding.
@@ -616,16 +624,65 @@ mod tests {
                 "{old} - {rest}"
             );
             let back = inv.put(g(0), t.lots).unwrap();
+            assert!(back.len() <= 1, "one lot, one merge");
+            let back: i128 = back.iter().map(|&r| int(r)).sum();
             assert_eq!(
-                int(left) + int(rest) + int(back),
+                int(left) + int(rest) + back,
                 int(inv.get(g(0))),
                 "{left} + {rest}"
             );
-            if t.rounding != 0.0 || back != 0.0 {
+            if t.rounding != 0.0 || back != 0 {
                 rounded += 1;
             }
         }
         assert!(rounded > 100, "the sample rounds: {rounded}");
+    }
+
+    #[test]
+    fn several_merges_report_each_rounding() {
+        // O5 (P0.9): a put of several lots merges each into the lot of its life, and each merge
+        // that rounds reports its own exact error. Summed in f64 they would round in turn: 7 and
+        // 1e-17 destroyed add to 7, and 1e-17 would vanish with no line.
+        use crate::testkit::exactly_zero;
+        // The checker itself: an exact sum, by expansion, not a float fold.
+        assert!(exactly_zero([1e17, 7.0, -1e17, -7.0]));
+        assert!(!exactly_zero([1e17, 7.0, -1e17]));
+        assert!(!exactly_zero([0.1, 0.2, -(0.1 + 0.2)]));
+        assert!(exactly_zero([0.1, 1e-300, -0.1, -1e-300]));
+        let mut inv = inv_with(&[(0, 1e17, Some(2)), (0, 1.0, Some(3))]);
+        let lots = vec![
+            Lot {
+                qty: 7.0,
+                life: Some(2),
+            },
+            Lot {
+                qty: 1e-17,
+                life: Some(3),
+            },
+        ];
+        let rounding = inv.put(g(0), lots).unwrap();
+        assert_eq!(rounding, vec![-7.0, -1e-17]);
+        assert_eq!(-7.0 + -1e-17, -7.0, "a float sum would lose the second");
+        let after: Vec<f64> = inv.lots(g(0)).iter().map(|l| l.qty).collect();
+        assert_eq!(after, vec![1e17, 1.0]);
+        // Held before, plus put, plus created, less held after: exactly zero.
+        let terms = [1e17, 1.0, 7.0, 1e-17]
+            .into_iter()
+            .chain(rounding.iter().copied())
+            .chain(after.iter().map(|q| -q));
+        assert!(exactly_zero(terms));
+        // An exact merge reports nothing, and a lot of a new life merges with nothing.
+        assert!(inv.put_qty(g(0), 16.0, Some(2)).unwrap().to_bits() == 0);
+        assert!(inv
+            .put(
+                g(0),
+                vec![Lot {
+                    qty: 0.5,
+                    life: None
+                }]
+            )
+            .unwrap()
+            .is_empty());
     }
 
     #[test]

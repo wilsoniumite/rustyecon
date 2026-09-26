@@ -328,12 +328,12 @@ pub enum CheckpointError {
     /// The bytes or text do not decode, or hold a value core rejects (NaN, `-0.0`, a negative
     /// quantity, a book of the wrong shape).
     Decode(String),
-    /// The decoded state's hash is not the digest stored with it: the state was edited or
-    /// corrupted after it was saved.
+    /// The decoded fields (`world_id`, `prefix_id`, the state and the run's ledger) do not hash
+    /// to the digest stored with them: the checkpoint was edited or corrupted after it was saved.
     Digest {
         /// The digest the checkpoint carries.
         stored: u64,
-        /// The hash of the state it carries.
+        /// The hash of the fields it carries.
         computed: u64,
     },
 }
@@ -349,8 +349,8 @@ impl fmt::Display for CheckpointError {
             CheckpointError::Decode(m) => write!(f, "checkpoint does not decode: {m}"),
             CheckpointError::Digest { stored, computed } => write!(
                 f,
-                "the checkpoint's state hashes to 0x{computed:016x}, not its digest \
-                 0x{stored:016x}: it was edited or corrupted after it was saved"
+                "the checkpoint hashes to 0x{computed:016x}, not its digest 0x{stored:016x}: \
+                 it was edited or corrupted after it was saved"
             ),
         }
     }

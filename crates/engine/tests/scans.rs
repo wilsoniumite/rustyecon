@@ -5,7 +5,9 @@
 
 mod common;
 
-use common::scan::{engine_path_tokens, float_violations, shipped, strip, tokens, Tok};
+use common::scan::{
+    engine_path_tokens, float_violations, int_float_violations, shipped, strip, tokens, Tok,
+};
 
 fn ident(t: &Tok, name: &str) -> bool {
     matches!(t, Tok::Ident(s) if s == name)
@@ -68,6 +70,36 @@ fn the_scanner_reads_what_it_should() {
     let limits = tokens(&strip("let top = f64::INFINITY; let big = f64::MAX;"));
     assert!(float_violations(&limits, true).is_empty());
     assert_eq!(float_violations(&limits, false).len(), 2);
+    // An integer made float is a behavioural number too (O13): the review's two mutants, a
+    // dead band of 1/1e9 and a fraction of 1/2, and the other spellings. A variable, an
+    // integer type's limit, 0 and 1, and an allowed calendar constant are not.
+    let src = r"
+        if x.abs() < 1.0 / f64::from(1_000_000_000u32) { 0.0 } else { x }
+        SellQty::AllHeld => left / f64::from(2u8),
+        let w = 52 as f64; let v = (n * 26) as f64; let z: f64 = 7u8.into();
+        let b = f64::from_bits(0x3fe0000000000000); let p = s.parse::<f64>();
+        let c = f64::from(WEEKS); let d = DAYS as f64;
+        let n = f64::from(self.ticks_per_year); let m = f64::from(u32::MAX); let k = t as f64;
+        let one = 1 as f64; let zero = f64::from(0u8); let bits = f64::from_bits(0);
+        let y = f64::from(YEAR_E4_DAYS); let len = v.len() as f64;
+    ";
+    let found = int_float_violations(&tokens(&shipped(&strip(src))), &["YEAR_E4_DAYS"]);
+    let named: Vec<&str> = found.iter().map(|f| f.split(' ').next().unwrap()).collect();
+    assert_eq!(
+        named,
+        [
+            "1000000000",
+            "2",
+            "52",
+            "26",
+            "7",
+            "0x3fe0000000000000",
+            "parse::<float>",
+            "WEEKS",
+            "DAYS"
+        ],
+        "{found:#?}"
+    );
 }
 
 #[test]
@@ -129,10 +161,22 @@ fn no_behavioural_float_literals() {
     // and 1.0 (the additive and multiplicative identities, a fill's cap, a price by
     // definition), and may name no float constant (an `f64::EPSILON` threshold is an absolute
     // epsilon), except core::num, which searches between the float limits.
+    // Nor may it make an integer other than 0 and 1 float (O13), except clock.rs's calendar
+    // constants, which the date-to-tick map needs.
+    const CALENDAR: [&str; 2] = ["YEAR_E4_DAYS", "E4"];
     let mut found = Vec::new();
     for (path, toks) in engine_path_tokens() {
-        let num = path.replace('\\', "/").ends_with("core/src/num.rs");
+        let path_fwd = path.replace('\\', "/");
+        let num = path_fwd.ends_with("core/src/num.rs");
         for v in float_violations(&toks, num) {
+            found.push(format!("{path}: {v}"));
+        }
+        let allowed: &[&str] = if path_fwd.ends_with("core/src/clock.rs") {
+            &CALENDAR
+        } else {
+            &[]
+        };
+        for v in int_float_violations(&toks, allowed) {
             found.push(format!("{path}: {v}"));
         }
     }

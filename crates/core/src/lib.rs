@@ -140,6 +140,29 @@ pub(crate) mod testkit {
         l.close(s, w)
     }
 
+    /// Whether the exact sum of `terms` is zero. The terms are grown into a Shewchuk expansion
+    /// by TwoSum, with zeros dropped: its components do not overlap and sum exactly to the
+    /// terms' sum, so that sum is zero exactly when no component is left. No float fold rounds.
+    pub fn exactly_zero(terms: impl IntoIterator<Item = f64>) -> bool {
+        let mut expansion: Vec<f64> = Vec::new();
+        for t in terms {
+            let mut q = t;
+            let mut grown = Vec::with_capacity(expansion.len() + 1);
+            for &c in &expansion {
+                let (s, e) = crate::num::two_sum(q, c);
+                if e != 0.0 {
+                    grown.push(e);
+                }
+                q = s;
+            }
+            if q != 0.0 {
+                grown.push(q);
+            }
+            expansion = grown;
+        }
+        expansion.is_empty()
+    }
+
     /// Write a quantity straight into a holding, bypassing `apply` and the ledger.
     pub fn write_direct<E: Ext>(s: &mut SimState<E>, h: Holder, g: GoodId, delta: f64) {
         let inv = s.holdings.entry(h).or_default();

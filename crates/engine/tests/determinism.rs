@@ -35,9 +35,12 @@ fn gate_repeat_identical_hashes() {
 fn gate_resume_from_checkpoints() {
     // Checkpoint at ticks 1, 520, 1,040 and 2,079 through both forms; each resumed run reloads
     // to an equal hash, and its tail equals the uninterrupted run tick for tick (lot lives
-    // included, defect 5).
+    // included, defect 5). Since P0.9 the checkpoint carries the run's ledger (O8), so every
+    // resumed report equals the uninterrupted run's in full, its run audit (from genesis)
+    // included.
     let t = tape();
     let reference = hashes(&t, TICKS);
+    let full = reports(&mut sim_of(&t), TICKS);
     for at in [1u64, 520, 1040, 2079] {
         let mut sim = sim_of(&t);
         sim.run_until(at, &mut |_| {}).unwrap();
@@ -51,15 +54,21 @@ fn gate_resume_from_checkpoints() {
             let mut resumed = Sim::resume(&t, &loaded).expect("the checkpoint resumes");
             assert_eq!(resumed.hash(), sim.hash(), "the round trip is lossless");
             assert_eq!(resumed.tick(), at);
-            let mut tail = Vec::new();
-            resumed
-                .run_until(TICKS, &mut |r| tail.push(r.hash))
-                .unwrap();
+            let tail = reports(&mut resumed, TICKS);
+            let hashes: Vec<u64> = tail.iter().map(|r| r.hash).collect();
             assert_eq!(
-                tail.as_slice(),
+                hashes.as_slice(),
                 &reference[at as usize..],
                 "the run resumed at {at} must track the uninterrupted run"
             );
+            assert_eq!(tail.len(), full[at as usize..].len());
+            for (r, u) in tail.iter().zip(&full[at as usize..]) {
+                assert_eq!(
+                    r.run.since, 0,
+                    "resumed at {at}: the run's audit is from genesis"
+                );
+                assert!(r == u, "resumed at {at}: tick {}'s report differs", r.tick);
+            }
         }
     }
 }

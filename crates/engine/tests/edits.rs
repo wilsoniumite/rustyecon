@@ -430,3 +430,62 @@ fn resume_refuses_an_invalid_state() {
     Sim::resume(&t, &Checkpoint::from_ron(&text).unwrap())
         .expect("the untouched checkpoint resumes");
 }
+
+#[test]
+fn resume_refuses_an_edited_identity() {
+    // O7 (P0.9): a refused resume names the tape's prefix_id or world_id. Under format 2 the
+    // digest covered the state alone, so writing that value into the checkpoint made it resume
+    // under another past, or under an edited world whose edit the checkpoint's params never
+    // saw. Format 3's digest covers both, so either edit, in either form, is refused when the
+    // checkpoint is decoded, before any resume.
+    let t = tape();
+    let cp = checkpoint_at(&t, 600);
+    // Another past: the cut moved from 1760-03-01 to 1761-03-01, both before tick 600.
+    let past = tape_of(&edit(
+        r#"(key: "mine.cut", at: "1760-03-01""#,
+        r#"(key: "mine.cut", at: "1761-03-01""#,
+    ));
+    let prefix = match Sim::resume(&past, &cp) {
+        Err(ResumeError::WrongPrefix {
+            tick,
+            tape,
+            checkpoint,
+        }) => {
+            assert_eq!((tick, checkpoint), (600, cp.prefix_id()));
+            tape
+        }
+        other => panic!("expected WrongPrefix, got {other:?}"),
+    };
+    // Another world: the bread's price rate.
+    let world = tape_of(&edit(
+        r#"(key: "rate.bread", value: 5.2,"#,
+        r#"(key: "rate.bread", value: 5.3,"#,
+    ));
+    let world_id = match Sim::resume(&world, &cp) {
+        Err(ResumeError::WrongWorld { tape, checkpoint }) => {
+            assert_eq!(checkpoint, cp.world_id());
+            tape
+        }
+        other => panic!("expected WrongWorld, got {other:?}"),
+    };
+    let digest = |r: Result<Checkpoint, CheckpointError>| matches!(r, Err(CheckpointError::Digest { stored, .. }) if stored == cp.digest());
+    // Bytes: world_id at 12..20 and prefix_id at 20..28, after the magic and the format.
+    for (at, value) in [(20, prefix), (12, world_id)] {
+        let mut b = cp.to_bytes();
+        b[at..at + 8].copy_from_slice(&value.to_le_bytes());
+        assert!(digest(Checkpoint::from_bytes(&b)), "bytes at {at}");
+    }
+    // RON: the same fields, as the refusal printed them.
+    let text = cp.to_ron();
+    for (field, old, new) in [
+        ("prefix_id", cp.prefix_id(), prefix),
+        ("world_id", cp.world_id(), world_id),
+    ] {
+        let from = format!("{field}: {old},");
+        assert_eq!(text.matches(&from).count(), 1, "{from}");
+        let edited = text.replacen(&from, &format!("{field}: {new},"), 1);
+        assert!(digest(Checkpoint::from_ron(&edited)), "{field}");
+    }
+    // Untouched, it still resumes under its own tape.
+    Sim::resume(&t, &Checkpoint::from_ron(&text).unwrap()).expect("the checkpoint resumes");
+}

@@ -145,3 +145,63 @@ fn a13_annual_quantities_invariant() {
         );
     }
 }
+
+#[test]
+fn same_tick_events_fire_in_date_order() {
+    // O9 (P0.9), A13, E8: two dated events that fall in one tick fire in date order, so what a
+    // tape means does not change with its tick length or with how its keys are spelled. The
+    // gate tape gains a cut of the mine on 1760-11-01, keyed "z.cut", and a restore twenty days
+    // later, keyed "a.restore". At 52 or 365 ticks a year they fall in two ticks and the later
+    // restore wins; at 12 they share a tick, where key order put the cut last and left the mine
+    // cut for nine and a half years, until the tape's own 1770 restore. Now the restore wins at
+    // every tick length, and at 12 the report lists the two in date order.
+    let text = edit(
+        "    events: [\n",
+        "    events: [\n        (key: \"z.cut\", at: \"1760-11-01\", basis: Assumed(\"test\"), \
+         act: SetParam(param: \"mine.capacity\", to: \"mine.capacity.cut\")),\n        \
+         (key: \"a.restore\", at: \"1760-11-21\", basis: Assumed(\"test\"), \
+         act: SetParam(param: \"mine.capacity\", to: \"mine.capacity.base\")),\n",
+    );
+    for tpy in [12u32, 52, 365] {
+        let t = tape_of(&edit_text(
+            &text,
+            "ticks_per_year: 52,",
+            &format!("ticks_per_year: {tpy},"),
+        ));
+        let mut sim = sim_of(&t);
+        let w = sim.world().clone();
+        let capacity = param(&w, "mine.capacity");
+        let (cut, restore) = (tick_of(&w, "1760-11-01"), tick_of(&w, "1760-11-21"));
+        assert_eq!(
+            cut == restore,
+            tpy == 12,
+            "{tpy} ticks a year: {cut} and {restore}"
+        );
+        let mut order = Vec::new();
+        sim.run_until(restore + 1, &mut |r| {
+            for e in &r.events {
+                if ["z.cut", "a.restore"].contains(&e.key.as_str()) {
+                    order.push((r.tick, e.key.to_string()));
+                }
+            }
+        })
+        .expect("the run succeeds");
+        assert_eq!(
+            order,
+            [
+                (cut, "z.cut".to_string()),
+                (restore, "a.restore".to_string())
+            ],
+            "{tpy} ticks a year"
+        );
+        assert_eq!(sim.param(capacity), Some(52.0), "{tpy} ticks a year");
+        // And it stays restored until the tape's next event on the mine, the 1770 restore.
+        sim.run_until(tick_of(&w, "1765-01-01"), &mut |_| {})
+            .expect("the run succeeds");
+        assert_eq!(
+            sim.param(capacity),
+            Some(52.0),
+            "{tpy} ticks a year, in 1765"
+        );
+    }
+}

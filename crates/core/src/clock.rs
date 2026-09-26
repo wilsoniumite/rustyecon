@@ -254,10 +254,23 @@ impl Clock {
     /// integers. `tick_of(date_of(t)) == t` whenever `ticks_per_year <= 365`. `None` if the date
     /// does not fit.
     pub fn date_of(&self, tick: u64) -> Option<Date> {
-        let per = i128::from(self.ticks_per_year) * E4;
-        let days = (i128::from(tick) * YEAR_E4_DAYS + per - 1) / per;
-        let days = i64::try_from(days).ok()?;
+        let days = i64::try_from(self.days_to(tick)).ok()?;
         Date::from_days(self.start.days().checked_add(days)?)
+    }
+
+    /// The first day of a tick as [`Date::days`] counts them: the day of
+    /// [`Clock::date_of`], saturating at `i64::MAX` where that would not fit. The schedule
+    /// dates a recurring occurrence by it.
+    pub fn first_day(&self, tick: u64) -> i64 {
+        let day = i128::from(self.start.days()) + self.days_to(tick);
+        i64::try_from(day).unwrap_or(i64::MAX)
+    }
+
+    /// Days from the start to the first day of `tick`: `ceil(t·3,652,425 /
+    /// (ticks_per_year·10⁴))`.
+    fn days_to(&self, tick: u64) -> i128 {
+        let per = i128::from(self.ticks_per_year) * E4;
+        (i128::from(tick) * YEAR_E4_DAYS + per - 1) / per
     }
 }
 
