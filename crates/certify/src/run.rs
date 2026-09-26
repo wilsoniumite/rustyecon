@@ -9,7 +9,7 @@ use crate::certificate::{seal, BatteryId, BatteryResult, Certificate, CriteriaRe
 use crate::criteria::{BatterySpec, Criteria, CriteriaError, Fit};
 use crate::kick::{kick_segment, reserved_keys};
 use crate::manifest::{tape_hash, Build, Hex, Manifest, RunKey};
-use crate::obs::{segments, Names, Obs, Segment};
+use crate::obs::{kick_ticks, segment_before, segments, Names, Obs, Segment};
 use rustyecon_engine::prelude::{audit_replay, Checkpoint, LoadError, Sim, Tape, TickReport};
 use std::fmt;
 
@@ -215,11 +215,14 @@ pub fn certify(
         Some(f) => segments(&world, 0, until, f.min_segment),
         None => Vec::new(),
     };
-    let kick_listed = criteria.is_some_and(|c| c.battery(BatteryId::Kick).is_some());
+    // The kick fires at the run's end and at every dated shock, merged or not (§7, amended at
+    // S2.5), so a regime shorter than min_segment is kicked too.
+    let kick_at: Vec<u64> = match criteria {
+        Some(c) if c.battery(BatteryId::Kick).is_some() => kick_ticks(&world, 0, until),
+        _ => Vec::new(),
+    };
     let mut keep: Vec<u64> = fit.as_ref().map_or_else(Vec::new, |f| f.resume_at.clone());
-    if kick_listed {
-        keep.extend(segs.iter().map(|s| s.to));
-    }
+    keep.extend(&kick_at);
     keep.sort_unstable();
     keep.dedup();
 
@@ -297,19 +300,20 @@ pub fn certify(
                             max_peak: max_peak.value,
                         };
                         let base_file = file.rsplit(['/', '\\']).next().unwrap_or(file);
-                        let kicks: Vec<_> = segs
+                        let kicks: Vec<_> = kick_at
                             .iter()
-                            .enumerate()
-                            .map(|(k, s)| match kept(&b, s.to) {
-                                Some(cp) => kick_segment(tape, &world, cp, k, &bars, base_file),
-                                None => battery::KickSegment {
-                                    segment: k,
-                                    at: s.to,
-                                    runs: Err(format!(
-                                        "the base run kept no checkpoint at tick {}",
-                                        s.to
-                                    )),
-                                },
+                            .map(|&t| {
+                                let k = segment_before(&segs, t).unwrap_or(usize::MAX);
+                                match kept(&b, t) {
+                                    Some(cp) => kick_segment(tape, &world, cp, k, &bars, base_file),
+                                    None => battery::KickSegment {
+                                        segment: k,
+                                        at: t,
+                                        runs: Err(format!(
+                                            "the base run kept no checkpoint at tick {t}"
+                                        )),
+                                    },
+                                }
                             })
                             .collect();
                         Some(battery::kick(&kicks, &bars, &names))
@@ -325,6 +329,7 @@ pub fn certify(
         hash: Hex(c.hash()),
         tape_hash: c.tape.tape_hash,
         listed: c.listed(),
+        price_shocks: c.allowed_price_shocks(),
     });
     let certificate = seal(Parts {
         run,

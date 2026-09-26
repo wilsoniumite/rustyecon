@@ -17,6 +17,41 @@ pub const BCYCLE: &str = include_str!("../../testdata/appb-bcycle.ron");
 pub const FREEZE: &str = include_str!("../../testdata/appb-freeze.ron");
 /// appb under July's step rule from w×2: the negative control, which runs away.
 pub const JULY: &str = include_str!("../../testdata/appb-july.ron");
+/// appb at desk turnover ×16 from its exact genesis: the probe's false-GO turnover cell, frozen
+/// at an unstable point from the first tick (the verification's E4, S2.5).
+pub const BUFFER16: &str = include_str!("../../testdata/appb-buffer16.ron");
+
+/// The registered criteria of the gate world.
+pub const GATE_CRITERIA: &str = include_str!("../../../../criteria/gate-2026-09-26.ron");
+/// The registered criteria of appb.
+pub const APPB_CRITERIA: &str = include_str!("../../../../criteria/appb-2026-09-26.ron");
+
+/// A tape's registered criteria, `criteria/<name>-2026-09-26.ron`.
+pub fn registered(name: &str) -> Criteria {
+    let text = match name {
+        "gate" => GATE_CRITERIA,
+        "appb" => APPB_CRITERIA,
+        _ => panic!("no registered criteria for {name}"),
+    };
+    Criteria::from_ron(text, &file(name)).unwrap_or_else(|e| panic!("{name}: {e}"))
+}
+
+/// A battery spec as the RON a criteria file lists it by.
+pub fn spec_ron(b: &certify::BatterySpec) -> String {
+    ron::to_string(b).expect("a battery serialises")
+}
+
+/// Criteria text that registers `n` `ScalePrice` firings (amended at S2.5).
+pub fn with_price_shocks(text: &str, n: u64) -> String {
+    assert_eq!(text.matches("    batteries: [").count(), 1);
+    text.replacen(
+        "    batteries: [",
+        &format!(
+            "    price_shocks: Some((value: {n}, basis: Assumed(\"test\"))),\n    batteries: ["
+        ),
+        1,
+    )
+}
 
 /// A tape.
 pub fn tape(text: &str) -> Tape {

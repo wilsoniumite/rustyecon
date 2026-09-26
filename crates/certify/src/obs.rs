@@ -265,6 +265,30 @@ impl Segment {
     }
 }
 
+/// The ticks the kick fires at (§7, amended at S2.5): every distinct tick inside `(from, until)`
+/// at which a dated event fires (`w.schedule.once()`, recurring entries not included), whether or
+/// not it closes a segment, and `until`, in order. A kick at T probes the regime in force before
+/// T, so every regime is kicked, however short: a shock that C5 merges into its segment still
+/// ends one.
+pub fn kick_ticks(w: &World, from: u64, until: u64) -> Vec<u64> {
+    let mut out: Vec<u64> = w
+        .schedule
+        .once()
+        .iter()
+        .map(|f| f.tick)
+        .filter(|&t| from < t && t < until)
+        .collect();
+    out.push(until);
+    out.sort_unstable();
+    out.dedup();
+    out
+}
+
+/// The index of the segment that holds tick `t − 1`, the one whose regime a kick at `t` probes.
+pub fn segment_before(segments: &[Segment], t: u64) -> Option<usize> {
+    segments.iter().position(|s| s.from < t && t <= s.to)
+}
+
 /// The run's segments over `[from, until)`: a dated event (`w.schedule.once()`, recurring entries
 /// not included) at a tick b inside `(from, until)` closes the current segment `[a, b)` if b − a
 /// ≥ `min_len`, and joins its `merged` list otherwise. A last segment shorter than `min_len`

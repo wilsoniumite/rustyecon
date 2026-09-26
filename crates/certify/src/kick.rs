@@ -1,6 +1,6 @@
-//! The kick check (docs/CERTIFY.md §7; C1; REPORT §5 and §6 criterion 1): at each segment's end
-//! the base run's checkpoint resumes under tapes that differ from the base only by one dated
-//! price shock, and the kick must decay.
+//! The kick check (docs/CERTIFY.md §7; C1; REPORT §5 and §6 criterion 1): at the run's end and
+//! at every dated shock (amended at S2.5), the base run's checkpoint resumes under tapes that
+//! differ from the base only by one dated price shock, and the kick must decay.
 //!
 //! A kick is a tape edit with provenance, never a state edit (E1): [`deferred_tape`] moves every
 //! dated event from the kick's tick on past the horizon, and [`kicked_tape`] adds a param only
@@ -157,8 +157,9 @@ fn same_world(tape: &Tape, base: &World, t: u64) -> Result<(), String> {
     Ok(())
 }
 
-/// The kicks at one segment's end (§7): the base continuation and ± each market, each resumed
-/// from `cp`, the base run's checkpoint at the segment's end, for the horizon. Every failure is
+/// The kicks at one tick (§7): the base continuation and ± each market, each resumed from `cp`,
+/// the base run's checkpoint at that tick (the run's end or a dated shock), for the horizon, and
+/// `segment` the segment whose regime they probe. Every failure is
 /// in the result, never an error: a checkpoint of another world, a tape that does not load, a
 /// refused resume, a run that fails.
 pub fn kick_segment(

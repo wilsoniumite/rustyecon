@@ -21,7 +21,10 @@
 #      is whether `git status --porcelain` over the build's sources is non-empty;
 #   8. the committed certificates: committed_certificates_recompute by name, which must run and
 #      pass (C10), and each certificate's build commit an ancestor of HEAD;
-#   9. telemetry written twice through the binary, from two processes: the Parquet files, and
+#   9. the probe's report: probe_battery_csv_unchanged by name, which must run and pass (C11:
+#      the probe reads certify's measures, and its 57 rows, its negative control and its shock
+#      history must print as docs/probe/results/ does);
+#  10. telemetry written twice through the binary, from two processes: the Parquet files, and
 #      the manifests that pin them, must be byte-identical.
 # Then, recorded and never gated: cargo check of rustyecon-engine and of rustyecon-certify
 # (Parquet-free) for wasm32-unknown-unknown, when that target is installed.
@@ -159,6 +162,19 @@ for cert in results/*/certificate.ron; do
     fi
     echo "$cert: build $c, an ancestor of HEAD"
 done
+
+step "the probe's report, pinned"
+# C11: the probe delegates its oracle-free measures to certify; its summaries must not move.
+out="$(cargo test --locked --release -p rustyecon-probe --test pins \
+    -- --ignored --exact probe_battery_csv_unchanged 2>&1)" || {
+    printf '%s\n' "$out"
+    exit 1
+}
+printf '%s\n' "$out"
+if ! grep -q '^test probe_battery_csv_unchanged \.\.\. ok$' <<<"$out"; then
+    echo "gate: probe_battery_csv_unchanged did not run" >&2
+    exit 1
+fi
 
 step "telemetry, written from two processes"
 for k in 1 2; do

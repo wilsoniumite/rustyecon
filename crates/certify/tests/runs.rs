@@ -1,39 +1,47 @@
 //! `certify` on real runs (docs/CERTIFY.md §3, §6–§8, §13): the gate world, the probe's
 //! Appendix B world, and certify's testdata, written by `appb-tape` (§13): `appb-bcycle.ron`
 //! (four dated changes of b), `appb-freeze.ron` (desk turnover ×16 from w×1.05, converged and
-//! frozen at an unstable point) and `appb-july.ron` (July's step rule from w×2, the negative
-//! control).
+//! frozen at an unstable point), `appb-buffer16.ron` (desk turnover ×16 from the exact genesis,
+//! frozen there from the first tick; S2.5) and `appb-july.ron` (July's step rule from w×2, the
+//! negative control).
 //!
-//! Test bars, named once. None is gate's or appb's registered bar (§13), except the kick on
-//! appb, whose outcome REPORT §3 and §5 already record: a 1e-9 kick over one L (20,020 ticks at
-//! 52 a year, 385 years), read over the last tenth, decays below a gain of 1e-3 and never grows
-//! past 1e6 (the probe's tolerance, 1e-3 in log, over the kick). Runaway at 1e6 (PROBE-SPEC
-//! §4.5) on appb and 1e3 on the gate (ENGINE §10). Settles: W from half a segment, F from nine
-//! tenths, a hundredth of W dead, a band of 1e-4 in log. Segments of at least 20 years on appb,
-//! below bcycle's 1,500 ticks, and one year on the gate.
+//! The bars (amended at S2.5). The gate's tests apply the gate's registered batteries, and the
+//! appb tests appb's registered Runaway, Settles and Kick (the Kick's horizon shortened where a
+//! test says so), each read from `criteria/<tape>-2026-09-26.ron`, so a test and the file cannot
+//! drift apart. Until S2.5 this header said that no test applied a registered bar but appb's
+//! kick. That was not so: from S2.3, before the criteria were committed at `1ee9b80`, the gate's
+//! tests and the appb tests wrote the same values into their own criteria text (CERTIFY's S2.5
+//! amendment names them). No value was tuned to a run: each bar's basis predates the session
+//! (ENGINE §10, July's `invariants.rs`, PROBE-SPEC §4.5, REPORT §5). Test bars that are not
+//! registered ones: segments of 20 years on appb runs other than appb's own, below bcycle's
+//! 1,500 ticks, and runs shorter than a registered `until`. The constants below restate a
+//! registered number where an assertion needs it, and `the_bars_are_the_registered_ones`
+//! checks that they agree.
 
 mod common;
 
 use certify::kick::{deferred_tape, kick_segment, KICK_FACTOR};
 use certify::{
-    battery, certify, nonfinite_paths, tape_hash, BatteryId, Certificate, CertificateError,
-    Certified, CertifyError, RawCertificate, Reading, Scoring, Verdict,
+    battery, certify, nonfinite_paths, tape_hash, BatteryId, BatterySpec, Certificate,
+    CertificateError, Certified, CertifyError, Limit, RawCertificate, Reading, Scoring, Verdict,
 };
 use common::*;
 use rustyecon_core::tape::raw::RawAct;
-use rustyecon_engine::prelude::{Provenance, SideTag, Tape, TickReport};
+use rustyecon_engine::prelude::{Provenance, SideTag, Sim, Tape, TickReport};
 use rustyecon_engine::rustyecon_agents::ActorState;
 
 /// L: 20,000 ticks (RULES §3).
 const L: u64 = 20_000;
-/// One L of kick at 52 a year: 20,020 ticks.
+/// One L of kick at 52 a year: 20,020 ticks, appb's registered horizon.
 const HORIZON: f64 = 385.0;
-const TAIL: f64 = 0.1;
+/// appb's registered kick: its size, and the largest gain in the tail and at the peak.
+const KICK: f64 = 1e-9;
 const MAX_GAIN: f64 = 1e-3;
 const MAX_PEAK: f64 = 1e6;
-const KICK: f64 = 1e-9;
+/// The registered runaway bounds of appb and the gate.
 const APPB_BOUND: f64 = 1e6;
 const GATE_BOUND: f64 = 1e3;
+/// Both files' `rationed_below`.
 const RATIONED: f64 = 1e-9;
 
 fn run(t: &Tape, name: &str, until: u64, min_segment: f64, bats: &[String]) -> Certified {
@@ -58,24 +66,60 @@ fn run(t: &Tape, name: &str, until: u64, min_segment: f64, bats: &[String]) -> C
     .unwrap_or_else(|e| panic!("certify runs: {e}"))
 }
 
+/// The gate's registered batteries, read from its criteria file.
 fn gate_batteries() -> Vec<String> {
-    vec![
-        conservation(),
-        determinism(&[0.25, 0.5, 0.75]),
-        runaway(GATE_BOUND),
-        trades(1.0),
-        balance(1e-9, 1e-12, 32, 0.5),
-    ]
+    registered("gate").batteries.iter().map(spec_ron).collect()
 }
 
+/// appb's registered Conservation, Determinism, Runaway, Settles and Kick, read from its
+/// criteria file, with the Kick's horizon `horizon` years.
 fn appb_batteries(horizon: f64) -> Vec<String> {
-    vec![
-        conservation(),
-        determinism(&[0.5]),
-        runaway(APPB_BOUND),
-        settles(0.5, 0.9, 0.01, 1e-4),
-        kick(KICK, horizon, TAIL, MAX_GAIN, MAX_PEAK),
+    let c = registered("appb");
+    [
+        BatteryId::Conservation,
+        BatteryId::Determinism,
+        BatteryId::Runaway,
+        BatteryId::Settles,
+        BatteryId::Kick,
     ]
+    .iter()
+    .map(|id| {
+        let mut b = c.battery(*id).expect("registered").clone();
+        if let BatterySpec::Kick { horizon: h, .. } = &mut b {
+            h.value = horizon;
+        }
+        spec_ron(&b)
+    })
+    .collect()
+}
+
+#[test]
+fn the_bars_are_the_registered_ones() {
+    // The constants this file's assertions use restate registered numbers; they agree with the
+    // files, and the helpers above read the files themselves.
+    let (gate, appb) = (registered("gate"), registered("appb"));
+    let bound = |c: &certify::Criteria| match c.battery(BatteryId::Runaway) {
+        Some(BatterySpec::Runaway { bound }) => bound.value,
+        _ => panic!("Runaway is registered"),
+    };
+    assert_eq!((bound(&gate), bound(&appb)), (GATE_BOUND, APPB_BOUND));
+    match appb.battery(BatteryId::Kick) {
+        Some(BatterySpec::Kick {
+            size,
+            horizon,
+            max_gain,
+            max_peak,
+            ..
+        }) => assert_eq!(
+            (size.value, horizon.value, max_gain.value, max_peak.value),
+            (KICK, HORIZON, MAX_GAIN, MAX_PEAK)
+        ),
+        _ => panic!("Kick is registered"),
+    }
+    for c in [&gate, &appb] {
+        assert_eq!(c.reports.rationed_below.value, RATIONED);
+        assert_eq!(c.allowed_price_shocks(), 0);
+    }
 }
 
 fn readings<'a>(c: &'a Certificate, id: BatteryId, name: &str) -> Vec<&'a Reading> {
@@ -136,6 +180,73 @@ fn unscored_run_never_passes() {
 }
 
 #[test]
+fn certify_reads_the_whole_run() {
+    // certify hands each battery the whole run (the verification's wiring minors R7, W1, W3 and
+    // W6, which only the byte equality of the committed certificates caught): Trades scores
+    // all 40 yearly windows, Balance every market in every segment, Determinism every resume,
+    // and Conservation every tick, whose largest margin is the run's, not its first tick's.
+    let gate = tape(GATE);
+    let c = registered("gate");
+    let mut margins = Vec::new();
+    let out = certify(
+        &gate,
+        Scoring::Criteria {
+            criteria: &c,
+            file: &file("gate"),
+        },
+        &build(),
+        &mut |r| margins.push(r.audit.max_margin),
+    )
+    .unwrap()
+    .certificate;
+    assert_eq!(out.verdict(), Verdict::Pass, "{:?}", out.failures());
+    let one = |name: &str| {
+        let r = readings(&out, battery_of(name), name);
+        assert_eq!(r.len(), 1, "{name}");
+        r[0].value
+    };
+    assert_eq!(one("trades.windows"), 40.0);
+    let markets = sim(&gate).world().markets().count();
+    assert_eq!(markets, 6);
+    assert_eq!(
+        readings(&out, BatteryId::Trades, "trades.silent_windows").len(),
+        markets
+    );
+    let segments = out.segments().len();
+    assert_eq!(segments, 5);
+    assert_eq!(
+        readings(&out, BatteryId::Balance, "balance.samples").len(),
+        markets * segments
+    );
+    let resumes: Vec<&str> = readings(&out, BatteryId::Determinism, "determinism.resume")
+        .iter()
+        .map(|r| r.at.as_str())
+        .collect();
+    assert_eq!(resumes, ["tick 520", "tick 1040", "tick 1560"]);
+    assert_eq!(margins.len(), 2080);
+    let largest = margins.iter().copied().fold(0.0, f64::max);
+    assert!(
+        largest > margins[0],
+        "the largest margin is not the first tick's"
+    );
+    assert_eq!(one("conservation.max_margin"), largest);
+}
+
+/// The battery a reading's name belongs to.
+fn battery_of(name: &str) -> BatteryId {
+    match name.split('.').next() {
+        Some("conservation") => BatteryId::Conservation,
+        Some("determinism") => BatteryId::Determinism,
+        Some("runaway") => BatteryId::Runaway,
+        Some("trades") => BatteryId::Trades,
+        Some("balance") => BatteryId::Balance,
+        Some("settles") => BatteryId::Settles,
+        Some("kick") => BatteryId::Kick,
+        _ => panic!("{name}"),
+    }
+}
+
+#[test]
 fn a_listed_battery_that_did_not_run_fails() {
     // N4: a run stopped early does not run the batteries that read a whole run, and each of them
     // fails as "did not run"; the certificate says why the run stopped, first.
@@ -151,7 +262,7 @@ fn a_listed_battery_that_did_not_run_fails() {
     );
     let mut bats = gate_batteries();
     bats.push(settles(0.5, 0.9, 0.01, 1e-4));
-    bats.push(kick(KICK, 10.0, TAIL, MAX_GAIN, MAX_PEAK));
+    bats.push(kick(KICK, 10.0, 0.1, MAX_GAIN, MAX_PEAK));
     let c = run(&t, "gate", 2080, 1.0, &bats).certificate;
     assert_eq!(c.verdict(), Verdict::Fail);
     assert_eq!(c.reached(), 600);
@@ -227,9 +338,9 @@ fn runaway_bound_is_relative() {
     assert!(!r.pass && r.notes.len() == 6, "{:?}", r.notes);
     for r in ra {
         let want = if r.name == "runaway.max_ratio" {
-            GATE_BOUND
+            Limit::AtMost(GATE_BOUND)
         } else {
-            1.0 / GATE_BOUND
+            Limit::AtLeast(1.0 / GATE_BOUND)
         };
         assert_eq!(r.bar, Some(want));
     }
@@ -300,6 +411,19 @@ fn kick_check_fails_a_rounding_freeze() {
         .filter(|(p, t)| p.value > MAX_PEAK && t.value <= MAX_GAIN)
         .collect();
     assert!(swung.len() >= 6, "{peaks:?}");
+    // The verification's E3: this certificate with Kick's pass flag flipped, its verdict set to
+    // PASS and its failures emptied read back PASS, since the seal took the flags on trust. The
+    // flag must now hold its readings, and six peaks of 2.9e9 do not hold a bar of 1e6.
+    let mut raw: RawCertificate = ron::from_str(&c.to_ron()).unwrap();
+    for b in &mut raw.batteries {
+        b.pass = true;
+    }
+    raw.verdict = Verdict::Pass;
+    raw.failures.clear();
+    assert!(matches!(
+        Certificate::try_from(raw),
+        Err(CertificateError::EditedVerdict { .. })
+    ));
 }
 
 #[test]
@@ -715,7 +839,9 @@ fn reserved_keys_do_not_load() {
 #[test]
 fn price_shocks_are_counted() {
     // §6: a tape that sets its own prices says so. The gate with one dated ScalePrice certifies
-    // with price_shocks 1, and the shock is no failure.
+    // with price_shocks 1. Unscored, the shock is no failure. Scored, it fails unless the
+    // criteria register it (amended at S2.5): the gate's registered batteries fail the shocked
+    // run on the count alone, and the same file registering one shock passes it.
     let gate = tape(GATE);
     let mut t = gate.clone();
     t.params.push(
@@ -747,6 +873,255 @@ fn price_shocks_are_counted() {
         out.manifest.run.world_id, plain.manifest.run.world_id,
         "a shock keeps the world"
     );
+    let text = criteria_text(
+        "gate",
+        tape_hash(&t),
+        &date_of(&t, 2080),
+        1.0,
+        &gate_batteries(),
+        RATIONED,
+    );
+    let scored = |text: &str| {
+        let c = criteria("gate", text);
+        certify(
+            &t,
+            Scoring::Criteria {
+                criteria: &c,
+                file: &file("gate"),
+            },
+            &build(),
+            &mut |_| {},
+        )
+        .unwrap()
+        .certificate
+    };
+    let none = scored(&text);
+    assert_eq!(none.verdict(), Verdict::Fail);
+    assert!(
+        none.batteries().iter().all(|b| b.pass),
+        "only the count fails it"
+    );
+    assert_eq!(
+        none.failures(),
+        [
+            "the run fired 1 ScalePrice events, and its criteria allow 0: a tape that sets its \
+          own prices certifies only as far as its criteria register (R3)"
+        ]
+    );
+    let one = scored(&with_price_shocks(&text, 1));
+    assert_eq!(one.verdict(), Verdict::Pass, "{:?}", one.failures());
+    assert_eq!(one.criteria().map(|c| c.price_shocks), Some(1));
+}
+
+/// appb under July's step rule from w×2 to tick `n`, with a dated `ScalePrice` that resets a
+/// posted price to its genesis value at every tick it has left `[lo, hi]` of it: the
+/// verification's E1. Returns the tape and its count of shocks.
+fn clamped(lo: f64, hi: f64, n: u64) -> (Tape, u64) {
+    let base = tape(JULY);
+    let mut t = base.clone();
+    let mut s = sim(&t);
+    let w = s.world().clone();
+    let markets: Vec<_> = w.markets().collect();
+    let p0: Vec<f64> = markets
+        .iter()
+        .map(|(a, b)| s.price(*a, *b).unwrap())
+        .collect();
+    let mut shocks = 0;
+    for tick in 0..n {
+        let mut added = false;
+        for (m, (node, good)) in markets.iter().enumerate() {
+            let p = s.price(*node, *good).unwrap();
+            let r = p / p0[m];
+            if !(lo..=hi).contains(&r) {
+                let key = format!("clamp.f.{tick}.{m}");
+                t.params.push(
+                    ron::from_str(&format!(
+                        "(key: \"{key}\", value: {:?}, unit: Dimensionless, basis: \
+                         Assumed(\"test\"))",
+                        p0[m] / p
+                    ))
+                    .unwrap(),
+                );
+                t.events.push(
+                    ron::from_str(&format!(
+                        "(key: \"clamp.e.{tick}.{m}\", at: \"{}\", basis: Assumed(\"test\"), \
+                         act: ScalePrice(node: \"{}\", good: \"{}\", by: \"{key}\"))",
+                        date_of(&base, tick),
+                        w.key_of(*node).unwrap(),
+                        w.key_of(*good).unwrap()
+                    ))
+                    .unwrap(),
+                );
+                added = true;
+                shocks += 1;
+            }
+        }
+        if added {
+            let cp = s.checkpoint().unwrap();
+            s = Sim::resume(&t, &cp).unwrap();
+        }
+        s.step().unwrap();
+    }
+    (t, shocks)
+}
+
+#[test]
+fn a_tape_that_clamps_its_prices_does_not_pass() {
+    // The verification's E1 (blocker): July's step rule from w×2 runs away at tick 415 and
+    // stops at 765. Dated ScalePrice events, each its own dated shock, that reset a price to
+    // genesis whenever it leaves [1/2, 2] of it keep every price inside the runaway bound, and
+    // under the minimal legal criteria (Conservation, Determinism, Runaway) the clamped run
+    // certified PASS: the loader refuses only a recurring ScalePrice, and nothing scored the
+    // count. Now the count fails it; criteria that register every one of the shocks pass it,
+    // which is the file saying so.
+    let (t, shocks) = clamped(0.5, 2.0, 1000);
+    assert!(shocks > 100, "{shocks}");
+    let bats = [conservation(), determinism(&[0.5]), runaway(APPB_BOUND)];
+    let text = criteria_text(
+        "appb",
+        tape_hash(&t),
+        &date_of(&t, 1000),
+        5.0,
+        &bats,
+        RATIONED,
+    );
+    let score = |text: &str| {
+        let c = criteria("appb", text);
+        certify(
+            &t,
+            Scoring::Criteria {
+                criteria: &c,
+                file: &file("appb"),
+            },
+            &build(),
+            &mut |_| {},
+        )
+        .unwrap()
+        .certificate
+    };
+    let c = score(&text);
+    assert_eq!(c.price_shocks(), shocks);
+    assert_eq!(c.reached(), 1000, "the clamps keep the run going");
+    assert!(
+        c.batteries().iter().all(|b| b.pass),
+        "every battery passes the clamped run: {:?}",
+        c.batteries()
+    );
+    assert_eq!(c.verdict(), Verdict::Fail);
+    assert_eq!(
+        c.failures(),
+        [format!(
+            "the run fired {shocks} ScalePrice events, and its criteria allow 0: a tape that \
+             sets its own prices certifies only as far as its criteria register (R3)"
+        )]
+    );
+    let one_short = score(&with_price_shocks(&text, shocks - 1));
+    assert_eq!(one_short.verdict(), Verdict::Fail);
+    let all = score(&with_price_shocks(&text, shocks));
+    assert_eq!(all.verdict(), Verdict::Pass, "{:?}", all.failures());
+}
+
+/// appb at desk turnover ×16 from its exact genesis, with both desks' turnover restored to
+/// appb's 5.2 a year by dated events at tick `at` (the verification's E4).
+fn restored(at: u64) -> Tape {
+    let base = tape(BUFFER16);
+    let mut t = base.clone();
+    for d in ["good", "mach"] {
+        t.params.push(
+            ron::from_str(&format!(
+                "(key: \"restore.{d}\", value: 5.2, unit: RatePerYear, basis: Assumed(\"test\"))"
+            ))
+            .unwrap(),
+        );
+        t.events.push(
+            ron::from_str(&format!(
+                "(key: \"restore.{d}.at\", at: \"{}\", basis: Assumed(\"test\"), act: \
+                 SetParam(param: \"buffer.desk.{d}.cash\", to: \"restore.{d}\"))",
+                date_of(&base, at)
+            ))
+            .unwrap(),
+        );
+    }
+    t
+}
+
+#[test]
+fn a_merged_shock_is_kicked() {
+    // The verification's E4 (blocker): appb at desk turnover ×16 rests at an unstable point,
+    // frozen by rounding. A dated restore of the turnover at tick 1,100 closes a segment, and
+    // the kick at its end, run under the deferred tape and so under ×16, fails. The same restore
+    // at tick 1,000, closer than min_segment (20 years, 1,040 ticks) to the start, merged into
+    // one segment, and the only kick ran at the end under the restored turnover: PASS, after 19
+    // years at an unstable point. The kick now fires at every dated shock, merged or not.
+    for (at, segments) in [(1000, 1), (1100, 2)] {
+        let c = run(&restored(at), "appb", 3120, 20.0, &appb_batteries(40.0)).certificate;
+        assert_eq!(c.segments().len(), segments, "restored at {at}");
+        let k = c.battery(BatteryId::Kick).unwrap();
+        assert!(!k.pass, "restored at {at}");
+        assert_eq!(c.verdict(), Verdict::Fail, "restored at {at}");
+        let point = format!("at tick {at}");
+        let peaks: Vec<&Reading> = readings(&c, BatteryId::Kick, "kick.gain_peak")
+            .into_iter()
+            .filter(|r| r.at.ends_with(&point))
+            .collect();
+        assert_eq!(peaks.len(), 8, "restored at {at}");
+        assert!(
+            peaks.iter().any(|r| r.value > MAX_PEAK),
+            "restored at {at}: {peaks:?}"
+        );
+        assert!(
+            peaks.iter().all(|r| r.segment == Some(0)),
+            "the kick at {at} probes the first segment's regime"
+        );
+        // The kick at the end probes the restored turnover, which is stable.
+        let end: Vec<&Reading> = readings(&c, BatteryId::Kick, "kick.gain_peak")
+            .into_iter()
+            .filter(|r| r.at.ends_with("at tick 3120"))
+            .collect();
+        assert_eq!(end.len(), 8);
+        assert!(end.iter().all(|r| r.value <= MAX_PEAK), "{end:?}");
+        assert!(
+            c.battery(BatteryId::Settles).unwrap().pass,
+            "restored at {at}"
+        );
+    }
+}
+
+#[test]
+fn a_kick_moves_its_price_up_and_down() {
+    // REPORT §6: a kick in ± each price. At the kick's tick the kicked market's posted price is
+    // fl(p·(1 + size)) or fl(p·(1 − size)) of the base continuation's p, and no other market's
+    // moves (the verification's minor: a − kick made a + kick passed every fast test).
+    let gate = tape(GATE);
+    let mut s = sim(&gate);
+    s.run_until(1000, &mut |_| {}).unwrap();
+    let cp = s.checkpoint().unwrap();
+    let w = s.world().clone();
+    let bars = battery::KickBars {
+        size: KICK,
+        horizon: 3,
+        tail: 2,
+        max_gain: MAX_GAIN,
+        max_peak: MAX_PEAK,
+    };
+    let ks = kick_segment(&gate, &w, &cp, 0, &bars, "gate-2026-09-26.ron");
+    let (base, runs) = ks.runs.as_ref().unwrap();
+    assert_eq!(runs.len(), 12, "± each of six markets");
+    for r in runs {
+        let first = &r.prices.as_ref().unwrap()[0];
+        let factor = match r.sign {
+            battery::Sign::Up => 1.0 + KICK,
+            battery::Sign::Down => 1.0 - KICK,
+        };
+        for (m, (&kicked, &p)) in first.iter().zip(&base[0]).enumerate() {
+            let want = if m == r.market { p * factor } else { p };
+            assert_eq!(kicked.to_bits(), want.to_bits(), "{:?} {m}", r.sign);
+        }
+        match r.sign {
+            battery::Sign::Up => assert!(first[r.market] > base[0][r.market]),
+            battery::Sign::Down => assert!(first[r.market] < base[0][r.market]),
+        }
+    }
 }
 
 #[test]
@@ -861,7 +1236,7 @@ fn finite_scan_reads_every_rendered_number() {
     paths.dedup();
     assert!(paths.iter().any(|p| p.starts_with("batteries[")));
     assert!(paths.iter().any(|p| p.starts_with("reports[")));
-    assert!(paths.iter().any(|p| p.ends_with(".bar")));
+    assert!(paths.iter().any(|p| p.contains(".bar.")));
 }
 
 /// Every number in `text`: whitespace-separated tokens, stripped of brackets and punctuation,

@@ -15,7 +15,7 @@ use certify::battery::{
     BalanceBars, BalanceWatch, DeterminismInputs, KickBars, KickSegment, KickedRun, ResumeRun,
     SettlesBars, Sign,
 };
-use certify::{segments, BatteryResult, Obs};
+use certify::{segments, BatteryResult, Limit, Obs};
 use common::*;
 use rustyecon_core::num;
 use rustyecon_engine::prelude::{Tape, TickReport};
@@ -197,6 +197,100 @@ fn settles_counts_dead_ticks_in_w_and_f() {
     ));
 }
 
+#[test]
+fn a_dead_tick_is_one_market_silent() {
+    // §6: a dead tick is one on which some market does not trade, not all of them (the
+    // verification's mutant B9). Of two markets, the second is silent on 6 ticks of W, one more
+    // than ⌊0.01·500⌋ allows, while the first trades throughout; and silent on one tick of F.
+    // Its cleared volume stays at 1, so only the dead-tick rule can see it.
+    let two = |silent: Vec<u64>| -> Vec<Obs> {
+        (0..1000)
+            .map(|t| {
+                let mut m1 = market(1.0, 1.0, 1.0, 1.0);
+                if silent.contains(&t) {
+                    m1 = market(1.0, 1.0, 0.0, 0.0);
+                    m1.cleared = 1.0;
+                }
+                obs(t, vec![market(1.0, 1.0, 1.0, 1.0), m1])
+            })
+            .collect()
+    };
+    let segs = [seg(0, 1000)];
+    passed(&settles(&two(Vec::new()), &segs, &SETTLES, &names(2)));
+    passed(&settles(
+        &two((600..605).collect()),
+        &segs,
+        &SETTLES,
+        &names(2),
+    ));
+    failed(
+        &settles(&two((600..606).collect()), &segs, &SETTLES, &names(2)),
+        "6 dead ticks in W",
+    );
+    failed(
+        &settles(&two(vec![950]), &segs, &SETTLES, &names(2)),
+        "1 in F",
+    );
+}
+
+#[test]
+fn cleared_volume_rests_in_f_too() {
+    // REPORT §6, §6 here: at rest in F is price and cleared volume both within the band in log
+    // (the verification's mutant B4 read price alone). A flat price whose cleared volume moves by
+    // 1% inside F fails, and so does one whose cleared volume falls to zero there while the
+    // market still trades; each note names ln cleared alone, and the price range reads 0.
+    for (what, x) in [("moves", 1.01), ("falls to zero", 0.0)] {
+        let o = at_rest(1000, |t, m| {
+            if t == 950 {
+                m.cleared = x;
+            }
+        });
+        assert!(o[950].markets[0].trades(), "{what}: the market trades");
+        let r = settles(&o, &[seg(0, 1000)], &SETTLES, &names(1));
+        failed(&r, "not at rest in F [900, 1000): ln cleared moved");
+        assert!(!r.notes.iter().any(|n| n.contains("ln price")), "{what}");
+        let get = |name: &str| {
+            r.readings
+                .iter()
+                .find(|x| x.name == name)
+                .unwrap_or_else(|| panic!("{what}: no {name}"))
+                .value
+        };
+        assert_eq!(get("settles.price_range"), 0.0, "{what}");
+        assert!(get("settles.cleared_range") > SETTLES.band, "{what}");
+    }
+    // Before F, the same moves are not scored.
+    passed(&settles(
+        &at_rest(1000, |t, m| {
+            if t == 850 {
+                m.cleared = 0.0;
+            }
+        }),
+        &[seg(0, 1000)],
+        &SETTLES,
+        &names(1),
+    ));
+}
+
+#[test]
+fn kick_checks_its_horizon() {
+    // Amended at S2.3, item 2: H is checked where it runs. A base continuation shorter than
+    // ticks(horizon) fails Kick, though every kick decays (the verification's mutant B13).
+    let decays = |t: usize| SIZE * num::exp(-(t as f64) / 3.0);
+    passed(&kick(&one_kick(100, decays), &bars(100, 10), &names(1)));
+    let r = kick(&one_kick(100, decays), &bars(101, 10), &names(1));
+    failed(
+        &r,
+        "tick 1000: the base continuation ran 100 ticks, not the horizon's 101",
+    );
+    let h = r
+        .readings
+        .iter()
+        .find(|x| x.name == "kick.horizon")
+        .unwrap();
+    assert_eq!((h.value, h.bar), (100.0, Some(Limit::Exactly(101.0))));
+}
+
 /// Three segments of 1,000 ticks, each opened by a jump to a new level that decays; the middle
 /// one's level oscillates to the end if `restless`.
 fn three(restless: bool) -> Vec<Obs> {
@@ -355,15 +449,34 @@ fn batteries_fail_closed_on_nonfinite_samples() {
         }
         // Kick: a kicked price, and the base continuation's.
         let r = kick_of(100, 10, |t| if t == 50 { bad } else { SIZE });
-        failed(&r, "at tick 1050, kick[0][m/0 +].markets[m/0].price");
+        failed(&r, "at tick 1050, kick[1000][m/0 +].markets[m/0].price");
         let mut segs_k = one_kick(100, |t| SIZE * num::exp(-(t as f64)));
         if let Ok((base, _)) = &mut segs_k[0].runs {
             base[60][0] = bad;
         }
         failed(
             &kick(&segs_k, &bars(100, 10), &names(1)),
-            "at tick 1060, kick[0].base.markets[m/0].price",
+            "at tick 1060, kick[1000].base.markets[m/0].price",
         );
+    }
+    // Settles gates W, not F alone (the verification's coverage finding): on a 1,000-tick
+    // segment, W = [500, 1000) and F = [900, 1000), and a non-finite value at tick 600 fails it
+    // for every field it reads. Gating F alone would read a NaN supply or fill at 600 as one dead
+    // tick of the five W may hold, and pass.
+    let long = at_rest(1000, moving);
+    passed(&settles(&long, &[seg(0, 1000)], &SETTLES, &names(1)));
+    for bad in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+        for (field, set) in fields {
+            if field == "next_price" {
+                continue;
+            }
+            let mut o = long.clone();
+            set(&mut o[600].markets[0], bad);
+            failed(
+                &settles(&o, &[seg(0, 1000)], &SETTLES, &names(1)),
+                &format!("at tick 600, markets[m/0].{field}"),
+            );
+        }
     }
     // kick_gain alone carries a NaN price to its readings.
     let base = vec![vec![1.0]; 10];
@@ -734,7 +847,7 @@ fn a_neutral_direction_fails() {
         .iter()
         .find(|x| x.name == "kick.gain_tail")
         .unwrap();
-    assert!(tail.value < MAX_GAIN && tail.bar == Some(MAX_GAIN));
+    assert!(tail.value < MAX_GAIN && tail.bar == Some(Limit::AtMost(MAX_GAIN)));
 }
 
 #[test]
@@ -756,7 +869,7 @@ fn a_kick_that_swings_out_and_back_fails() {
         .iter()
         .find(|x| x.name == "kick.gain_peak")
         .unwrap();
-    assert!(peak.value > MAX_PEAK && peak.bar == Some(MAX_PEAK));
+    assert!(peak.value > MAX_PEAK && peak.bar == Some(Limit::AtMost(MAX_PEAK)));
     let tail = r
         .readings
         .iter()

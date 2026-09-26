@@ -38,11 +38,16 @@ fn certify_testdata_is_generated() {
     // docs/CERTIFY.md §13: certify's testdata is `appb-tape`'s output for the options its first
     // line names, byte for byte, so its runs are the probe's setups and nobody edits them by
     // hand. With no option, `appb-tape` writes tapes/appb.ron.
-    let cases: [(&str, &str, &[&str]); 3] = [
+    let cases: [(&str, &str, &[&str]); 4] = [
         (
             "appb-bcycle.ron",
             include_str!("../../certify/testdata/appb-bcycle.ron"),
             &["--perturb", "bcycle(1500,4)"],
+        ),
+        (
+            "appb-buffer16.ron",
+            include_str!("../../certify/testdata/appb-buffer16.ron"),
+            &["--set", "buffer.*=16"],
         ),
         (
             "appb-freeze.ron",

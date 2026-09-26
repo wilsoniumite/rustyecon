@@ -9,9 +9,13 @@
 //! - `RUSTYECON_TARGET`: cargo's `TARGET`.
 //! - `RUSTYECON_RUSTC`: `$RUSTC -V`.
 //!
-//! The script reruns when any of those sources changes, and when the worktree's `HEAD` or index,
-//! the branch `HEAD` names, or `packed-refs` does, so a commit, a checkout, a staged change and an
-//! edit all restamp. In WSL a worktree made from Windows names its git directory by a Windows path
+//! The script reruns when any of those sources changes, and when the worktree's `HEAD`, index or
+//! `logs/HEAD`, the branch `HEAD` names, `packed-refs`, or anything under the common directory's
+//! `refs/heads` does, so a commit, a checkout, a staged change and an edit all restamp. The
+//! reflog and the `refs/heads` tree are watched because a branch whose ref is packed has no loose
+//! file to watch: its first commit writes a new loose ref, which only a watched directory sees,
+//! and git appends to the worktree's `logs/HEAD` on every commit, amend, reset and checkout
+//! (amended at S2.5). In WSL a worktree made from Windows names its git directory by a Windows path
 //! (`gitdir: C:/…`), which Linux git cannot read; the script maps `X:/` to `/mnt/x/` and retries.
 
 use std::path::{Path, PathBuf};
@@ -129,12 +133,15 @@ fn main() {
         if let Some(dir) = g.path(&["rev-parse", "--git-dir"]) {
             watched.push(dir.join("HEAD"));
             watched.push(dir.join("index"));
+            watched.push(dir.join("logs").join("HEAD"));
         }
         if let Some(common) = g.path(&["rev-parse", "--git-common-dir"]) {
             if let Some(r) = g.run(&["symbolic-ref", "-q", "HEAD"]) {
                 watched.push(common.join(r));
             }
             watched.push(common.join("packed-refs"));
+            // A directory: cargo reruns when anything under it changes, a new loose ref too.
+            watched.push(common.join("refs").join("heads"));
         }
         for w in watched.iter().filter(|w| w.exists()) {
             println!("cargo:rerun-if-changed={}", w.display());

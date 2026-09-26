@@ -174,6 +174,12 @@ pub struct Criteria {
     pub until_basis: Basis,
     /// `Years`: the shortest segment a dated shock may close (§5, C5).
     pub min_segment: Bar,
+    /// The `ScalePrice` firings the run may carry, with their basis (amended at S2.5). A tape
+    /// that sets its own prices certifies only as far as this says: dense dated shocks are a
+    /// periodic nudge in all but name, which R3 bans. The one field that may be absent, since
+    /// its absence is the strictest bar, none: a file written before it cannot loosen a verdict.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub price_shocks: Option<Count>,
     /// The batteries, each once.
     pub batteries: Vec<BatterySpec>,
     /// The reports' bar.
@@ -349,9 +355,15 @@ impl Criteria {
                 }
             }
         }
-        for (path, b) in [("until_basis", &self.until_basis)] {
-            if basis_text(b).iter().any(|t| t.trim().is_empty()) {
-                return Err(err(path, "an empty basis"));
+        if basis_text(&self.until_basis)
+            .iter()
+            .any(|t| t.trim().is_empty())
+        {
+            return Err(err("until_basis", "an empty basis"));
+        }
+        if let Some(c) = &self.price_shocks {
+            if basis_text(&c.basis).iter().any(|t| t.trim().is_empty()) {
+                return Err(err("price_shocks", "an empty basis"));
             }
         }
         if self.reason.trim().is_empty() {
@@ -515,6 +527,11 @@ impl Criteria {
         Ok(())
     }
 
+    /// The `ScalePrice` firings the criteria allow: the registered count, or 0 when none is.
+    pub fn allowed_price_shocks(&self) -> u64 {
+        self.price_shocks.as_ref().map_or(0, |c| c.value)
+    }
+
     /// The batteries listed, in id order.
     pub fn listed(&self) -> Vec<BatteryId> {
         let mut v: Vec<BatteryId> = self.batteries.iter().map(BatterySpec::id).collect();
@@ -634,8 +651,9 @@ impl Criteria {
         }
     }
 
-    /// FNV-1a 64 over [`Criteria::to_ron`]: the criteria's identity, which a certificate and a
-    /// manifest record.
+    /// FNV-1a 64 over [`Criteria::to_ron`]: the criteria's identity, which a certificate records
+    /// with the file's name and date (`CriteriaRef`). The manifest records the run's inputs, not
+    /// the criteria that scored it.
     pub fn hash(&self) -> u64 {
         fnv1a_64(self.to_ron().as_bytes())
     }

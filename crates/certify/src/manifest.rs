@@ -1,7 +1,9 @@
 //! A run's identity and its record (docs/CERTIFY.md §3 and §9; N10, D4, R16): the tape hash, the
-//! build, the run key the GUI reuses, and the manifest, which records every input a run read and
-//! every hash and checkpoint it made, so that a resume can be verified against the run that made
-//! its checkpoint.
+//! build, the run key the GUI reuses, and the manifest, which records the run's inputs (the
+//! build, the tape by its hash, the world, and any checkpoint it resumed from) and every hash and
+//! checkpoint it made, so that a resume can be verified against the run that made its
+//! checkpoint. The criteria a certified run was scored against are the certificate's to record,
+//! by file, date and hash, not the manifest's.
 //!
 //! No Parquet and no I/O: paths are strings the caller chose, recorded relative with `/`, and the
 //! web build can use every type here (GUI.md §7.2 c).

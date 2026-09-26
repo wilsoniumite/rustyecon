@@ -123,6 +123,118 @@ fn criteria_need_a_unit_and_basis_for_every_bar() {
     assert!(refused(&good.replacen(count, "min_samples: 32", 1))
         .path
         .is_empty());
+    // Every basis that says nothing is refused at its own path, not only a bar's (the
+    // verification's coverage finding): the run's length, a count, and the price shocks.
+    let blank = |from: &str, to: &str| {
+        assert_eq!(good.matches(from).count(), 1, "{from}");
+        refused(&good.replacen(from, to, 1)).path
+    };
+    assert_eq!(
+        blank(
+            "until_basis: Assumed(\"test\")",
+            "until_basis: Assumed(\" \")"
+        ),
+        "until_basis"
+    );
+    assert_eq!(
+        blank(count, "min_samples: (value: 32, basis: Assumed(\" \"))"),
+        "batteries[Balance].min_samples"
+    );
+    let shocks = with_price_shocks(&good, 1);
+    assert!(load(&shocks).is_ok());
+    assert_eq!(load(&shocks).unwrap().allowed_price_shocks(), 1);
+    assert_eq!(load(&good).unwrap().allowed_price_shocks(), 0);
+    assert_eq!(
+        refused(&shocks.replacen("basis: Assumed(\"test\"))),", "basis: Assumed(\"\"))),", 1)).path,
+        "price_shocks"
+    );
+    // A value outside its unit's range, for every bar: each refused at its own path.
+    let out_of_range: Vec<(Vec<String>, &str)> = vec![
+        (swap("Runaway", runaway(1.0)), "batteries[Runaway].bound"),
+        (swap("Trades", trades(0.0)), "batteries[Trades].every"),
+        (
+            swap("Balance", balance(0.0, 1e-12, 32, 0.5)),
+            "batteries[Balance].level",
+        ),
+        (
+            swap("Balance", balance(1.0, 1e-12, 32, 0.5)),
+            "batteries[Balance].level",
+        ),
+        (
+            swap("Balance", balance(1e-9, 0.0, 32, 0.5)),
+            "batteries[Balance].spread",
+        ),
+        (
+            swap("Balance", balance(1e-9, 1.0, 32, 0.5)),
+            "batteries[Balance].spread",
+        ),
+        (
+            swap("Balance", balance(1e-9, 1e-12, 32, 0.0)),
+            "batteries[Balance].run_share",
+        ),
+        (
+            swap("Balance", balance(1e-9, 1e-12, 32, 1.5)),
+            "batteries[Balance].run_share",
+        ),
+        (
+            swap("Settles", settles(-0.1, 0.9, 0.01, 1e-4)),
+            "batteries[Settles].w_from",
+        ),
+        (
+            swap("Settles", settles(0.5, 1.0, 0.01, 1e-4)),
+            "batteries[Settles].f_from",
+        ),
+        (
+            swap("Settles", settles(0.5, 0.9, 1.0, 1e-4)),
+            "batteries[Settles].dead_share",
+        ),
+        (
+            swap("Settles", settles(0.5, 0.9, -0.01, 1e-4)),
+            "batteries[Settles].dead_share",
+        ),
+        (
+            swap("Settles", settles(0.5, 0.9, 0.01, 0.0)),
+            "batteries[Settles].band",
+        ),
+        (
+            swap("Kick", kick(1e-9, 10.0, 0.0, 1e-3, 1e6)),
+            "batteries[Kick].tail",
+        ),
+        (
+            swap("Kick", kick(1e-9, 10.0, 1.5, 1e-3, 1e6)),
+            "batteries[Kick].tail",
+        ),
+        (
+            swap("Kick", kick(1e-9, 10.0, 0.1, 0.0, 1e6)),
+            "batteries[Kick].max_gain",
+        ),
+    ];
+    for (batteries, path) in out_of_range {
+        let e = refused(&text_with(&batteries, GATE_TICKS, 1.0));
+        assert_eq!(e.path, path, "{e}");
+    }
+    // The edges that load: a run of the whole segment, and a dead share of 0.
+    assert!(load(&text_with(
+        &swap("Balance", balance(1e-9, 1e-12, 32, 1.0)),
+        GATE_TICKS,
+        1.0
+    ))
+    .is_ok());
+    assert!(load(&text_with(
+        &swap("Settles", settles(0.5, 0.9, 0.0, 1e-4)),
+        GATE_TICKS,
+        1.0
+    ))
+    .is_ok());
+    let rationed = "rationed_below: (value: 1e-9,";
+    assert!(good.contains(rationed));
+    for x in ["0.0", "1.0"] {
+        assert_eq!(
+            refused(&good.replacen(rationed, &format!("rationed_below: (value: {x},"), 1)).path,
+            "reports.rationed_below",
+            "{x}"
+        );
+    }
 }
 
 #[test]

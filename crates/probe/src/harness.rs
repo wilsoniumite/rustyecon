@@ -5,15 +5,24 @@
 //! Every tolerance is PROBE-SPEC's (see [`crate::protocol`]). The designs registered here have no
 //! dead bands, so every R_o is 0 and tol_o is the floor, 1e-3, on every observable; a design
 //! with bands would need the wedge solver of §3.3 (a), which is not built.
+//!
+//! The oracle-free measures are certify's (docs/CERTIFY.md §11, C11; S2.5): each tick is read
+//! through `certify::Obs` (the markets, a market that traded, spoilage per good, the provider's
+//! due and paid, the ledger margin), and the runaway bound, rationed fills, troughs, at rest in F
+//! and the dead-share rule are certify's functions, so the two crates have one definition of
+//! each. What reads the oracle stays here until `crates/observe`: the target, the gaps and D̂,
+//! the live floor of a dead tick, the envelope, κ, and the classes.
 
 use crate::perturb::{Perturbation, Start};
-use crate::protocol::{HOLD_TOL, LIVE_FLOOR, RUNAWAY, TOL_FLOOR};
+use crate::protocol::{DEAD_SHARE, HOLD_TOL, LIVE_FLOOR, RUNAWAY, TOL_FLOOR};
 use crate::setup::{equilibrium, genesis, tape_ron, Genesis, Setup, ACTORS};
+use certify::battery::{dead_share_ok, rationed, within_bound};
+use certify::{fold, Obs};
 use oracle::Eq1a;
 use rustyecon_core::num;
 use rustyecon_core::num::ln;
 use rustyecon_engine::prelude::{
-    ActorId, GoodId, Holder, PriceError, Provenance, RunErrorKind, Sim, Tape, TickReport,
+    ActorId, GoodId, Holder, PriceError, RunErrorKind, Sim, Tape, TickReport,
 };
 use rustyecon_engine::rustyecon_agents::ActorState;
 
@@ -205,8 +214,11 @@ impl Ids {
 }
 
 fn row(sim: &Sim, ids: &Ids, r: &TickReport, target: &Target) -> Result<Row, String> {
+    // The tick as certify reads it (C11): one definition of a market that traded, of spoilage,
+    // of the provider's transfer and of the ledger margin for both crates.
+    let o = Obs::of(r, sim);
     let line = |g: GoodId| {
-        r.markets
+        o.markets
             .iter()
             .find(|l| l.good == g)
             .ok_or(format!("no market line for {g}"))
@@ -227,13 +239,12 @@ fn row(sim: &Sim, ids: &Ids, r: &TickReport, target: &Target) -> Result<Row, Str
         cleared[m] = l.cleared;
         buyer_fill[m] = l.buyer_fill;
         seller_fill[m] = l.seller_fill;
-        trades[m] = l.supply > 0.0 && l.demand > 0.0 && l.buyer_fill > 0.0 && l.seller_fill > 0.0;
-        spoiled[m] = -r
-            .audit
-            .lines
-            .iter()
-            .filter(|(h, p, _)| *h == g && *p == Provenance::Spoilage)
-            .fold(0.0, |acc, (_, _, q)| acc + q);
+        trades[m] = l.trades();
+        spoiled[m] = o
+            .spoiled
+            .get(g.idx())
+            .copied()
+            .ok_or(format!("no spoilage for {g}"))?;
     }
     let (planned, used, q_good) = match sim.actor_state(ids.actors[0]) {
         Some(ActorState::GoodDesk(s)) => (s.share, s.used, s.output),
@@ -243,9 +254,9 @@ fn row(sim: &Sim, ids: &Ids, r: &TickReport, target: &Target) -> Result<Row, Str
         Some(ActorState::MachDesk(s)) => s.output,
         _ => return Err("desk.mach is not a machine desk".into()),
     };
-    let transfer = match sim.actor_state(ids.actors[2]) {
-        Some(ActorState::Provider(s)) => [s.due, s.paid],
-        _ => return Err("provider is not a provider".into()),
+    let transfer = match o.transfers.iter().find(|(a, _, _)| *a == ids.actors[2]) {
+        Some(&(_, due, paid)) => [due, paid],
+        None => return Err("provider is not a provider".into()),
     };
     let mut coin = [0.0; 4];
     for (c, &a) in coin.iter_mut().zip(&ids.actors) {
@@ -292,7 +303,7 @@ fn row(sim: &Sim, ids: &Ids, r: &TickReport, target: &Target) -> Result<Row, Str
         coin,
         planned,
         transfer,
-        margin: r.audit.max_margin,
+        margin: o.margin,
         dead,
     })
 }
@@ -424,6 +435,8 @@ pub fn run(
         last: None,
         hold_failure: None,
     };
+    // Each market's cleared volume over its oracle volume, per tick: the trough's series.
+    let mut volumes: Vec<(u64, [f64; 4])> = Vec::with_capacity(total as usize);
     for _ in 0..total {
         let tick = sim.tick();
         let target = target_for(setup.b_at(tick))?;
@@ -445,18 +458,16 @@ pub fn run(
             rec.hold_failure = hold_check(&row);
         }
         for m in 0..4 {
-            if row.buyer_fill[m] < 1.0 - HOLD_TOL {
+            if rationed(row.buyer_fill[m], HOLD_TOL) {
                 rec.rationed[m][0] += 1;
             }
-            if row.seller_fill[m] < 1.0 - HOLD_TOL {
+            if rationed(row.seller_fill[m], HOLD_TOL) {
                 rec.rationed[m][1] += 1;
             }
             rec.spoiled[m] += row.spoiled[m];
-            let rel = row.obs[4 + m] / target.volume(m);
-            if rel < rec.trough[m].0 {
-                rec.trough[m] = (rel, row.tick);
-            }
         }
+        let rel: [f64; 4] = std::array::from_fn(|m| row.obs[4 + m] / target.volume(m));
+        volumes.push((row.tick, rel));
         rec.transfer_short += row.transfer[0] - row.transfer[1];
         rec.dhat.push(row.dhat);
         let mut logs = [0.0; 10];
@@ -466,11 +477,11 @@ pub fn run(
         rec.ln_obs.push(logs);
         rec.dead.push(row.dead);
         // The runaway bound (PROBE-SPEC §4.5): every posted price within [1e-6, 1e6] times its
-        // genesis value.
+        // genesis value, by certify's relative bound (A12).
         let away = ids.goods.iter().enumerate().find_map(|(m, &gid)| {
             let l = report.markets.iter().find(|l| l.good == gid)?;
             let rel = l.next_price / g.prices[m];
-            (!(1.0 / RUNAWAY..=RUNAWAY).contains(&rel)).then(|| {
+            (!within_bound(rel, RUNAWAY)).then(|| {
                 format!(
                     "the price of {} left the runaway bound at tick {}: {rel:e} of genesis",
                     MARKETS[m], report.tick
@@ -481,6 +492,12 @@ pub fn run(
         if let Some(why) = away {
             rec.stop = Stop::Runaway(why);
             break;
+        }
+    }
+    // Troughs by certify's fold: the first minimum and its tick.
+    for (m, t) in rec.trough.iter_mut().enumerate() {
+        if let Some((low, at)) = fold::trough(volumes.iter().map(|(tick, v)| (*tick, v[m]))) {
+            *t = (low, at);
         }
     }
     Ok(rec)
@@ -500,7 +517,7 @@ fn hold_check(row: &Row) -> Option<String> {
         if !row.trades[m] {
             return Some(format!("tick {}: {} did not trade", row.tick, market));
         }
-        if row.buyer_fill[m] < 1.0 - HOLD_TOL || row.seller_fill[m] < 1.0 - HOLD_TOL {
+        if rationed(row.buyer_fill[m], HOLD_TOL) || rationed(row.seller_fill[m], HOLD_TOL) {
             return Some(format!(
                 "tick {}: {} filled {:e} (buyers) and {:e} (sellers)",
                 row.tick, market, row.buyer_fill[m], row.seller_fill[m]
@@ -635,15 +652,12 @@ pub fn classify(rec: &Record) -> Summary {
     } else {
         0
     };
-    // At rest in F: every observable's range of ln o at most tol/10.
+    // At rest in F: every observable's range of ln o at most tol/10, by certify's NaN-keeping
+    // range over the logs the record holds (certify's `ln_range` is this over the values).
     let at_rest = complete
         && (0..10).all(|i| {
-            let (lo, hi) = ln[f0..]
-                .iter()
-                .fold((f64::INFINITY, f64::NEG_INFINITY), |(lo, hi), o| {
-                    (lo.min(o[i]), hi.max(o[i]))
-                });
-            hi - lo <= TOL_FLOOR / 10.0
+            fold::range(ln[f0..].iter().map(|o| o[i]))
+                .is_some_and(|width| width <= TOL_FLOOR / 10.0)
         });
     let band = {
         let mut b = [f64::NAN; 3];
@@ -689,7 +703,7 @@ pub fn classify(rec: &Record) -> Summary {
                     Class::Diverged,
                     "the envelope grows: E4 > E3 > E2".to_string(),
                 )
-            } else if dead_w as f64 > 0.01 * (l - w0) as f64 || dead_f > 0 {
+            } else if !dead_share_ok(dead_w, (l - w0) as u64, dead_f, DEAD_SHARE) {
                 (Class::Dead, String::new())
             } else if !nominal && rec.d0 <= 1.0 {
                 (Class::Vacuous, String::new())

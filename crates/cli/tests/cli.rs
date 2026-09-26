@@ -957,6 +957,35 @@ fn resume_records_its_parent() {
         stderr(&out)
     );
     assert_eq!(fs::read(a.join("manifest.ron")).unwrap(), before);
+    // The resumed run's genesis_hash is the tape's genesis state's hash, computed again, not
+    // copied from the parent's manifest (amended at S2.4, item 5), which verify does not read:
+    // a parent manifest whose genesis_hash was edited still verifies, and the child records the
+    // tape's own (S2.5, the verification's identity finding).
+    let mut edited = ma.clone();
+    edited.genesis_hash = Hex(ma.genesis_hash.0 ^ 1);
+    let d = dir.path().join("d");
+    fs::create_dir_all(&d).unwrap();
+    let parent = d.join("parent.ron");
+    fs::write(&parent, edited.to_ron()).unwrap();
+    let e = dir.path().join("e");
+    let out = rustyecon(&[
+        "resume",
+        s(&cp),
+        "--tape",
+        s(&tape),
+        "--until",
+        "400",
+        "--manifest",
+        s(&parent),
+        "--out",
+        s(&e),
+    ]);
+    assert_eq!(code(&out), 0, "{}", stderr(&out));
+    let me = read_manifest(&e.join("manifest.ron"));
+    let (_, _, genesis) = gate_ids();
+    assert_eq!(me.genesis_hash, Hex(genesis));
+    assert_ne!(me.genesis_hash, edited.genesis_hash);
+    assert_eq!(me.resumed_from.map(|r| r.parent), Some(edited.run));
 }
 
 /// A criteria file for the gate, run to 1760-01-01 (tick 520) in one-year segments and resumed

@@ -18,7 +18,7 @@
 //! a sample any of whose inputs is not finite is itself NaN, so a non-finite input reaches the
 //! certificate, where the seal fails it (§8). No report is a ratio that could be 0/0.
 
-use crate::certificate::{BatteryId, BatteryResult, Reading};
+use crate::certificate::{BatteryId, BatteryResult, Limit, Reading, NONFINITE_READING};
 use crate::fold::{self, max_nan, min2, min_nan};
 use crate::leaves::{leaves, Leaf};
 use crate::obs::{MarketObs, Names, Obs, Segment};
@@ -46,7 +46,7 @@ impl Gate {
             id,
             pass: false,
             readings: vec![reading(
-                "nonfinite.tick",
+                NONFINITE_READING,
                 &path,
                 None,
                 tick_value(tick),
@@ -62,7 +62,7 @@ fn tick_value(t: u64) -> f64 {
     t as f64
 }
 
-fn reading(name: &str, at: &str, segment: Option<u32>, value: f64, bar: Option<f64>) -> Reading {
+fn reading(name: &str, at: &str, segment: Option<u32>, value: f64, bar: Option<Limit>) -> Reading {
     Reading {
         name: name.to_string(),
         at: at.to_string(),
@@ -81,7 +81,13 @@ fn no_samples(id: BatteryId, what: &str) -> BatteryResult {
     BatteryResult {
         id,
         pass: false,
-        readings: vec![reading("samples", "run", None, 0.0, None)],
+        readings: vec![reading(
+            "samples",
+            "run",
+            None,
+            0.0,
+            Some(Limit::AtLeast(1.0)),
+        )],
         notes: vec![format!("no samples: {what}")],
     }
 }
@@ -196,10 +202,22 @@ pub fn conservation(obs: &[Obs], reached: u64, until: u64) -> BatteryResult {
                 "run",
                 None,
                 tick_value(reached),
-                Some(tick_value(until)),
+                Some(Limit::AtLeast(tick_value(until))),
             ),
-            reading("conservation.max_margin", "run", None, margin, Some(1.0)),
-            reading("conservation.max_run_margin", "run", None, run, Some(1.0)),
+            reading(
+                "conservation.max_margin",
+                "run",
+                None,
+                margin,
+                Some(Limit::AtMost(1.0)),
+            ),
+            reading(
+                "conservation.max_run_margin",
+                "run",
+                None,
+                run,
+                Some(Limit::AtMost(1.0)),
+            ),
         ],
         notes,
     }
@@ -295,7 +313,7 @@ pub fn determinism(d: &DeterminismInputs) -> BatteryResult {
         "run",
         None,
         tick_value(repeat),
-        Some(0.0),
+        Some(Limit::AtMost(0.0)),
     ));
     pass &= repeat == 0 && d.second.is_ok();
     let replay = match &d.replay {
@@ -310,7 +328,7 @@ pub fn determinism(d: &DeterminismInputs) -> BatteryResult {
         "run",
         None,
         tick_value(replay),
-        Some(0.0),
+        Some(Limit::AtMost(0.0)),
     ));
     pass &= replay == 0;
     for r in &d.resumes {
@@ -333,7 +351,7 @@ pub fn determinism(d: &DeterminismInputs) -> BatteryResult {
             &at,
             None,
             tick_value(differs),
-            Some(0.0),
+            Some(Limit::AtMost(0.0)),
         ));
         pass &= differs == 0;
     }
@@ -387,13 +405,19 @@ pub fn runaway(obs: &[Obs], genesis: &[f64], bound: f64, names: &Names) -> Batte
             .collect();
         let hi = max_nan(ratios.iter().map(|r| r.1)).unwrap_or(0.0);
         let lo = min_nan(ratios.iter().map(|r| r.1)).unwrap_or(0.0);
-        readings.push(reading("runaway.max_ratio", &name, None, hi, Some(bound)));
+        readings.push(reading(
+            "runaway.max_ratio",
+            &name,
+            None,
+            hi,
+            Some(Limit::AtMost(bound)),
+        ));
         readings.push(reading(
             "runaway.min_ratio",
             &name,
             None,
             lo,
-            Some(1.0 / bound),
+            Some(Limit::AtLeast(1.0 / bound)),
         ));
         let ok = within_bound(lo, bound) && within_bound(hi, bound);
         if !ok {
@@ -480,7 +504,7 @@ pub fn trades(obs: &[Obs], windows: &[(u64, u64)], names: &Names) -> BatteryResu
             &name,
             None,
             tick_value(tick_count(silent.len())),
-            Some(0.0),
+            Some(Limit::AtMost(0.0)),
         ));
         if let Some((a, b)) = silent.first() {
             pass = false;
@@ -652,7 +676,7 @@ pub fn balance(
                 &name,
                 seg,
                 tick_value(w.count()),
-                Some(tick_value(bars.min_samples)),
+                Some(Limit::AtLeast(tick_value(bars.min_samples))),
             ));
             if let Some(sd) = w.sd() {
                 let (run, v) = w.longest_run();
@@ -661,23 +685,29 @@ pub fn balance(
                     &name,
                     seg,
                     w.mean(),
-                    Some(bars.level),
+                    Some(Limit::Ref(bars.level)),
                 ));
-                readings.push(reading("balance.sd", &name, seg, sd, Some(bars.spread)));
+                readings.push(reading(
+                    "balance.sd",
+                    &name,
+                    seg,
+                    sd,
+                    Some(Limit::Ref(bars.spread)),
+                ));
                 // The run is compared with run_share of the observations.
                 readings.push(reading(
                     "balance.longest_run",
                     &name,
                     seg,
                     tick_value(run),
-                    Some(bars.run_share * tick_value(w.count())),
+                    Some(Limit::Ref(bars.run_share * tick_value(w.count()))),
                 ));
                 readings.push(reading(
                     "balance.run_value",
                     &name,
                     seg,
                     v,
-                    Some(bars.level),
+                    Some(Limit::Ref(bars.level)),
                 ));
             }
             if let Err(why) = w.judge(bars) {
@@ -774,7 +804,7 @@ pub fn settles(
                 "run",
                 seg,
                 tick_value(tick_count(fspan.len())),
-                None,
+                Some(Limit::Exactly(tick_value(f_len))),
             ));
             continue;
         }
@@ -786,14 +816,14 @@ pub fn settles(
             "run",
             seg,
             tick_value(dead_w),
-            Some(tick_value(allowed)),
+            Some(Limit::AtMost(tick_value(allowed))),
         ));
         readings.push(reading(
             "settles.dead_f",
             "run",
             seg,
             tick_value(dead_f),
-            Some(0.0),
+            Some(Limit::AtMost(0.0)),
         ));
         if !dead_share_ok(dead_w, w_len, dead_f, bars.dead_share) {
             pass = false;
@@ -812,21 +842,29 @@ pub fn settles(
                 &name,
                 seg,
                 price,
-                Some(bars.band),
+                Some(Limit::AtMost(bars.band)),
             ));
             readings.push(reading(
                 "settles.cleared_range",
                 &name,
                 seg,
                 cleared,
-                Some(bars.band),
+                Some(Limit::AtMost(bars.band)),
             ));
-            let at_rest = price <= bars.band && cleared <= bars.band;
-            if !at_rest {
+            let (price_rests, cleared_rests) = (price <= bars.band, cleared <= bars.band);
+            if !(price_rests && cleared_rests) {
                 pass = false;
+                let mut moved = Vec::new();
+                if !price_rests {
+                    moved.push(format!("ln price moved {price:?}"));
+                }
+                if !cleared_rests {
+                    moved.push(format!("ln cleared moved {cleared:?}"));
+                }
                 notes.push(format!(
-                    "{name}, segment {k}: not at rest in F [{f0}, {f1}): ln price moved \
-                     {price:?}, ln cleared {cleared:?}"
+                    "{name}, segment {k}: not at rest in F [{f0}, {f1}): {}, past the band {:?}",
+                    moved.join(" and "),
+                    bars.band
                 ));
             }
         }
@@ -920,13 +958,16 @@ pub struct KickedRun {
     pub prices: Result<Vec<Vec<f64>>, String>,
 }
 
-/// The kicks at one segment's end: the base continuation's prices and each kicked run, or why
-/// the segment could not be kicked.
+/// The kicks at one tick T (§7, amended at S2.5): the end of the run, or a tick a dated event
+/// fires, whether or not it closes a segment. Each kicked run resumes the base run's checkpoint
+/// at T under the tape with every dated event at or after T deferred, so it probes the regime in
+/// force before T. It holds the base continuation's prices and each kicked run, or why the tick
+/// could not be kicked.
 #[derive(Debug, Clone, PartialEq)]
 pub struct KickSegment {
-    /// The segment.
+    /// The segment whose regime the kick probes: the one that holds tick T − 1.
     pub segment: usize,
-    /// T, its end: the tick the kick fires in.
+    /// T: the tick the kick fires in.
     pub at: u64,
     /// The base continuation and the kicked runs, or the error.
     pub runs: Result<(Vec<Vec<f64>>, Vec<KickedRun>), String>,
@@ -947,17 +988,19 @@ pub struct KickBars {
     pub max_peak: f64,
 }
 
-/// Kick: at each segment's end, every kick of ± each market's price is realized (g(T) > 0),
-/// decays (its `gain_tail` at most `max_gain`) and never grows far (its `gain_peak` at most
-/// `max_peak`), and no kicked or base run fails. A decaying kick ends near its rounding floor, a
-/// neutral one near 1 and a growing one above it, so a rounding freeze at an unstable point
-/// fails here though it looks settled (REPORT §5). The peak catches the other way an unstable
-/// point hides: a kick that swings out through dead markets and comes back to the point it left,
-/// where rounding freezes it again (the desk-turnover ×16 cell; amended at S2.3).
-pub fn kick(segments: &[KickSegment], bars: &KickBars, names: &Names) -> BatteryResult {
+/// Kick: at each kick tick (the run's end and every dated shock, amended at S2.5), every kick
+/// of ± each market's price is realized (g(T) > 0), decays (its `gain_tail` at most
+/// `max_gain`) and never grows far (its `gain_peak` at most `max_peak`), and no kicked or base
+/// run fails (`kick.errors`, 0). A decaying kick ends near its rounding floor, a neutral one near
+/// 1 and a growing one above it, so a rounding freeze at an unstable point fails here though it
+/// looks settled (REPORT §5). The peak catches the other way an unstable point hides: a kick that
+/// swings out through dead markets and comes back to the point it left, where rounding freezes it
+/// again (the desk-turnover ×16 cell; amended at S2.3). A regime shorter than `min_segment` is
+/// kicked too, at the shock that ends it, though its segment merged on.
+pub fn kick(points: &[KickSegment], bars: &KickBars, names: &Names) -> BatteryResult {
     let id = BatteryId::Kick;
-    if segments.is_empty() {
-        return no_samples(id, "no segment to kick");
+    if points.is_empty() {
+        return no_samples(id, "no tick to kick");
     }
     let mut readings = Vec::new();
     let mut notes = Vec::new();
@@ -965,33 +1008,34 @@ pub fn kick(segments: &[KickSegment], bars: &KickBars, names: &Names) -> Battery
     let mut hashes = Vec::new();
     let mut pass = true;
     let mut scored = 0usize;
-    for ks in segments {
+    for ks in points {
         let seg = seg_index(ks.segment);
+        let point = format!("tick {}", ks.at);
         let (base, runs) = match &ks.runs {
             Ok(x) => x,
             Err(e) => {
                 pass = false;
-                notes.push(format!("segment {} at tick {}: {e}", ks.segment, ks.at));
+                notes.push(format!("{point} (segment {}): {e}", ks.segment));
+                readings.push(reading(
+                    "kick.errors",
+                    &point,
+                    seg,
+                    1.0,
+                    Some(Limit::AtMost(0.0)),
+                ));
                 continue;
             }
         };
         if runs.is_empty() {
             pass = false;
-            notes.push(format!(
-                "segment {}: no samples: no market to kick",
-                ks.segment
-            ));
+            notes.push(format!("{point}: no samples: no market to kick"));
             continue;
         }
         let mut g = Gate::default();
         for (t, ps) in base.iter().enumerate() {
             for (m, &p) in ps.iter().enumerate() {
                 g.read(ks.at + tick_count(t), p, || {
-                    format!(
-                        "kick[{}].base.{}",
-                        ks.segment,
-                        market_path(names, m, "price")
-                    )
+                    format!("kick[{}].base.{}", ks.at, market_path(names, m, "price"))
                 });
             }
         }
@@ -1002,7 +1046,7 @@ pub fn kick(segments: &[KickSegment], bars: &KickBars, names: &Names) -> Battery
                         g.read(ks.at + tick_count(t), p, || {
                             format!(
                                 "kick[{}][{} {}].{}",
-                                ks.segment,
+                                ks.at,
                                 names.market(r.market),
                                 r.sign.mark(),
                                 market_path(names, m, "price")
@@ -1021,78 +1065,93 @@ pub fn kick(segments: &[KickSegment], bars: &KickBars, names: &Names) -> Battery
         // H, as the base continuation ran it: `ticks(horizon)`, whatever the segment's length.
         readings.push(reading(
             "kick.horizon",
-            "run",
+            &point,
             seg,
             tick_value(tick_count(base.len())),
-            Some(tick_value(bars.horizon)),
+            Some(Limit::Exactly(tick_value(bars.horizon))),
         ));
         if tick_count(base.len()) != bars.horizon {
             pass = false;
             notes.push(format!(
-                "segment {}: the base continuation ran {} ticks, not the horizon's {}",
-                ks.segment,
+                "{point}: the base continuation ran {} ticks, not the horizon's {}",
                 base.len(),
                 bars.horizon
             ));
         }
+        let mut errors = 0u64;
         for r in runs {
-            let at = format!("{} {}", names.market(r.market), r.sign.mark());
-            hashes.push(format!(
-                "segment {} kick {at}: tape_hash 0x{:016x}",
-                ks.segment, r.tape_hash
-            ));
+            let at = format!("{} {} at {point}", names.market(r.market), r.sign.mark());
+            hashes.push(format!("kick {at}: tape_hash 0x{:016x}", r.tape_hash));
             let prices = match &r.prices {
                 Ok(p) => p,
                 Err(e) => {
                     pass = false;
-                    notes.push(format!("segment {} kick {at} failed: {e}", ks.segment));
+                    errors += 1;
+                    notes.push(format!("kick {at} failed: {e}"));
                     continue;
                 }
             };
             let Some(k) = kick_gain(base, prices, bars.tail) else {
                 pass = false;
-                notes.push(format!(
-                    "segment {} kick {at}: no samples over the horizon",
-                    ks.segment
-                ));
+                errors += 1;
+                notes.push(format!("kick {at}: no samples over the horizon"));
                 continue;
             };
             scored += 1;
-            readings.push(reading("kick.size", &at, seg, k.size, Some(0.0)));
+            readings.push(reading(
+                "kick.size",
+                &at,
+                seg,
+                k.size,
+                Some(Limit::Above(0.0)),
+            ));
             readings.push(reading(
                 "kick.gain_tail",
                 &at,
                 seg,
                 k.gain_tail,
-                Some(bars.max_gain),
+                Some(Limit::AtMost(bars.max_gain)),
             ));
             readings.push(reading(
                 "kick.gain_peak",
                 &at,
                 seg,
                 k.gain_peak,
-                Some(bars.max_peak),
+                Some(Limit::AtMost(bars.max_peak)),
             ));
             let realized = 0.0 < k.size;
             let decays = k.gain_tail <= bars.max_gain;
             let bounded = k.gain_peak <= bars.max_peak;
             if !realized {
                 pass = false;
-                notes.push(format!("segment {} kick {at}: a zero kick", ks.segment));
+                notes.push(format!("kick {at}: a zero kick"));
             } else if !(decays && bounded) {
                 pass = false;
                 notes.push(format!(
-                    "segment {} kick {at}: the kick did not decay: gain {:?} in the tail, {:?} \
-                     at its peak",
-                    ks.segment, k.gain_tail, k.gain_peak
+                    "kick {at}: the kick did not decay: gain {:?} in the tail, {:?} at its peak",
+                    k.gain_tail, k.gain_peak
                 ));
             }
         }
+        // The kicked runs that failed or had nothing to score: a count a verdict reads.
+        readings.push(reading(
+            "kick.errors",
+            &point,
+            seg,
+            tick_value(errors),
+            Some(Limit::AtMost(0.0)),
+        ));
     }
     if scored == 0 {
         // Nothing scored, whatever the reason: no samples, after the reason if there is one.
         pass = false;
-        readings.push(reading("samples", "run", None, 0.0, None));
+        readings.push(reading(
+            "samples",
+            "run",
+            None,
+            0.0,
+            Some(Limit::AtLeast(1.0)),
+        ));
         notes.push("no samples: no kick was scored".to_string());
     }
     notes.extend(hashes);

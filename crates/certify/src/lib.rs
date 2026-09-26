@@ -1,7 +1,8 @@
 //! Certification (PLAN §3.8; docs/CERTIFY.md, Phase 0 session 2): a run is scored against dated
 //! criteria registered before it, and ends in a certificate that is verdict-first, fail-closed
-//! and persisted, beside a manifest that records every input the run read (R9, N4, N10, N12,
-//! N15, A12).
+//! and persisted, beside a manifest that records the run's inputs: the build, the tape by its
+//! hash, the world and any checkpoint it resumed from. The certificate records the criteria by
+//! file, date and hash (R9, N4, N10, N12, N15, A12).
 //!
 //! - [`criteria`]: every bar with its unit and basis, in a dated file per tape; nothing in code
 //!   (R4). A retune is a new file.
@@ -48,7 +49,7 @@ pub mod run;
 pub mod telemetry;
 
 pub use certificate::{
-    nonfinite_paths, BatteryId, BatteryResult, Certificate, CertificateError, CriteriaRef,
+    nonfinite_paths, BatteryId, BatteryResult, Certificate, CertificateError, CriteriaRef, Limit,
     RawCertificate, Reading, Verdict,
 };
 pub use criteria::{
@@ -58,5 +59,5 @@ pub use manifest::{
     tape_hash, Build, CheckpointRecord, HashRecord, Hex, Manifest, ManifestError, ResumedFrom,
     RunKey, TelemetryRecord, VerifyError,
 };
-pub use obs::{segments, MarketObs, Names, Obs, RationObs, Segment};
+pub use obs::{kick_ticks, segment_before, segments, MarketObs, Names, Obs, RationObs, Segment};
 pub use run::{certify, Certified, CertifyError, Scoring};

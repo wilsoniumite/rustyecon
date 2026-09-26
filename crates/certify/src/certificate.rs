@@ -1,12 +1,19 @@
 //! The certificate (docs/CERTIFY.md §8; R9, N4, N12): verdict-first, fail-closed, persisted.
 //!
 //! One crate-private function, [`seal`], makes every certificate, and reading one back seals its
-//! parts again, so a verdict cannot be edited into a file that disagrees with its numbers. The
-//! seal reads every number the certificate serialises: a non-finite one anywhere fails the run,
-//! with or without criteria (N12; July's scan read state fields, not what its certificate
-//! rendered, `v2p3: certify/nan.rs:47-57`). A run with no criteria, or with criteria for another
-//! tape, is UNSCORED and never PASS (N4; July certified such a run PASS, `v2p3:
+//! parts again. The seal reads every number the certificate serialises: a non-finite one anywhere
+//! fails the run, with or without criteria (N12; July's scan read state fields, not what its
+//! certificate rendered, `v2p3: certify/nan.rs:47-57`). A run with no criteria, or with criteria
+//! for another tape, is UNSCORED and never PASS (N4; July certified such a run PASS, `v2p3:
 //! runner.rs:473-478`, `certificate.rs:78`).
+//!
+//! What readback checks (amended at S2.5): that the verdict, the failures and the list of
+//! non-finite numbers are the ones the seal gives for the file's parts, and that the parts agree
+//! with themselves. A battery marked pass must hold every reading's [`Limit`], and Balance's pin
+//! rule besides; the criteria must list what C12 requires; the run's `ScalePrice` firings must be
+//! within what its criteria allow. So a pass flag, a verdict or a failure list edited alone is
+//! refused. Readback does not check truth: a file whose numbers and bars were edited together
+//! reads back, and only a rerun (C10) or the criteria file itself can tell.
 
 use crate::leaves::{leaves, Leaf};
 use crate::manifest::{Hex, RunKey};
@@ -64,6 +71,59 @@ impl fmt::Display for BatteryId {
     }
 }
 
+/// What a reading's value must do beside its bar for its battery to pass (amended at S2.5: a
+/// bar carries its comparison, so readback can hold a pass flag to its readings).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub enum Limit {
+    /// The value is at most the bar.
+    AtMost(f64),
+    /// The value is at least the bar.
+    AtLeast(f64),
+    /// The value is above the bar.
+    Above(f64),
+    /// The value equals the bar.
+    Exactly(f64),
+    /// A bar that a battery's compound rule reads, and no comparison alone: Balance's pin, a
+    /// spread below its bar about a mean above its bar, or a long run of one value above its bar.
+    Ref(f64),
+}
+
+impl Limit {
+    /// The bar.
+    pub fn bar(self) -> f64 {
+        match self {
+            Limit::AtMost(b)
+            | Limit::AtLeast(b)
+            | Limit::Above(b)
+            | Limit::Exactly(b)
+            | Limit::Ref(b) => b,
+        }
+    }
+
+    /// Whether `x` holds the limit; `None` for [`Limit::Ref`]. Each comparison is written so
+    /// that a NaN holds none.
+    pub fn holds(self, x: f64) -> Option<bool> {
+        match self {
+            Limit::AtMost(b) => Some(x <= b),
+            Limit::AtLeast(b) => Some(b <= x),
+            Limit::Above(b) => Some(b < x),
+            Limit::Exactly(b) => Some(x == b),
+            Limit::Ref(_) => None,
+        }
+    }
+
+    /// The comparison, as `render` prints it.
+    pub fn sign(self) -> &'static str {
+        match self {
+            Limit::AtMost(_) => "<=",
+            Limit::AtLeast(_) => ">=",
+            Limit::Above(_) => ">",
+            Limit::Exactly(_) => "=",
+            Limit::Ref(_) => "ref",
+        }
+    }
+}
+
 /// One number a battery read or a report computed: its name, what it is of (`town/bread`,
 /// `bread`, `provider`, `run`), its segment, its value and the bar it was compared with.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -78,9 +138,9 @@ pub struct Reading {
     pub segment: Option<u32>,
     /// The value.
     pub value: f64,
-    /// The bar, if the verdict compares it with one.
+    /// The bar and its comparison, if the verdict compares it with one.
     #[serde(deserialize_with = "required")]
-    pub bar: Option<f64>,
+    pub bar: Option<Limit>,
 }
 
 /// One battery's outcome.
@@ -111,6 +171,8 @@ pub struct CriteriaRef {
     pub tape_hash: Hex,
     /// The batteries it lists, in id order.
     pub listed: Vec<BatteryId>,
+    /// The `ScalePrice` firings it allows the run (amended at S2.5): 0 unless it registers more.
+    pub price_shocks: u64,
 }
 
 /// Everything a certificate holds but its verdict, its failures and its list of non-finite
@@ -248,11 +310,100 @@ const REQUIRED: [BatteryId; 3] = [
     BatteryId::Runaway,
 ];
 
+/// The reading a battery records when the finite gate fails it (§6).
+pub const NONFINITE_READING: &str = "nonfinite.tick";
+
+/// Why a battery marked pass does not agree with its own readings (amended at S2.5): a reading
+/// outside its [`Limit`], a reading of the finite gate, or, for Balance, a (market, segment)
+/// that its readings show pinned. Empty for a battery marked fail: failing is always consistent.
+fn outside_bars(b: &BatteryResult) -> Vec<String> {
+    let mut out = Vec::new();
+    if !b.pass {
+        return out;
+    }
+    let seg = |r: &Reading| {
+        r.segment
+            .map_or_else(String::new, |k| format!(", segment {k}"))
+    };
+    for r in &b.readings {
+        if r.name == NONFINITE_READING {
+            out.push(format!(
+                "{} is marked pass, but the finite gate failed it at {}",
+                b.id, r.at
+            ));
+            continue;
+        }
+        if let Some(l) = r.bar {
+            if l.holds(r.value) == Some(false) {
+                out.push(format!(
+                    "{} is marked pass, but {} at {}{} = {:?} is not {} {:?}",
+                    b.id,
+                    r.name,
+                    r.at,
+                    seg(r),
+                    r.value,
+                    l.sign(),
+                    l.bar()
+                ));
+            }
+        }
+    }
+    if b.id == BatteryId::Balance {
+        out.extend(
+            balance_pins(b)
+                .into_iter()
+                .map(|w| format!("{} is marked pass, but {w}", b.id)),
+        );
+    }
+    out
+}
+
+/// Balance's pin rule over its readings, the rule `BalanceWatch::judge` applies: each (market,
+/// segment) whose standard deviation is below its bar about a mean above its bar in size, or
+/// whose longest run of one value above its bar in size reaches its bar. A (market, segment)
+/// with a mean but not the other three readings, each with its bar, is named too.
+fn balance_pins(b: &BatteryResult) -> Vec<String> {
+    let mut out = Vec::new();
+    let find = |name: &str, of: &Reading| {
+        b.readings
+            .iter()
+            .find(|r| r.name == name && r.at == of.at && r.segment == of.segment)
+            .and_then(|r| r.bar.map(|l| (r.value, l.bar())))
+    };
+    for mean in b.readings.iter().filter(|r| r.name == "balance.mean") {
+        let what = format!(
+            "{}{}",
+            mean.at,
+            mean.segment
+                .map_or_else(String::new, |k| format!(", segment {k}"))
+        );
+        let parts = (
+            mean.bar.map(|l| (mean.value, l.bar())),
+            find("balance.sd", mean),
+            find("balance.run_value", mean),
+            find("balance.longest_run", mean),
+        );
+        let (Some((m, level)), Some((sd, spread)), Some((v, v_level)), Some((run, run_bar))) =
+            parts
+        else {
+            out.push(format!("{what} lacks a pin reading or its bar"));
+            continue;
+        };
+        let by_spread = sd < spread && level < m.abs();
+        let by_run = v_level < v.abs() && run_bar <= run;
+        if by_spread || by_run {
+            out.push(format!("{what} is pinned by its readings"));
+        }
+    }
+    out
+}
+
 /// Seal a certificate (§8): every listed battery gets a result (one that did not run fails
 /// with the note "did not run"), then the non-finite scan, the failures and the verdict. FAIL:
 /// the run stopped before `until` (its error first), a non-finite number anywhere, criteria that
-/// lack a battery C12 requires, or any battery that did not pass. Else UNSCORED: no criteria, or
-/// criteria for another tape. Else PASS.
+/// lack a battery C12 requires, any battery that did not pass, a battery marked pass whose
+/// readings do not hold their bars, or more `ScalePrice` firings than the criteria allow
+/// (amended at S2.5). Else UNSCORED: no criteria, or criteria for another tape. Else PASS.
 pub(crate) fn seal(mut parts: Parts) -> Certificate {
     if let Some(c) = &parts.criteria {
         for id in &c.listed {
@@ -297,6 +448,15 @@ pub(crate) fn seal(mut parts: Parts) -> Certificate {
                     "the criteria list one of Settles and Kick without the other (C12)".to_string(),
                 );
             }
+            // R3 (amended at S2.5): a tape that sets its own prices is certified only as far as
+            // its criteria say it may. Dense dated shocks are a periodic nudge in all but name.
+            if c.price_shocks < parts.price_shocks {
+                failures.push(format!(
+                    "the run fired {} ScalePrice events, and its criteria allow {}: a tape that \
+                     sets its own prices certifies only as far as its criteria register (R3)",
+                    parts.price_shocks, c.price_shocks
+                ));
+            }
             if c.tape_hash != parts.run.tape_hash {
                 unscored = Some(format!(
                     "unscored: the criteria were registered for tape_hash {}, not this tape's {}",
@@ -310,6 +470,9 @@ pub(crate) fn seal(mut parts: Parts) -> Certificate {
             let why = b.notes.first().map_or("", String::as_str);
             failures.push(format!("{} failed: {why}", b.id));
         }
+    }
+    for b in &parts.batteries {
+        failures.extend(outside_bars(b));
     }
     let verdict = if !failures.is_empty() {
         Verdict::Fail
@@ -502,8 +665,8 @@ impl Certificate {
         }
         match &self.criteria {
             Some(c) => out.push_str(&format!(
-                "criteria {} ({}, hash {}, for tape_hash {})\n",
-                c.file, c.date, c.hash, c.tape_hash
+                "criteria {} ({}, hash {}, for tape_hash {}, price shocks allowed {})\n",
+                c.file, c.date, c.hash, c.tape_hash, c.price_shocks
             )),
             None => out.push_str("criteria none\n"),
         }
@@ -564,8 +727,8 @@ fn reading_line(r: &Reading) -> String {
         s.push_str(&format!(" segment {seg}"));
     }
     s.push_str(&format!(" = {:?}", r.value));
-    if let Some(bar) = r.bar {
-        s.push_str(&format!(" (bar {bar:?})"));
+    if let Some(l) = r.bar {
+        s.push_str(&format!(" (bar {} {:?})", l.sign(), l.bar()));
     }
     s
 }
@@ -591,7 +754,7 @@ mod tests {
         }
     }
 
-    fn reading(name: &str, value: f64, bar: Option<f64>) -> Reading {
+    fn reading(name: &str, value: f64, bar: Option<Limit>) -> Reading {
         Reading {
             name: name.to_string(),
             at: "run".to_string(),
@@ -606,7 +769,7 @@ mod tests {
             id,
             pass,
             readings: vec![
-                reading("x.value", 0.5, Some(1.0)),
+                reading("x.value", 0.5, Some(Limit::AtMost(1.0))),
                 reading("x.count", 3.0, None),
             ],
             notes: if pass {
@@ -624,6 +787,7 @@ mod tests {
             hash: Hex(1),
             tape_hash: Hex(tape_hash),
             listed: listed.to_vec(),
+            price_shocks: 0,
         }
     }
 
@@ -671,10 +835,10 @@ mod tests {
                     return format!("batteries[{b}].readings[{r}].value");
                 }
                 i += 1;
-                if let Some(bar) = rd.bar.as_mut() {
+                if let Some(Limit::AtMost(bar)) = rd.bar.as_mut() {
                     if i == k {
                         *bar = x;
-                        return format!("batteries[{b}].readings[{r}].bar");
+                        return format!("batteries[{b}].readings[{r}].bar.AtMost");
                     }
                     i += 1;
                 }
@@ -840,7 +1004,206 @@ mod tests {
         let mut p = pass_parts();
         p.criteria = Some(criteria(&THREE, 0xdef));
         out.push(("another tape", seal(p), Verdict::Unscored));
+        // Amended at S2.3, item 5: a failed battery fails the run, listed or not, so an unscored
+        // run whose Conservation failed is FAIL, not UNSCORED.
+        let mut p = pass_parts();
+        p.criteria = None;
+        p.batteries = vec![battery(BatteryId::Conservation, false)];
+        out.push(("unscored, a battery failed", seal(p), Verdict::Fail));
+        // C12: Settles only with Kick.
+        let mut p = pass_parts();
+        let mut listed = THREE.to_vec();
+        listed.push(BatteryId::Settles);
+        p.criteria = Some(criteria(&listed, 0xabc));
+        p.batteries.push(battery(BatteryId::Settles, true));
+        out.push(("Settles without Kick", seal(p), Verdict::Fail));
+        // R3 (amended at S2.5): more ScalePrice firings than the criteria allow fail, and as many
+        // as they allow do not.
+        let mut p = pass_parts();
+        p.price_shocks = 1;
+        out.push(("a price shock", seal(p), Verdict::Fail));
+        let mut p = pass_parts();
+        p.price_shocks = 2;
+        p.criteria.as_mut().unwrap().price_shocks = 2;
+        out.push(("price shocks allowed", seal(p), Verdict::Pass));
+        // Amended at S2.5: a battery marked pass holds every reading to its bar.
+        let mut p = pass_parts();
+        p.batteries[1].readings[0].value = 1.5;
+        out.push(("outside a bar", seal(p), Verdict::Fail));
+        let mut p = pass_parts();
+        p.batteries[1]
+            .readings
+            .push(reading(NONFINITE_READING, 7.0, None));
+        out.push(("a finite gate's reading", seal(p), Verdict::Fail));
         out
+    }
+
+    /// A Balance result for one market and segment: its samples, mean, sd, longest run and run
+    /// value, with July's bars (level 1e-9, spread 1e-12, 32 samples, half the observations).
+    fn balance(pass: bool, mean: f64, sd: f64, run: f64, run_value: f64) -> BatteryResult {
+        let at = |name: &str, value: f64, bar: Limit| Reading {
+            at: "m/0".to_string(),
+            ..reading(name, value, Some(bar))
+        };
+        BatteryResult {
+            id: BatteryId::Balance,
+            pass,
+            readings: vec![
+                at("balance.samples", 100.0, Limit::AtLeast(32.0)),
+                at("balance.mean", mean, Limit::Ref(1e-9)),
+                at("balance.sd", sd, Limit::Ref(1e-12)),
+                at("balance.longest_run", run, Limit::Ref(50.0)),
+                at("balance.run_value", run_value, Limit::Ref(1e-9)),
+            ],
+            notes: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn a_pass_flag_holds_its_readings() {
+        // Amended at S2.5 (the verification's E3): the seal holds a battery marked pass to its
+        // readings. Each comparison, a value just outside its bar, fails the run with a line
+        // that names the reading; the same value inside passes. Balance's pin is a compound
+        // rule over readings marked Ref, and the seal applies it as BalanceWatch does.
+        let limits = [
+            (Limit::AtMost(1.0), 1.0, 1.0f64.next_up()),
+            (Limit::AtLeast(1.0), 1.0, 1.0f64.next_down()),
+            (Limit::Above(0.0), 1e-300, 0.0),
+            (Limit::Exactly(20.0), 20.0, 20.0f64.next_up()),
+        ];
+        for (limit, inside, outside) in limits {
+            for (x, want) in [(inside, Verdict::Pass), (outside, Verdict::Fail)] {
+                let mut p = pass_parts();
+                p.batteries[2].readings[0] = reading("x.value", x, Some(limit));
+                let c = seal(p);
+                assert_eq!(
+                    c.verdict(),
+                    want,
+                    "{limit:?} with {x:?}: {:?}",
+                    c.failures()
+                );
+                if want == Verdict::Fail {
+                    let line = format!(
+                        "Runaway is marked pass, but x.value at run, segment 0 = {x:?} is not {} \
+                         {:?}",
+                        limit.sign(),
+                        limit.bar()
+                    );
+                    assert_eq!(c.failures(), [line]);
+                }
+            }
+        }
+        // A Ref is no comparison alone.
+        let mut p = pass_parts();
+        p.batteries[2].readings[0] = reading("x.value", 1e9, Some(Limit::Ref(1.0)));
+        assert_eq!(seal(p).verdict(), Verdict::Pass);
+        // Balance: at zero is not a pin, a constant off zero is, by its spread, and so is a run
+        // of one value over half the observations; below half it is not.
+        let with = |b: BatteryResult| {
+            let mut p = pass_parts();
+            p.batteries.push(b);
+            seal(p)
+        };
+        assert_eq!(
+            with(balance(true, 0.0, 0.0, 100.0, 0.0)).verdict(),
+            Verdict::Pass
+        );
+        assert_eq!(
+            with(balance(true, 0.1, 0.01, 1.0, 0.1)).verdict(),
+            Verdict::Pass
+        );
+        assert_eq!(
+            with(balance(true, 0.1, 0.01, 49.0, 0.2)).verdict(),
+            Verdict::Pass
+        );
+        for pinned in [
+            balance(true, -1.0 / 6.0, 0.0, 100.0, -1.0 / 6.0),
+            balance(true, 0.1, 1e-13, 1.0, 0.1),
+            balance(true, 0.1, 0.01, 50.0, 0.2),
+        ] {
+            let c = with(pinned);
+            assert_eq!(c.verdict(), Verdict::Fail);
+            assert_eq!(
+                c.failures(),
+                ["Balance is marked pass, but m/0, segment 0 is pinned by its readings"]
+            );
+        }
+        // Marked fail, the same readings are consistent.
+        assert_eq!(
+            with(balance(false, 0.1, 1e-13, 1.0, 0.1)).failures(),
+            ["Balance failed: "]
+        );
+        // A pin whose readings are incomplete is named too.
+        let mut b = balance(true, 0.0, 0.0, 1.0, 0.0);
+        b.readings.pop();
+        assert_eq!(
+            with(b).failures(),
+            ["Balance is marked pass, but m/0, segment 0 lacks a pin reading or its bar"]
+        );
+    }
+
+    #[test]
+    fn a_forged_pass_flag_is_refused() {
+        // The verification's E3: a certificate whose Kick failed, its pass flag flipped, its
+        // verdict set to PASS and its failures emptied, read back PASS, since the seal
+        // recomputed the verdict from the flags alone. Now the flag must hold its readings.
+        let mut p = pass_parts();
+        let listed = [
+            BatteryId::Conservation,
+            BatteryId::Determinism,
+            BatteryId::Runaway,
+            BatteryId::Settles,
+            BatteryId::Kick,
+        ];
+        p.criteria = Some(criteria(&listed, 0xabc));
+        p.batteries.push(battery(BatteryId::Settles, true));
+        let peak = |v: f64| Reading {
+            at: "home/good - at tick 20000".to_string(),
+            ..reading("kick.gain_peak", v, Some(Limit::AtMost(1e6)))
+        };
+        p.batteries.push(BatteryResult {
+            id: BatteryId::Kick,
+            pass: false,
+            readings: vec![peak(3.26), peak(2.89e9)],
+            notes: vec!["home/good - at tick 20000: the kick did not decay".to_string()],
+        });
+        let c = seal(p);
+        assert_eq!(c.verdict(), Verdict::Fail);
+        let mut raw: RawCertificate = ron::from_str(&c.to_ron()).unwrap();
+        for b in &mut raw.batteries {
+            b.pass = true;
+        }
+        raw.verdict = Verdict::Pass;
+        raw.failures.clear();
+        let text = format!(
+            "Certificate{}\n",
+            ron::ser::to_string_pretty(&raw, pretty()).unwrap()
+        );
+        assert!(matches!(
+            Certificate::try_from(raw),
+            Err(CertificateError::EditedVerdict { .. })
+        ));
+        assert!(matches!(
+            Certificate::from_ron(&text),
+            Err(CertificateError::EditedVerdict { .. })
+        ));
+        // C12 on readback (S8): a PASS certificate edited so that its criteria list Settles
+        // without Kick, and Kick's result removed, is refused: resealed, it fails C12.
+        let mut p = pass_parts();
+        p.criteria = Some(criteria(&listed, 0xabc));
+        p.batteries.push(battery(BatteryId::Settles, true));
+        p.batteries.push(battery(BatteryId::Kick, true));
+        let c = seal(p);
+        assert_eq!(c.verdict(), Verdict::Pass);
+        let mut raw: RawCertificate = ron::from_str(&c.to_ron()).unwrap();
+        raw.batteries.retain(|b| b.id != BatteryId::Kick);
+        if let Some(cr) = raw.criteria.as_mut() {
+            cr.listed.retain(|id| *id != BatteryId::Kick);
+        }
+        assert!(matches!(
+            Certificate::try_from(raw),
+            Err(CertificateError::EditedVerdict { .. })
+        ));
     }
 
     #[test]

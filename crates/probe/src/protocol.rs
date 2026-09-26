@@ -12,6 +12,10 @@ pub const HOLD_TOL: f64 = 1e-9;
 /// dead tick (§4.5).
 pub const LIVE_FLOOR: f64 = 0.5;
 
+/// DEAD's share (§4.5): more dead ticks than this share of W, or any in F, is DEAD. The rule is
+/// certify's `battery::dead_share_ok`, and certify reads its share from criteria (C11).
+pub const DEAD_SHARE: f64 = 0.01;
+
 /// `probe.runaway`: a posted price outside [1/this, this] times its genesis value is DIVERGED
 /// (§4.5).
 pub const RUNAWAY: f64 = 1e6;
