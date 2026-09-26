@@ -402,10 +402,10 @@ Each phase leaves one engine green under one harness, and each has an explicit g
 unit is one working session with its own tests. Session counts are honest guesses.
 
 The GUI's stages, G0–G10 and W1 (A14; [GUI.md](GUI.md) §9), sit beside the phases, built
-with egui in `crates/gui`. Each starts after its phase's gate, with two exceptions: G4
+with egui in `crates/gui`. Each starts after its phase's gate, with three exceptions: G4
 starts on Phase 4's gate or Phase 5's first validated county series, whichever comes
-first, and W1, the reader build, starts when the paper needs it, after G4 at the
-earliest. No stage gates engine work. Their session counts are guesses too.
+first; G10 runs beside Phase 10, which is open-ended and has no gate; and W1, the reader
+build, starts when the paper needs it, after G4 at the earliest. No stage gates engine work. Their session counts are guesses too.
 
 ### Phase 0 — Reboot (2 sessions)
 
@@ -697,6 +697,6 @@ back is runs a paper can cite by commit hash.
 ## 9. The first session
 
 Phase 0 runs on WSL (ruling 7). Its first session, the salvage and the engine, is followed
-by a second, the certification stack with G0's engine asks (A14), while oracle unit 1a is
-built in parallel by its own run. Then comes G0, the GUI's shell, while Phase 1 continues.
+by a second, the certification stack with G0's engine asks (A14), with Phase 1's units
+built in parallel. Then comes G0, the GUI's shell, while Phase 1 continues.
 Every ruling is in; nothing blocks the start.

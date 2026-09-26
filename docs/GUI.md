@@ -23,11 +23,11 @@ again at P0.9.
 
 ## 0. Rulings and decisions
 
-**Rulings (2026-09-25).**
+**Rulings (2026-09-25),** numbered here 1–4; they are ADDENDUM's rulings 5–8.
 1. The GUI is built with egui (eframe) in Rust, as `crates/gui`.
 2. The shell comes right after Phase 0's two sessions, and Phase 1 runs in parallel. The ruling's
    wording is "session 1 = P0.1–P0.7, session 2 = the certify stack". ENGINE's P0.5 amendment 1
-   merged two of those steps, so session 1 is now P0.1–P0.6.
+   merged two of those steps; session 1 closed at P0.9 after three rounds of review fixes.
 3. Yorkshire is split into its three ridings, giving 42 regions. The geometry comes from HCBP
    Definition B, with OpenStreetMap's riding lines. The atlas ships under ODbL with attribution, in
    its own data directory with its own licence file, and the code licence is unaffected.
@@ -472,7 +472,7 @@ well under a second. This is an expectation, measurable since `a8f9ed8`; G0 reco
 - **Tests.** `level_edit_after_checkpoint_resumes`, `level_unit_mismatch_is_rejected`,
   `level_source_names_its_basis`, `unused_level_is_rejected`.
 
-## 6. The map and its data (ruling 3; D7, D8)
+## 6. The map and its data (ruling 3, ADDENDUM's 7; D7, D8)
 
 - **Sources.**
   - HCBP Definition B: Historic Counties Trust, release 2026-09-24, OSGB, simplified. It was
@@ -559,7 +559,8 @@ well under a second. This is an expectation, measurable since `a8f9ed8`; G0 reco
     - The prelude.
   - **The cli:** `run`, `resume`, `replay` and `registry`. `--hashes FILE` writes `{t}
     0x{hash:016x}`, where t is the state's tick after each step (amendment 8).
-  - **`tapes/gate.ron`:** its final hash is `0x1b86507a195b2a40`, equal on WSL and Windows.
+  - **`tapes/gate.ron`:** its final hash was `0x1b86507a195b2a40` at `a8f9ed8` and has been
+    `0x61f9c8529131ff17` since P0.6, equal on WSL and Windows.
   - **Tests the GUI leans on:** `engine_runs_on_a_worker_thread`, `observing_changes_no_hash` and
     `gate_resume_from_checkpoints`.
 - **Contracted for P0.6** (ENGINE §12): the move of PLAN.md, `STATE.md`, `ci/gate.sh` and
@@ -668,9 +669,9 @@ Dropped: `markets::price_step`. P0.4's public `next_price` and `imbalance` serve
 
 ## 9. Roadmap
 
-Each stage starts after its phase's gate, with two exceptions. G4 starts on D8's trigger: Phase 4's
-gate or Phase 5's first validated county series, whichever comes first. W1 starts when the paper
-needs it, after G4 at the earliest. G0's phase is Phase 0, so G0 follows its second session. No
+Each stage starts after its phase's gate, with three exceptions. G4 starts on D8's trigger: Phase 4's
+gate or Phase 5's first validated county series, whichever comes first. G10 runs beside Phase 10,
+which is open-ended and has no gate. W1 starts when the paper needs it, after G4 at the earliest. G0's phase is Phase 0, so G0 follows its second session. No
 stage gates engine work (D1).
 
 Sessions are guesses. G0–G7 add about 10–15 sessions. PLAN §6's ranges for Phases 0–7 sum to 19–30
@@ -791,7 +792,7 @@ England run, becomes roughly 35–50.
 - **G9 — the world, after Phase 9's gate. One to two sessions.** The world atlas; trade on
   channels. **Gate:** the grain-gap chart equals its scoring function, and frame p90 stays under
   8 ms on Windows at 700 regions.
-- **G10 — forward branches and the policy lab, after Phase 10's gate. One to two sessions.** A
+- **G10 — forward branches and the policy lab, beside Phase 10. One to two sessions.** A
   branch tree from the certified 2025 state; generators as forms; the pace so far beside every
   central run. **Gate:** every branch's hashes equal the cli's on the same platform and build.
 - **W1 — the reader build, when the paper needs it, after G4 at the earliest. One to two

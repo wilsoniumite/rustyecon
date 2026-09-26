@@ -34,7 +34,9 @@ library a frontend drives). The v1 and July agents did not carry.
 | `4553e5f` P0.8 | housekeeping: docs/PLAN.md moved and amended, this file, the CI skeleton, the docs checked against the code |
 | `57f3a25` P0.9 | fixes from adversarial review, round 3 (O5–O13): exact multi-lot rounding, the flow tolerance pinned, checkpoint format 3 (identity and the run's ledger in the digest), dated events in date order, the per-tick conversions pinned, a wider frontend guard and literal scan, the final save tested |
 | `cc8bae2` P1.1 | oracle unit 1a joins the workspace (O3): `crates/oracle`, its maths through `core::num`, which gains `fma` |
-| P0.11 | the GUI's design, docs/GUI.md, and its review ledger; plan amendment A14 (ADDENDUM §6, rulings 5–8), R16 and the G-stages in PLAN, ENGINE §13; decisions 22–34 below (O1) |
+| — | P0.10 is unused: it was held for a fourth fix round, which the bounded check of P0.9 did not need |
+| `5d7efe9` P0.11 | the GUI's design, docs/GUI.md, and its review ledger; plan amendment A14 (ADDENDUM §6, rulings 5–8), R16 and the G-stages in PLAN, ENGINE §13; decisions 22–34 below (O1) |
+| P0.12 | docs made consistent after the final check: G10 beside Phase 10 as a third exception, stale session and hash lines in GUI.md, ruling numbers, a machine path in the ledger |
 
 Session 1 closed at P0.9 with 198 tests (186 `#[test]` functions and 12 doc tests) passing on
 both machines and the gate world's final hash `0x61f9c8529131ff17` on both. P1.1 and P0.11 came
@@ -256,7 +258,7 @@ carried out): each stands unless vetoed before G0, and D10's window closes at se
 
 - **The GUI's decisions**, 22–34 (D1–D13): open to veto before G0, D10's before session 2.
 - **Pushing.** `reboot-phase0`, `reboot`'s addendum commit and `pre-reboot-2026-09-25` are local
-  only. The repository is public (ruling 6), and CI waits on a push.
+  only. The repository is public (PLAN ruling 6), and CI waits on a push.
 - **Hosted CI** at all (A5): the workflow is in place and inert.
 - **The Phase 2 session budget** that A11's kill condition needs (PLAN Phase 2).
 - **The decisions above**, especially 10 (the engine crate, not in PLAN's crate list), 11, 15
