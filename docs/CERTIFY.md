@@ -1,0 +1,653 @@
+# CERTIFY — the Phase 0 session 2 contract
+
+Dated 2026-09-26. Branch `phase0-s2`, from `reboot` at `cf3c0ff`. Steps are `S2.n` (§14), one
+commit each. It covers PLAN Phase 0 step 7 and §3.8; STATE next step 1 and O2; D10's items 1, 2 and
+4 (GUI.md §7.2); REPORT §6's three criteria; ADDENDUM N4, N10, N12, N15 and A12; and R2–R5, R8, R9,
+R12, R14 and R16. July's source is tag `july-v2-phase-3` (`v2p3:`). A step is done when
+`scripts/gate.sh` is green in WSL and the same commands are green on Windows, with zero warnings.
+This revision takes the adversarial review of the first draft (§15.2).
+
+## 0. Decisions this contract makes
+
+Numbered for the veto window, each with its alternative.
+
+| # | Decision | Alternative |
+|---|---|---|
+| C1 | The kick is a tape event: a new action, `ScalePrice`, multiplies one posted price by a schedule param in phase 0 (§2.4). A kicked run resumes the base run's checkpoint in memory, under a kicked tape that equals the base before the kick. It therefore equals the kicked tape's run from genesis, and a test shows it. The kick is a tape edit with provenance (R16, E1), and it answers REPORT §7 question 4. | Certify writes a kicked checkpoint with core's writer: no engine change, but a state no tape made. |
+| C2 | `tape_hash` is `fnv1a_64` over the canonical `to_ron` (§3), as GUI.md proposed. | Hash the file's bytes, which move with comments. |
+| C3 | Criteria are inputs, registered before the run: `criteria/<tape>-<date>.ron`. Verdicts are outputs: `results/<tape>/certificate.ron` and `manifest.ron`, at stable paths so a rerun is a diff. Committed results are made without `--telemetry`. Hash files and telemetry are not committed; a manifest pins them by digest. | Criteria beside the results. |
+| C4 | Three verdicts: PASS, FAIL and UNSCORED. FAIL outranks UNSCORED, which outranks PASS. Only PASS exits 0; the others exit 5 (N4). | UNSCORED as a kind of FAIL. |
+| C5 | Windows are shares of a segment. A segment ends at a dated event only once it has lasted the registered `min_segment`; a shorter one runs on into the next. Recurring entries are not shocks. The kick's horizon is a span in years, not a share of a segment. | Every dated event a boundary, which lets dense events shrink every window. |
+| C6 | Measures are oracle-free now; oracle-relative ones wait for `crates/observe` (§11). Certificates and manifests are RON: no JSON crate joins, and a NaN in RON is visible text. | Certify depends on the oracle; July's JSON. |
+| C7 | Parquet 60.0.0 with feature `lz4` only: LZ4_RAW, byte-stream-split on the values, no zstd. Columns carry keys, not ids. The writer sits behind certify's feature `parquet`. | July's zstd, which builds C. |
+| C8 | BalanceWatch is ported. July's `FracBelow`, `RollingCv`, `LevelRange`, `ResidualDamping`, `Damping` and `MeanAndSlope` are not: no committed criterion uses them, so R10 leaves them at the tag until one does. | Port them unused. |
+| C9 | A cli resume is verified against a manifest of the same tape: equal `tape_hash` and `world_id`, and a record at the checkpoint's tick with an equal digest and state hash (R16's letter; D4). A resume under a dated edit waits for a ruling (§15.1, question 2). | Require the same world only. |
+| C10 | `committed_certificates_recompute` is `#[ignore]`d and run by name, by `gate.sh` in WSL and by the same command on Windows. Both machines gate the verdict and every battery's pass flag. WSL also gates byte equality except `run.build`; Windows records it (decision 2). | Gate it in WSL only. |
+| C11 | `crates/probe` delegates the moved measures to certify. Tests pin its summaries to all 57 rows of `battery.csv`, the negative control and the history run. | Freeze probe with its own copies. |
+| C12 | Conservation, Determinism and Runaway are in every criteria file, and Settles comes only with Kick. A file that breaks this does not load. | Criteria choose freely, so a Settles-only file certifies a rounding freeze. |
+| C13 | A one-sided tick is a BalanceWatch observation, at ±1. Only a tick with S = D = 0 is skipped, since its 0 is a convention. A market that stays one-sided is not clearing, and dropping those ticks would hide it (July's rule, `v2p3: invariants.rs:158-168`). | Two-sided ticks only, leaving one-sidedness to Trades. |
+
+## 1. Crates, features, dependencies
+
+```
+crates/certify  rustyecon-certify  lib `certify`; depends on core, engine, ron, serde; optional parquet
+  src/criteria.rs     Criteria, Bar, BatterySpec: RON text in and out, load checks, fit to a tape
+  src/manifest.rs     Hex, Build, RunKey, tape_hash, Manifest, the named hashes header, verify
+  src/obs.rs          Obs from (&TickReport, &Sim); segments from the World's dated firings
+  src/fold.rs         NaN-propagating max, min and sum; ln_range; the finite gate
+  src/battery.rs      the batteries and reports, each pure over its inputs; BalanceWatch; trough
+  src/kick.rs         deferred_tape, kicked_tape, kick_gain, the kick runs
+  src/certificate.rs  Verdict, BatteryResult, Reading, Certificate; seal (crate-private); render;
+                      nonfinite_paths; RawCertificate for readback
+  src/run.rs          certify(): the base run, the batteries, the certificate and the manifest
+  src/telemetry.rs    #[cfg(feature = "parquet")] TelemetryWriter<W: std::io::Write + Send>
+```
+
+- **Features.** `parquet = ["dep:parquet"]`, off by default, with `parquet = { version = "=60.0.0",
+  default-features = false, features = ["lz4"] }` in the workspace. The cli turns it on; the GUI
+  natively only, its web build using the rest.
+- **No I/O.** No module but `telemetry.rs` names `parquet` or `std::io`, and none names `std::fs`,
+  `env`, `process`, `net`, `thread` or `time`. Paths live in the cli (E2's rule, carried here).
+- **No writer handed out.** Certify depends on core directly (`fnv1a_64`, `num`, `Basis`, `Date`)
+  and calls none of core's writer. It re-exports nothing of core, and no public function returns a
+  `Checkpoint`, `Sim` or `SimState` it built (checked by §13's scans).
+- **The verdict path follows ENGINE §9:** `core::num::ln`, left folds in canonical order, no hashed
+  containers, and no float literal but `0.0` and `1.0`, since every threshold is in criteria (R4).
+
+## 2. Engine changes (S2.1), before any manifest records a `world_id`
+
+### 2.1 D10 item 1: `world_id` without the `fixed` flag (ENGINE §2.6)
+
+`world_id` hashes `(key, unit, genesis)` per param (`tape/mod.rs:1072`), not `p.fixed`. Before this
+change, a registered live param that became a `SetParam` source turned fixed and changed the world,
+so every checkpoint was refused. The structure that `fixed` guards is hashed elsewhere: a shelf life
+as ticks in the goods, the tolerances in `tol`, and a period in the schedule under `prefix_id`.
+Test: `new_source_event_keeps_world_id` (engine `edits.rs`). The test builds a variant of the gate
+tape with a 1780 event, `SetParam(param: "workers.buy.bread", to: "mill.capacity")`; after it,
+`mill.capacity` is live and a source. `tapes/gate.ron` itself is unchanged. The test checks that
+`world_id` is unchanged, that `prefix_id` is unchanged through 1780, and that the tick-1,040
+checkpoint resumes under the edit and equals the edit's full rerun.
+
+### 2.2 D10 item 2: `FiredEvent` names its source (ENGINE §7.4)
+
+```rust
+pub struct FiredEvent { pub key: Key, pub occurrence: u32, pub action: StateDelta<Agents>,
+                        pub source: Option<Key> }  // Firing.source: a Key, since a ScheduleParam has no ParamId
+```
+Test: `fired_event_names_its_source` (engine `gate.rs`). `mine.cut` fires with
+`Some("mine.capacity.cut")`, and `oven.opens` and every pension occurrence fire with `None`.
+
+### 2.3 D10 item 4: each use of a param, with its `ClockMethod` (ENGINE §2.1, §2.6, §4, §6, §7.1)
+
+```rust
+// core::clock
+pub enum ClockMethod { Value, Flow, Share, LogStep, Compound, Fraction, Weight, Ticks }
+impl ClockMethod { pub fn unit(self) -> Unit;  pub fn name(self) -> &'static str;   // "log_step", …
+                   pub fn per_tick(self, c: &Clock, v: f64) -> Result<f64, ClockError>; }  // §6's table
+pub struct Site { pub param: ParamId, pub method: ClockMethod }   // what a resolved spec holds
+impl Site { pub fn per_tick(&self, v: &View) -> f64; }           // the only conversion at use
+pub struct ParamSite { pub path: String, pub method: ClockMethod }
+// core::tape::Resolver: the method replaces the unit, whose unit it implies
+pub fn param(&mut self, key: &Key, method: ClockMethod, use_: ParamUse, field: &str) -> Result<Site, LoadError>;
+// ParamDef and ScheduleParam gain `pub sites: Vec<ParamSite>`, in path order. A SetParam source
+// takes its target's methods at the firing's path; a period takes Ticks.
+// engine::registry
+pub enum Entry { Param { unit: Unit, use_: Use, sites: Vec<SiteLine> }, Inline }
+pub struct SiteLine { pub path: String, pub method: ClockMethod, pub per_tick: f64 }
+```
+The sites replace `per_tick`'s guess (`per_tick` and `is_price_rate` in `engine/src/registry.rs`).
+Core's sites are the EMA (`Weight`), the tolerances (`Value`), a life (`Ticks`) and a price rate
+(`LogStep`); agents' scripted sites are capacity, buy and sell (`Flow`) and payout and spend
+(`Share`); each role site names the method its rule applies (RULES §2: a step rule's `up` and `down`
+are `LogStep`, other rates `Share`). Resolved specs hold a `Site`, not a bare `ParamId`, and read it
+only through `Site::per_tick`. So the method a site declares is the conversion the run uses.
+`ClockMethod` and `Site` join the engine prelude and the scans' allow-list. The registry's `sites`
+lists are not hashed; a `Site` inside a spec is, with the spec.
+Tests: `registry_names_each_use` (engine): a gate variant sets the mill's `spend` to
+`Some("rate.bread")` and deletes `mill.spend`, and the `rate.bread` row lists `log_step` at
+`goods[bread].price_rate` and `share` at `actors[mill].spec.spend`, each per-tick value equal to
+`Clock`'s. `role_sites_name_their_methods` (agents): appb under July's step rule, every
+`RatePerYear` site against RULES §2. `each_site_converts_as_registered` (agents): on gate and
+appb, every site's per-tick value as the run reads it through the `View` equals its `SiteLine`'s.
+Item 3 is met; S2.1 adds a step-of-7 loop to `observing_changes_no_hash` and records it.
+
+### 2.4 The kick's action: `ScalePrice` (C1; ENGINE §2.4, §2.6, §7.3)
+
+```rust
+RawAct::ScalePrice { node: Key, good: Key, by: Key }                // appended to RawAct
+StateDelta::ScalePrice { node: NodeId, good: GoodId, factor: f64 }  // appended after AdvanceTick
+```
+`by` is a `Dimensionless` param only the schedule reads: a `ScheduleParam`, outside `world_id`, and
+the firing's `source`. These are load errors: a factor that is not finite and positive, a currency,
+a market the world lacks, and a `ScalePrice` in a recurring entry. The last keeps it a dated shock:
+a periodic price nudge would be an exogenous stabiliser, which R3 bans, and by C5 it would not
+restart a window. `apply` takes the delta in `Phase::Events` only (`WrongPhase` otherwise), sets the
+posted price to `fl(p·factor)`, refuses a result that is not clean and positive, and leaves the
+EMA alone. Hooks cannot emit it, since the whitelist is an allow-list. The variant is appended, so
+no existing encoding, hash or `prefix_id` moves, and the schema stays 1 (P2.0.1's precedent; a
+TAPE.md row). `MarketLine::trades()` joins the engine as markets' `MarketFill::trades` predicate,
+so certify and probe share one definition of a market that traded. Certify calls it only after the
+finite gate (§6).
+Tests: `scale_price_is_an_event_only_delta` (core: the phase, a currency, a bad factor at load, a
+recurring `ScalePrice` at load, a non-finite result); `kicked_tape_keeps_world_and_past` (engine:
+gate plus a kick at tick 1,000 keeps `world_id` and `prefix_id(1000)`; the tick-1,000 checkpoint
+resumes under it, that tick's `MarketLine.price` is `fl(p·factor)`, and the resumed run's hashes
+equal the kicked tape's run from genesis); `behaviour_output_is_whitelisted` gains the arm.
+
+### 2.5 Re-baselines
+
+Every `world_id` changes once (gate, appb, core's and markets' fixtures), for two reasons. Item 1
+drops the `fixed` flag, which is schedule structure, so that a new source keeps the world (E1). And
+§2.3's `Site` puts each spec's method into the hashed actors and goods, since the method decides a
+number. No state hash or `prefix_id` moves: S2.1 compares all 2,080 gate and 20,000 appb per-tick
+hashes with `cf3c0ff`'s on both machines (finals `0x61f9c8529131ff17`, `0xe1fa082b26995867`). That
+comparison also shows the `Site` refactor changed no conversion. STATE records the new `world_id`s.
+Older checkpoints are refused (`WrongWorld`); none is committed.
+
+## 3. Identity: the tape hash, the build and the run key (N10)
+
+```rust
+pub struct Hex(pub u64);                               // serialised as "0x%016x"
+pub fn tape_hash(t: &Tape) -> u64;                     // core::fnv1a_64(t.to_ron().as_bytes())
+pub struct Build { pub commit: String, pub dirty: bool, pub target: String, pub rustc: String }
+pub struct RunKey { pub build: Build, pub tape_hash: Hex, pub world_id: Hex }   // the GUI reuses it
+```
+- **N10, confirmed.** `Tape` is `deny_unknown_fields` with no defaults, so the parsed `Tape` is
+  everything the loader reads, and `to_ron` writes all of it in canonical order: the name, every
+  basis, the schedule and the inline numbers. So `tape_hash` covers all that `world_id` and every
+  `prefix_id` cover, and ignores only what the loader ignores (comments, whitespace, CRLF, list
+  order). The other inputs a run reads are recorded beside it: the build, the criteria (their
+  `hash`), and a resumed checkpoint (its `digest`, over `world_id`, `prefix_id`, state and run).
+  The hash is tied to ron 0.8.1's text; a ron upgrade that changes it re-baselines every
+  `tape_hash`, as a dated entry.
+- **Build.** The cli's `build.rs` stamps `RUSTYECON_COMMIT` (40 hex), `RUSTYECON_DIRTY`,
+  `RUSTYECON_TARGET` (cargo's `TARGET`) and `RUSTYECON_RUSTC` (`$RUSTC -V`). Dirty means `git status
+  --porcelain` is non-empty over `crates/`, `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml` and
+  `clippy.toml`, untracked files included. The script emits `rerun-if-changed` for each of those
+  paths; for the worktree's `HEAD` and `index` (from `git rev-parse --git-dir`); and for the ref
+  that `HEAD` names and `packed-refs` (from `--git-common-dir`), each where it exists. So a commit,
+  a checkout, a staged change and an edit to any covered path all restamp. In WSL this worktree's
+  `.git` names a Windows path (`gitdir: C:/…`) and git fails, so the script maps `X:/` to `/mnt/x/`
+  and retries (checked: it works and reads clean). With no readable git the commit is `unknown`
+  and dirty is true (fail closed). `gate.sh` checks the stamp against the checkout (§14).
+
+## 4. Criteria: dated, registered, one file per tape
+
+Every threshold is a `Bar` with a value, a unit and a basis (R4's five tags, core's `Basis`).
+Unknown fields are refused, and nothing has a default. A criteria file names the tape it was
+registered for, why it exists, and the file it replaces.
+
+```rust
+pub struct Criteria { pub format: u32 /* 1 */, pub date: Date, pub reason: String,
+    pub supersedes: Option<String>, pub tape: TapeRef, pub until: Date, pub until_basis: Basis,
+    pub min_segment: Bar /* Years */, pub batteries: Vec<BatterySpec>, pub reports: ReportSpec }
+pub struct TapeRef { pub name: String, pub tape_hash: Hex }
+pub struct Bar { pub value: f64, pub unit: BarUnit, pub basis: Basis }
+pub struct Count { pub value: u64, pub basis: Basis }
+pub enum BarUnit { Ratio, LogWidth, Share, Relative, Imbalance, Years, Gain }
+pub enum BatterySpec {
+    Conservation,                                      // no bar: margin <= 1 is the ledger's definition
+    Determinism { resume_at: Vec<Bar> },               // Share of the run, open (0, 1)
+    Runaway { bound: Bar },                            // Ratio to the genesis price, > 1 (A12)
+    Trades { every: Bar },                             // Years
+    Balance { level: Bar, spread: Bar, min_samples: Count, run_share: Bar },   // Imbalance, Share
+    Settles { w_from: Bar, f_from: Bar, dead_share: Bar, band: Bar },          // Share, LogWidth
+    Kick { size: Bar, horizon: Bar, tail: Bar, max_gain: Bar },  // Relative, Years, Share, Gain
+}
+pub struct ReportSpec { pub rationed_below: Bar }      // Relative: a fill below 1 − this is rationed
+impl Criteria { pub fn from_ron(s: &str, file: &str) -> Result<Criteria, CriteriaError>;
+                pub fn fit(&self, clock: &Clock) -> Result<Fit, CriteriaError>;   // ticks, checked
+                pub fn to_ron(&self) -> String;  pub fn hash(&self) -> u64; }  // fnv1a_64 of to_ron
+```
+**Load checks** (`from_ron`), each a `CriteriaError` with its path:
+- every value is finite and in its field's unit: a `Share` in [0, 1], with `w_from ≤ f_from < 1`,
+  `tail` and `run_share` in (0, 1], and `dead_share` below 1; each `resume_at` in the open (0, 1);
+  a `Relative` in (0, 1); a `Ratio` bound above 1; a `Gain` in the open (0, 1); an `Imbalance` in
+  (0, 1); a span in `Years` above 0;
+- the kick's size moves a float: `fl(1 − size) < 1 < fl(1 + size)`;
+- `min_samples` is at least 2, since a spread needs two samples;
+- Conservation, Determinism and Runaway are listed; Settles and Kick are listed together or not at
+  all (C12); no battery is listed twice; `resume_at` is not empty;
+- `format` is 1; `date` equals the file name's date; `supersedes`, when given, names an earlier
+  file for the same tape name. A retune is a new dated file with its reason, never an edit.
+
+**Fit checks** (`fit`, run by certify against the tape's clock when the `tape_hash` matches; a
+failure is exit 1 and nothing runs). With n = `tick_of(until)` ticks in the run and
+m = `ticks(min_segment)`:
+- n ≥ m, and n ≥ `ticks(every)`, so the run holds a full segment and a full Trades window;
+- the resume ticks ⌊share·n⌋ are distinct and lie strictly inside (0, n);
+- H = `ticks(horizon)` ≥ 2, and the tail ⌈tail·H⌉ ≥ 2;
+- m ≥ `min_samples`, so a segment can hold enough samples to find a pin;
+- ⌊(1 − f_from)·m⌋ ≥ 2, so F holds two ticks in the shortest segment.
+
+An excerpt of `criteria/appb-2026-09-26.ron`:
+```ron
+Criteria(format: 1, date: "2026-09-26", reason: "first registration, before any certified run of appb",
+  supersedes: None, tape: (name: "appb", tape_hash: "0x…"), until: "2134-08-14",
+  until_basis: Literature("docs/probe/RULES.md §3: L = 20,000 ticks, 200 τ_max"),
+  min_segment: (value: 20.0, unit: Years, basis: Assumed("about 15 τ_max of RULES §3's 68 ticks; REPORT §3: the slowest return took 783 ticks")),
+  batteries: [Conservation, Determinism(resume_at: [(value: 0.5, unit: Share, basis: Assumed("mid-run"))]),
+    Runaway(bound: (value: 1e6, unit: Ratio, basis: Literature("PROBE-SPEC §4.5; REPORT §6"))),
+    Kick(size: (value: 1e-9, unit: Relative, basis: Literature("docs/probe/REPORT.md §5–§6")),
+         horizon: (value: 385.0, unit: Years, basis: Literature("RULES §3: one L, 20,020 ticks at 52 a year")),
+         tail: (value: 0.1, unit: Share, basis: Assumed("the horizon's last tenth")),
+         max_gain: (value: 1e-3, unit: Gain, basis: Assumed("REPORT §3, §5: a decaying 1e-9 kick ends near its rounding floor, a gain near 1e-6; a neutral one stays near 1"))), …],
+  reports: (rationed_below: (value: 1e-9, unit: Relative, basis: Literature("PROBE-SPEC §4.6"))))
+```
+
+## 5. Observations, segments and windows (N15; REPORT §6, criterion 3)
+
+```rust
+pub struct Obs { pub tick: u64, pub markets: Vec<MarketObs>,   // the report's (node, good) order
+    pub rationing: Vec<RationObs>,                             // the report's (node, good, class, side) lines
+    pub consumed: Vec<f64>, pub spoiled: Vec<f64>,             // per good: −Σ Consumption, −Σ Spoilage lines
+    pub transfers: Vec<(ActorId, f64, f64)>,                   // each Provider's (due, paid)
+    pub margin: f64, pub run_margin: f64,                      // audit.max_margin, run.max_margin
+    pub price_shocks: u32 }                                    // ScalePrice firings this tick
+pub struct MarketObs { pub price: f64, pub next_price: f64, pub supply: f64, pub demand: f64,
+    pub cleared: f64, pub buyer_fill: f64, pub seller_fill: f64 }
+impl MarketObs { pub fn trades(&self) -> bool; }               // markets' predicate, after the finite gate
+pub struct RationObs { pub market: u32, pub class: ClassId, pub side: SideTag,
+    pub requested: f64, pub feasible: f64, pub filled: f64 }
+impl Obs { pub fn of(r: &TickReport, sim: &Sim) -> Obs; }      // after each step: the report, and Providers' state
+pub struct Segment { pub from: u64, pub to: u64, pub opened_by: Vec<Key>, pub merged: Vec<Key> }
+pub fn segments(w: &World, from: u64, until: u64, min_len: u64) -> Vec<Segment>;
+```
+The candidate boundaries are the distinct ticks of `w.schedule.once()` inside `(from, until)`, in
+order. A candidate b closes the current segment `[a, b)` only if b − a ≥ m = `ticks(min_segment)`.
+Otherwise its event keys join the segment's `merged` list, and the segment runs on. At the end, a
+last segment shorter than m joins the one before it. So every segment has at least m ticks, and
+the certificate names each shock that fell inside one. The report of a closing shock's tick opens
+the next segment. In a segment of n ticks, W is `[from + ⌈w_from·n⌉, to)` and F is
+`[from + ⌈f_from·n⌉, to)`. No window is an absolute tick (N15: July's `analysis_end: 1000` scored
+ticks 150–1000 of an 11,700-tick run). No window is set by the tape's event spacing either: with a
+no-op event every 100 ticks, the segments are still m long.
+
+## 6. Batteries and reports: what each reads
+
+Conservation, Determinism and Runaway run on every scored run; Trades, Balance, and Settles with
+Kick run when listed (C12). Each battery is a pure function of its inputs, and `certify` only
+gathers them: `conservation(&[Obs])`, `determinism(&DeterminismInputs)`, `runaway(&[Obs],
+genesis)`, `trades(&[Obs], &[Window])`, `balance(&[Obs], &[Segment], …)`, `settles(…)` and
+`kick_gain(base, kicked, tail)`. So each has a test that fails it (§13).
+
+- **The finite gate (N12).** Before any predicate, every field in a battery's "Reads" column is
+  checked with `is_finite`, on every tick, market and run it scores. The first failure fails the
+  battery, and its note names the tick and the path (`markets[town/bread].supply`). After the
+  gate, Balance skips a tick only when `s == 0.0 && d == 0.0`; `trades()` sees finite fields only;
+  every max and min over a series propagates NaN (`fold::max_nan`); and every comparison is written
+  `x <= bar`, never `!(x > bar)`. This closes the four leaks of the first draft: Balance's `S > 0
+  or D > 0` test with S = NaN, `trades()` reading a NaN tick as "no trade", `fold(0.0, f64::max)`,
+  and ±inf past an `is_nan` guard.
+- **No vacuous pass.** Every battery records at least one reading for each thing it scores: each
+  (market, segment), each market, each window, each resume, each kick. A battery with none FAILs
+  with `no samples`. A world with no non-currency market fails every per-market battery.
+
+| Battery | Reads (the finite gate covers these) | Passes when |
+|---|---|---|
+| Conservation (R2) | each tick's `margin` and `run_margin`; whether the run reached `until` | the run reached `until`, and every margin is ≤ 1. The engine already stops on a breach; this is a second reader of the same numbers, and a test fails it (§13) |
+| Determinism (R8) | the base run's `TickReport.hash`; a second `Sim::new` run's; `audit_replay(tape, until)`'s final hash; for each `resume_at`, the base run's checkpoint at ⌊share·n⌋ through `to_bytes`/`from_bytes` and `Sim::resume`, and every f64 of its last report and the base run's | the hash streams are equal tick by tick, the replay returns the final hash, and each resumed run's last report equals the base run's in full |
+| Runaway (A12) | per market, `next_price` on every tick, and the genesis price (`Sim::price` before the first step) | every ratio lies in [1/bound, bound] (it does not stop the run) |
+| Trades | per market, `supply`, `demand`, `buyer_fill` and `seller_fill`, then `trades()` | each market trades in every window. The windows are `[k·E, (k+1)·E)` from the start with E = `ticks(every)`, plus `[n − E, n)` when E does not divide n, so the last full window ends at `until`. Trades does not restart at shocks: it is a liveness check over the run |
+| Balance (BalanceWatch) | per market, `supply` and `demand`, then `markets::imbalance`; per segment | in every segment, every market has at least `min_samples` observations and is not pinned. A tick is an observation unless S = D = 0; a one-sided tick counts at ±1 (C13). A market is pinned when sd < `spread` and \|mean\| > `level`, or when an unbroken run of one exact value v, \|v\| > `level`, covers at least `run_share` of its observations. Too few observations FAILs as "too few samples": it cannot tell a pin from a quiet market |
+| Settles (REPORT §6, criteria 1 and 3) | per segment and market: `supply`, `demand`, the fills, `price` and `cleared` | a dead tick is one on which some market does not trade. In W, dead ticks ≤ ⌊dead_share·\|W\|⌋; in F, none; for every market, `ln_range` of price and of cleared over F is ≤ `band` |
+| Kick (REPORT §6, criterion 1) | per segment end and market, the `price` of every market in the base continuation and each kicked run, over the horizon | the realized kick is not zero, every kick's `gain_tail` ≤ `max_gain`, and no kicked or base run fails (§7) |
+
+**Reports** are computed per segment and per market, good or class, and never scored. They are
+REPORT §6's criterion 2, the transient statistics, and O14's first instrument:
+- troughs: the minimum `cleared`, its tick, and the `cleared` at the segment's end;
+- dead ticks per market: ticks with no trade, and among them the ticks with S = 0 and with D = 0;
+- fills, over ticks where the side exists: the worst buyer fill over ticks with D > 0, the worst
+  seller fill over ticks with S > 0, and the ticks on which each is below 1 − `rationed_below`.
+  Markets set a fill to 0 when its side is empty (`clearing.rs:82-83`), so a dead tick is not
+  counted as rationing;
+- rationing per (market, class, side), from `TickReport.rationing` (R12): the worst
+  filled/feasible over lines with feasible > 0, its ticks below 1 − `rationed_below`, Σ(requested −
+  feasible), which is budget rationing (N7) and never shows in a fill, and Σ(feasible − filled);
+- for each good consumed anywhere, the ticks with no `Consumption`; Σ spoiled per good;
+- each provider's Σ(due − paid) and its short ticks;
+- ticks with a subnormal fill or `cleared` (P0.4 amendment 6);
+- the run's count of `ScalePrice` firings, so a tape that sets its own prices says so.
+
+Reports have no gate. They fold with the same NaN-propagating max, min and sum, so a non-finite
+input reaches the certificate and the seal fails it (§8). No report is a ratio that could be 0/0.
+
+## 7. The kick check (C1; REPORT §5, and §6 criterion 1)
+
+For each segment `[a, b)`, at `T = b`, with H = `ticks(horizon)` from the criteria, the same for
+every segment:
+1. The base run keeps `sim.checkpoint()` at `T`, in memory.
+2. `deferred_tape(base, T, T + H)` re-dates every dated event at a tick ≥ `T` to
+   `clock.date_of(T + H)`, a tick no kicked run reaches, and changes nothing else. Every param
+   keeps every reference, so the registry and `world_id` are unchanged, and so is `prefix_id(T)`,
+   which covers firings before `T`. Certify asserts both; a mismatch fails Kick as uncomputable.
+   Recurring entries stay. (The first draft dropped the events and their params instead. That
+   moved `world_id` whenever a registered param's only reference was a dropped `SetParam`
+   target, since the loader marks such a param live and registers it.)
+3. For each market and sign, `kicked_tape(deferred, T, node, good, 1 ± size, basis)` adds a
+   `ScheduleParam` `certify.kick.factor` (its basis cites the criteria file and REPORT §5) and an
+   event `certify.kick` at `clock.date_of(T)` doing `ScalePrice(node, good, by:
+   "certify.kick.factor")`. Keys under `certify.` are reserved: a base tape that uses one does not
+   certify (exit 1). If `tick_of(date_of(T)) ≠ T`, the kick is uncomputable and the battery fails.
+4. The base continuation (the deferred tape) and each kicked run resume the checkpoint for H
+   ticks. Let g(t) be the NaN-propagating max over markets of |ln(p_kick(t)/p_base(t))| on
+   `MarketLine.price`. The realized kick is g(T), from the kicked run's first report; g(T) = 0
+   fails as a zero kick. The readings are `gain_tail`, the max of g(t)/g(T) over the last
+   ⌈tail·H⌉ ticks, and `gain_peak`, the max over all H. `kick_gain` is a pure function of the two
+   price series. The notes give each kicked tape's `tape_hash`; a rerun of `certify` reruns them.
+
+Every failure after the base tape loads is inside the certificate: a kicked tape that does not
+load, a refused resume, a failed kicked or base run. Each fails Kick with a note. `certify` returns
+an error only for the base tape, a reserved key or the criteria.
+
+Why (REPORT §5): `Imbalance` freezes once |k·x| < 2⁻⁵³, so a trajectory can rest at an unstable
+point and look settled. Two sweep cells scored GO that way. Scoring the tail against the realized
+kick makes the rule robust: a decaying kick ends near its rounding floor, a neutral direction near
+1, and a growing one above it; one tick near zero on an orbit does not pass. The resumes are
+certify's own, in memory; the cli's resume rule (R16, C9) binds frontends. For appb the check costs
+8 × 20,020 ticks plus the 20,020-tick base continuation: about 3 s, at 0.3 s per 20,000 ticks.
+
+## 8. The certificate: verdict-first, fail-closed, persisted (R9; N4, N12)
+
+```rust
+pub enum Verdict { Pass, Fail, Unscored }
+pub enum BatteryId { Conservation, Determinism, Runaway, Trades, Balance, Settles, Kick }
+pub struct Reading { pub name: String, pub at: String /* "town/bread", "bread", "provider", "run" */,
+                     pub segment: Option<u32>, pub value: f64, pub bar: Option<f64> }
+pub struct BatteryResult { pub id: BatteryId, pub pass: bool, pub readings: Vec<Reading>, pub notes: Vec<String> }
+pub struct CriteriaRef { pub file: String /* base name */, pub date: Date, pub hash: Hex,
+                         pub tape_hash: Hex, pub listed: Vec<BatteryId> }
+#[serde(try_from = "RawCertificate")]
+pub struct Certificate { verdict: Verdict, failures: Vec<String>, run: RunKey, tape: String,
+    criteria: Option<CriteriaRef>, until: u64, reached: u64, genesis_hash: Hex, final_hash: Hex,
+    price_shocks: u64, segments: Vec<Segment>, batteries: Vec<BatteryResult>, reports: Vec<Reading>,
+    nonfinite: Vec<String> }
+impl Certificate { /* getters */ pub fn render(&self) -> String; pub fn to_ron(&self) -> String;
+                   pub fn from_ron(s: &str) -> Result<Certificate, CertificateError>; }
+pub fn nonfinite_paths<T: Serialize>(v: &T) -> Vec<String>;
+pub enum Scoring<'a> { Criteria { criteria: &'a Criteria, file: &'a str }, Unscored { until: u64 } }
+pub struct Certified { pub certificate: Certificate, pub manifest: Manifest, pub hashes: String }
+pub fn certify(tape: &Tape, scoring: Scoring<'_>, build: &Build,
+               on_tick: &mut dyn FnMut(&TickReport)) -> Result<Certified, CertifyError>;
+```
+- **The seal.** A crate-private `seal(parts) -> Certificate` makes every certificate; `certify`
+  calls it, and so does readback. `parts` is the certificate without `verdict`, `failures` and
+  `nonfinite`. Every listed battery has a result; one that did not run has `pass: false` and the
+  note "did not run". The seal computes `nonfinite` and the failures, then the verdict:
+  - **FAIL** if any f64 anywhere in the parts (reading values, bars, reports) is non-finite, each
+    path a failure line (R9: NaN fails, with or without criteria); or `reached < until` (a
+    `RunError`), its ledger line first; or the criteria lack a battery C12 requires; or a listed
+    battery has no result or did not pass;
+  - else **UNSCORED** if there are no criteria, or criteria for another `tape_hash` (N4; July
+    certified PASS here, `v2p3: runner.rs:473-478`, `certificate.rs:78`);
+  - else **PASS**. UNSCORED is never PASS. Every number a verdict reads is a `Reading`; notes are
+    text, and no verdict reads them.
+- **The finite scan (N12).** `nonfinite_paths` is a serde `Serializer` that visits every `f64` the
+  certificate serialises and returns the path of each non-finite one. July's scan read state
+  fields, not the numbers its certificate rendered, and its statistics dropped NaN one sample at a
+  time (`v2p3: verdict.rs:104-106, 324-338`; `invariants.rs:167`).
+- **Verdict-first.** `render()` opens `VERDICT: <v>  <tape>  tape_hash …  world_id …  build <commit>
+  <clean|dirty> <target>`, then the failures, then a line per battery. It prints serialised fields
+  only, each f64 in Rust's shortest round-trip form, and does no arithmetic: no ratio, percentage
+  or difference the scan could not see. The RON opens with `verdict`.
+- **Reading back.** Every path goes through `RawCertificate`, so `ron::from_str::<Certificate>`
+  runs the same checks as `from_ron`. A non-finite number that `nonfinite` does not list is
+  `NonFinite { path }`. The parts are then sealed again, and a verdict, failure list or
+  `nonfinite` list that differs is `EditedVerdict`. `CriteriaRef` carries the criteria's
+  `tape_hash` and listed batteries, so every sealing rule can be recomputed. Readback checks
+  consistency, not truth; the truth is a rerun (C10).
+
+The RON opens `Certificate(verdict: Pass, failures: [], run: (build: (commit: "…", dirty: false,
+target: "x86_64-unknown-linux-gnu", rustc: "rustc 1.…"), tape_hash: "0x…", world_id: "0x…"), tape:
+"appb", …`, and a reading is `(name: "kick.gain_tail", at: "home/good +", segment: Some(0), value:
+…, bar: Some(0.001))`.
+
+## 9. The manifest (N10; ENGINE §7.6; D4)
+
+```rust
+pub struct Manifest { pub format: u32, pub run: RunKey, pub tape: String, pub genesis_hash: Hex,
+    pub start: Date, pub ticks_per_year: u32, pub from: u64, pub until: u64,
+    pub resumed_from: Option<ResumedFrom>, pub hashes: HashRecord,
+    pub checkpoints: Vec<CheckpointRecord>, pub telemetry: Option<TelemetryRecord> }
+pub struct ResumedFrom { pub tick: u64, pub digest: Hex, pub state_hash: Hex, pub parent: RunKey }
+pub struct HashRecord { pub count: u64, pub last: Option<(u64, Hex)>, pub digest: Hex }
+pub struct CheckpointRecord { pub tick: u64, pub state_hash: Hex, pub digest: Hex, pub file: String }
+pub struct TelemetryRecord { pub file: String, pub rows: u64, pub digest: Hex }
+impl Manifest {
+    pub fn begin(run: RunKey, genesis_hash: u64, sim: &Sim, resumed_from: Option<ResumedFrom>) -> Manifest;
+    pub fn tick(&mut self, tick: u64, hash: u64);          // folds "{t} 0x{hash:016x}\n" into digest
+    pub fn checkpoint(&mut self, cp: &Checkpoint, file: &str) -> Result<(), ManifestError>;
+    pub fn hashes_header(&self) -> String;                  // the `#` lines of §10
+    pub fn verify(&self, cp: &Checkpoint, tape_hash: u64) -> Result<ResumedFrom, VerifyError>;
+    pub fn to_ron(&self) -> String;  pub fn from_ron(s: &str) -> Result<Manifest, ManifestError>; }
+```
+- **Files** are recorded relative to the manifest's directory, with `/` separators, so a manifest
+  made on Windows and one made in WSL agree.
+- **`hashes.digest`** is FNV-1a 64 over the hash file's body, so `grep -v '^#' | fnv` checks it.
+- **`checkpoint`** records a checkpoint of this run only. It requires the run's `world_id`, and
+  `state_hash(cp.state())` equal to the last hash `tick` folded (the `TickReport.hash` of tick − 1),
+  or to the starting state's hash when no tick has run. Otherwise it refuses (`OffRun`). So a
+  record is the run's hash for that tick, not the checkpoint compared with itself.
+- **`verify`** (D4, R16) requires `run.tape_hash` equal to the resuming tape's, `run.world_id`
+  equal to the checkpoint's, and a record at its tick with an equal `digest` and state hash. It
+  returns the `ResumedFrom` the new run records. It catches mix-ups: a checkpoint of another tape,
+  world, run or tick, or a file replaced since. It does not catch forgery, since `manifest.ron` is
+  as easy to rewrite as the digest (ENGINE §7.6, §14 question 7). The only proof of a run is
+  `audit_replay` from genesis.
+- The module needs no Parquet and no I/O, so the web build can use it.
+
+## 10. The cli (R16; ENGINE §8)
+
+```
+rustyecon run      <tape> --until T [--out DIR] [--checkpoint-every N] [--format bin|ron] [--hashes FILE]
+rustyecon resume   <cp> --tape <tape> --until T [--manifest FILE] [same options]
+rustyecon replay   <tape> --until T
+rustyecon registry <tape>                                  # one line per param, its sites listed
+rustyecon certify  <tape> (--criteria FILE | --until T) --out DIR [--telemetry]
+```
+- **What resume lacks.** Confirmed at `cf3c0ff`: resume decodes format 3 and checks its digest
+  over `(world_id, prefix_id, state, run)`; `Sim::resume` then checks `world_id`, `prefix_id` and
+  shapes. What is left is R16's "a run of the same tape": today a checkpoint resumes under any tape
+  with the same world and past, and nothing records which run made it.
+- **Resume verifies.** After the decode and `Sim::resume`, whose refusals and messages stand, it
+  reads `manifest.ron` beside the checkpoint, or `--manifest FILE`, and calls `Manifest::verify`
+  with the tape's `tape_hash`. A missing, unreadable or disagreeing manifest is exit 3
+  ("unverified checkpoint: <why>"), and so is a manifest of another tape. The new run's manifest
+  records `resumed_from`. An `--out` holding the manifest it resumed from is exit 1. Existing cli
+  tests that resume a checkpoint copied away from its directory pass `--manifest`; the refusals
+  they assert come before verification, so their messages stand. The `--tape` help loses "a dated
+  edit at or after its tick is allowed" until the ruling of §15.1, question 2.
+- **Manifests.** `--out DIR` writes `DIR/manifest.ron` after every checkpoint and at the end, by
+  `manifest.ron.tmp` and a rename.
+- **Hash output names its run.** A `--hashes` file opens with `# rustyecon hashes 1`, `# build
+  <commit> <clean|dirty> <target>`, `# tape <name> tape_hash 0x… world_id 0x…` and `# from <tick>`
+  (with `resumed <digest>` on a resume). The body is unchanged. Stdout prints a `run …` line with
+  the same fields before its final `{t} 0x{hash}`. Existing cli tests skip `#` lines; the body they
+  compare is the same, so nothing is loosened.
+- **`certify`** runs `certify::certify` from genesis, feeding the Parquet writer from `on_tick`
+  under `--telemetry`. With `--criteria` it runs to their `until`. Without, it needs `--until` and
+  always gives UNSCORED. It writes `certificate.ron`, `manifest.ron`, `hashes.txt` and, with
+  `--telemetry`, `telemetry.parquet`, then prints `render()`. A FAIL or UNSCORED is written before
+  the exit. Exit 0 is PASS, 5 is FAIL or UNSCORED; 1 is a tape or criteria that does not load or
+  fit, or a reserved key; 3 is a failed write.
+
+## 11. crates/probe: what moves now, what waits for observe (D13)
+
+**Moves now** (oracle-free; certify owns them and probe's harness calls certify): the runaway
+bound (`RUNAWAY`; A12); a tick with no trade (the `trades` half of `dead`); rationed ticks per
+market side (`HOLD_TOL`, now `rationed_below`); spoilage per good; the provider's Σ(due − paid);
+the trough, as a function of a series and a reference (probe passes the oracle volume, certify the
+segment's end level); "at rest in F" as `fold::ln_range` over F (`TOL_FLOOR/10`, now `band`); the
+dead-share rule over W and F; the ledger margin. Probe passes its own observables to `ln_range`:
+the relative prices w/r, p_m/r and p/r, s and the outputs. Certify's Settles passes nominal price
+and cleared volume. The kick and the no-consumption count are new.
+
+**Waits for `crates/observe`** (Phase 2; each needs the oracle): `Target`, the gaps and D̂;
+`shock_distance`, κ and D̂_0; the envelope E1–E4; VACUOUS, `in_tol_from` and `first_out_in_w`;
+`hold_check`; the band per relative price (v, π_m, π); the oracle-relative dead floor
+(`LIVE_FLOOR`) and troughs; and the classifier `Class` as a whole.
+
+**Stays in probe**, as the harness of a closed report: the perturbation grammar, the setups, the
+tape generator, the CSV rows and `protocol.rs`, whose constants remain REPORT's registered
+protocol. `appb-tape` gains `--perturb NAME --ticks L`, which writes §13's testdata.
+Tests: `probe_summaries_unchanged` (probe, fast) runs `w*1.05`, `r*1.05` and Tier 3's `b=0.8` and
+gives the class, dead ticks, worst fill, troughs and transfer shortfall of their battery.csv rows.
+`probe_battery_csv_unchanged` (probe, `#[ignore]`, by name in `gate.sh`, about 40 s) gives all 57
+rows of `battery.csv`; the negative control's row of `families.csv` (57 DIVERGED by the bound, at
+most 337 dead ticks); and the history `bcycle(1500,80)` as DEAD, with 125 dead ticks in each
+b = 0.8 segment and 116 in each return to 0.4 (REPORT §3). These are the classes the moved runaway
+and dead measures decide.
+
+## 12. Telemetry: tidy long Parquet (C7; PLAN §3.8)
+
+```rust
+#[cfg(feature = "parquet")]
+impl<W: std::io::Write + Send> TelemetryWriter<W> {
+    pub fn new(sink: W, world: &World, run: &RunKey) -> Result<Self, TelemetryError>;
+    pub fn push(&mut self, r: &TickReport) -> Result<(), TelemetryError>;   // TickReport is the input
+    pub fn finish(self) -> Result<(W, u64), TelemetryError>; }             // the sink and the row count
+```
+
+| column | type | null | holds |
+|---|---|---|---|
+| `tick` | INT64 | no | the report's tick |
+| `kind` | UTF8 | no | `market`, `ration`, `settle`, `ledger`, `run`, `event` |
+| `node`, `good`, `class` | UTF8 | yes | tape keys |
+| `key` | UTF8 | yes | the actor (settle) or event (event) key |
+| `side` | UTF8 | yes | `buy` or `sell` |
+| `tag` | UTF8 | yes | a ledger line's provenance; an event's source param |
+| `metric` | UTF8 | no | the field's name |
+| `value` | DOUBLE | no | the f64 as held, bit for bit; NaN stays NaN; a null is never a sentinel |
+
+- **Rows by kind.** `market`: the eight `MarketLine` fields. `ration`: requested, feasible,
+  filled. `settle`: qty, value. `ledger`: each (good, provenance) line, and `max_margin` and
+  `max_drift` with no good. `run`: each good's drift, and `max_margin`. `event`: `fired`, valued at
+  the occurrence. Keys replace ids, so branches compare by key (E8) with no id table.
+- **Encoding.** Strings are dictionary-encoded, `value` BYTE_STREAM_SPLIT, all LZ4_RAW; row groups of
+  2¹⁸ rows (I/O batching, not behaviour). The footer holds `rustyecon.telemetry 1`, `tape_hash`,
+  `world_id` and the build.
+- **What pure Rust costs.** Files are about 9% larger: GUI §3.4 measured one chunk at 46.0 MB as
+  LZ4_RAW with byte-stream-split and 42.1 MB as zstd-3. In return no C is compiled; July's zstd
+  built `zstd-sys` on both machines. The direct dependencies are bytes, chrono, half, hashbrown,
+  num-bigint, num-integer, num-traits, seq-macro, twox-hash, ahash and lz4_flex. WSL's cache holds
+  the closure (GUI's data-first probe built 60.0.0 with LZ4_RAW there). Windows lacks at least
+  lz4_flex 0.14.0 and num-bigint 0.5.1, which S2.3 fetches, and S2.3 records the crate count for G0
+  (GUI §3.1).
+- **Reproducible bytes.** parquet hashes with a runtime-seeded ahash. `telemetry_is_reproducible`
+  writes twice in one process; `gate.sh` also writes the same run's telemetry from two processes
+  through the binary and `cmp`s the files, so the bytes are shown not to depend on the seed.
+
+## 13. Tests
+
+Test names are binding. Every test that guards a fix or a criterion names the mutation it kills,
+and its step runs that mutation and sees the test fail. Test bars are relative and named at the top
+of their file. Before S2.6 commits the criteria, no test applies gate's or appb's registered bars,
+except the kick on appb, whose outcome REPORT §3 and §5 already record (C2's 70 kicks decay).
+Certify's testdata, in `crates/certify/testdata/`, is written by `appb-tape --perturb` and checked
+by the probe test `certify_testdata_is_generated`: `appb-bcycle.ron` (`bcycle(1500,4)`, to tick
+7,500); `appb-freeze.ron` (a run of the sweep's desk-turnover ×16 cell that the classifier scored
+CONVERGED, frozen at the unstable point, REPORT §5; else the all-rates ×1/16 cell at b′ = 0.2);
+and `appb-july.ron` (July's step rule from `w*2`, the negative control).
+
+| Item | Test (crate) | Kills |
+|---|---|---|
+| N4, mandatory batteries | `criteria_without_runaway_do_not_certify` (certify): criteria lacking Runaway, Conservation or Determinism do not load, and a hand-edited certificate whose `listed` lacks one is refused. `settles_without_kick_does_not_load` (certify), and Kick without Settles | the C12 check deleted |
+| N4, unscored | `unscored_run_never_passes` (certify): no criteria, and criteria for another tape, are each UNSCORED. `a_listed_battery_that_did_not_run_fails` (certify): a run stopped early, so Kick has "did not run". `certify_command_exits_on_its_verdict` (cli): exit 0, 5 and 5, each with its certificate written; `certify` without `--criteria` or `--until` is exit 1 | UNSCORED sealed as PASS; a missing battery counted as passed |
+| No vacuous pass | `a_run_of_no_ticks_does_not_load` (`until` at the start, and below `min_segment`); `determinism_needs_a_resume_inside_the_run` (empty, share 0, share 1, two shares on one tick); `kick_horizon_needs_two_ticks` (horizon 0, H = 1, ⌈tail·H⌉ < 2, a size below 2⁻⁵³); `balance_needs_two_samples` (0, 1, and above m); `trades_needs_one_full_window`; `a_world_without_markets_fails_no_samples` (all certify) | each load or fit check deleted; the `no samples` rule deleted |
+| N15 | `windows_are_relative_to_the_run` (certify): synthetic runs of 1,000 and 11,700 ticks, each with an excursion at 0.95 of the run, fail Settles in both. `windows_restart_at_each_dated_shock` (certify): synthetic segments that each return pass, and a middle segment that never settles fails, although the same run scored as one window passes. `short_segments_do_not_shrink_windows` (certify): with a no-op dated event every 100 ticks, `segments` merges to m; a synthetic slow drift fails Settles, and a kick gain that grows over 1,000 ticks fails Kick, since H is `ticks(horizon)` | absolute windows; no restart; no merge; H as a share of the segment |
+| N12, batteries | `batteries_fail_closed_on_nonfinite_samples` (certify), a matrix: for each battery, NaN, +inf and −inf in each field of its "Reads" column, including (S = NaN, D = 0) and (S = 0, D = NaN) for Balance, and a NaN kicked price for `kick_gain`; each fails and names its tick and path. `balance_watch_fails_on_a_nonfinite_imbalance` (certify) | the gate deleted; `.filter(is_finite)`; `fold(0.0, f64::max)`; `S > 0 or D > 0` before the gate; `!(x > bar)`; July's skip at `invariants.rs:167` |
+| N12, the seal | `seal_fails_every_nonfinite_path` (certify): on synthetic parts, NaN, +inf and −inf at each f64 path (reading values, bars, reports) make the verdict FAIL, with criteria and without. `reports_carry_a_nonfinite_input_to_the_seal` (certify): a NaN `cleared` makes the trough NaN and the certificate FAIL. `finite_scan_reads_every_rendered_number` (certify): each float token of a real PASS certificate's RON, replaced by `NaN`, is refused by `from_ron` as `NonFinite` at that path, not as a parse error. `render_prints_only_serialised_numbers` (certify): every number in `render()` is bit-equal to one in `to_ron()` | seal step deleted; UNSCORED before the finite rule; a scan of a subtree; arithmetic in `render` |
+| R2, R8, liveness | `conservation_fails_on_a_margin_over_one` (a tick margin above 1, a run margin above 1, a NaN margin, a run short of `until`); `determinism_fails_on_one_differing_hash` (one flipped hash, one differing field in a resumed report, a replay final-hash mismatch); `trades_fails_on_a_silent_window` (a whole window silent, the last window ending at `until` silent) (all certify) | each comparison deleted; the base stream compared with itself; the resumed report not compared; the last window skipped |
+| A12 | `runaway_bound_is_relative` (certify): gate with every genesis price, coin holding and pension ×2⁴⁰ gives bit-identical runaway readings. `runaway_detector_catches_a_runaway` (certify): `appb-july.ron` fails and names the good market | an absolute bound; the bound read from code |
+| REPORT §6 criterion 1, the kick | `kick_check_passes_a_stable_rest` (certify): appb's eight kicks decay below `max_gain`. `kick_check_fails_a_rounding_freeze` (certify): `appb-freeze.ron` passes Settles and fails Kick. `a_zero_kick_fails` (certify): g(T) = 0 fails. `a_neutral_direction_fails` (certify): a synthetic pair whose gap stays at the kick fails; one whose gap is near zero only at the last tick of an orbit fails. `kicked_tape_keeps_world_and_past` (engine). `scale_price_is_an_event_only_delta` (core) | a kick of 0; the kicked run compared with itself; dividing by ln(1 ± size); scoring one tick |
+| Kick, after the base run | `deferred_tape_keeps_every_param` (certify): a gate variant whose only reference to a registered param is a `SetParam` after T keeps `world_id` and the registry. `a_failed_kick_is_a_fail_not_an_error` (certify): the kick runner fed another world's checkpoint gives Kick `pass: false` with a note, and `certify` returns a sealed FAIL. `reserved_keys_do_not_load` (certify): a tape with a `certify.` key is refused | dropping events and params; `?` on a kick error; no reservation |
+| REPORT §6 criterion 2, transients | `transient_statistics_are_reported` (certify): on `appb-bcycle.ron`, every report equals an independent fold of the `TickReport`s written in the test; the b′ = 0.8 segment has a trough, dead ticks and a transfer shortfall; fills skip ticks where their side is empty; rationing is reported per (market, class, side) with Σ(requested − feasible) | a report over the wrong segment, market or class; dead ticks counted as rationing |
+| REPORT §6 criterion 3, windows per shock | `a_history_whose_segments_return_passes` (certify): `appb-bcycle.ron` passes Settles and Kick in all five segments, under test bars with m below 1,500 ticks | windows across shocks |
+| D10 item 1 | `new_source_event_keeps_world_id` (engine) | hashing `p.fixed` |
+| D10 item 2 | `fired_event_names_its_source` (engine) | `source: None` |
+| D10 item 4 | `registry_names_each_use` (engine); `role_sites_name_their_methods`, `each_site_converts_as_registered` (agents) | one method per param; a site whose rule converts another way |
+| N10 | `tape_hash_covers_every_input` (certify): one edit per raw field kind moves the hash (name, a basis text, a param value by one ulp, a date, a spec inline number, a recurring `last`); reformatting, comments, CRLF, list order and a `to_ron` round trip keep it. `manifest_names_every_input` (cli): the build with its target, `tape_hash`, `world_id`, `genesis_hash`, a resumed checkpoint's digest, and the certificate's criteria hash | hashing `world_id`'s content; dropping the digest |
+| Manifest | `manifest_refuses_a_checkpoint_off_the_run` (certify): a checkpoint whose state hash is not the last folded hash, or of another world, is `OffRun`. `manifest_paths_are_relative` (certify): files are recorded relative, with `/` | recording `state_hash(cp)` unchecked; a platform path |
+| R16, the cli | `hash_output_names_its_run`; `resume_requires_a_recorded_checkpoint` (no manifest, another world, a record whose hash differs: exit 3); `resume_refuses_another_tape` (existing; gains the same-world case: a dated edit after the checkpoint keeps world and past but not `tape_hash`, exit 3 under the manifest); `resume_records_its_parent` (cli) | an unnamed header; skipping verify; verifying the world only |
+| ScalePrice | `scale_price_is_an_event_only_delta` (core) refuses a recurring one; `price_shocks_are_counted` (certify): a gate variant with one dated `ScalePrice` certifies with `price_shocks: 1` | a recurring price nudge loading |
+| Criteria | `criteria_need_a_unit_and_basis_for_every_bar`, `criteria_date_matches_its_file` (and `supersedes` names an earlier file), `criteria_round_trip` (certify) | a bare number loading |
+| Certificate | `verdict_is_first_in_every_rendering`; `edited_verdict_is_refused` (certify): for each sealing rule, a certificate edited to another verdict is refused by `from_ron` and by `ron::from_str::<Certificate>` | readback that skips the seal |
+| BalanceWatch | July's `a_constant_imbalance_is_a_pin_however_small` and `a_market_that_moves_is_not_pinned_and_one_at_zero_is_not_either`, ported with their bars named in the file; `a_one_sided_market_is_observed` (certify): a market one-sided on every tick is pinned at +1 | skipping one-sided ticks |
+| Telemetry | `telemetry_round_trips_bit_for_bit`, `telemetry_is_reproducible`, `telemetry_names_its_run` (certify, feature `parquet`); the two-process `cmp` in `gate.sh` | — |
+| E1, E2, R4 on certify | `certify_holds_no_threshold`, `certify_does_no_file_io`, `certify_hands_out_no_core_writer` (engine `scans.rs`, on `crates/certify/src`) | — |
+| C11 | `probe_summaries_unchanged`, `probe_battery_csv_unchanged`, `certify_testdata_is_generated` (probe) | a moved measure that changes a class |
+| Results | `committed_certificates_recompute` (certify, `#[ignore]`, by name in `gate.sh`; C10). `committed_certificates_name_a_clean_build` (certify): dirty false and a 40-hex commit; `gate.sh` checks the commit is an ancestor of HEAD | — |
+
+## 14. Steps and the gate
+
+| Step | Delivers |
+|---|---|
+| S2.1 | §2: D10 items 1, 2 and 4 with `Site`, `ScalePrice`, `MarketLine::trades`; ENGINE amendments (§2.1, §2.4, §2.6, §4, §6, §7.1, §7.4, §11, §13); TAPE.md's row; the hash comparison and the new `world_id`s recorded |
+| S2.2 | certify: criteria, manifest, obs, folds, batteries, kick, certificate and seal, the finite scan; their tests on synthetic observations and testdata |
+| S2.3 | telemetry behind `parquet`; `Cargo.lock` |
+| S2.4 | cli: the build stamp, named hashes, the manifest, verified resume, `certify`; `gate.sh` |
+| S2.5 | probe: the moved measures delegated, `appb-tape --perturb`, the testdata, the pins |
+| S2.6 | `criteria/gate-2026-09-26.ron` and `criteria/appb-2026-09-26.ron`, committed alone, before any certified run of either tape |
+| S2.7 | `results/{gate,appb}/{certificate,manifest}.ron` from a clean build of S2.6, without `--telemetry`. A FAIL is committed as a FAIL and reported, never retuned in place |
+| S2.8 | docs: this file's amendments, ENGINE, TAPE, README, PLAN §3.2's text for decision 39, STATE, and GUI.md: §3.3's `tape_hash` definition and `RunKey` (`Hex` fields, `Build` with target and rustc), and §7.2 (items 1, 2 and 4 met; `source: Option<Key>`) |
+| S2.9 | one adversarial pass, one fix round, one re-check of exactly the fixed items; results regenerated if a verdict path changed |
+
+**Registered bars** (S2.6):
+- **gate.** Until `1790-01-01` (tick 2,080; ENGINE §10). `min_segment` 1.0 year (one pension
+  period, so a segment sees the recurring cycle whole; the closest shocks are two years apart).
+  Conservation. Determinism resumed at 0.25, 0.5 and 0.75 (`gate_resume_from_checkpoints`'
+  spacing). Runaway at 1e3 and Trades every 1.0 year (ENGINE §10; decision 19). Balance at July's
+  bars: level 1e-9, spread 1e-12, 32 samples, run share 0.5 (`v2p3: invariants.rs`, the −1/6 pin).
+  `rationed_below` 1e-9. No Settles and no Kick: the gate world claims no rest, since its prices
+  drift with the pension (ENGINE §10).
+- **appb.** §4's excerpt, plus Trades every 1.0 year, Balance as gate, and Settles with W at 0.5,
+  F at 0.9, dead share 0.01 and band 1e-4 in log (PROBE-SPEC §4.5; tol/10).
+
+**Gate additions** (`scripts/gate.sh` in WSL; the same commands on Windows). Gated on both:
+- the Parquet-free build: `cargo check --locked -p rustyecon-certify`, `cargo test --locked
+  --release -p rustyecon-certify` and `cargo clippy --locked -p rustyecon-certify --all-targets --
+  -D warnings`, with the feature off (selecting certify alone keeps the cli's feature out);
+- `committed_certificates_recompute` and `probe_battery_csv_unchanged`, by name, which must run and
+  pass (C10 says what each machine gates);
+- the build stamp: the binary's `run …` line names `git rev-parse HEAD`, and its dirty flag equals
+  a non-empty `git status --porcelain` over the paths of §3;
+- the committed certificates' commit is an ancestor of HEAD;
+- telemetry written twice through the binary, in two processes, and `cmp`ed.
+
+Recorded: `cargo check --target wasm32-unknown-unknown -p rustyecon-certify` (D11), and on Windows
+the byte equality of the recomputed results. The count of hashed ticks skips `#` lines, and the
+cross-platform comparison compares the bodies of the hash files.
+
+## 15. Open questions and the review
+
+### 15.1 Open questions
+
+1. **C1.** `ScalePrice` reopens core, where REPORT §6 said no criterion needed an engine change.
+   The alternative writes a state no tape made. Is a phase-0 price shock acceptable under R3 and
+   E1? It shocks a price once, on a date; it clamps nothing, and it cannot recur (§2.4).
+2. **R16 and dated edits.** S2.4 builds R16's letter: a cli resume needs the same `tape_hash`.
+   E1 lets the engine resume under a dated edit at or after the checkpoint. Should the cli allow
+   that too, behind an explicit `--edited` flag that records `parent` and marks the run in the
+   manifest and the hash header? Nothing is built until the ruling.
+3. **BalanceWatch's bars are absolute on the imbalance,** a dimensionless number in [−1, 1], not
+   a price, flow or quantity, so A12 is read as allowing them. C13 settles the one-sided case now.
+   If gate certifies FAIL on it, S2.7 commits the FAIL and reports it.
+4. **C11 edits probe code that REPORT cites at `55c9e88`.** `probe_battery_csv_unchanged` guards
+   it; the alternative keeps two definitions until Phase 2 proper.
+5. **The freeze testdata depends on the sweep.** If no candidate freezes at rest within 20,000
+   ticks, the Kick battery's negative test needs a hand-built unstable tape. S2.5 says which.
+6. **The horizon is one L.** An instability slower than L passes: REPORT §5's rates ×4 cell needs
+   about 55,000 ticks to grow a 1e-9 kick past tolerance. C2 sits 4× inside that edge. A longer
+   horizon would be a new dated criteria file.
+
+### 15.2 The review of 2026-09-26
+
+The adversarial review of the first draft raised ten majors and twelve minors. All are taken; none
+is rejected. Three are taken in another form than the one proposed:
+- **Kicked runs cannot be rerun from the notes** (minor). The claim is dropped rather than writing
+  `kicks/*.ron`: a kicked tape resumes another tape's checkpoint, which C9 refuses at the cli, and
+  rerunning `certify` reruns every kick.
+- **Trades with `every` longer than the run** (in the vacuous-battery major). Trades scores a last
+  full window that ends at `until`, and the fit needs n ≥ E; a partial window is never scored.
+- **Short segments** (major). A short segment runs on into the next (§5), rather than failing
+  Settles, Kick and Balance as uncomputable. The merged keys are named in the certificate.
