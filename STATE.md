@@ -9,14 +9,14 @@ GUI's design is [docs/GUI.md](docs/GUI.md).
 **Collaboration:** as in laborformal. Sequencing, engineering and drafting are delegated to
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
-**State as of:** 2026-09-26. Phase 0 session 1 is closed: P0.1–P0.9 on branch
-`reboot-phase0`, not pushed, with round 3's findings (O5–O13) fixed at P0.9. Oracle unit 1a
-joined the workspace at P1.1 (O3), and the GUI's design, plan amendment A14 and R16 landed at
-P0.11 (O1). By your ruling of 2026-09-26 the Phase 2 probe ran first, on branch `phase2-probe`
-(P2.0.1–P2.0.2): agents find the Appendix B equilibrium, verdict GO
-([docs/probe/REPORT.md](docs/probe/REPORT.md)). Next, in order: your ruling on the probe; session
-2, the certification stack with the GUI's engine asks and the probe's criteria; then G0, the
-GUI's shell; Phase 1's units 1b–1f alongside. Breakpoint B's eyeball test runs in parallel.
+**State as of:** 2026-09-26. Everything below is on `reboot`. Phase 0 session 1 is closed
+(P0.1–P0.9, with round 3's findings O5–O13 fixed at P0.9). Oracle unit 1a joined the workspace
+at P1.1 (O3), and the GUI's design, plan amendment A14 and R16 landed at P0.11 (O1). By your
+ruling of 2026-09-26 the Phase 2 probe ran first: agents find the Appendix B equilibrium, verdict
+GO ([docs/probe/REPORT.md](docs/probe/REPORT.md)), closed with no fallback (decision 38).
+Breakpoint B's pre-look ran beside it and passes (S5.0, docs/spine/EYEBALL.md; decision 35).
+Next, in order: session 2, the certification stack with the GUI's engine asks and the probe's
+criteria; then G0, the GUI's shell; Phase 1's units 1b–1f alongside.
 
 ## Where things stand
 
@@ -40,9 +40,11 @@ library a frontend drives). The v1 and July agents did not carry.
 | — | P0.10 is unused: it was held for a fourth fix round, which the bounded check of P0.9 did not need |
 | `5d7efe9` P0.11 | the GUI's design, docs/GUI.md, and its review ledger; plan amendment A14 (ADDENDUM §6, rulings 5–8), R16 and the G-stages in PLAN, ENGINE §13; decisions 22–34 below (O1) |
 | `408b4e8` P0.12 | docs made consistent after the final check: G10 beside Phase 10 as a third exception, stale session and hash lines in GUI.md, ruling numbers, a machine path in the ledger |
-| `55c9e88` P2.0.1 | on branch `phase2-probe` (2026-09-26): the Phase 2 probe's build, the four Appendix B roles in agents, `crates/probe` and `tapes/appb.ron`; docs/probe/RULES.md; no core, markets or engine change, and the gate world's hash is unchanged |
-| P2.0.2 | on `phase2-probe`: docs/probe/REPORT.md, the probe's report, with its plots and three results tables; docs only |
-| P2.0.3 | on `phase2-probe`: this file after the probe; the gate rerun on both machines |
+| `58e9e98` S5.0 | Breakpoint B's pre-look (2026-09-26): the spine's fetch and validation scripts, manifests, BNS's CC0 files, docs/spine/DATA_NOTES.md and EYEBALL.md; no third-party data or figures (decisions 35–37) |
+| `3a4b28c` P2.0.1 | from branch `phase2-probe` (2026-09-26): the Phase 2 probe's build, the four Appendix B roles in agents, `crates/probe` and `tapes/appb.ron`; docs/probe/RULES.md; no core, markets or engine change, and the gate world's hash is unchanged |
+| `6d8d2a5` P2.0.2 | docs/probe/REPORT.md, the probe's report, with its plots and three results tables; docs only |
+| `e6d9ff9` P2.0.3 | this file after the probe; the gate rerun on both machines |
+| P2.0.4 | `phase2-probe` and `spine-eyeball` merged into `reboot` (rebased, fast-forward); decisions 35–40; this file |
 
 Session 1 closed at P0.9 with 198 tests (186 `#[test]` functions and 12 doc tests) passing on
 both machines and the gate world's final hash `0x61f9c8529131ff17` on both. P1.1 and P0.11 came
@@ -126,8 +128,7 @@ below.
 **Phase 2 probe (2026-09-26; P2.0.1–P2.0.3).** Your ruling of 2026-09-26: before session 2 and
 the GUI, a time-boxed probe of the project's biggest risk, whether agents reach the oracle's
 equilibrium, with Breakpoint B's eyeball test run in parallel; then session 2, then G0. The
-probe ran on branch `phase2-probe` (worktree `D:/rustyecon-wt/probe`, from `408b4e8`, not
-pushed): a frame (PROBE-SPEC, in `D:/rustyecon-probe/frame/`), three rule designs judged three
+probe ran on branch `phase2-probe`, since merged into `reboot`: a frame (PROBE-SPEC, in `D:/rustyecon-probe/frame/`), three rule designs judged three
 ways, the build (P2.0.1), a registered battery, a 117-cell dial sweep and two reviews.
 
 - **Verdict: GO** ([docs/probe/REPORT.md](docs/probe/REPORT.md)). At design-analytic-first's C2,
@@ -143,7 +144,7 @@ ways, the build (P2.0.1), a registered battery, a 117-cell dial sweep and two re
   session 2 (a kick check, transient statistics, windows per dated shock); `tapes/appb.ron` as
   G0's second world, with D2's "no log axes" revisited.
 - **Breakpoint B**, in parallel: its pre-look landed as S5.0 on `reboot` (`58e9e98`,
-  docs/spine/EYEBALL.md), which is not on this branch.
+  docs/spine/EYEBALL.md) and passes (decision 35).
 - **The gate at P2.0.2** is green on both machines: `scripts/gate.sh` in WSL, and fmt, clippy
   with `-D warnings` and `cargo test --workspace --release` on Windows. 330 tests pass on each
   (P1.1's 313, plus 10 role tests in agents and 7 in `crates/probe`), with zero warnings. The
@@ -288,14 +289,35 @@ carried out): each stands unless vetoed before G0, and D10's window closes at se
     Runner takes a wake callback. The view-model goldens stay GUI tests, run by the GUI's gate
     script.
 
+Decisions 35–37 are the three calls Breakpoint B's pre-look raised, which you left to Claude on
+2026-09-26 (docs/spine/EYEBALL.md §6). Decisions 38–40 are the probe's proposals (REPORT §6),
+taken by Claude on the same footing. All six are open to veto.
+
+35. **Breakpoint B passes.** The raw record shows the floor era's opposition in its two big
+    swings, the escape, and land's exit as a fall. The long-record purpose continues. The
+    escape's start is a band, land's exit date depends on the Clark vintage, and whether the two
+    turns coincide is left to the fit (D2).
+36. **The spine's figures stay local.** They plot Bank of England and Clark numbers, whose terms
+    do not allow redistribution, so `data/spine/eyeball.py` builds them into the ignored
+    `docs/spine/figs/`. Publishing them waits on the Bank's permission.
+37. **The welfare ratio is ours, labelled as ours:** Allen's day wage over the cost of his
+    respectable basket, from a verified mirror of his spreadsheet, never presented as his
+    published series, which stays out of reach.
+38. **The probe closes as GO, with no fallback.** A11's kill condition is not met on Appendix B.
+    Phase 2 proper keeps agents as the engine and starts from the probe's roles and harness.
+39. **The cash rule is PLAN §3.2's default scale rule,** with July's stability package as the
+    named alternative (R6). PLAN §3.2's text follows in session 2's docs step.
+40. **A9's re-run of July's solvable family is optional.** The probe's battery against the
+    oracle took its place as Phase 2's opener; July's worlds stay available as extra known
+    answers.
+
 ## Open — your calls
 
 - **The GUI's decisions**, 22–34 (D1–D13): open to veto before G0, D10's before session 2.
-- **Pushing.** `reboot-phase0`, `reboot`'s addendum commit and `pre-reboot-2026-09-25` are local
-  only. The repository is public (PLAN ruling 6), and CI waits on a push.
-- **Hosted CI** at all (A5): the workflow is in place and inert.
-- **The probe's verdict and proposals** (docs/probe/REPORT.md §6): close it as GO with no
-  fallback; the scale-rule change to PLAN §3.2 and A9 made optional, as proposed amendments.
+- **Hosted CI** (A5): the push of 2026-09-26 started it; it runs on every push unless you turn it
+  off.
+- **Decisions 35–40** (Breakpoint B's three calls and the probe's proposals), taken by Claude on
+  your word and open to veto.
 - **The Phase 2 session budget** that A11's kill condition needs (PLAN Phase 2), now for Phase 2
   proper's other instances.
 - **The decisions above**, especially 10 (the engine crate, not in PLAN's crate list), 11, 15
@@ -371,6 +393,14 @@ when its fix is reverted, checked by mutation (the review's own mutants among th
 - **O13.** The literal scan flags integers made float, `from_bits` of a literal and
   `parse::<f64>`; `tiny_imbalances_move_the_price` pins the price rule at tiny imbalances.
 
+- **O14. Adjustment paths, not only rest points.** The probe shows the agents reach the
+  oracle's point, but by violent paths: a 12% fall in equilibrium output costs 85% on the way,
+  with ticks of no consumption (REPORT §5). The plan scores paths (Engels' pause, the crises of
+  Phase 8), so path fidelity is Phase 2 proper's second untested risk, beside many markets.
+  Session 2's transient statistics are the first instrument for it.
+- **O15. The spine scripts' default cache** is `D:/rustyecon-spine`, overridable by
+  environment; move the default to a portable location before anyone else runs them.
+
 ## Corrections logged (A3; ADDENDUM §1.4)
 
 REVIEW.md is kept as written; these of its claims do not hold.
@@ -393,14 +423,7 @@ REVIEW.md is kept as written; these of its claims do not hold.
 
 ## Next steps, in order
 
-0. **Your ruling on the probe** (docs/probe/REPORT.md §6): close it as GO, with no fallback, and
-   rule on its proposed amendments (the cash rule as PLAN §3.2's scale rule; A9 optional). Then,
-   on your go, merge `phase2-probe` into `reboot` and rerun `scripts/gate.sh` in WSL and the same
-   commands on Windows. `reboot` is at S5.0 (`58e9e98`), which sits on `408b4e8`, so it already
-   carries `reboot-phase0`.
-1. **Breakpoint B's eyeball test, in parallel** (your ruling of 2026-09-26): its pre-look is S5.0
-   on `reboot` (docs/spine/EYEBALL.md).
-2. **Phase 0 session 2** (O2): the certification stack with N4, N10, N12 and N15 fixed, and the
+1. **Phase 0 session 2** (O2): the certification stack with N4, N10, N12 and N15 fixed, and the
    GUI's engine asks, D10's items 1, 2 and 4 as docs/GUI.md §7.2 lists them (item 3 is met).
    Item 1 lands before the manifest records a `world_id`. The manifest records the digest of any
    checkpoint a run resumed from; since P0.9 that digest covers the checkpoint's identity and the
@@ -409,9 +432,9 @@ REVIEW.md is kept as written; these of its claims do not hold.
    and spoilage are outputs; windows restart at each dated shock; the probe's relative runaway
    bound is A12's detector. Say which of `crates/probe`'s measures move to certify and which wait
    for `crates/observe` (D13).
-3. **G0.1, the viewer, then G0.2, the editor** (O1; docs/GUI.md §9), with `tapes/appb.ron` as a
+2. **G0.1, the viewer, then G0.2, the editor** (O1; docs/GUI.md §9), with `tapes/appb.ron` as a
    second world beside the gate world, and D2's "no log axes" in G0.1 revisited.
-4. **Alongside, Phase 1's units 1b–1f** (O3; PLAN Phase 1), each with its gate: many categories
+3. **Alongside, Phase 1's units 1b–1f** (O3; PLAN Phase 1), each with its gate: many categories
    and the fork, many machine types, worker types and the wall, parcels and s(q), households and
    government. Units 1b–1e also give Phase 2 proper its other instances; it starts from the
    probe's roles and harness, with many markets as its first untested risk.
