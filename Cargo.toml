@@ -18,9 +18,12 @@ serde = { version = "1", features = ["derive"] }
 ron = "0.8"
 bincode = "1"
 libm = "0.2"
-# The cli's argument parser, and temporary directories for the cli's tests only.
+# The cli's argument parser, and temporary directories for the cli's and certify's tests only.
 clap = { version = "4.6.1", features = ["derive"] }
 tempfile = "3.27.0"
+# Certify's telemetry, behind its `parquet` feature (docs/CERTIFY.md §12, C7): pure Rust, no C
+# build. LZ4_RAW through lz4_flex; no zstd, snappy, brotli or flate2, and no arrow.
+parquet = { version = "=60.0.0", default-features = false, features = ["lz4"] }
 
 # The workspace's own crates.
 rustyecon-core = { path = "crates/core" }

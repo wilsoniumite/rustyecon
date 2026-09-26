@@ -3,7 +3,7 @@
 //! fit checks refuse one that does not fit its tape.
 //!
 //! The bars here are test bars on the gate world, 2,080 weekly ticks. None applies the gate's or
-//! appb's registered bars (§13): those are committed at S2.7.
+//! appb's registered bars (§13): those are committed in S2.4's second commit (the old S2.7).
 
 mod common;
 

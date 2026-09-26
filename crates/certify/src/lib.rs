@@ -16,6 +16,9 @@
 //! - [`kick`]: the deferred and kicked tapes of the kick check.
 //! - [`certificate`]: the verdict, the seal and the finite scan over every number rendered.
 //! - [`run`]: [`certify`], one run from genesis, scored and sealed.
+//! - `telemetry` (feature `parquet`, off by default): the run as tidy long Parquet, with
+//!   `TickReport` as its input. It is the one module that names `parquet` or `std::io`, so the
+//!   rest compiles without it, for the GUI's web build.
 //!
 //! The ledger and the state hash are not here but in core, since every tick asserts them.
 //! Certify depends on core directly for its read-only helpers (`fnv1a_64`, `Fnv`, `num`,
@@ -41,6 +44,8 @@ mod leaves;
 pub mod manifest;
 pub mod obs;
 pub mod run;
+#[cfg(feature = "parquet")]
+pub mod telemetry;
 
 pub use certificate::{
     nonfinite_paths, BatteryId, BatteryResult, Certificate, CertificateError, CriteriaRef,

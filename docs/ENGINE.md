@@ -552,6 +552,28 @@ the gate world's final hash is `0x61f9c8529131ff17` as before.
    (`scans.rs`, each checked on fixtures first). `behaviour_output_is_whitelisted` gains
    `ScalePrice`. Each was checked against the mutation it guards (CERTIFY, amended at S2.3).
 
+**Amended at S2.4** (2026-09-26: Phase 0 session 2, the cli; docs/CERTIFY.md §3, §10, §12), the
+same way. Only the cli changed, and certify gained its telemetry writer; no state hash,
+`prefix_id` or `world_id` moved.
+
+1. The cli (§8) depends on certify, with its `parquet` feature, and gains `rustyecon certify`,
+   which writes the certificate, the manifest and the hash file (and with `--telemetry` the
+   Parquet) and exits on the verdict: 0 on PASS, and the new code 5 on FAIL or UNSCORED.
+2. Hashes name their run (§8, R16): a `--hashes` file opens with `#` lines naming the build, the
+   tape by `tape_hash`, the `world_id` and the starting tick, and stdout prints a `run …` line
+   before the final hash, in `run`, `resume` and `replay`. `build.rs` stamps the commit, the
+   dirty flag, the target and the compiler.
+3. `--out DIR` writes the run's manifest, and `resume` verifies its checkpoint against it (§8,
+   §7.6's closing sentence): a missing, unreadable or disagreeing manifest is exit 3. The
+   `--tape` help drops "a dated edit at or after its tick is allowed" until CERTIFY §15.1,
+   question 2, is ruled. The engine's own `Sim::resume` is unchanged, and still allows it.
+4. Tests (§11), in the cli: `hash_output_names_its_run`, `resume_requires_a_recorded_checkpoint`,
+   `resume_records_its_parent`, `certify_command_exits_on_its_verdict` and
+   `manifest_names_every_input`; `resume_refuses_another_tape` gains a dated edit after the
+   checkpoint, which keeps world and past but not the tape. Tests that compare hash files skip
+   the `#` header, and `gate_resume_through_product_path` gives each run its own directory, since
+   each writes its own manifest.
+
 ## 0. Engine invariants
 
 Numbered so tests and reviews can cite them. Each has at least one test in §11.
@@ -1615,10 +1637,15 @@ format, and exit codes. Nothing else.
 
 ```
 rustyecon run      <tape.ron> --until <tick> [--out DIR] [--checkpoint-every N] [--format bin|ron] [--hashes FILE]
-rustyecon resume   <checkpoint.bin|.ron> --tape <tape.ron> --until <tick> [same options]   # N11
+rustyecon resume   <checkpoint.bin|.ron> --tape <tape.ron> --until <tick> [--manifest FILE] [same options]   # N11
 rustyecon replay   <tape.ron> --until <tick>                                              # audit_replay
 rustyecon registry <tape.ron>
+rustyecon certify  <tape.ron> (--criteria FILE | --until <tick>) --out DIR [--telemetry]   # S2.4
 ```
+
+From S2.4 the cli depends on certify too, with its `parquet` feature, and `build.rs` stamps the
+build (docs/CERTIFY.md §3, §10). Every hash it prints or writes names its run, `--out DIR` writes
+`DIR/manifest.ron`, and `resume` verifies its checkpoint against that manifest.
 
 - `--until T` runs until the state's tick is `T`; a `T` before the starting tick is exit 1.
 - **Checkpoints.** With `--out DIR`, the final state always goes to `DIR/tick_{:08}.{bin|ron}`,
@@ -1629,16 +1656,25 @@ rustyecon registry <tape.ron>
   exit 3, and no further tick runs; July only printed it (`v2p3: runner.rs:488-505`).
 - **Hashes.** `--hashes` writes one `{t} 0x{hash:016x}` line per step, `t` the state's tick after
   it (1 to `T` for a run, `c+1` to `T` for a resume from tick `c`), and stdout ends with the same
-  line for the final state.
+  line for the final state. From S2.4 the file opens with four `#` lines naming the build, the
+  tape by `tape_hash`, the `world_id` and the starting tick (with the resumed checkpoint's
+  digest), and stdout prints a `run …` line with the same fields before the final hash, `replay`
+  too (R16; docs/CERTIFY.md §10). The body is unchanged.
+- **Manifest and resume** (S2.4). With `--out DIR`, `DIR/manifest.ron` records the run and each
+  checkpoint it wrote, rewritten after each. `resume` verifies its checkpoint against the manifest
+  of the run that made it, beside the checkpoint or `--manifest FILE`: the same `tape_hash` and
+  world, and a record at its tick with its digest and state hash. So `--tape` must be that run's
+  tape (R16's letter); a resume under a dated edit waits for docs/CERTIFY.md §15.1, question 2.
 - **Exit codes:**
 
   | Code | Meaning |
   |---|---|
-  | 0 | ok |
-  | 1 | load or argument error: an unreadable tape, an unknown checkpoint extension, a resume whose tape does not load; clap's own argument errors are mapped here |
+  | 0 | ok; for `certify`, PASS |
+  | 1 | load or argument error: an unreadable tape, an unknown checkpoint extension, a resume whose tape does not load, criteria that do not load or fit, an `--out` holding the manifest a resume verifies against; clap's own argument errors are mapped here |
   | 2 | run error: the error or ledger line and the last good tick go to stderr (`replay` too, when the live run fails) |
-  | 3 | I/O or checkpoint error: an unreadable or undecodable checkpoint (one whose state does not match its digest included), a failed write, a refused resume |
+  | 3 | I/O or checkpoint error: an unreadable or undecodable checkpoint (one whose state does not match its digest included), a failed write, a refused resume, an unverified checkpoint |
   | 4 | replay mismatch, or a traced delta the shadow refuses |
+  | 5 | `certify`'s verdict is FAIL or UNSCORED; the certificate is written first (S2.4) |
 
 - July's `--agents`, `--price-rule` and `--supply-rule` switches do not return (N13), and no
   command-line override of any kind exists (E1).

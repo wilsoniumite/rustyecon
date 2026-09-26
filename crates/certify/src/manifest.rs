@@ -148,7 +148,7 @@ pub struct CheckpointRecord {
     pub file: String,
 }
 
-/// The telemetry file a run wrote (S2.4 fills it).
+/// The telemetry file a run wrote: `certify --telemetry` records it (§10, §12).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TelemetryRecord {
@@ -434,6 +434,28 @@ impl Manifest {
             out.push_str(&format!(" resumed {}", r.digest));
         }
         out.push('\n');
+        out
+    }
+
+    /// The line the cli prints before a run's final hash (§10, amended at S2.4): the header's
+    /// fields on one line, `run build <commit> <clean|dirty> <target> tape <name> tape_hash 0x…
+    /// world_id 0x… from <tick>`, with ` resumed <digest>` on a resume, so a hash on stdout
+    /// names its run as the hash file does (R16).
+    pub fn run_line(&self) -> String {
+        let b = &self.run.build;
+        let mut out = format!(
+            "run build {} {} {} tape {} tape_hash {} world_id {} from {}",
+            b.commit,
+            b.state(),
+            b.target,
+            self.tape,
+            self.run.tape_hash,
+            self.run.world_id,
+            self.from
+        );
+        if let Some(r) = &self.resumed_from {
+            out.push_str(&format!(" resumed {}", r.digest));
+        }
         out
     }
 

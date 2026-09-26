@@ -93,6 +93,56 @@ Each change is made in place in the section named.
     tail is in the peak too, which `gain_peak ≤ max_peak` fails; with both comparisons mutated
     the finite tests kill it.
 
+**Amended at S2.4** (2026-09-26: telemetry, the cli, the criteria and the certificates), where
+this text was wrong or silent. Each change is made in place in the section named.
+
+1. **One step, three commits** (§14). The session merged the old S2.4 (telemetry), S2.5 (the
+   cli), S2.7 (criteria) and S2.8 (results) into S2.4. It lands as three commits so that §14's
+   order still holds: the code first; then the two criteria files alone, before any certified
+   run of either tape; then the certificates, made by a clean build of the criteria commit. The
+   probe's delegation (the old S2.6), the docs (S2.9) and the review (S2.10) come after.
+2. **`finish` hands back what the manifest records** (§12). `TelemetryWriter::finish` returns
+   `Finished { sink, rows, bytes, digest }`, not `(W, u64)`. The manifest pins the file by
+   FNV-1a 64 over its bytes, and the writer is the one place that sees every byte, through a
+   digesting sink; the cli cannot hash without core. `rows()` gives the rows so far.
+3. **Telemetry, where §12 was silent.** A report's rows come in the order market, ration,
+   settle, ledger, run, event. A ledger line's metric is `declared`, with its provenance in
+   lower case as `tag`. `tick` is DELTA_BINARY_PACKED with no dictionary. The footer's keys are
+   `rustyecon.telemetry`, `rustyecon.tape`, `rustyecon.tape_hash`, `rustyecon.world_id` and
+   `rustyecon.build.commit`, `.dirty`, `.target` and `.rustc`. A report that names an id the
+   world lacks is refused whole (`TelemetryError::Report`), since keys replace ids.
+4. **The run line** (§10). Stdout's line is `run build <commit> <clean|dirty> <target> tape
+   <name> tape_hash 0x… world_id 0x… from <tick>`, with ` resumed <digest>` on a resume, built by
+   `Manifest::run_line` beside the header. `replay` prints it too, before its final hash: a hash
+   a frontend shows names its run (R16).
+5. **Resume's order** (§10). The extension, the tape, the decode and `Sim::resume` come first,
+   so their refusals and messages stand. Then the manifest is read, then an `--out` that holds it
+   is refused (exit 1), then `verify` runs. A resumed run's `genesis_hash` is the tape's genesis
+   state's hash, computed again, not copied from the parent's manifest.
+6. **When `certify`'s telemetry fails** (§10). A telemetry file that cannot be created is exit 3
+   before the run. A write that fails during the run is exit 3 after it: the certificate, the
+   manifest and the hash file are still written, the partial Parquet file is removed, and the
+   manifest names no telemetry. When `certify` returns an error (a tape, a reserved key or
+   criteria that do not fit), it removes the telemetry file it created. Every file `certify`
+   writes goes through `<file>.tmp` and a rename, not the manifest alone.
+7. **The build stamp** (§3). `build.rs` also watches the worktree's `.git` file, runs git with
+   `--no-optional-locks` so that a stamp never rewrites the index, and lists untracked files
+   one by one (`--untracked-files=all`). A commit that is not 40 hex digits is `unknown`, and an
+   unknown commit is dirty.
+8. **The Parquet-free gate** (§14) also checks that `parquet` is absent from certify's tree with
+   the feature off, and the wasm32 check covers certify as well as the engine.
+9. **What pure Rust costs, measured** (§12). By `cargo tree -e normal`, root and the workspace's
+   crates included, certify's closure is 17 crates on Linux, Windows and wasm32 with the feature
+   off, and 36 on Linux and 35 on Windows with it on: parquet adds 19 and 18. With build
+   dependencies it adds two more (autocfg and version_check). No crate compiles C on either
+   machine: `cc` is in `Cargo.lock` only for `iana-time-zone-haiku`, which builds for Haiku
+   alone. The 19 on Linux: parquet, ahash, bytes, cfg-if, chrono, getrandom, half, hashbrown,
+   iana-time-zone, libc, lz4_flex, num-bigint, num-integer, num-traits, once_cell, seq-macro,
+   twox-hash, zerocopy and zerocopy-derive. The gate world's 2,080 ticks write 276,145 rows in
+   1,527,113 bytes. Windows fetched the crates it lacked, lz4_flex 0.14.0 and num-bigint 0.5.1
+   among them.
+10. **Added tests**, beyond §13's: `telemetry_refuses_a_report_it_cannot_name` (certify).
+
 ## 0. Decisions this contract makes
 
 Numbered for the veto window, each with its alternative.
@@ -586,7 +636,9 @@ rustyecon certify  <tape> (--criteria FILE | --until T) --out DIR [--telemetry]
   reads `manifest.ron` beside the checkpoint, or `--manifest FILE`, and calls `Manifest::verify`
   with the tape's `tape_hash`. A missing, unreadable or disagreeing manifest is exit 3
   ("unverified checkpoint: <why>"), and so is a manifest of another tape. The new run's manifest
-  records `resumed_from`. An `--out` holding the manifest it resumed from is exit 1. Existing cli
+  records `resumed_from`, and its `genesis_hash` is the tape's genesis state's, computed again
+  (amended at S2.4). An `--out` holding the manifest it resumed from is exit 1, checked after the
+  manifest is read and before `verify` (amended at S2.4). Existing cli
   tests that resume a checkpoint copied away from its directory pass `--manifest`; the refusals
   they assert come before verification, so their messages stand. The `--tape` help loses "a dated
   edit at or after its tick is allowed" until the ruling of §15.1, question 2.
@@ -595,14 +647,19 @@ rustyecon certify  <tape> (--criteria FILE | --until T) --out DIR [--telemetry]
 - **Hash output names its run.** A `--hashes` file opens with `# rustyecon hashes 1`, `# build
   <commit> <clean|dirty> <target>`, `# tape <name> tape_hash 0x… world_id 0x…` and `# from <tick>`
   (with `resumed <digest>` on a resume). The body is unchanged. Stdout prints a `run …` line with
-  the same fields before its final `{t} 0x{hash}`. Existing cli tests skip `#` lines; the body they
-  compare is the same, so nothing is loosened.
+  the same fields before its final `{t} 0x{hash}`: `run build <commit> <clean|dirty> <target>
+  tape <name> tape_hash 0x… world_id 0x… from <tick>`, with ` resumed <digest>` on a resume
+  (`Manifest::run_line`; amended at S2.4). `replay` prints the same line before its final hash.
+  Existing cli tests skip `#` lines; the body they compare is the same, so nothing is loosened.
 - **`certify`** runs `certify::certify` from genesis, feeding the Parquet writer from `on_tick`
   under `--telemetry`. With `--criteria` it runs to their `until`. Without, it needs `--until` and
   always gives UNSCORED. It writes `certificate.ron`, `manifest.ron`, `hashes.txt` and, with
   `--telemetry`, `telemetry.parquet`, then prints `render()`. A FAIL or UNSCORED is written before
   the exit. Exit 0 is PASS, 5 is FAIL or UNSCORED; 1 is a tape or criteria that does not load or
-  fit, or a reserved key; 3 is a failed write.
+  fit, or a reserved key; 3 is a failed write. Each file goes through `<file>.tmp` and a rename. A
+  telemetry file that cannot be created is exit 3 before the run; a telemetry write that fails
+  during the run is exit 3 after the certificate, manifest and hash file are written, the partial
+  file removed and the manifest naming no telemetry (amended at S2.4).
 
 ## 11. crates/probe: what moves now, what waits for observe (D13)
 
@@ -644,7 +701,10 @@ and dead measures decide.
 impl<W: std::io::Write + Send> TelemetryWriter<W> {
     pub fn new(sink: W, world: &World, run: &RunKey) -> Result<Self, TelemetryError>;
     pub fn push(&mut self, r: &TickReport) -> Result<(), TelemetryError>;   // TickReport is the input
-    pub fn finish(self) -> Result<(W, u64), TelemetryError>; }             // the sink and the row count
+    pub fn rows(&self) -> u64;
+    pub fn finish(self) -> Result<Finished<W>, TelemetryError>; }          // amended at S2.4
+pub struct Finished<W> { pub sink: W, pub rows: u64, pub bytes: u64,
+                         pub digest: u64 }             // FNV-1a 64 over the bytes: the manifest's
 ```
 
 | column | type | null | holds |
@@ -658,20 +718,24 @@ impl<W: std::io::Write + Send> TelemetryWriter<W> {
 | `metric` | UTF8 | no | the field's name |
 | `value` | DOUBLE | no | the f64 as held, bit for bit; NaN stays NaN; a null is never a sentinel |
 
-- **Rows by kind.** `market`: the eight `MarketLine` fields. `ration`: requested, feasible,
-  filled. `settle`: qty, value. `ledger`: each (good, provenance) line, and `max_margin` and
-  `max_drift` with no good. `run`: each good's drift, and `max_margin`. `event`: `fired`, valued at
-  the occurrence. Keys replace ids, so branches compare by key (E8) with no id table.
-- **Encoding.** Strings are dictionary-encoded, `value` BYTE_STREAM_SPLIT, all LZ4_RAW; row groups of
-  2¹⁸ rows (I/O batching, not behaviour). The footer holds `rustyecon.telemetry 1`, `tape_hash`,
-  `world_id` and the build.
+- **Rows by kind**, in this order within a report (amended at S2.4). `market`: the eight
+  `MarketLine` fields, in field order. `ration`: requested, feasible, filled. `settle`: qty,
+  value. `ledger`: each (good, provenance) line as `declared`, its provenance in lower case as
+  `tag`, then `max_margin` and `max_drift` with no good. `run`: each good's `drift`, then
+  `max_margin`. `event`: `fired`, valued at the occurrence. Keys replace ids, so branches compare
+  by key (E8) with no id table, and a report naming an id the world lacks is refused whole.
+- **Encoding.** Strings are dictionary-encoded, `value` BYTE_STREAM_SPLIT, `tick`
+  DELTA_BINARY_PACKED (amended at S2.4), all LZ4_RAW; row groups of 2¹⁸ rows (I/O batching, not
+  behaviour). The footer holds `rustyecon.telemetry` = 1, `rustyecon.tape`, `rustyecon.tape_hash`,
+  `rustyecon.world_id` and the build as `rustyecon.build.commit`, `.dirty`, `.target` and `.rustc`.
 - **What pure Rust costs.** Files are about 9% larger: GUI §3.4 measured one chunk at 46.0 MB as
   LZ4_RAW with byte-stream-split and 42.1 MB as zstd-3. In return no C is compiled; July's zstd
   built `zstd-sys` on both machines. The direct dependencies are bytes, chrono, half, hashbrown,
   num-bigint, num-integer, num-traits, seq-macro, twox-hash, ahash and lz4_flex. WSL's cache holds
   the closure (GUI's data-first probe built 60.0.0 with LZ4_RAW there). Windows lacks at least
   lz4_flex 0.14.0 and num-bigint 0.5.1, which S2.4 fetches, and S2.4 records the crate count for G0
-  (GUI §3.1).
+  (GUI §3.1): 17 crates Parquet-free on every target, 36 on Linux and 35 on Windows with the
+  feature (amended at S2.4, item 9).
 - **Reproducible bytes.** parquet hashes with a runtime-seeded ahash. `telemetry_is_reproducible`
   writes twice in one process; `gate.sh` also writes the same run's telemetry from two processes
   through the binary and `cmp`s the files, so the bytes are shown not to depend on the seed.
@@ -724,11 +788,11 @@ and `appb-july.ron` (July's step rule from `w*2`, the negative control).
 | S2.1 | this contract (`785ab19`) |
 | S2.2 | §2.1–§2.3 and §2.5: D10 items 1, 2 and 4 with `Site`; item 3's loop; ENGINE amendments (§2.1, §2.6, §4, §5, §6, §7.1, §7.4, §11, §13); TAPE.md's row; the hash comparison and the new `world_id`s recorded (§2.5) |
 | S2.3 | §2.4: `ScalePrice` and `MarketLine::trades`, with their ENGINE amendments (§2.4, §2.6, §7.3) and TAPE.md's row; certify: criteria, manifest, obs, folds, batteries, kick, certificate and seal, the finite scan; their tests on synthetic observations and testdata; `appb-tape --perturb`, the testdata and `certify_testdata_is_generated` (amended at S2.3) |
-| S2.4 | telemetry behind `parquet`; `Cargo.lock` |
-| S2.5 | cli: the build stamp, named hashes, the manifest, verified resume, `certify`; `gate.sh` |
+| S2.4 | the old S2.4, S2.5, S2.7 and S2.8 in one step, three commits (amended at S2.4): (a) telemetry behind `parquet`, `Cargo.lock`, the cli (the build stamp, named hashes, the manifest, verified resume, `certify`) and `gate.sh`; (b) the criteria alone; (c) the certificates, from a clean build of (b) |
+| S2.5 | merged into S2.4 |
 | S2.6 | probe: the moved measures delegated, and the pins (`appb-tape --perturb` and the testdata landed at S2.3) |
-| S2.7 | `criteria/gate-2026-09-26.ron` and `criteria/appb-2026-09-26.ron`, committed alone, before any certified run of either tape |
-| S2.8 | `results/{gate,appb}/{certificate,manifest}.ron` from a clean build of S2.7, without `--telemetry`. A FAIL is committed as a FAIL and reported, never retuned in place |
+| S2.7 | `criteria/gate-2026-09-26.ron` and `criteria/appb-2026-09-26.ron`, committed alone, before any certified run of either tape (landed as S2.4's second commit) |
+| S2.8 | `results/{gate,appb}/{certificate,manifest}.ron` from a clean build of S2.7, without `--telemetry`. A FAIL is committed as a FAIL and reported, never retuned in place (landed as S2.4's third commit) |
 | S2.9 | docs: this file's amendments, ENGINE, TAPE, README, PLAN §3.2's text for decision 39, STATE, and GUI.md: §3.3's `tape_hash` definition and `RunKey` (`Hex` fields, `Build` with target and rustc), and §7.2 (items 1, 2 and 4 met; `source: Option<Key>`) |
 | S2.10 | one adversarial pass, one fix round, one re-check of exactly the fixed items; results regenerated if a verdict path changed |
 
@@ -746,13 +810,16 @@ and `appb-july.ron` (July's step rule from `w*2`, the negative control).
 **Gate additions** (`scripts/gate.sh` in WSL; the same commands on Windows). Gated on both:
 - the Parquet-free build: `cargo check --locked -p rustyecon-certify`, `cargo test --locked
   --release -p rustyecon-certify` and `cargo clippy --locked -p rustyecon-certify --all-targets --
-  -D warnings`, with the feature off (selecting certify alone keeps the cli's feature out);
+  -D warnings`, with the feature off (selecting certify alone keeps the cli's feature out), and
+  `parquet` absent from certify's `cargo tree` then (amended at S2.4);
 - `committed_certificates_recompute` and `probe_battery_csv_unchanged`, by name, which must run and
-  pass (C10 says what each machine gates);
+  pass (C10 says what each machine gates). S2.4 adds the first; the probe's step adds the second
+  with its test (amended at S2.4);
 - the build stamp: the binary's `run …` line names `git rev-parse HEAD`, and its dirty flag equals
   a non-empty `git status --porcelain` over the paths of §3;
 - the committed certificates' commit is an ancestor of HEAD;
-- telemetry written twice through the binary, in two processes, and `cmp`ed.
+- telemetry written twice through the binary, in two processes, and `cmp`ed, with the manifests,
+  certificates and hash files beside it (amended at S2.4).
 
 Recorded: `cargo check --target wasm32-unknown-unknown -p rustyecon-certify` (D11), and on Windows
 the byte equality of the recomputed results. The count of hashed ticks skips `#` lines, and the

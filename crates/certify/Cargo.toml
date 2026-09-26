@@ -7,17 +7,28 @@ description = "Certification: dated criteria, the batteries, the kick check, the
 
 # Certify reads runs through the engine and uses core's read-only helpers (fnv1a_64, Fnv, num,
 # Basis, Date) directly; it calls none of core's writer and re-exports nothing of core
-# (docs/CERTIFY.md §1). No I/O: paths live in the cli. Parquet telemetry joins behind a feature
-# at S2.4, so the manifest and verdicts compile without it.
+# (docs/CERTIFY.md §1). No I/O: paths live in the cli. The Parquet telemetry writer is behind
+# the feature `parquet`, off by default, so the manifest and verdicts compile without it (the
+# GUI's web build; GUI.md §7.2 c). Selecting certify alone builds it Parquet-free; the cli
+# turns the feature on.
 [lib]
 name = "certify"
 path = "src/lib.rs"
+
+[features]
+default = []
+parquet = ["dep:parquet"]
 
 [dependencies]
 rustyecon-core.workspace = true
 rustyecon-engine.workspace = true
 serde.workspace = true
 ron.workspace = true
+parquet = { workspace = true, optional = true }
+
+[dev-dependencies]
+# The telemetry tests write a file and read it back through parquet's own reader.
+tempfile.workspace = true
 
 [lints]
 workspace = true
