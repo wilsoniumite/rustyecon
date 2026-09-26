@@ -394,7 +394,9 @@ fn weights_must_sum_exactly_to_one() {
             .iter_mut()
             .find(|a| a.key.as_str() == "mill")
             .unwrap();
-        let RawSpec::Scripted(s) = &mut mill.spec;
+        let RawSpec::Scripted(s) = &mut mill.spec else {
+            panic!("a gate actor is scripted")
+        };
         // The file lists them in reverse canonical order; canonical order is by (node, good).
         s.buy
             .sort_by(|a, b| (&b.node, &b.good).cmp(&(&a.node, &a.good)));
@@ -605,7 +607,9 @@ fn specs_round_trip_in_canonical_form() {
     assert_eq!(load_tape(&back).unwrap().0.world_id, w.world_id);
     let mut shuffled = t.clone();
     for a in &mut shuffled.actors {
-        let RawSpec::Scripted(s) = &mut a.spec;
+        let RawSpec::Scripted(s) = &mut a.spec else {
+            panic!("a gate actor is scripted")
+        };
         s.buy.reverse();
         s.sell.reverse();
         if let Some(r) = &mut s.recipe {
@@ -618,7 +622,9 @@ fn specs_round_trip_in_canonical_form() {
     assert_eq!(load_tape(&shuffled).unwrap().0.world_id, w.world_id);
     // The resolved spec is in canonical order.
     let mill = w.actor(actor(&w, "mill")).unwrap();
-    let Spec::Scripted(s) = &mill.spec;
+    let Spec::Scripted(s) = &mill.spec else {
+        panic!("a gate actor is scripted")
+    };
     let keys: Vec<(NodeId, GoodId)> = s.buy.iter().map(|l| (l.node, l.good)).collect();
     let mut sorted = keys.clone();
     sorted.sort();
@@ -630,7 +636,9 @@ fn specs_round_trip_in_canonical_form() {
             .iter()
             .find(|a| a.key.as_str() == "farm")
             .map(|a| {
-                let RawSpec::Scripted(s) = &a.spec;
+                let RawSpec::Scripted(s) = &a.spec else {
+                    panic!("a gate actor is scripted")
+                };
                 s.sell[1].qty.clone()
             }),
         Some(RawSellQty::AllHeld)
@@ -667,7 +675,9 @@ fn per_tick_conversions_follow_the_clock() {
         let share = |p| -num::expm1(-(value(p) / per));
         let mut seen = (0, 0, 0, 0);
         for a in cast.actors() {
-            let Spec::Scripted(script) = &w.actor(a).unwrap().spec;
+            let Spec::Scripted(script) = &w.actor(a).unwrap().spec else {
+                panic!("a gate actor is scripted")
+            };
             let d = cast.decide(a, &s, &w).unwrap();
             let holding = s.holding(Holder::Actor(a)).unwrap();
             let mut cash = holding.get(coin);

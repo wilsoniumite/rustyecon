@@ -23,6 +23,7 @@ whose raw types are documented the same way in `rustyecon_agents::spec` (which a
 | 1 | 2026-09-25 | P0.5 | The agents' spec, `Scripted(..)`, and tape action, `Actor(SetActive(..))`, are defined. No tape with an agent spec existed before, and core's fields are unchanged, so the number stays 1. |
 | 1 | 2026-09-25 | P0.6 | No field changes, so the number stays 1. Two load checks are added (a ledger tolerance must be below 1; a recipe may not name a currency), and a param read by the schedule alone leaves the world's identity (see Params). |
 | 1 | 2026-09-26 | P0.9 | No field changes, so the number stays 1. Two dated events that fall in one tick now fire in date order, not key order (see Dates). |
+| 1 | 2026-09-26 | P2.0.1 | The agents' spec gains four variants, `Provider`, `Workers`, `GoodDesk` and `MachDesk` (see below). No existing field or variant changes, and every schema-1 tape loads and means what it did, so the number stays 1: ENGINE §5 has the spec an enum so that Phase 2's kinds are new variants, not a new schema shape. |
 
 The loader reads its own version only; anything else is refused as a schema error before any
 other field is looked at. Since no field has a default, every change to the schema bumps the
@@ -141,8 +142,8 @@ provenance `Event`), `Transfer(from, to, good, amount)` and `SetParam(param, to)
 
 ## The scripted actor's spec
 
-`spec: Scripted((..))` is the agents' only behaviour kind in Phase 0; Phase 2's kinds are new
-variants. Every field is required and none has a default:
+`spec: Scripted((..))` is the agents' behaviour kind of Phase 0; Phase 2's kinds are new
+variants (the four Appendix B roles, below). Every field is required and none has a default:
 
 - `active`: whether it acts from genesis. A dormant actor (`false`) posts and produces nothing
   until a dated `SetActive` wakes it.
@@ -166,6 +167,28 @@ variants. Every field is required and none has a default:
 
 No cost, floor or budget in the spec is a currency amount (R14): budgets are shares of cash, and
 every quantity is a registered flow of goods.
+
+## The Appendix B roles (P2.0.1)
+
+The probe's four kinds, documented field by field in the rustdoc of `rustyecon_agents::roles::spec`;
+the rules they run are docs/probe/RULES.md, and `tapes/appb.ron` is the worked example (generated:
+`cargo run -p rustyecon-probe --bin appb-tape -- tapes/appb.ron`). Every field is required and
+none has a default. Every key but a good or an actor names a registered param, live:
+
+- `Provider((land, endowment, transfer: (to, heads), basket: (good, space, per_basket), spend))`:
+  a Pop endowed with `endowment` (`FlowPerYear`) of the `Instant` good `land`, all offered; it
+  transfers `heads` (`FlowPerYear`) × P_s to the actor `to`, and spends `spend` (`RatePerYear`)
+  of the rest on baskets of one `good` and `per_basket` (`Dimensionless`) of `space`.
+- `Workers((labour, heads, chi_max, basket, spend))`: a Pop that mints and offers
+  `heads`·min(ln1p(w/P_s)/`chi_max`, 1) of the `Instant` good `labour`, and buys baskets.
+- `GoodDesk((output, labour, mach, schedule: (eta, g0, g1, k), technique: (adjust, share),
+  assign, scale))`: a Desk; `share` is its genesis human share 1 − x, an inline number in [0, 1];
+  `assign` is `Planned` or `ExPost`.
+- `MachDesk((output, labour, land, recipe: (own, labour, land), scale))`: a Desk whose recipe
+  coefficients are `Dimensionless` params.
+- `scale` is `Cash((turnover, tilt, payout))`, with `payout` `None` or `Some((to, rate,
+  ceiling))`, or `Step((up, down, dead, buffer, payout: (to, rate), scale))`, whose `scale` is its
+  genesis output per tick, an inline number.
 
 A complete tape with no behaviour (every actor's spec is `()`) is core's test fixture,
 `crates/core/testdata/core.ron`; it loads with the empty extension, `rustyecon_core::NoExt`.

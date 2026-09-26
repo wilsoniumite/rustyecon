@@ -37,6 +37,7 @@ library a frontend drives). The v1 and July agents did not carry.
 | — | P0.10 is unused: it was held for a fourth fix round, which the bounded check of P0.9 did not need |
 | `5d7efe9` P0.11 | the GUI's design, docs/GUI.md, and its review ledger; plan amendment A14 (ADDENDUM §6, rulings 5–8), R16 and the G-stages in PLAN, ENGINE §13; decisions 22–34 below (O1) |
 | P0.12 | docs made consistent after the final check: G10 beside Phase 10 as a third exception, stale session and hash lines in GUI.md, ruling numbers, a machine path in the ledger |
+| P2.0.1 | on branch `phase2-probe` (2026-09-26): the Phase 2 probe's build, the four Appendix B roles in agents, `crates/probe` and `tapes/appb.ron`; docs/probe/RULES.md; no core, markets or engine change, and the gate world's hash is unchanged |
 
 Session 1 closed at P0.9 with 198 tests (186 `#[test]` functions and 12 doc tests) passing on
 both machines and the gate world's final hash `0x61f9c8529131ff17` on both. P1.1 and P0.11 came
@@ -356,6 +357,9 @@ REVIEW.md is kept as written; these of its claims do not hold.
 
 ## Next steps, in order
 
+0. **The Phase 2 probe** (your ruling of 2026-09-26, before session 2 and the GUI): its build is
+   P2.0.1 on `phase2-probe` (docs/probe/RULES.md). Next is its registration and the
+   pre-registered battery (PROBE-SPEC §4), then your ruling on the fallback.
 1. On your go, merge `reboot-phase0` (which carries the oracle since P1.1 and the GUI's design
    since P0.11) into `reboot`, and rerun `scripts/gate.sh` in WSL and the same commands on
    Windows.
@@ -383,13 +387,16 @@ docs/reboot/             REVIEW.md and ADDENDUM.md, kept as written (links fixed
 docs/timeline/eras.md    era research for worldgen
 crates/core              ids, clock, inventory, deltas, apply, ledgers, hash, checkpoints, tape
 crates/markets           admission, clearing, settlement, prices
-crates/agents            the behaviour seam and the scripted actor
+crates/agents            the behaviour seam, the scripted actor, the Appendix B roles (P2.0.1)
+crates/probe             the Phase 2 probe's harness and tape generator (P2.0.1)
+docs/probe/RULES.md      the probe's rules, dials and lineage, as built
 crates/engine            Sim, the tick, reports, resume, the replay audit, the registry listing
 crates/cli               the rustyecon binary: run, resume, replay, registry
 crates/oracle            the equilibrium solver, unit 1a (P1.1); its README and docs/unit-1a.md
 crates/certify           empty until session 2
 crates/worldgen          empty until Phase 4
 tapes/gate.ron           the gate world
+tapes/appb.ron           the probe's Appendix B world, generated from the oracle
 scripts/gate.sh          the gate as one script
 .github/workflows/ci.yml hosted CI (runs only once pushed)
 ```

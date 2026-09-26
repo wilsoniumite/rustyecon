@@ -1,0 +1,23 @@
+[package]
+name = "rustyecon-probe"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+description = "The Phase 2 probe's harness: the Appendix B tape's generator, named perturbations, per-tick observables against the oracle, and the protocol's classes."
+
+# The harness sits beside the engine path, never on it: it depends on the engine (which runs
+# the tape) and on the oracle (which scores the run, outside the Sim), and nothing depends on
+# it, so no agent can reach the oracle through it (R13; PROBE-SPEC G12). It uses core for its
+# read-only helpers alone (`Clock`, the units, `num`), so that the stationary coins it writes use
+# the agents' own conversions; it never calls core's writer.
+[lib]
+name = "probe"
+path = "src/lib.rs"
+
+[dependencies]
+rustyecon-core.workspace = true
+rustyecon-engine.workspace = true
+rustyecon-oracle.workspace = true
+
+[lints]
+workspace = true

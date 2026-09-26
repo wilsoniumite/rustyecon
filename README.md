@@ -32,12 +32,13 @@ shell follows Phase 0's second session. The crates fill in phase by phase:
 |---|---|---|
 | `crates/core` | ids and keys, goods, the clock and time units, inventories, deltas, state, the conservation ledger, the state hash, checkpoints, the tape's schema and runtime form, the `libm`-backed maths | Phase 0 |
 | `crates/markets` | orders and admission, clearing, settlement, the price update | Phase 0 |
-| `crates/agents` | the behaviour seam and the scripted actor; the agent rules | Phase 0; rules in Phase 2 |
+| `crates/agents` | the behaviour seam and the scripted actor; the agent rules | Phase 0; rules in Phase 2 (the probe's four Appendix B roles since P2.0.1) |
 | `crates/engine` | `Sim`: the tick loop, checkpoints, resume, the replay audit, the read-only per-tick report a frontend drives and reads | Phase 0 |
 | `crates/cli` | the `rustyecon` binary (`run`, `resume`, `replay`, `registry`): arguments, files, exit codes | Phase 0 |
 | `crates/certify` | certificates, criteria, verdicts, Parquet telemetry | Phase 0, second session |
 | `crates/oracle` | the equilibrium solver (library `oracle`): unit 1a, one category with durability and interest, reproduces the SSRN Appendix B ([its README](crates/oracle/README.md)) | Phase 1: 1a landed; 1b–1f to come |
 | `crates/worldgen` | the tape compiler | Phase 4 |
+| `crates/probe` | the Phase 2 probe's harness: the Appendix B tape's generator, named perturbations, per-tick observables against the oracle ([docs/probe/RULES.md](docs/probe/RULES.md)) | the probe, P2.0.1 |
 | `crates/gui` | the interactive frontend, in egui: live runs, plots, lenses, the tape editor, and a county map ([docs/GUI.md](docs/GUI.md)) | from G0, after Phase 0's second session; one stage beside each phase |
 
 Packages are named `rustyecon-<crate>`. `tapes/gate.ron` is the Phase 0 gate world.

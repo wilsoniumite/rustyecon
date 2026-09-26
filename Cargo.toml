@@ -30,6 +30,7 @@ rustyecon-engine = { path = "crates/engine" }
 rustyecon-worldgen = { path = "crates/worldgen" }
 rustyecon-certify = { path = "crates/certify" }
 rustyecon-oracle = { path = "crates/oracle" }
+rustyecon-probe = { path = "crates/probe" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

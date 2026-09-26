@@ -393,6 +393,59 @@ Phase 2 creates it.
 2. §13's session-2 row gains D10's engine items 1, 2 and 4 (GUI.md §7.2, each with its test).
    Item 3, chunked stepping equal to `run_until`, is met already.
 
+**Amended at P2.0.1** (2026-09-26: the Phase 2 probe's agents, docs/probe/RULES.md), the same way.
+The user ruled a time-boxed probe before session 2: can agents at the paper's margins reach the
+oracle's equilibrium of the SSRN Appendix B economy? Its frame is PROBE-SPEC
+(`D:/rustyecon-probe/frame/`). Core, markets and engine did not change; the agents crate grew,
+and `crates/probe` joined. The gate world's hash stream did not move: its final hash is
+`0x61f9c8529131ff17` on WSL and on Windows, as at P0.9.
+
+1. Four behaviour kinds (§4, §5): `Provider`, `Workers`, `GoodDesk` and `MachDesk`, new variants
+   of `RawSpec` and `Spec` after `Scripted`, resolved in `agents::roles::spec` and run by
+   `agents::roles::rules`. Every rate, flow, coefficient and dial is a registered param read at
+   use time (R4); the only inline numbers are genesis state (the good desk's human share, a step
+   rule's scale), listed by `inline_numbers`. The rules, the dials and their lineage are
+   docs/probe/RULES.md.
+2. Their state (§4; PROBE-SPEC G10): `ActorState` gains `Provider`, `Workers`, `GoodDesk` and
+   `MachDesk` after `Scripted`, so the scripted state keeps its encoding and every existing hash.
+   One new delta, `AgentDelta::SetState { actor, state }`, replaces an actor's state with one of
+   the same kind; its owner is the actor, so the whitelist (§7.3) admits it from any hook
+   unchanged. `apply` refuses a state of another kind, a value that is not finite or has its sign
+   bit set (so not `-0.0`, since the state is hashed, R8), and a share above 1; nothing changes on
+   a refusal. `validate` checks each actor's state against its spec's kind and the same values,
+   so a resume checks them too. `AgentDelta` loses `Eq`, which `f64` fields do not have.
+   `SetActive` on an actor that is not scripted is an `Ext` error.
+3. Load checks (§4), each a `LoadError` with its path: a role's goods are distinct and not
+   currencies; its params have their units; the good desk's genesis share lies in [0, 1];
+   `Cast::new` refuses a desk role declared a Pop or a household role declared a Desk, an
+   endowment minted in `decide` that is not an `Instant` good, and a transfer or payout to the
+   payer.
+4. What the hooks emit is §7.3's list as it stood: endowments of `Instant` goods, transfers and
+   `Actor` deltas in `decide`; `Production` and `Consumption` burns, `Production` mints and
+   `Actor` deltas in `produce`. Like the scripted actor, no role posts an order admission refuses
+   or a burn that falls short, whatever the prices (docs/probe/RULES.md §2).
+5. `crates/probe` (`rustyecon-probe`, library `probe`, PROBE-SPEC G12) is a member (§1): the
+   generator of `tapes/appb.ron`, named perturbations, the harness that reads each tick's
+   observables and scores them against the oracle outside the Sim, and the binaries `appb-tape`
+   and `probe`. It depends on the engine, the oracle and core's read-only helpers; nothing depends
+   on it, so no agent reaches the oracle (R13). The source scans of §11 do not read it: it is not
+   on the run's path. Clippy's workspace lints do.
+6. The tape schema stays 1 (§5; docs/TAPE.md): the kinds are new variants of the agents' spec,
+   as §5 foresaw ("Phase 2's kinds are new variants, not a new schema shape"), and every schema-1
+   tape loads and means what it did.
+7. Tests (§11). In agents (`tests/roles.rs`): `roles_never_overbudget_or_overdraw`,
+   `good_desk_makes_output_at_either_corner`, `ex_post_assignment_uses_up_both_inputs`,
+   `technique_moves_toward_the_task_measure`,
+   `households_offer_the_cdf_and_the_provider_funds_one_basket_per_head`,
+   `cash_rule_outlay_follows_coin_and_markup`, `role_state_rejects_unclean_values`,
+   `roles_read_only_their_view`, `role_specs_are_checked_at_load` and
+   `role_specs_round_trip_in_canonical_form`. In probe (`tests/appb.rs`):
+   `appb_tape_is_its_generators_output`, `appb_tape_loads_and_runs_deterministically`,
+   `appb_conserves_every_tick`, `appb_holds_at_the_oracle_point` (mode A for 20,000 ticks),
+   `appb_variants_hold_at_the_oracle_point`, `perturbations_parse_and_apply` and
+   `rows_carry_the_oracle_target`. The seam and determinism tests match the scripted spec with
+   `let .. else`, since the spec enum is no longer irrefutable.
+
 ## 0. Engine invariants
 
 Numbered so tests and reviews can cite them. Each has at least one test in §11.
@@ -451,6 +504,8 @@ crates/cli      rustyecon-cli      bin `rustyecon`: argument parsing, file I/O, 
 crates/certify  rustyecon-certify  empty until session 2 (A4); nothing depends on it yet
 crates/oracle   rustyecon-oracle   the equilibrium solver, Phase 1 (unit 1a at P1.1); lib `oracle`
 crates/worldgen rustyecon-worldgen empty until Phase 4; nothing depends on it yet
+crates/probe    rustyecon-probe    the Phase 2 probe's harness (P2.0.1); lib `probe`; nothing depends on it
+tapes/appb.ron                     the probe's Appendix B world, generated (docs/probe/RULES.md §4)
 tapes/gate.ron                     the gate world (§10)
 ```
 
@@ -1067,7 +1122,9 @@ impl Cast { pub fn new(w: &World<Agents>) -> Result<Cast, LoadError>;
 ```
 
 `Cast` dispatches each actor to its kind's `Behaviour`, and checks that its `ActorState` variant
-matches (`AgentError::Mismatch` otherwise). `Cast::new` makes the load checks that need the
+matches (`AgentError::Mismatch` otherwise). Since P2.0.1 the kinds are the scripted actor and the
+four Appendix B roles (`Provider`, `Workers`, `GoodDesk`, `MachDesk`; docs/probe/RULES.md), whose
+state a `SetState` delta replaces. `Cast::new` makes the load checks that need the
 whole world: every buy line's node quotes in the actor's home currency, and no payout names the
 payer; each is a `LoadError` with its tape path. R13 holds by construction: a `View` cannot reach
 another actor's holdings, orders or state, nor the cleared volumes, and agents never depends on
@@ -1514,6 +1571,7 @@ size; none is absolute (A12). Gate tests read `tapes/gate.ron` through `include_
 
 | Area | Tests | Checks |
 |---|---|---|
+| roles (P2.0.1) | `roles_never_overbudget_or_overdraw`, `good_desk_makes_output_at_either_corner`, `ex_post_assignment_uses_up_both_inputs`, `technique_moves_toward_the_task_measure`, `households_offer_the_cdf_and_the_provider_funds_one_basket_per_head`, `cash_rule_outlay_follows_coin_and_markup`, `role_state_rejects_unclean_values`, `roles_read_only_their_view`, `role_specs_are_checked_at_load`, `role_specs_round_trip_in_canonical_form` | R13, R4, R8, R12, G10 |
 | seam | `leontief_never_overdraws`, `scripted_actor_reads_only_its_view` (foreign holdings change; the decision does not), `extreme_spend_rate_never_overbudgets` (v·Δ = 40, so `share` = 1.0; payouts and budgets pass admission), `weights_must_sum_exactly_to_one`, `dormant_actor_does_nothing`, `tiny_cash_and_stocks_still_pay_out_and_produce` (P0.6: 1e-300 coin, grain and fuel), `per_tick_conversions_follow_the_clock` (P0.9: at 12, 52 and 365 ticks a year every buy and `Flow` sell line posts `q/ticks_per_year`, `AllHeld` what is left, and the payouts and spending totals are `1 − exp(−r/ticks_per_year)` of the cash, exactly, against values computed from the params) | R13, R4, A12, A13 |
 
 **engine**

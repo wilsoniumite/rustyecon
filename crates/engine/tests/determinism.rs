@@ -121,7 +121,9 @@ fn reversed(t: &Tape) -> Tape {
     r.classes.reverse();
     r.actors.reverse();
     for a in &mut r.actors {
-        let RawSpec::Scripted(s) = &mut a.spec;
+        let RawSpec::Scripted(s) = &mut a.spec else {
+            panic!("a gate actor is scripted")
+        };
         s.buy.reverse();
         s.sell.reverse();
         if let Some(rec) = &mut s.recipe {

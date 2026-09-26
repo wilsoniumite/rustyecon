@@ -1,26 +1,40 @@
-//! The scripted actor's spec: its tape form (schema 1) and its resolved form (docs/ENGINE.md §4
+//! The actors' specs: their tape form (schema 1) and their resolved form (docs/ENGINE.md §4
 //! and §5).
 //!
-//! A spec is an enum, `Scripted(..)` today, so Phase 2's behaviour kinds are new variants and
-//! not a new schema shape. Every rate, flow and capacity is a registered param referenced by key
-//! and read at use time, so a dated `SetParam` retargets the actor (R4, E1); recipe
-//! coefficients and weights are dimensionless structural data and sit inline under the actor's
-//! `basis`. Every field is required and none has a default, as in core's raw types
-//! (`rustyecon_core::tape::raw`).
+//! A spec is an enum, so Phase 2's behaviour kinds are new variants and not a new schema shape:
+//! `Scripted(..)` since P0.5, and the four Appendix B roles since P2.0 (`Provider`, `Workers`,
+//! `GoodDesk`, `MachDesk`; [`crate::roles::spec`]). This module holds the scripted actor's.
+//!
+//! Every rate, flow and capacity is a registered param referenced by key and read at use time,
+//! so a dated `SetParam` retargets the actor (R4, E1); recipe coefficients and weights are
+//! dimensionless structural data and sit inline under the actor's `basis`. Every field is
+//! required and none has a default, as in core's raw types (`rustyecon_core::tape::raw`).
 #![deny(missing_docs)]
 
+use crate::roles::spec::{
+    resolve_good_desk, resolve_mach_desk, resolve_provider, resolve_workers, scale_numbers,
+    GoodDesk, MachDesk, Provider, RawGoodDesk, RawMachDesk, RawProvider, RawWorkers, Workers,
+};
 use rustyecon_core::tape::raw::required;
 use rustyecon_core::{
     ActorId, GoodId, Key, LoadError, LoadErrorKind, NodeId, ParamId, ParamUse, Resolver, Unit,
 };
 use serde::{Deserialize, Serialize};
 
-/// An actor's spec as the tape writes it: `spec: Scripted((..))`.
+/// An actor's spec as the tape writes it: `spec: Scripted((..))`, `spec: GoodDesk((..))`, ...
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub enum RawSpec {
     /// A scripted actor: fixed lines and a Leontief recipe, each quantity a registered param.
     Scripted(RawScript),
+    /// The Appendix B provider (a Pop; P2.0).
+    Provider(RawProvider),
+    /// The Appendix B workers (a Pop; P2.0).
+    Workers(RawWorkers),
+    /// The Appendix B good desk (a Desk; P2.0).
+    GoodDesk(RawGoodDesk),
+    /// The Appendix B machine desk (a Desk; P2.0).
+    MachDesk(RawMachDesk),
 }
 
 /// A scripted actor, as the tape writes it.
@@ -124,6 +138,14 @@ pub struct RawPayout {
 pub enum Spec {
     /// A scripted actor.
     Scripted(Script),
+    /// The provider.
+    Provider(Provider),
+    /// The workers.
+    Workers(Workers),
+    /// A good desk.
+    GoodDesk(GoodDesk),
+    /// A machine desk.
+    MachDesk(MachDesk),
 }
 
 /// A scripted actor, resolved. Lists are in canonical order.
@@ -405,13 +427,21 @@ pub fn resolve(raw: &RawSpec, r: &mut Resolver<'_>) -> Result<Spec, LoadError> {
                 payout,
             }))
         }
+        RawSpec::Provider(p) => resolve_provider(p, r).map(Spec::Provider),
+        RawSpec::Workers(p) => resolve_workers(p, r).map(Spec::Workers),
+        RawSpec::GoodDesk(d) => resolve_good_desk(d, r).map(Spec::GoodDesk),
+        RawSpec::MachDesk(d) => resolve_mach_desk(d, r).map(Spec::MachDesk),
     }
 }
 
 /// Put a raw spec's own lists in canonical order, for `Tape::to_ron`: recipe goods by key,
-/// lines by (node, good) key, payout recipients by key.
+/// lines by (node, good) key, payout recipients by key. The Appendix B roles hold no lists.
 pub fn canonical(raw: &mut RawSpec) {
     match raw {
+        RawSpec::Provider(_)
+        | RawSpec::Workers(_)
+        | RawSpec::GoodDesk(_)
+        | RawSpec::MachDesk(_) => {}
         RawSpec::Scripted(s) => {
             if let Some(rec) = &mut s.recipe {
                 rec.inputs.sort_by(|a, b| a.0.cmp(&b.0));
@@ -429,10 +459,17 @@ pub fn canonical(raw: &mut RawSpec) {
 }
 
 /// The spec's inline numbers, each with its tape path under the actor, for the registry listing
-/// (`rustyecon registry`): recipe coefficients and line and payout weights.
+/// (`rustyecon registry`): recipe coefficients and line and payout weights; for the Appendix B
+/// desks, their genesis state (the good desk's human share, a step rule's scale).
 pub fn inline_numbers(raw: &RawSpec) -> Vec<(String, f64)> {
     let mut out = Vec::new();
     match raw {
+        RawSpec::Provider(_) | RawSpec::Workers(_) => {}
+        RawSpec::GoodDesk(d) => {
+            out.push(("technique.share".to_string(), d.technique.share));
+            scale_numbers(&d.scale, &mut out);
+        }
+        RawSpec::MachDesk(d) => scale_numbers(&d.scale, &mut out),
         RawSpec::Scripted(s) => {
             if let Some(rec) = &s.recipe {
                 for (k, a) in &rec.inputs {
