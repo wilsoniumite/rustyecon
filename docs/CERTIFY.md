@@ -174,8 +174,9 @@ this text was wrong or silent. Each change is made in place in the section named
 
 **Amended at S2.5** (2026-09-26: the fix round of the bounded verification), where this text was
 wrong or silent. The verification made one adversarial pass over S2.1–S2.4 and found two
-blockers, eight majors and six minors. Every one is taken; none is rejected. Each change is made
-in place in the section named.
+blockers, nine majors and six minors; two of them repeat another (Settles' cleared volume, and
+the seal's rule for a failed battery that is not listed). Every one is taken; none is rejected.
+Each change is made in place in the section named.
 
 1. **A tape that sets its own prices** (§2.4, §4, §8, §15.1 question 1; blocker, the
    verification's E1). July's step rule from w×2 runs away at tick 415. With 211 dated
@@ -233,9 +234,10 @@ in place in the section named.
    - `batteries_fail_closed_on_nonfinite_samples` gains a tick in W before F, for every field
      Settles reads (the gate over F alone);
    - `kick_checks_its_horizon` (mutant B13: amended at S2.3, item 2);
-   - `edited_verdict_is_refused` gains four rules: an unscored run with a failed battery is FAIL
-     (mutant S5: amended at S2.3, item 5), Settles without Kick (mutant S8), and a price-shock
-     count above and at its bar;
+   - `edited_verdict_is_refused` gains six rules: an unscored run with a failed battery is FAIL
+     (mutant S5: amended at S2.3, item 5), Settles without Kick (mutant S8), a price-shock count
+     above and at its bar, and a battery marked pass with a reading outside its bar or a reading
+     of the finite gate;
    - `criteria_need_a_unit_and_basis_for_every_bar` gains the empty bases of `until_basis`,
      `min_samples` and `price_shocks`, and a value out of range for every bar, `dead_share` 1
      and `run_share` 0 among them, each refused at its own path;
@@ -307,7 +309,19 @@ in place in the section named.
     (the trough's first minimum, the provider's due and paid swapped) are killed by the pins,
     which shows the probe reads certify's code. The build stamp was reproduced in WSL: on a packed
     branch ref, `4d59604`'s `build.rs` stamped the parent commit after `git commit`, and this
-    one stamps the new commit. The logs are in `D:/rustyecon-s2/fix-r1/`.
+    one stamps the new commit.
+    - **The certificates**, regenerated from `05533b9`, the code commit, clean, in WSL. Both
+      verdicts are **PASS**, with the criteria hashes of S2.4. Every reading's name and value
+      equals S2.4's; the one new reading is appb's `kick.errors` at tick 20,000, 0. Finals
+      `0x61f9c8529131ff17` and `0xe1fa082b26995867`. `certify` took 0.15 s for the gate and
+      2.65 s for appb.
+    - **The gate.** `scripts/gate.sh` is green in WSL and on Windows at `05533b9` with the
+      regenerated certificates: 421 tests pass in the workspace on each machine (409 at S2.4),
+      2 ignored; 65 in certify's Parquet-free run, 1 ignored; then
+      `committed_certificates_recompute` (byte-equal on both machines, gated in WSL) and
+      `probe_battery_csv_unchanged` by name. Telemetry is byte-identical from two processes on
+      each machine. The Parquet-free certify and the engine check for wasm32 in WSL.
+    - The logs are in `D:/rustyecon-s2/fix-r1/`.
 
 ## 0. Decisions this contract makes
 
