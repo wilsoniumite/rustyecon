@@ -4,21 +4,167 @@
 economy whose decisions are the pinning paper's margins, checked against an equilibrium oracle.
 The plan is [docs/PLAN.md](docs/PLAN.md), amended by the rulings in
 [docs/reboot/ADDENDUM.md](docs/reboot/ADDENDUM.md); the Phase 0 engine contract is
-[docs/ENGINE.md](docs/ENGINE.md), the tape's schema is [docs/TAPE.md](docs/TAPE.md), and the
-GUI's design is [docs/GUI.md](docs/GUI.md).
+[docs/ENGINE.md](docs/ENGINE.md), session 2's contract is [docs/CERTIFY.md](docs/CERTIFY.md),
+the tape's schema is [docs/TAPE.md](docs/TAPE.md), and the GUI's design is
+[docs/GUI.md](docs/GUI.md).
 **Collaboration:** as in laborformal. Sequencing, engineering and drafting are delegated to
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
-**State as of:** 2026-09-26. Everything below is on `reboot`. Phase 0 session 1 is closed
-(P0.1–P0.9, with round 3's findings O5–O13 fixed at P0.9). Oracle unit 1a joined the workspace
-at P1.1 (O3), and the GUI's design, plan amendment A14 and R16 landed at P0.11 (O1). By your
-ruling of 2026-09-26 the Phase 2 probe ran first: agents find the Appendix B equilibrium, verdict
-GO ([docs/probe/REPORT.md](docs/probe/REPORT.md)), closed with no fallback (decision 38).
-Breakpoint B's pre-look ran beside it and passes (S5.0, docs/spine/EYEBALL.md; decision 35).
-Next, in order: session 2, the certification stack with the GUI's engine asks and the probe's
-criteria; then G0, the GUI's shell; Phase 1's units 1b–1f alongside.
+**State as of:** 2026-09-26. **Phase 0 is closed.** Session 1 closed at P0.9, on `reboot`.
+Session 2 closed at S2.6, on branch `phase0-s2` (S2.1–S2.6, from `reboot` at `cf3c0ff`), which
+is not merged or pushed: merging is a fast-forward, on your word. Session 2 built the
+certification stack, the GUI's engine asks and the probe's criteria, and both tapes certify
+PASS. Before it: oracle unit 1a joined at P1.1 (O3); the GUI's design, plan amendment A14 and
+R16 landed at P0.11 (O1); by your ruling of 2026-09-26 the Phase 2 probe ran first, with verdict
+GO ([docs/probe/REPORT.md](docs/probe/REPORT.md)) and no fallback (decision 38); and Breakpoint
+B's pre-look passed beside it (S5.0, docs/spine/EYEBALL.md; decision 35).
+Next, in order: G0, the GUI's shell (G0.1 the viewer, then G0.2 the editor); Phase 1's units
+1b–1f alongside.
 
 ## Where things stand
+
+**Phase 0 session 2 is closed, and the gate is green in WSL and on Windows** (2026-09-26;
+[docs/CERTIFY.md](docs/CERTIFY.md), with each step's amendments). It moved July's certification
+stack into `crates/certify` with N4, N10, N12 and N15 fixed and every threshold in dated
+criteria, added A12's runaway detector and the probe's three criteria, and landed the GUI's
+engine asks (D10 items 1, 2 and 4).
+
+| Commit | What landed |
+|---|---|
+| `785ab19` S2.1 | docs/CERTIFY.md, the session's contract, revised once after an adversarial review (C1–C13, decisions 41–53 below) |
+| `7c14c37` S2.2 | the GUI's engine asks: `world_id` without the `fixed` flag, `FiredEvent.source`, each use of a param as a `Site` with its `ClockMethod`, listed by `engine::registry`; every `world_id` re-baselined once, no state hash moved |
+| `0e8c2e7` S2.3 | `crates/certify`: dated criteria, the batteries behind a finite gate, windows per segment between dated shocks, the kick check through a new dated action `ScalePrice`, the transient reports, the sealed certificate and the manifest; the probe's testdata |
+| `6a80d6d` S2.4 | tidy long Parquet telemetry behind certify's feature `parquet` (pure Rust); the cli's build stamp, hash output that names its run, manifests, verified resume and `rustyecon certify` |
+| `1ee9b80` S2.4 | `criteria/gate-2026-09-26.ron` and `criteria/appb-2026-09-26.ron`, alone, before any certified run |
+| `4d59604` S2.4 | `results/{gate,appb}/`: both certificates PASS, from a clean build of `1ee9b80` |
+| `05533b9` S2.5 | the bounded verification's fixes (two blockers, nine majors, six minors), each with a test; the probe reads certify's measures, pinned to its report |
+| `daa62af` S2.5 | the certificates regenerated from a clean build of `05533b9`: both PASS, every reading's value as before |
+| S2.6 | this file, PLAN §3.2 (decision 39), ENGINE, CERTIFY, TAPE, GUI.md, README; the spine scripts' portable cache (O15) |
+
+**The certificates** (`results/`, committed verdicts, made in WSL by a clean build of `05533b9`
+from the criteria registered at `1ee9b80`; C3, C10):
+
+| Tape | Verdict | `tape_hash` | `world_id` | Criteria hash | Run |
+|---|---|---|---|---|---|
+| `tapes/gate.ron` | **PASS** | `0x54066d053474846b` | `0x43628a8e0fd5f695` | `0x8e1ec1cc31830009` | 2,080 ticks, genesis `0xf05d0f23826edf87`, final `0x61f9c8529131ff17` |
+| `tapes/appb.ron` | **PASS** | `0x8973b237f4c00029` | `0x26f12f8a0bc27540` | `0x1d00ed972691a90f` | 20,000 ticks, genesis `0x8d12ce44b614110a`, final `0xe1fa082b26995867` |
+
+- **gate**: Conservation, Determinism (resumed at a quarter, half and three quarters), Runaway at
+  1e3, Trades every year and Balance at July's bars, in five segments opened by `mine.cut`,
+  `bread.line.up`, `oven.opens` and `mine.restored`. The widest price ratios to genesis are 18.3
+  (town/bread) and 0.0996 (village/bread). Every market trades in each of the 40 yearly windows,
+  and no market is pinned in any segment. The largest ledger margin is 3.6e-5 of its tolerance.
+- **appb**: Conservation, Determinism at half the run, Runaway at 1e6, Trades and Balance as the
+  gate's, plus Settles and the 1e-9 kick over one L, in one segment. No dead tick in W or F;
+  price ranges in F are 0 and volume ranges at most 4.4e-16 in log. The eight kicks decay to
+  gains of 1.9e-6 to 6.0e-6 in the last tenth of the 20,020-tick horizon, with peaks at most
+  3.26, against bars of 1e-3 and 1e6; no kicked run failed.
+- `rustyecon certify` took 0.15 s for the gate and 2.65 s for appb, kicks included (WSL,
+  release). `committed_certificates_recompute` reruns both, byte-equal in WSL (gated) and on
+  Windows (recorded: byte-equal there too).
+
+**Hashes and identities.** Session 2 moved no state hash and no `prefix_id`: at S2.2 all 2,080
+gate and 20,000 appb per-tick hashes were compared with `cf3c0ff`'s on both machines and are
+byte-identical, and later steps changed no engine-path code but core's appended `ScalePrice`,
+which moves no existing encoding. Every `world_id` changed once, at S2.2, on purpose: item 1
+drops the `fixed` flag, and each spec's `Site` carries the method that decides a number. Equal on
+WSL and Windows:
+
+| World | At `cf3c0ff` | From S2.2 | Genesis state hash (unchanged) |
+|---|---|---|---|
+| `tapes/gate.ron` | `0xbecdc746fc86ce97` | `0x43628a8e0fd5f695` | `0xf05d0f23826edf87` |
+| `tapes/appb.ron` | `0x3f689d670fe877c6` | `0x26f12f8a0bc27540` | `0x8d12ce44b614110a` |
+| core's fixture | `0x66d1181c6802a7fd` | `0x85336968874fbf6d` | `0xf1538ab1f6a0de5c` |
+| markets' fixture | `0xbdd0ee95c0bb590f` | `0xc3b1c948a42f06c6` | `0x5e400bb3f1012434` |
+
+A checkpoint made before S2.2 is refused as `WrongWorld`; none is committed. The final hashes are
+still gate `0x61f9c8529131ff17` and appb `0xe1fa082b26995867` on both machines.
+
+**What was fixed** (ADDENDUM §2.3's N-numbers, REPORT §6's criteria), each with a test that fails
+without it, checked by mutation:
+- **N4**, a run with no criteria never certifies PASS: `unscored_run_never_passes`,
+  `criteria_without_runaway_do_not_certify`, `certify_command_exits_on_its_verdict` (exit 0 is
+  PASS only; FAIL and UNSCORED exit 5).
+- **N10**, `tape_hash` covers every input: confirmed, not only proposed. `Tape` refuses unknown
+  fields and has no defaults, so `fnv1a_64` over the canonical `to_ron` covers everything the
+  loader reads (`tape_hash_covers_every_input`). The manifest records the build, `tape_hash`,
+  `world_id` and any checkpoint a run resumed from; the certificate records the criteria
+  (`manifest_names_every_input`).
+- **N12**, fail closed on NaN: a finite gate before every predicate, NaN-propagating folds, and a
+  serde scan of every number a certificate renders, where July's scan read state fields and its
+  statistics dropped NaN one sample at a time
+  (`batteries_fail_closed_on_nonfinite_samples`, `seal_fails_every_nonfinite_path`,
+  `finite_scan_reads_every_rendered_number`, `render_prints_only_serialised_numbers`).
+- **N15**, windows relative to the run and restarting at each dated shock:
+  `windows_are_relative_to_the_run`, `windows_restart_at_each_dated_shock`,
+  `short_segments_do_not_shrink_windows`.
+- **A12**, the price-runaway detector, relative and registered: `runaway_bound_is_relative`
+  (every price ×2⁴⁰ gives bit-identical readings), `runaway_detector_catches_a_runaway`.
+- **REPORT §6**: the 1e-9 kick in ± each price, at the end and at every dated shock
+  (`kick_check_passes_a_stable_rest`, `kick_check_fails_a_rounding_freeze`,
+  `a_merged_shock_is_kicked`); troughs, dead ticks, ticks with no consumption, the transfer
+  shortfall and spoilage as reported outputs (`transient_statistics_are_reported`); windows per
+  shock (`a_history_whose_segments_return_passes`).
+- **D10** items 1, 2 and 4: `new_source_event_keeps_world_id`, `fired_event_names_its_source`,
+  `registry_names_each_use`, with `params_are_read_only_through_sites` and three more (ENGINE's
+  S2.2 amendment).
+- **R16** in the cli: `hash_output_names_its_run`, `resume_requires_a_recorded_checkpoint`,
+  `resume_records_its_parent`. Resume already checked a checkpoint's digest since P0.9; what was
+  left was "a run of the same tape": it now verifies the checkpoint against the manifest of the
+  run that made it (same `tape_hash` and `world_id`, and a record at its tick with the same
+  digest and state hash).
+
+**The probe's measures (D13).** Moved to certify, oracle-free, and read by the probe's harness
+since S2.5: the runaway bound, a market that traded, rationed fills, spoilage per good, the
+provider's due and paid, the trough, "at rest in F" as a log range, the dead-share rule and the
+ledger margin. They wait for `crates/observe`, since each needs the oracle: the target and the
+gaps D̂, shock distance and κ, the envelope, VACUOUS, the hold check, the bands per relative
+price, the oracle-relative dead floor (`LIVE_FLOOR`) and troughs, and the classifier. The
+probe's pins (`probe_summaries_unchanged`, and `probe_battery_csv_unchanged` by name in the
+gate) show its 57 battery rows, its negative control and its shock history unchanged.
+
+**Telemetry and what pure Rust costs.** Parquet 60.0.0 with LZ4_RAW and byte-stream-split, no
+zstd and no C build on either machine, behind certify's feature `parquet`. With the feature off
+certify's closure is 17 crates on every target and checks for wasm32; with it, parquet adds 19
+crates on Linux and 18 on Windows. Files are about 9% larger than zstd-3 (GUI §3.4's
+measurement). The gate world's 2,080 ticks write 276,145 rows in 1,527,113 bytes, byte-identical
+from two processes on each machine, and WSL's and Windows' files differ only in the footer's key
+that names the build.
+
+**The verification** (bounded, as session 1 taught: one adversarial pass, one fix round, one
+re-check of exactly the fixed items). The pass over S2.1–S2.4 found two blockers, nine majors and
+six minors; all were taken at S2.5, none rejected, each with a test checked against its mutant
+(38 mutants, all killed). The blockers were false PASSes: dense dated `ScalePrice` events clamped
+July's runaway (now counted against the criteria's `price_shocks`, none by default), and a regime
+shorter than `min_segment` went unkicked (the kick now fires at every dated shock). The re-check
+on `daa62af` found both now FAIL and a pass flag edited alone refused; one forgery of bars still
+reads back, carried as O16 (CERTIFY, amended at S2.6).
+
+**The gate at S2.6**, `scripts/gate.sh` in WSL and the same script under Git Bash on Windows:
+fmt, clippy with `-D warnings` and `cargo test --workspace --release` with warnings denied, then
+the repeat-hash test by name, certify without Parquet (check, clippy, test, and `parquet` absent
+from its tree), two runs of the gate tape through the binary, the build stamp against the
+checkout, `committed_certificates_recompute` by name and each certificate's build an ancestor of
+HEAD, `probe_battery_csv_unchanged` by name, and telemetry from two processes. 421 tests pass in
+the workspace on each machine, with 2 ignored and run by name, and zero warnings; certify alone,
+Parquet-free, passes 65 with 1 ignored:
+
+| Crate | WSL | Windows |
+|---|---|---|
+| `rustyecon-core` | 93 unit + 2 doc | 93 unit + 2 doc |
+| `rustyecon-markets` | 6 unit + 28 integration | 6 unit + 28 integration |
+| `rustyecon-agents` | 1 unit + 21 integration | 1 unit + 21 integration |
+| `rustyecon-engine` | 3 unit + 46 integration + 10 doc | 3 unit + 46 integration + 10 doc |
+| `rustyecon-cli` | 18 integration | 18 integration |
+| `rustyecon-certify` | 9 unit + 60 integration (1 ignored, run by name) | 9 unit + 60 integration (1 ignored, run by name) |
+| `rustyecon-oracle` | 42 unit + 71 gate + 1 doc | 42 unit + 71 gate + 1 doc |
+| `rustyecon-probe` | 10 integration (1 ignored, run by name) | 10 integration (1 ignored, run by name) |
+| `rustyecon-worldgen` | none yet | none yet |
+| **Total** | **421** | **421** |
+
+The count grew 330 (P2.0.2) → 339 (S2.2) → 398 (S2.3) → 409 (S2.4) → 421 (S2.5). The wasm32
+checks of the engine and of Parquet-free certify pass in WSL (recorded, not gated); Windows has no
+wasm32 target. The logs of each step are in `D:/rustyecon-s2/`.
 
 **Phase 0 session 1 is closed, and its gate is green in WSL and on Windows.** It salvaged
 `core`, `markets` and `cli` from the July branch, tag `july-v2-phase-3` (`ff01284`), fixing
@@ -44,7 +190,7 @@ library a frontend drives). The v1 and July agents did not carry.
 | `3a4b28c` P2.0.1 | from branch `phase2-probe` (2026-09-26): the Phase 2 probe's build, the four Appendix B roles in agents, `crates/probe` and `tapes/appb.ron`; docs/probe/RULES.md; no core, markets or engine change, and the gate world's hash is unchanged |
 | `6d8d2a5` P2.0.2 | docs/probe/REPORT.md, the probe's report, with its plots and three results tables; docs only |
 | `e6d9ff9` P2.0.3 | this file after the probe; the gate rerun on both machines |
-| P2.0.4 | `phase2-probe` and `spine-eyeball` merged into `reboot` (rebased, fast-forward); decisions 35–40; this file |
+| `cf3c0ff` P2.0.4 | `phase2-probe` and `spine-eyeball` merged into `reboot` (rebased, fast-forward); decisions 35–40; this file |
 
 Session 1 closed at P0.9 with 198 tests (186 `#[test]` functions and 12 doc tests) passing on
 both machines and the gate world's final hash `0x61f9c8529131ff17` on both. P1.1 and P0.11 came
@@ -73,24 +219,10 @@ agent struct). Each has a test that fails when its fix is reverted, checked by m
 | unsorted events fire or fail | `unsorted_events_fire_in_order`, `every_zero_is_rejected` (core), `gate_events_fire_in_date_order`, `same_tick_events_fire_in_date_order` (engine) |
 
 The full list, with what each test checks, is ENGINE §11: 186 `#[test]` functions and 12 doc
-tests at P0.9. Since P1.1 core has one more (`fma_rounds_once`) and the oracle brings its 114.
-`cargo test --workspace --release` passes 313 of 313 on both machines, with zero warnings
-(built with `-D warnings`), `cargo clippy --workspace --all-targets -- -D warnings` clean and
-`cargo fmt --all --check` clean:
-
-| Crate | WSL | Windows |
-|---|---|---|
-| `rustyecon-core` | 90 unit + 2 doc | 90 unit + 2 doc |
-| `rustyecon-markets` | 6 unit + 28 integration | 6 unit + 28 integration |
-| `rustyecon-agents` | 1 unit + 9 integration | 1 unit + 9 integration |
-| `rustyecon-engine` | 3 unit + 37 integration + 10 doc | 3 unit + 37 integration + 10 doc |
-| `rustyecon-cli` | 13 integration | 13 integration |
-| `rustyecon-oracle` (P1.1) | 42 unit + 71 gate + 1 doc | 42 unit + 71 gate + 1 doc |
-| `rustyecon-certify`, `rustyecon-worldgen` | none yet | none yet |
-| **Total** | **313** | **313** |
-
-The oracle's 114 are its own gate (crates/oracle/README.md), and `goldens/generate.py --check`
-passes under laborformal's venv.
+tests at P0.9. Since P1.1 core has one more (`fma_rounds_once`) and the oracle brings its 114,
+so `cargo test --workspace --release` passed 313 of 313 on both machines at P1.1. Session 2's
+count, 421, is in its table above. The oracle's 114 are its own gate
+(crates/oracle/README.md), and `goldens/generate.py --check` passes under laborformal's venv.
 
 **Toolchain** (pinned by `rust-toolchain.toml`, installed by rustup on first use):
 
@@ -111,7 +243,8 @@ a build of `4553e5f`), and the Windows build's stream equals the WSL one byte fo
 `0x61f9c8529131ff17` on both). P0.9 changes what a checkpoint holds (format 3) and which ledger
 lines a tick declares, not what a state holds or how a tick moves it; the gate world has no two
 firings in one tick. P1.1 moved no hash: its 2,080 per-tick hashes equal P0.8's byte for byte on
-WSL and on Windows. P0.11 changes no code.
+WSL and on Windows. P0.11 changes no code. Nor did the probe or session 2 move a state hash
+(above); session 2 moved every `world_id` once, at S2.2.
 
 **The oracle, unit 1a (P1.1; O3).** Built and verified by its own run, it joined through the
 members glob: 114 tests, the SSRN Appendix B to its published figures and to 70-digit goldens
@@ -142,7 +275,8 @@ ways, the build (P2.0.1), a registered battery, a 117-cell dial sweep and two re
 - **The kill condition (A11) is not met.** The report proposes, for your ruling: no fallback;
   the cash rule as PLAN §3.2's scale rule; A9's July battery made optional; three criteria for
   session 2 (a kick check, transient statistics, windows per dated shock); `tapes/appb.ron` as
-  G0's second world, with D2's "no log axes" revisited.
+  G0's second world, with D2's "no log axes" revisited. The first three are decisions 38–40,
+  and PLAN §3.2 carries decision 39 since S2.6. Session 2 built the three criteria.
 - **Breakpoint B**, in parallel: its pre-look landed as S5.0 on `reboot` (`58e9e98`,
   docs/spine/EYEBALL.md) and passes (decision 35).
 - **The gate at P2.0.2** is green on both machines: `scripts/gate.sh` in WSL, and fmt, clippy
@@ -153,22 +287,26 @@ ways, the build (P2.0.1), a registered battery, a 117-cell dial sweep and two re
   `0x61f9c8529131ff17` and `0xe1fa082b26995867`, as at P2.0.1.
 
 **WASM (recorded, not gated):** `cargo check --target wasm32-unknown-unknown -p
-rustyecon-engine` passes in WSL, so the engine can compile for a browser frontend (E2).
+rustyecon-engine` passes in WSL, so the engine can compile for a browser frontend (E2). Since
+S2.4 so does `-p rustyecon-certify` with its `parquet` feature off, the web build's manifest.
 
 **CI:** `scripts/gate.sh` is the gate as one script (WSL or any Linux; build outside the tree).
-`.github/workflows/ci.yml` runs it on GitHub's `ubuntu-latest`, but **it does not run until the
-branch is pushed**, and whether hosted CI is wanted at all is your call (A5). Windows stays a
-check run by hand.
+`.github/workflows/ci.yml` runs it on GitHub's `ubuntu-latest` on every push, and whether hosted
+CI is wanted at all is your call (A5). Since S2.4 it checks out full history, since the gate
+checks that each committed certificate's build commit is an ancestor of HEAD. Windows runs the
+same script under Git Bash, by hand.
 
-**Remote:** `origin` has `main`, `reboot` at `43dfba0`, the three `july-v2-*` tags and
-`pre-foundations` (A1 done). Not pushed: `reboot` at `87d95d7` (the addendum),
-`pre-reboot-2026-09-25`, and `reboot-phase0`.
+**Remote** (as the local remote-tracking refs show on 2026-09-26): `origin` has `main` and
+`reboot` at `cf3c0ff`, the three `july-v2-*` tags and `pre-foundations` (A1 done). Not pushed:
+`phase0-s2` (S2.1–S2.6), and the local branches `phase2-probe`, `spine-eyeball` and
+`reboot-phase0`, whose work is in `reboot`.
 
 ## Decisions — veto window (your one-word calls)
 
 The first nine record how your rulings and the standing rules were carried out; 10–21 were made
 while building. 22–34 are the GUI's D1–D13 (A14; [docs/GUI.md](docs/GUI.md) says where each is
-carried out): each stands unless vetoed before G0, and D10's window closes at session 2.
+carried out): each stands unless vetoed before G0. D10's window closed with session 2, which
+built its items. 41–58 are session 2's.
 
 1. **Package names and layout.** Each crate is `crates/<short name>`, package
    `rustyecon-<short name>`; the root is a virtual workspace, `members = ["crates/*"]`, resolver
@@ -306,18 +444,85 @@ taken by Claude on the same footing. All six are open to veto.
 38. **The probe closes as GO, with no fallback.** A11's kill condition is not met on Appendix B.
     Phase 2 proper keeps agents as the engine and starts from the probe's roles and harness.
 39. **The cash rule is PLAN §3.2's default scale rule,** with July's stability package as the
-    named alternative (R6). PLAN §3.2's text follows in session 2's docs step.
+    named alternative (R6). PLAN §3.2 carries it since S2.6. PLAN Phase 2's opening paragraph
+    (July's battery first, "the scale rule is re-tested first") is left as written, as decision
+    10 left PLAN's crate list; decision 40 is recorded here only.
 40. **A9's re-run of July's solvable family is optional.** The probe's battery against the
     oracle took its place as Phase 2's opener; July's worlds stay available as extra known
     answers.
 
+Decisions 41–53 are session 2's contract decisions, C1–C13 of docs/CERTIFY.md §0, which gives
+each with its alternative; the contract says where each was amended. 54–58 were made while
+building. All are open to veto; a veto of one that shapes a verdict means new certificates.
+
+41. **C1, the kick is a tape event.** A new core action, `ScalePrice(node, good, by)`, multiplies
+    one posted price by a schedule param, once, on a date, in phase 0. A kicked run resumes the
+    base run's checkpoint in memory under a kicked tape, and equals that tape's run from genesis.
+    Alternative: certify writes a kicked state that no tape made.
+42. **C2, `tape_hash` is `fnv1a_64` over the canonical `to_ron`.** It covers every field the
+    loader reads and ignores what it ignores. Alternative: hash the file's bytes.
+43. **C3, criteria are inputs, verdicts are outputs.** `criteria/<tape>-<date>.ron`, registered
+    before the run; `results/<tape>/certificate.ron` and `manifest.ron`, committed, made without
+    telemetry. A retune is a new dated file, never an edit.
+44. **C4, three verdicts.** FAIL outranks UNSCORED, which outranks PASS. Only PASS exits 0.
+45. **C5, windows are shares of a segment** between dated shocks, and a shock closer than
+    `min_segment` to the last boundary merges into its segment. The kick fires at every dated
+    shock, merged or not (S2.5), and its horizon is a span in years.
+46. **C6, measures are oracle-free now;** oracle-relative ones wait for `crates/observe`.
+    Certificates and manifests are RON, so no JSON crate joins.
+47. **C7, Parquet 60.0.0 with LZ4_RAW only,** pure Rust, behind certify's feature `parquet`.
+    Alternative: July's zstd, which builds C.
+48. **C8, BalanceWatch is ported; July's six other statistics are not,** since no criterion uses
+    them (R10).
+49. **C9, a cli resume is verified against the manifest of the same tape** (R16's letter). A
+    resume under a dated edit waits for your ruling (CERTIFY §15.1, question 2).
+50. **C10, the committed certificates are recomputed by the gate.** Both machines gate the
+    verdict and every pass flag; WSL also gates byte equality (all but the build), and Windows
+    records it.
+51. **C11, the probe delegates its moved measures to certify,** pinned to its report's tables.
+    Alternative: freeze the probe with its own copies.
+52. **C12, Conservation, Determinism and Runaway are in every criteria file,** and Settles comes
+    only with Kick, so a Settles-only file cannot certify a rounding freeze.
+53. **C13, a one-sided tick is a BalanceWatch observation at ±1** (July's rule); only S = D = 0
+    is skipped.
+54. **The kick bounds its peak** (S2.3). Kick also needs every kick's peak gain, its largest gap
+    over the realized kick, at most a registered `max_peak` (1e6 for appb). The tail alone passed
+    the desk turnover ×16 cell, whose kicks swing out ×2.9e9 and come back to a frozen point.
+55. **A certified run counts its price shocks** (S2.5). Criteria may register `price_shocks`, a
+    count with a basis; its absence means none, the strictest bar. Dense dated `ScalePrice`
+    events are a periodic nudge in all but name (R3).
+56. **Each reading carries its comparison** (S2.5), and the seal holds a battery marked pass to
+    its readings, so a pass flag, verdict or failure list edited alone is refused. Readback
+    checks consistency, not truth: numbers and bars edited together read back, and the truth is a
+    rerun.
+57. **The registered bars** (`criteria/*-2026-09-26.ron`; CERTIFY §14). gate: to 1790-01-01,
+    `min_segment` one year, Determinism at 0.25, 0.5 and 0.75, Runaway 1e3, Trades every year,
+    Balance at July's bars (level 1e-9, spread 1e-12, 32 samples, run share 0.5), and no Settles
+    or Kick, since the gate world claims no rest. appb: to 2134-08-14, `min_segment` 20 years,
+    Determinism at 0.5, Runaway 1e6, Trades and Balance as the gate's, Settles (W from 0.5, F
+    from 0.9, dead share 0.01, band 1e-4 in log) and Kick (1e-9, one L of 385 years, the last
+    tenth, gain 1e-3, peak 1e6). Both report rationing below 1 − 1e-9 and allow no price shock.
+    Each bar has its basis in the file.
+58. **The `world_id` re-baseline** (S2.2). A spec's `Site` is hashed with the world, since its
+    method decides a number, and the `fixed` flag is not. Every `world_id` moved once and no
+    state hash moved. Alternative: keep the methods out of `world_id`, which would let two
+    worlds that convert a rate differently share an identity.
+
 ## Open — your calls
 
-- **The GUI's decisions**, 22–34 (D1–D13): open to veto before G0, D10's before session 2.
+- **The GUI's decisions**, 22–34 (D1–D13): open to veto before G0. D10's items are built.
 - **Hosted CI** (A5): the push of 2026-09-26 started it; it runs on every push unless you turn it
   off.
 - **Decisions 35–40** (Breakpoint B's three calls and the probe's proposals), taken by Claude on
   your word and open to veto.
+- **Decisions 41–58** (session 2's), open to veto.
+- **CERTIFY §15.1's questions:** (1) is a registered `price_shocks` count above 0 ever
+  acceptable in a certified tape, or does `ScalePrice` belong to the kick alone; (2) should the
+  cli resume under a dated edit behind an explicit `--edited` flag that records the parent and
+  marks the run; (3) BalanceWatch's bars are absolute on the imbalance, a number in [−1, 1],
+  read as allowed by A12; (4) C11 edited probe code that REPORT cites at `55c9e88`, guarded by
+  its pins; (6) the kick's horizon is one L, so an instability slower than L passes.
+- **Merging `phase0-s2` into `reboot`** (a fast-forward) and pushing it.
 - **The Phase 2 session budget** that A11's kill condition needs (PLAN Phase 2), now for Phase 2
   proper's other instances.
 - **The decisions above**, especially 10 (the engine crate, not in PLAN's crate list), 11, 15
@@ -326,41 +531,25 @@ taken by Claude on the same footing. All six are open to veto.
 ## Open — work
 
 - **O1. The GUI.** Designed ([docs/GUI.md](docs/GUI.md); A14), with egui in `crates/gui`. G0,
-  the shell, follows session 2 (two to three sessions; GUI.md §9): G0.1 the viewer (the crate's
-  seams, the Runner and `ThreadDriver`, the toolbar, timeline, outliner, plots, inspector,
-  registry and log), then G0.2 the editor (`materialise`, lineage, branches, compare and
-  export). G1, the oracle lab, starts after G0 and Phase 1's gate. `crates/engine` was built for
-  it: a frontend depends on the engine alone, steps a `Sim` on a worker thread and reads each
-  `TickReport` over a channel.
-- **O2. Phase 0 session 2: the certification stack** (A4; PLAN Phase 0 step 7), moved from
-  `july-v2-phase-3` into `crates/certify`: certificate, criteria, verdicts, the NaN scan, the
-  manifest (it records `world_id`, and the digest of any checkpoint a run resumed from),
-  telemetry, `BalanceWatch`, and Parquet with `TickReport` as its input. With N4 (a run with no
-  criteria must not certify PASS), N10 (`tape_sha` must cover every input), N12 (statistics
-  must fail closed on NaN) and N15 (stability windows relative to the run) fixed, thresholds
-  moved into criteria, and a price-runaway detector (A12). With it, the GUI's engine asks (D10;
-  docs/GUI.md §7.2, each with its ENGINE amendment and test; ENGINE §13), as they stand at P0.9:
-  - item 1, `world_id` without the `fixed` flag the schedule sets, is partly met: since P0.6 a
-    param only the schedule reads lives outside `world_id`, but a registered param that becomes
-    a `SetParam` source still changes it, since `world_id` hashes each param's `fixed` (its
-    test: `new_source_event_keeps_world_id`). It lands before the manifest records a `world_id`;
-  - item 2, `FiredEvent` naming its source, is unmet (its test: `fired_event_names_its_source`);
-  - item 3, chunked stepping equal to `run_until`, is met by `observing_changes_no_hash` and
-    `gate_resume_from_checkpoints`;
-  - item 4, `engine::registry` listing each use of a param with its `ClockMethod`, is partly met:
-    it lists one per-tick method per param, guessed from the unit and the price-rate use (its
-    test: `registry_names_each_use`).
-
-  Raised with it, not asked: the manifest's tape hash (proposed: `fnv1a_64` over the canonical
-  `to_ron`), the cli's `resume` verifying a state hash and its hash output naming its run (R16),
-  and a Parquet-free manifest module for the web build.
+  the shell, is next (two to three sessions; GUI.md §9): G0.1 the viewer (the crate's seams, the
+  Runner and `ThreadDriver`, the toolbar, timeline, outliner, plots, inspector, registry and
+  log), then G0.2 the editor (`materialise`, lineage, branches, compare and export). G1, the
+  oracle lab, starts after G0 and Phase 1's gate. `crates/engine` was built for it: a frontend
+  depends on the engine alone, steps a `Sim` on a worker thread and reads each `TickReport` over
+  a channel. Session 2 gave it what §7.2 asked: `FiredEvent.source`, the registry's sites with
+  their methods, a `world_id` that a new source event keeps, and from certify `RunKey`,
+  `tape_hash` and a manifest that needs no Parquet or I/O (GUI.md, updated at S2.6).
+- **O2. Phase 0 session 2: closed at S2.6** (2026-09-26; "Where things stand" above;
+  docs/CERTIFY.md). The certification stack moved from `july-v2-phase-3` into `crates/certify`
+  with N4, N10, N12 and N15 fixed, every threshold in dated criteria, A12's runaway detector,
+  the probe's three criteria, and D10's items 1, 2 and 4. Both tapes certify PASS.
 - **O3. The oracle, unit 1a, landed at P1.1.** Built by another run and verified there (114
   tests), it joined through the members glob. It depends on `core` alone, for `num`, and nothing
   on the engine path depends on it (R13). The workspace's `clippy.toml` denies the platform
   maths, so x^k, ln(1 + z) and its fused multiply-add now go through `core::num` (libm), which
   gained `fma`. Its outputs are then byte-identical on WSL and Windows (5000 random economies,
   every regime), no golden moved, and G8's exact tie still ties. Units 1b–1f follow (PLAN
-  Phase 1), alongside session 2 and G0.
+  Phase 1), alongside G0.
 - **O4. `test_01` is retired with the v1 agents** (A3), not ported. It failed at every commit
   where its tests compile (from `03eb06a`; the April commits do not compile theirs) and on all
   three July branches: `building_inventory_cycles_correctly`, "farm should produce wheat on tick
@@ -397,9 +586,28 @@ when its fix is reverted, checked by mutation (the review's own mutants among th
   oracle's point, but by violent paths: a 12% fall in equilibrium output costs 85% on the way,
   with ticks of no consumption (REPORT §5). The plan scores paths (Engels' pause, the crises of
   Phase 8), so path fidelity is Phase 2 proper's second untested risk, beside many markets.
-  Session 2's transient statistics are the first instrument for it.
-- **O15. The spine scripts' default cache** is `D:/rustyecon-spine`, overridable by
-  environment; move the default to a portable location before anyone else runs them.
+  Carried. Session 2 built its first instrument: every scored certificate reports, per segment,
+  the troughs of cleared volume, dead ticks, fills and rationing, ticks with no consumption,
+  spoilage and the transfer shortfall (CERTIFY §6). They are reported, not scored. Scoring a
+  path needs the oracle's reference, so it waits for Phase 2 proper and `crates/observe`.
+- **O15. The spine scripts' default cache: done at S2.6.** The scripts read `$SPINE_ROOT`, else
+  `data/spine/.cache/` beside them, which `.gitignore` keeps out; the finer overrides stand.
+  With `SPINE_ROOT=D:/rustyecon-spine` every path equals the old default (checked by evaluating
+  each script's path constants, not by running them); nothing was refetched
+  (docs/spine/DATA_NOTES.md, "Where things are").
+- **O16. Readback accepts a forged comparison** (the re-check, on `daa62af`; CERTIFY, amended at
+  S2.6). A FAIL certificate whose Kick readings have their comparisons turned into `Ref`, with
+  its pass flag, verdict and failures edited and no number changed, reads back PASS. `Ref` is
+  Balance's alone, so the seal could refuse it elsewhere, or fix each reading's comparison by
+  its name. It is within the stated limit (numbers and bars edited together read back; the truth
+  is a rerun), and the committed certificates are recomputed by the gate, so nothing committed
+  is affected. Take it at the next change to certify.
+- **O17. What waits for `crates/observe`** (D13; CERTIFY §11). The oracle-relative measures:
+  the target and the gaps, shock distance and κ, the envelope, VACUOUS, the hold check, the
+  bands per relative price, the oracle-relative dead floor (`LIVE_FLOOR`) and troughs, and the
+  classifier. Until the dead floor arrives, a run frozen at tiny positive volumes passes Trades,
+  and certifies under criteria that list no Kick, as the gate's do; under appb-style criteria the
+  kick catches the probe's known case (CERTIFY, amended at S2.5, item 9).
 
 ## Corrections logged (A3; ADDENDUM §1.4)
 
@@ -423,17 +631,15 @@ REVIEW.md is kept as written; these of its claims do not hold.
 
 ## Next steps, in order
 
-1. **Phase 0 session 2** (O2): the certification stack with N4, N10, N12 and N15 fixed, and the
-   GUI's engine asks, D10's items 1, 2 and 4 as docs/GUI.md §7.2 lists them (item 3 is met).
-   Item 1 lands before the manifest records a `world_id`. The manifest records the digest of any
-   checkpoint a run resumed from; since P0.9 that digest covers the checkpoint's identity and the
-   run's ledger too (format 3). From the probe (REPORT §6): a converged run must survive a 1e-9
-   kick in ± each price; troughs, dead ticks, ticks with no consumption, the transfer shortfall
-   and spoilage are outputs; windows restart at each dated shock; the probe's relative runaway
-   bound is A12's detector. Say which of `crates/probe`'s measures move to certify and which wait
-   for `crates/observe` (D13).
-2. **G0.1, the viewer, then G0.2, the editor** (O1; docs/GUI.md §9), with `tapes/appb.ron` as a
-   second world beside the gate world, and D2's "no log axes" in G0.1 revisited.
+1. **G0.1, the viewer** (O1; docs/GUI.md §9): `crates/gui` with its seams, `reduce`, the Runner,
+   `ThreadDriver`, the Extractor, the in-memory store and the ring; the toolbar, timeline,
+   outliner, plots, inspector, registry and a log with a breakpoint on error. `tapes/appb.ron` is
+   a second world beside the gate world, and D2's "no log axes" is revisited in G0.1, since every
+   probe plot needed a log scale. It builds on session 2's pieces: certify's `RunKey`,
+   `tape_hash` and Parquet-free manifest, `FiredEvent.source` and the registry's sites. The
+   commit that adds `crates/gui` carries A14's ENGINE amendments (D1).
+2. **G0.2, the editor**: `TapeEdit`, `materialise`, the lineage, `plan` and branches; compare;
+   CSV, manifest, tape and lineage export. G0's gate is GUI.md §9's.
 3. **Alongside, Phase 1's units 1b–1f** (O3; PLAN Phase 1), each with its gate: many categories
    and the fork, many machine types, worker types and the wall, parcels and s(q), households and
    government. Units 1b–1e also give Phase 2 proper its other instances; it starts from the
@@ -444,8 +650,10 @@ REVIEW.md is kept as written; these of its claims do not hold.
 ```
 STATE.md                 you are here; start here next session
 README.md                what rustyecon is, the crates, how to build and test
-docs/PLAN.md             the plan, amended by the addendum's rulings (2026-09-25)
-docs/ENGINE.md           the Phase 0 engine contract, with each step's amendments (P0.3–P0.11)
+docs/PLAN.md             the plan, amended by the addendum's rulings (2026-09-25) and decision 39
+docs/ENGINE.md           the Phase 0 engine contract, with each step's amendments (P0.3–S2.6)
+docs/CERTIFY.md          session 2's contract: criteria, batteries, kick, seal, manifest, cli,
+                         telemetry, with each step's amendments (S2.2–S2.6)
 docs/TAPE.md             the tape's schema guide
 docs/GUI.md              the GUI's design (A14): stack, architecture, panels, editor, map, roadmap
 docs/reboot/             REVIEW.md and ADDENDUM.md, kept as written (links fixed) but for A14 and
@@ -454,19 +662,27 @@ docs/timeline/eras.md    era research for worldgen
 crates/core              ids, clock, inventory, deltas, apply, ledgers, hash, checkpoints, tape
 crates/markets           admission, clearing, settlement, prices
 crates/agents            the behaviour seam, the scripted actor, the Appendix B roles (P2.0.1)
-crates/probe             the Phase 2 probe's harness and tape generator (P2.0.1)
+crates/probe             the Phase 2 probe's harness and tape generator (P2.0.1); reads certify's
+                         measures (S2.5)
 docs/probe/RULES.md      the probe's rules, dials and lineage, as built
 docs/probe/REPORT.md     the probe's report: verdict, battery, dial map, reviews, what it means
 docs/probe/figs/         the report's plots; docs/probe/results/ its three summary tables (CSV)
 crates/engine            Sim, the tick, reports, resume, the replay audit, the registry listing
-crates/cli               the rustyecon binary: run, resume, replay, registry
+crates/cli               the rustyecon binary: run, resume, replay, registry, certify
 crates/oracle            the equilibrium solver, unit 1a (P1.1); its README and docs/unit-1a.md
-crates/certify           empty until session 2
+crates/certify           criteria, batteries, the kick, the sealed certificate, the manifest;
+                         Parquet telemetry behind the feature `parquet` (S2.3–S2.5)
+crates/certify/testdata  appb variants from `appb-tape --perturb`: bcycle, freeze, july, buffer16
 crates/worldgen          empty until Phase 4
 tapes/gate.ron           the gate world
 tapes/appb.ron           the probe's Appendix B world, generated from the oracle
+criteria/                each tape's dated criteria, registered before its first certified run
+results/                 committed verdicts: results/<tape>/certificate.ron and manifest.ron
+data/spine/              the spine's fetch, extract and eyeball scripts, manifests, CC0 files;
+                         their cache is $SPINE_ROOT or the ignored data/spine/.cache/
+docs/spine/              DATA_NOTES.md and EYEBALL.md, Breakpoint B's pre-look (S5.0)
 scripts/gate.sh          the gate as one script
-.github/workflows/ci.yml hosted CI (runs only once pushed)
+.github/workflows/ci.yml hosted CI, on every push
 ```
 
 ## Repro notes
@@ -476,10 +692,19 @@ scripts/gate.sh          the gate as one script
   code is lost. The script puts the build in `$HOME/scratch/target-rustyecon-gate` unless
   `CARGO_TARGET_DIR` says otherwise, and refuses a target directory inside the tree. With no
   network and a warm cache, set `CARGO_NET_OFFLINE=true`.
-- On Windows, the same commands with `CARGO_TARGET_DIR` outside the tree: `cargo fmt --all
-  --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace
-  --release`, then `rustyecon run tapes/gate.ron --until 2080 --hashes <file>` and a byte
-  comparison with the WSL file.
+- On Windows, the same script under Git Bash with `CARGO_TARGET_DIR` outside the tree (it skips
+  the wasm32 check, since the target is not installed there), then `rustyecon run tapes/gate.ron
+  --until 2080 --hashes <file>` and the same for `tapes/appb.ron --until 20000`, and a byte
+  comparison of each file's body (the `#` header names the build and target) with WSL's.
+- Session 2 ran from a worktree, `D:/rustyecon-wt/s2` (`/mnt/d/rustyecon-wt/s2` in WSL), with
+  targets outside it (`/root/scratch/target-s2-*`, `D:/rustyecon-targets/s2-*`) and its logs in
+  `D:/rustyecon-s2/`. The build stamp reads git through the worktree's `.git` file, mapping its
+  Windows path for WSL.
+- To certify a tape: `rustyecon certify <tape> --criteria criteria/<tape>-<date>.ron --out
+  <dir>`. Committed results are made in WSL by a clean build, without `--telemetry` (C3), and a
+  change that moves a verdict's path regenerates them in their own commit.
+- The spine scripts: set `SPINE_ROOT=D:/rustyecon-spine` on this machine to use the cache the
+  first pass fetched (DATA_NOTES).
 - A log captured by redirecting `wsl.exe`'s output to a Windows file can interleave and lose
   lines; redirect inside the WSL command instead.
 - The July engine is read with `git show july-v2-phase-3:<path>`; never check the tag out

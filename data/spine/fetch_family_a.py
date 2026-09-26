@@ -17,11 +17,12 @@
 # Idempotent: a file already on disk with the pinned sha256 is not downloaded again.
 # Its first retrieval date is kept in the sidecar <file>.fetch.json.
 #
-# Raw files go to D:/rustyecon-spine/raw/family_a (override: SPINE_RAW). They stay out
+# Raw files go to $SPINE_ROOT/raw/family_a (override: SPINE_RAW). They stay out
 # of the repository unless the manifest says the licence allows redistribution.
 # The manifest is written next to this script: manifest_family_a.tsv.
 #
-# Run: D:/rustyecon-spine/venv/Scripts/python.exe data/spine/fetch_family_a.py
+# Run from the repository root, in the spine's venv (docs/spine/DATA_NOTES.md):
+#   python data/spine/fetch_family_a.py
 
 # %% imports and places
 import datetime
@@ -35,7 +36,9 @@ import time
 import requests
 
 HERE = pathlib.Path(__file__).resolve().parent
-RAW = pathlib.Path(os.environ.get("SPINE_RAW", "D:/rustyecon-spine/raw")) / "family_a"
+# The spine's cache: $SPINE_ROOT, else data/spine/.cache/ beside this script, which git ignores.
+SPINE = pathlib.Path(os.environ.get("SPINE_ROOT") or HERE / ".cache")
+RAW = pathlib.Path(os.environ.get("SPINE_RAW", SPINE / "raw")) / "family_a"
 RAW.mkdir(parents=True, exist_ok=True)
 MANIFEST = HERE / "manifest_family_a.tsv"
 TODAY = datetime.date.today().isoformat()

@@ -2,9 +2,12 @@
 
 Dated 2026-09-26. Label fetch-3. Fits nothing.
 
-Reads the raw files fetched by fetch_family_c.py (D:/rustyecon-spine/raw/family_c/) and
-the hand entries in D:/rustyecon-spine/digitised/family_c/. Writes tidy CSVs to
-D:/rustyecon-spine/series/family_c/ and a validation log (validation_family_c.tsv) there.
+Reads the raw files fetched by fetch_family_c.py ($SPINE_ROOT/raw/family_c/) and
+the hand entries in $SPINE_ROOT/digitised/family_c/. Writes tidy CSVs to
+$SPINE_ROOT/series/family_c/ and a validation log (validation_family_c.tsv) there.
+
+The spine's cache: $SPINE_ROOT, else data/spine/.cache/ beside this script, which git ignores.
+
 Nothing it writes goes in the repository: the sources' licences do not allow it (see
 manifest_family_c.tsv). Stamp (1916) is public domain; its entries are the exception and
 are flagged as redistributable.
@@ -14,7 +17,8 @@ compared and the differences are logged. Nothing is averaged or spliced.
 
 Needs pdftotext (poppler/xpdf) on PATH for the text-layer entries.
 
-Run: D:/rustyecon-spine/venv/Scripts/python.exe data/spine/extract_family_c.py
+Run from the repository root, in the spine's venv (docs/spine/DATA_NOTES.md):
+    python data/spine/extract_family_c.py
 """
 
 # %% setup
@@ -27,9 +31,11 @@ import numpy as np
 import openpyxl
 import pandas as pd
 
-RAW = os.environ.get("SPINE_RAW", "D:/rustyecon-spine/raw/family_c")
-DIG = os.environ.get("SPINE_DIG", "D:/rustyecon-spine/digitised/family_c")
-OUT = os.environ.get("SPINE_SERIES", "D:/rustyecon-spine/series/family_c")
+# The spine's cache: $SPINE_ROOT, else data/spine/.cache/ beside this script, which git ignores.
+SPINE = os.environ.get("SPINE_ROOT") or os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache")
+RAW = os.environ.get("SPINE_RAW", f"{SPINE}/raw/family_c")
+DIG = os.environ.get("SPINE_DIG", f"{SPINE}/digitised/family_c")
+OUT = os.environ.get("SPINE_SERIES", f"{SPINE}/series/family_c")
 os.makedirs(OUT, exist_ok=True)
 
 F_NNI = f"{RAW}/clark/England NNI - Clark - 2015.xlsx"
@@ -274,7 +280,7 @@ log("clark2002.t8b.double_entry", "PASS" if nd == 0 and len(t8a) == 36 else "DIF
 s = (t8a.farm_wages_gbp_m + t8a.land_rents_and_local_taxes_gbp_m + t8a.capital_payments_gbp_m -
      t8a.net_farm_output_gbp_m).abs()
 # a third entry, if family B has typed the same table (optional; logged, not required)
-FB = os.environ.get("SPINE_DIG_B", "D:/rustyecon-spine/digitised/family_b")
+FB = os.environ.get("SPINE_DIG_B", f"{SPINE}/digitised/family_b")
 for fb in ["clark2002_table8b_entry1_textlayer.csv", "clark2002_table8b_entry2.csv"]:
     pth = f"{FB}/{fb}"
     if os.path.exists(pth):

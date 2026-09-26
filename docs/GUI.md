@@ -21,6 +21,10 @@ beside it. The gate world's final hash has been `0x61f9c8529131ff17` since P0.6,
 schedule params out of the state. Oracle unit 1a landed at P1.1. STATE.md checks D10's four items
 again at P0.9.
 
+**Updated at S2.6 (2026-09-26),** when Phase 0's second session closed (docs/CERTIFY.md). D10's
+items 1, 2 and 4 landed at S2.2 and item 3 was met already (§7.2). Session 2 chose the tape hash
+and built the three raised items: §3.3 and §7.2 say how. The rest of this file is unchanged.
+
 ## 0. Rulings and decisions
 
 **Rulings (2026-09-25),** numbered here 1–4; they are ADDENDUM's rulings 5–8.
@@ -217,7 +221,8 @@ The cli gains `rustyecon figure build --check` at G6–7, and a sweep entry if P
 pub struct Model { session: Session, runs: BTreeMap<RunId, Run>, focus: RunId,
                    cursor: Cursor /* Live | At(tick) */, selection: Option<Sel>, log: RunLog }
 pub fn reduce(m: &mut Model, i: Intent) -> Vec<Effect>;   // the only writer; Effect = Cmd | file op
-pub struct RunKey { build: BuildInfo /* commit, dirty */, world_id: u64, tape_hash: u64 }
+pub struct RunKey { build: Build /* commit, dirty, target, rustc */, tape_hash: Hex, world_id: Hex }
+// certify's RunKey, reused as is (docs/CERTIFY.md §3; S2.6); Hex(u64) serialises as "0x%016x"
 pub enum Cmd { Load { tape: Tape, from: Option<ResumeFrom> }, Run { until: Option<u64>, max_tps: Option<u32> },
                Pause, Step(u64), Breakpoints(Vec<Breakpoint>), Snapshot(u64), Stop }
 pub enum ResumeFrom { Ring(RingCheckpoint), File(VerifiedCheckpoint) }
@@ -236,11 +241,12 @@ schedule. Each value is stamped with its tick, and `prefix_id` names chunks only
 
 **`tape_hash`.** It is the tape hash that certify's manifest computes. That is session 2's
 definition: this crate calls it and never redefines it.
-- The GUI applies it to a branch's canonical `to_ron` text, which is exactly what "Save tape as"
-  writes. It applies it to a base file's bytes as read, if the definition hashes files.
-- Either way, each run's key equals what certify computes for the same file.
-- This design proposes to session 2 that the definition be core's `fnv1a_64` over the canonical
-  `to_ron` text, which survives reformatting. Session 2 records its choice (§7.2).
+- Session 2 chose core's `fnv1a_64` over the canonical `to_ron` text, as this design proposed:
+  `certify::tape_hash(&Tape)` (CERTIFY C2, §3). It covers every field the loader reads, the name
+  and the basis texts included, and survives reformatting, comments and list order.
+- So the GUI applies it to a parsed `Tape`, a branch's or a base file's alike, and "Save tape as"
+  writes that same `to_ron` text.
+- Each run's key equals what certify computes for the same tape.
 
 **Native (G0).**
 - `ThreadDriver` spawns one worker per run, so a baseline and a branch run side by side. It times
@@ -275,7 +281,9 @@ definition: this crate calls it and never redefines it.
     manifest that names the same `tape_hash` and `world_id`. That hash is `--hashes` line
     `cp.state.tick` (P0.5 amendment 8), or `TickReport.hash` of tick `cp.state.tick − 1`.
 - **Hash files.** A bare `--hashes` file names no tape, so it is not accepted until it names one
-  (§7.2, raised).
+  (§7.2, raised). Since S2.4 it names one: its `#` header gives the build, the tape with its
+  `tape_hash` and `world_id`, and the starting tick. The cli writes a `manifest.ron` beside its
+  checkpoints, and its `resume` verifies against it (CERTIFY §9, §10, C9).
 - **When a check fails.** The GUI reruns from genesis and logs why.
 - **G0.** It opens no checkpoint file.
 
@@ -581,6 +589,17 @@ D10 lists four items, each with its ENGINE amendment and test. Each was checked 
 **Where the items land.** ENGINE §13's session-2 row gains items 1, 2 and 4 (A14). If an earlier
 step meets one of them, session 2 records it.
 
+**Met at S2.2** (`7c14c37`; ENGINE, amended at S2.2), each with its named test:
+- Item 1: `world_id` hashes (key, unit, genesis) per param. Every `world_id` changed once and no
+  state hash moved: the gate's is `0x43628a8e0fd5f695`, appb's `0x26f12f8a0bc27540`.
+- Item 2: the field is `source: Option<Key>`, not `Option<ParamId>`, since a schedule param has
+  no id.
+- Item 3: met already; `observing_changes_no_hash` gains a loop that steps seven ticks at a time.
+- Item 4: `Entry::Param` lists `sites: Vec<SiteLine { path, method: ClockMethod, per_tick }>`.
+  Core records each use as a `ParamSite { path, method }`, and a resolved spec holds a
+  `Site { param, method }`, read only through it, so the method listed is the conversion the run
+  applies. `rustyecon registry` prints each use.
+
 **Raised with session 2, not asked** (D10 lists exactly four):
 - **(a) The tape hash.** The tape hash that certify's manifest records. This design proposes
   `fnv1a_64` over the canonical `to_ron` text (§3.3).
@@ -593,6 +612,18 @@ step meets one of them, session 2 records it.
 
 The manifest itself is session 2's own work (ENGINE §13, N10). The GUI wraps it (§4) and changes
 nothing in it.
+
+**The raised items, as session 2 built them** (docs/CERTIFY.md):
+- (a) `tape_hash` is `fnv1a_64` over the canonical `to_ron` (C2, §3; §3.3 above).
+- (b) Since S2.4 a `--hashes` file opens with `#` lines naming the build, the tape by
+  `tape_hash`, the `world_id` and the starting tick, and stdout prints a `run …` line with the
+  same fields before its final hash, `replay` too. `resume` verifies its checkpoint against the
+  manifest of the run that made it: the same `tape_hash` and `world_id`, and a record at its tick
+  with the same digest and state hash (C9). A resume under a dated edit waits for a ruling
+  (CERTIFY §15.1, question 2).
+- (c) Certify's telemetry sits behind its feature `parquet`, off by default. With it off,
+  certify has 17 crates in its closure on every target and checks for wasm32; the manifest
+  module needs no I/O. `scripts/gate.sh` builds, tests and lints certify that way.
 
 ### 7.3 Later items, each ruled at its own phase
 

@@ -4,21 +4,24 @@ Dated 2026-09-26. Branch spine-eyeball. Nothing here is fitted: no regression, n
 break test, no smoothing, no splice that a source did not make itself.
 
 Reads the tidy series that the three fetch families wrote under $SPINE_SERIES
-(default D:/rustyecon-spine/series), and one hand entry, Clark (2010) Table 34, from
-$SPINE_DIGITISED (default D:/rustyecon-spine/digitised), for its real-wage column. Writes:
+(default $SPINE_ROOT/series), and one hand entry, Clark (2010) Table 34, from
+$SPINE_DIGITISED (default $SPINE_ROOT/digitised), for its real-wage column. Writes:
   - five PNG figures to docs/spine/figs/ (in the repository);
-  - read-off tables to $SPINE_EYEBALL (default D:/rustyecon-spine/eyeball), outside the
+  - read-off tables to $SPINE_EYEBALL (default $SPINE_ROOT/eyeball), outside the
     repository, because most inputs (Bank of England, Clark) may not be redistributed.
     docs/spine/EYEBALL.md quotes these tables.
 One check runs here too: the Bank's copy of Allen's wages and CPI against the GPIH copy
 of Allen's spreadsheet (fetched by fetch_sheet.py into $SPINE_RAW_SHEET, default
-D:/rustyecon-spine/raw/sheet, pinned by sha256). It is skipped, and says so, if that file
+$SPINE_ROOT/raw/sheet, pinned by sha256). It is skipped, and says so, if that file
 is absent or its hash differs.
+
+The spine's cache: $SPINE_ROOT, else data/spine/.cache/ beside this script, which git ignores.
 
 Every construction is named where it is built. "Index, base = 100" means each series
 is divided by its own mean over the base years: a rescale, not a splice.
 
-Run: D:/rustyecon-spine/venv/Scripts/python.exe data/spine/eyeball.py
+Run from the repository root, in the spine's venv (docs/spine/DATA_NOTES.md):
+    python data/spine/eyeball.py
 """
 
 # %% setup
@@ -36,9 +39,11 @@ import pandas as pd
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import FuncFormatter, NullFormatter
 
-SER = Path(os.environ.get("SPINE_SERIES", "D:/rustyecon-spine/series"))
-EYE = Path(os.environ.get("SPINE_EYEBALL", "D:/rustyecon-spine/eyeball"))
-RAW_SHEET = Path(os.environ.get("SPINE_RAW_SHEET", "D:/rustyecon-spine/raw/sheet"))
+# The spine's cache: $SPINE_ROOT, else data/spine/.cache/ beside this script, which git ignores.
+SPINE = Path(os.environ.get("SPINE_ROOT") or Path(__file__).resolve().parent / ".cache")
+SER = Path(os.environ.get("SPINE_SERIES", SPINE / "series"))
+EYE = Path(os.environ.get("SPINE_EYEBALL", SPINE / "eyeball"))
+RAW_SHEET = Path(os.environ.get("SPINE_RAW_SHEET", SPINE / "raw" / "sheet"))
 FIGS = Path(__file__).resolve().parents[2] / "docs" / "spine" / "figs"
 FIGS.mkdir(parents=True, exist_ok=True)
 EYE.mkdir(parents=True, exist_ok=True)
@@ -451,7 +456,7 @@ say(f"BoE composite growth per decade, 1810s-1860s: {100 * ((bcd[1860] / bcd[181
     f"2000s over 1770s: {bcd[2000] / bcd[1770]:.1f}")
 # Clark's own real wage past 1869: Table 34's column, from our visual entry of the table
 # (outside the repository; double-entry checked in extract_family_c.py). Not plotted.
-DIG = Path(os.environ.get("SPINE_DIGITISED", "D:/rustyecon-spine/digitised"))
+DIG = Path(os.environ.get("SPINE_DIGITISED", SPINE / "digitised"))
 t34w = pd.read_csv(DIG / "family_c" / "clark2010_t34_entryB_visual.csv").set_index("decade")["real_wage"]
 say(f"Clark 2010 Table 34 real wage (Clark 2005 building wages over Feinstein's UK cost of living, then the RPI; "
     f"1860s = 100): " + ", ".join(f"{d} {v:g}" for d, v in t34w.items() if d[:4] in ("1860", "1910", "1950", "2000")))

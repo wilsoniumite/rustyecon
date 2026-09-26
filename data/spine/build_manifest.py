@@ -10,7 +10,8 @@ column a family did not write stays empty. The family manifests remain the recor
 Columns: family, key, url, retrieved, bytes, sha256, licence, redistribute_raw,
 derived_in_repo, status.
 
-Run: D:/rustyecon-spine/venv/Scripts/python.exe data/spine/build_manifest.py
+Run from the repository root, in the spine's venv (docs/spine/DATA_NOTES.md):
+    python data/spine/build_manifest.py
 """
 
 import json
@@ -19,7 +20,9 @@ import os
 import pandas as pd
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-RAW_SHEET = os.environ.get("SPINE_RAW_SHEET", "D:/rustyecon-spine/raw/sheet")
+# The spine's cache: $SPINE_ROOT, else data/spine/.cache/ beside this script, which git ignores.
+SPINE = os.environ.get("SPINE_ROOT") or os.path.join(HERE, ".cache")
+RAW_SHEET = os.environ.get("SPINE_RAW_SHEET", f"{SPINE}/raw/sheet")
 COLS = ["family", "key", "url", "retrieved", "bytes", "sha256", "licence", "redistribute_raw",
         "derived_in_repo", "status"]
 

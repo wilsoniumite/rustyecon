@@ -4,8 +4,8 @@
 # Dated 2026-09-26. Branch spine-eyeball. Nothing here is fitted.
 #
 # Reads the raw files that fetch_family_a.py put under $SPINE_RAW/family_a (default
-# D:/rustyecon-spine/raw/family_a). Writes one CSV per series under
-# $SPINE_SERIES/family_a (default D:/rustyecon-spine/series/family_a), plus
+# $SPINE_ROOT/raw/family_a). Writes one CSV per series under
+# $SPINE_SERIES/family_a (default $SPINE_ROOT/series/family_a), plus
 # series_index.csv and all_long.csv.
 #
 # Tidy columns: series_id, year, value, unit, geography, source, carrier, sheet, column,
@@ -18,7 +18,8 @@
 # The BoE series are copyright the Bank and third parties. They stay out of the public
 # repository (manifest: derived_in_repo = no). The BNS outputs are CC0.
 #
-# Run: D:/rustyecon-spine/venv/Scripts/python.exe data/spine/extract_family_a.py
+# Run from the repository root, in the spine's venv (docs/spine/DATA_NOTES.md):
+#   python data/spine/extract_family_a.py
 
 # %% imports and places
 import csv
@@ -32,8 +33,10 @@ import zipfile
 import openpyxl
 from openpyxl.utils import column_index_from_string as CI
 
-RAW = pathlib.Path(os.environ.get("SPINE_RAW", "D:/rustyecon-spine/raw")) / "family_a"
-OUT = pathlib.Path(os.environ.get("SPINE_SERIES", "D:/rustyecon-spine/series")) / "family_a"
+# The spine's cache: $SPINE_ROOT, else data/spine/.cache/ beside this script, which git ignores.
+SPINE = pathlib.Path(os.environ.get("SPINE_ROOT") or pathlib.Path(__file__).resolve().parent / ".cache")
+RAW = pathlib.Path(os.environ.get("SPINE_RAW", SPINE / "raw")) / "family_a"
+OUT = pathlib.Path(os.environ.get("SPINE_SERIES", SPINE / "series")) / "family_a"
 BOE = RAW / "boe" / "a-millennium-of-macroeconomic-data-for-the-uk.xlsx"
 BOE_BNS = RAW / "bns" / "a-millennium-of-macroeconomic-data-for-the-uk.xlsx"
 CARRIER_BOE = "BoE, A millennium of macroeconomic data for the UK, v3.1 (file of 2024-09-26, fetched 2026-09-26)"

@@ -17,8 +17,9 @@ rescale, not a splice. Dates marked "by eye" are readings of the figures, not es
 Sources, licences, coverage and validation are in [DATA_NOTES.md](DATA_NOTES.md). The
 figures and every number quoted below come from `data/spine/eyeball.py`. Its read-off
 (`readoff.txt`, `c1_episodes.csv`, `c4_range_exit.csv` and the decade tables) is written to
-`D:/rustyecon-spine/eyeball/`, outside the repository, because most inputs may not be
-redistributed.
+the spine's cache, `$SPINE_ROOT/eyeball/` (DATA_NOTES, "Where things are"; on the machine
+that made it, `D:/rustyecon-spine/eyeball/`), outside every commit, because most inputs may
+not be redistributed.
 
 ## The figures
 

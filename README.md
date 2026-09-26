@@ -23,10 +23,15 @@ What it is for, in order:
 
 ## Status
 
-Phase 0, the reboot, is half done: its first session is complete and its gate is green
-(see [STATE.md](STATE.md)). The second session moves the certification stack. Oracle unit
-1a, the first of Phase 1, has landed. The GUI is designed ([docs/GUI.md](docs/GUI.md)); its
-shell follows Phase 0's second session. The crates fill in phase by phase:
+Phase 0, the reboot, is done: both its sessions are closed and its gate is green (see
+[STATE.md](STATE.md)). The second session built the certification stack
+([docs/CERTIFY.md](docs/CERTIFY.md)): dated criteria, sealed verdict-first certificates,
+the run's manifest and Parquet telemetry. The gate world and the Appendix B world both
+certify PASS, and their certificates are in `results/`. A Phase 2 probe found that agents
+at the paper's margins reach the oracle's equilibrium of the SSRN Appendix B economy
+([docs/probe/REPORT.md](docs/probe/REPORT.md)). Oracle unit 1a, the first of Phase 1, has
+landed. The GUI is designed ([docs/GUI.md](docs/GUI.md)); its shell, G0, is next. The
+crates fill in phase by phase:
 
 | Crate | What it holds | Fills in |
 |---|---|---|
@@ -34,14 +39,17 @@ shell follows Phase 0's second session. The crates fill in phase by phase:
 | `crates/markets` | orders and admission, clearing, settlement, the price update | Phase 0 |
 | `crates/agents` | the behaviour seam and the scripted actor; the agent rules | Phase 0; rules in Phase 2 (the probe's four Appendix B roles since P2.0.1) |
 | `crates/engine` | `Sim`: the tick loop, checkpoints, resume, the replay audit, the read-only per-tick report a frontend drives and reads | Phase 0 |
-| `crates/cli` | the `rustyecon` binary (`run`, `resume`, `replay`, `registry`): arguments, files, exit codes | Phase 0 |
-| `crates/certify` | certificates, criteria, verdicts, Parquet telemetry | Phase 0, second session |
+| `crates/cli` | the `rustyecon` binary (`run`, `resume`, `replay`, `registry`, `certify`): arguments, files, exit codes, the build stamp | Phase 0 |
+| `crates/certify` | dated criteria, the batteries and the kick check, sealed certificates, the run's manifest, and Parquet telemetry behind the feature `parquet` ([docs/CERTIFY.md](docs/CERTIFY.md)) | Phase 0, second session |
 | `crates/oracle` | the equilibrium solver (library `oracle`): unit 1a, one category with durability and interest, reproduces the SSRN Appendix B ([its README](crates/oracle/README.md)) | Phase 1: 1a landed; 1b–1f to come |
 | `crates/worldgen` | the tape compiler | Phase 4 |
-| `crates/probe` | the Phase 2 probe's harness: the Appendix B tape's generator, named perturbations, per-tick observables against the oracle ([docs/probe/RULES.md](docs/probe/RULES.md)) | the probe, P2.0.1 |
+| `crates/probe` | the Phase 2 probe's harness: the Appendix B tape's generator, named perturbations, per-tick observables against the oracle ([docs/probe/RULES.md](docs/probe/RULES.md)); its oracle-free measures are certify's | the probe, P2.0.1 |
 | `crates/gui` | the interactive frontend, in egui: live runs, plots, lenses, the tape editor, and a county map ([docs/GUI.md](docs/GUI.md)) | from G0, after Phase 0's second session; one stage beside each phase |
 
-Packages are named `rustyecon-<crate>`. `tapes/gate.ron` is the Phase 0 gate world.
+Packages are named `rustyecon-<crate>`. `tapes/gate.ron` is the Phase 0 gate world, and
+`tapes/appb.ron` the probe's Appendix B world. `criteria/` holds each tape's dated
+criteria, registered before its first certified run, and `results/` the certificates and
+manifests they gave.
 
 ## Documents
 
@@ -52,7 +60,12 @@ Packages are named `rustyecon-<crate>`. `tapes/gate.ron` is the Phase 0 gate wor
   beside them.
 - [docs/ENGINE.md](docs/ENGINE.md): the Phase 0 engine contract, with each step's
   amendments.
+- [docs/CERTIFY.md](docs/CERTIFY.md): the Phase 0 session 2 contract, with each step's
+  amendments: certification, the manifest, telemetry and the GUI's engine asks.
 - [docs/TAPE.md](docs/TAPE.md): the tape's schema, with the gate tape as its example.
+- [docs/probe/](docs/probe/): the Phase 2 probe's rules (RULES.md) and report (REPORT.md).
+- [docs/spine/](docs/spine/): the data spine's notes (DATA_NOTES.md) and Breakpoint B's
+  pre-look (EYEBALL.md).
 - [docs/GUI.md](docs/GUI.md): the GUI's design (A14): its rules, architecture, panels, editor,
   map and roadmap, with its review ledger in `docs/reboot/`.
 - [docs/reboot/REVIEW.md](docs/reboot/REVIEW.md): the review of the repository at the
@@ -69,24 +82,32 @@ machines.
 
 WSL Ubuntu is the primary build machine, and the gates run there. `scripts/gate.sh` runs
 the whole gate with the build directory outside the tree: formatting, clippy, the tests,
-the repeat-hash test by name, and two runs of the gate tape through the binary, whose
-hash streams must agree. From a Windows shell:
+the repeat-hash test by name, certify without Parquet, two runs of the gate tape through
+the binary, whose hash streams must agree, the build stamp, the committed certificates
+recomputed, the probe's report pinned, and telemetry written from two processes. Its
+header lists each step. From a Windows shell:
 
 ```sh
 wsl -d ubuntu --exec bash -lc '/mnt/c/<path to the repository>/scripts/gate.sh'
 ```
 
-Use `--exec`: with a plain `--` the exit code is lost. The same steps by hand:
+Use `--exec`: with a plain `--` the exit code is lost. Its main steps by hand, and a
+certified run:
 
 ```sh
 cargo fmt --all --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --release
 cargo run --release -p rustyecon-cli -- run tapes/gate.ron --until 2080
+cargo run --release -p rustyecon-cli -- certify tapes/gate.ron \
+    --criteria criteria/gate-2026-09-26.ron --out <dir>
 ```
 
-Windows is the secondary check, with the same commands. Hash equality between the two
-platforms is recorded in STATE.md, not gated. `.github/workflows/ci.yml` runs
+`certify` writes the certificate, the manifest and the hash file, prints the verdict
+first, and exits 0 only on PASS.
+
+Windows is the secondary check: the same script under Git Bash. Hash equality between the
+two platforms is recorded in STATE.md, not gated. `.github/workflows/ci.yml` runs
 `scripts/gate.sh` on GitHub's Ubuntu runner; it runs only once the branch is pushed.
 
 `clippy.toml` enforces two standing rules: no std hash containers (R8, no unordered

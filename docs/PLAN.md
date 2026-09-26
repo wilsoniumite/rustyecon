@@ -4,8 +4,9 @@ Amended on 2026-09-25 by the rulings in [ADDENDUM.md](reboot/ADDENDUM.md), folde
 where they change the text: A1, A5 and A8 as ruled (A5's ruling replaces ruling 7), and
 the rest of A2–A13 as written. A14, an interactive GUI early, was ruled the same day
 (ADDENDUM rulings 5–8) and folded in on 2026-09-26: R16 (§4), the GUI's stages beside the
-phases (§6) and §9. Its design is [GUI.md](GUI.md). REVIEW.md and ADDENDUM.md cite this
-plan's lines as they stood at `87d95d7`, in `docs/reboot/`.
+phases (§6) and §9. Its design is [GUI.md](GUI.md). The Phase 2 probe's scale rule
+(STATE.md decision 39) was folded into §3.2 on 2026-09-26. REVIEW.md and ADDENDUM.md cite
+this plan's lines as they stood at `87d95d7`, in `docs/reboot/`.
 
 Dated 2026-09-25, revised the same day after your rulings. On your go, this supersedes
 the July v2 (`docs/ARCHITECTURE.md`, `docs/METHODOLOGY.md`, `docs/PLAN.md`,
@@ -131,17 +132,26 @@ tape (dated history) ─► phase 0: events
 
 ### 3.2 Agent rules: the paper's margins as decisions
 
-- **Scale** (every desk). The July stability package, the standard structural
-  stabiliser, is the starting point, with a measured failure: small asymmetric
-  multiplicative steps, a dead-band, output and cash buffers, and staggered activation.
-  On July's rules it held a solved fixed point exactly, and displaced beyond about 5% it
-  did not return but for one configuration (ADDENDUM §3). It carries no clamps, caps or
-  forgiveness (R3). Phase 2 first re-tests July's price-responsive posting (`47381ed`;
-  basin about ±5%) with the changes July named, a rent-aware reservation price and a
-  rule for one-sided markets, and two more: the user cost in the reservation price, and
-  stagger on the scale decision only, with non-storables bought every tick. Until Phase
-  3, desk capacity is fixed at the oracle's free-entry stock, or the oracle takes
-  installed capacity as state (tentative).
+- **Scale** (every desk). The default is the cash rule of the Phase 2 probe
+  ([REPORT](probe/REPORT.md), [RULES](probe/RULES.md) §2). Each tick a desk spends a
+  registered share of its coin on inputs, share(v·μ^κ) of it, where v is its turnover,
+  μ its markup at posted prices and κ a registered tilt, and plans its output at its
+  unit cost. At tilt 0, the probe's setting, it reads no margin. Its coin is constant
+  only where revenue equals outlay, so its only rest point is zero profit, the oracle's.
+  On the Appendix B flow instance it returned to the oracle from every registered start,
+  from each price ×2 or ÷2 and from cost shocks, within 1e-14 in log; its transients
+  are violent. It carries no
+  clamps, caps or forgiveness (R3). The named alternative (R6) is the July stability
+  package: small asymmetric multiplicative steps, a dead-band, output and cash buffers,
+  and staggered activation. On July's rules it held a solved fixed point exactly, and
+  displaced beyond about 5% it did not return but for one configuration (ADDENDUM §3).
+  Run in the probe's engine as the negative control, it diverged in 57 of 57 runs. A
+  re-test of July's price-responsive posting (`47381ed`; basin about ±5%) takes the
+  changes July named, a rent-aware reservation price and a rule for one-sided markets,
+  and two more: the user cost in the reservation price, and stagger on the scale
+  decision only, with non-storables bought every tick. Until Phase 3, desk capacity is
+  fixed at the oracle's free-entry stock, or the oracle takes installed capacity as
+  state (tentative).
 - **Technique: the task margin** (producer desks). For each task cell, the share done
   by labour type k or machine type m moves toward the input that is cheaper at posted
   prices, w_k/γ_Lk against c_m/γ_Mm. Installed machine capacity bounds how far it can

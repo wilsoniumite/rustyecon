@@ -13,7 +13,8 @@
 # user of the series must know), INFO (coverage and descriptive numbers), STOP (a failure
 # that blocks use).
 #
-# Run: D:/rustyecon-spine/venv/Scripts/python.exe data/spine/validate_family_a.py
+# Run from the repository root, in the spine's venv (docs/spine/DATA_NOTES.md):
+#   python data/spine/validate_family_a.py
 
 # %% imports and places
 import csv
@@ -26,8 +27,10 @@ import openpyxl
 import pandas as pd
 
 HERE = pathlib.Path(__file__).resolve().parent
-RAW = pathlib.Path(os.environ.get("SPINE_RAW", "D:/rustyecon-spine/raw")) / "family_a"
-OUT = pathlib.Path(os.environ.get("SPINE_SERIES", "D:/rustyecon-spine/series")) / "family_a"
+# The spine's cache: $SPINE_ROOT, else data/spine/.cache/ beside this script, which git ignores.
+SPINE = pathlib.Path(os.environ.get("SPINE_ROOT") or HERE / ".cache")
+RAW = pathlib.Path(os.environ.get("SPINE_RAW", SPINE / "raw")) / "family_a"
+OUT = pathlib.Path(os.environ.get("SPINE_SERIES", SPINE / "series")) / "family_a"
 BOE = RAW / "boe" / "a-millennium-of-macroeconomic-data-for-the-uk.xlsx"
 results = []
 

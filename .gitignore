@@ -15,9 +15,11 @@ tmp
 CLAUDE.md
 
 # Data spine (docs/spine/DATA_NOTES.md). Raw downloads, hand entries of copyrighted
-# tables and derived series live outside the repository (D:/rustyecon-spine) because
-# most licences forbid redistribution. These guards keep them out if a path is pointed
-# inside the tree. BNS's CC0 files are the exception, in data/spine/cc0/.
+# tables and derived series live in the spine's cache, never in a commit, because most
+# licences forbid redistribution. The cache is $SPINE_ROOT, or else data/spine/.cache/,
+# ignored here. The other guards keep them out if a path is pointed inside the tree.
+# BNS's CC0 files are the exception, in data/spine/cc0/.
+data/spine/.cache/
 data/spine/raw/
 data/spine/series/
 data/spine/digitised/

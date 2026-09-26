@@ -8,9 +8,9 @@
 #     in place and checked against family A's pins (copied below from
 #     manifest_family_a.tsv of 2026-09-26). Family B never downloads them twice.
 #   - the second, hand-typed entry of Clark (2002) Table 8, typed from the rendered
-#     PDF page into D:/rustyecon-spine/digitised/family_b/.
+#     PDF page into $SPINE_ROOT/digitised/family_b/.
 #
-# Writes tidy CSVs, one per series, to D:/rustyecon-spine/series/family_b/ with the
+# Writes tidy CSVs, one per series, to $SPINE_ROOT/series/family_b/ with the
 # columns: series, year, period, freq, value, unit, source, file, sheet, column, kind,
 # note. kind is "source" (the number as the source prints it) or "construction" (our
 # arithmetic, named in the series id and the note). Also writes:
@@ -21,7 +21,8 @@
 # Nothing is averaged across sources and nothing is spliced. Where two sources cover
 # the same years the differences are reported, not reconciled.
 #
-# Run: D:/rustyecon-spine/venv/Scripts/python.exe data/spine/extract_family_b.py
+# Run from the repository root, in the spine's venv (docs/spine/DATA_NOTES.md):
+#   python data/spine/extract_family_b.py
 
 # %% imports and places
 import hashlib
@@ -36,7 +37,8 @@ import pandas as pd
 from pypdf import PdfReader
 
 warnings.filterwarnings("ignore")
-SPINE = pathlib.Path(os.environ.get("SPINE_ROOT", "D:/rustyecon-spine"))
+# The spine's cache: $SPINE_ROOT, else data/spine/.cache/ beside this script, which git ignores.
+SPINE = pathlib.Path(os.environ.get("SPINE_ROOT") or pathlib.Path(__file__).resolve().parent / ".cache")
 RAWB = SPINE / "raw" / "family_b"
 RAWA = SPINE / "raw" / "family_a"
 DIGI = SPINE / "digitised" / "family_b"

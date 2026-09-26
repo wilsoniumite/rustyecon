@@ -323,6 +323,27 @@ Each change is made in place in the section named.
       each machine. The Parquet-free certify and the engine check for wasm32 in WSL.
     - The logs are in `D:/rustyecon-s2/fix-r1/`.
 
+**Amended at S2.6** (2026-09-26: session 2 closed), where this text was wrong or silent. No code
+changed.
+
+1. **Steps** (§14). The session took six steps, not ten. The old S2.6 (the probe's delegation)
+   landed at S2.5; the old S2.7 and S2.8 landed as S2.4's second and third commits; the old S2.9,
+   the docs, is S2.6; the old S2.10 became the bounded verification: one adversarial pass over
+   S2.1–S2.4, the fix round S2.5, and one re-check of exactly the fixed items, on `daa62af`.
+2. **The re-check** (§15). Its logs are in `D:/rustyecon-s2/verify-*-r2/`. The verification's
+   E1 clamps (211, 1,269, 3,458 and 3,988 events) now certify FAIL on the count alone. E4's
+   restore fails Kick at the shock whether it closes a segment (tick 1,100) or merges (tick 1 or
+   1,000, and at 1,000 under a `min_segment` as long as the run). A pass flag, verdict and
+   failure list edited alone is refused. The mutants of the fixes it ran are killed, but for five
+   of the probe's moved measures, which survive the probe's own tests as S2.5 recorded for such
+   mutants (item 10). One edit still reads back: the comparisons of Kick's readings turned into
+   `Ref`, with the pass flag, verdict and failures, and no number changed. That is an edit of
+   bars, which §8 says readback does not catch, but `Ref` belongs to Balance alone, so the seal
+   could refuse it elsewhere. STATE carries it as open work.
+3. **Docs.** ENGINE gains its S2.5 and S2.6 amendments and session 2's steps (§12); TAPE gains
+   the tape's hash and the price-shock count; GUI.md §3.3 and §7.2 record what session 2
+   decided and built; README and STATE describe the session; PLAN §3.2 takes decision 39.
+
 ## 0. Decisions this contract makes
 
 Numbered for the veto window, each with its alternative.
@@ -484,7 +505,7 @@ Windows, and the two machines agree. The `world_id`s, equal on both machines:
 | core's fixture | `0x66d1181c6802a7fd` | `0x85336968874fbf6d` | `0xf1538ab1f6a0de5c` |
 | markets' fixture | `0xbdd0ee95c0bb590f` | `0xc3b1c948a42f06c6` | `0x5e400bb3f1012434` |
 
-STATE takes them at S2.9, with the rest of the docs.
+STATE takes them at S2.6, with the rest of the docs (amended at S2.6).
 
 ## 3. Identity: the tape hash, the build and the run key (N10)
 
@@ -994,11 +1015,12 @@ and `appb-july.ron` (July's step rule from `w*2`, the negative control).
 | S2.3 | §2.4: `ScalePrice` and `MarketLine::trades`, with their ENGINE amendments (§2.4, §2.6, §7.3) and TAPE.md's row; certify: criteria, manifest, obs, folds, batteries, kick, certificate and seal, the finite scan; their tests on synthetic observations and testdata; `appb-tape --perturb`, the testdata and `certify_testdata_is_generated` (amended at S2.3) |
 | S2.4 | the old S2.4, S2.5, S2.7 and S2.8 in one step, three commits (amended at S2.4): (a) telemetry behind `parquet`, `Cargo.lock`, the cli (the build stamp, named hashes, the manifest, verified resume, `certify`) and `gate.sh`; (b) the criteria alone; (c) the certificates, from a clean build of (b) |
 | S2.5 | the old S2.5 merged into S2.4. Now the fix round of the bounded verification (amended at S2.5): its code and tests, then the certificates regenerated from a clean build of it |
-| S2.6 | probe: the moved measures delegated, and the pins (`appb-tape --perturb` and the testdata landed at S2.3; the rest landed at S2.5) |
-| S2.7 | `criteria/gate-2026-09-26.ron` and `criteria/appb-2026-09-26.ron`, committed alone, before any certified run of either tape (landed as S2.4's second commit) |
-| S2.8 | `results/{gate,appb}/{certificate,manifest}.ron` from a clean build of S2.7, without `--telemetry`. A FAIL is committed as a FAIL and reported, never retuned in place (landed as S2.4's third commit) |
-| S2.9 | docs: this file's amendments, ENGINE, TAPE, README, PLAN §3.2's text for decision 39, STATE, and GUI.md: §3.3's `tape_hash` definition and `RunKey` (`Hex` fields, `Build` with target and rustc), and §7.2 (items 1, 2 and 4 met; `source: Option<Key>`) |
-| S2.10 | one adversarial pass, one fix round, one re-check of exactly the fixed items; results regenerated if a verdict path changed |
+| S2.6 | docs, and the session closed (amended at S2.6): this file's amendments, ENGINE, TAPE, README, PLAN §3.2's text for decision 39, STATE, and GUI.md: §3.3's `tape_hash` definition and `RunKey` (`Hex` fields, `Build` with target and rustc), and §7.2 (items 1, 2 and 4 met; `source: Option<Key>`); and the spine scripts' portable cache (STATE O15) |
+| old S2.6 | probe: the moved measures delegated, and the pins (`appb-tape --perturb` and the testdata landed at S2.3; the rest landed at S2.5) |
+| old S2.7 | `criteria/gate-2026-09-26.ron` and `criteria/appb-2026-09-26.ron`, committed alone, before any certified run of either tape (landed as S2.4's second commit) |
+| old S2.8 | `results/{gate,appb}/{certificate,manifest}.ron` from a clean build of S2.7, without `--telemetry`. A FAIL is committed as a FAIL and reported, never retuned in place (landed as S2.4's third commit) |
+| old S2.9 | the docs (landed as S2.6) |
+| old S2.10 | one adversarial pass, one fix round, one re-check of exactly the fixed items; results regenerated if a verdict path changed (the pass ran on S2.1–S2.4, the fix round is S2.5, and the re-check ran on `daa62af`) |
 
 **Registered bars** (S2.7):
 - **gate.** Until `1790-01-01` (tick 2,080; ENGINE §10). `min_segment` 1.0 year (one pension

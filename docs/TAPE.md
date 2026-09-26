@@ -44,6 +44,12 @@ number and adds a row here.
   densely in key byte order, genesis prices by (node, good) and holdings by (holder, good).
   Reordering, reformatting, comments and CRLF line endings change no id and no hash.
   `Tape::to_ron` writes the canonical order (and drops comments).
+- **The tape's hash.** Certify's `tape_hash` is FNV-1a 64 over `Tape::to_ron` (since S2.3;
+  docs/CERTIFY.md §3). It covers every field the loader reads: the name, every basis text, the
+  schedule and every inline number, and so all that `world_id` and `prefix_id` cover. What the
+  loader ignores (comments, whitespace, CRLF, list order) does not move it. A manifest and a
+  certificate name their tape by it, and a cli resume needs the `tape_hash` of the run that made
+  its checkpoint (since S2.4).
 - **Numbers.** Every number is finite with a clear sign bit (so not `NaN`, `inf` or `-0.0`), and a
   price is positive. Every dial with a time unit, every behavioural rate and every tolerance is a
   named entry in `params`, referenced by key; dimensionless structural data (recipe
@@ -145,7 +151,9 @@ provenance `Event`), `Transfer(from, to, good, amount)`, `SetParam(param, to)` a
 price of (node, good) by the value of `by`, a `Dimensionless` param, once, in the tick its date
 falls in, and leaves the EMA alone. The factor must be finite and positive, the good must have a
 market there (not a currency), and only a dated event may carry it: in a recurring entry it does
-not load, since a periodic price nudge would be an exogenous stabiliser (R3). Like a
+not load, since a periodic price nudge would be an exogenous stabiliser (R3). Dense dated shocks
+are a periodic nudge in all but name, so a certified run fails when it fires more `ScalePrice`
+events than its criteria register, none by default (since S2.5; docs/CERTIFY.md §2.4). Like a
 `SetParam`'s source, a factor nothing else reads is a schedule param, so a price shock keeps the
 world's identity and every checkpoint taken before it fires. `Actor(..)` carries the extension's action; the agents have one,
 `SetActive(actor: "oven", active: true)`, which wakes or puts to sleep a scripted actor.

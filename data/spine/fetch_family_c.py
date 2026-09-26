@@ -7,7 +7,7 @@ digitisation of Clark (2010), the Bank of England millennium file, Stamp (1916) 
 archive.org (public domain), and two documentation PDFs (Allen 2009; the Bogart note on the
 enclosure shapefile).
 
-What it does. It downloads each pinned file into D:/rustyecon-spine/raw/family_c/,
+What it does. It downloads each pinned file into $SPINE_ROOT/raw/family_c/,
 checks its sha256 against the pin, writes a sidecar <file>.fetch.json, and writes the
 family manifest data/spine/manifest_family_c.tsv. It is idempotent: a file already on
 disk with the pinned hash is not downloaded again.
@@ -20,7 +20,10 @@ source is fetched in its place (R11).
 
 Raw files stay out of the repository. The licence column says why.
 
-Run: D:/rustyecon-spine/venv/Scripts/python.exe data/spine/fetch_family_c.py
+The spine's cache: $SPINE_ROOT, else data/spine/.cache/ beside this script, which git ignores.
+
+Run from the repository root, in the spine's venv (docs/spine/DATA_NOTES.md):
+    python data/spine/fetch_family_c.py
 """
 
 import hashlib
@@ -32,8 +35,10 @@ import time
 import requests
 
 RETRIEVED = "2026-09-26"
-RAW = os.environ.get("SPINE_RAW", "D:/rustyecon-spine/raw/family_c")
 HERE = os.path.dirname(os.path.abspath(__file__))
+# The spine's cache: $SPINE_ROOT, else data/spine/.cache/ beside this script, which git ignores.
+SPINE = os.environ.get("SPINE_ROOT") or os.path.join(HERE, ".cache")
+RAW = os.environ.get("SPINE_RAW", f"{SPINE}/raw/family_c")
 MANIFEST = os.path.join(HERE, "manifest_family_c.tsv")
 UA = "rustyecon-spine-fetch/0.1 (public-data research; contact via github.com/wilsontomass)"
 

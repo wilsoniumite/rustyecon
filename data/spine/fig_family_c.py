@@ -2,9 +2,10 @@
 
 Dated 2026-09-26. A check on the C3 criterion (land's exit), not the eyeball sheet. It
 plots the tidy CSVs written by extract_family_c.py and saves a PNG beside them
-(D:/rustyecon-spine/series/family_c/). Nothing is fitted, averaged or spliced.
+($SPINE_ROOT/series/family_c/). Nothing is fitted, averaged or spliced.
 
-Run: D:/rustyecon-spine/venv/Scripts/python.exe data/spine/fig_family_c.py
+Run from the repository root, in the spine's venv (docs/spine/DATA_NOTES.md):
+    python data/spine/fig_family_c.py
 """
 
 # %% setup
@@ -16,7 +17,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 
-OUT = os.environ.get("SPINE_SERIES", "D:/rustyecon-spine/series/family_c")
+# The spine's cache: $SPINE_ROOT, else data/spine/.cache/ beside this script, which git ignores.
+SPINE = os.environ.get("SPINE_ROOT") or os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache")
+OUT = os.environ.get("SPINE_SERIES", f"{SPINE}/series/family_c")
 S1, S2, S3, S4 = "#2a78d6", "#eb6834", "#1baf7a", "#eda100"  # validated, adjacent pairs
 INK, INK2, GRID, SURF = "#0b0b0b", "#52514e", "#e4e3df", "#fcfcfb"
 

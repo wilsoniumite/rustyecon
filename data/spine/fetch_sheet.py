@@ -15,7 +15,10 @@ pin taken by the probe of the same day (sources plan, section 8); a mismatch kee
 bytes beside the old as <file>.mismatch and exits 1. The raw file stays outside the
 repository (no licence is stated).
 
-Run: D:/rustyecon-spine/venv/Scripts/python.exe data/spine/fetch_sheet.py
+The spine's cache: $SPINE_ROOT, else data/spine/.cache/ beside this script, which git ignores.
+
+Run from the repository root, in the spine's venv (docs/spine/DATA_NOTES.md):
+    python data/spine/fetch_sheet.py
 """
 
 import hashlib
@@ -27,7 +30,9 @@ import time
 import requests
 
 RETRIEVED = "2026-09-26"
-RAW = os.environ.get("SPINE_RAW", "D:/rustyecon-spine/raw/sheet")
+# The spine's cache: $SPINE_ROOT, else data/spine/.cache/ beside this script, which git ignores.
+SPINE = os.environ.get("SPINE_ROOT") or os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache")
+RAW = os.environ.get("SPINE_RAW", f"{SPINE}/raw/sheet")
 UA = "rustyecon-spine-fetch/0.1 (public-data research; contact via github.com/wilsontomass)"
 URL = "https://gpih.ucdavis.edu/files/Allen_London_South_Eng_1259-1914.xlsx"
 LOCAL = os.path.join(RAW, "gpih", "Allen_London_South_Eng_1259-1914.xlsx")

@@ -574,6 +574,44 @@ same way. Only the cli changed, and certify gained its telemetry writer; no stat
    the `#` header, and `gate_resume_through_product_path` gives each run its own directory, since
    each writes its own manifest.
 
+**Amended at S2.5** (2026-09-26: Phase 0 session 2, the fix round of the bounded verification;
+docs/CERTIFY.md's S2.5 amendment), the same way. Core, markets, agents and engine did not
+change, so no state hash, `prefix_id` or `world_id` moved. Certify, the cli's build script and
+tests, and `crates/probe` changed.
+
+1. Certify's fixes are CERTIFY's: a scored run fails when it fires more `ScalePrice` events than
+   its criteria register (none when the field is absent), the kick fires at every dated shock as
+   well as at the end, and each reading carries its comparison, so the seal holds a pass flag to
+   its readings. The scans of §11 still read `crates/certify/src`, and still pass.
+2. The build stamp (§8) also watches the worktree's `logs/HEAD` and the common directory's
+   `refs/heads` tree. On a branch whose ref was packed, a commit that touched neither `crates/`
+   nor the index wrote a new loose ref that nothing watched, and the binary still named the
+   parent commit.
+3. `crates/probe` (§1) depends on certify, without its `parquet` feature (CERTIFY C11). Its
+   harness reads each tick through `certify::Obs` and calls certify's oracle-free measures, so
+   the two crates have one definition of each. Nothing on the engine path depends on either.
+4. `scripts/gate.sh` runs `probe_battery_csv_unchanged` by name, after the committed
+   certificates.
+5. Tests (§11). In the cli, `resume_records_its_parent` also resumes against a parent manifest
+   whose `genesis_hash` was edited: it verifies, and the child records the tape's own genesis
+   hash. In probe, `probe_summaries_unchanged` and `probe_battery_csv_unchanged` (ignored, run
+   by name) pin its report's tables. Certify's tests are CERTIFY §13's.
+6. Recorded at S2.5. The committed certificates changed format, so `daa62af` regenerated them
+   from a clean build of `05533b9`; both are PASS, with every reading's value as at S2.4, and
+   appb gains one reading, `kick.errors`, 0.
+   `scripts/gate.sh` is green in WSL and on Windows: 421 tests pass in the workspace on each
+   machine, 2 ignored and run by name.
+
+**Amended at S2.6** (2026-09-26: session 2 closed), the same way. No crate changed; docs, the
+spine scripts' default cache (STATE O15) and `.gitignore` did.
+
+1. §1 names what session 2 added: the cli depends on certify with its `parquet` feature, probe
+   depends on certify without it, and the external crates gain `parquet` 60.0.0 (certify's
+   feature, pure Rust) and `tempfile` for certify's tests.
+2. §11's cli table gains the tests S2.4 and S2.5 added. Certify's tests are listed in CERTIFY
+   §13, not here.
+3. §12 gains session 2's steps, and §13's session-2 rows are marked done.
+
 ## 0. Engine invariants
 
 Numbered so tests and reviews can cite them. Each has at least one test in §11.
@@ -628,13 +666,15 @@ crates/markets  rustyecon-markets  orders, admission, clearing, settlement, pric
 crates/agents   rustyecon-agents   the Behaviour seam, View, the scripted actor
 crates/engine   rustyecon-engine   Sim: the tick loop, step, run, checkpoint, resume, the replay audit;
                                    TickReport; the hook whitelist
-crates/cli      rustyecon-cli      bin `rustyecon`: argument parsing, file I/O, exit codes
+crates/cli      rustyecon-cli      bin `rustyecon`: argument parsing, file I/O, exit codes; depends on
+                                   certify with its `parquet` feature (S2.4)
 crates/certify  rustyecon-certify  lib `certify`: criteria, batteries, the kick, the certificate and
-                                   the manifest (docs/CERTIFY.md; S2.3); nothing on the engine path
-                                   depends on it
+                                   the manifest (docs/CERTIFY.md; S2.3); telemetry behind the feature
+                                   `parquet` (S2.4); nothing on the engine path depends on it
 crates/oracle   rustyecon-oracle   the equilibrium solver, Phase 1 (unit 1a at P1.1); lib `oracle`
 crates/worldgen rustyecon-worldgen empty until Phase 4; nothing depends on it yet
-crates/probe    rustyecon-probe    the Phase 2 probe's harness (P2.0.1); lib `probe`; nothing depends on it
+crates/probe    rustyecon-probe    the Phase 2 probe's harness (P2.0.1); lib `probe`; reads certify's
+                                   oracle-free measures, Parquet-free (S2.5); nothing depends on it
 tapes/appb.ron                     the probe's Appendix B world, generated (docs/probe/RULES.md §4)
 tapes/gate.ron                     the gate world (§10)
 ```
@@ -650,8 +690,11 @@ frontend depends on the engine alone. It does not re-export core: core's writer 
 cli's `Cargo.toml` at the engine only.
 
 External crates, all cached on both machines: `serde 1.0.228` (derive), `ron 0.8.1`, `bincode
-1.3.3`, `libm 0.2.16`, `clap 4.6.1` (cli only), `tempfile 3.27.0` (dev only). Not used: `rayon`,
-`thiserror`, `HashMap`, `HashSet` (R8). Error enums are written by hand, with `Display`.
+1.3.3`, `libm 0.2.16`, `clap 4.6.1` (cli only), `tempfile 3.27.0` (dev only: the cli's and
+certify's tests), and from S2.4 `parquet =60.0.0` with the feature `lz4` only, behind certify's
+feature `parquet`, which only the cli turns on (pure Rust, no C build; docs/CERTIFY.md §12, C7).
+Not used: `rayon`, `thiserror`, `HashMap`, `HashSet` (R8). Error enums are written by hand, with
+`Display`.
 
 ## 2. rustyecon-core
 
@@ -1802,7 +1845,8 @@ size; none is absolute (A12). Gate tests read `tapes/gate.ron` through `include_
 | Area | Tests | Checks |
 |---|---|---|
 | product path | `gate_resume_through_product_path`: `run` with checkpoints in both formats, then `resume` from ticks 1, 520, 1,040 and 2,079; the `--hashes` tails equal the uninterrupted run. `replay_command_passes_on_the_gate` (exit 0) | N11 |
-| failures | `shortfall_stops_the_run` (exit 2, with the ledger line on stderr), `conservation_breach_stops_the_run` (P0.7: zero tolerances, exit 2, the breach line and the last good tick on stderr, the hashes file ending there), `undefined_good_fails_to_load` (exit 1), `resume_refuses_another_tape` (exit 3), `unknown_extension_errors` (exit 1), `failed_checkpoint_save_stops_the_run` (`--out` names a regular file: exit 3, and the `--hashes` file ends at the failed checkpoint's tick), `resume_refuses_an_edited_checkpoint` (P0.6: a digest mismatch and, with a forged digest, an invalid life, each exit 3), `failed_final_checkpoint_save_stops_the_run` (P0.9: `--out` naming a regular file and no periodic save: exit 3, the error on stderr, no final hash, every tick in the hashes file), `resume_refuses_an_edited_identity` (P0.9: the value a refused resume prints, written into the RON checkpoint's `prefix_id` or `world_id`, is refused as an edit, exit 3) | N3, N2, N11, R2, O7, O12 |
+| failures | `shortfall_stops_the_run` (exit 2, with the ledger line on stderr), `conservation_breach_stops_the_run` (P0.7: zero tolerances, exit 2, the breach line and the last good tick on stderr, the hashes file ending there), `undefined_good_fails_to_load` (exit 1), `resume_refuses_another_tape` (exit 3; from S2.4 also a dated edit after the checkpoint, which keeps world and past but not the tape), `unknown_extension_errors` (exit 1), `failed_checkpoint_save_stops_the_run` (`--out` names a regular file: exit 3, and the `--hashes` file ends at the failed checkpoint's tick), `resume_refuses_an_edited_checkpoint` (P0.6: a digest mismatch and, with a forged digest, an invalid life, each exit 3), `failed_final_checkpoint_save_stops_the_run` (P0.9: `--out` naming a regular file and no periodic save: exit 3, the error on stderr, no final hash, every tick in the hashes file), `resume_refuses_an_edited_identity` (P0.9: the value a refused resume prints, written into the RON checkpoint's `prefix_id` or `world_id`, is refused as an edit, exit 3) | N3, N2, N11, R2, O7, O12 |
+| names, manifests, certify (S2.4) | `hash_output_names_its_run` (the `--hashes` header and the stdout `run …` line name the build, `tape_hash`, `world_id` and the starting tick, in `run`, `resume` and `replay`), `resume_requires_a_recorded_checkpoint` (no manifest, another world, a record whose hash differs: exit 3), `resume_records_its_parent` (the child's manifest records the parent's run key and the checkpoint's digest; from S2.5 a parent manifest with an edited `genesis_hash` verifies, and the child records the tape's own), `certify_command_exits_on_its_verdict` (exit 0, 5 and 5, each with its certificate written; neither `--criteria` nor `--until` is exit 1), `manifest_names_every_input` (the build with its target, `tape_hash`, `world_id`, `genesis_hash`, a resumed checkpoint's digest, the certificate's criteria hash) | R16, N4, N10, D4, C9 |
 
 ## 12. Steps
 
@@ -1815,6 +1859,18 @@ size; none is absolute (A12). Gate tests read `tapes/gate.ron` through `include_
 | P0.7 review fixes | the fixes from adversarial review, round 2 (amended at P0.7) |
 | P0.8 housekeeping | the items below (P0.7 in the draft; P0.6, then P0.7, until the review fixes took those numbers; amended at P0.8) |
 | P0.9 review fixes | the fixes from adversarial review, round 3 (amended at P0.9) |
+
+Session 2's steps are `S2.n`, on branch `phase0-s2` from `cf3c0ff`; their contract is
+docs/CERTIFY.md, whose §14 has the plan and its amendments. As landed (amended at S2.6):
+
+| Step | Delivers |
+|---|---|
+| S2.1 contract | docs/CERTIFY.md (`785ab19`) |
+| S2.2 engine asks | D10 items 1, 2 and 4, with item 3's loop; every `world_id` re-baselined once (`7c14c37`; amended at S2.2) |
+| S2.3 certify | `ScalePrice` and `MarketLine::trades`; `crates/certify`: criteria, batteries, the kick, the seal, the manifest; the testdata (`0e8c2e7`; amended at S2.3) |
+| S2.4 cli, criteria, results | three commits: telemetry behind `parquet`, the build stamp, named hashes, verified resume and `rustyecon certify` (`6a80d6d`); the criteria alone (`1ee9b80`); the certificates from a clean build of the criteria commit (`4d59604`) (amended at S2.4) |
+| S2.5 verification fixes | the fixes of the bounded verification's one adversarial pass, each with a test, and the probe's delegation to certify (`05533b9`); the certificates regenerated from a clean build of it (`daa62af`) (amended at S2.5) |
+| S2.6 close | PLAN §3.2 (decision 39), this file, CERTIFY, TAPE, GUI.md, README, STATE; the spine scripts' portable cache (amended at S2.6) |
 
 Housekeeping (PLAN Phase 0 steps 2 and 6; A3):
 
@@ -1845,8 +1901,8 @@ Housekeeping (PLAN Phase 0 steps 2 and 6; A3):
 
 | Item | Phase |
 |---|---|
-| Certificate, criteria, verdicts, NaN scan, manifest (it records `world_id`), telemetry, BalanceWatch, price-runaway detector (A12); N4, N10, N12, N15; the GUI's engine asks (A14, D10; GUI.md §7.2): `world_id` without the `fixed` flag the schedule sets (§2.6, `new_source_event_keeps_world_id`), `FiredEvent` naming its source (§7.4, `fired_event_names_its_source`), and `engine::registry` listing each use of a param with its `ClockMethod` (§2.6, §6, §4, §7.1, `registry_names_each_use`); the three engine asks landed at S2.2, and certify with the kick's `ScalePrice` at S2.3 (docs/CERTIFY.md) | Phase 0 session 2 (A4) |
-| Parquet writer (moves as is; `TickReport` is its input) | Phase 0 session 2 |
+| Certificate, criteria, verdicts, NaN scan, manifest (it records `world_id`), telemetry, BalanceWatch, price-runaway detector (A12); N4, N10, N12, N15; the GUI's engine asks (A14, D10; GUI.md §7.2): `world_id` without the `fixed` flag the schedule sets (§2.6, `new_source_event_keeps_world_id`), `FiredEvent` naming its source (§7.4, `fired_event_names_its_source`), and `engine::registry` listing each use of a param with its `ClockMethod` (§2.6, §6, §4, §7.1, `registry_names_each_use`); the three engine asks landed at S2.2, and certify with the kick's `ScalePrice` at S2.3 (docs/CERTIFY.md). Done: session 2 closed at S2.6 | Phase 0 session 2 (A4) |
+| Parquet writer (moves as is; `TickReport` is its input). Done at S2.4, behind certify's feature `parquet` | Phase 0 session 2 |
 | Oracle | Phase 1 (other run; unit 1a joined at P1.1) |
 | Pops as rules (pairs, participation, logit); labour and parcel services as Instant goods; machines and (A, Λ, B) desks; the task margin; the income-identity check | Phase 2 |
 | Investment, vintages, depreciation, construction, build lags, user cost; population, technology and enclosure timelines (as world-level `Ext` deltas) | Phase 3 |
