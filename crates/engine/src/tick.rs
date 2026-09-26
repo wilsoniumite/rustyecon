@@ -220,6 +220,7 @@ pub(crate) fn run_tick(
             key: key.clone(),
             occurrence: f.occurrence,
             action: f.action,
+            source: f.source,
         });
     }
 

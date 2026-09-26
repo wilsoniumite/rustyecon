@@ -70,6 +70,10 @@ pub struct FiredEvent {
     pub occurrence: u32,
     /// The resolved action.
     pub action: StateDelta<Agents>,
+    /// For a `SetParam`, the key of the param its value was copied from, which carries the new
+    /// value's basis (`Firing::source`); `None` for any other action (amended at S2.2, D10
+    /// item 2).
+    pub source: Option<Key>,
 }
 
 /// Every holder's total of every good it holds, in (holder, good) order: an owned copy for

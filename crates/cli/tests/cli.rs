@@ -1,6 +1,7 @@
 //! The product path (docs/ENGINE.md §8 and §11, cli): the `rustyecon` binary on the gate world,
 //! its checkpoints and hashes files, and its exit codes. Hashes are compared exactly.
 
+use rustyecon_engine::prelude::{Clock, ClockMethod, Date};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -443,7 +444,9 @@ fn resume_refuses_an_edited_identity() {
 
 #[test]
 fn registry_lists_every_number() {
-    // R4: every param with its unit, per-tick value and basis, and the inline numbers.
+    // R4: every param with its unit, its use, each place the run reads it with that read's
+    // conversion and per-tick value (from S2.2, D10 item 4), and its basis; then the inline
+    // numbers.
     let dir = tempfile::tempdir().unwrap();
     let tape = write_tape(dir.path(), "gate.ron", GATE);
     let out = rustyecon(&["registry", s(&tape)]);
@@ -456,14 +459,29 @@ fn registry_lists_every_number() {
         let prefix = format!("params[{}]\t", p.key);
         assert!(text.lines().any(|l| l.starts_with(&prefix)), "{prefix}");
     }
+    let clock = Clock {
+        start: Date::parse("1750-01-01").unwrap(),
+        ticks_per_year: 52,
+    };
+    let spend = ClockMethod::Share.per_tick(&clock, 10.4).unwrap();
+    let spend = format!(
+        "params[mill.spend]\t1.04e1\tRatePerYear live\tshare {spend:e} per tick at \
+         actors[mill].spec.spend\tAssumed(gate world)"
+    );
     for expected in [
-        "params[mine.capacity]\t5.2e1\tFlowPerYear live\tflow 1e0 per tick\tAssumed(gate world)",
-        "params[life.bread]\t5.77e-2\tYears fixed\tticks 3e0 per tick\tAssumed(three weeks)",
-        "params[rate.grain]\t5.2e0\tRatePerYear live\tlog_step 1e-1 per tick",
-        // Read by the schedule alone: a SetParam's source converts as the param it sets, and a
-        // recurring period is whole ticks.
-        "params[mine.capacity.cut]\t2.6e1\tFlowPerYear schedule\tflow 5e-1 per tick\tAssumed(gate world: half)",
-        "params[pension.period]\t1e0\tYears schedule\tticks 5.2e1 per tick\tAssumed(yearly)",
+        "params[mine.capacity]\t5.2e1\tFlowPerYear live\tflow 1e0 per tick at \
+         actors[mine].spec.recipe.capacity\tAssumed(gate world)",
+        "params[life.bread]\t5.77e-2\tYears fixed\tticks 3e0 per tick at goods[bread].life\t\
+         Assumed(three weeks)",
+        "params[rate.grain]\t5.2e0\tRatePerYear live\tlog_step 1e-1 per tick at \
+         goods[grain].price_rate\t",
+        spend.as_str(),
+        // Read by the schedule alone: a SetParam's source converts as the param it sets, at the
+        // event's `to`, and a recurring period is whole ticks, at its `every`.
+        "params[mine.capacity.cut]\t2.6e1\tFlowPerYear schedule\tflow 5e-1 per tick at \
+         events[mine.cut].act.to\tAssumed(gate world: half)",
+        "params[pension.period]\t1e0\tYears schedule\tticks 5.2e1 per tick at \
+         recurring[pension].every\tAssumed(yearly)",
         "actors[mill].spec.recipe.inputs[grain]\t2e0\tDimensionless inline",
         "genesis.prices[town/bread].price\t2e0\tDimensionless inline",
         "recurring[pension].act.qty\t5e0\tDimensionless inline",

@@ -6,8 +6,11 @@
 //! 365.2425 days, held as the integer 3,652,425 ten-thousandths of a day so that the map from
 //! dates to ticks uses no floating point.
 
+use crate::error::CoreError;
+use crate::ids::ParamId;
 use crate::num;
-use crate::units::{CompoundPerYear, FlowPerYear, FractionPerYear, RatePerYear, Years};
+use crate::registry::Params;
+use crate::units::{CompoundPerYear, FlowPerYear, FractionPerYear, RatePerYear, Unit, Years};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 
@@ -274,6 +277,156 @@ impl Clock {
     }
 }
 
+/// How one use of a param turns its value into a per-tick value: a row of docs/ENGINE.md §6's
+/// table. The use decides, not the unit: a `RatePerYear` is a `Share` of a stock where it draws
+/// on one and a `LogStep` where it moves a price, and only the use knows which (amended at S2.2,
+/// D10 item 4). Each method implies its unit.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub enum ClockMethod {
+    /// A `Dimensionless` value, as it is.
+    Value,
+    /// A `FlowPerYear` per tick, [`Clock::flow`].
+    Flow,
+    /// A `RatePerYear` as the share of a stock it draws in a tick, [`Clock::share`].
+    Share,
+    /// A `RatePerYear` as a per-tick log step, [`Clock::log_step`].
+    LogStep,
+    /// A `CompoundPerYear` per tick, [`Clock::compound`].
+    Compound,
+    /// A `FractionPerYear` per tick, [`Clock::fraction`].
+    Fraction,
+    /// A `Years` time constant as an EMA weight, [`Clock::weight`].
+    Weight,
+    /// A `Years` span as whole ticks, [`Clock::ticks`]: a shelf life or a period, turned into
+    /// structure at load.
+    Ticks,
+}
+
+impl ClockMethod {
+    /// Every method, in declaration order.
+    pub const ALL: [ClockMethod; 8] = [
+        ClockMethod::Value,
+        ClockMethod::Flow,
+        ClockMethod::Share,
+        ClockMethod::LogStep,
+        ClockMethod::Compound,
+        ClockMethod::Fraction,
+        ClockMethod::Weight,
+        ClockMethod::Ticks,
+    ];
+
+    /// The unit a param must be registered with for this use.
+    pub fn unit(self) -> Unit {
+        match self {
+            ClockMethod::Value => Unit::Dimensionless,
+            ClockMethod::Flow => Unit::FlowPerYear,
+            ClockMethod::Share | ClockMethod::LogStep => Unit::RatePerYear,
+            ClockMethod::Compound => Unit::CompoundPerYear,
+            ClockMethod::Fraction => Unit::FractionPerYear,
+            ClockMethod::Weight | ClockMethod::Ticks => Unit::Years,
+        }
+    }
+
+    /// The method's name, as the registry listing prints it: `value`, `flow`, `share`,
+    /// `log_step`, `compound`, `fraction`, `weight` or `ticks`.
+    pub fn name(self) -> &'static str {
+        match self {
+            ClockMethod::Value => "value",
+            ClockMethod::Flow => "flow",
+            ClockMethod::Share => "share",
+            ClockMethod::LogStep => "log_step",
+            ClockMethod::Compound => "compound",
+            ClockMethod::Fraction => "fraction",
+            ClockMethod::Weight => "weight",
+            ClockMethod::Ticks => "ticks",
+        }
+    }
+
+    /// `v`, in this method's unit, as a per-tick value on `c`: the `Clock` method of §6's table
+    /// (for `Ticks`, the whole number of ticks).
+    pub fn per_tick(self, c: &Clock, v: f64) -> Result<f64, ClockError> {
+        Ok(match self {
+            ClockMethod::Value => v,
+            ClockMethod::Flow => c.flow(FlowPerYear(v)),
+            ClockMethod::Share => c.share(RatePerYear(v)),
+            ClockMethod::LogStep => c.log_step(RatePerYear(v)),
+            ClockMethod::Compound => c.compound(CompoundPerYear(v)),
+            ClockMethod::Fraction => c.fraction(FractionPerYear(v)),
+            ClockMethod::Weight => c.weight(Years(v)),
+            ClockMethod::Ticks => f64::from(c.ticks(Years(v))?),
+        })
+    }
+}
+
+impl fmt::Display for ClockMethod {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.name())
+    }
+}
+
+/// One use of a registered param, as a resolved spec holds it: the param, and the conversion its
+/// use takes. The resolver makes it ([`crate::Resolver::param`]) and records the same method in
+/// the param's [`ParamSite`]s, and the run reads the param only through it, so the method a site
+/// declares is the conversion the run uses (amended at S2.2, D10 item 4). A `Site` inside a spec
+/// or the world is part of `world_id`, since its method decides a number.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct Site {
+    /// The param.
+    pub param: ParamId,
+    /// How this use converts it.
+    pub method: ClockMethod,
+}
+
+impl Site {
+    /// The param's current value in its registered unit. A param registered with another unit
+    /// than the method's is [`CoreError::UnitMismatch`].
+    pub fn value(&self, params: &Params<'_>) -> Result<f64, CoreError> {
+        let def = params
+            .registry()
+            .get(self.param)
+            .ok_or(CoreError::UnknownParam(self.param))?;
+        let unit = self.method.unit();
+        if def.unit != unit {
+            return Err(CoreError::UnitMismatch {
+                param: self.param,
+                registered: def.unit,
+                requested: unit,
+            });
+        }
+        params.value(self.param)
+    }
+
+    /// `v`, in the param's unit, converted by this site's method. A rule that scales an annual
+    /// value before converting it (the cash rule's `share(v·μ^κ)`, docs/probe/RULES.md §2) reads
+    /// [`Site::value`] and converts here, so the conversion is still the site's own.
+    pub fn convert(&self, clock: &Clock, v: f64) -> Result<f64, CoreError> {
+        self.method
+            .per_tick(clock, v)
+            .map_err(|_| CoreError::BadValue {
+                what: "a param's per-tick conversion",
+                value: v,
+            })
+    }
+
+    /// The param's current per-tick value: [`Site::value`] converted by [`Site::convert`]. The
+    /// one read of a param at use.
+    pub fn per_tick(&self, params: &Params<'_>, clock: &Clock) -> Result<f64, CoreError> {
+        let v = self.value(params)?;
+        self.convert(clock, v)
+    }
+}
+
+/// A use of a param as the registry records it: the tape path of the reference and the method
+/// it takes. A `SetParam`'s source records its target's methods at the event's `to`; a
+/// recurring period records `Ticks` at its `every`. Not part of `world_id`.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct ParamSite {
+    /// The tape path, such as `actors[mill].spec.spend`.
+    pub path: String,
+    /// How the use converts the param.
+    pub method: ClockMethod,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -293,6 +446,81 @@ mod tests {
 
     fn rel(a: f64, b: f64) -> f64 {
         (a - b).abs() / b.abs()
+    }
+
+    #[test]
+    fn clock_methods_convert_as_the_clock() {
+        // S2.2 (D10 item 4): a site's method is §6's row, bit for bit, with the unit it implies;
+        // and a site reads its param only in that unit.
+        let values = [0.0, 1e-300, 0.0577, 0.5, 1.0, 5.2, 10.4, 520.0];
+        for tpy in [1u32, 12, 52, 365] {
+            let c = clock(tpy);
+            for v in values {
+                let want = |m: ClockMethod| -> Option<f64> {
+                    Some(match m {
+                        ClockMethod::Value => v,
+                        ClockMethod::Flow => c.flow(FlowPerYear(v)),
+                        ClockMethod::Share => c.share(RatePerYear(v)),
+                        ClockMethod::LogStep => c.log_step(RatePerYear(v)),
+                        ClockMethod::Compound => c.compound(CompoundPerYear(v)),
+                        ClockMethod::Fraction => c.fraction(FractionPerYear(v)),
+                        ClockMethod::Weight => c.weight(Years(v)),
+                        ClockMethod::Ticks => f64::from(c.ticks(Years(v)).ok()?),
+                    })
+                };
+                for m in ClockMethod::ALL {
+                    let got = m.per_tick(&c, v).ok().map(f64::to_bits);
+                    assert_eq!(got, want(m).map(f64::to_bits), "{m} of {v} at {tpy}");
+                }
+            }
+        }
+        let units: Vec<Unit> = ClockMethod::ALL.iter().map(|m| m.unit()).collect();
+        assert_eq!(
+            units,
+            [
+                Unit::Dimensionless,
+                Unit::FlowPerYear,
+                Unit::RatePerYear,
+                Unit::RatePerYear,
+                Unit::CompoundPerYear,
+                Unit::FractionPerYear,
+                Unit::Years,
+                Unit::Years
+            ]
+        );
+        let names: Vec<&str> = ClockMethod::ALL.iter().map(|m| m.name()).collect();
+        assert_eq!(
+            names,
+            ["value", "flow", "share", "log_step", "compound", "fraction", "weight", "ticks"]
+        );
+        // A site reads its param through its method, and only in the method's unit.
+        let (w, s) = crate::testkit::load();
+        let params = s.params(&w.registry);
+        let rate = w.id_of::<ParamId>("rate.grain").unwrap();
+        let site = |method| Site {
+            param: rate,
+            method,
+        };
+        let at = |m| site(m).per_tick(&params, &w.clock);
+        assert_eq!(
+            at(ClockMethod::LogStep),
+            Ok(w.clock.log_step(RatePerYear(5.2)))
+        );
+        assert_eq!(at(ClockMethod::Share), Ok(w.clock.share(RatePerYear(5.2))));
+        assert_ne!(at(ClockMethod::Share), at(ClockMethod::LogStep));
+        assert_eq!(
+            at(ClockMethod::Flow),
+            Err(CoreError::UnitMismatch {
+                param: rate,
+                registered: Unit::RatePerYear,
+                requested: Unit::FlowPerYear
+            })
+        );
+        let life = site(ClockMethod::Ticks);
+        assert!(matches!(
+            life.convert(&w.clock, 0.001),
+            Err(CoreError::BadValue { .. })
+        ));
     }
 
     #[test]

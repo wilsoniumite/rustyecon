@@ -30,7 +30,7 @@ pub mod world;
 
 pub use apply::apply;
 pub use checkpoint::{Checkpoint, CHECKPOINT_FORMAT};
-pub use clock::{Clock, ClockError, Date, DateError};
+pub use clock::{Clock, ClockError, ClockMethod, Date, DateError, ParamSite, Site};
 pub use delta::{Phase, Provenance, StateDelta};
 pub use error::{CheckpointError, CoreError, LoadError, LoadErrorKind};
 pub use ext::{Ext, Never, NoExt};

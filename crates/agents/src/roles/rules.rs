@@ -21,8 +21,7 @@ use crate::ext::{
 use crate::roles::spec::{Assign, Basket, GoodDesk, MachDesk, Provider, Scale, Schedule, Workers};
 use rustyecon_core::num;
 use rustyecon_core::{
-    ActorId, Amount, CoreError, Dimensionless, FlowPerYear, GoodId, Holder, Inventory, ParamId,
-    Provenance, RatePerYear, StateDelta,
+    ActorId, Amount, CoreError, GoodId, Holder, Inventory, Provenance, Site, StateDelta,
 };
 use rustyecon_markets::{Order, Side};
 
@@ -38,23 +37,12 @@ fn price<S>(v: &View<'_, S>, g: GoodId) -> Result<f64, AgentError> {
     })
 }
 
-fn dimless<S>(v: &View<'_, S>, p: ParamId) -> Result<f64, AgentError> {
-    Ok(v.params.get::<Dimensionless>(p)?.0)
-}
-
-/// A `RatePerYear` param as the share of a stock it draws in one tick (`Clock::share`).
-fn share_of<S>(v: &View<'_, S>, p: ParamId) -> Result<f64, AgentError> {
-    Ok(v.clock.share(v.params.get::<RatePerYear>(p)?))
-}
-
-/// A `RatePerYear` param as a per-tick log step (`Clock::log_step`).
-fn log_step<S>(v: &View<'_, S>, p: ParamId) -> Result<f64, AgentError> {
-    Ok(v.clock.log_step(v.params.get::<RatePerYear>(p)?))
-}
-
-/// A `FlowPerYear` param per tick (`Clock::flow`).
-fn per_tick<S>(v: &View<'_, S>, p: ParamId) -> Result<f64, AgentError> {
-    Ok(v.clock.flow(v.params.get::<FlowPerYear>(p)?))
+/// A param's per-tick value at one of its uses, converted by the method its site was resolved
+/// with (amended at S2.2): a `Dimensionless` value as it is, a flow by `Clock::flow`, a rate as
+/// a `Clock::share` of a stock, or, for the step rule's `up` and `down`, as a `Clock::log_step`
+/// (docs/probe/RULES.md §2). The site names the method, so the rule cannot convert another way.
+fn param<S>(v: &View<'_, S>, site: Site) -> Result<f64, AgentError> {
+    Ok(site.per_tick(&v.params, v.clock)?)
 }
 
 fn buy<S>(v: &View<'_, S>, good: GoodId, qty: f64, budget: f64) -> Order {
@@ -146,14 +134,14 @@ fn burn(me: Holder, good: GoodId, qty: f64, prov: Provenance, out: &mut Vec<Delt
 fn pay_above<S>(
     v: &View<'_, S>,
     to: ActorId,
-    rate: ParamId,
+    rate: Site,
     floor: f64,
     dry: &mut Inventory,
     out: &mut Decision,
 ) -> Result<(), AgentError> {
     let coin = dry.get(v.currency);
     if coin > floor {
-        let pay = (share_of(v, rate)? * (coin - floor)).min(coin);
+        let pay = (param(v, rate)? * (coin - floor)).min(coin);
         if pay > 0.0 {
             take(dry, v.currency, pay)?;
             out.deltas.push(StateDelta::Transfer {
@@ -178,7 +166,7 @@ fn basket_orders<S>(
 ) -> Result<(), AgentError> {
     let p = price(v, b.good)?;
     let r = price(v, b.space)?;
-    let h = dimless(v, b.per_basket)?;
+    let h = param(v, b.per_basket)?;
     let n = budget / (p + h * r);
     let (bg, bs) = two_budgets(budget, p * n, r * (h * n), dry, v.currency)?;
     out.orders.push(buy(v, b.good, n, bg));
@@ -189,7 +177,7 @@ fn basket_orders<S>(
 /// A household eats min(good, space/h) baskets of what it holds, as `Consumption`. What is not
 /// eaten dies at 5a: the good bought this tick and the space are one-tick goods.
 fn eat<S>(v: &View<'_, S>, b: &Basket) -> Result<Vec<Delta>, AgentError> {
-    let h = dimless(v, b.per_basket)?;
+    let h = param(v, b.per_basket)?;
     let n = leontief(&[(v.own.get(b.good), 1.0), (v.own.get(b.space), h)])?;
     let me = Holder::Actor(v.me);
     let mut out = Vec::new();
@@ -206,7 +194,7 @@ impl Behaviour for Provider {
         let me = Holder::Actor(v.me);
         let mut dry = v.own.clone();
         // T of land services, endowed and all offered: it buys its own space on the market.
-        let t = per_tick(v, self.endowment)?;
+        let t = param(v, self.endowment)?;
         if t > 0.0 {
             out.deltas.push(StateDelta::Mint {
                 to: me,
@@ -220,8 +208,8 @@ impl Behaviour for Provider {
         // recorded in its state (R12).
         let p = price(v, self.basket.good)?;
         let r = price(v, self.basket.space)?;
-        let h = dimless(v, self.basket.per_basket)?;
-        let due = per_tick(v, self.heads)? * (p + h * r);
+        let h = param(v, self.basket.per_basket)?;
+        let due = param(v, self.heads)? * (p + h * r);
         let paid = due.min(dry.get(v.currency));
         if paid > 0.0 {
             take(&mut dry, v.currency, paid)?;
@@ -233,7 +221,7 @@ impl Behaviour for Provider {
             });
         }
         // Its own baskets, from a share of the coin the transfer left.
-        let budget = share_of(v, self.spend)? * dry.get(v.currency);
+        let budget = param(v, self.spend)? * dry.get(v.currency);
         basket_orders(v, &self.basket, budget, &mut dry, &mut out)?;
         out.deltas
             .push(set(v, ActorState::Provider(ProviderState { due, paid })));
@@ -260,10 +248,10 @@ impl Behaviour for Workers {
         let w = price(v, self.labour)?;
         let p = price(v, self.basket.good)?;
         let r = price(v, self.basket.space)?;
-        let h = dimless(v, self.basket.per_basket)?;
-        let s = (num::ln1p(w / (p + h * r)) / dimless(v, self.chi_max)?).min(1.0);
+        let h = param(v, self.basket.per_basket)?;
+        let s = (num::ln1p(w / (p + h * r)) / param(v, self.chi_max)?).min(1.0);
         // Only the offer is minted, and all of it is offered.
-        let hours = per_tick(v, self.heads)? * s;
+        let hours = param(v, self.heads)? * s;
         if hours > 0.0 {
             out.deltas.push(StateDelta::Mint {
                 to: Holder::Actor(v.me),
@@ -273,7 +261,7 @@ impl Behaviour for Workers {
             });
         }
         out.orders.push(sell(v, self.labour, hours));
-        let budget = share_of(v, self.spend)? * dry.get(v.currency);
+        let budget = param(v, self.spend)? * dry.get(v.currency);
         basket_orders(v, &self.basket, budget, &mut dry, &mut out)?;
         out.deltas
             .push(set(v, ActorState::Workers(WorkersState { share: s })));
@@ -300,10 +288,10 @@ struct Tasks {
 impl Tasks {
     fn read<S>(v: &View<'_, S>, s: &Schedule) -> Result<Tasks, AgentError> {
         Ok(Tasks {
-            eta: dimless(v, s.eta)?,
-            g0: dimless(v, s.g0)?,
-            g1: dimless(v, s.g1)?,
-            k: dimless(v, s.k)?,
+            eta: param(v, s.eta)?,
+            g0: param(v, s.g0)?,
+            g1: param(v, s.g1)?,
+            k: param(v, s.k)?,
         })
     }
 
@@ -378,15 +366,15 @@ fn stepped<S>(
     v: &View<'_, S>,
     q: f64,
     m: f64,
-    up: ParamId,
-    down: ParamId,
-    dead: ParamId,
+    up: Site,
+    down: Site,
+    dead: Site,
 ) -> Result<f64, AgentError> {
-    let d = dimless(v, dead)?;
+    let d = param(v, dead)?;
     let g = if m > d {
-        log_step(v, up)? * (m - d)
+        param(v, up)? * (m - d)
     } else if m < -d {
-        log_step(v, down)? * (m + d)
+        param(v, down)? * (m + d)
     } else {
         0.0
     };
@@ -422,13 +410,14 @@ fn scale_outlay<S>(
             payout,
         } => {
             if let Some(ceiling) = payout {
-                let target = worth / share_of(v, turnover)?;
-                let floor = num::exp(dimless(v, ceiling.ceiling)?) * target;
+                let target = worth / param(v, turnover)?;
+                let floor = num::exp(param(v, ceiling.ceiling)?) * target;
                 pay_above(v, ceiling.to, ceiling.rate, floor, dry, out)?;
             }
-            let v_rate = v.params.get::<RatePerYear>(turnover)?.0;
-            let rate = v_rate * num::pow(mu, dimless(v, tilt)?);
-            let outlay = v.clock.share(RatePerYear(rate)) * dry.get(v.currency);
+            // share(v·μ^κ): the annual turnover is tilted, then converted by the turnover's
+            // own site, a `Share`.
+            let rate = turnover.value(&v.params)? * num::pow(mu, param(v, tilt)?);
+            let outlay = turnover.convert(v.clock, rate)? * dry.get(v.currency);
             Ok((outlay, outlay / c))
         }
         Scale::Step {
@@ -442,7 +431,7 @@ fn scale_outlay<S>(
         } => {
             let q = stepped(v, state, num::ln(mu), up, down, dead)?;
             let want = c * q;
-            pay_above(v, to, rate, want / share_of(v, buffer)?, dry, out)?;
+            pay_above(v, to, rate, want / param(v, buffer)?, dry, out)?;
             Ok((want.min(dry.get(v.currency)), q))
         }
     }
@@ -462,7 +451,7 @@ impl Behaviour for GoodDesk {
         // tasks a machine does more cheaply) each tick. That is M3 at rest.
         let target = 1.0 - t.measure(w / pm);
         let s0 = v.own_state.share;
-        let s = s0 + share_of(v, self.adjust)? * (target - s0);
+        let s = s0 + param(v, self.adjust)? * (target - s0);
         let j = t.j(1.0 - s);
         // Unit cost at posted prices; the markup p/c is 1 at rest (M2).
         let c = s * w + j * pm;
@@ -543,9 +532,9 @@ impl Behaviour for MachDesk {
         let w = price(v, self.labour)?;
         let r = price(v, self.land)?;
         let pm = price(v, self.output)?;
-        let a = dimless(v, self.recipe.own)?;
-        let lam = dimless(v, self.recipe.labour)?;
-        let b = dimless(v, self.recipe.land)?;
+        let a = param(v, self.recipe.own)?;
+        let lam = param(v, self.recipe.labour)?;
+        let b = param(v, self.recipe.land)?;
         // The cash cost of one unit made, and its markup in the net form: what one unit earns
         // once its own input is kept, p_m(1 − a), over that cost. 1 at rest (M1).
         let c = lam * w + b * r;
@@ -584,9 +573,9 @@ impl Behaviour for MachDesk {
     }
 
     fn produce(&self, v: &View<'_, MachDeskState>) -> Result<Vec<Delta>, AgentError> {
-        let a = dimless(v, self.recipe.own)?;
-        let lam = dimless(v, self.recipe.labour)?;
-        let b = dimless(v, self.recipe.land)?;
+        let a = param(v, self.recipe.own)?;
+        let lam = param(v, self.recipe.labour)?;
+        let b = param(v, self.recipe.land)?;
         let y = leontief(&[
             (v.own.get(self.output), a),
             (v.own.get(self.labour), lam),

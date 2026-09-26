@@ -24,6 +24,7 @@ whose raw types are documented the same way in `rustyecon_agents::spec` (which a
 | 1 | 2026-09-25 | P0.6 | No field changes, so the number stays 1. Two load checks are added (a ledger tolerance must be below 1; a recipe may not name a currency), and a param read by the schedule alone leaves the world's identity (see Params). |
 | 1 | 2026-09-26 | P0.9 | No field changes, so the number stays 1. Two dated events that fall in one tick now fire in date order, not key order (see Dates). |
 | 1 | 2026-09-26 | P2.0.1 | The agents' spec gains four variants, `Provider`, `Workers`, `GoodDesk` and `MachDesk` (see below). No existing field or variant changes, and every schema-1 tape loads and means what it did, so the number stays 1: ENGINE §5 has the spec an enum so that Phase 2's kinds are new variants, not a new schema shape. |
+| 1 | 2026-09-26 | S2.2 | No field changes, so the number stays 1, and every tape loads and means what it did. A registered param that becomes a `SetParam`'s source keeps the world (see Params), and each use of a param now carries the conversion it takes, so every `world_id` changed once (ENGINE, amended at S2.2). `rustyecon registry` lists each use of a param with its method, per-tick value and path. |
 
 The loader reads its own version only; anything else is refused as a schema error before any
 other field is looked at. Since no field has a default, every change to the schema bumps the
@@ -58,7 +59,8 @@ number and adds a row here.
   run's state or in `world_id`, and the firings it shapes are in `prefix_id` (ENGINE §2.6). So a
   dial change, a new param with a dated `SetParam` that copies it, keeps every checkpoint taken
   before it fires, and so does a new value for such a param. A param the world also reads (a
-  price rate a `SetParam` copies, say) stays registered, and changing it is a world edit.
+  price rate a `SetParam` copies, say) stays registered, and changing its value is a world edit.
+  Making it a source is not: since S2.2 the flag that makes it fixed is not in `world_id`.
 - **Dates** are `"YYYY-MM-DD"`, proleptic Gregorian. A date maps to the tick it falls in,
   `floor(days·ticks_per_year·10⁴ / 3,652,425)` in integers. No event may be dated before `start`.
   Events that fall in one tick fire in date order, and events of one date in key order; a
@@ -74,7 +76,7 @@ number and adds a row here.
 |---|---|---|
 | `Dimensionless` | a ratio, weight or tolerance | the value |
 | `FlowPerYear` | a flow of goods | `v·Δ` |
-| `RatePerYear` | a continuous draw on a stock, or a price rate | `−expm1(−v·Δ)` as a share, `v·Δ` as a log step |
+| `RatePerYear` | a continuous draw on a stock, or a price rate or scale step | `−expm1(−v·Δ)` as a share, `v·Δ` as a log step; the use decides which, and `rustyecon registry` lists each use (since S2.2) |
 | `CompoundPerYear` | an effective annual rate ρ | `(1+ρ)^Δ − 1` |
 | `FractionPerYear` | an annual fraction δ | `1 − (1−δ)^Δ` |
 | `Years` | an EMA time constant τ, a period or a shelf life | `−expm1(−Δ/τ)` as a weight; `round(v·ticks_per_year)` ticks as a span, where 0 does not load |

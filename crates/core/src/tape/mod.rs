@@ -9,7 +9,7 @@
 
 pub mod raw;
 
-use crate::clock::{Clock, ClockError, Date};
+use crate::clock::{Clock, ClockError, ClockMethod, Date, ParamSite, Site};
 use crate::delta::{Provenance, StateDelta};
 use crate::error::{LoadError, LoadErrorKind};
 use crate::ext::Ext;
@@ -183,6 +183,8 @@ struct ParamInfo {
     copied: bool,
     /// A recurring entry's period.
     period: bool,
+    /// Its uses, each with its path and method.
+    sites: Vec<ParamSite>,
 }
 
 impl ParamInfo {
@@ -197,8 +199,9 @@ impl ParamInfo {
     }
 }
 
-/// Resolves keys to ids during loading, records every param reference with its unit and use,
-/// and builds tape paths for errors. The extension resolves its specs and actions through it.
+/// Resolves keys to ids during loading, records every param reference with its path, method and
+/// use, and builds tape paths for errors. The extension resolves its specs and actions through
+/// it.
 #[derive(Debug)]
 pub struct Resolver<'a> {
     keys: &'a KeyIndex,
@@ -207,6 +210,11 @@ pub struct Resolver<'a> {
     params: Vec<ParamInfo>,
     /// The params only the schedule reads, by key; not in `params`.
     schedule: &'a [ScheduleParam],
+    /// The uses of each schedule param, by its index in `schedule`.
+    schedule_sites: Vec<Vec<ParamSite>>,
+    /// Each `SetParam`'s source, the path of its `to`, and its target: the source takes the
+    /// target's methods there, once every use of the target is known.
+    sources: Vec<(Key, String, ParamId)>,
     path: Vec<String>,
 }
 
@@ -289,17 +297,20 @@ impl<'a> Resolver<'a> {
             .and_then(|i| u32::try_from(i).ok())
     }
 
-    /// A reference to the param with this key, which must be registered with `unit`. The use is
-    /// recorded: an unreferenced param does not load, and a param with a fixed use cannot be
-    /// the target of a `SetParam`.
+    /// A use of the param with this key at `field`, converted by `method`: the param must be
+    /// registered with the method's unit. The use is recorded as a [`ParamSite`] at its path,
+    /// with the same method as the [`Site`] returned, which is how the run reads it: an
+    /// unreferenced param does not load, and a param with a fixed use cannot be the target of a
+    /// `SetParam` (amended at S2.2: the method replaces the unit, which it implies).
     pub fn param(
         &mut self,
         key: &Key,
-        unit: Unit,
+        method: ClockMethod,
         use_: ParamUse,
         field: &str,
-    ) -> Result<ParamId, LoadError> {
+    ) -> Result<Site, LoadError> {
         let (p, registered) = self.param_any(key, use_, field)?;
+        let unit = method.unit();
         if registered != unit {
             return Err(self.error(
                 field,
@@ -310,7 +321,11 @@ impl<'a> Resolver<'a> {
                 },
             ));
         }
-        Ok(p)
+        let path = self.path(field);
+        if let Some(info) = self.params.get_mut(p.idx()) {
+            info.sites.push(ParamSite { path, method });
+        }
+        Ok(Site { param: p, method })
     }
 
     /// A reference to a param of any unit; returns its unit.
@@ -331,11 +346,12 @@ impl<'a> Resolver<'a> {
         Ok((ParamId(i), info.unit))
     }
 
-    /// A fixed `Years` param as whole ticks; a value that rounds to 0 ticks does not load.
+    /// A fixed `Years` param as whole ticks, a `Ticks` site; a value that rounds to 0 ticks does
+    /// not load.
     pub fn ticks(&mut self, key: &Key, field: &str) -> Result<(ParamId, u32), LoadError> {
-        let p = self.param(key, Unit::Years, ParamUse::Fixed, field)?;
-        let v = self.value(p, field)?;
-        self.whole_ticks(v, field).map(|t| (p, t))
+        let site = self.param(key, ClockMethod::Ticks, ParamUse::Fixed, field)?;
+        let v = self.value(site.param, field)?;
+        self.whole_ticks(v, field).map(|t| (site.param, t))
     }
 
     /// `v` years as whole ticks; a value that rounds to 0 ticks does not load.
@@ -353,15 +369,24 @@ impl<'a> Resolver<'a> {
 
     /// A reference from the schedule (a `SetParam`'s source, a recurring period): the param's
     /// unit and value. A schedule param is read from the schedule's list; any other is a
-    /// registered param, recorded as copied or as a period, which makes it fixed.
+    /// registered param, recorded as copied or as a period, which makes it fixed. A period
+    /// records a `Ticks` site at `field`; a source's sites wait for its target's
+    /// ([`Resolver::source_sites`]).
     fn schedule_ref(
         &mut self,
         key: &Key,
         period: bool,
         field: &str,
     ) -> Result<(Unit, f64), LoadError> {
+        let site = period.then(|| ParamSite {
+            path: self.path(field),
+            method: ClockMethod::Ticks,
+        });
         if let Ok(i) = self.schedule.binary_search_by(|p| p.key.cmp(key)) {
             let p = &self.schedule[i];
+            if let (Some(site), Some(sites)) = (site, self.schedule_sites.get_mut(i)) {
+                sites.push(site);
+            }
             return Ok((p.unit, p.value));
         }
         let Some(i) = self.lookup(&self.keys.params, key) else {
@@ -373,7 +398,45 @@ impl<'a> Resolver<'a> {
         } else {
             info.copied = true;
         }
+        info.sites.extend(site);
         Ok((info.unit, info.value))
+    }
+
+    /// Give each `SetParam`'s source its target's methods, at the path of the event's `to`. Run
+    /// once every use of every target is recorded; each list is then put in (path, method)
+    /// order.
+    fn source_sites(&mut self) {
+        let mut added: Vec<(Key, ParamSite)> = Vec::new();
+        for (source, path, target) in &self.sources {
+            let mut methods: Vec<ClockMethod> = self
+                .params
+                .get(target.idx())
+                .map(|t| t.sites.iter().map(|s| s.method).collect())
+                .unwrap_or_default();
+            methods.sort();
+            methods.dedup();
+            for method in methods {
+                let path = path.clone();
+                added.push((source.clone(), ParamSite { path, method }));
+            }
+        }
+        for (source, site) in added {
+            if let Ok(i) = self.schedule.binary_search_by(|p| p.key.cmp(&source)) {
+                if let Some(sites) = self.schedule_sites.get_mut(i) {
+                    sites.push(site);
+                }
+            } else if let Some(i) = self.lookup(&self.keys.params, &source) {
+                if let Some(info) = self.params.get_mut(i as usize) {
+                    info.sites.push(site);
+                }
+            }
+        }
+        for info in &mut self.params {
+            info.sites.sort();
+        }
+        for sites in &mut self.schedule_sites {
+            sites.sort();
+        }
     }
 
     /// A recurring entry's period: a `Years` param as whole ticks.
@@ -517,6 +580,8 @@ fn resolve_act<E: Ext>(
                     },
                 ));
             }
+            let at = r.path("act.to");
+            r.sources.push((to.clone(), at, p));
             Resolved {
                 action: StateDelta::SetParam { param: p, value },
                 source: Some(to.clone()),
@@ -534,12 +599,15 @@ fn resolve_act<E: Ext>(
 
 /// The part of a world that decides what a run computes: everything but the schedule, the
 /// tape's name and the basis texts. Its bincode 1 encoding, followed by the genesis state's,
-/// is what `world_id` hashes.
+/// is what `world_id` hashes. Each param is its (key, unit, genesis value): not its `fixed`
+/// flag, which the schedule sets, nor its sites, which the registry lists (amended at S2.2, D10
+/// items 1 and 4). The structure a fixed use makes is hashed where it lands: a shelf life as
+/// ticks in the goods, the tolerances in `tol`, and a period in the schedule, under `prefix_id`.
 #[derive(Serialize)]
 #[serde(bound = "")]
 struct RunContent<'w, E: Ext> {
     clock: &'w Clock,
-    params: Vec<(&'w Key, Unit, f64, bool)>,
+    params: Vec<(&'w Key, Unit, f64)>,
     tol: &'w Tolerances,
     market: &'w MarketConfig,
     goods: &'w [GoodDef],
@@ -651,6 +719,7 @@ fn resolve_with<E: Ext>(t: &Tape<E>, schedule: &[Key]) -> Result<Pass<E>, LoadEr
             unit: p.unit,
             value: p.value,
             basis: p.basis.clone(),
+            sites: Vec::new(),
         })
         .collect();
     let infos: Vec<ParamInfo> = raw_params
@@ -663,6 +732,7 @@ fn resolve_with<E: Ext>(t: &Tape<E>, schedule: &[Key]) -> Result<Pass<E>, LoadEr
             fixed: false,
             copied: false,
             period: false,
+            sites: Vec::new(),
         })
         .collect();
 
@@ -678,6 +748,8 @@ fn resolve_with<E: Ext>(t: &Tape<E>, schedule: &[Key]) -> Result<Pass<E>, LoadEr
             clock,
             params: Vec::new(),
             schedule: &[],
+            schedule_sites: Vec::new(),
+            sources: Vec::new(),
             path: Vec::new(),
         };
         for (i, n) in raw_nodes.iter().enumerate() {
@@ -699,6 +771,8 @@ fn resolve_with<E: Ext>(t: &Tape<E>, schedule: &[Key]) -> Result<Pass<E>, LoadEr
         clock,
         params: infos,
         schedule: &sched,
+        schedule_sites: vec![Vec::new(); sched.len()],
+        sources: Vec::new(),
         path: Vec::new(),
     };
 
@@ -712,7 +786,7 @@ fn resolve_with<E: Ext>(t: &Tape<E>, schedule: &[Key]) -> Result<Pass<E>, LoadEr
         one_sided: h.market.one_sided,
         ema_time_constant: r.param(
             &h.market.ema_time_constant,
-            Unit::Years,
+            ClockMethod::Weight,
             ParamUse::Live,
             "market.ema_time_constant",
         )?,
@@ -720,24 +794,24 @@ fn resolve_with<E: Ext>(t: &Tape<E>, schedule: &[Key]) -> Result<Pass<E>, LoadEr
     let tol = Tolerances {
         rel_flow: r.param(
             &h.ledger.rel_flow,
-            Unit::Dimensionless,
+            ClockMethod::Value,
             ParamUse::Fixed,
             "ledger.rel_flow",
         )?,
         rel_stock: r.param(
             &h.ledger.rel_stock,
-            Unit::Dimensionless,
+            ClockMethod::Value,
             ParamUse::Fixed,
             "ledger.rel_stock",
         )?,
     };
     // A relative tolerance of 1 or more would pass a leak of the whole stock or flow, which
     // switches R2 off; it is refused as a structural check, not as a behavioural bound.
-    for (field, p) in [
+    for (field, site) in [
         ("ledger.rel_flow", tol.rel_flow),
         ("ledger.rel_stock", tol.rel_stock),
     ] {
-        let v = r.value(p, field)?;
+        let v = r.value(site.param, field)?;
         if v >= 1.0 {
             return Err(r.error(field, LoadErrorKind::ToleranceNotBelowOne(v)));
         }
@@ -757,7 +831,7 @@ fn resolve_with<E: Ext>(t: &Tape<E>, schedule: &[Key]) -> Result<Pass<E>, LoadEr
             RawLife::Years(k) => Life::Ticks(r.ticks(k, "life")?.1),
         };
         let price_rate = match &g.price_rate {
-            Some(k) => Some(r.param(k, Unit::RatePerYear, ParamUse::Live, "price_rate")?),
+            Some(k) => Some(r.param(k, ClockMethod::LogStep, ParamUse::Live, "price_rate")?),
             None => None,
         };
         if r.is_currency(id) {
@@ -897,6 +971,9 @@ fn resolve_with<E: Ext>(t: &Tape<E>, schedule: &[Key]) -> Result<Pass<E>, LoadEr
         });
     }
 
+    // Each SetParam's source takes its target's methods, now that every use is recorded.
+    r.source_sites();
+
     // Param uses: no SetParam on a fixed param, and every param referenced.
     targets.sort();
     for (p, path) in &targets {
@@ -936,9 +1013,16 @@ fn resolve_with<E: Ext>(t: &Tape<E>, schedule: &[Key]) -> Result<Pass<E>, LoadEr
                 genesis: raw.value,
                 basis: raw.basis.clone(),
                 fixed: info.is_fixed(),
+                sites: info.sites.clone(),
             })
             .collect(),
     );
+    let schedule_sites = std::mem::take(&mut r.schedule_sites);
+    let sched: Vec<ScheduleParam> = sched
+        .into_iter()
+        .zip(schedule_sites)
+        .map(|(p, sites)| ScheduleParam { sites, ..p })
+        .collect();
     let values: Vec<f64> = registry.params().iter().map(|p| p.genesis).collect();
     let state = SimState::genesis(values, book, holdings, ext);
 
@@ -1069,7 +1153,7 @@ fn world_id<E: Ext>(w: &World<E>, genesis: &SimState<E>) -> u64 {
             .registry
             .params()
             .iter()
-            .map(|p| (&p.key, p.unit, p.genesis, p.fixed))
+            .map(|p| (&p.key, p.unit, p.genesis))
             .collect(),
         tol: &w.tol,
         market: &w.market,
@@ -1722,8 +1806,10 @@ mod tests {
         assert_eq!((w.world_id, state_hash(&s)), (w0.world_id, state_hash(&s0)));
         assert_eq!(w.prefix_id(rate_up), w0.prefix_id(rate_up));
         assert_ne!(w.prefix_id(rate_up + 1), w0.prefix_id(rate_up + 1));
-        // A source the world also reads (here a price rate) stays registered and fixed.
-        let (w, _) = load_text(&edit(
+        // A source the world also reads (here a price rate) stays registered and fixed. Since
+        // S2.2 (D10 item 1) the flag the schedule sets is not in world_id, so the new source
+        // keeps the world too.
+        let (w, s) = load_text(&edit(
             r#"act: Mint(holder: "pensioners", good: "grain", qty: 2.0)"#,
             r#"act: SetParam(param: "rate.grain", to: "rate.bread")"#,
         ))
@@ -1731,6 +1817,7 @@ mod tests {
         let bread_rate = w.registry.get(w.id_of("rate.bread").unwrap()).unwrap();
         assert!(bread_rate.fixed);
         assert!(w.schedule.param("rate.bread").is_none());
+        assert_eq!((w.world_id, state_hash(&s)), (w0.world_id, state_hash(&s0)));
         let gift = &w.schedule.once()[0];
         assert_eq!(w.key_of(gift.event).unwrap().as_str(), "grain.gift");
         assert_eq!(gift.source.as_ref().map(Key::as_str), Some("rate.bread"));
@@ -1748,6 +1835,102 @@ mod tests {
                 )
             ),
             "{e}"
+        );
+    }
+
+    #[test]
+    fn param_sites_are_recorded() {
+        // S2.2 (D10 item 4): the resolver records every use of a param at its tape path, with
+        // the method the use takes, and returns a Site with that method. A SetParam's target
+        // is written, not read, so its `act.param` is not a use; its source takes the target's
+        // methods at the event's `to`, and a period takes Ticks at its `every`.
+        let sites = |list: &[ParamSite]| -> Vec<(String, ClockMethod)> {
+            list.iter().map(|s| (s.path.clone(), s.method)).collect()
+        };
+        let one = |path: &str, m: ClockMethod| vec![(path.to_string(), m)];
+        let (w, _) = testkit::load();
+        let registered = |w: &World<NoExt>, key: &str| {
+            sites(&w.registry.get(w.id_of(key).unwrap()).unwrap().sites)
+        };
+        for (key, want) in [
+            (
+                "ledger.rel_flow",
+                one("header.ledger.rel_flow", ClockMethod::Value),
+            ),
+            (
+                "ledger.rel_stock",
+                one("header.ledger.rel_stock", ClockMethod::Value),
+            ),
+            (
+                "price.ema_tc",
+                one("header.market.ema_time_constant", ClockMethod::Weight),
+            ),
+            (
+                "rate.bread",
+                one("goods[bread].price_rate", ClockMethod::LogStep),
+            ),
+            (
+                "rate.grain",
+                one("goods[grain].price_rate", ClockMethod::LogStep),
+            ),
+            ("life.bread", one("goods[bread].life", ClockMethod::Ticks)),
+        ] {
+            assert_eq!(registered(&w, key), want, "{key}");
+        }
+        let schedule = |w: &World<NoExt>, key: &str| sites(&w.schedule.param(key).unwrap().sites);
+        assert_eq!(
+            schedule(&w, "pension.period"),
+            one("recurring[pension].every", ClockMethod::Ticks)
+        );
+        assert_eq!(
+            schedule(&w, "rate.grain.high"),
+            one("events[rate.up].act.to", ClockMethod::LogStep)
+        );
+        // The Sites the world holds carry the same methods.
+        assert_eq!(w.market.ema_time_constant.method, ClockMethod::Weight);
+        assert_eq!(w.tol.rel_flow.method, ClockMethod::Value);
+        let bread = w.good(w.id_of("bread").unwrap()).unwrap();
+        assert_eq!(
+            bread.price_rate.map(|s| s.method),
+            Some(ClockMethod::LogStep)
+        );
+        // A registered source keeps its own uses and adds its target's methods, in path order.
+        let (w, _) = load_text(&edit(
+            r#"act: Mint(holder: "pensioners", good: "grain", qty: 2.0)"#,
+            r#"act: SetParam(param: "rate.grain", to: "rate.bread")"#,
+        ))
+        .unwrap();
+        assert_eq!(
+            registered(&w, "rate.bread"),
+            [
+                (
+                    "events[grain.gift].act.to".to_string(),
+                    ClockMethod::LogStep
+                ),
+                ("goods[bread].price_rate".to_string(), ClockMethod::LogStep),
+            ]
+        );
+        assert_eq!(
+            registered(&w, "rate.grain"),
+            one("goods[grain].price_rate", ClockMethod::LogStep)
+        );
+        // A param used twice, as a period and as a live time constant, lists both uses.
+        let (w, _) = load_text(&edit(
+            "    recurring: [",
+            "    recurring: [\n        (key: \"tithe\", first: \"1751-01-01\", every: \
+             \"price.ema_tc\", last: None, basis: Assumed(\"test\"), act: Mint(holder: \
+             \"pensioners\", good: \"coin\", qty: 1.0)),",
+        ))
+        .unwrap();
+        assert_eq!(
+            registered(&w, "price.ema_tc"),
+            [
+                (
+                    "header.market.ema_time_constant".to_string(),
+                    ClockMethod::Weight
+                ),
+                ("recurring[tithe].every".to_string(), ClockMethod::Ticks),
+            ]
         );
     }
 
@@ -2114,8 +2297,9 @@ mod tests {
             let n = w.good(w.id_of(g.key.as_str()).unwrap()).unwrap();
             assert_eq!(n.life, g.life);
             assert_eq!(
-                n.price_rate.map(|p| w.key_of(p).unwrap()),
-                g.price_rate.map(|p| w0.key_of(p).unwrap())
+                n.price_rate.map(|p| (w.key_of(p.param).unwrap(), p.method)),
+                g.price_rate
+                    .map(|p| (w0.key_of(p.param).unwrap(), p.method))
             );
             for node in &w0.nodes {
                 let n2 = w.id_of(node.key.as_str()).unwrap();

@@ -12,7 +12,7 @@
 
 use rustyecon_core::tape::raw::required;
 use rustyecon_core::{
-    ActorId, GoodId, Key, LoadError, LoadErrorKind, ParamId, ParamUse, Resolver, Unit,
+    ActorId, ClockMethod, GoodId, Key, LoadError, LoadErrorKind, ParamUse, Resolver, Site,
 };
 use serde::{Deserialize, Serialize};
 
@@ -260,7 +260,7 @@ pub struct Basket {
     /// The space.
     pub space: GoodId,
     /// h, a live `Dimensionless` param.
-    pub per_basket: ParamId,
+    pub per_basket: Site,
 }
 
 /// The resolved provider.
@@ -269,15 +269,15 @@ pub struct Provider {
     /// The land services it is endowed with.
     pub land: GoodId,
     /// T, a live `FlowPerYear` param.
-    pub endowment: ParamId,
+    pub endowment: Site,
     /// The transfer's recipient.
     pub transfer_to: ActorId,
     /// N, a live `FlowPerYear` param.
-    pub heads: ParamId,
+    pub heads: Site,
     /// Its basket.
     pub basket: Basket,
-    /// Its spending rate, a live `RatePerYear` param.
-    pub spend: ParamId,
+    /// Its spending rate, a live `RatePerYear` param read as a `Share`.
+    pub spend: Site,
 }
 
 /// The resolved workers.
@@ -286,26 +286,26 @@ pub struct Workers {
     /// The hours.
     pub labour: GoodId,
     /// N, a live `FlowPerYear` param.
-    pub heads: ParamId,
+    pub heads: Site,
     /// χ_max, a live `Dimensionless` param.
-    pub chi_max: ParamId,
+    pub chi_max: Site,
     /// Their basket.
     pub basket: Basket,
-    /// Their spending rate, a live `RatePerYear` param.
-    pub spend: ParamId,
+    /// Their spending rate, a live `RatePerYear` param read as a `Share`.
+    pub spend: Site,
 }
 
 /// The resolved schedule: live `Dimensionless` params.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Schedule {
     /// η.
-    pub eta: ParamId,
+    pub eta: Site,
     /// g0.
-    pub g0: ParamId,
+    pub g0: Site,
     /// g1.
-    pub g1: ParamId,
+    pub g1: Site,
     /// k.
-    pub k: ParamId,
+    pub k: Site,
 }
 
 /// A resolved ceiling payout.
@@ -313,10 +313,10 @@ pub struct Schedule {
 pub struct Ceiling {
     /// The recipient.
     pub to: ActorId,
-    /// The rate, a live `RatePerYear` param.
-    pub rate: ParamId,
+    /// The rate, a live `RatePerYear` param read as a `Share`.
+    pub rate: Site,
     /// The log ceiling, a live `Dimensionless` param.
-    pub ceiling: ParamId,
+    pub ceiling: Site,
 }
 
 /// A resolved scale rule.
@@ -324,27 +324,27 @@ pub struct Ceiling {
 pub enum Scale {
     /// The cash rule.
     Cash {
-        /// The turnover, a live `RatePerYear` param.
-        turnover: ParamId,
+        /// The turnover, a live `RatePerYear` param read as a `Share`.
+        turnover: Site,
         /// The tilt, a live `Dimensionless` param.
-        tilt: ParamId,
+        tilt: Site,
         /// The payout above a ceiling, if any.
         payout: Option<Ceiling>,
     },
     /// The margin-step rule.
     Step {
-        /// The step above the band, a live `RatePerYear` param.
-        up: ParamId,
-        /// The step below the band, a live `RatePerYear` param.
-        down: ParamId,
+        /// The step above the band, a live `RatePerYear` param read as a `LogStep`.
+        up: Site,
+        /// The step below the band, a live `RatePerYear` param read as a `LogStep`.
+        down: Site,
         /// The band, a live `Dimensionless` param.
-        dead: ParamId,
-        /// The buffer's turnover, a live `RatePerYear` param.
-        buffer: ParamId,
+        dead: Site,
+        /// The buffer's turnover, a live `RatePerYear` param read as a `Share`.
+        buffer: Site,
         /// The payout's recipient.
         to: ActorId,
-        /// The payout's rate, a live `RatePerYear` param.
-        rate: ParamId,
+        /// The payout's rate, a live `RatePerYear` param read as a `Share`.
+        rate: Site,
         /// The genesis scale.
         scale: f64,
     },
@@ -367,6 +367,85 @@ impl Scale {
             Scale::Step { to, .. } => Some(*to),
         }
     }
+
+    /// The rule's sites, each with its path under the spec (`scale.…`).
+    fn sites(&self, out: &mut Vec<(String, Site)>) {
+        let mut at = |field: &str, site: Site| out.push((format!("scale.{field}"), site));
+        match *self {
+            Scale::Cash {
+                turnover,
+                tilt,
+                payout,
+            } => {
+                at("turnover", turnover);
+                at("tilt", tilt);
+                if let Some(c) = payout {
+                    at("payout.rate", c.rate);
+                    at("payout.ceiling", c.ceiling);
+                }
+            }
+            Scale::Step {
+                up,
+                down,
+                dead,
+                buffer,
+                rate,
+                ..
+            } => {
+                at("up", up);
+                at("down", down);
+                at("dead", dead);
+                at("buffer", buffer);
+                at("payout.rate", rate);
+            }
+        }
+    }
+}
+
+fn site(out: &mut Vec<(String, Site)>, path: &str, site: Site) {
+    out.push((path.to_string(), site));
+}
+
+impl Provider {
+    /// Its sites, each with its path under the spec; [`crate::Spec::sites`] lists them.
+    pub(crate) fn sites(&self, out: &mut Vec<(String, Site)>) {
+        site(out, "endowment", self.endowment);
+        site(out, "transfer.heads", self.heads);
+        site(out, "basket.per_basket", self.basket.per_basket);
+        site(out, "spend", self.spend);
+    }
+}
+
+impl Workers {
+    /// Their sites, each with its path under the spec.
+    pub(crate) fn sites(&self, out: &mut Vec<(String, Site)>) {
+        site(out, "heads", self.heads);
+        site(out, "chi_max", self.chi_max);
+        site(out, "basket.per_basket", self.basket.per_basket);
+        site(out, "spend", self.spend);
+    }
+}
+
+impl GoodDesk {
+    /// Its sites, each with its path under the spec.
+    pub(crate) fn sites(&self, out: &mut Vec<(String, Site)>) {
+        site(out, "schedule.eta", self.schedule.eta);
+        site(out, "schedule.g0", self.schedule.g0);
+        site(out, "schedule.g1", self.schedule.g1);
+        site(out, "schedule.k", self.schedule.k);
+        site(out, "technique.adjust", self.adjust);
+        self.scale.sites(out);
+    }
+}
+
+impl MachDesk {
+    /// Its sites, each with its path under the spec.
+    pub(crate) fn sites(&self, out: &mut Vec<(String, Site)>) {
+        site(out, "recipe.own", self.recipe.own);
+        site(out, "recipe.labour", self.recipe.labour);
+        site(out, "recipe.land", self.recipe.land);
+        self.scale.sites(out);
+    }
 }
 
 /// The resolved good desk.
@@ -380,8 +459,8 @@ pub struct GoodDesk {
     pub mach: GoodId,
     /// The task schedule.
     pub schedule: Schedule,
-    /// The technique's adjustment rate, a live `RatePerYear` param.
-    pub adjust: ParamId,
+    /// The technique's adjustment rate, a live `RatePerYear` param read as a `Share`.
+    pub adjust: Site,
     /// The genesis human share 1 − x.
     pub share: f64,
     /// How production assigns tasks.
@@ -394,11 +473,11 @@ pub struct GoodDesk {
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct MachRecipe {
     /// a.
-    pub own: ParamId,
+    pub own: Site,
     /// λ.
-    pub labour: ParamId,
+    pub labour: Site,
     /// b.
-    pub land: ParamId,
+    pub land: Site,
 }
 
 /// The resolved machine desk.
@@ -416,8 +495,13 @@ pub struct MachDesk {
     pub scale: Scale,
 }
 
-fn live(r: &mut Resolver<'_>, key: &Key, unit: Unit, field: &str) -> Result<ParamId, LoadError> {
-    r.param(key, unit, ParamUse::Live, field)
+fn live(
+    r: &mut Resolver<'_>,
+    key: &Key,
+    method: ClockMethod,
+    field: &str,
+) -> Result<Site, LoadError> {
+    r.param(key, method, ParamUse::Live, field)
 }
 
 /// A traded good: not a currency, since a currency has no market.
@@ -447,7 +531,7 @@ fn basket(r: &mut Resolver<'_>, raw: &RawBasket) -> Result<Basket, LoadError> {
     let good = traded(r, &raw.good, "good")?;
     let space = traded(r, &raw.space, "space")?;
     distinct(r, &[(good, "good"), (space, "space")])?;
-    let per_basket = live(r, &raw.per_basket, Unit::Dimensionless, "per_basket")?;
+    let per_basket = live(r, &raw.per_basket, ClockMethod::Value, "per_basket")?;
     r.leave();
     Ok(Basket {
         good,
@@ -470,15 +554,15 @@ fn scale(r: &mut Resolver<'_>, raw: &RawScale) -> Result<Scale, LoadError> {
     r.enter("scale");
     let out = match raw {
         RawScale::Cash(c) => {
-            let turnover = live(r, &c.turnover, Unit::RatePerYear, "turnover")?;
-            let tilt = live(r, &c.tilt, Unit::Dimensionless, "tilt")?;
+            let turnover = live(r, &c.turnover, ClockMethod::Share, "turnover")?;
+            let tilt = live(r, &c.tilt, ClockMethod::Value, "tilt")?;
             let payout = match &c.payout {
                 Some(p) => {
                     r.enter("payout");
                     let ceiling = Ceiling {
                         to: r.actor(&p.to, "to")?,
-                        rate: live(r, &p.rate, Unit::RatePerYear, "rate")?,
-                        ceiling: live(r, &p.ceiling, Unit::Dimensionless, "ceiling")?,
+                        rate: live(r, &p.rate, ClockMethod::Share, "rate")?,
+                        ceiling: live(r, &p.ceiling, ClockMethod::Value, "ceiling")?,
                     };
                     r.leave();
                     Some(ceiling)
@@ -492,13 +576,13 @@ fn scale(r: &mut Resolver<'_>, raw: &RawScale) -> Result<Scale, LoadError> {
             }
         }
         RawScale::Step(s) => {
-            let up = live(r, &s.up, Unit::RatePerYear, "up")?;
-            let down = live(r, &s.down, Unit::RatePerYear, "down")?;
-            let dead = live(r, &s.dead, Unit::Dimensionless, "dead")?;
-            let buffer = live(r, &s.buffer, Unit::RatePerYear, "buffer")?;
+            let up = live(r, &s.up, ClockMethod::LogStep, "up")?;
+            let down = live(r, &s.down, ClockMethod::LogStep, "down")?;
+            let dead = live(r, &s.dead, ClockMethod::Value, "dead")?;
+            let buffer = live(r, &s.buffer, ClockMethod::Share, "buffer")?;
             r.enter("payout");
             let to = r.actor(&s.payout.to, "to")?;
-            let rate = live(r, &s.payout.rate, Unit::RatePerYear, "rate")?;
+            let rate = live(r, &s.payout.rate, ClockMethod::Share, "rate")?;
             r.leave();
             let scale = r.quantity(s.scale, "scale")?;
             Scale::Step {
@@ -519,14 +603,14 @@ fn scale(r: &mut Resolver<'_>, raw: &RawScale) -> Result<Scale, LoadError> {
 /// Resolve a provider's spec. The resolver's path already names `actors[key].spec`.
 pub fn resolve_provider(raw: &RawProvider, r: &mut Resolver<'_>) -> Result<Provider, LoadError> {
     let land = traded(r, &raw.land, "land")?;
-    let endowment = live(r, &raw.endowment, Unit::FlowPerYear, "endowment")?;
+    let endowment = live(r, &raw.endowment, ClockMethod::Flow, "endowment")?;
     r.enter("transfer");
     let transfer_to = r.actor(&raw.transfer.to, "to")?;
-    let heads = live(r, &raw.transfer.heads, Unit::FlowPerYear, "heads")?;
+    let heads = live(r, &raw.transfer.heads, ClockMethod::Flow, "heads")?;
     r.leave();
     let basket = basket(r, &raw.basket)?;
     distinct(r, &[(land, "land"), (basket.good, "basket.good")])?;
-    let spend = live(r, &raw.spend, Unit::RatePerYear, "spend")?;
+    let spend = live(r, &raw.spend, ClockMethod::Share, "spend")?;
     Ok(Provider {
         land,
         endowment,
@@ -540,8 +624,8 @@ pub fn resolve_provider(raw: &RawProvider, r: &mut Resolver<'_>) -> Result<Provi
 /// Resolve the workers' spec.
 pub fn resolve_workers(raw: &RawWorkers, r: &mut Resolver<'_>) -> Result<Workers, LoadError> {
     let labour = traded(r, &raw.labour, "labour")?;
-    let heads = live(r, &raw.heads, Unit::FlowPerYear, "heads")?;
-    let chi_max = live(r, &raw.chi_max, Unit::Dimensionless, "chi_max")?;
+    let heads = live(r, &raw.heads, ClockMethod::Flow, "heads")?;
+    let chi_max = live(r, &raw.chi_max, ClockMethod::Value, "chi_max")?;
     let basket = basket(r, &raw.basket)?;
     distinct(
         r,
@@ -551,7 +635,7 @@ pub fn resolve_workers(raw: &RawWorkers, r: &mut Resolver<'_>) -> Result<Workers
             (basket.space, "basket.space"),
         ],
     )?;
-    let spend = live(r, &raw.spend, Unit::RatePerYear, "spend")?;
+    let spend = live(r, &raw.spend, ClockMethod::Share, "spend")?;
     Ok(Workers {
         labour,
         heads,
@@ -569,14 +653,14 @@ pub fn resolve_good_desk(raw: &RawGoodDesk, r: &mut Resolver<'_>) -> Result<Good
     distinct(r, &[(output, "output"), (labour, "labour"), (mach, "mach")])?;
     r.enter("schedule");
     let schedule = Schedule {
-        eta: live(r, &raw.schedule.eta, Unit::Dimensionless, "eta")?,
-        g0: live(r, &raw.schedule.g0, Unit::Dimensionless, "g0")?,
-        g1: live(r, &raw.schedule.g1, Unit::Dimensionless, "g1")?,
-        k: live(r, &raw.schedule.k, Unit::Dimensionless, "k")?,
+        eta: live(r, &raw.schedule.eta, ClockMethod::Value, "eta")?,
+        g0: live(r, &raw.schedule.g0, ClockMethod::Value, "g0")?,
+        g1: live(r, &raw.schedule.g1, ClockMethod::Value, "g1")?,
+        k: live(r, &raw.schedule.k, ClockMethod::Value, "k")?,
     };
     r.leave();
     r.enter("technique");
-    let adjust = live(r, &raw.technique.adjust, Unit::RatePerYear, "adjust")?;
+    let adjust = live(r, &raw.technique.adjust, ClockMethod::Share, "adjust")?;
     let genesis = share(r, raw.technique.share, "share")?;
     r.leave();
     let scale = scale(r, &raw.scale)?;
@@ -600,9 +684,9 @@ pub fn resolve_mach_desk(raw: &RawMachDesk, r: &mut Resolver<'_>) -> Result<Mach
     distinct(r, &[(output, "output"), (labour, "labour"), (land, "land")])?;
     r.enter("recipe");
     let recipe = MachRecipe {
-        own: live(r, &raw.recipe.own, Unit::Dimensionless, "own")?,
-        labour: live(r, &raw.recipe.labour, Unit::Dimensionless, "labour")?,
-        land: live(r, &raw.recipe.land, Unit::Dimensionless, "land")?,
+        own: live(r, &raw.recipe.own, ClockMethod::Value, "own")?,
+        labour: live(r, &raw.recipe.labour, ClockMethod::Value, "labour")?,
+        land: live(r, &raw.recipe.land, ClockMethod::Value, "land")?,
     };
     r.leave();
     let scale = scale(r, &raw.scale)?;

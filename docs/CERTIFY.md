@@ -7,6 +7,31 @@ R12, R14 and R16. July's source is tag `july-v2-phase-3` (`v2p3:`). A step is do
 `scripts/gate.sh` is green in WSL and the same commands are green on Windows, with zero warnings.
 This revision takes the adversarial review of the first draft (§15.2).
 
+**Amended at S2.2** (2026-09-26: the engine asks), where this text was wrong or silent. Each
+change is made in place in the section named.
+
+1. Steps (§14). This contract was committed as S2.1, so every later step is one number up: the
+   engine asks are S2.2, certify S2.3, and so on to the review at S2.10.
+2. `ScalePrice` and `MarketLine::trades` (§2.4) land with the kick in S2.3, not with the engine
+   asks. The kick is their only user, and the variant is appended, so no hash waits on it.
+3. `Site::per_tick` (§2.3) takes `(&Params, &Clock)` and returns `Result<f64, CoreError>`. Core
+   cannot name agents' `View`, and a read can fail (a unit that does not match the method).
+   `Site::value` and `Site::convert` serve the one rule that scales an annual rate before
+   converting it, the cash rule's `share(v·μ^κ)`; `convert` applies the site's own method.
+4. The contract said specs read a param "only through `Site::per_tick`" and named no guard. A
+   source scan, `params_are_read_only_through_sites` (engine), enforces it: outside
+   `core::clock`, no shipped code calls a `Clock` conversion or reads a param by type.
+5. `each_site_converts_as_registered` (agents) compares each site with core's record,
+   `ParamDef::sites`, and `ClockMethod::per_tick`, not with engine's `SiteLine`: agents cannot
+   depend on the engine. `registry_names_each_use` pins each `SiteLine` to the same values, and
+   to the `Clock`'s own conversions.
+6. Silent points, decided: a `SetParam`'s target (`act.param`) is written, not read, so it is not
+   a site; a param only a `SetParam` targets lists no sites. A shelf life is a `Ticks` site at
+   the good's `life`. `Spec::sites(&World)` lists a spec's sites with their paths. The registry
+   prints each site as `<method> <per tick> per tick at <path>`, joined by `; `.
+7. Added tests: `clock_methods_convert_as_the_clock` and `param_sites_are_recorded` (core), and
+   the scan of point 4.
+
 ## 0. Decisions this contract makes
 
 Numbered for the veto window, each with its alternative.
@@ -54,11 +79,13 @@ crates/certify  rustyecon-certify  lib `certify`; depends on core, engine, ron, 
 - **The verdict path follows ENGINE §9:** `core::num::ln`, left folds in canonical order, no hashed
   containers, and no float literal but `0.0` and `1.0`, since every threshold is in criteria (R4).
 
-## 2. Engine changes (S2.1), before any manifest records a `world_id`
+## 2. Engine changes, before any manifest records a `world_id`
+
+§2.1–§2.3 and §2.5 are S2.2; §2.4 is S2.3, with the kick (amended at S2.2).
 
 ### 2.1 D10 item 1: `world_id` without the `fixed` flag (ENGINE §2.6)
 
-`world_id` hashes `(key, unit, genesis)` per param (`tape/mod.rs:1072`), not `p.fixed`. Before this
+`world_id` hashes `(key, unit, genesis)` per param (`world_id` in `tape/mod.rs`), not `p.fixed`. Before this
 change, a registered live param that became a `SetParam` source turned fixed and changed the world,
 so every checkpoint was refused. The structure that `fixed` guards is hashed elsewhere: a shelf life
 as ticks in the goods, the tolerances in `tol`, and a period in the schedule under `prefix_id`.
@@ -85,7 +112,9 @@ pub enum ClockMethod { Value, Flow, Share, LogStep, Compound, Fraction, Weight, 
 impl ClockMethod { pub fn unit(self) -> Unit;  pub fn name(self) -> &'static str;   // "log_step", …
                    pub fn per_tick(self, c: &Clock, v: f64) -> Result<f64, ClockError>; }  // §6's table
 pub struct Site { pub param: ParamId, pub method: ClockMethod }   // what a resolved spec holds
-impl Site { pub fn per_tick(&self, v: &View) -> f64; }           // the only conversion at use
+impl Site { pub fn per_tick(&self, p: &Params, c: &Clock) -> Result<f64, CoreError>;  // the read at use
+            pub fn value(&self, p: &Params) -> Result<f64, CoreError>;   // unit-checked (S2.2)
+            pub fn convert(&self, c: &Clock, v: f64) -> Result<f64, CoreError>; }  // by its method
 pub struct ParamSite { pub path: String, pub method: ClockMethod }
 // core::tape::Resolver: the method replaces the unit, whose unit it implies
 pub fn param(&mut self, key: &Key, method: ClockMethod, use_: ParamUse, field: &str) -> Result<Site, LoadError>;
@@ -100,18 +129,24 @@ Core's sites are the EMA (`Weight`), the tolerances (`Value`), a life (`Ticks`) 
 (`LogStep`); agents' scripted sites are capacity, buy and sell (`Flow`) and payout and spend
 (`Share`); each role site names the method its rule applies (RULES §2: a step rule's `up` and `down`
 are `LogStep`, other rates `Share`). Resolved specs hold a `Site`, not a bare `ParamId`, and read it
-only through `Site::per_tick`. So the method a site declares is the conversion the run uses.
-`ClockMethod` and `Site` join the engine prelude and the scans' allow-list. The registry's `sites`
-lists are not hashed; a `Site` inside a spec is, with the spec.
+only through `Site::per_tick` (or, for the cash rule's tilt, `Site::value` then `Site::convert`).
+So the method a site declares is the conversion the run uses. `ClockMethod` and `Site` join the
+engine prelude and the scans' allow-list. The registry's `sites` lists are not hashed; a `Site`
+inside a spec is, with the spec. A `SetParam`'s target is not a site, and a shelf life is a
+`Ticks` site at the good's `life` (amended at S2.2).
 Tests: `registry_names_each_use` (engine): a gate variant sets the mill's `spend` to
 `Some("rate.bread")` and deletes `mill.spend`, and the `rate.bread` row lists `log_step` at
 `goods[bread].price_rate` and `share` at `actors[mill].spec.spend`, each per-tick value equal to
 `Clock`'s. `role_sites_name_their_methods` (agents): appb under July's step rule, every
 `RatePerYear` site against RULES §2. `each_site_converts_as_registered` (agents): on gate and
-appb, every site's per-tick value as the run reads it through the `View` equals its `SiteLine`'s.
-Item 3 is met; S2.1 adds a step-of-7 loop to `observing_changes_no_hash` and records it.
+appb, the sites every spec holds are exactly the recorded ones under `actors[..]`, and each
+per-tick value the run reads through the `View` equals its record's `ClockMethod::per_tick`, which
+is what its `SiteLine` lists (amended at S2.2: agents cannot depend on the engine).
+`params_are_read_only_through_sites` (engine scan), `param_sites_are_recorded` and
+`clock_methods_convert_as_the_clock` (core) were added at S2.2.
+Item 3 is met; S2.2 adds a step-of-7 loop to `observing_changes_no_hash` and records it.
 
-### 2.4 The kick's action: `ScalePrice` (C1; ENGINE §2.4, §2.6, §7.3)
+### 2.4 The kick's action: `ScalePrice` (C1; ENGINE §2.4, §2.6, §7.3), in S2.3
 
 ```rust
 RawAct::ScalePrice { node: Key, good: Key, by: Key }                // appended to RawAct
@@ -139,10 +174,22 @@ equal the kicked tape's run from genesis); `behaviour_output_is_whitelisted` gai
 Every `world_id` changes once (gate, appb, core's and markets' fixtures), for two reasons. Item 1
 drops the `fixed` flag, which is schedule structure, so that a new source keeps the world (E1). And
 §2.3's `Site` puts each spec's method into the hashed actors and goods, since the method decides a
-number. No state hash or `prefix_id` moves: S2.1 compares all 2,080 gate and 20,000 appb per-tick
+number. No state hash or `prefix_id` moves: S2.2 compares all 2,080 gate and 20,000 appb per-tick
 hashes with `cf3c0ff`'s on both machines (finals `0x61f9c8529131ff17`, `0xe1fa082b26995867`). That
 comparison also shows the `Site` refactor changed no conversion. STATE records the new `world_id`s.
 Older checkpoints are refused (`WrongWorld`); none is committed.
+
+Recorded at S2.2 (2026-09-26). Both streams are byte-identical to `cf3c0ff`'s on WSL and on
+Windows, and the two machines agree. The `world_id`s, equal on both machines:
+
+| World | At `cf3c0ff` | From S2.2 | Genesis state hash (unchanged) |
+|---|---|---|---|
+| `tapes/gate.ron` | `0xbecdc746fc86ce97` | `0x43628a8e0fd5f695` | `0xf05d0f23826edf87` |
+| `tapes/appb.ron` | `0x3f689d670fe877c6` | `0x26f12f8a0bc27540` | `0x8d12ce44b614110a` |
+| core's fixture | `0x66d1181c6802a7fd` | `0x85336968874fbf6d` | `0xf1538ab1f6a0de5c` |
+| markets' fixture | `0xbdd0ee95c0bb590f` | `0xc3b1c948a42f06c6` | `0x5e400bb3f1012434` |
+
+STATE takes them at S2.9, with the rest of the docs.
 
 ## 3. Identity: the tape hash, the build and the run key (N10)
 
@@ -531,7 +578,7 @@ impl<W: std::io::Write + Send> TelemetryWriter<W> {
   built `zstd-sys` on both machines. The direct dependencies are bytes, chrono, half, hashbrown,
   num-bigint, num-integer, num-traits, seq-macro, twox-hash, ahash and lz4_flex. WSL's cache holds
   the closure (GUI's data-first probe built 60.0.0 with LZ4_RAW there). Windows lacks at least
-  lz4_flex 0.14.0 and num-bigint 0.5.1, which S2.3 fetches, and S2.3 records the crate count for G0
+  lz4_flex 0.14.0 and num-bigint 0.5.1, which S2.4 fetches, and S2.4 records the crate count for G0
   (GUI §3.1).
 - **Reproducible bytes.** parquet hashes with a runtime-seeded ahash. `telemetry_is_reproducible`
   writes twice in one process; `gate.sh` also writes the same run's telemetry from two processes
@@ -541,7 +588,7 @@ impl<W: std::io::Write + Send> TelemetryWriter<W> {
 
 Test names are binding. Every test that guards a fix or a criterion names the mutation it kills,
 and its step runs that mutation and sees the test fail. Test bars are relative and named at the top
-of their file. Before S2.6 commits the criteria, no test applies gate's or appb's registered bars,
+of their file. Before S2.7 commits the criteria, no test applies gate's or appb's registered bars,
 except the kick on appb, whose outcome REPORT §3 and §5 already record (C2's 70 kicks decay).
 Certify's testdata, in `crates/certify/testdata/`, is written by `appb-tape --perturb` and checked
 by the probe test `certify_testdata_is_generated`: `appb-bcycle.ron` (`bcycle(1500,4)`, to tick
@@ -563,9 +610,9 @@ and `appb-july.ron` (July's step rule from `w*2`, the negative control).
 | Kick, after the base run | `deferred_tape_keeps_every_param` (certify): a gate variant whose only reference to a registered param is a `SetParam` after T keeps `world_id` and the registry. `a_failed_kick_is_a_fail_not_an_error` (certify): the kick runner fed another world's checkpoint gives Kick `pass: false` with a note, and `certify` returns a sealed FAIL. `reserved_keys_do_not_load` (certify): a tape with a `certify.` key is refused | dropping events and params; `?` on a kick error; no reservation |
 | REPORT §6 criterion 2, transients | `transient_statistics_are_reported` (certify): on `appb-bcycle.ron`, every report equals an independent fold of the `TickReport`s written in the test; the b′ = 0.8 segment has a trough, dead ticks and a transfer shortfall; fills skip ticks where their side is empty; rationing is reported per (market, class, side) with Σ(requested − feasible) | a report over the wrong segment, market or class; dead ticks counted as rationing |
 | REPORT §6 criterion 3, windows per shock | `a_history_whose_segments_return_passes` (certify): `appb-bcycle.ron` passes Settles and Kick in all five segments, under test bars with m below 1,500 ticks | windows across shocks |
-| D10 item 1 | `new_source_event_keeps_world_id` (engine) | hashing `p.fixed` |
+| D10 item 1 | `new_source_event_keeps_world_id` (engine) | hashing `p.fixed`; hashing a param's sites |
 | D10 item 2 | `fired_event_names_its_source` (engine) | `source: None` |
-| D10 item 4 | `registry_names_each_use` (engine); `role_sites_name_their_methods`, `each_site_converts_as_registered` (agents) | one method per param; a site whose rule converts another way |
+| D10 item 4 | `registry_names_each_use`, `params_are_read_only_through_sites` (engine); `role_sites_name_their_methods`, `each_site_converts_as_registered` (agents); `param_sites_are_recorded`, `clock_methods_convert_as_the_clock` (core) | one method per param, in the listing or the record; a source without its target's methods; the step rule's `up` as a share; a held `Site` whose method is not the recorded one; a rule that converts around its site |
 | N10 | `tape_hash_covers_every_input` (certify): one edit per raw field kind moves the hash (name, a basis text, a param value by one ulp, a date, a spec inline number, a recurring `last`); reformatting, comments, CRLF, list order and a `to_ron` round trip keep it. `manifest_names_every_input` (cli): the build with its target, `tape_hash`, `world_id`, `genesis_hash`, a resumed checkpoint's digest, and the certificate's criteria hash | hashing `world_id`'s content; dropping the digest |
 | Manifest | `manifest_refuses_a_checkpoint_off_the_run` (certify): a checkpoint whose state hash is not the last folded hash, or of another world, is `OffRun`. `manifest_paths_are_relative` (certify): files are recorded relative, with `/` | recording `state_hash(cp)` unchecked; a platform path |
 | R16, the cli | `hash_output_names_its_run`; `resume_requires_a_recorded_checkpoint` (no manifest, another world, a record whose hash differs: exit 3); `resume_refuses_another_tape` (existing; gains the same-world case: a dated edit after the checkpoint keeps world and past but not `tape_hash`, exit 3 under the manifest); `resume_records_its_parent` (cli) | an unnamed header; skipping verify; verifying the world only |
@@ -582,17 +629,18 @@ and `appb-july.ron` (July's step rule from `w*2`, the negative control).
 
 | Step | Delivers |
 |---|---|
-| S2.1 | §2: D10 items 1, 2 and 4 with `Site`, `ScalePrice`, `MarketLine::trades`; ENGINE amendments (§2.1, §2.4, §2.6, §4, §6, §7.1, §7.4, §11, §13); TAPE.md's row; the hash comparison and the new `world_id`s recorded |
-| S2.2 | certify: criteria, manifest, obs, folds, batteries, kick, certificate and seal, the finite scan; their tests on synthetic observations and testdata |
-| S2.3 | telemetry behind `parquet`; `Cargo.lock` |
-| S2.4 | cli: the build stamp, named hashes, the manifest, verified resume, `certify`; `gate.sh` |
-| S2.5 | probe: the moved measures delegated, `appb-tape --perturb`, the testdata, the pins |
-| S2.6 | `criteria/gate-2026-09-26.ron` and `criteria/appb-2026-09-26.ron`, committed alone, before any certified run of either tape |
-| S2.7 | `results/{gate,appb}/{certificate,manifest}.ron` from a clean build of S2.6, without `--telemetry`. A FAIL is committed as a FAIL and reported, never retuned in place |
-| S2.8 | docs: this file's amendments, ENGINE, TAPE, README, PLAN §3.2's text for decision 39, STATE, and GUI.md: §3.3's `tape_hash` definition and `RunKey` (`Hex` fields, `Build` with target and rustc), and §7.2 (items 1, 2 and 4 met; `source: Option<Key>`) |
-| S2.9 | one adversarial pass, one fix round, one re-check of exactly the fixed items; results regenerated if a verdict path changed |
+| S2.1 | this contract (`785ab19`) |
+| S2.2 | §2.1–§2.3 and §2.5: D10 items 1, 2 and 4 with `Site`; item 3's loop; ENGINE amendments (§2.1, §2.6, §4, §5, §6, §7.1, §7.4, §11, §13); TAPE.md's row; the hash comparison and the new `world_id`s recorded (§2.5) |
+| S2.3 | §2.4: `ScalePrice` and `MarketLine::trades`, with their ENGINE amendments (§2.4, §2.6, §7.3) and TAPE.md's row; certify: criteria, manifest, obs, folds, batteries, kick, certificate and seal, the finite scan; their tests on synthetic observations and testdata |
+| S2.4 | telemetry behind `parquet`; `Cargo.lock` |
+| S2.5 | cli: the build stamp, named hashes, the manifest, verified resume, `certify`; `gate.sh` |
+| S2.6 | probe: the moved measures delegated, `appb-tape --perturb`, the testdata, the pins |
+| S2.7 | `criteria/gate-2026-09-26.ron` and `criteria/appb-2026-09-26.ron`, committed alone, before any certified run of either tape |
+| S2.8 | `results/{gate,appb}/{certificate,manifest}.ron` from a clean build of S2.7, without `--telemetry`. A FAIL is committed as a FAIL and reported, never retuned in place |
+| S2.9 | docs: this file's amendments, ENGINE, TAPE, README, PLAN §3.2's text for decision 39, STATE, and GUI.md: §3.3's `tape_hash` definition and `RunKey` (`Hex` fields, `Build` with target and rustc), and §7.2 (items 1, 2 and 4 met; `source: Option<Key>`) |
+| S2.10 | one adversarial pass, one fix round, one re-check of exactly the fixed items; results regenerated if a verdict path changed |
 
-**Registered bars** (S2.6):
+**Registered bars** (S2.7):
 - **gate.** Until `1790-01-01` (tick 2,080; ENGINE §10). `min_segment` 1.0 year (one pension
   period, so a segment sees the recurring cycle whole; the closest shocks are two years apart).
   Conservation. Determinism resumed at 0.25, 0.5 and 0.75 (`gate_resume_from_checkpoints`'
@@ -625,17 +673,17 @@ cross-platform comparison compares the bodies of the hash files.
 1. **C1.** `ScalePrice` reopens core, where REPORT §6 said no criterion needed an engine change.
    The alternative writes a state no tape made. Is a phase-0 price shock acceptable under R3 and
    E1? It shocks a price once, on a date; it clamps nothing, and it cannot recur (§2.4).
-2. **R16 and dated edits.** S2.4 builds R16's letter: a cli resume needs the same `tape_hash`.
+2. **R16 and dated edits.** S2.5 builds R16's letter: a cli resume needs the same `tape_hash`.
    E1 lets the engine resume under a dated edit at or after the checkpoint. Should the cli allow
    that too, behind an explicit `--edited` flag that records `parent` and marks the run in the
    manifest and the hash header? Nothing is built until the ruling.
 3. **BalanceWatch's bars are absolute on the imbalance,** a dimensionless number in [−1, 1], not
    a price, flow or quantity, so A12 is read as allowing them. C13 settles the one-sided case now.
-   If gate certifies FAIL on it, S2.7 commits the FAIL and reports it.
+   If gate certifies FAIL on it, S2.8 commits the FAIL and reports it.
 4. **C11 edits probe code that REPORT cites at `55c9e88`.** `probe_battery_csv_unchanged` guards
    it; the alternative keeps two definitions until Phase 2 proper.
 5. **The freeze testdata depends on the sweep.** If no candidate freezes at rest within 20,000
-   ticks, the Kick battery's negative test needs a hand-built unstable tape. S2.5 says which.
+   ticks, the Kick battery's negative test needs a hand-built unstable tape. S2.6 says which.
 6. **The horizon is one L.** An instability slower than L passes: REPORT §5's rates ×4 cell needs
    about 55,000 ticks to grow a 1e-9 kick past tolerance. C2 sits 4× inside that edge. A longer
    horizon would be a new dated criteria file.

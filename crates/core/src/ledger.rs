@@ -35,7 +35,6 @@ use crate::ext::Ext;
 use crate::ids::{GoodId, Holder};
 use crate::num::is_clean;
 use crate::state::SimState;
-use crate::units::Dimensionless;
 use crate::world::World;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -177,11 +176,11 @@ fn walk<E: Ext>(s: &SimState<E>, w: &World<E>) -> Result<Vec<f64>, CoreError> {
     Ok(totals)
 }
 
-/// The registered tolerances, read from the current params.
+/// The registered tolerances, read from the current params through their `Value` sites.
 fn tolerances<E: Ext>(s: &SimState<E>, w: &World<E>) -> Result<(f64, f64), CoreError> {
     let params = s.params(&w.registry);
-    let rel_flow = params.get::<Dimensionless>(w.tol.rel_flow)?.0;
-    let rel_stock = params.get::<Dimensionless>(w.tol.rel_stock)?.0;
+    let rel_flow = w.tol.rel_flow.per_tick(&params, &w.clock)?;
+    let rel_stock = w.tol.rel_stock.per_tick(&params, &w.clock)?;
     Ok((rel_flow, rel_stock))
 }
 
@@ -1098,8 +1097,8 @@ mod tests {
             holder(&w, "pensioners"),
             good(&w, "grain"),
         );
-        let rel_flow = base.param(w.tol.rel_flow).unwrap();
-        let rel_stock = base.param(w.tol.rel_stock).unwrap();
+        let rel_flow = base.param(w.tol.rel_flow.param).unwrap();
+        let rel_stock = base.param(w.tol.rel_stock.param).unwrap();
         assert_eq!((rel_flow, rel_stock), (1e-12, 1e-11));
         // `n` transfers of the farm's 1000 grain, to the mill and back: each moves exactly 1000.
         let shuttle = |s: &mut SimState<NoExt>, l: &mut Ledger, n: usize| {

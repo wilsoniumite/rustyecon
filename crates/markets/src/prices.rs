@@ -7,9 +7,11 @@
 //!   July's rule was a command-line switch with a code default (N13), and it treated one-sided
 //!   markets by formula (F8).
 //! - `Imbalance` is `p·exp(k·x)` with `k = clock.log_step(price_rate)`, which is tick-invariant
-//!   (A13); July's `p·(1 + α·x)` agrees with it to first order in `α·x`.
+//!   (A13); July's `p·(1 + α·x)` agrees with it to first order in `α·x`. The price rate is a
+//!   `LogStep` site (amended at S2.2), read through it.
 //! - The EMA weight is `clock.weight(ema_time_constant)`, a registered span in years read at use
-//!   time; July's `EMA_ALPHA = 2/53` was a literal tied to weekly ticks.
+//!   time through its `Weight` site; July's `EMA_ALPHA = 2/53` was a literal tied to weekly
+//!   ticks.
 //! - A price or EMA is emitted when its bits change. July's `1e-12` change gates made a price
 //!   floor near `1e-12/α` (N5) and a redenomination change real outcomes; they are gone.
 //! - A non-finite or non-positive price is an error that stops the run. July's ratio rule kept
@@ -18,8 +20,7 @@
 
 use rustyecon_core::num::{self, is_clean};
 use rustyecon_core::{
-    CoreError, Ext, GoodId, NodeId, OneSided, PriceRule, RatePerYear, SimState, StateDelta, World,
-    Years,
+    CoreError, Ext, GoodId, NodeId, OneSided, PriceRule, SimState, StateDelta, World,
 };
 use std::fmt;
 
@@ -148,9 +149,7 @@ pub fn update_prices<E: Ext>(
     w: &World<E>,
 ) -> Result<Vec<StateDelta<E>>, PriceError> {
     let params = s.params(&w.registry);
-    let weight = w
-        .clock
-        .weight(params.get::<Years>(w.market.ema_time_constant)?);
+    let weight = w.market.ema_time_constant.per_tick(&params, &w.clock)?;
     let mut out = Vec::new();
     for (node, good) in w.markets() {
         let q = s
@@ -161,7 +160,7 @@ pub fn update_prices<E: Ext>(
             .good(good)
             .and_then(|g| g.price_rate)
             .ok_or_else(|| CoreError::Shape(format!("{good} has a market but no price rate")))?;
-        let k = w.clock.log_step(params.get::<RatePerYear>(rate)?);
+        let k = rate.per_tick(&params, &w.clock)?;
         let price = next_price(
             w.market.rule,
             w.market.one_sided,

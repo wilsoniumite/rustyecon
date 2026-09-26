@@ -70,8 +70,9 @@ enum Cmd {
         #[arg(long)]
         until: u64,
     },
-    /// List every number a tape feeds a run: each param with its unit, per-tick value and
-    /// basis, and the inline numbers under their entries' bases.
+    /// List every number a tape feeds a run: each param with its unit, its use, each place it
+    /// is read with that read's conversion and per-tick value, and its basis; then the inline
+    /// numbers under their entries' bases.
     Registry {
         /// The tape (RON).
         tape: PathBuf,
@@ -292,7 +293,7 @@ fn run(cmd: Cmd) -> Result<(), Exit> {
         Cmd::Registry { tape } => {
             let t = load_tape(&tape)?;
             let lines = registry(&t).map_err(|e| load_error(&tape, e))?;
-            println!("path\tvalue\tunit\tper tick\tbasis");
+            println!("path\tvalue\tunit use\tmethod per tick at site; …\tbasis");
             for line in lines {
                 println!("{line}");
             }

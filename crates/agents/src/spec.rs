@@ -11,13 +11,15 @@
 //! required and none has a default, as in core's raw types (`rustyecon_core::tape::raw`).
 #![deny(missing_docs)]
 
+use crate::ext::Agents;
 use crate::roles::spec::{
     resolve_good_desk, resolve_mach_desk, resolve_provider, resolve_workers, scale_numbers,
     GoodDesk, MachDesk, Provider, RawGoodDesk, RawMachDesk, RawProvider, RawWorkers, Workers,
 };
 use rustyecon_core::tape::raw::required;
 use rustyecon_core::{
-    ActorId, GoodId, Key, LoadError, LoadErrorKind, NodeId, ParamId, ParamUse, Resolver, Unit,
+    ActorId, ClockMethod, GoodId, Key, LoadError, LoadErrorKind, NodeId, ParamUse, Resolver, Site,
+    World,
 };
 use serde::{Deserialize, Serialize};
 
@@ -159,8 +161,9 @@ pub struct Script {
     pub buy: Vec<BuyLine>,
     /// Its sell lines, in (node, good) order.
     pub sell: Vec<SellLine>,
-    /// Its spending rate, a live `RatePerYear` param; `Some` exactly when it has buy lines.
-    pub spend: Option<ParamId>,
+    /// Its spending rate, a live `RatePerYear` param read as a `Share`; `Some` exactly when it
+    /// has buy lines.
+    pub spend: Option<Site>,
     /// Its payout.
     pub payout: Option<Payout>,
 }
@@ -172,8 +175,8 @@ pub struct Recipe {
     pub inputs: Vec<(GoodId, f64)>,
     /// Outputs and coefficients, by good.
     pub outputs: Vec<(GoodId, f64)>,
-    /// The capacity, a live `FlowPerYear` param.
-    pub capacity: ParamId,
+    /// The capacity, a live `FlowPerYear` param read as a `Flow`.
+    pub capacity: Site,
 }
 
 /// A resolved buy line.
@@ -183,8 +186,8 @@ pub struct BuyLine {
     pub node: NodeId,
     /// The good.
     pub good: GoodId,
-    /// The quantity per year, a live `FlowPerYear` param.
-    pub qty: ParamId,
+    /// The quantity per year, a live `FlowPerYear` param read as a `Flow`.
+    pub qty: Site,
     /// The share of the spending total.
     pub weight: f64,
 }
@@ -203,8 +206,8 @@ pub struct SellLine {
 /// How much a resolved sell line offers.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum SellQty {
-    /// A live `FlowPerYear` param, capped by what is still held.
-    Flow(ParamId),
+    /// A live `FlowPerYear` param read as a `Flow`, capped by what is still held.
+    Flow(Site),
     /// Everything still held.
     AllHeld,
 }
@@ -212,8 +215,8 @@ pub enum SellQty {
 /// A resolved payout.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Payout {
-    /// The rate, a live `RatePerYear` param.
-    pub rate: ParamId,
+    /// The rate, a live `RatePerYear` param read as a `Share`.
+    pub rate: Site,
     /// Recipients and weights, in `ActorId` order.
     pub to: Vec<(ActorId, f64)>,
 }
@@ -287,7 +290,7 @@ fn recipe(r: &mut Resolver<'_>, raw: &RawRecipe) -> Result<Recipe, LoadError> {
             LoadErrorKind::Invalid("a recipe needs an input or an output".into()),
         ));
     }
-    let capacity = r.param(&raw.capacity, Unit::FlowPerYear, ParamUse::Live, "capacity")?;
+    let capacity = r.param(&raw.capacity, ClockMethod::Flow, ParamUse::Live, "capacity")?;
     r.leave();
     Ok(Recipe {
         inputs,
@@ -319,7 +322,7 @@ fn buys(r: &mut Resolver<'_>, raw: &[RawBuy]) -> Result<Vec<BuyLine>, LoadError>
                 format!("{}/{}", b.node, b.good),
             ));
         }
-        let qty = r.param(&b.qty, Unit::FlowPerYear, ParamUse::Live, "qty")?;
+        let qty = r.param(&b.qty, ClockMethod::Flow, ParamUse::Live, "qty")?;
         let weight = positive(r, b.weight, "weight")?;
         r.leave();
         out.push(BuyLine {
@@ -352,7 +355,7 @@ fn sells(r: &mut Resolver<'_>, raw: &[RawSell]) -> Result<Vec<SellLine>, LoadErr
         }
         let qty = match &s.qty {
             RawSellQty::Flow(k) => {
-                SellQty::Flow(r.param(k, Unit::FlowPerYear, ParamUse::Live, "qty")?)
+                SellQty::Flow(r.param(k, ClockMethod::Flow, ParamUse::Live, "qty")?)
             }
             RawSellQty::AllHeld => SellQty::AllHeld,
         };
@@ -365,7 +368,7 @@ fn sells(r: &mut Resolver<'_>, raw: &[RawSell]) -> Result<Vec<SellLine>, LoadErr
 
 fn payout(r: &mut Resolver<'_>, raw: &RawPayout) -> Result<Payout, LoadError> {
     r.enter("payout");
-    let rate = r.param(&raw.rate, Unit::RatePerYear, ParamUse::Live, "rate")?;
+    let rate = r.param(&raw.rate, ClockMethod::Share, ParamUse::Live, "rate")?;
     let mut to: Vec<(ActorId, f64)> = Vec::with_capacity(raw.to.len());
     for (k, w) in &raw.to {
         let field = format!("to[{k}]");
@@ -388,6 +391,50 @@ fn payout(r: &mut Resolver<'_>, raw: &RawPayout) -> Result<Payout, LoadError> {
     Ok(Payout { rate, to })
 }
 
+/// The key of an id in `w`, or the id itself when `w` does not name it.
+fn key_or_id<I: rustyecon_core::Keyed + std::fmt::Display>(w: &World<Agents>, id: I) -> String {
+    w.key_of(id).map_or_else(|| id.to_string(), Key::to_string)
+}
+
+impl Spec {
+    /// Every param this spec reads, each with its tape path under `actors[key].spec` and the
+    /// [`Site`] the run reads it through, in path order (amended at S2.2, D10 item 4). The
+    /// resolver records each of them, with the same path and method, in the param's
+    /// `ParamDef::sites`; `each_site_converts_as_registered` checks the two agree.
+    pub fn sites(&self, w: &World<Agents>) -> Vec<(String, Site)> {
+        let mut out: Vec<(String, Site)> = Vec::new();
+        match self {
+            Spec::Scripted(s) => {
+                if let Some(rec) = &s.recipe {
+                    out.push(("recipe.capacity".into(), rec.capacity));
+                }
+                for l in &s.buy {
+                    let at = format!("buy[{}/{}]", key_or_id(w, l.node), key_or_id(w, l.good));
+                    out.push((format!("{at}.qty"), l.qty));
+                }
+                for l in &s.sell {
+                    if let SellQty::Flow(site) = l.qty {
+                        let at = format!("sell[{}/{}]", key_or_id(w, l.node), key_or_id(w, l.good));
+                        out.push((format!("{at}.qty"), site));
+                    }
+                }
+                if let Some(site) = s.spend {
+                    out.push(("spend".into(), site));
+                }
+                if let Some(p) = &s.payout {
+                    out.push(("payout.rate".into(), p.rate));
+                }
+            }
+            Spec::Provider(p) => p.sites(&mut out),
+            Spec::Workers(p) => p.sites(&mut out),
+            Spec::GoodDesk(d) => d.sites(&mut out),
+            Spec::MachDesk(d) => d.sites(&mut out),
+        }
+        out.sort_by(|a, b| a.0.cmp(&b.0));
+        out
+    }
+}
+
 /// Resolve a spec. The resolver's path already names `actors[key].spec`.
 pub fn resolve(raw: &RawSpec, r: &mut Resolver<'_>) -> Result<Spec, LoadError> {
     match raw {
@@ -399,7 +446,9 @@ pub fn resolve(raw: &RawSpec, r: &mut Resolver<'_>) -> Result<Spec, LoadError> {
             let buy = buys(r, &s.buy)?;
             let sell = sells(r, &s.sell)?;
             let spend = match (&s.spend, buy.is_empty()) {
-                (Some(k), false) => Some(r.param(k, Unit::RatePerYear, ParamUse::Live, "spend")?),
+                (Some(k), false) => {
+                    Some(r.param(k, ClockMethod::Share, ParamUse::Live, "spend")?)
+                }
                 (None, true) => None,
                 (Some(_), true) => {
                     return Err(r.error(

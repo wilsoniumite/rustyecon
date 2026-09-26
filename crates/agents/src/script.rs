@@ -19,9 +19,7 @@ use crate::behaviour::{AgentError, Behaviour, Decision, View};
 use crate::ext::{Agents, ScriptState};
 use crate::spec::{Script, SellQty};
 use rustyecon_core::num;
-use rustyecon_core::{
-    ActorId, Amount, FlowPerYear, Holder, Inventory, Provenance, RatePerYear, StateDelta,
-};
+use rustyecon_core::{ActorId, Amount, Holder, Inventory, Provenance, StateDelta};
 use rustyecon_markets::{Order, Side};
 
 /// Split `total` by `weights` in order: each part but the last is `fl(w·total)`, the last is
@@ -66,7 +64,7 @@ impl Behaviour for Script {
         let mut dry = v.own.clone();
         // Payouts first, from the cash held when the phase began.
         if let Some(p) = &self.payout {
-            let share = v.clock.share(v.params.get::<RatePerYear>(p.rate)?);
+            let share = p.rate.per_tick(&v.params, v.clock)?;
             let total = share * dry.get(v.currency);
             let parts = split(total, p.to.iter().map(|(_, w)| *w), &mut dry, v.currency)?;
             for ((to, _), part) in p.to.iter().zip(parts) {
@@ -82,7 +80,7 @@ impl Behaviour for Script {
         }
         // Buy lines, in (node, good) order, budgeting what the payouts left.
         if let Some(spend) = self.spend {
-            let share = v.clock.share(v.params.get::<RatePerYear>(spend)?);
+            let share = spend.per_tick(&v.params, v.clock)?;
             let total = share * dry.get(v.currency);
             let budgets = split(
                 total,
@@ -96,7 +94,7 @@ impl Behaviour for Script {
                     class: v.class,
                     node: line.node,
                     good: line.good,
-                    qty: v.clock.flow(v.params.get::<FlowPerYear>(line.qty)?),
+                    qty: line.qty.per_tick(&v.params, v.clock)?,
                     side: Side::Buy { budget },
                 });
             }
@@ -105,7 +103,7 @@ impl Behaviour for Script {
         for line in &self.sell {
             let left = dry.get(line.good);
             let want = match line.qty {
-                SellQty::Flow(p) => v.clock.flow(v.params.get::<FlowPerYear>(p)?),
+                SellQty::Flow(site) => site.per_tick(&v.params, v.clock)?,
                 SellQty::AllHeld => left,
             };
             let qty = want.min(left);
@@ -129,7 +127,7 @@ impl Behaviour for Script {
         let Some(recipe) = self.recipe.as_ref().filter(|_| v.own_state.active) else {
             return Ok(out);
         };
-        let mut x = v.clock.flow(v.params.get::<FlowPerYear>(recipe.capacity)?);
+        let mut x = recipe.capacity.per_tick(&v.params, v.clock)?;
         for &(g, a) in &recipe.inputs {
             x = x.min(num::max_scale(v.own.get(g), a)?);
         }

@@ -3,7 +3,7 @@
 //! A `World` comes only from [`crate::resolve`]. Its dense ids are numbered per kind in key byte
 //! order, and it maps both ways between ids and keys ([`World::id_of`], [`World::key_of`]).
 
-use crate::clock::Clock;
+use crate::clock::{Clock, ParamSite, Site};
 use crate::delta::StateDelta;
 use crate::ext::Ext;
 use crate::hash::Fnv;
@@ -46,8 +46,9 @@ pub struct GoodDef {
     pub key: Key,
     /// Its shelf life.
     pub life: Life,
-    /// The registered `RatePerYear` its price moves at; `None` exactly for a currency.
-    pub price_rate: Option<ParamId>,
+    /// The registered `RatePerYear` its price moves at, a `LogStep` site; `None` exactly for a
+    /// currency.
+    pub price_rate: Option<Site>,
 }
 
 /// A market node.
@@ -89,14 +90,14 @@ pub struct ActorDecl<A> {
     pub spec: A,
 }
 
-/// The ledger's registered tolerances (A12): both `Dimensionless` and fixed, with no absolute
-/// term.
+/// The ledger's registered tolerances (A12): both `Dimensionless` `Value` sites and fixed, with
+/// no absolute term.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Tolerances {
     /// Slack per unit of gross flow.
-    pub rel_flow: ParamId,
+    pub rel_flow: Site,
     /// Slack per unit of stock held.
-    pub rel_stock: ParamId,
+    pub rel_stock: Site,
 }
 
 /// How prices move (N13). Required on the tape; there is no default.
@@ -124,8 +125,8 @@ pub struct MarketConfig {
     pub rule: PriceRule,
     /// The one-sided rule.
     pub one_sided: OneSided,
-    /// The EMA's time constant, a live `Years` param.
-    pub ema_time_constant: ParamId,
+    /// The EMA's time constant, a live `Years` param, a `Weight` site.
+    pub ema_time_constant: Site,
 }
 
 /// One firing of a tape event.
@@ -209,6 +210,9 @@ pub struct ScheduleParam {
     pub value: f64,
     /// Where the value comes from (R4).
     pub basis: Basis,
+    /// Its uses, in (path, method) order: a `SetParam` source takes its target's methods at the
+    /// event's `to`, and a period `Ticks` at the entry's `every` (amended at S2.2, D10 item 4).
+    pub sites: Vec<ParamSite>,
 }
 
 /// The tape's events, resolved and sorted (N1), with the params only they read.

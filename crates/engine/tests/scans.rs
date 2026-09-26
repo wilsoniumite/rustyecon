@@ -155,6 +155,70 @@ fn no_hashed_collections() {
     assert!(found.is_empty(), "hashed collections: {found:#?}");
 }
 
+/// The `Clock` conversions of docs/ENGINE.md §6 that turn a param into a per-tick value.
+const CONVERSIONS: [&str; 6] = [
+    "flow", "share", "log_step", "compound", "fraction", "weight",
+];
+
+/// Reads of a param that go around its `Site`: a conversion called as a method or through a
+/// path, a typed `Params::get`, or an untyped `params.value`.
+fn site_bypasses(toks: &[Tok]) -> Vec<String> {
+    let mut found = Vec::new();
+    for (i, t) in toks.iter().enumerate() {
+        let Tok::Ident(name) = t else { continue };
+        let at = |k: usize| toks.get(i + k);
+        let back = |k: usize| i.checked_sub(k).and_then(|j| toks.get(j));
+        let called = at(1).is_some_and(|n| punct(n, '('));
+        let method = back(1).is_some_and(|p| punct(p, '.'));
+        let path = back(1).is_some_and(|p| punct(p, ':')) && back(2).is_some_and(|p| punct(p, ':'));
+        if CONVERSIONS.contains(&name.as_str()) && called && (method || path) {
+            found.push(format!("{name}("));
+        }
+        let turbofish = at(1).is_some_and(|n| punct(n, ':'))
+            && at(2).is_some_and(|n| punct(n, ':'))
+            && at(3).is_some_and(|n| punct(n, '<'));
+        if name == "get" && method && turbofish {
+            found.push("get::<".to_string());
+        }
+        if name == "params"
+            && at(1).is_some_and(|n| punct(n, '.'))
+            && at(2).is_some_and(|n| ident(n, "value"))
+        {
+            found.push("params.value".to_string());
+        }
+    }
+    found
+}
+
+#[test]
+fn params_are_read_only_through_sites() {
+    // D10 item 4 (S2.2): a resolved spec, good or market holds each param it reads as a Site,
+    // whose method is the one the registry lists, and the run converts a param only through
+    // it. So no shipped code but core's clock.rs, where `ClockMethod` and `Site` live, calls a
+    // conversion itself or reads a param by type. A rule written the old way,
+    // `v.clock.log_step(v.params.get::<RatePerYear>(up)?)`, would convert as its code says
+    // whatever the registry lists.
+    let src = r"
+        let k = w.clock.log_step(params.get::<RatePerYear>(rate)?);
+        let s = Clock::share(&c, RatePerYear(v)); let x = v.params.value(p)?;
+        let ok = site.per_tick(&v.params, v.clock)?; let f = d.technique.share;
+        let o = rate.value(&v.params)?; let t = turnover.convert(v.clock, o)?;
+        let g = self.params.get(i); let m = s.method.per_tick(&w.clock, v);
+    ";
+    let found = site_bypasses(&tokens(&shipped(&strip(src))));
+    assert_eq!(found, ["log_step(", "get::<", "share(", "params.value"]);
+    let mut found = Vec::new();
+    for (path, toks) in engine_path_tokens() {
+        if path.replace('\\', "/").ends_with("core/src/clock.rs") {
+            continue;
+        }
+        for v in site_bypasses(&toks) {
+            found.push(format!("{path}: {v}"));
+        }
+    }
+    assert!(found.is_empty(), "param reads around a Site: {found:#?}");
+}
+
 #[test]
 fn no_behavioural_float_literals() {
     // R4, A12: every behavioural number comes from the tape. Shipped code may spell only 0.0

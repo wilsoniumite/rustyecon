@@ -321,8 +321,8 @@ pub fn int_float_violations(toks: &[Tok], allowed: &[&str]) -> Vec<String> {
 
 /// Core's read-only items, the ones the engine's prelude re-exports. A `pub use` of anything
 /// else from core is flagged, so the list is an allow-list: a new type joins the prelude only
-/// by joining it too (E1; amended at P0.9, O11).
-pub const CORE_READ_ONLY: [&str; 29] = [
+/// by joining it too (E1; amended at P0.9, O11). `ClockMethod` and `Site` joined at S2.2.
+pub const CORE_READ_ONLY: [&str; 31] = [
     "ActorId",
     "ActorKind",
     "Amount",
@@ -330,6 +330,7 @@ pub const CORE_READ_ONLY: [&str; 29] = [
     "CheckpointError",
     "ClassId",
     "Clock",
+    "ClockMethod",
     "CoreError",
     "Date",
     "DeskId",
@@ -350,6 +351,7 @@ pub const CORE_READ_ONLY: [&str; 29] = [
     "RunAudit",
     "ShortfallLine",
     "SimState",
+    "Site",
     "StateDelta",
     "TickAudit",
 ];

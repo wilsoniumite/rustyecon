@@ -3,15 +3,18 @@
 //! Every comparison here is exact: the scripted actor's guarantees (no overdraw, no over-budget,
 //! no shortfall) are statements about floating-point results, not approximations.
 
+use rustyecon_agents::cast::view;
 use rustyecon_agents::{
     ActorState, AgentDelta, Agents, Cast, Decision, RawSellQty, RawSpec, ScriptState, SellQty, Spec,
 };
 use rustyecon_core::num;
 use rustyecon_core::{
-    apply, resolve, ActorId, Amount, Clock, CoreError, GoodId, Holder, Ledger, LoadError,
-    LoadErrorKind, NodeId, Phase, Provenance, RatePerYear, SimState, StateDelta, Tape, World,
+    apply, resolve, ActorId, Amount, Clock, ClockMethod, CoreError, GoodId, Holder, Ledger,
+    LoadError, LoadErrorKind, NodeId, ParamId, Phase, Provenance, RatePerYear, SimState, Site,
+    StateDelta, Tape, World,
 };
 use rustyecon_markets::{admit, Side};
+use std::collections::BTreeSet;
 
 const GATE: &str = include_str!("../../../tapes/gate.ron");
 
@@ -671,8 +674,8 @@ fn per_tick_conversions_follow_the_clock() {
                 mint(&mut s, &w, a, good(&w, g), 1e6);
             }
         }
-        let value = |p| s.param(p).expect("a registered param");
-        let share = |p| -num::expm1(-(value(p) / per));
+        let value = |p: Site| s.param(p.param).expect("a registered param");
+        let share = |p: Site| -num::expm1(-(value(p) / per));
         let mut seen = (0, 0, 0, 0);
         for a in cast.actors() {
             let Spec::Scripted(script) = &w.actor(a).unwrap().spec else {
@@ -758,5 +761,62 @@ fn per_tick_conversions_follow_the_clock() {
         // Every kind of line was checked: 4 payouts, the mill's, oven's, workers' and
         // pensioners' 9 buy lines and their 4 spending totals, and 7 sell lines.
         assert_eq!(seen, (4, 9, 4, 7), "{tpy} ticks a year");
+    }
+}
+
+#[test]
+fn each_site_converts_as_registered() {
+    // D10 item 4 (S2.2): a spec holds each param it reads as a Site, and the rules read it
+    // only through the site, so the method a site declares is the conversion the run uses.
+    // On the gate and the probe's world, every site a spec holds is one the registry records,
+    // at the same path with the same method, and none is missing; and the per-tick value an
+    // actor reads through its view is the registry line's, `method.per_tick` of the value
+    // (engine's `registry_names_each_use` pins those lines to the Clock). After a dated
+    // SetParam the view reads the new value through the same method.
+    const APPB: &str = include_str!("../../../tapes/appb.ron");
+    for text in [GATE, APPB] {
+        let (w, mut s) = load_text(text).expect("the tape loads");
+        let recorded: BTreeSet<(String, ParamId, ClockMethod)> = w
+            .registry
+            .params()
+            .iter()
+            .flat_map(|p| {
+                p.sites
+                    .iter()
+                    .filter(|s| s.path.starts_with("actors["))
+                    .map(move |s| (s.path.clone(), p.id, s.method))
+            })
+            .collect();
+        assert!(!recorded.is_empty());
+        for doubled in [false, true] {
+            if doubled {
+                // Every live param at twice its value, as a dated SetParam would leave it.
+                let sets: Vec<Delta> = w
+                    .registry
+                    .params()
+                    .iter()
+                    .filter(|p| !p.fixed)
+                    .map(|p| StateDelta::SetParam {
+                        param: p.id,
+                        value: 2.0 * p.genesis,
+                    })
+                    .collect();
+                apply_in(&mut s, &w, Phase::Events, &sets).unwrap();
+            }
+            let mut held: BTreeSet<(String, ParamId, ClockMethod)> = BTreeSet::new();
+            for decl in &w.actors {
+                let state = s.ext().get(&decl.id).unwrap();
+                let v = view(decl, &s, &w, state).unwrap();
+                for (path, site) in decl.spec.sites(&w) {
+                    let path = format!("actors[{}].spec.{path}", decl.key);
+                    let now = s.param(site.param).unwrap();
+                    let registered = site.method.per_tick(&w.clock, now).unwrap();
+                    let read = site.per_tick(&v.params, v.clock).unwrap();
+                    assert_eq!(read.to_bits(), registered.to_bits(), "{path}");
+                    held.insert((path, site.param, site.method));
+                }
+            }
+            assert_eq!(held, recorded, "doubled: {doubled}");
+        }
     }
 }

@@ -247,6 +247,37 @@ fn gate_events_fire_in_date_order() {
 }
 
 #[test]
+fn fired_event_names_its_source() {
+    // D10 item 2 (S2.2; docs/GUI.md §7.2), R4: a fired SetParam names the param its value was
+    // copied from, which carries the new value's basis, so a frontend can explain a number
+    // from the report alone. Every other firing names none.
+    let t = tape();
+    let mut sim = sim_of(&t);
+    let mut fired: Vec<FiredEvent> = Vec::new();
+    sim.run_until(TICKS, &mut |r| fired.extend(r.events.iter().cloned()))
+        .unwrap();
+    let sources = |key: &str| -> Vec<Option<String>> {
+        fired
+            .iter()
+            .filter(|e| e.key.as_str() == key)
+            .map(|e| e.source.as_ref().map(Key::to_string))
+            .collect()
+    };
+    let named = |s: &str| vec![Some(s.to_string())];
+    assert_eq!(sources("mine.cut"), named("mine.capacity.cut"));
+    assert_eq!(sources("mine.restored"), named("mine.capacity.base"));
+    assert_eq!(sources("bread.line.up"), named("workers.buy.bread.high"));
+    assert_eq!(sources("oven.opens"), [None]);
+    let pensions = sources("pension");
+    assert_eq!(pensions.len(), 40);
+    assert!(pensions.iter().all(Option::is_none));
+    for e in &fired {
+        let set = matches!(e.action, StateDelta::SetParam { .. });
+        assert_eq!(e.source.is_some(), set, "{}", e.key);
+    }
+}
+
+#[test]
 fn gate_ids_apart() {
     // Defect 10: Desk(0) (farm) and Pop(0) (pensioners) share a number, as do Desk(1) (mill)
     // and Pop(1) (workers). Every tick, each one's holding of every good changes by exactly the

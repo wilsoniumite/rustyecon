@@ -12,16 +12,18 @@
 //! - `CLOSE`: 1e-14 relative, for a value the test recomputes in another order of operations
 //!   than the rule's (a chain of a few products and quotients, each within half an ulp).
 
+use rustyecon_agents::cast::view;
 use rustyecon_agents::{
     ActorState, AgentDelta, Agents, Cast, Decision, GoodDeskState, ProviderState, RawScale, RawSpec,
 };
 use rustyecon_core::num;
 use rustyecon_core::{
-    apply, resolve, state_hash, ActorId, Amount, Clock, CoreError, GoodId, Holder, Ledger,
-    LoadError, LoadErrorKind, NodeId, ParamId, Phase, Provenance, RatePerYear, SimState,
-    StateDelta, Tape, World,
+    apply, resolve, state_hash, ActorId, Amount, Clock, ClockMethod, CoreError, GoodId, Holder,
+    Ledger, LoadError, LoadErrorKind, NodeId, ParamId, Phase, Provenance, RatePerYear, SimState,
+    StateDelta, Tape, Unit, World,
 };
 use rustyecon_markets::{admit, Order, Side};
+use std::collections::BTreeSet;
 
 const APPB: &str = include_str!("../../../tapes/appb.ron");
 const EXPOST: f64 = 1e-12;
@@ -678,4 +680,95 @@ fn role_specs_round_trip_in_canonical_form() {
         assert_eq!(kinds.len(), 4);
         assert!(!kinds.contains(&"scripted"));
     }
+}
+
+#[test]
+fn role_sites_name_their_methods() {
+    // D10 item 4 (S2.2), docs/probe/RULES.md §2: a `RatePerYear` is a share of a stock where
+    // a rule draws on one and a log step where it moves a scale; the site says which. Under
+    // July's step rule (the negative control) both kinds sit in one desk: `up` and `down` step
+    // the scale by exp(step·(m ∓ dead)), a log step; the buffer, the payout and every spending
+    // and adjustment rate draw a share. The price rates are core's log steps (ENGINE §6).
+    let step = |desk: &str| {
+        format!(
+            r#"scale: Step((up: "step.desk.{desk}.up", down: "step.desk.{desk}.down", dead: "dead.desk.{desk}", buffer: "buffer.desk.{desk}.cash", payout: (to: "provider", rate: "payout.desk.{desk}"), scale: 7.5)),"#
+        )
+    };
+    let mut text = edit(
+        r#"scale: Cash((turnover: "buffer.desk.good.cash", tilt: "tilt.desk.good", payout: None)),"#,
+        &step("good"),
+    );
+    text = text.replacen(
+        r#"scale: Cash((turnover: "buffer.desk.mach.cash", tilt: "tilt.desk.mach", payout: None)),"#,
+        &step("mach"),
+        1,
+    );
+    // The tilts belong to the cash rule; the step rule's own dials replace them.
+    let mut lines: Vec<String> = text
+        .lines()
+        .filter(|l| !l.contains(r#"(key: "tilt.desk."#))
+        .map(str::to_string)
+        .collect();
+    let at = lines.iter().position(|l| l == "    params: [").unwrap();
+    for desk in ["good", "mach"] {
+        for (key, value, unit) in [
+            (format!("step.desk.{desk}.up"), 2.6, "RatePerYear"),
+            (format!("step.desk.{desk}.down"), 1.3, "RatePerYear"),
+            (format!("dead.desk.{desk}"), 0.01, "Dimensionless"),
+            (format!("payout.desk.{desk}"), 5.2, "RatePerYear"),
+        ] {
+            lines.insert(
+                at + 1,
+                format!(
+                    r#"        (key: "{key}", value: {value:?}, unit: {unit}, basis: Assumed("test")),"#
+                ),
+            );
+        }
+    }
+    let (w, s, _) = load(&lines.join("\n"));
+    let rates: Vec<(String, ClockMethod)> = w
+        .registry
+        .params()
+        .iter()
+        .filter(|p| p.unit == Unit::RatePerYear)
+        .flat_map(|p| p.sites.iter().map(|s| (s.path.clone(), s.method)))
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect();
+    let (share, log_step) = (ClockMethod::Share, ClockMethod::LogStep);
+    let mut want: Vec<(String, ClockMethod)> = Vec::new();
+    for desk in ["desk.good", "desk.mach"] {
+        want.push((format!("actors[{desk}].spec.scale.buffer"), share));
+        want.push((format!("actors[{desk}].spec.scale.down"), log_step));
+        want.push((format!("actors[{desk}].spec.scale.payout.rate"), share));
+        want.push((format!("actors[{desk}].spec.scale.up"), log_step));
+    }
+    want.push(("actors[desk.good].spec.technique.adjust".into(), share));
+    want.push(("actors[provider].spec.spend".into(), share));
+    want.push(("actors[workers].spec.spend".into(), share));
+    for good in ["good", "labour", "land", "mach"] {
+        want.push((format!("goods[{good}].price_rate"), log_step));
+    }
+    want.sort();
+    assert_eq!(rates, want);
+    // The spec holds the same method at each path, and reading it through the actor's view
+    // gives the Clock's own conversion of the param's value.
+    let mut checked = 0;
+    for decl in &w.actors {
+        let state = s.ext().get(&decl.id).unwrap();
+        let v = view(decl, &s, &w, state).unwrap();
+        for (path, site) in decl.spec.sites(&w) {
+            let path = format!("actors[{}].spec.{path}", decl.key);
+            let value = s.param(site.param).unwrap();
+            let clock = &w.clock;
+            let expected = match want.iter().find(|(p, _)| *p == path) {
+                Some((_, m)) if *m == log_step => clock.log_step(RatePerYear(value)),
+                Some(_) => clock.share(RatePerYear(value)),
+                None => continue,
+            };
+            assert_eq!(site.per_tick(&v.params, v.clock), Ok(expected), "{path}");
+            checked += 1;
+        }
+    }
+    assert_eq!(checked, want.len() - 4, "every role rate site");
 }

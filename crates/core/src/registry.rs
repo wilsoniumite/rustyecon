@@ -3,8 +3,10 @@
 //! Every dial with a time unit, every behavioural rate and every tolerance is a registered param
 //! with a unit and a basis. The genesis value, unit and basis live in the `World`; the current
 //! value lives in `SimState`, is hashed, and changes only by a dated `SetParam`. Readers read at
-//! use time through [`Params`], which checks the registered unit against the type asked for.
+//! use time through a [`Site`](crate::Site), which checks the registered unit against its
+//! method's and converts by that method (amended at S2.2).
 
+use crate::clock::ParamSite;
 use crate::error::CoreError;
 use crate::ids::{Key, ParamId};
 use crate::units::{Unit, UnitKind};
@@ -49,8 +51,12 @@ pub struct ParamDef {
     pub basis: Basis,
     /// Whether the loader turned it into structure (a shelf life, a recurring period, a value a
     /// `SetParam` copies) or it fixes what a past tick meant (a ledger tolerance). A fixed param
-    /// cannot be the target of a `SetParam`.
+    /// cannot be the target of a `SetParam`. The schedule sets it too, so it is not part of
+    /// `world_id` (amended at S2.2, D10 item 1).
     pub fixed: bool,
+    /// Every use of it, in (path, method) order, each with the conversion it takes (amended at
+    /// S2.2, D10 item 4). Not part of `world_id`.
+    pub sites: Vec<ParamSite>,
 }
 
 /// The registered params, by [`ParamId`].

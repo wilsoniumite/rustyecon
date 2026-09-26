@@ -1,15 +1,20 @@
 //! The registry listing (docs/ENGINE.md §5, R4): every number a tape feeds a run, in one place.
 //!
 //! Two kinds of number: params, each with its unit, how the run uses it (live, fixed, or read
-//! by the schedule alone), its per-tick value (§6) and its basis; and the dimensionless
-//! structural data that sits inline under an entry's basis (recipe coefficients, weights,
-//! genesis prices and stocks, event quantities). `rustyecon registry <tape>` prints this list.
+//! by the schedule alone), each of its uses with the conversion that use takes and its per-tick
+//! value (§6), and its basis; and the dimensionless structural data that sits inline under an
+//! entry's basis (recipe coefficients, weights, genesis prices and stocks, event quantities).
+//! `rustyecon registry <tape>` prints this list.
+//!
+//! Each use is a site the resolver recorded, with the method the run reads it by (amended at
+//! S2.2, D10 item 4). Before, the listing guessed one method per param from its unit and from
+//! whether some good's price moved at it, so a `RatePerYear` both a price rate and a spending
+//! rate showed as `log_step` alone.
 
 use crate::{Tape, World};
 use rustyecon_core::tape::raw::RawAct;
 use rustyecon_core::{
-    resolve, Amount, Basis, CompoundPerYear, FlowPerYear, FractionPerYear, Key, LoadError,
-    RatePerYear, StateDelta, Unit, Years,
+    resolve, Amount, Basis, ClockMethod, LoadError, LoadErrorKind, ParamSite, Unit,
 };
 use std::fmt;
 
@@ -36,6 +41,18 @@ impl fmt::Display for Use {
     }
 }
 
+/// One use of a param: where the tape references it, the conversion that use takes, and the
+/// per-tick value at the param's genesis (or schedule) value.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SiteLine {
+    /// The tape path of the reference, such as `actors[mill].spec.spend`.
+    pub path: String,
+    /// The conversion the run applies there.
+    pub method: ClockMethod,
+    /// `method.per_tick` of the listed value on the tape's clock.
+    pub per_tick: f64,
+}
+
 /// What kind of number a line lists.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Entry {
@@ -45,8 +62,8 @@ pub enum Entry {
         unit: Unit,
         /// How the run uses it.
         use_: Use,
-        /// The per-tick conversion its use takes (§6) and the result at genesis.
-        per_tick: Option<(&'static str, f64)>,
+        /// Each use, in (path, method) order. Empty for a param only a `SetParam` targets.
+        sites: Vec<SiteLine>,
     },
     /// A dimensionless number inline under its entry's basis.
     Inline,
@@ -75,18 +92,19 @@ impl fmt::Display for RegistryLine {
             Basis::Assumed(s) => format!("Assumed({s})"),
         };
         match &self.entry {
-            Entry::Param {
-                unit,
-                use_,
-                per_tick,
-            } => {
-                let tick = match per_tick {
-                    Some((how, v)) => format!("{how} {v:e} per tick"),
-                    None => "-".to_string(),
+            Entry::Param { unit, use_, sites } => {
+                let uses = if sites.is_empty() {
+                    "-".to_string()
+                } else {
+                    let each: Vec<String> = sites
+                        .iter()
+                        .map(|s| format!("{} {:e} per tick at {}", s.method, s.per_tick, s.path))
+                        .collect();
+                    each.join("; ")
                 };
                 write!(
                     f,
-                    "{}\t{:e}\t{unit} {use_}\t{tick}\t{basis}",
+                    "{}\t{:e}\t{unit} {use_}\t{uses}\t{basis}",
                     self.path, self.value
                 )
             }
@@ -99,49 +117,21 @@ impl fmt::Display for RegistryLine {
     }
 }
 
-/// The per-tick value of `v` in `unit` (§6's table): `ticks` for a period or shelf life,
-/// `log_step` for a price rate, and otherwise the unit's own conversion.
-fn per_tick(
-    w: &World,
-    unit: Unit,
-    v: f64,
-    whole_ticks: bool,
-    price_rate: bool,
-) -> Option<(&'static str, f64)> {
-    let c = &w.clock;
-    Some(match unit {
-        Unit::Dimensionless => ("value", v),
-        Unit::FlowPerYear => ("flow", c.flow(FlowPerYear(v))),
-        Unit::RatePerYear if price_rate => ("log_step", c.log_step(RatePerYear(v))),
-        Unit::RatePerYear => ("share", c.share(RatePerYear(v))),
-        Unit::CompoundPerYear => ("compound", c.compound(CompoundPerYear(v))),
-        Unit::FractionPerYear => ("fraction", c.fraction(FractionPerYear(v))),
-        Unit::Years if whole_ticks => ("ticks", f64::from(c.ticks(Years(v)).ok()?)),
-        Unit::Years => ("weight", c.weight(Years(v))),
-    })
-}
-
-/// Whether a registered param is some good's price rate.
-fn is_price_rate(w: &World, p: rustyecon_core::ParamId) -> bool {
-    w.goods.iter().any(|g| g.price_rate == Some(p))
-}
-
-/// The per-tick value of a schedule param: a `SetParam`'s source converts as the param it sets,
-/// and a recurring period is whole ticks.
-fn schedule_per_tick(w: &World, key: &Key, unit: Unit, v: f64) -> Option<(&'static str, f64)> {
-    let s = &w.schedule;
-    let firings = s.once().iter().map(|f| (&f.source, &f.action));
-    let recurring = s.every().iter().map(|r| (&r.source, &r.action));
-    let target = firings
-        .chain(recurring)
-        .find_map(|(source, action)| match action {
-            StateDelta::SetParam { param, .. } if source.as_ref() == Some(key) => Some(*param),
-            _ => None,
-        });
-    match target {
-        Some(p) => per_tick(w, unit, v, false, is_price_rate(w, p)),
-        None => per_tick(w, unit, v, true, false),
-    }
+/// Each recorded use of a param with value `v`, converted on the world's clock.
+fn site_lines(w: &World, sites: &[ParamSite], v: f64) -> Result<Vec<SiteLine>, LoadError> {
+    sites
+        .iter()
+        .map(|s| {
+            let per_tick = s.method.per_tick(&w.clock, v).map_err(|e| {
+                LoadError::new(s.path.clone(), LoadErrorKind::Invalid(e.to_string()))
+            })?;
+            Ok(SiteLine {
+                path: s.path.clone(),
+                method: s.method,
+                per_tick,
+            })
+        })
+        .collect()
 }
 
 fn act_numbers<A>(act: &RawAct<A>) -> Vec<(&'static str, f64)> {
@@ -160,23 +150,19 @@ fn act_numbers<A>(act: &RawAct<A>) -> Vec<(&'static str, f64)> {
 }
 
 /// Every number `tape` feeds a run: the params in key order, registered and the schedule's
-/// alike, then the inline numbers in the tape's canonical order.
+/// alike, each with its uses, then the inline numbers in the tape's canonical order.
 pub fn registry(tape: &Tape) -> Result<Vec<RegistryLine>, LoadError> {
     let (w, _) = resolve(tape)?;
-    let mut params: Vec<(&Key, RegistryLine)> = Vec::new();
+    let mut params: Vec<(&rustyecon_core::Key, RegistryLine)> = Vec::new();
     for p in w.registry.params() {
-        let (use_, whole_ticks) = if p.fixed {
-            (Use::Fixed, true)
-        } else {
-            (Use::Live, false)
-        };
+        let use_ = if p.fixed { Use::Fixed } else { Use::Live };
         let line = RegistryLine {
             path: format!("params[{}]", p.key),
             value: p.genesis,
             entry: Entry::Param {
                 unit: p.unit,
                 use_,
-                per_tick: per_tick(&w, p.unit, p.genesis, whole_ticks, is_price_rate(&w, p.id)),
+                sites: site_lines(&w, &p.sites, p.genesis)?,
             },
             basis: p.basis.clone(),
         };
@@ -189,7 +175,7 @@ pub fn registry(tape: &Tape) -> Result<Vec<RegistryLine>, LoadError> {
             entry: Entry::Param {
                 unit: p.unit,
                 use_: Use::Schedule,
-                per_tick: schedule_per_tick(&w, &p.key, p.unit, p.value),
+                sites: site_lines(&w, &p.sites, p.value)?,
             },
             basis: p.basis.clone(),
         };

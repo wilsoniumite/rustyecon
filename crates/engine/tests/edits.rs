@@ -342,6 +342,54 @@ fn resume_after_a_new_dial_value_equals_full_rerun() {
     Sim::resume(&dial, &late).expect("the dial fires after tick 600");
 }
 
+#[test]
+fn new_source_event_keeps_world_id() {
+    // D10 item 1 (S2.2; docs/GUI.md §7.2, docs/CERTIFY.md §2.1), E1: a registered param the
+    // world reads live becomes the source of a new dated SetParam. That makes it fixed, and
+    // until S2.2 world_id hashed the flag, so this one edit to the schedule changed the world
+    // and every checkpoint was refused as WrongWorld. The structure a fixed use makes is hashed
+    // where it lands (a life as ticks in the goods, the tolerances in `tol`, a period and a
+    // copied value in the schedule, under prefix_id), so the flag is left out. Here a 1780 event
+    // sets the workers' bread line from the mill's capacity; the gate tape is unchanged.
+    let t = tape();
+    let w0 = sim_of(&t).world().clone();
+    let edited = tape_of(&edit(
+        "    events: [\n",
+        "    events: [\n        (key: \"bread.line.mill\", at: \"1780-01-01\", basis: \
+         Assumed(\"test\"), act: SetParam(param: \"workers.buy.bread\", to: \"mill.capacity\")),\n",
+    ));
+    let w = sim_of(&edited).world().clone();
+    let capacity = param(&w, "mill.capacity");
+    assert!(!w0.registry.get(capacity).unwrap().fixed);
+    assert!(
+        w.registry.get(capacity).unwrap().fixed,
+        "mill.capacity is live and now a source"
+    );
+    assert_eq!(
+        w.schedule.param("mill.capacity"),
+        None,
+        "it stays registered"
+    );
+    assert_eq!(w.world_id, w0.world_id, "a new source keeps the world");
+    // The past is the same through 1780: every prefix up to the event's tick, and not after.
+    let at = tick_of(&w, "1780-01-01");
+    for tick in 0..=at {
+        assert_eq!(w.prefix_id(tick), w0.prefix_id(tick), "prefix at {tick}");
+    }
+    assert_ne!(w.prefix_id(at + 1), w0.prefix_id(at + 1));
+    // So the tick-1,040 checkpoint of the gate run resumes under the edit, and its tail equals
+    // the edited tape's run from genesis.
+    let rerun = hashes(&edited, TICKS);
+    assert_ne!(rerun, hashes(&t, TICKS), "the edit changes the run");
+    let cp = checkpoint_at(&t, 1040);
+    let mut resumed = Sim::resume(&edited, &cp).expect("a new source keeps the checkpoint");
+    let mut tail = Vec::new();
+    resumed
+        .run_until(TICKS, &mut |r| tail.push(r.hash))
+        .unwrap();
+    assert_eq!(tail.as_slice(), &rerun[1040..]);
+}
+
 /// Replace, in a RON checkpoint, the text between the first `open` at or after `from` and the
 /// next `close` with `with`.
 fn replace_after(text: &str, from: &str, open: &str, close: &str, with: &str) -> String {

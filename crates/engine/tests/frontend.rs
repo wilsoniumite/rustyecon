@@ -91,6 +91,17 @@ fn observing_changes_no_hash() {
         touched ^= observe(&sim);
     }
     assert_eq!(watched, quiet);
+    // D10 item 3 (met; the loop added at S2.2): stepping in chunks changes nothing either. A
+    // run advanced by `run_until` seven ticks at a time, observed between chunks, has the
+    // same stream.
+    let mut sim = sim_of(&t);
+    let mut chunked = Vec::new();
+    while sim.tick() < TICKS {
+        touched ^= observe(&sim);
+        let to = (sim.tick() + 7).min(TICKS);
+        sim.run_until(to, &mut |r| chunked.push(r.hash)).unwrap();
+    }
+    assert_eq!(chunked, quiet);
     assert_ne!(touched, 0);
 }
 
