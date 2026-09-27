@@ -962,18 +962,21 @@ fn canvas(
 
 /// The atlas's credit (data/atlas/ATTRIBUTION; ODbL), in the canvas's lower right corner on a
 /// pale panel, or just above the legend (`avoid`) when the canvas is too narrow for both side
-/// by side: the lines painted and the panel's rect.
+/// by side: the lines painted and the panel's rect. Each line wraps to the canvas, so a narrow
+/// one clips none of it (G1, after D.4's re-check, O26), and the panel stays inside the canvas.
 fn credit(p: &egui::Painter, rect: Rect, avoid: Rect, ink: &Ink) -> (Vec<String>, Rect) {
     let font = FontId::proportional(10.0);
+    let wrap = (rect.width() - 18.0).max(40.0);
     let galleys: Vec<_> = rustyecon_worldgen::atlas::CREDIT
         .iter()
-        .map(|t| p.layout_no_wrap((*t).to_string(), font.clone(), ink.weak))
+        .map(|t| p.layout((*t).to_string(), font.clone(), ink.weak, wrap))
         .collect();
     let w = galleys.iter().map(|g| g.size().x).fold(0.0, f32::max) + 10.0;
     let h = galleys.iter().map(|g| g.size().y).sum::<f32>() + 6.0;
     let mut r = Rect::from_min_size(pos2(rect.max.x - w - 4.0, rect.max.y - h - 4.0), vec2(w, h));
     if r.intersects(avoid) {
-        r = Rect::from_min_size(pos2(avoid.min.x, avoid.min.y - h - 4.0), vec2(w, h));
+        let x = avoid.min.x.min(rect.max.x - w - 4.0).max(rect.min.x + 4.0);
+        r = Rect::from_min_size(pos2(x, avoid.min.y - h - 4.0), vec2(w, h));
     }
     p.rect_filled(r, 3.0, ink.panel);
     let mut y = r.min.y + 3.0;

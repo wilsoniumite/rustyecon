@@ -708,6 +708,21 @@ fn the_demo_script_switches_lenses_runs_hovers_and_selects() {
     h.remove_cursor();
     paints(&mut h, "node county.lan");
     paints(&mut h, "Every lens");
+    // The cursor behind live (G1, O26's V9): the app hands the map the model's cursor, so the
+    // map reads report tick 20 while the run stands at 52, and says so.
+    h.state_mut()
+        .act(Intent::Cursor(rustyecon_gui::model::Cursor::At(20)));
+    h.step();
+    h.step();
+    assert_eq!(h.state().ui_state().map.frame().tick, Some(20));
+    let date = h
+        .state()
+        .model()
+        .focused()
+        .and_then(|r| r.store.world())
+        .and_then(|w| w.clock.date_of(20))
+        .expect("tick 20 has a date");
+    paints(&mut h, &format!("report tick 20, {date}"));
 }
 
 /// Click the node labelled `label`, then take the pointer away.
@@ -928,6 +943,38 @@ fn lens_values_equal_the_engine() {
             let got = vm_map::readings(store, &r.key, t).traded;
             assert_eq!(got, window(&truth[&t][&r.key], t), "{} at {t}", r.key);
         }
+        // The county card (G1, O26's V7 and V8): each county's card, built as the pane builds
+        // it with the county selected, gives every lens's value at the cursor's tick, a change
+        // lens against tick 0, the engine's as the map's is.
+        for r in &atlas().regions {
+            let sel = Entity::Node(key(&r.key));
+            let vm = vm_map::build(
+                store,
+                Origin::Run,
+                atlas(),
+                lenses(),
+                "wage.land",
+                Some(&sel),
+                Some(t),
+            )
+            .expect("a loaded run");
+            let card = vm.county.expect("the selected county's card");
+            assert_eq!(card.key, r.key);
+            let x = &truth[&t][&r.key];
+            for (key, f) in &formulas {
+                let want = f(x, &truth[&0][&r.key], t);
+                let got = card
+                    .lenses
+                    .iter()
+                    .find(|l| l.key == *key)
+                    .and_then(|l| l.value)
+                    .expect("the card's value");
+                if (got - want).abs() > 1e-12 * want.abs().max(1e-3) {
+                    wrong.push(format!("{key} {} at {t}: card {got}, engine {want}", r.key));
+                }
+                checked += 1;
+            }
+        }
     }
     assert!(
         wrong.is_empty(),
@@ -935,7 +982,7 @@ fn lens_values_equal_the_engine() {
         wrong.len(),
         &wrong[..wrong.len().min(12)]
     );
-    assert_eq!(checked, 3 * 16 * 93);
+    assert_eq!(checked, 2 * 3 * 16 * 93);
 }
 
 #[test]
@@ -1072,6 +1119,72 @@ fn check_colours(h: &Harness<'static, Pane1>, store: &Store, what: &str) {
         l.key,
         lg.head
     );
+    painted_colours(h, &vm, lg, what, &l.key);
+}
+
+/// The colours as painted, read from the frame's shapes rather than from what the painter
+/// recorded (G1, O26's C6, C7 and C8): every vertex of the fill mesh, region by region in the
+/// atlas's order, takes its region's lens colour; and the legend's bar is painted as 64
+/// segments left to right, each the scale's colour at its middle.
+fn painted_colours(
+    h: &Harness<'static, Pane1>,
+    vm: &LensVm,
+    lg: &ui_map::LegendFrame,
+    what: &str,
+    key: &str,
+) {
+    let mut meshes = Vec::new();
+    let mut rects = Vec::new();
+    fn walk(
+        s: &egui::Shape,
+        meshes: &mut Vec<std::sync::Arc<egui::Mesh>>,
+        rects: &mut Vec<(egui::Rect, egui::Color32)>,
+    ) {
+        match s {
+            egui::Shape::Mesh(m) => meshes.push(std::sync::Arc::clone(m)),
+            egui::Shape::Rect(r) => rects.push((r.rect, r.fill)),
+            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, meshes, rects)),
+            _ => {}
+        }
+    }
+    for c in &h.output().shapes {
+        walk(&c.shape, &mut meshes, &mut rects);
+    }
+    let n: usize = geo().fills.iter().map(|f| f.points.len()).sum();
+    let mesh = meshes
+        .iter()
+        .find(|m| m.vertices.len() == n)
+        .expect("the fill mesh is painted");
+    let mut first = 0;
+    let mut wrong = Vec::new();
+    for (f, r) in geo().fills.iter().zip(&vm.regions) {
+        let want = ui_map::colour(&vm.scale, r.at.expect("a value"));
+        let span = &mesh.vertices[first..first + f.points.len()];
+        let bad = span.iter().filter(|v| v.color != want).count();
+        if bad > 0 {
+            wrong.push(format!("{}: {bad} of {}", r.key, span.len()));
+        }
+        first += f.points.len();
+    }
+    assert!(
+        wrong.is_empty(),
+        "{what}, {key}: vertices painted in another colour: {wrong:?}"
+    );
+    let legend = lg.rect.expect("the legend was drawn");
+    let mut bar: Vec<(egui::Rect, egui::Color32)> = rects
+        .into_iter()
+        .filter(|(r, c)| c.a() > 0 && legend.contains_rect(*r) && (r.height() - 12.0).abs() < 0.01)
+        .collect();
+    bar.sort_by(|a, b| a.0.min.x.total_cmp(&b.0.min.x));
+    assert_eq!(bar.len(), 64, "{what}, {key}: the bar's segments");
+    for (k, (_, c)) in bar.iter().enumerate() {
+        let at = (k as f64 + 0.5) / 64.0;
+        assert_eq!(
+            *c,
+            ui_map::colour(&vm.scale, at),
+            "{what}, {key}: segment {k} of the bar as painted"
+        );
+    }
 }
 
 /// Drag the map by `by` from the canvas's middle, and take the pointer away.
@@ -1311,5 +1424,66 @@ fn the_credit_is_painted_clear_of_the_legend() {
             c.min.x >= 0.0 && c.min.y >= 0.0 && c.max.y <= 900.0,
             "at {width}: {c:?}"
         );
+    }
+}
+
+/// A painted text: its string, its rect on screen, the rect it is clipped to, and whether it
+/// is seen (not transparent, not faded to nothing).
+type PaintedText = (String, egui::Rect, egui::Rect, bool);
+
+/// Every text shape the last frame painted.
+fn painted_texts(h: &Harness<'static, Pane1>) -> Vec<PaintedText> {
+    fn walk(s: &egui::Shape, clip: egui::Rect, out: &mut Vec<PaintedText>) {
+        match s {
+            egui::Shape::Text(t) => {
+                let seen = t.opacity_factor > 0.0
+                    && t.override_text_color.is_none_or(|c| c.a() > 0)
+                    && t.galley.job.sections.iter().all(|s| s.format.color.a() > 0);
+                let text = t.galley.text().to_string();
+                out.push((text, t.visual_bounding_rect(), clip, seen));
+            }
+            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, clip, out)),
+            _ => {}
+        }
+    }
+    let mut out = Vec::new();
+    for c in &h.output().shapes {
+        walk(&c.shape, c.clip_rect, &mut out);
+    }
+    out
+}
+
+#[test]
+fn the_credit_is_painted_whole_on_a_narrow_window() {
+    // O26, after D.4's re-check: a canvas narrower than the credit's longer line clipped it
+    // (at 1,024 × 768 its lines lost 19% and 37%). Each line now wraps to the canvas. Read from
+    // the shapes painted, not from what the painter meant: every line of the credit is painted,
+    // seen (not transparent), and inside the canvas, at the widths the re-check tried and
+    // narrower.
+    let store = demo_store();
+    for (w, hgt) in [
+        (1280.0, 800.0),
+        (1024.0, 768.0),
+        (700.0, 768.0),
+        (480.0, 600.0),
+    ] {
+        let mut h = map_harness_sized(store, egui::vec2(w, hgt));
+        h.state_mut().cursor = Some(51);
+        h.run();
+        let texts = painted_texts(&h);
+        for line in rustyecon_worldgen::atlas::CREDIT {
+            let (_, r, clip, seen) = texts
+                .iter()
+                .find(|(t, _, _, _)| t == line)
+                .unwrap_or_else(|| panic!("at {w} × {hgt}: {line:?} is not painted"));
+            assert!(*seen, "at {w} × {hgt}: {line:?} is painted unseen");
+            // The canvas clips what it paints: a line inside its clip rect is painted whole.
+            assert!(
+                clip.expand(0.5).contains_rect(*r),
+                "at {w} × {hgt}: {line:?} at {r:?} is clipped to {clip:?}"
+            );
+        }
+        let c = h.state().map.frame().credit_rect.expect("the credit");
+        assert!(c.max.x <= w && c.min.x >= 0.0, "at {w}: {c:?}");
     }
 }
