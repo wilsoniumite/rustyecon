@@ -1,0 +1,247 @@
+# goldens_1g.txt: the golden numbers for oracle unit 1g.
+# Written by goldens/generate_1g.py (mpmath, 70 digits). Do not edit by hand.
+# Each line is KEY = value  # note. Values carry 30 significant digits.
+# Equations: docs/unit-1g.md section 4. laborformal references are at 31b3482.
+# The three forms, and the nesting with 1a, 1b and 1c, agree within 9.92e-71 (1e-65 asserted).
+# fnv1a64 generate_1g.py = f31d0ea07e1c3088
+# fnv1a64 generate_1c.py = c40f0a2b406dd67e
+# fnv1a64 generate_1b.py = 909520ffb1f41ee9
+# fnv1a64 generate.py = cf9d71a6ac25699d
+# fnv1a64 body = 39c401ec987563ea
+
+# D-G10: productivity and the chain to land on the per-period recipes A^op + Delta A^I (docs/unit-1g.md section 2.1); spectral radii by mp.eig
+A0_RADIUS_PHYSICAL = 148.213107318157087597773184301  # A0 as one type: spectral radius of A^op + A^I (1c's rule)
+A0_RADIUS_PER_PERIOD = 0.3  # A0 as one type: spectral radius of A^op + Delta A^I (D-G10's)
+A0_CHAIN_RADIUS_PHYSICAL = 12.1742805667586406088251822505  # A0's chain (fodder, the horse, horse-days): spectral radius of A^op + A^I (1c's rule)
+A0_CHAIN_RADIUS_PER_PERIOD = 0.547722557505166113456969782801  # A0's chain (fodder, the horse, horse-days): spectral radius of A^op + Delta A^I (D-G10's)
+HORSE_RADIUS_PHYSICAL = 1.50086326410980510525979089996  # CHAIN's horse at weekly periods: spectral radius of A^op + A^I (1c's rule)
+HORSE_RADIUS_PER_PERIOD = 0.239680766411542084746815521157  # CHAIN's horse at weekly periods: spectral radius of A^op + Delta A^I (D-G10's)
+S1_RADIUS_PHYSICAL = 0.305752665210780039973634076076  # S1's chain: spectral radius of A^op + A^I (1c's rule)
+S1_RADIUS_PER_PERIOD = 0.223606797749978969640917366873  # S1's chain: spectral radius of A^op + Delta A^I (D-G10's)
+A0_DELTA = 0.00202411247850039516997645817326  # A0's delta per tick, 1 - 0.9^(1/52) (Clock::fraction)
+A0_RHO_TICK = 0.0009387127031117237908364146969  # A0R's rho per tick, 1.05^(1/52) - 1 (Clock::compound)
+HORSE_DELTA = 0.00160220757240250866663412801302  # the horse's delta per tick, 1 - 0.92^(1/52)
+PLANT_DELTA = 0.00202411247850039516997645817326  # the plant's delta per tick, 1 - 0.9^(1/52)
+
+# S1: the steam chain (coal, iron, the engine good, engine-hours) calibrated to 1c's M3, rho 0.05 (docs/unit-1g.md section 3.3; ORACLE-GOODS section 1.6)
+S1_LAB_OP = 0.110564030302246813351604312641  # S1's solved coefficient lab_op (a fraction: 855257/7735400)
+S1_LAB_I = 0.384155615344878805259467077676  # S1's solved coefficient lab_I (a fraction: 14560827/37903460)
+S1_SEAMS = 0.959020929751531918194275667709  # S1's solved coefficient seams (a fraction: 14836821/15470800)
+S1_SITE = 0.0614550304246630782519590559806  # S1's solved coefficient site (a fraction: 186348663/3032276800)
+S1_X_STAR = 0.910574687993354806041937921365  # S1: x*
+S1_ONE_MINUS_X_STAR = 0.0894253120066451939580620786351  # S1: 1 - x*
+S1_V = 5.3088781572501366285034504359  # S1: v = w/r
+S1_P_S = 4.74857918153328002582370660045  # S1: P_s
+S1_Y = 5.82346372713112582760152055188  # S1: Y
+S1_N_A = 3.00187571790790807904784928988  # S1: N_a
+S1_INCOME = 27.6531786190690658488278811257  # S1: I = Y P_s
+S1_INTEREST = 1.71658618948819983914306569271  # S1: interest = sum (u - delta) V X
+S1_COAL_PRICE = 2.20897795288675963313675734509  # S1: coal's price
+S1_COAL_OUTPUT = 4.27632803466547696310721986224  # S1: coal made a period
+S1_IRON_PRICE = 3.85892805506844813082010389049  # S1: iron's price
+S1_IRON_OUTPUT = 0.105588346534950048471783206475  # S1: iron made a period
+S1_ENGINE_PRICE = 2.48678319122092039283124728458  # S1: the engine good's price, per unit of stock
+S1_ENGINE_OUTPUT = 1.05588346534950048471783206475  # S1: units of the engine good made a period, delta X/kappa
+S1_ENGINE_STOCK = 10.5588346534950048471783206475  # S1: units of the engine good installed, X/kappa
+S1_ENGINE_HOURS_PRICE = 1.88181391685200389241791590197  # S1: an hour's price p = O + uV
+S1_ENGINE_HOURS_OPERATING = 1.47056214660384418245344838228  # S1: an hour's operating cost O
+S1_ENGINE_HOURS_BUILD = 2.48678319122092039283124728458  # S1: V per unit of capacity, the good's price/kappa
+S1_ENGINE_HOURS_HOURS = 10.5588346534950048471783206475  # S1: hours X a period
+S1_FOLD_A = 0.04  # S1 folded to one type: operating: engine-hours per engine-hour
+S1_FOLD_LAMBDA = 0.190564030302246813351604312641  # S1 folded to one type: operating: labour
+S1_FOLD_B = 0.383608371900612767277710267084  # S1 folded to one type: operating: land
+S1_FOLD_A_I = 0.005  # S1 folded to one type: build: engine-hours per unit of capacity
+S1_FOLD_LAMBDA_I = 0.444155615344878805259467077676  # S1 folded to one type: build: labour
+S1_FOLD_B_I = 0.119406076912239674161672839366  # S1 folded to one type: build: land
+
+# S1Z: S1 at rho 0, whose five numbers are 1c's M3z's
+S1Z_COAL_PRICE = 1.90349181798192227483317708845  # S1Z: coal's price
+S1Z_COAL_OUTPUT = 4.39182987305983993730583131892  # S1Z: coal made a period
+S1Z_IRON_PRICE = 3.06352197823137602265777807225  # S1Z: iron's price
+S1Z_IRON_OUTPUT = 0.108440243779255307093971143677  # S1Z: iron made a period
+S1Z_ENGINE_PRICE = 1.91347737587810686112614643804  # S1Z: the engine good's price, per unit of stock
+S1Z_ENGINE_OUTPUT = 1.08440243779255307093971143677  # S1Z: units of the engine good made a period, delta X/kappa
+S1Z_ENGINE_STOCK = 10.8440243779255307093971143677  # S1Z: units of the engine good installed, X/kappa
+S1Z_ENGINE_HOURS_PRICE = 1.39760460534224402542425609536  # S1Z: an hour's price p = O + uV
+S1Z_ENGINE_HOURS_OPERATING = 1.20625686775443333931164145155  # S1Z: an hour's operating cost O
+S1Z_ENGINE_HOURS_BUILD = 1.91347737587810686112614643804  # S1Z: V per unit of capacity, the good's price/kappa
+S1Z_ENGINE_HOURS_HOURS = 10.8440243779255307093971143677  # S1Z: hours X a period
+
+# S2, horse and engine, the engine at the margin (docs/unit-1g.md section 3.3; ORACLE-GOODS section 1.6), rho 0.05
+S2_SWITCH_GAMMA = 1.04222821657069839220786304322  # S2: gamma at the switch horse -> engine, 1c section 4.3
+S2_SWITCH_X = 0.361485477713798928138575362145  # S2: x at the switch
+S2_X_STAR = 0.668369972217719484581034432117  # S2: x*
+S2_ONE_MINUS_X_STAR = 0.331630027782280515418965567883  # S2: 1 - x*
+S2_V = 0.712826003947837686841833006844  # S2: v = w/r
+S2_P_S = 1.55388048371024143874623548352  # S2: P_s
+S2_Y = 8.24933763872915143824706878368  # S2: Y
+S2_N_A = 3.77572551265627879452006605587  # S2: N_a
+S2_INCOME = 12.8184847603575547762779653865  # S2: I = Y P_s
+S2_INTEREST = 0.127049431166878714260747029307  # S2: interest = sum (u - delta) V X
+S2_COAL_PRICE = 1.1632593359035336671460591685  # S2: coal's price
+S2_COAL_OUTPUT = 1.79249168344795864739715507705  # S2: coal made a period
+S2_IRON_PRICE = 1.03804266992568567699394608767  # S2: iron's price
+S2_IRON_OUTPUT = 0.0442590539122952752443741994335  # S2: iron made a period
+S2_FODDER_PRICE = 0.713847801184351306052549902053  # S2: fodder's price
+S2_FODDER_OUTPUT = 0.0  # S2: fodder made a period
+S2_HORSE_PRICE = 2.49693460829045914236784931437  # S2: the horse good's price, per unit of stock
+S2_HORSE_OUTPUT = 0.0  # S2: units of the horse good made a period, delta X/kappa
+S2_HORSE_STOCK = 0.0  # S2: units of the horse good installed, X/kappa
+S2_HORSE_HOURS_PRICE = 0.554075491080502343040395544364  # S2: an hour's price p = O + uV
+S2_HORSE_HOURS_OPERATING = 0.178308680710610783631529941232  # S2: an hour's operating cost O
+S2_HORSE_HOURS_BUILD = 2.49693460829045914236784931437  # S2: V per unit of capacity, the good's price/kappa
+S2_HORSE_HOURS_HOURS = 0.0  # S2: hours X a period
+S2_ENGINE_PRICE = 0.439095409597644241059665855127  # S2: the engine good's price, per unit of stock
+S2_ENGINE_OUTPUT = 0.442590539122952752443741994335  # S2: units of the engine good made a period, delta X/kappa
+S2_ENGINE_STOCK = 4.42590539122952752443741994335  # S2: units of the engine good installed, X/kappa
+S2_ENGINE_HOURS_PRICE = 0.616732053624342115834168994257  # S2: an hour's price p = O + uV
+S2_ENGINE_HOURS_OPERATING = 0.544116650262131699468926753465  # S2: an hour's operating cost O
+S2_ENGINE_HOURS_BUILD = 0.439095409597644241059665855127  # S2: V per unit of capacity, the good's price/kappa
+S2_ENGINE_HOURS_HOURS = 4.42590539122952752443741994335  # S2: hours X a period
+
+# S2H, horse and engine, the horse at the margin (docs/unit-1g.md section 3.3; ORACLE-GOODS section 1.6), rho 0.05
+S2H_SWITCH_GAMMA = 1.17292051156339654510805595851  # S2H: gamma at the switch horse -> engine, 1c section 4.3
+S2H_SWITCH_X = 0.672920511563396545108055958514  # S2H: x at the switch
+S2H_X_STAR = 0.645559932782267030258893289699  # S2H: x*
+S2H_ONE_MINUS_X_STAR = 0.354440067217732969741106710301  # S2H: 1 - x*
+S2H_V = 0.531942577535583106619481196045  # S2H: v = w/r
+S2H_P_S = 1.43518386572782246116865395039  # S2H: P_s
+S2H_Y = 9.35409950955598544712450768954  # S2H: Y
+S2H_N_A = 5.04449358719390236760445399239  # S2H: N_a
+S2H_INCOME = 13.4248526945272873549494402621  # S2H: I = Y P_s
+S2H_INTEREST = 0.741471773393643184088164713567  # S2H: interest = sum (u - delta) V X
+S2H_COAL_PRICE = 1.12210376146839546340852275319  # S2H: coal's price
+S2H_COAL_OUTPUT = 0.0  # S2H: coal made a period
+S2H_IRON_PRICE = 0.927023169501989285014001974618  # S2H: iron's price
+S2H_IRON_OUTPUT = 0.0  # S2H: iron made a period
+S2H_FODDER_PRICE = 0.659582773260674931985844358813  # S2H: fodder's price
+S2H_FODDER_OUTPUT = 1.29180098088802910575098462093  # S2H: fodder made a period
+S2H_HORSE_PRICE = 2.11707941282472452390091051169  # S2H: the horse good's price, per unit of stock
+S2H_HORSE_OUTPUT = 0.397477224888624340231072191054  # S2H: units of the horse good made a period, delta X/kappa
+S2H_HORSE_STOCK = 4.96846531110780425288840238817  # S2H: units of the horse good installed, X/kappa
+S2H_HORSE_HOURS_PRICE = 0.464351591141663783699009514331  # S2H: an hour's price p = O + uV
+S2H_HORSE_HOURS_OPERATING = 0.145749663956404959191506615288  # S2H: an hour's operating cost O
+S2H_HORSE_HOURS_BUILD = 2.11707941282472452390091051169  # S2H: V per unit of capacity, the good's price/kappa
+S2H_HORSE_HOURS_HOURS = 4.96846531110780425288840238817  # S2H: hours X a period
+S2H_ENGINE_PRICE = 0.358506075576184840067489956164  # S2H: the engine good's price, per unit of stock
+S2H_ENGINE_OUTPUT = 0.0  # S2H: units of the engine good made a period, delta X/kappa
+S2H_ENGINE_STOCK = 0.0  # S2H: units of the engine good installed, X/kappa
+S2H_ENGINE_HOURS_PRICE = 0.566943162097469238903508462732  # S2H: an hour's price p = O + uV
+S2H_ENGINE_HOURS_OPERATING = 0.507655219849057670977347311232  # S2H: an hour's operating cost O
+S2H_ENGINE_HOURS_BUILD = 0.358506075576184840067489956164  # S2H: V per unit of capacity, the good's price/kappa
+S2H_ENGINE_HOURS_HOURS = 0.0  # S2H: hours X a period
+
+# A0: Appendix B's flow machine as a durable good at 52 ticks a year, delta 10% a year, omega 1/2, rho 0 (docs/unit-1g.md section 3.3): Appendix B's equilibrium exactly
+A0_FODDER_PRICE = 0.2  # A0: fodder's price
+A0_FODDER_OUTPUT = 5.29848618756773080807246958242  # A0: fodder made a period
+A0_HORSE_PRICE = 202.679164385170061667873152893  # A0: the horse good's price, per unit of stock
+A0_HORSE_OUTPUT = 0.0107247320094178292952103793104  # A0: units of the horse good made a period, delta X/kappa
+A0_HORSE_STOCK = 5.29848618756773080807246958242  # A0: units of the horse good installed, X/kappa
+A0_HORSE_DAYS_PRICE = 0.610245425764055594887175221207  # A0: an hour's price p = O + uV
+A0_HORSE_DAYS_OPERATING = 0.2  # A0: an hour's operating cost O
+A0_HORSE_DAYS_BUILD = 202.679164385170061667873152893  # A0: V per unit of capacity, the good's price/kappa
+A0_HORSE_DAYS_HOURS = 5.29848618756773080807246958242  # A0: hours X a period
+A0_ONE_BUILD = 202.679164385170061667873152893  # A0 as one type: V, (p_m - omega b)/delta (AGENTS-GOODS section 1)
+A0_ONE_WEALTH = 1073.89275300259312516900957901  # A0 as one type: W = V X (J 1)
+
+# A0R: A0 at rho 5% a year, 1.05^(1/52) - 1 a tick: unit 1a's durable point, which 1a's a < 1 rejects (a/delta = 148)
+A0R_X_STAR = 0.81738052839262692214889348449  # A0R: x*
+A0R_ONE_MINUS_X_STAR = 0.18261947160737307785110651551  # A0R: 1 - x*
+A0R_V = 0.844272355305399788304446381035  # A0R: v = w/r
+A0R_P_S = 1.58004250852233756152282974457  # A0R: P_s
+A0R_Y = 8.02487076400647845961170949491  # A0R: Y
+A0R_N_A = 1.71238881313950958470769702982  # A0R: N_a
+A0R_INCOME = 12.6796369325283637799798538551  # A0R: I = Y P_s
+A0R_INTEREST = 1.2339143960604518983259060784  # A0R: interest = sum (u - delta) V X
+A0R_FODDER_PRICE = 0.2  # A0R: fodder's price
+A0R_FODDER_OUTPUT = 4.93782308998380385097072626272  # A0R: fodder made a period
+A0R_HORSE_PRICE = 266.205368783866809047973403869  # A0R: the horse good's price, per unit of stock
+A0R_HORSE_OUTPUT = 0.00999470933306359701708042489067  # A0R: units of the horse good made a period, delta X/kappa
+A0R_HORSE_STOCK = 4.93782308998380385097072626272  # A0R: units of the horse good installed, X/kappa
+A0R_HORSE_DAYS_PRICE = 0.988719970113181282100242376109  # A0R: an hour's price p = O + uV
+A0R_HORSE_DAYS_OPERATING = 0.2  # A0R: an hour's operating cost O
+A0R_HORSE_DAYS_BUILD = 266.205368783866809047973403869  # A0R: V per unit of capacity, the good's price/kappa
+A0R_HORSE_DAYS_HOURS = 4.93782308998380385097072626272  # A0R: hours X a period
+
+# A0F: A0's durable machine in 1b's fork economy C3 at rho 0: 1b's C3 exactly
+A0F_BUILD = 199.903885176343833930445573326  # A0F: the horse's V per unit of capacity
+
+# HORSE: CHAIN's horse at weekly periods (CHAIN section 1.3-1.4): fodder, the horse (head), horse-days; delta 8% a year, J 156 ticks, rho 0, the good and space, N 12, T 10, chi 1/20, gamma = 0.2 + 0.8x (docs/unit-1g.md section 3.3)
+HORSE_X_STAR = 0.624244045341331744561077535056  # HORSE: x*
+HORSE_ONE_MINUS_X_STAR = 0.375755954658668255438922464944  # HORSE: 1 - x*
+HORSE_V = 0.0192789646568022696772935702065  # HORSE: v = w/r
+HORSE_P_S = 1.01498231597073792723843808684  # HORSE: P_s
+HORSE_Y = 9.93816511742031598074355776435  # HORSE: Y
+HORSE_N_A = 4.51589848981618364249272216652  # HORSE: N_a
+HORSE_INCOME = 10.0870618473788729488045378811  # HORSE: I = Y P_s
+HORSE_FODDER_PRICE = 1.20936210321339592017283265109  # HORSE: fodder's price
+HORSE_FODDER_OUTPUT = 0.0589278215788625338184454014868  # HORSE: fodder made a period
+HORSE_HORSE_PRICE = 13.0604761188432127549285326128  # HORSE: the horse good's price, per unit of stock
+HORSE_HORSE_OUTPUT = 0.000969020333607161812665611387705  # HORSE: units of the horse good made a period, delta X/kappa
+HORSE_HORSE_STOCK = 0.604803241663698282838696940916  # HORSE: units of the horse good installed, X/kappa
+HORSE_HORSE_DAYS_PRICE = 0.0275651929794888813772420447185  # HORSE: an hour's price p = O + uV
+HORSE_HORSE_DAYS_OPERATING = 0.0232126694822359951627712116798  # HORSE: an hour's operating cost O
+HORSE_HORSE_DAYS_BUILD = 2.71657903271938825302513478347  # HORSE: V per unit of capacity, the good's price/kappa
+HORSE_HORSE_DAYS_HOURS = 2.90770789261393405210911990825  # HORSE: hours X a period
+HORSE_LAMBDA_TILDE = 0.280148803119154182505127944965  # HORSE: labour per horse-day, all through (CHAIN's 0.268)
+HORSE_B_TILDE = 0.0221642141055092504462385257683  # HORSE: land per horse-day, all through (CHAIN's 0.020 + 0.001)
+HORSE_OMEGA = 1.24834217372238884332828984202  # HORSE: wealth factor 1 + delta(J - 1) at rho 0
+
+# P1: the markets probe's L2 (engine and power buying each other's service, flow) with a plant on both, theta 0.8, delta 10% a year a tick, J 1, rho 0, built from s1 bundles of the desk's own recipe: L2's flow economy exactly (docs/unit-1g.md section 4.5; CAPACITY.md)
+L2_V = 0.425700926678103666889070866625  # L2's flow economy: v (CAPACITY.md's oracle 0.42570)
+L2_X_STAR = 0.914800399291120516624139019739  # L2's flow economy: x*
+P1_S1 = 40.4720591716780953866985975266  # s1 = theta^(theta/(1 - theta)) (1 - theta)/delta, bundles a plant unit
+P1_ENGINE_KAPPA = 2.44140625  # P1: engine's kappa, plant units per unit of capacity
+P1_ENGINE_STOCK = 6.12844341413991489044250974289  # P1: engine's plant K* = kappa X = theta^(-theta/(1-theta)) y
+P1_ENGINE_PLANT_PRICE = 36.9784237377487771231189063543  # P1: engine's plant price P_K = s1 c_f
+P1_ENGINE_BUILD = 90.2793548284882253982395174666  # P1: engine's V = kappa P_K
+P1_POWER_KAPPA = 2.44140625  # P1: power's kappa, plant units per unit of capacity
+P1_POWER_STOCK = 3.06422170706995744522125487144  # P1: power's plant K* = kappa X = theta^(-theta/(1-theta)) y
+P1_POWER_PLANT_PRICE = 30.0485570480562641336390839064  # P1: power's plant price P_K = s1 c_f
+P1_POWER_BUILD = 73.3607349806061136075172946934  # P1: power's V = kappa P_K
+
+# P1S: P1 at s = 1 bundle a plant unit: the flow economy with every planted recipe times m = theta^-theta (1 - theta)^-(1 - theta) (delta s)^(1 - theta)
+P1S_M = 0.477055535710105636215475509086  # P1S: m at s = 1
+P1S_X_STAR = 0.969345452779184385086888042636  # P1S: x*
+P1S_ONE_MINUS_X_STAR = 0.0306545472208156149131119573645  # P1S: 1 - x*
+P1S_V = 0.139431396446080539745113349062  # P1S: v = w/r
+P1S_P_S = 1.08570830781919006537102374574  # P1S: P_s
+P1S_Y = 9.27264313047751038404947759225  # P1S: Y
+P1S_N_A = 0.483289158106034772530160330465  # P1S: N_a
+P1S_INCOME = 10.0673856822019750328593241206  # P1S: I = Y P_s
+
+# P1R: P1 at rho 5% a year a tick: the bundle plant's ratio is still price-free, but the long run is no longer L2's (u > delta)
+P1R_X_STAR = 0.902113299730155491864436658514  # P1R: x*
+P1R_ONE_MINUS_X_STAR = 0.0978867002698445081355633414861  # P1R: 1 - x*
+P1R_V = 0.485127532023831146073983047069  # P1R: v = w/r
+P1R_P_S = 1.31378984179093308703275198157  # P1R: P_s
+P1R_Y = 8.25017884958933157770235355664  # P1R: Y
+P1R_N_A = 1.25707622177810828429667029822  # P1R: N_a
+P1R_INCOME = 10.8390011655488702748438626371  # P1R: I = Y P_s
+P1R_INTEREST = 0.229158880511814384186939812139  # P1R: interest = sum (u - delta) V X
+P1R_ENGINE_PRICE = 1.05269059071155644141461884829  # P1R: engine's price p = O + uV
+P1R_ENGINE_STOCK = 4.43087326384362905197256635606  # P1R: engine's plant K* = kappa X
+P1R_POWER_PRICE = 0.823937792465736426311084310969  # P1R: power's price p = O + uV
+P1R_POWER_STOCK = 2.23935786828223136387721859082  # P1R: power's plant K* = kappa X
+
+# P2: L2 with a plant built from labour 0.5 and land 0.5 a unit on both desks: the ratio moves with prices, a fixed point (CAPACITY.md check 2c: v 0.13869, zeta/kappa engine 0.3783/48.8149, power 0.3723/52.0700)
+P2_X_STAR = 0.98268463578459683797258455232  # P2: x*
+P2_ONE_MINUS_X_STAR = 0.0173153642154031620274154476796  # P2: 1 - x*
+P2_V = 0.138689937038455779673211386495  # P2: v = w/r
+P2_P_S = 1.08436599161206966399277771524  # P2: P_s
+P2_Y = 9.28355311558163712716139318516  # P2: Y
+P2_N_A = 0.481428438766159472264414590572  # P2: N_a
+P2_INCOME = 10.066769279861000720909914475  # P2: I = Y P_s
+P2_ENGINE_RATIO = 129.030105946134417536217395239  # P2: engine's kappa/zeta at the fixed point
+P2_ENGINE_ZETA = 0.37832216752801874966051422176  # P2: engine's zeta, bundles per unit of service
+P2_ENGINE_KAPPA = 48.8149493579114733258261424959  # P2: engine's kappa, plant units per unit of capacity
+P2_ENGINE_PRICE = 0.281276193870503656334831843497  # P2: engine's price p = O + uV
+P2_ENGINE_STOCK = 138.260895972790505219802764863  # P2: engine's plant K* = kappa X
+P2_ENGINE_PLANT_PRICE = 0.569344968519227889836605693248  # P2: engine's plant price P_K = 0.5 v + 0.5
+P2_POWER_RATIO = 139.873350851071867258469270569  # P2: power's kappa/zeta at the fixed point
+P2_POWER_ZETA = 0.372265684018742002526613191018  # P2: power's zeta, bundles per unit of service
+P2_POWER_KAPPA = 52.0700486305677574931879100697  # P2: power's kappa, plant units per unit of capacity
+P2_POWER_PRICE = 0.30003237299445096850936170646  # P2: power's price p = O + uV
+P2_POWER_STOCK = 27.897565162096776921411542848  # P2: power's plant K* = kappa X
+P2_POWER_PLANT_PRICE = 0.569344968519227889836605693248  # P2: power's plant price P_K = 0.5 v + 0.5
+# P2's Newton steps: 4

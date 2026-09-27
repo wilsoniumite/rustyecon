@@ -159,7 +159,7 @@ fn rejected(what: &str, params: MachineParams, item: Option<(&str, usize)>, name
 
 #[test]
 fn validation() {
-    // Every rule of docs/unit-1c.md §3.2 is an error.
+    // Every rule of docs/unit-1c.md §3.2, as docs/unit-1g.md §2.1 amends it, is an error.
     let base = m4(1.0);
     let with_type = |k: usize, f: &dyn Fn(&mut MachineType)| {
         let mut p = base.clone();
@@ -259,24 +259,34 @@ fn validation() {
         t.task_efficiency = 0.0;
     }
     rejected("no task type", no_tasks, None, "machine types");
-    // Productive recipes: the loom building itself one for one is not.
+    // Productive recipes, per period (docs/unit-1g.md §2.1, D-G10, amending unit-1c.md §3.2):
+    // I − A^q with A^q = A^op + Δ·A^I. The loom (δ 0.1) built from 12 of its own service uses 1.2
+    // of it a period, and is not productive. Built from one of itself, which 1c refused, it uses
+    // 0.1 a period and is valid.
     rejected(
         "not productive",
-        with_type(0, &|t| t.build.machines[0] = 1.0),
+        with_type(0, &|t| t.build.machines[0] = 12.0),
         None,
         "machine types",
     );
-    // The rule is on the sum A^op + A^I: 0.6 of the loom's own service to operate and 0.6 to
-    // build is 1.2, though each recipe alone is productive, and so is A^q = 0.6 + 0.1·0.6.
+    assert!(MachineEconomy::new(with_type(0, &|t| t.build.machines[0] = 1.0)).is_ok());
+    // The rule is on the sum A^op + Δ·A^I: 0.6 of the loom's own service to operate and 4.1 to
+    // build is 0.6 + 0.1·4.1 = 1.01 a period, though each recipe alone is productive per period.
+    // 1c's rule on A^op + A^I refused 0.6 and 0.6 (1.2); per period that is 0.66, and valid.
     rejected(
         "not productive as a sum",
         with_type(0, &|t| {
             t.operating.machines[0] = 0.6;
-            t.build.machines[0] = 0.6;
+            t.build.machines[0] = 4.1;
         }),
         None,
         "machine types",
     );
+    assert!(MachineEconomy::new(with_type(0, &|t| {
+        t.operating.machines[0] = 0.6;
+        t.build.machines[0] = 0.6;
+    }))
+    .is_ok());
     // The chain to land: a type with no land that uses only another landless type.
     let landless = |uses: usize| {
         let mut row = vec![0.0; 3];

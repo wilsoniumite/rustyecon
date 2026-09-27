@@ -9,7 +9,7 @@
 use rustyecon_core::num;
 
 use crate::closure::ClosureError;
-use crate::leontief::{identity_minus, Factors};
+use crate::leontief::Factors;
 use crate::params::{self, user_cost, wealth_factor, ParamError};
 
 /// A recipe per unit of a machine type's service (operating) or capacity (build)
@@ -222,21 +222,57 @@ fn check_recipe(recipe: &mut Recipe, types: usize, names: &RecipeNames) -> Resul
     Ok(())
 }
 
-/// The reason given when I − (A^op + A^I) is not a nonsingular M-matrix.
+/// The reason given when I − A^q, A^q = A^op + Δ·A^I, is not a nonsingular M-matrix
+/// (docs/unit-1g.md §2.1, D-G10).
 const NOT_PRODUCTIVE: &str = "machine recipes are not productive: the spectral radius of the \
-                              operating plus build machine inputs must be below 1";
+                              per-period machine inputs, operating plus delta times build, must \
+                              be below 1";
+
+/// Whether each type's chain reaches land (docs/unit-1g.md §2.1 and §4.6): its recipes use land,
+/// or use, to operate or to build, the service of a type whose chain does. A pattern condition,
+/// the same for A^op + A^I and for A^op + Δ·A^I since every δ is positive, found by passes over
+/// the types in index order until nothing changes; no rounding can refuse a chain that reaches
+/// land.
+fn reaches_land(types: &[MachineType]) -> Vec<bool> {
+    let count = types.len();
+    let mut reach: Vec<bool> = types
+        .iter()
+        .map(|t| t.operating.land > 0.0 || t.build.land > 0.0)
+        .collect();
+    loop {
+        let mut changed = false;
+        for k in 0..count {
+            if reach[k] {
+                continue;
+            }
+            let (op, build) = (&types[k].operating, &types[k].build);
+            if (0..count).any(|l| reach[l] && (op.machines[l] > 0.0 || build.machines[l] > 0.0)) {
+                reach[k] = true;
+                changed = true;
+            }
+        }
+        if !changed {
+            return reach;
+        }
+    }
+}
 
 impl MachineBlock {
-    /// Validates the machine types and ρ (docs/unit-1c.md §3.2) and computes every x-free
-    /// quantity (§5.2).
+    /// Validates the machine types and ρ (docs/unit-1c.md §3.2, amended by docs/unit-1g.md
+    /// §2.1) and computes every x-free quantity (unit-1c.md §5.2).
     ///
     /// Requires ρ in [0, [`SCALE_CEIL`](crate::SCALE_CEIL)]; at least one type, and at least
     /// one with θ > 0; per type, in order: `task_efficiency` 0 or scale, each recipe's
     /// `machines` one entry per type in [0, SCALE_CEIL], `labor` in [0, SCALE_CEIL], `land` 0
     /// or scale, δ in [SCALE_FLOOR, 1], J ≥ 1 and a finite u; then that the recipes are
-    /// productive, I − (A^op + A^I) a nonsingular M-matrix (SSRN A.1; for one type with no
-    /// operating recipe, 1a's a < 1); then that every type's chain reaches land,
-    /// (I − (A^op + A^I))⁻¹(b^op + b^I) > 0 (1a's b > 0). −0.0 is stored as +0.0.
+    /// productive per period, I − A^q a nonsingular M-matrix with A^q = A^op + Δ·A^I (D-G10,
+    /// SSRN A.1; for one type with no operating recipe at δ = 1, 1a's a < 1); then that every
+    /// type's chain reaches land, a pattern: its recipes use land, or use the service of a type
+    /// whose chain does (1a's b > 0). −0.0 is stored as +0.0.
+    ///
+    /// Unit 1c asked productivity of A^op + A^I, a machine buildable from one period of its own
+    /// chain's services; D-G10 accepts every economy that rule accepted, and computes the same
+    /// quantities from it bit for bit (docs/unit-1g.md §2.1).
     ///
     /// Viability of the price side is not checked: a block whose I − Â is not a nonsingular
     /// M-matrix is valid, has no price totals, and prices no technique.
@@ -272,33 +308,38 @@ impl MachineBlock {
                 reason: "at least one machine type must do tasks: task_efficiency > 0",
             });
         }
-        // Physical productivity and the chain to land (§3.2): pattern conditions, the same at
-        // every u and δ.
-        let physical: Vec<f64> = (0..count * count)
-            .map(|i| {
-                let (k, l) = (i / count, i % count);
-                types[k].operating.machines[l] + types[k].build.machines[l]
-            })
-            .collect();
-        let physical = Factors::new(count, identity_minus(count, &physical));
-        if !physical.is_m_matrix() {
+        // Productivity per period and the chain to land (docs/unit-1g.md §2.1, D-G10, amending
+        // unit-1c.md §3.2): the clearing side (unit-1c.md §4.5), A^q = A^op + Δ·A^I, must be
+        // productive, and each chain must reach land as a pattern. Unit 1c factored I − A^q here
+        // too and refused a pivot that was not positive, after its rule on A^op + A^I, which is
+        // gone; nothing below depends on the order.
+        let mut a_q = vec![0.0; count * count];
+        let mut clearing = vec![0.0; count * count];
+        for k in 0..count {
+            let t = &types[k];
+            for l in 0..count {
+                a_q[k * count + l] = t.operating.machines[l] + t.delta * t.build.machines[l];
+                clearing[k * count + l] = if k == l {
+                    num::fma(-t.delta, t.build.machines[k], 1.0 - t.operating.machines[k])
+                } else {
+                    -a_q[k * count + l]
+                };
+            }
+        }
+        let clearing_t = Factors::new(count, crate::leontief::transpose(count, &clearing));
+        let clearing = Factors::new(count, clearing);
+        if !clearing.is_m_matrix() || !clearing_t.is_m_matrix() {
             return Err(ParamError::Invalid {
                 name: "machine types",
                 reason: NOT_PRODUCTIVE,
             });
         }
-        let land: Vec<f64> = types
-            .iter()
-            .map(|t| t.operating.land + t.build.land)
-            .collect();
-        for (index, reach) in physical.solve(&land).into_iter().enumerate() {
-            if reach.is_nan() || reach <= 0.0 {
-                return Err(in_type(index)(ParamError::Invalid {
-                    name: "land",
-                    reason: "the type's recipes use no land, directly or through the machine \
-                             services they use",
-                }));
-            }
+        if let Some(index) = reaches_land(&types).iter().position(|&reach| !reach) {
+            return Err(in_type(index)(ParamError::Invalid {
+                name: "land",
+                reason: "the type's recipes use no land, directly or through the machine \
+                         services they use",
+            }));
         }
         let wealth: Vec<f64> = types
             .iter()
@@ -335,20 +376,7 @@ impl MachineBlock {
                 lambda_numerators,
             }
         });
-        // The clearing side (§4.5): A^q = A^op + Δ·A^I.
-        let mut a_q = vec![0.0; count * count];
-        let mut clearing = vec![0.0; count * count];
-        for k in 0..count {
-            let t = &types[k];
-            for l in 0..count {
-                a_q[k * count + l] = t.operating.machines[l] + t.delta * t.build.machines[l];
-                clearing[k * count + l] = if k == l {
-                    num::fma(-t.delta, t.build.machines[k], 1.0 - t.operating.machines[k])
-                } else {
-                    -a_q[k * count + l]
-                };
-            }
-        }
+        // The clearing side (§4.5): A^q = A^op + Δ·A^I, factored above.
         let lambda_q: Vec<f64> = types
             .iter()
             .map(|t| t.operating.labor + t.delta * t.build.labor)
@@ -357,16 +385,6 @@ impl MachineBlock {
             .iter()
             .map(|t| t.operating.land + t.delta * t.build.land)
             .collect();
-        let clearing_t = Factors::new(count, crate::leontief::transpose(count, &clearing));
-        let clearing = Factors::new(count, clearing);
-        // A^q ≤ A^op + A^I (δ ≤ 1), so both are M-matrices once the physical block is; a
-        // rounding that says otherwise is reported as the same failure.
-        if !clearing.is_m_matrix() || !clearing_t.is_m_matrix() {
-            return Err(ParamError::Invalid {
-                name: "machine types",
-                reason: NOT_PRODUCTIVE,
-            });
-        }
         let lambda_tilde_q = clearing.solve(&lambda_q);
         let b_tilde_q = clearing.solve(&land_q);
         Ok(MachineBlock {

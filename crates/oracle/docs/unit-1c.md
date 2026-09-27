@@ -220,6 +220,11 @@ Derived per type (x-free, computed at construction):
 - every type's chain reaches land: (I − (A^op + A^I))⁻¹(b^op + b^I) > 0 in every entry. A
   pattern condition, so the same at every u and δ. For 1a it is b > 0 (SSRN Prop 2's
   b̃_m > 0);
+- *(amended by unit 1g, docs/unit-1g.md §2.1, D-G10, 2026-09-27: productivity is now checked
+  per period, on A^q = A^op + Δ·A^I, and the chain to land as a pattern by reachability; every
+  economy the two rules above accepted is still accepted, with every result bit for bit, and
+  machines whose build embodies many periods of their own chain's services, as at weekly
+  ticks, are accepted too);*
 - each category priced: L̄_j > 0 or b̄_j > 0 with the chain totals of §4.4 (1b's rule
   through intermediate inputs); the basket's chain land B_ŷ = Σ ŷ_j b_j > 0 and chain hours
   Σ ŷ_j L̄^dir_j > 0 (1b's B_d > 0 and L̄_s > 0).
@@ -1072,7 +1077,9 @@ narrow the land ranges to raise the interior share, and records the tallies. For
   (`Root::exact`), not a tie; f_1(x_1) = 0 is a tie with σ = 1; f(1) = 0 with a switch below
   is `BoundaryNoMargin`; f(lo) = 0 with a switch above is `NoInteriorAtZero`. [§5.3 step 3]
 - `m7::validation`: every rule of §3.2 is an error, and −0.0 is stored as +0.0; the
-  productivity rule is on the sum A^op + A^I (0.6 + 0.6 of the loom's own service).
+  productivity rule is on the sum A^op + A^I (0.6 + 0.6 of the loom's own service). *(Amended
+  by unit 1g: the rule is on A^op + Δ·A^I, and the rows are 0.6 + 4.1, with 0.6 + 0.6 now
+  valid.)*
 - `m7::unused_type_changes_nothing`: adding a θ = 0 type that nobody uses, last, leaves
   every other output bit for bit, except the residuals that are maxima over types; for an
   addition that keeps I − Â a nonsingular M-matrix. [R1]

@@ -56,6 +56,18 @@
 //! provider's accounts and three-taxes' ledger ([`Eq1f`]); with the fixed basket and
 //! [`Government::none`] it is unit 1e's equilibrium bit for bit. Unit 1f closes Phase 1.
 //!
+//! Unit 1g (docs/unit-1g.md) makes machines goods: a durable good held as a stock, built from
+//! goods and run on goods, whose hours are the machine services. Unit 1c checked that machine
+//! recipes are productive as built, ρ(A^op + A^I) < 1; 1g checks it per period, on
+//! A^op + Δ·A^I, and the chain to land as a pattern (D-G10), which accepts every economy 1c did
+//! and changes none of their results, and accepts machines whose build embodies many periods of
+//! their own chain's services, as at weekly ticks. A chain of materials, machine goods and hours
+//! maps to a unit-1c economy with more rows ([`GoodsChain`], [`ChainEconomy`]), with no machine
+//! recipe on a category (E1), and its equilibrium reads back per good. A plant, the capacity
+//! damper y = K^(1−θ)·z^θ, is a flow type rewritten to its long run ([`PlantEconomy`]): in
+//! closed form for a plant built from its own bundle, which at s1 is the flow economy exactly,
+//! and a fixed point for any other recipe.
+//!
 //! Every price is in units of the land rent r = 1, so v = w/r, except at unit 1e's equilibria
 //! on idle land, where r = 0 and prices are in units of the pool's wage
 //! ([`Eq1e::land_market`]).
@@ -88,12 +100,14 @@ mod closure;
 pub mod dump;
 mod exit;
 mod fork;
+mod goods;
 mod households;
 mod leontief;
 mod machine_block;
 mod machines;
 mod params;
 mod parcels;
+mod plants;
 mod schedule;
 mod solve;
 mod workers;
@@ -105,6 +119,10 @@ pub use categories::{
 pub use closure::{closure, Closure, ClosureError};
 pub use exit::{coverage, coverage_threshold, crowding_limit, PricedExit};
 pub use fork::{cell_cost, ces_share, CategoryCost, Cell};
+pub use goods::{
+    ChainCategory, ChainEconomy, ChainEq, ChainError, GoodEq, GoodsChain, GoodsRecipe, Machine,
+    MachineEq, Material, Row,
+};
 pub use households::{
     Accounts, Basket, BasketEq, Budget, Eq1f, Government, GovernmentEq, HouseholdEconomy,
     HouseholdParams, HouseholdPoint, Ledger, Program, ProviderAccount, Residuals1f, TransferMode,
@@ -124,6 +142,10 @@ pub use parcels::{
     Access, Branch, EnclosurePoint, EnclosureSide, EnclosureTie, Eq1e, ExitForm, ExitLand,
     HomeAccount, LandEq, LandMarket, Parcel, ParcelEconomy, ParcelEq, ParcelParams, ParcelPoint,
     Residuals1e, WorkerEq1e, EXIT_SCAN,
+};
+pub use plants::{
+    s1_size, Plant, PlantEconomy, PlantEq, PlantError, PlantReadout, PlantRecipe, MAX_PLANT_STEPS,
+    PLANT_TOL,
 };
 pub use schedule::{PowerSchedule, Schedule, CURVATURE_CEIL, VALIDATION_SAMPLES};
 pub use solve::{
