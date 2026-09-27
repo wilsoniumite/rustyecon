@@ -47,9 +47,11 @@ const CRATE_ROOTS: [&str; 4] = ["crate", "self", "super", "rustyecon_gui"];
 /// The roots of a path into the standard library.
 const STD_ROOTS: [&str; 3] = ["std", "core", "alloc"];
 
-/// For each token, the first segment of the `use` declaration it sits in, if it sits in one:
-/// in `use crate::{run::Store, ui as _};` every token after `use` up to the `;` has the root
-/// `crate`. A `use<…>` bound is not a declaration.
+/// For each token, the first segment of the `use` tree it sits in, if it sits in one: in
+/// `use crate::{run::Store, ui as _};` every token after `use` up to the `;` has the root
+/// `crate`. A tree that opens with a group gives each of its branches its own root: in
+/// `use {std::fmt as _, crate::{ui as _}};` the second branch's tokens have the root `crate`
+/// (G1; O20, what G0.1's re-check found). A `use<…>` bound is not a declaration.
 fn use_roots(toks: &[Tok]) -> Vec<Option<String>> {
     let mut roots = vec![None; toks.len()];
     let mut i = 0;
@@ -62,16 +64,54 @@ fn use_roots(toks: &[Tok]) -> Vec<Option<String>> {
         let end = (i + 1..toks.len())
             .find(|&j| punct(&toks[j], ';'))
             .unwrap_or(toks.len());
-        let root = toks[i + 1..end].iter().find_map(|t| match t {
-            Tok::Ident(s) => Some(s.clone()),
-            _ => None,
-        });
-        for r in &mut roots[i + 1..end] {
-            r.clone_from(&root);
+        let open = (i + 1..end).find(|&j| !punct(&toks[j], ':'));
+        if open.is_some_and(|j| punct(&toks[j], '{')) {
+            let mut depth = 0_usize;
+            let mut root: Option<String> = None;
+            for (k, r) in roots.iter_mut().enumerate().take(end).skip(i + 1) {
+                match &toks[k] {
+                    Tok::Punct('{') => {
+                        depth += 1;
+                        if depth == 1 {
+                            root = None;
+                        }
+                    }
+                    Tok::Punct('}') => depth = depth.saturating_sub(1),
+                    Tok::Punct(',') if depth == 1 => root = None,
+                    Tok::Ident(s) if depth >= 1 && root.is_none() => root = Some(s.clone()),
+                    _ => {}
+                }
+                r.clone_from(&root);
+            }
+        } else {
+            let root = toks[i + 1..end].iter().find_map(|t| match t {
+                Tok::Ident(s) => Some(s.clone()),
+                _ => None,
+            });
+            for r in &mut roots[i + 1..end] {
+                r.clone_from(&root);
+            }
         }
         i = end;
     }
     roots
+}
+
+/// `from` and every name a `use` gives one of them in the file: `use crate as g;` makes `g` a
+/// root of this crate, so `g::ui::layout` reaches `ui` (G1; O20, what G0.1's re-check found).
+fn with_aliases(toks: &[Tok], roots: &[Option<String>], from: &[&str]) -> Vec<String> {
+    let mut out: Vec<String> = from.iter().map(|s| (*s).to_string()).collect();
+    for k in 0..toks.len() {
+        let Tok::Ident(s) = &toks[k] else { continue };
+        let at_root = roots[k].as_deref() == Some(s.as_str()) && from.contains(&s.as_str());
+        let renamed = toks.get(k + 1).is_some_and(|t| ident(t, "as"));
+        if let (true, true, Some(Tok::Ident(alias))) = (at_root, renamed, toks.get(k + 2)) {
+            if alias != "_" && !out.contains(alias) {
+                out.push(alias.clone());
+            }
+        }
+    }
+    out
 }
 
 /// Whether `toks[i]`, an identifier, is a path segment reached from one of `from`: a segment of
@@ -154,16 +194,18 @@ const DRAWING: [&str; 10] = [
 /// glob import of the crate, which brings them into scope.
 fn drawing_uses(toks: &[Tok]) -> Vec<String> {
     let roots = use_roots(toks);
+    let ours = with_aliases(toks, &roots, &CRATE_ROOTS);
+    let ours: Vec<&str> = ours.iter().map(String::as_str).collect();
     let mut found = Vec::new();
     for (i, t) in toks.iter().enumerate() {
-        if glob_from(toks, &roots, i, &CRATE_ROOTS) {
+        if glob_from(toks, &roots, i, &ours) {
             found.push("crate::*".to_string());
         }
         let Tok::Ident(s) = t else { continue };
         if DRAWING.contains(&s.as_str()) || s.starts_with("egui") || s.starts_with("wgpu") {
             found.push(s.clone());
         }
-        if (s == "ui" || s == "app") && reached(toks, &roots, i, &CRATE_ROOTS) {
+        if (s == "ui" || s == "app") && reached(toks, &roots, i, &ours) {
             found.push(format!("::{s}"));
         }
     }
@@ -198,6 +240,14 @@ fn model_run_edit_vm_import_no_egui() {
             "::app"
         ]
     );
+    // O20, what G0.1's re-check found (fixed at G1): a reach into ui through a renamed crate
+    // root, and a `use` group whose first root is another crate.
+    let escapes = fixture(
+        "use crate as g; fn h() -> g::ui::layout::Pane { todo!() } \
+         use {std::fmt as _, crate::{ui as _}}; use {std::fmt, rustyecon_gui::app::GuiApp}; \
+         use {std::fmt as _, crate::run as r}; let x = r::Store::default();",
+    );
+    assert_eq!(drawing_uses(&escapes), ["::ui", "::ui", "::app"]);
     let mut found = Vec::new();
     for (path, toks) in shipped_tokens(&egui_free_sources()) {
         for u in drawing_uses(&toks) {
@@ -246,19 +296,23 @@ fn observe_violations(toks: &[Tok], own: &[&str]) -> Vec<String> {
         "dbg",
     ];
     let roots = use_roots(toks);
+    let ours = with_aliases(toks, &roots, &CRATE_ROOTS);
+    let ours: Vec<&str> = ours.iter().map(String::as_str).collect();
+    let stds = with_aliases(toks, &roots, &STD_ROOTS);
+    let stds: Vec<&str> = stds.iter().map(String::as_str).collect();
     let mut found = Vec::new();
     for (i, t) in toks.iter().enumerate() {
-        if glob_from(toks, &roots, i, &CRATE_ROOTS) {
+        if glob_from(toks, &roots, i, &ours) {
             found.push("crate::*".to_string());
         }
-        if glob_from(toks, &roots, i, &STD_ROOTS) {
+        if glob_from(toks, &roots, i, &stds) {
             found.push("std::*".to_string());
         }
         let Tok::Ident(s) = t else { continue };
-        if own.contains(&s.as_str()) && reached(toks, &roots, i, &CRATE_ROOTS) {
+        if own.contains(&s.as_str()) && reached(toks, &roots, i, &ours) {
             found.push(format!("crate::{s}"));
         }
-        if STD.contains(&s.as_str()) && reached(toks, &roots, i, &STD_ROOTS) {
+        if STD.contains(&s.as_str()) && reached(toks, &roots, i, &stds) {
             found.push(format!("std::{s}"));
         }
         if NAMES.contains(&s.as_str()) {
@@ -301,6 +355,21 @@ fn run_and_vm_reach_no_model_file_thread_or_clock() {
             "std::thread",
             "crate::model",
             "crate::edit"
+        ]
+    );
+    // O20's two escapes, for the model and std: a renamed root and a group's later branch.
+    let escapes = fixture(
+        "use crate as g; let m: g::model::Model; use std as s; let t = s::time::Instant; \
+         use {super::Obs, crate::{drive as _}}; use {core::fmt, std::{fs as _}};",
+    );
+    assert_eq!(
+        observe_violations(&escapes, &NOT_OBSERVE),
+        [
+            "crate::model",
+            "std::time",
+            "Instant",
+            "crate::drive",
+            "std::fs"
         ]
     );
     let mut files = sources_under(&src().join("run"));
