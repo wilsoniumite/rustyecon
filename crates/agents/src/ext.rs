@@ -5,7 +5,8 @@
 //! supplies the rest. Its state is one [`ActorState`] per declared actor, hashed and checkpointed
 //! with the rest of `SimState`. Phases 2 and 3 grow it by adding variants; core does not reopen.
 //! The four Appendix B roles added theirs at P2.0, after `Scripted`, so the scripted state keeps
-//! its encoding and every existing hash (docs/ENGINE.md, amended at P2.0).
+//! its encoding and every existing hash (docs/ENGINE.md, amended at P2.0). The four many-market
+//! roles of P2.1 add none: each keeps its Appendix B role's state.
 
 use crate::spec::{self, RawSpec, Spec};
 use rustyecon_core::num::is_clean;
@@ -186,6 +187,22 @@ pub(crate) fn genesis_state(spec: &Spec) -> ActorState {
             output: 0.0,
         }),
         Spec::MachDesk(d) => ActorState::MachDesk(MachDeskState {
+            scale: d.scale.genesis(),
+            output: 0.0,
+        }),
+        // The many-market roles (P2.1) keep their Appendix B role's state.
+        Spec::BasketProvider(_) => ActorState::Provider(ProviderState {
+            due: 0.0,
+            paid: 0.0,
+        }),
+        Spec::BasketWorkers(_) => ActorState::Workers(WorkersState { share: 0.0 }),
+        Spec::CategoryDesk(d) => ActorState::GoodDesk(GoodDeskState {
+            share: d.share,
+            used: d.share,
+            scale: d.scale.genesis(),
+            output: 0.0,
+        }),
+        Spec::TypeDesk(d) => ActorState::MachDesk(MachDeskState {
             scale: d.scale.genesis(),
             output: 0.0,
         }),

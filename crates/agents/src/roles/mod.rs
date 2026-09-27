@@ -17,6 +17,10 @@
 //! carried as 1 − x, Leontief at the planned technique as the default with ex-post assignment as
 //! the alternative, and July's margin-step rule as the registered negative control. Every dial
 //! is a tape param (R4); nothing here reads the oracle (R13).
+//!
+//! [`many`] carries these roles to many categories and many machine types (P2.1), as four new
+//! kinds beside these four.
 
+pub mod many;
 pub mod rules;
 pub mod spec;

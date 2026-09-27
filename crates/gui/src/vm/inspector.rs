@@ -410,6 +410,10 @@ fn spec_kind(s: &Spec) -> &'static str {
         Spec::Workers(_) => "Workers",
         Spec::GoodDesk(_) => "GoodDesk",
         Spec::MachDesk(_) => "MachDesk",
+        Spec::BasketProvider(_) => "BasketProvider",
+        Spec::BasketWorkers(_) => "BasketWorkers",
+        Spec::CategoryDesk(_) => "CategoryDesk",
+        Spec::TypeDesk(_) => "TypeDesk",
     }
 }
 

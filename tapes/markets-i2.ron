@@ -1,0 +1,145 @@
+// The markets probe's I2 world (MARKETS-SPEC §1; docs/probe/MARKETS-RULES.md): Appendix B's categories, M4's engine and power on operating recipes (a chain),
+// run by the four many-market roles, for P2.1 (2026-09-27).
+//
+// Generated: do not edit. `cargo run -p rustyecon-probe --bin markets-tape -- --inst
+// i2 <path>` writes it, and the test `markets_tapes_are_their_generators_output` checks
+// this file against the generator.
+//
+// Genesis is the oracle's equilibrium (MARKETS-SPEC §1.4, mode A): crates/oracle (unit 1c,
+// P1.5) solved at the instance's per-tick values, N = 4.0 and T = 10.0 at 52 ticks a year,
+// every type's flow recipe as its operating recipe (δ = J = 1, ρ = 0), gives
+//   x* = 0.9621017169507959, 1 - x* = 0.03789828304920409,
+//   v = w/r = 0.12299922252069094, P_s/r = 1.0760341190419471, Y = 9.342873403299633, N_a = 0.43293405233517435,
+//   type prices [0.25368997667562077, 0.5024599844504138] and services [2.6285063868014706, 1.3142531934007353],
+//   category prices [0.07603411904194717] and outputs [9.342873403299633].
+// The genesis prices are those ratios with r = 1 coin. Each desk holds one tick's output,
+// each category desk's human share is 1 - x*, and each actor's coin is its stationary
+// balance under the dials, share(v) = 1 - exp(-v/52) (MARKETS-SPEC §5.4):
+//   category desk  p_j*y_j/share(turnover)
+//   type desk      (sum_l a_kl*p_l + lam_k*w + b_k*r)*X_k/share(turnover)
+//   provider       N*P_s + (r*T - N*P_s)/share(spend.provider)
+//   workers        (N*P_s + w*N*F)/share(spend.workers), F = ln1p(w/P_s)/chi_max
+// giving [7.464878882844522, 7.007226056680158, 6.939278290805243, 30.054062732330266, 19.69892610159803] in actor order
+// (desk.good, desk.engine, desk.power, provider, workers).
+// No agent reads the oracle at run time (R13): it seeds genesis here and scores runs in
+// the harness (crates/probe), outside the Sim.
+Tape(
+    schema: 1,
+    header: (
+        name: "markets-i2",
+        start: "1750-01-01",
+        ticks_per_year: 52,
+        market: (rule: Imbalance, one_sided: Saturate, ema_time_constant: "price.ema_tc"),
+        ledger: (rel_flow: "ledger.rel_flow", rel_stock: "ledger.rel_stock"),
+    ),
+    params: [
+        // The ledger's tolerances, as in the gate world (A12).
+        (key: "ledger.rel_flow", value: 1e-12, unit: Dimensionless, basis: Assumed("July REL_FLOW, as the gate world")),
+        (key: "ledger.rel_stock", value: 1e-11, unit: Dimensionless, basis: Assumed("July REL_STOCK, as the gate world")),
+        // The instance (MARKETS-SPEC §1.2, §2.9).
+        (key: "inst.workers", value: 208.0, unit: FlowPerYear, basis: Literature("SSRN 7226858 App. B via laborformal 31b3482")),
+        (key: "inst.land", value: 520.0, unit: FlowPerYear, basis: Literature("SSRN 7226858 App. B via laborformal 31b3482")),
+        (key: "inst.chi_max", value: 1.0, unit: Dimensionless, basis: Literature("SSRN 7226858 App. B via laborformal 31b3482")),
+        (key: "inst.eta", value: 1.0, unit: Dimensionless, basis: Literature("SSRN 7226858 App. B via laborformal 31b3482")),
+        (key: "inst.g0", value: 0.2, unit: Dimensionless, basis: Literature("SSRN 7226858 App. B via laborformal 31b3482")),
+        (key: "inst.g1", value: 0.8, unit: Dimensionless, basis: Literature("SSRN 7226858 App. B via laborformal 31b3482")),
+        (key: "inst.k", value: 1.0, unit: Dimensionless, basis: Literature("SSRN 7226858 App. B via laborformal 31b3482")),
+        (key: "inst.good.weight", value: 1.0, unit: Dimensionless, basis: Literature("crates/oracle/docs/unit-1b.md §3.3 C1: Appendix B in category form")),
+        (key: "inst.good.land", value: 0.0, unit: Dimensionless, basis: Literature("crates/oracle/docs/unit-1b.md §3.3 C1: Appendix B in category form")),
+        (key: "inst.good.mu.1", value: 1.0, unit: Dimensionless, basis: Literature("crates/oracle/docs/unit-1b.md §3.3 C1: Appendix B in category form")),
+        (key: "inst.space.weight", value: 1.0, unit: Dimensionless, basis: Literature("crates/oracle/docs/unit-1b.md §3.3 C1: Appendix B in category form")),
+        (key: "inst.engine.theta", value: 2.0, unit: Dimensionless, basis: Literature("crates/oracle/docs/unit-1c.md §3.3 M4, operating recipes, flow")),
+        (key: "inst.engine.own", value: 0.0, unit: Dimensionless, basis: Literature("crates/oracle/docs/unit-1c.md §3.3 M4, operating recipes, flow")),
+        (key: "inst.engine.in.power", value: 0.5, unit: Dimensionless, basis: Literature("crates/oracle/docs/unit-1c.md §3.3 M4, operating recipes, flow")),
+        (key: "inst.engine.labour", value: 0.02, unit: Dimensionless, basis: Literature("crates/oracle/docs/unit-1c.md §3.3 M4, operating recipes, flow")),
+        (key: "inst.engine.land", value: 0.0, unit: Dimensionless, basis: Literature("crates/oracle/docs/unit-1c.md §3.3 M4, operating recipes, flow")),
+        (key: "inst.power.own", value: 0.0, unit: Dimensionless, basis: Literature("crates/oracle/docs/unit-1c.md §3.3 M4, operating recipes, flow")),
+        (key: "inst.power.labour", value: 0.02, unit: Dimensionless, basis: Literature("crates/oracle/docs/unit-1c.md §3.3 M4, operating recipes, flow")),
+        (key: "inst.power.land", value: 0.5, unit: Dimensionless, basis: Literature("crates/oracle/docs/unit-1c.md §3.3 M4, operating recipes, flow")),
+        // Structure: every produced good lasts one tick (MARKETS-SPEC §2.1).
+        (key: "life.one_tick", value: 0.019230769230769232, unit: Years, basis: Assumed("one tick: J = 1 with delta = 1 (PROBE-SPEC §1.2)")),
+        // The dials (c2m; MARKETS-SPEC §5). The wage is the fastest price.
+        (key: "rate.labour", value: 5.2, unit: RatePerYear, basis: Assumed("MARKETS-SPEC C2m, design-analytic-first C2 per role")),
+        (key: "rate.land", value: 1.3, unit: RatePerYear, basis: Assumed("MARKETS-SPEC C2m, design-analytic-first C2 per role")),
+        (key: "rate.engine", value: 1.3, unit: RatePerYear, basis: Assumed("MARKETS-SPEC C2m, design-analytic-first C2 per role")),
+        (key: "rate.power", value: 1.3, unit: RatePerYear, basis: Assumed("MARKETS-SPEC C2m, design-analytic-first C2 per role")),
+        (key: "rate.good", value: 2.6, unit: RatePerYear, basis: Assumed("MARKETS-SPEC C2m, design-analytic-first C2 per role")),
+        (key: "adjust.technique.good", value: 2.6, unit: RatePerYear, basis: Assumed("MARKETS-SPEC C2m, design-analytic-first C2 per role")),
+        (key: "buffer.desk.good.cash", value: 5.2, unit: RatePerYear, basis: Assumed("MARKETS-SPEC C2m, design-analytic-first C2 per role")),
+        (key: "buffer.desk.engine.cash", value: 5.2, unit: RatePerYear, basis: Assumed("MARKETS-SPEC C2m, design-analytic-first C2 per role")),
+        (key: "buffer.desk.power.cash", value: 5.2, unit: RatePerYear, basis: Assumed("MARKETS-SPEC C2m, design-analytic-first C2 per role")),
+        (key: "spend.workers", value: 13.0, unit: RatePerYear, basis: Assumed("MARKETS-SPEC C2m, design-analytic-first C2 per role")),
+        (key: "spend.provider", value: 13.0, unit: RatePerYear, basis: Assumed("MARKETS-SPEC C2m, design-analytic-first C2 per role")),
+        (key: "tilt.desk.good", value: 0.0, unit: Dimensionless, basis: Assumed("MARKETS-SPEC C2m, design-analytic-first C2 per role")),
+        (key: "tilt.desk.engine", value: 0.0, unit: Dimensionless, basis: Assumed("MARKETS-SPEC C2m, design-analytic-first C2 per role")),
+        (key: "tilt.desk.power", value: 0.0, unit: Dimensionless, basis: Assumed("MARKETS-SPEC C2m, design-analytic-first C2 per role")),
+        (key: "price.ema_tc", value: 0.5, unit: Years, basis: Approximate("the gate world's value; no rule reads the EMA")),
+    ],
+    goods: [
+        (key: "coin", life: Indefinite, price_rate: None),
+        (key: "labour", life: Instant, price_rate: Some("rate.labour")),
+        (key: "land", life: Instant, price_rate: Some("rate.land")),
+        (key: "engine", life: Years("life.one_tick"), price_rate: Some("rate.engine")),
+        (key: "power", life: Years("life.one_tick"), price_rate: Some("rate.power")),
+        (key: "good", life: Years("life.one_tick"), price_rate: Some("rate.good")),
+    ],
+    nodes: [(key: "home", currency: "coin")],
+    channels: [],
+    classes: ["good_desks", "engine_desks", "power_desks", "owners", "workers"],
+    actors: [
+        (key: "desk.good", kind: Desk, class: "good_desks", home: "home", basis: Assumed("MARKETS-SPEC §2: the probe's rules carried to many markets (docs/probe/MARKETS-RULES.md)"),
+         spec: CategoryDesk((
+            output: "good", labour: "labour", service: "engine", land: "land",
+            theta: "inst.engine.theta", direct_land: "inst.good.land",
+            schedule: (eta: "inst.eta", g0: "inst.g0", g1: "inst.g1", k: "inst.k"),
+            line: (edges: [], density: ["inst.good.mu.1"]),
+            technique: (adjust: "adjust.technique.good", share: 0.03789828304920409),
+            scale: Cash((turnover: "buffer.desk.good.cash", tilt: "tilt.desk.good", payout: None)),
+         ))),
+        (key: "desk.engine", kind: Desk, class: "engine_desks", home: "home", basis: Assumed("MARKETS-SPEC §2: the probe's rules carried to many markets (docs/probe/MARKETS-RULES.md)"),
+         spec: TypeDesk((
+            output: "engine", labour: "labour", land: "land",
+            recipe: (own: "inst.engine.own", inputs: [(good: "power", coef: "inst.engine.in.power")], labour: "inst.engine.labour", land: "inst.engine.land"),
+            scale: Cash((turnover: "buffer.desk.engine.cash", tilt: "tilt.desk.engine", payout: None)),
+         ))),
+        (key: "desk.power", kind: Desk, class: "power_desks", home: "home", basis: Assumed("MARKETS-SPEC §2: the probe's rules carried to many markets (docs/probe/MARKETS-RULES.md)"),
+         spec: TypeDesk((
+            output: "power", labour: "labour", land: "land",
+            recipe: (own: "inst.power.own", inputs: [], labour: "inst.power.labour", land: "inst.power.land"),
+            scale: Cash((turnover: "buffer.desk.power.cash", tilt: "tilt.desk.power", payout: None)),
+         ))),
+        (key: "provider", kind: Pop, class: "owners", home: "home", basis: Assumed("MARKETS-SPEC §2: the probe's rules carried to many markets (docs/probe/MARKETS-RULES.md)"),
+         spec: BasketProvider((
+            land: "land", endowment: "inst.land",
+            transfer: (to: "workers", heads: "inst.workers"),
+            basket: [(good: "good", weight: "inst.good.weight"), (good: "land", weight: "inst.space.weight")],
+            spend: "spend.provider",
+         ))),
+        (key: "workers", kind: Pop, class: "workers", home: "home", basis: Assumed("MARKETS-SPEC §2: the probe's rules carried to many markets (docs/probe/MARKETS-RULES.md)"),
+         spec: BasketWorkers((
+            labour: "labour", heads: "inst.workers", chi_max: "inst.chi_max",
+            basket: [(good: "good", weight: "inst.good.weight"), (good: "land", weight: "inst.space.weight")],
+            spend: "spend.workers",
+         ))),
+    ],
+    genesis: (
+        basis: Approximate("oracle unit 1c (crates/oracle, P1.5) at MARKETS-SPEC's I2, N = 4.0 and T = 10.0 per tick; stationary coins per MARKETS-SPEC §5.4; written by rustyecon-probe's markets-tape"),
+        prices: [
+            (node: "home", good: "labour", price: 0.12299922252069094),
+            (node: "home", good: "land", price: 1.0),
+            (node: "home", good: "engine", price: 0.25368997667562077),
+            (node: "home", good: "power", price: 0.5024599844504138),
+            (node: "home", good: "good", price: 0.07603411904194717),
+        ],
+        holdings: [
+            (holder: "desk.good", goods: [("coin", 7.464878882844522), ("good", 9.342873403299633)]),
+            (holder: "desk.engine", goods: [("coin", 7.007226056680158), ("engine", 2.6285063868014706)]),
+            (holder: "desk.power", goods: [("coin", 6.939278290805243), ("power", 1.3142531934007353)]),
+            (holder: "provider", goods: [("coin", 30.054062732330266)]),
+            (holder: "workers", goods: [("coin", 19.69892610159803)]),
+        ],
+    ),
+    events: [
+    ],
+    recurring: [],
+)

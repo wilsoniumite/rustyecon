@@ -2,8 +2,10 @@
 //! and §5).
 //!
 //! A spec is an enum, so Phase 2's behaviour kinds are new variants and not a new schema shape:
-//! `Scripted(..)` since P0.5, and the four Appendix B roles since P2.0 (`Provider`, `Workers`,
-//! `GoodDesk`, `MachDesk`; [`crate::roles::spec`]). This module holds the scripted actor's.
+//! `Scripted(..)` since P0.5, the four Appendix B roles since P2.0 (`Provider`, `Workers`,
+//! `GoodDesk`, `MachDesk`; [`crate::roles::spec`]), and the four many-market roles since P2.1
+//! (`BasketProvider`, `BasketWorkers`, `CategoryDesk`, `TypeDesk`; [`crate::roles::many`]).
+//! This module holds the scripted actor's.
 //!
 //! Every rate, flow and capacity is a registered param referenced by key and read at use time,
 //! so a dated `SetParam` retargets the actor (R4, E1); recipe coefficients and weights are
@@ -12,6 +14,11 @@
 #![deny(missing_docs)]
 
 use crate::ext::Agents;
+use crate::roles::many::spec::{
+    resolve_basket_provider, resolve_basket_workers, resolve_category_desk, resolve_type_desk,
+    BasketProvider, BasketWorkers, CategoryDesk, RawBasketProvider, RawBasketWorkers,
+    RawCategoryDesk, RawTypeDesk, TypeDesk,
+};
 use crate::roles::spec::{
     resolve_good_desk, resolve_mach_desk, resolve_provider, resolve_workers, scale_numbers,
     GoodDesk, MachDesk, Provider, RawGoodDesk, RawMachDesk, RawProvider, RawWorkers, Workers,
@@ -37,6 +44,14 @@ pub enum RawSpec {
     GoodDesk(RawGoodDesk),
     /// The Appendix B machine desk (a Desk; P2.0).
     MachDesk(RawMachDesk),
+    /// The many-market provider, with a basket of many items (a Pop; P2.1).
+    BasketProvider(RawBasketProvider),
+    /// The many-market workers, with a basket of many items (a Pop; P2.1).
+    BasketWorkers(RawBasketWorkers),
+    /// A category desk on the shared task line (a Desk; P2.1).
+    CategoryDesk(RawCategoryDesk),
+    /// A machine type's desk, buying other types' services (a Desk; P2.1).
+    TypeDesk(RawTypeDesk),
 }
 
 /// A scripted actor, as the tape writes it.
@@ -148,6 +163,14 @@ pub enum Spec {
     GoodDesk(GoodDesk),
     /// A machine desk.
     MachDesk(MachDesk),
+    /// The basket provider.
+    BasketProvider(BasketProvider),
+    /// The basket workers.
+    BasketWorkers(BasketWorkers),
+    /// A category desk.
+    CategoryDesk(CategoryDesk),
+    /// A type desk.
+    TypeDesk(TypeDesk),
 }
 
 /// A scripted actor, resolved. Lists are in canonical order.
@@ -429,6 +452,10 @@ impl Spec {
             Spec::Workers(p) => p.sites(&mut out),
             Spec::GoodDesk(d) => d.sites(&mut out),
             Spec::MachDesk(d) => d.sites(&mut out),
+            Spec::BasketProvider(p) => p.sites(w, &mut out),
+            Spec::BasketWorkers(p) => p.sites(w, &mut out),
+            Spec::CategoryDesk(d) => d.sites(&mut out),
+            Spec::TypeDesk(d) => d.sites(w, &mut out),
         }
         out.sort_by(|a, b| a.0.cmp(&b.0));
         out
@@ -480,17 +507,27 @@ pub fn resolve(raw: &RawSpec, r: &mut Resolver<'_>) -> Result<Spec, LoadError> {
         RawSpec::Workers(p) => resolve_workers(p, r).map(Spec::Workers),
         RawSpec::GoodDesk(d) => resolve_good_desk(d, r).map(Spec::GoodDesk),
         RawSpec::MachDesk(d) => resolve_mach_desk(d, r).map(Spec::MachDesk),
+        RawSpec::BasketProvider(p) => resolve_basket_provider(p, r).map(Spec::BasketProvider),
+        RawSpec::BasketWorkers(p) => resolve_basket_workers(p, r).map(Spec::BasketWorkers),
+        RawSpec::CategoryDesk(d) => resolve_category_desk(d, r).map(Spec::CategoryDesk),
+        RawSpec::TypeDesk(d) => resolve_type_desk(d, r).map(Spec::TypeDesk),
     }
 }
 
 /// Put a raw spec's own lists in canonical order, for `Tape::to_ron`: recipe goods by key,
-/// lines by (node, good) key, payout recipients by key. The Appendix B roles hold no lists.
+/// lines by (node, good) key, payout recipients by key. The Appendix B roles hold no lists. The
+/// many-market roles' lists (basket items, segments, bought services) keep the order written,
+/// which is their evaluation order (`roles::many::spec`).
 pub fn canonical(raw: &mut RawSpec) {
     match raw {
         RawSpec::Provider(_)
         | RawSpec::Workers(_)
         | RawSpec::GoodDesk(_)
-        | RawSpec::MachDesk(_) => {}
+        | RawSpec::MachDesk(_)
+        | RawSpec::BasketProvider(_)
+        | RawSpec::BasketWorkers(_)
+        | RawSpec::CategoryDesk(_)
+        | RawSpec::TypeDesk(_) => {}
         RawSpec::Scripted(s) => {
             if let Some(rec) = &mut s.recipe {
                 rec.inputs.sort_by(|a, b| a.0.cmp(&b.0));
@@ -513,7 +550,15 @@ pub fn canonical(raw: &mut RawSpec) {
 pub fn inline_numbers(raw: &RawSpec) -> Vec<(String, f64)> {
     let mut out = Vec::new();
     match raw {
-        RawSpec::Provider(_) | RawSpec::Workers(_) => {}
+        RawSpec::Provider(_)
+        | RawSpec::Workers(_)
+        | RawSpec::BasketProvider(_)
+        | RawSpec::BasketWorkers(_) => {}
+        RawSpec::CategoryDesk(d) => {
+            out.push(("technique.share".to_string(), d.technique.share));
+            scale_numbers(&d.scale, &mut out);
+        }
+        RawSpec::TypeDesk(d) => scale_numbers(&d.scale, &mut out),
         RawSpec::GoodDesk(d) => {
             out.push(("technique.share".to_string(), d.technique.share));
             scale_numbers(&d.scale, &mut out);

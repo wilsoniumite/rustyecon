@@ -39,17 +39,18 @@ fill in phase by phase:
 |---|---|---|
 | `crates/core` | ids and keys, goods, the clock and time units, inventories, deltas, state, the conservation ledger, the state hash, checkpoints, the tape's schema and runtime form, the `libm`-backed maths | Phase 0 |
 | `crates/markets` | orders and admission, clearing, settlement, the price update | Phase 0 |
-| `crates/agents` | the behaviour seam and the scripted actor; the agent rules | Phase 0; rules in Phase 2 (the probe's four Appendix B roles since P2.0.1) |
+| `crates/agents` | the behaviour seam and the scripted actor; the agent rules | Phase 0; rules in Phase 2 (the probe's four Appendix B roles since P2.0.1, and four many-market roles since P2.1.1) |
 | `crates/engine` | `Sim`: the tick loop, checkpoints, resume, the replay audit, the read-only per-tick report a frontend drives and reads | Phase 0 |
 | `crates/cli` | the `rustyecon` binary (`run`, `resume`, `replay`, `registry`, `certify`): arguments, files, exit codes, the build stamp | Phase 0 |
 | `crates/certify` | dated criteria, the batteries and the kick check, sealed certificates, the run's manifest, and Parquet telemetry behind the feature `parquet` ([docs/CERTIFY.md](docs/CERTIFY.md)) | Phase 0, second session |
 | `crates/oracle` | the equilibrium solver (library `oracle`): unit 1a, one category with durability and interest, reproduces the SSRN Appendix B; 1b adds many categories and the fork, 1c many machine types and the Leontief inverse ([its README](crates/oracle/README.md)) | Phase 1: 1a–1c landed; 1d–1f to come |
 | `crates/worldgen` | the tape compiler | Phase 4 |
-| `crates/probe` | the Phase 2 probe's harness: the Appendix B tape's generator, named perturbations, per-tick observables against the oracle ([docs/probe/RULES.md](docs/probe/RULES.md)); its oracle-free measures are certify's | the probe, P2.0.1 |
+| `crates/probe` | the Phase 2 probe's harness: the Appendix B tape's generator, named perturbations, per-tick observables against the oracle ([docs/probe/RULES.md](docs/probe/RULES.md)); its oracle-free measures are certify's; the markets probe's harness, tapes and kick sets ([docs/probe/MARKETS-RULES.md](docs/probe/MARKETS-RULES.md)) | the probe, P2.0.1; the markets probe, P2.1.1 |
 | `crates/gui` | the interactive frontend, in egui: live runs, plots, lenses, the tape editor, and a county map ([docs/GUI.md](docs/GUI.md)); the binary `rustyecon-gui` | from G0, after Phase 0's second session; one stage beside each phase (G0 closed at G0.3) |
 
 Packages are named `rustyecon-<crate>`. `tapes/gate.ron` is the Phase 0 gate world, and
-`tapes/appb.ron` the probe's Appendix B world. `criteria/` holds each tape's dated
+`tapes/appb.ron` the probe's Appendix B world, and `tapes/markets-<id>.ron` the markets probe's
+worlds. `criteria/` holds each tape's dated
 criteria, registered before its first certified run, and `results/` the certificates and
 manifests they gave.
 
@@ -65,7 +66,8 @@ manifests they gave.
 - [docs/CERTIFY.md](docs/CERTIFY.md): the Phase 0 session 2 contract, with each step's
   amendments: certification, the manifest, telemetry and the GUI's engine asks.
 - [docs/TAPE.md](docs/TAPE.md): the tape's schema, with the gate tape as its example.
-- [docs/probe/](docs/probe/): the Phase 2 probe's rules (RULES.md) and report (REPORT.md).
+- [docs/probe/](docs/probe/): the Phase 2 probe's rules (RULES.md) and report (REPORT.md), and
+  the markets probe's rules (MARKETS-RULES.md).
 - [docs/spine/](docs/spine/): the data spine's notes (DATA_NOTES.md) and Breakpoint B's
   pre-look (EYEBALL.md).
 - [docs/GUI.md](docs/GUI.md): the GUI's design (A14): its rules, architecture, panels, editor,

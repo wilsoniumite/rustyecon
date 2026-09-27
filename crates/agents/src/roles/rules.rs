@@ -25,10 +25,10 @@ use rustyecon_core::{
 };
 use rustyecon_markets::{Order, Side};
 
-type Delta = StateDelta<Agents>;
+pub(crate) type Delta = StateDelta<Agents>;
 
 /// The posted price of `g` at the actor's home node.
-fn price<S>(v: &View<'_, S>, g: GoodId) -> Result<f64, AgentError> {
+pub(crate) fn price<S>(v: &View<'_, S>, g: GoodId) -> Result<f64, AgentError> {
     v.posted.price(v.home, g).ok_or_else(|| {
         AgentError::Core(CoreError::Shape(format!(
             "no posted price for {g} at {}",
@@ -41,11 +41,11 @@ fn price<S>(v: &View<'_, S>, g: GoodId) -> Result<f64, AgentError> {
 /// with (amended at S2.2): a `Dimensionless` value as it is, a flow by `Clock::flow`, a rate as
 /// a `Clock::share` of a stock, or, for the step rule's `up` and `down`, as a `Clock::log_step`
 /// (docs/probe/RULES.md §2). The site names the method, so the rule cannot convert another way.
-fn param<S>(v: &View<'_, S>, site: Site) -> Result<f64, AgentError> {
+pub(crate) fn param<S>(v: &View<'_, S>, site: Site) -> Result<f64, AgentError> {
     Ok(site.per_tick(&v.params, v.clock)?)
 }
 
-fn buy<S>(v: &View<'_, S>, good: GoodId, qty: f64, budget: f64) -> Order {
+pub(crate) fn buy<S>(v: &View<'_, S>, good: GoodId, qty: f64, budget: f64) -> Order {
     Order {
         actor: v.me,
         class: v.class,
@@ -56,7 +56,7 @@ fn buy<S>(v: &View<'_, S>, good: GoodId, qty: f64, budget: f64) -> Order {
     }
 }
 
-fn sell<S>(v: &View<'_, S>, good: GoodId, qty: f64) -> Order {
+pub(crate) fn sell<S>(v: &View<'_, S>, good: GoodId, qty: f64) -> Order {
     Order {
         actor: v.me,
         class: v.class,
@@ -67,12 +67,12 @@ fn sell<S>(v: &View<'_, S>, good: GoodId, qty: f64) -> Order {
     }
 }
 
-fn set<S>(v: &View<'_, S>, state: ActorState) -> Delta {
+pub(crate) fn set<S>(v: &View<'_, S>, state: ActorState) -> Delta {
     StateDelta::Actor(AgentDelta::SetState { actor: v.me, state })
 }
 
 /// Take `q` of `g` from the copy of the holding, when there is anything to take.
-fn take(dry: &mut Inventory, g: GoodId, q: f64) -> Result<(), AgentError> {
+pub(crate) fn take(dry: &mut Inventory, g: GoodId, q: f64) -> Result<(), AgentError> {
     if q > 0.0 {
         dry.take(g, Amount::Qty(q))?;
     }
@@ -80,7 +80,7 @@ fn take(dry: &mut Inventory, g: GoodId, q: f64) -> Result<(), AgentError> {
 }
 
 /// What a copy of the holding still holds of `good`, up to `want`, taken from the copy.
-fn offer(dry: &mut Inventory, good: GoodId, want: f64) -> Result<f64, AgentError> {
+pub(crate) fn offer(dry: &mut Inventory, good: GoodId, want: f64) -> Result<f64, AgentError> {
     let q = want.min(dry.get(good));
     take(dry, good, q)?;
     Ok(q)
@@ -107,7 +107,7 @@ fn two_budgets(
 
 /// The Leontief scale over the inputs, `(held, coefficient)`, whose coefficient is not zero: the
 /// most every burn `coefficient·y` fits its holding. 0 when no input binds.
-fn leontief(inputs: &[(f64, f64)]) -> Result<f64, AgentError> {
+pub(crate) fn leontief(inputs: &[(f64, f64)]) -> Result<f64, AgentError> {
     let mut y: Option<f64> = None;
     for &(held, coef) in inputs {
         if coef > 0.0 {
@@ -118,7 +118,7 @@ fn leontief(inputs: &[(f64, f64)]) -> Result<f64, AgentError> {
     Ok(y.unwrap_or(0.0))
 }
 
-fn burn(me: Holder, good: GoodId, qty: f64, prov: Provenance, out: &mut Vec<Delta>) {
+pub(crate) fn burn(me: Holder, good: GoodId, qty: f64, prov: Provenance, out: &mut Vec<Delta>) {
     if qty > 0.0 {
         out.push(StateDelta::Burn {
             from: me,
@@ -278,7 +278,7 @@ impl Behaviour for Workers {
 }
 
 /// The schedule's values, read at use time.
-struct Tasks {
+pub(crate) struct Tasks {
     eta: f64,
     g0: f64,
     g1: f64,
@@ -286,7 +286,7 @@ struct Tasks {
 }
 
 impl Tasks {
-    fn read<S>(v: &View<'_, S>, s: &Schedule) -> Result<Tasks, AgentError> {
+    pub(crate) fn read<S>(v: &View<'_, S>, s: &Schedule) -> Result<Tasks, AgentError> {
         Ok(Tasks {
             eta: param(v, s.eta)?,
             g0: param(v, s.g0)?,
@@ -296,7 +296,7 @@ impl Tasks {
     }
 
     /// J(x) = η(g0·x + g1·x^(k+1)/(k+1)): the machine services per unit of output on [0, x).
-    fn j(&self, x: f64) -> f64 {
+    pub(crate) fn j(&self, x: f64) -> f64 {
         let k1 = self.k + 1.0;
         self.eta * (self.g0 * x + self.g1 * num::pow(x, k1) / k1)
     }
@@ -305,7 +305,7 @@ impl Tasks {
     /// γ(i)·p_m < w, γ(i) = η(g0 + g1·i^k): i^k < z with z = (w/(η·p_m) − g0)/g1. It is a
     /// measure of a subset of [0, 1], so it is 0 when z ≤ 0 and 1 when z ≥ 1; these are the
     /// corners x = 0 (w/p_m ≤ γ(0)) and x = 1 (w/p_m ≥ γ(1)), reached without a clamp.
-    fn measure(&self, ratio: f64) -> f64 {
+    pub(crate) fn measure(&self, ratio: f64) -> f64 {
         let z = (ratio / self.eta - self.g0) / self.g1;
         if z.is_nan() || z <= 0.0 {
             0.0
@@ -382,19 +382,19 @@ fn stepped<S>(
 }
 
 /// What a desk sees of its margin at posted prices.
-struct Margin {
+pub(crate) struct Margin {
     /// The cash cost of one unit made.
-    cost: f64,
+    pub(crate) cost: f64,
     /// The price over that cost; for the machine desk, net of its own input, p_m(1 − a)/c.
-    markup: f64,
+    pub(crate) markup: f64,
     /// The value at posted prices of the output it holds to sell, net of its own input: the
     /// cash rule's ceiling reads its stationary coin from it.
-    worth: f64,
+    pub(crate) worth: f64,
 }
 
 /// What a desk's scale rule decides: the coin it spends on inputs this tick, and its scale
 /// state. Any payout is made first, from the copy of the holding.
-fn scale_outlay<S>(
+pub(crate) fn scale_outlay<S>(
     v: &View<'_, S>,
     scale: &Scale,
     state: f64,

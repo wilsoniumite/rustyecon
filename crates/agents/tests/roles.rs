@@ -675,6 +675,10 @@ fn role_specs_round_trip_in_canonical_form() {
                 },
                 RawSpec::MachDesk(_) => "mach",
                 RawSpec::Scripted(_) => "scripted",
+                RawSpec::BasketProvider(_)
+                | RawSpec::BasketWorkers(_)
+                | RawSpec::CategoryDesk(_)
+                | RawSpec::TypeDesk(_) => "many",
             })
             .collect();
         assert_eq!(kinds.len(), 4);

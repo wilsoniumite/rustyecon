@@ -25,6 +25,7 @@ whose raw types are documented the same way in `rustyecon_agents::spec` (which a
 | 1 | 2026-09-26 | P0.9 | No field changes, so the number stays 1. Two dated events that fall in one tick now fire in date order, not key order (see Dates). |
 | 1 | 2026-09-26 | P2.0.1 | The agents' spec gains four variants, `Provider`, `Workers`, `GoodDesk` and `MachDesk` (see below). No existing field or variant changes, and every schema-1 tape loads and means what it did, so the number stays 1: ENGINE §5 has the spec an enum so that Phase 2's kinds are new variants, not a new schema shape. |
 | 1 | 2026-09-26 | S2.2 | No field changes, so the number stays 1, and every tape loads and means what it did. A registered param that becomes a `SetParam`'s source keeps the world (see Params), and each use of a param now carries the conversion it takes, so every `world_id` changed once (ENGINE, amended at S2.2). `rustyecon registry` lists each use of a param with its method, per-tick value and path. |
+| 1 | 2026-09-27 | P2.1.1 | The agents' spec gains four variants, `BasketProvider`, `BasketWorkers`, `CategoryDesk` and `TypeDesk` (see below). No existing field or variant changes, and every schema-1 tape loads and means what it did, so the number stays 1, as at P2.0.1. |
 | 1 | 2026-09-26 | S2.3 | Core's actions gain `ScalePrice(node, good, by)`, appended last, a dated price shock: the posted price times a `Dimensionless` param the schedule reads (see Actions). No existing field or variant changes, and every tape loads and means what it did, so the number stays 1. Certify's kick is this action (docs/CERTIFY.md §2.4, §7). |
 
 The loader reads its own version only; anything else is refused as a schema error before any
@@ -207,6 +208,27 @@ none has a default. Every key but a good or an actor names a registered param, l
 - `scale` is `Cash((turnover, tilt, payout))`, with `payout` `None` or `Some((to, rate,
   ceiling))`, or `Step((up, down, dead, buffer, payout: (to, rate), scale))`, whose `scale` is its
   genesis output per tick, an inline number.
+
+## The many-market roles (P2.1.1)
+
+The markets probe's four kinds carry the Appendix B roles to many categories and machine types,
+documented field by field in the rustdoc of `rustyecon_agents::roles::many::spec`; the rules are
+docs/probe/MARKETS-RULES.md, and `tapes/markets-<id>.ron` are the worked examples (generated:
+`cargo run -p rustyecon-probe --bin markets-tape -- --inst <id> tapes/markets-<id>.ron`). Every
+field is required and none has a default; every key but a good or an actor names a registered
+param, live. Their lists are evaluation order, and the canonical form keeps them as written.
+
+- `BasketProvider((land, endowment, transfer: (to, heads), basket: [(good, weight), ...],
+  spend))`: the provider with a basket of items, each `weight` (`Dimensionless`) units of `good`
+  per basket; space is an item whose good is the land it sells.
+- `BasketWorkers((labour, heads, chi_max, basket: [..], spend))`: the workers with a basket.
+- `CategoryDesk((output, labour, service, land, theta, direct_land, schedule: (eta, g0, g1, k),
+  line: (edges: [..], density: [..]), technique: (adjust, share), scale))`: a Desk on its
+  segments of the shared task line, `edges` the interior edges and `density` one more of them;
+  `share` is its genesis human share, an inline number in [0, 1].
+- `TypeDesk((output, labour, land, recipe: (own, inputs: [(good, coef), ...], labour, land),
+  scale))`: a Desk whose recipe keeps `own` of its output and buys each input's `good`.
+- `scale` is the Appendix B roles'.
 
 A complete tape with no behaviour (every actor's spec is `()`) is core's test fixture,
 `crates/core/testdata/core.ron`; it loads with the empty extension, `rustyecon_core::NoExt`.

@@ -4,7 +4,7 @@
 //! state lives in `SimState` and reaches its hooks through a [`View`]. The cast also makes the
 //! load checks that need the whole world rather than one spec: a scripted actor budgets in its
 //! home currency, so it buys only at nodes that quote in it, and it never pays itself. An
-//! Appendix B role (P2.0) trades at its home node only; a desk role must be a Desk and a
+//! Appendix B role (P2.0), or a many-market role (P2.1), trades at its home node only; a desk role must be a Desk and a
 //! household role a Pop; what it is endowed with must be `Instant`, since `decide` may mint only
 //! that; and it never transfers to or pays itself.
 
@@ -12,6 +12,7 @@ use crate::behaviour::{AgentError, Behaviour, Decision, Posted, View};
 use crate::ext::{
     ActorState, Agents, GoodDeskState, MachDeskState, ProviderState, ScriptState, WorkersState,
 };
+use crate::roles::many::spec::{BasketProvider, BasketWorkers, CategoryDesk, TypeDesk};
 use crate::roles::spec::{GoodDesk, MachDesk, Provider, Workers};
 use crate::spec::{Script, Spec};
 use rustyecon_core::{
@@ -27,6 +28,10 @@ enum Member {
     Workers(Workers),
     GoodDesk(GoodDesk),
     MachDesk(MachDesk),
+    BasketProvider(BasketProvider),
+    BasketWorkers(BasketWorkers),
+    CategoryDesk(CategoryDesk),
+    TypeDesk(TypeDesk),
 }
 
 /// Every declared actor's behaviour, in `ActorId` order.
@@ -141,6 +146,25 @@ impl Cast {
                     check_role(w, decl, ActorKind::Desk, None, pays)?;
                     Member::MachDesk(d.clone())
                 }
+                Spec::BasketProvider(p) => {
+                    let pays = Some((p.transfer_to, "transfer.to"));
+                    check_role(w, decl, ActorKind::Pop, Some((p.land, "land")), pays)?;
+                    Member::BasketProvider(p.clone())
+                }
+                Spec::BasketWorkers(p) => {
+                    check_role(w, decl, ActorKind::Pop, Some((p.labour, "labour")), None)?;
+                    Member::BasketWorkers(p.clone())
+                }
+                Spec::CategoryDesk(d) => {
+                    let pays = d.scale.pays().map(|a| (a, "scale.payout.to"));
+                    check_role(w, decl, ActorKind::Desk, None, pays)?;
+                    Member::CategoryDesk(d.clone())
+                }
+                Spec::TypeDesk(d) => {
+                    let pays = d.scale.pays().map(|a| (a, "scale.payout.to"));
+                    check_role(w, decl, ActorKind::Desk, None, pays)?;
+                    Member::TypeDesk(d.clone())
+                }
             };
             members.push((decl.id, member));
         }
@@ -173,6 +197,10 @@ impl Cast {
             Member::Workers(b) => b.decide(&role_view(a, s, w, workers)?),
             Member::GoodDesk(b) => b.decide(&role_view(a, s, w, good_desk)?),
             Member::MachDesk(b) => b.decide(&role_view(a, s, w, mach_desk)?),
+            Member::BasketProvider(b) => b.decide(&role_view(a, s, w, provider)?),
+            Member::BasketWorkers(b) => b.decide(&role_view(a, s, w, workers)?),
+            Member::CategoryDesk(b) => b.decide(&role_view(a, s, w, good_desk)?),
+            Member::TypeDesk(b) => b.decide(&role_view(a, s, w, mach_desk)?),
         }
     }
 
@@ -189,6 +217,10 @@ impl Cast {
             Member::Workers(b) => b.produce(&role_view(a, s, w, workers)?),
             Member::GoodDesk(b) => b.produce(&role_view(a, s, w, good_desk)?),
             Member::MachDesk(b) => b.produce(&role_view(a, s, w, mach_desk)?),
+            Member::BasketProvider(b) => b.produce(&role_view(a, s, w, provider)?),
+            Member::BasketWorkers(b) => b.produce(&role_view(a, s, w, workers)?),
+            Member::CategoryDesk(b) => b.produce(&role_view(a, s, w, good_desk)?),
+            Member::TypeDesk(b) => b.produce(&role_view(a, s, w, mach_desk)?),
         }
     }
 
@@ -205,6 +237,10 @@ impl Cast {
             Member::Workers(b) => b.upkeep(&role_view(a, s, w, workers)?),
             Member::GoodDesk(b) => b.upkeep(&role_view(a, s, w, good_desk)?),
             Member::MachDesk(b) => b.upkeep(&role_view(a, s, w, mach_desk)?),
+            Member::BasketProvider(b) => b.upkeep(&role_view(a, s, w, provider)?),
+            Member::BasketWorkers(b) => b.upkeep(&role_view(a, s, w, workers)?),
+            Member::CategoryDesk(b) => b.upkeep(&role_view(a, s, w, good_desk)?),
+            Member::TypeDesk(b) => b.upkeep(&role_view(a, s, w, mach_desk)?),
         }
     }
 }

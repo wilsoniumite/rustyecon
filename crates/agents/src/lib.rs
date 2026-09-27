@@ -4,9 +4,10 @@
 //! PLAN §3.2's agent rules, where every decision is one of the pinning paper's margins, fill in
 //! during Phase 2 as new behaviour kinds. Phase 0 has the scripted actor, whose lines and recipe
 //! are registered params read at use time; the probe (P2.0) adds the provider, the workers, the
-//! good desk and the machine desk of the SSRN Appendix B economy ([`roles`]). The crate implements core's extension seam
-//! ([`Agents`]): the actors' specs on the tape, their own state (hashed and checkpointed), their
-//! own deltas and the tape actions on them.
+//! good desk and the machine desk of the SSRN Appendix B economy ([`roles`]), and the markets
+//! probe (P2.1) carries them to many categories and machine types ([`roles::many`]). The crate
+//! implements core's extension seam ([`Agents`]): the actors' specs on the tape, their own state
+//! (hashed and checkpointed), their own deltas and the tape actions on them.
 //!
 //! Agents read posted prices, their own holding and state, and the current params, through a
 //! [`View`] that reaches nothing else, so no agent reads another's orders or state (R13); this
@@ -26,6 +27,10 @@ pub use cast::Cast;
 pub use ext::{
     ActorState, AgentDelta, Agents, GoodDeskState, MachDeskState, ProviderState, RawAgentAction,
     ScriptState, WorkersState,
+};
+pub use roles::many::spec::{
+    BasketProvider, BasketWorkers, CategoryDesk, Input, Item, RawBasketProvider, RawBasketWorkers,
+    RawCategoryDesk, RawInput, RawItem, RawLine, RawTypeDesk, RawTypeRecipe, TypeDesk,
 };
 pub use roles::spec::{
     Assign, Basket, Ceiling, GoodDesk, MachDesk, MachRecipe, Provider, RawBasket, RawCash,

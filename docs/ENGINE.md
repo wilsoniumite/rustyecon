@@ -648,6 +648,49 @@ the same way. No crate but `crates/gui` changed during G0, so no hash, `prefix_i
    scan holds every other path into core out (GUI.md, amended at G0.2, item 1). When the
    engine re-exports `num` and these types, the GUI's edge to core goes.
 
+**Amended at P2.1.1** (2026-09-27: the markets probe's agents, docs/probe/MARKETS-RULES.md), the
+same way as at P2.0.1. The frame is MARKETS-SPEC (`D:/rustyecon-p2m/frame/`). Core, markets and
+engine did not change; the agents crate grew four kinds, `crates/probe` grew the markets harness
+and two binaries, and the GUI's inspector names the new kinds. The Appendix B kinds are
+untouched, so `tapes/appb.ron`'s canonical form, `tape_hash` and `world_id` are unchanged, and the
+gate world's and appb's per-tick hash streams are too (finals `0x61f9c8529131ff17` and
+`0xe1fa082b26995867`).
+
+1. Four behaviour kinds (§4, §5): `BasketProvider`, `BasketWorkers`, `CategoryDesk` and
+   `TypeDesk`, new variants of `RawSpec` and `Spec` after `MachDesk`, resolved in
+   `agents::roles::many::spec` and run by `agents::roles::many::rules`. They carry the Appendix B
+   roles to many categories on one task line (decision 60) and many machine types (decision
+   67): a basket of many items, a desk per category on its segments of the line with direct
+   land, and a desk per type that buys other types' services. Every coefficient is a registered
+   param read at use time (R4); the only inline numbers are genesis state, as at P2.0.1. Their
+   lists (basket items, segments, bought services) are evaluation order and keep the order
+   written in the canonical form.
+2. No new state: each new kind keeps its Appendix B kind's `ActorState` (`Provider`, `Workers`,
+   `GoodDesk`, `MachDesk`), so certify's and the harness's readers of those states read these,
+   and every existing encoding and hash stays.
+3. Load checks (§4), each a `LoadError` with its path: a basket has an item and names each good
+   once; a category's densities are one more than its interior edges; a type's bought services
+   are neither its output nor its hours or land, and each is named once; a role's goods are
+   distinct and not currencies; `Cast::new` makes the P2.0.1 checks on the new kinds.
+4. The budget chain of MARKETS-SPEC §2.6 takes each budget from the copy of the holding in the
+   order admission takes it, by good (§3's admission walks an actor's orders by (node, good)),
+   so no role posts an order admission refuses, whatever the prices; for the Appendix B inputs
+   that is their list order, so on Appendix B each new kind makes its old kind's operations
+   exactly.
+5. The tape schema stays 1 (§5; docs/TAPE.md), as at P2.0.1.
+6. Tests (§11). In agents (`tests/many.rs`): `many_roles_never_overbudget_or_overdraw`,
+   `many_roles_nest_the_appendix_b_roles`, `category_desk_works_its_segments`,
+   `type_desk_buys_the_other_types_services`, `basket_households_buy_and_eat_their_basket`,
+   `many_specs_are_checked_at_load`, `many_specs_round_trip_in_canonical_form`,
+   `many_roles_read_only_their_view` and `many_role_sites_name_their_methods`; the seam's
+   `each_site_converts_as_registered` reads three markets tapes too. In probe
+   (`tests/markets.rs`): `markets_tapes_are_their_generators_output`,
+   `markets_i0_genesis_is_appb`, `markets_i0_nests_appb`,
+   `markets_tapes_load_and_run_deterministically`, `markets_conserve_every_tick`,
+   `markets_rest_point_is_the_oracles`, `markets_hold_at_the_oracle_point`,
+   `markets_batteries_are_registered`, `markets_shocks_and_shapes_apply_as_named`,
+   `markets_kick_set_decays_at_a_stable_point` and `run_length_follows_the_rule`.
+
 ## 0. Engine invariants
 
 Numbered so tests and reviews can cite them. Each has at least one test in §11.
@@ -710,7 +753,8 @@ crates/certify  rustyecon-certify  lib `certify`: criteria, batteries, the kick,
 crates/oracle   rustyecon-oracle   the equilibrium solver, Phase 1 (unit 1a at P1.1); lib `oracle`
 crates/worldgen rustyecon-worldgen empty until Phase 4; nothing depends on it yet
 crates/probe    rustyecon-probe    the Phase 2 probe's harness (P2.0.1); lib `probe`; reads certify's
-                                   oracle-free measures, Parquet-free (S2.5); nothing depends on it
+                                   oracle-free measures, Parquet-free (S2.5); the markets probe's
+                                   harness (P2.1.1); nothing depends on it
 crates/gui      rustyecon-gui      the interactive frontend, egui (docs/GUI.md; G0.1); depends on the
                                    engine, on certify without `parquet`, and on core for `num`
                                    alone; nothing depends on it, and the workspace's
@@ -1374,7 +1418,9 @@ impl Cast { pub fn new(w: &World<Agents>) -> Result<Cast, LoadError>;
 `Cast` dispatches each actor to its kind's `Behaviour`, and checks that its `ActorState` variant
 matches (`AgentError::Mismatch` otherwise). Since P2.0.1 the kinds are the scripted actor and the
 four Appendix B roles (`Provider`, `Workers`, `GoodDesk`, `MachDesk`; docs/probe/RULES.md), whose
-state a `SetState` delta replaces. `Cast::new` makes the load checks that need the
+state a `SetState` delta replaces, and since P2.1.1 the four many-market roles (`BasketProvider`,
+`BasketWorkers`, `CategoryDesk`, `TypeDesk`; docs/probe/MARKETS-RULES.md), which keep those
+states. `Cast::new` makes the load checks that need the
 whole world: every buy line's node quotes in the actor's home currency, and no payout names the
 payer; each is a `LoadError` with its tape path. R13 holds by construction: a `View` cannot reach
 another actor's holdings, orders or state, nor the cleared volumes, and agents never depends on

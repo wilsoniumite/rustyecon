@@ -369,7 +369,7 @@ impl Scale {
     }
 
     /// The rule's sites, each with its path under the spec (`scale.…`).
-    fn sites(&self, out: &mut Vec<(String, Site)>) {
+    pub(crate) fn sites(&self, out: &mut Vec<(String, Site)>) {
         let mut at = |field: &str, site: Site| out.push((format!("scale.{field}"), site));
         match *self {
             Scale::Cash {
@@ -495,7 +495,7 @@ pub struct MachDesk {
     pub scale: Scale,
 }
 
-fn live(
+pub(crate) fn live(
     r: &mut Resolver<'_>,
     key: &Key,
     method: ClockMethod,
@@ -505,7 +505,7 @@ fn live(
 }
 
 /// A traded good: not a currency, since a currency has no market.
-fn traded(r: &mut Resolver<'_>, key: &Key, field: &str) -> Result<GoodId, LoadError> {
+pub(crate) fn traded(r: &mut Resolver<'_>, key: &Key, field: &str) -> Result<GoodId, LoadError> {
     let g = r.good(key, field)?;
     if r.is_currency(g) {
         return Err(r.error(field, LoadErrorKind::CurrencyOrder));
@@ -514,7 +514,7 @@ fn traded(r: &mut Resolver<'_>, key: &Key, field: &str) -> Result<GoodId, LoadEr
 }
 
 /// Goods a role names must be distinct: one good in two roles would net its orders.
-fn distinct(r: &Resolver<'_>, goods: &[(GoodId, &str)]) -> Result<(), LoadError> {
+pub(crate) fn distinct(r: &Resolver<'_>, goods: &[(GoodId, &str)]) -> Result<(), LoadError> {
     for (i, (g, field)) in goods.iter().enumerate() {
         if goods[..i].iter().any(|(h, _)| h == g) {
             return Err(r.error(
@@ -541,7 +541,7 @@ fn basket(r: &mut Resolver<'_>, raw: &RawBasket) -> Result<Basket, LoadError> {
 }
 
 /// A genesis share: finite, sign bit clear, at most 1.
-fn share(r: &Resolver<'_>, v: f64, field: &str) -> Result<f64, LoadError> {
+pub(crate) fn share(r: &Resolver<'_>, v: f64, field: &str) -> Result<f64, LoadError> {
     let v = r.quantity(v, field)?;
     if v <= 1.0 {
         Ok(v)
@@ -550,7 +550,7 @@ fn share(r: &Resolver<'_>, v: f64, field: &str) -> Result<f64, LoadError> {
     }
 }
 
-fn scale(r: &mut Resolver<'_>, raw: &RawScale) -> Result<Scale, LoadError> {
+pub(crate) fn scale(r: &mut Resolver<'_>, raw: &RawScale) -> Result<Scale, LoadError> {
     r.enter("scale");
     let out = match raw {
         RawScale::Cash(c) => {

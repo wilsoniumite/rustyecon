@@ -772,9 +772,15 @@ fn each_site_converts_as_registered() {
     // at the same path with the same method, and none is missing; and the per-tick value an
     // actor reads through its view is the registry line's, `method.per_tick` of the value
     // (engine's `registry_names_each_use` pins those lines to the Clock). After a dated
-    // SetParam the view reads the new value through the same method.
+    // SetParam the view reads the new value through the same method. The markets probe's
+    // tapes (P2.1) carry the four many-market kinds, whose lists name their paths by key.
     const APPB: &str = include_str!("../../../tapes/appb.ron");
-    for text in [GATE, APPB] {
+    const MARKETS: [&str; 3] = [
+        include_str!("../../../tapes/markets-i2.ron"),
+        include_str!("../../../tapes/markets-l3.ron"),
+        include_str!("../../../tapes/markets-g1.ron"),
+    ];
+    for text in [GATE, APPB].into_iter().chain(MARKETS) {
         let (w, mut s) = load_text(text).expect("the tape loads");
         let recorded: BTreeSet<(String, ParamId, ClockMethod)> = w
             .registry

@@ -1,0 +1,974 @@
+//! The markets harness (MARKETS-SPEC §7): runs a setup on the engine, reads §7.1's observables
+//! every tick from the `TickReport` and the actors' own state, scores them against the oracle's
+//! values for the same tick (solved here, outside the Sim, at the coefficients in force), and
+//! classifies the run as PROBE-SPEC §4.5 does. It keeps §7.11's transient statistics (O14) as it
+//! goes, so a run of any length holds a fixed amount of memory.
+//!
+//! The observables are v = w/r, each type's and each category's price over r, each category
+//! desk's human share, the cleared volume of every market, and each desk's output (§7.1). No
+//! dial is a band, so tol_o is the floor, 1e-3, on every one (§7.3). The oracle-free measures
+//! are certify's, as P2.0's harness reads them (C11): `Obs` for the tick, the runaway bound,
+//! rationed fills, the NaN-keeping folds and troughs, and the dead-share rule.
+//!
+//! On I0 the observables, their order, the targets, D̂ and the classes are P2.0's
+//! (`crate::harness`), which stays as it was and pinned to docs/probe/results/.
+
+use super::instance::{Instance, Point};
+use super::perturb::Perturbation;
+use super::setup::{genesis, tape_ron, Genesis, Setup};
+use crate::harness::{Class, Stop, Summary};
+use crate::perturb::Start;
+use crate::protocol::{DEAD_SHARE, HOLD_TOL, LIVE_FLOOR, RUNAWAY, TOL_FLOOR};
+use certify::battery::{dead_share_ok, rationed, within_bound};
+use certify::fold::{max2, min2};
+use certify::Obs;
+use rustyecon_core::num;
+use rustyecon_core::num::ln;
+use rustyecon_core::FlowPerYear;
+use rustyecon_engine::prelude::{
+    ActorId, ClassId, GoodId, Holder, PriceError, RunErrorKind, SideTag, Sim, Tape, TickReport,
+};
+use rustyecon_engine::rustyecon_agents::ActorState;
+use std::collections::BTreeMap;
+
+/// The observables of an instance, in order (MARKETS-SPEC §7.1): `v`, `pi.<type>`,
+/// `pi.<category>`, `s.<category>`, `vol.<market>` in market order, `y.<category>`, `y.<type>`.
+/// On I0 this is P2.0's set O in P2.0's order.
+pub fn observables(inst: &Instance) -> Vec<String> {
+    let mut o = vec!["v".to_string()];
+    o.extend(inst.types.iter().map(|t| format!("pi.{}", t.key)));
+    o.extend(inst.categories.iter().map(|c| format!("pi.{}", c.key)));
+    o.extend(inst.categories.iter().map(|c| format!("s.{}", c.key)));
+    o.extend(inst.markets().iter().map(|m| format!("vol.{m}")));
+    o.extend(inst.categories.iter().map(|c| format!("y.{}", c.key)));
+    o.extend(inst.types.iter().map(|t| format!("y.{}", t.key)));
+    o
+}
+
+/// The oracle's values at one set of coefficients, per tick, relative to r = 1.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Target {
+    /// The observables' values, in [`observables`] order.
+    pub obs: Vec<f64>,
+    /// Each market's cleared volume, in market order.
+    pub volume: Vec<f64>,
+    /// Y, baskets eaten.
+    pub baskets: f64,
+    /// The provider's and the workers' baskets.
+    pub households: [f64; 2],
+    /// Each basket item's quantity eaten, z_j·Y, in item order (space last).
+    pub items: Vec<f64>,
+    /// Each desk's output, in desk order.
+    pub output: Vec<f64>,
+    /// The point.
+    pub point: Point,
+}
+
+impl Target {
+    /// The target of an equilibrium with land services `land` per tick: land clears T, each
+    /// category's good z_j·Y, and each type's market what the category desks and the other
+    /// types buy of it (a type's own input is kept, not traded; MARKETS-SPEC §1.4).
+    pub fn of(inst: &Instance, e: &Point, land: f64) -> Target {
+        let mut volume = vec![e.n_a, land];
+        volume.extend(e.type_traded.iter().copied());
+        volume.extend(e.cat_output.iter().copied());
+        let mut output = e.cat_output.clone();
+        output.extend(e.type_services.iter().copied());
+        let mut obs = vec![e.v];
+        obs.extend(e.type_price.iter().copied());
+        obs.extend(e.cat_price.iter().copied());
+        obs.extend(inst.categories.iter().map(|_| e.one_minus_x));
+        obs.extend(volume.iter().copied());
+        obs.extend(output.iter().copied());
+        let mut items = e.cat_output.clone();
+        if let Some(h) = inst.space {
+            items.push(h * e.y);
+        }
+        Target {
+            obs,
+            volume,
+            baskets: e.y,
+            households: [e.provider_baskets, e.worker_baskets],
+            items,
+            output,
+            point: e.clone(),
+        }
+    }
+}
+
+/// The distance between two oracle points (MARKETS-SPEC §1.5): the largest |ln| over 1 − x,
+/// v, every price, Y, every type's services and N_a, over the tolerance.
+pub fn shock_distance(a: &Point, b: &Point) -> f64 {
+    let mut pairs = vec![
+        (a.one_minus_x, b.one_minus_x),
+        (a.v, b.v),
+        (a.y, b.y),
+        (a.n_a, b.n_a),
+    ];
+    pairs.extend(
+        a.type_price
+            .iter()
+            .copied()
+            .zip(b.type_price.iter().copied()),
+    );
+    pairs.extend(a.cat_price.iter().copied().zip(b.cat_price.iter().copied()));
+    pairs.extend(
+        a.type_services
+            .iter()
+            .copied()
+            .zip(b.type_services.iter().copied()),
+    );
+    pairs
+        .iter()
+        .map(|(x, y)| ln(x / y).abs())
+        .fold(0.0, f64::max)
+        / TOL_FLOOR
+}
+
+/// One tick's row: what the engine reported, the agents' own records, and the target.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Row {
+    /// The tick.
+    pub tick: u64,
+    /// The posted prices this tick settled at, in market order.
+    pub price: Vec<f64>,
+    /// The observables, in [`observables`] order.
+    pub obs: Vec<f64>,
+    /// The target, in the same order.
+    pub target: Vec<f64>,
+    /// Each observable's gap |ln(o/o\*)|; infinite when o is not positive.
+    pub gap: Vec<f64>,
+    /// D̂: the largest gap over its tolerance.
+    pub dhat: f64,
+    /// Supply per market.
+    pub supply: Vec<f64>,
+    /// Feasible demand per market.
+    pub demand: Vec<f64>,
+    /// Cleared volume per market.
+    pub cleared: Vec<f64>,
+    /// The buyers' fill per market.
+    pub buyer_fill: Vec<f64>,
+    /// The sellers' fill per market.
+    pub seller_fill: Vec<f64>,
+    /// Whether each market traded.
+    pub trades: Vec<bool>,
+    /// Spoilage of each market's good this tick.
+    pub spoiled: Vec<f64>,
+    /// What `Consumption` burned of each basket item this tick, in item order.
+    pub eaten: Vec<f64>,
+    /// Each actor's coin after the tick, in actor order.
+    pub coin: Vec<f64>,
+    /// Each category desk's planned human share after the tick.
+    pub planned: Vec<f64>,
+    /// Each desk's output this tick, in desk order.
+    pub output: Vec<f64>,
+    /// The provider's transfer this tick: due and paid.
+    pub transfer: [f64; 2],
+    /// The baskets each household ate (provider, workers): min_j of what it bought of each
+    /// item over z_j, as its rule eats them.
+    pub baskets: [f64; 2],
+    /// The item that bound each household's baskets, if it bought any item.
+    pub binding: [Option<usize>; 2],
+    /// The tick's ledger margin.
+    pub margin: f64,
+    /// Whether the tick is dead: some market did not trade, or cleared less than the live
+    /// floor of its oracle volume.
+    pub dead: bool,
+}
+
+/// The CSV header of [`Row::csv`], for an instance.
+pub fn csv_header(inst: &Instance) -> String {
+    let obs = observables(inst);
+    let markets = inst.markets();
+    let mut h = vec!["tick".to_string()];
+    h.extend(markets.iter().map(|m| format!("p.{m}")));
+    h.extend(obs.iter().cloned());
+    h.extend(obs.iter().map(|o| format!("{o}_star")));
+    h.extend(obs.iter().map(|o| format!("gap_{o}")));
+    h.push("dhat".into());
+    for m in &markets {
+        for f in ["S", "D", "bfill", "sfill", "spoiled"] {
+            h.push(format!("{m}_{f}"));
+        }
+    }
+    for it in items(inst) {
+        h.push(format!("eaten_{it}"));
+    }
+    for a in inst.actors() {
+        h.push(format!("coin_{a}"));
+    }
+    for c in &inst.categories {
+        h.push(format!("s_planned_{}", c.key));
+    }
+    for f in [
+        "transfer_due",
+        "transfer_paid",
+        "baskets_provider",
+        "baskets_workers",
+        "bound_provider",
+        "bound_workers",
+        "ledger_margin",
+        "dead",
+    ] {
+        h.push(f.to_string());
+    }
+    h.join(",")
+}
+
+/// The basket's items by good, in item order: each category's good, then land if households
+/// buy space.
+pub fn items(inst: &Instance) -> Vec<String> {
+    let mut v: Vec<String> = inst.categories.iter().map(|c| c.key.clone()).collect();
+    if inst.space.is_some() {
+        v.push("land".into());
+    }
+    v
+}
+
+impl Row {
+    /// The row as a CSV line, every float in Rust's shortest round-trip form.
+    pub fn csv(&self, inst: &Instance) -> String {
+        let mut v = vec![self.tick.to_string()];
+        let mut push = |x: f64| v.push(format!("{x:?}"));
+        self.price.iter().for_each(|&x| push(x));
+        self.obs.iter().for_each(|&x| push(x));
+        self.target.iter().for_each(|&x| push(x));
+        self.gap.iter().for_each(|&x| push(x));
+        push(self.dhat);
+        for m in 0..self.supply.len() {
+            push(self.supply[m]);
+            push(self.demand[m]);
+            push(self.buyer_fill[m]);
+            push(self.seller_fill[m]);
+            push(self.spoiled[m]);
+        }
+        self.eaten.iter().for_each(|&x| push(x));
+        self.coin.iter().for_each(|&x| push(x));
+        self.planned.iter().for_each(|&x| push(x));
+        push(self.transfer[0]);
+        push(self.transfer[1]);
+        push(self.baskets[0]);
+        push(self.baskets[1]);
+        let names = items(inst);
+        for b in self.binding {
+            v.push(b.map_or("-".to_string(), |i| names[i].clone()));
+        }
+        v.push(format!("{:?}", self.margin));
+        v.push(u8::from(self.dead).to_string());
+        v.join(",")
+    }
+}
+
+/// The ids a run reads.
+struct Ids {
+    /// Each market's good, in market order.
+    goods: Vec<GoodId>,
+    /// Each basket item's good.
+    items: Vec<GoodId>,
+    coin: GoodId,
+    /// Each actor, in actor order.
+    actors: Vec<ActorId>,
+    /// The households' classes: owners (the provider's) and workers.
+    classes: [ClassId; 2],
+}
+
+impl Ids {
+    fn of(sim: &Sim, inst: &Instance) -> Result<Ids, String> {
+        let w = sim.world();
+        let good = |k: &str| w.id_of::<GoodId>(k).ok_or(format!("no good {k}"));
+        let actor = |k: &str| w.id_of::<ActorId>(k).ok_or(format!("no actor {k}"));
+        let class = |k: &str| w.id_of::<ClassId>(k).ok_or(format!("no class {k}"));
+        Ok(Ids {
+            goods: inst
+                .markets()
+                .iter()
+                .map(|m| good(m))
+                .collect::<Result<_, _>>()?,
+            items: items(inst)
+                .iter()
+                .map(|m| good(m))
+                .collect::<Result<_, _>>()?,
+            coin: good("coin")?,
+            actors: inst
+                .actors()
+                .iter()
+                .map(|a| actor(a))
+                .collect::<Result<_, _>>()?,
+            classes: [class("owners")?, class("workers")?],
+        })
+    }
+}
+
+fn row(
+    sim: &Sim,
+    inst: &Instance,
+    ids: &Ids,
+    r: &TickReport,
+    o: &Obs,
+    target: &Target,
+) -> Result<Row, String> {
+    let n = ids.goods.len();
+    let line = |g: GoodId| {
+        o.markets
+            .iter()
+            .position(|l| l.good == g)
+            .ok_or(format!("no market line for {g}"))
+    };
+    let mut at = Vec::with_capacity(n);
+    for &g in &ids.goods {
+        at.push(line(g)?);
+    }
+    let price: Vec<f64> = at.iter().map(|&i| o.markets[i].price).collect();
+    let supply: Vec<f64> = at.iter().map(|&i| o.markets[i].supply).collect();
+    let demand: Vec<f64> = at.iter().map(|&i| o.markets[i].demand).collect();
+    let cleared: Vec<f64> = at.iter().map(|&i| o.markets[i].cleared).collect();
+    let buyer_fill: Vec<f64> = at.iter().map(|&i| o.markets[i].buyer_fill).collect();
+    let seller_fill: Vec<f64> = at.iter().map(|&i| o.markets[i].seller_fill).collect();
+    let trades: Vec<bool> = at.iter().map(|&i| o.markets[i].trades()).collect();
+    let spoiled = ids
+        .goods
+        .iter()
+        .map(|g| {
+            o.spoiled
+                .get(g.idx())
+                .copied()
+                .ok_or(format!("no spoilage for {g}"))
+        })
+        .collect::<Result<Vec<f64>, _>>()?;
+    let eaten = ids
+        .items
+        .iter()
+        .map(|g| o.consumed.get(g.idx()).copied().unwrap_or(f64::NAN))
+        .collect();
+    let nc = inst.categories.len();
+    let mut planned = Vec::with_capacity(nc);
+    let mut used = Vec::with_capacity(nc);
+    let mut output = Vec::with_capacity(ids.actors.len() - 2);
+    for (d, &a) in ids.actors.iter().take(ids.actors.len() - 2).enumerate() {
+        match sim.actor_state(a) {
+            Some(ActorState::GoodDesk(s)) if d < nc => {
+                planned.push(s.share);
+                used.push(s.used);
+                output.push(s.output);
+            }
+            Some(ActorState::MachDesk(s)) if d >= nc => output.push(s.output),
+            _ => return Err(format!("actor {a} is not the desk its instance says")),
+        }
+    }
+    let provider = ids.actors[ids.actors.len() - 2];
+    let transfer = match o.transfers.iter().find(|(a, _, _)| *a == provider) {
+        Some(&(_, due, paid)) => [due, paid],
+        None => return Err("provider is not a provider".into()),
+    };
+    let coin: Vec<f64> = ids
+        .actors
+        .iter()
+        .map(|&a| {
+            sim.holding(Holder::Actor(a))
+                .map_or(0.0, |inv| inv.get(ids.coin))
+        })
+        .collect();
+    // Each household's baskets, from what its class bought of each item this tick: it holds
+    // nothing else of them when it eats (every item lives one tick), and its rule eats
+    // min_j max_scale(held_j, z_j).
+    let weights: Vec<f64> = {
+        let mut z: Vec<f64> = inst.categories.iter().map(|c| c.weight).collect();
+        if let Some(h) = inst.space {
+            z.push(h);
+        }
+        z
+    };
+    let mut baskets = [0.0; 2];
+    let mut binding = [None; 2];
+    for (h, &class) in ids.classes.iter().enumerate() {
+        let mut best: Option<(f64, usize)> = None;
+        for (i, &g) in ids.items.iter().enumerate() {
+            if weights[i] <= 0.0 {
+                continue;
+            }
+            let got = r
+                .rationing
+                .iter()
+                .filter(|l| l.good == g && l.class == class && l.side == SideTag::Buy)
+                .map(|l| l.filled)
+                .fold(0.0, |a, b| a + b);
+            let n_i = num::max_scale(got, weights[i]).map_err(|e| e.to_string())?;
+            if best.is_none_or(|(b, _)| n_i < b) {
+                best = Some((n_i, i));
+            }
+        }
+        if let Some((b, i)) = best {
+            baskets[h] = b;
+            binding[h] = Some(i);
+        }
+    }
+    let [w, rr] = [price[0], price[1]];
+    let mut obs = vec![w / rr];
+    obs.extend(price[2..].iter().map(|p| p / rr));
+    obs.extend(used.iter().copied());
+    obs.extend(cleared.iter().copied());
+    obs.extend(output.iter().copied());
+    let gap: Vec<f64> = obs
+        .iter()
+        .zip(&target.obs)
+        .map(|(&x, &t)| {
+            if x > 0.0 && x.is_finite() {
+                ln(x / t).abs()
+            } else {
+                f64::INFINITY
+            }
+        })
+        .collect();
+    let dhat = gap.iter().fold(0.0, |a: f64, &g| a.max(g)) / TOL_FLOOR;
+    let dead = (0..n).any(|m| !trades[m] || cleared[m] < LIVE_FLOOR * target.volume[m]);
+    Ok(Row {
+        tick: r.tick,
+        price,
+        obs,
+        target: target.obs.clone(),
+        gap,
+        dhat,
+        supply,
+        demand,
+        cleared,
+        buyer_fill,
+        seller_fill,
+        trades,
+        spoiled,
+        eaten,
+        coin,
+        planned,
+        output,
+        transfer,
+        baskets,
+        binding,
+        margin: o.margin,
+        dead,
+    })
+}
+
+/// Mode A's per-tick check (PROBE-SPEC §4.6, MARKETS-SPEC §7.6), with fills and spoilage read
+/// relative to volume, as P2.0's: every gap at most 1e-9, every market trading with both fills
+/// at least 1 − 1e-9, and no produced good spoiling beyond 1e-9 of its volume.
+fn hold_check(row: &Row, names: &[String], markets: &[String]) -> Option<String> {
+    if let Some(i) = (0..row.gap.len()).find(|&i| row.gap[i].is_nan() || row.gap[i] > HOLD_TOL) {
+        return Some(format!(
+            "tick {}: {} is {:e} from the oracle in log",
+            row.tick, names[i], row.gap[i]
+        ));
+    }
+    for (m, market) in markets.iter().enumerate() {
+        if !row.trades[m] {
+            return Some(format!("tick {}: {market} did not trade", row.tick));
+        }
+        if rationed(row.buyer_fill[m], HOLD_TOL) || rationed(row.seller_fill[m], HOLD_TOL) {
+            return Some(format!(
+                "tick {}: {market} filled {:e} (buyers) and {:e} (sellers)",
+                row.tick, row.buyer_fill[m], row.seller_fill[m]
+            ));
+        }
+        if m >= 2 && row.spoiled[m] > HOLD_TOL * row.cleared[m] {
+            return Some(format!(
+                "tick {}: {:e} of {market} spoiled",
+                row.tick, row.spoiled[m]
+            ));
+        }
+    }
+    None
+}
+
+/// The streaming classifier: what PROBE-SPEC §4.5's classes read, kept tick by tick over the
+/// scored run, with P2.0's definitions (`crate::harness::classify`).
+#[derive(Debug, Clone)]
+struct Classifier {
+    l: usize,
+    seen: usize,
+    envelope: [f64; 4],
+    max_w: f64,
+    max_f: f64,
+    dead: u64,
+    dead_w: u64,
+    dead_f: u64,
+    /// Per observable, the NaN-keeping (min, max) of ln o over F.
+    rest: Vec<Option<(f64, f64)>>,
+    /// For v and each price over r, the (min, max) of ln o over W.
+    band: Vec<(f64, f64)>,
+    last_out: Option<usize>,
+    first_out_in_w: Option<usize>,
+    last: f64,
+}
+
+impl Classifier {
+    fn new(l: u64, n_obs: usize, n_prices: usize) -> Classifier {
+        Classifier {
+            l: l as usize,
+            seen: 0,
+            envelope: [0.0; 4],
+            max_w: 0.0,
+            max_f: 0.0,
+            dead: 0,
+            dead_w: 0,
+            dead_f: 0,
+            rest: vec![None; n_obs],
+            band: vec![(f64::INFINITY, f64::NEG_INFINITY); n_prices],
+            last_out: None,
+            first_out_in_w: None,
+            last: f64::NAN,
+        }
+    }
+
+    fn push(&mut self, dhat: f64, ln_obs: &[f64], dead: bool) {
+        let i = self.seen;
+        self.seen += 1;
+        let l = self.l;
+        for (j, e) in self.envelope.iter_mut().enumerate() {
+            if j * l / 4 <= i && i < (j + 1) * l / 4 {
+                *e = e.max(dhat);
+            }
+        }
+        let (w0, f0) = (l / 2, l * 9 / 10);
+        if i < l {
+            if i >= w0 {
+                self.max_w = self.max_w.max(dhat);
+                if dead {
+                    self.dead_w += 1;
+                }
+                if dhat > 1.0 && self.first_out_in_w.is_none() {
+                    self.first_out_in_w = Some(i);
+                }
+                for (b, &x) in self.band.iter_mut().zip(ln_obs) {
+                    *b = (b.0.min(x), b.1.max(x));
+                }
+            }
+            if i >= f0 {
+                self.max_f = self.max_f.max(dhat);
+                if dead {
+                    self.dead_f += 1;
+                }
+                for (r, &x) in self.rest.iter_mut().zip(ln_obs) {
+                    *r = Some(match *r {
+                        None => (x, x),
+                        Some((lo, hi)) => (min2(lo, x), max2(hi, x)),
+                    });
+                }
+            }
+        }
+        if dead {
+            self.dead += 1;
+        }
+        if dhat > 1.0 {
+            self.last_out = Some(i);
+        }
+        self.last = dhat;
+    }
+
+    fn summary(&self, stop: &Stop, d0: f64, start: Start, r_end: f64) -> Summary {
+        let l = self.l;
+        let complete = self.seen >= l;
+        let quarter = |j: usize| {
+            let (a, b) = (j * l / 4, ((j + 1) * l / 4).min(self.seen));
+            if a < b {
+                self.envelope[j]
+            } else {
+                f64::NAN
+            }
+        };
+        let envelope = [quarter(0), quarter(1), quarter(2), quarter(3)];
+        let (w0, _) = (l / 2, l * 9 / 10);
+        let max_w = if complete { self.max_w } else { f64::NAN };
+        let max_f = if complete { self.max_f } else { f64::NAN };
+        let kappa = if d0 > 0.0 { max_f / d0 } else { f64::NAN };
+        let (dead_w, dead_f) = if complete {
+            (self.dead_w, self.dead_f)
+        } else {
+            (0, 0)
+        };
+        let at_rest = complete
+            && self
+                .rest
+                .iter()
+                .all(|r| r.is_some_and(|(lo, hi)| hi - lo <= TOL_FLOOR / 10.0));
+        let band = if complete {
+            let mut b = [f64::NAN; 3];
+            for (i, bi) in b.iter_mut().enumerate() {
+                if let Some(&(lo, hi)) = self.band.get(i) {
+                    *bi = num::exp(hi - lo);
+                }
+            }
+            b
+        } else {
+            [f64::NAN; 3]
+        };
+        let in_tol_from = match self.last_out {
+            None if self.seen > 0 => Some(0),
+            None => None,
+            Some(k) if k + 1 < self.seen => Some((k + 1) as u64),
+            Some(_) => None,
+        };
+        let nominal = matches!(start, Start::Nominal | Start::Hold);
+        let (class, why) = match stop {
+            Stop::Error(e) => (Class::Error, e.clone()),
+            Stop::Runaway(e) => (Class::Diverged, e.clone()),
+            Stop::Ran => {
+                let [_, e2, e3, e4] = envelope;
+                if e4 > e3 && e3 > e2 && e4 > d0.max(1.0) {
+                    (
+                        Class::Diverged,
+                        "the envelope grows: E4 > E3 > E2".to_string(),
+                    )
+                } else if !dead_share_ok(dead_w, (l - w0) as u64, dead_f, DEAD_SHARE) {
+                    (Class::Dead, String::new())
+                } else if !nominal && d0 <= 1.0 {
+                    (Class::Vacuous, String::new())
+                } else if max_w <= 1.0 && at_rest && (nominal || kappa < 1.0) {
+                    (Class::Converged, String::new())
+                } else if at_rest {
+                    (Class::Stuck, String::new())
+                } else {
+                    (Class::Orbiting, String::new())
+                }
+            }
+        };
+        Summary {
+            class,
+            why,
+            d0,
+            envelope,
+            kappa,
+            max_w,
+            last: self.last,
+            in_tol_from,
+            dead: [self.dead, dead_w, dead_f],
+            band,
+            r_end,
+            first_out_in_w: if complete {
+                self.first_out_in_w.map(|i| i as u64)
+            } else {
+                None
+            },
+        }
+    }
+}
+
+/// A per-(market, class, side) rationing record (MARKETS-SPEC §7.11; CERTIFY §6's reports).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Ration {
+    /// The worst filled/feasible over lines with something feasible.
+    pub worst: f64,
+    /// Ticks with that fill below 1 − 1e-9.
+    pub ticks: u64,
+    /// Σ(requested − feasible): budget rationing.
+    pub budget: f64,
+    /// Σ(feasible − filled): market rationing.
+    pub market: f64,
+}
+
+/// The transient statistics of MARKETS-SPEC §7.11 (O14), over the scored run (from the shock
+/// for a dated shock), against the oracle's values at the coefficients in force. Reported, never
+/// scored.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Stats {
+    /// The largest D̂ and its tick.
+    pub peak: (f64, u64),
+    /// Dead ticks per market: no trade, below the live floor, no supply, no demand.
+    pub dead_market: Vec<[u64; 4]>,
+    /// Each market's trough of cleared volume over its oracle volume, its tick, and its value on
+    /// the last tick.
+    pub trough: Vec<(f64, u64, f64)>,
+    /// Each desk's trough of output over its oracle output, and its tick.
+    pub output_trough: Vec<(f64, u64)>,
+    /// The trough of baskets eaten over Y\*, its tick, and the ticks with none eaten.
+    pub baskets: (f64, u64, u64),
+    /// Each item's trough of what was eaten over z_j·Y\*, and the ticks with none eaten.
+    pub item: Vec<(f64, u64)>,
+    /// For each item, the household ticks with baskets below 0.99 of the household's oracle
+    /// baskets in which it bound; and the number of such household ticks.
+    pub binding: (Vec<u64>, u64),
+    /// Rationing per (market index, class key, side).
+    pub rationing: BTreeMap<(usize, String, &'static str), Ration>,
+    /// Per market good: Σ spoiled and Σ supplied.
+    pub spoilage: Vec<(f64, f64)>,
+    /// The provider's Σ(due − paid) and its ticks short.
+    pub transfer: (f64, u64),
+    /// Buyer fills: the worst buyer and seller fill over every market (sides that exist).
+    pub worst_fill: f64,
+    /// For a cost shock: ln(Y′/Y) of the equilibrium change, and the trough of baskets eaten
+    /// in log against Y and against Y′.
+    pub depth: Option<(f64, f64, f64)>,
+}
+
+impl Stats {
+    fn new(inst: &Instance) -> Stats {
+        let (nm, nd, ni) = (inst.markets().len(), inst.desks().len(), items(inst).len());
+        Stats {
+            peak: (f64::NEG_INFINITY, 0),
+            dead_market: vec![[0; 4]; nm],
+            trough: vec![(f64::INFINITY, 0, f64::NAN); nm],
+            output_trough: vec![(f64::INFINITY, 0); nd],
+            baskets: (f64::INFINITY, 0, 0),
+            item: vec![(f64::INFINITY, 0); ni],
+            binding: (vec![0; ni], 0),
+            rationing: BTreeMap::new(),
+            spoilage: vec![(0.0, 0.0); nm],
+            transfer: (0.0, 0),
+            worst_fill: 1.0,
+            depth: None,
+        }
+    }
+
+    fn trough(slot: &mut (f64, u64), tick: u64, x: f64) {
+        if slot.0.is_nan() {
+            return;
+        }
+        if x.is_nan() || x < slot.0 {
+            *slot = (x, tick);
+        }
+    }
+
+    fn push(&mut self, row: &Row, o: &Obs, t: &Target, class_names: &[String]) {
+        if !self.peak.0.is_nan() && (row.dhat.is_nan() || row.dhat > self.peak.0) {
+            self.peak = (row.dhat, row.tick);
+        }
+        for m in 0..row.supply.len() {
+            let d = &mut self.dead_market[m];
+            let no_trade = !row.trades[m];
+            d[0] += u64::from(no_trade);
+            d[1] += u64::from(row.cleared[m] < LIVE_FLOOR * t.volume[m]);
+            d[2] += u64::from(no_trade && row.supply[m] == 0.0);
+            d[3] += u64::from(no_trade && row.demand[m] == 0.0);
+            let rel = row.cleared[m] / t.volume[m];
+            let mut slot = (self.trough[m].0, self.trough[m].1);
+            Stats::trough(&mut slot, row.tick, rel);
+            self.trough[m] = (slot.0, slot.1, rel);
+            self.spoilage[m].0 += row.spoiled[m];
+            self.spoilage[m].1 += row.supply[m];
+            if row.demand[m] > 0.0 {
+                self.worst_fill = min2(self.worst_fill, row.buyer_fill[m]);
+            }
+            if row.supply[m] > 0.0 {
+                self.worst_fill = min2(self.worst_fill, row.seller_fill[m]);
+            }
+        }
+        for (d, (&y, &ys)) in row.output.iter().zip(&t.output).enumerate() {
+            Stats::trough(&mut self.output_trough[d], row.tick, y / ys);
+        }
+        let total = row.baskets[0] + row.baskets[1];
+        let mut slot = (self.baskets.0, self.baskets.1);
+        Stats::trough(&mut slot, row.tick, total / t.baskets);
+        self.baskets = (slot.0, slot.1, self.baskets.2 + u64::from(total == 0.0));
+        for (i, (&e, &z)) in row.eaten.iter().zip(&t.items).enumerate() {
+            let mut slot = (self.item[i].0, 0);
+            Stats::trough(&mut slot, row.tick, e / z);
+            self.item[i] = (slot.0, self.item[i].1 + u64::from(e == 0.0));
+        }
+        for h in 0..2 {
+            if row.baskets[h] < 0.99 * t.households[h] {
+                self.binding.1 += 1;
+                if let Some(i) = row.binding[h] {
+                    self.binding.0[i] += 1;
+                }
+            }
+        }
+        for l in &o.rationing {
+            let class = class_names
+                .get(l.class.idx())
+                .cloned()
+                .unwrap_or_else(|| l.class.to_string());
+            let side = match l.side {
+                SideTag::Buy => "buy",
+                SideTag::Sell => "sell",
+            };
+            let r = self
+                .rationing
+                .entry((l.market as usize, class, side))
+                .or_insert(Ration {
+                    worst: f64::INFINITY,
+                    ticks: 0,
+                    budget: 0.0,
+                    market: 0.0,
+                });
+            r.budget += l.requested - l.feasible;
+            r.market += l.feasible - l.filled;
+            if l.feasible > 0.0 {
+                let f = l.filled / l.feasible;
+                r.worst = min2(r.worst, f);
+                r.ticks += u64::from(rationed(f, HOLD_TOL));
+            }
+        }
+        self.transfer.0 += row.transfer[0] - row.transfer[1];
+        self.transfer.1 += u64::from(row.transfer[1] < row.transfer[0]);
+    }
+}
+
+/// A run's record: what the classifier and the reports read.
+#[derive(Debug, Clone)]
+pub struct Record {
+    /// The run's name.
+    pub name: String,
+    /// The setup it ran.
+    pub setup: Setup,
+    /// Its genesis.
+    pub genesis: Genesis,
+    /// How its start distance is measured.
+    pub start: Start,
+    /// D̂_0.
+    pub d0: f64,
+    /// The tick the scored clock starts at.
+    pub clock_start: u64,
+    /// The scored length L.
+    pub ticks: u64,
+    /// How it ended.
+    pub stop: Stop,
+    /// The summary: PROBE-SPEC §4.5's class and numbers.
+    pub summary: Summary,
+    /// §7.11's statistics.
+    pub stats: Stats,
+    /// The last row.
+    pub last: Option<Row>,
+    /// Mode A's check: the first tick and observable or market that failed, if any.
+    pub hold_failure: Option<String>,
+    /// The market names, in order, as the engine's market lines index them.
+    pub engine_markets: Vec<String>,
+}
+
+/// Run a setup built from `name` for `ticks` scored ticks (and the ticks before a dated shock),
+/// calling `each` with every row.
+pub fn run(
+    base: &Setup,
+    name: &str,
+    ticks: u64,
+    each: &mut dyn FnMut(&Row),
+) -> Result<Record, String> {
+    let pert = Perturbation::parse(name)?;
+    let mut setup = base.clone();
+    pert.apply(&mut setup, ticks)?;
+    let inst = setup.instance.clone();
+    let text = tape_ron(&setup)?;
+    let tape = Tape::from_ron(&text).map_err(|e| format!("the tape does not load: {e}"))?;
+    let mut sim = Sim::new(&tape).map_err(|e| format!("the tape does not load: {e}"))?;
+    let ids = Ids::of(&sim, &inst)?;
+    let g = genesis(&setup)?;
+    let land = sim.world().clock.flow(FlowPerYear(setup.instance.land));
+    let names = observables(&inst);
+    let markets = inst.markets();
+    let class_names: Vec<String> = sim.world().classes.iter().map(|k| k.to_string()).collect();
+    let engine_markets: Vec<String> = {
+        let w = sim.world();
+        w.markets()
+            .map(|(_, g)| w.key_of(g).map_or_else(|| g.to_string(), |k| k.to_string()))
+            .collect()
+    };
+    // The target for each set of coefficients in force.
+    let mut targets: Vec<(Vec<(String, f64)>, Target)> = Vec::new();
+    let mut target_at = |tick: u64| -> Result<Target, String> {
+        let key = setup.changes_at(tick);
+        if let Some((_, t)) = targets.iter().find(|(k, _)| *k == key) {
+            return Ok(t.clone());
+        }
+        let i = setup.instance_at(tick)?;
+        let t = Target::of(&i, &i.point(setup.tpy)?, land);
+        targets.push((key, t.clone()));
+        Ok(t)
+    };
+    let clock_start = pert.clock_start(ticks);
+    let start = pert.start();
+    let t0 = target_at(clock_start)?;
+    let nt = inst.types.len();
+    let nc = inst.categories.len();
+    let n_prices = 1 + nt + nc;
+    let d0 = match start {
+        Start::Hold | Start::Nominal => 0.0,
+        Start::Prices => {
+            let mut genesis_obs = vec![g.prices[0] / g.prices[1]];
+            genesis_obs.extend(g.prices[2..].iter().map(|p| p / g.prices[1]));
+            genesis_obs.extend(g.shares.iter().copied());
+            genesis_obs
+                .iter()
+                .zip(&t0.obs)
+                .map(|(o, t)| ln(o / t).abs())
+                .fold(0.0, f64::max)
+                / TOL_FLOOR
+        }
+        Start::Stocks => {
+            pert.stock_factors()
+                .iter()
+                .map(|f| ln(*f).abs())
+                .fold(0.0, f64::max)
+                / TOL_FLOOR
+        }
+        Start::Shock => shock_distance(&t0.point, &g.point),
+    };
+    let total = clock_start + ticks;
+    let mut classifier = Classifier::new(ticks, names.len(), n_prices);
+    let mut stats = Stats::new(&inst);
+    let mut stop = Stop::Ran;
+    let mut last: Option<Row> = None;
+    let mut hold_failure = None;
+    for _ in 0..total {
+        let tick = sim.tick();
+        let target = target_at(tick)?;
+        let report = match sim.step() {
+            Ok(r) => r,
+            Err(e) => {
+                stop = match &e.kind {
+                    RunErrorKind::Price(PriceError::NonFinite { .. }) => {
+                        Stop::Runaway(e.to_string())
+                    }
+                    _ => Stop::Error(e.to_string()),
+                };
+                break;
+            }
+        };
+        let o = Obs::of(&report, &sim);
+        let row = row(&sim, &inst, &ids, &report, &o, &target)?;
+        each(&row);
+        if hold_failure.is_none() {
+            hold_failure = hold_check(&row, &names, &markets);
+        }
+        if row.tick >= clock_start {
+            let logs: Vec<f64> = row.obs.iter().map(|&x| ln(x)).collect();
+            classifier.push(row.dhat, &logs, row.dead);
+            stats.push(&row, &o, &target, &class_names);
+        }
+        // The runaway bound (PROBE-SPEC §4.5): every posted price within [1e-6, 1e6] times its
+        // genesis value, by certify's relative bound (A12).
+        let away = ids.goods.iter().enumerate().find_map(|(m, &gid)| {
+            let l = report.markets.iter().find(|l| l.good == gid)?;
+            let rel = l.next_price / g.prices[m];
+            (!within_bound(rel, RUNAWAY)).then(|| {
+                format!(
+                    "the price of {} left the runaway bound at tick {}: {rel:e} of genesis",
+                    markets[m], report.tick
+                )
+            })
+        });
+        last = Some(row);
+        if let Some(why) = away {
+            stop = Stop::Runaway(why);
+            break;
+        }
+    }
+    if matches!(start, Start::Shock) {
+        let y1 = target_at(total.saturating_sub(1))?.baskets;
+        let y0 = g.point.y;
+        let low = stats.baskets.0 * target_at(clock_start)?.baskets;
+        stats.depth = Some((ln(y1 / y0), ln(low / y0), ln(low / y1)));
+    }
+    let r_end = last.as_ref().map_or(f64::NAN, |r| r.price[1]) / g.prices[1];
+    let summary = classifier.summary(&stop, d0, start, r_end);
+    Ok(Record {
+        name: name.to_string(),
+        setup,
+        genesis: g,
+        start,
+        d0,
+        clock_start,
+        ticks,
+        stop,
+        summary,
+        stats,
+        last,
+        hold_failure,
+        engine_markets,
+    })
+}

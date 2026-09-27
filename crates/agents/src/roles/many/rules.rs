@@ -1,0 +1,501 @@
+//! The many-market roles' rules (docs/probe/MARKETS-RULES.md; MARKETS-SPEC §2). Each is an
+//! Appendix B role generalised: the households buy a basket of many items, a category desk works
+//! its segments of the shared task line (decision 60) with the task type's services and direct
+//! land, and a type desk buys other types' services beside its hours and land. As for the
+//! Appendix B roles, each decision reads posted prices at the actor's home node, its own holding
+//! and state, and the current params (R13), and nothing here reads a volume, a fill, another
+//! actor or the oracle.
+//!
+//! **Nesting.** On Appendix B, with the basket [(good, 1), (land, h)], one segment of density 1,
+//! θ = 1, no direct land and no bought service, each rule makes the Appendix B role's
+//! floating-point operations exactly (MARKETS-SPEC §2.7): P_s is summed from 0.0 in item order,
+//! so (0.0 + 1.0·p) + h·r = p + h·r; the top segment's hours are μ·s from the carried s, never
+//! μ·(1.0 − x); task services use J(x) − J(e) with J(0) = 0.0 exactly; costs sum as
+//! ((w·H) + (p_τ·M/θ)) + r·b and ((0.0 + Σ a·p) + λ·w) + b·r; budgets are p·(coef·q), cut from
+//! one outlay by [`budget_chain`] in admission's (good) order, which for Appendix B's two inputs
+//! is their list order, and so is `two_budgets`.
+//!
+//! The arithmetic cannot fail, as RULES §2 says of the Appendix B roles: every budget is capped
+//! by the copy of the holding and taken from it, each after the first is at most
+//! `max_remainder(outlay, spent so far)`, sells take from the same copy, and recipes run at
+//! `max_scale` over the inputs whose coefficient is not zero.
+
+use crate::behaviour::{AgentError, Behaviour, Decision, View};
+use crate::ext::{ActorState, GoodDeskState, MachDeskState, ProviderState, WorkersState};
+use crate::roles::many::spec::{BasketProvider, BasketWorkers, CategoryDesk, Item, TypeDesk};
+use crate::roles::rules::{
+    burn, buy, leontief, offer, param, price, scale_outlay, sell, set, take, Delta, Margin, Tasks,
+};
+use rustyecon_core::num;
+use rustyecon_core::{Amount, GoodId, Holder, Inventory, Provenance, StateDelta};
+
+/// Budgets out of one outlay, a chain over the wanted budgets (MARKETS-SPEC §2.6): the first at
+/// most its want, the outlay and the coin the copy holds; each later one at most its want,
+/// `max_remainder(total, the budgets before it)` and the coin the copy still holds. Each is
+/// taken from the copy, as admission will take it, and in admission's order: by good, since
+/// admission walks an actor's orders by (node, good) and every role trades at its home node. So
+/// the copy's coin falls through exactly the subtractions admission's does, and no budget is
+/// refused, whatever the order the inputs are listed in (in another order, the pair's rounded
+/// sum can pass the coin by half an ulp of the outlay). `wants` pairs each good with its want;
+/// the budgets come back in the order given. For the Appendix B roles' two inputs, listed in
+/// good order, this is `two_budgets` exactly.
+pub(crate) fn budget_chain(
+    total: f64,
+    wants: &[(GoodId, f64)],
+    dry: &mut Inventory,
+    currency: GoodId,
+) -> Result<Vec<f64>, AgentError> {
+    let mut order: Vec<usize> = (0..wants.len()).collect();
+    order.sort_by_key(|&i| wants[i].0);
+    let mut out = vec![0.0; wants.len()];
+    let mut spent = 0.0;
+    for (n, &i) in order.iter().enumerate() {
+        let room = if n == 0 {
+            total
+        } else {
+            num::max_remainder(total, spent)?
+        };
+        let b = wants[i].1.min(room).min(dry.get(currency));
+        take(dry, currency, b)?;
+        spent += b;
+        out[i] = b;
+    }
+    Ok(out)
+}
+
+/// P_s = Σ_j z_j·p_j at posted prices, summed from 0.0 in item order.
+fn basket_price<S>(v: &View<'_, S>, items: &[Item]) -> Result<f64, AgentError> {
+    let mut ps = 0.0;
+    for it in items {
+        ps += param(v, it.weight)? * price(v, it.good)?;
+    }
+    Ok(ps)
+}
+
+/// A household's baskets: `budget` at P_s buys n = budget/P_s baskets, posted as a buy of z_j·n
+/// of each item with budget p_j·(z_j·n), cut from one budget by [`budget_chain`].
+fn basket_orders<S>(
+    v: &View<'_, S>,
+    items: &[Item],
+    ps: f64,
+    budget: f64,
+    dry: &mut Inventory,
+    out: &mut Decision,
+) -> Result<(), AgentError> {
+    let n = budget / ps;
+    let mut qty = Vec::with_capacity(items.len());
+    let mut wants = Vec::with_capacity(items.len());
+    for it in items {
+        let q = param(v, it.weight)? * n;
+        qty.push(q);
+        wants.push((it.good, price(v, it.good)? * q));
+    }
+    let budgets = budget_chain(budget, &wants, dry, v.currency)?;
+    for ((it, q), b) in items.iter().zip(qty).zip(budgets) {
+        out.orders.push(buy(v, it.good, q, b));
+    }
+    Ok(())
+}
+
+/// A household eats min_j(held_j/z_j) baskets of what it holds, as `Consumption`, burning z_j·n
+/// of each item. What is not eaten dies at 5a: every item is a one-tick good.
+fn eat<S>(v: &View<'_, S>, items: &[Item]) -> Result<Vec<Delta>, AgentError> {
+    let mut held = Vec::with_capacity(items.len());
+    for it in items {
+        held.push((v.own.get(it.good), param(v, it.weight)?));
+    }
+    let n = leontief(&held)?;
+    let me = Holder::Actor(v.me);
+    let mut out = Vec::new();
+    for (it, (_, z)) in items.iter().zip(held) {
+        burn(me, it.good, z * n, Provenance::Consumption, &mut out);
+    }
+    Ok(out)
+}
+
+impl Behaviour for BasketProvider {
+    type Own = ProviderState;
+
+    fn decide(&self, v: &View<'_, ProviderState>) -> Result<Decision, AgentError> {
+        let mut out = Decision::default();
+        let me = Holder::Actor(v.me);
+        let mut dry = v.own.clone();
+        // T of land services, endowed and all offered; any space it eats it buys on the market.
+        let t = param(v, self.endowment)?;
+        if t > 0.0 {
+            out.deltas.push(StateDelta::Mint {
+                to: me,
+                good: self.land,
+                qty: t,
+                prov: Provenance::Endowment,
+            });
+        }
+        out.orders.push(sell(v, self.land, t));
+        // One basket per head at posted prices, N·P_s, paid from coin held; a shortfall is
+        // recorded in its state (R12).
+        let ps = basket_price(v, &self.basket)?;
+        let due = param(v, self.heads)? * ps;
+        let paid = due.min(dry.get(v.currency));
+        if paid > 0.0 {
+            take(&mut dry, v.currency, paid)?;
+            out.deltas.push(StateDelta::Transfer {
+                from: me,
+                to: Holder::Actor(self.transfer_to),
+                good: v.currency,
+                amount: Amount::Qty(paid),
+            });
+        }
+        let budget = param(v, self.spend)? * dry.get(v.currency);
+        basket_orders(v, &self.basket, ps, budget, &mut dry, &mut out)?;
+        out.deltas
+            .push(set(v, ActorState::Provider(ProviderState { due, paid })));
+        Ok(out)
+    }
+
+    fn produce(&self, v: &View<'_, ProviderState>) -> Result<Vec<Delta>, AgentError> {
+        eat(v, &self.basket)
+    }
+
+    fn upkeep(&self, _: &View<'_, ProviderState>) -> Result<Vec<Delta>, AgentError> {
+        Ok(Vec::new())
+    }
+}
+
+impl Behaviour for BasketWorkers {
+    type Own = WorkersState;
+
+    fn decide(&self, v: &View<'_, WorkersState>) -> Result<Decision, AgentError> {
+        let mut out = Decision::default();
+        let mut dry = v.own.clone();
+        // The hours whose work cost χ ~ U[0, χ_max] is at most ln(1 + w/P_s), with P_s the
+        // basket's price: a share F of N, at most all of them (the support of χ, not a clamp).
+        let w = price(v, self.labour)?;
+        let ps = basket_price(v, &self.basket)?;
+        let s = (num::ln1p(w / ps) / param(v, self.chi_max)?).min(1.0);
+        let hours = param(v, self.heads)? * s;
+        if hours > 0.0 {
+            out.deltas.push(StateDelta::Mint {
+                to: Holder::Actor(v.me),
+                good: self.labour,
+                qty: hours,
+                prov: Provenance::Endowment,
+            });
+        }
+        out.orders.push(sell(v, self.labour, hours));
+        let budget = param(v, self.spend)? * dry.get(v.currency);
+        basket_orders(v, &self.basket, ps, budget, &mut dry, &mut out)?;
+        out.deltas
+            .push(set(v, ActorState::Workers(WorkersState { share: s })));
+        Ok(out)
+    }
+
+    fn produce(&self, v: &View<'_, WorkersState>) -> Result<Vec<Delta>, AgentError> {
+        eat(v, &self.basket)
+    }
+
+    fn upkeep(&self, _: &View<'_, WorkersState>) -> Result<Vec<Delta>, AgentError> {
+        Ok(Vec::new())
+    }
+}
+
+/// A category's segments of the line, read at use time: the edges 0, e_1, …, e_{S−1}, 1 and
+/// the density on each segment.
+struct Line {
+    edges: Vec<f64>,
+    density: Vec<f64>,
+}
+
+impl Line {
+    fn read<S>(v: &View<'_, S>, d: &CategoryDesk) -> Result<Line, AgentError> {
+        let mut edges = Vec::with_capacity(d.edges.len() + 2);
+        edges.push(0.0);
+        for e in &d.edges {
+            edges.push(param(v, *e)?);
+        }
+        edges.push(1.0);
+        let mut density = Vec::with_capacity(d.density.len());
+        for m in &d.density {
+            density.push(param(v, *m)?);
+        }
+        Ok(Line { edges, density })
+    }
+
+    /// L̄_j = Σ_s μ_js(e_s − e_{s−1}), the hours of the all-human method.
+    fn all_human(&self) -> f64 {
+        let mut l = 0.0;
+        for (i, mu) in self.density.iter().enumerate() {
+            l += mu * (self.edges[i + 1] - self.edges[i]);
+        }
+        l
+    }
+
+    /// Whether the category has tasks anywhere on the line.
+    fn has_tasks(&self) -> bool {
+        self.density.iter().any(|&mu| mu > 0.0)
+    }
+
+    /// H_j and M_j, hours and task services (at efficiency 1) per unit, at the human share s
+    /// and threshold x = 1 − s (unit-1b.md §4.1, in its evaluation order, §5.1): machines on
+    /// [e_{s−1}, e_s] ∩ [0, x), people on the rest. The top segment's hours are μ·s from the
+    /// carried s, never μ·(1.0 − x), so that s near 0 keeps its relative precision; J(0) is
+    /// 0.0 exactly.
+    fn tasks(&self, t: &Tasks, s: f64) -> (f64, f64) {
+        let x = 1.0 - s;
+        let top = self.density.len();
+        let (mut h, mut m) = (0.0, 0.0);
+        for (i, &mu) in self.density.iter().enumerate() {
+            let (lo, hi) = (self.edges[i], self.edges[i + 1]);
+            let j_lo = if lo == 0.0 { 0.0 } else { t.j(lo) };
+            if i + 1 == top && x > lo {
+                h += mu * s;
+                m += mu * (t.j(x) - j_lo);
+            } else if x >= hi {
+                m += mu * (t.j(hi) - j_lo);
+            } else if x <= lo {
+                h += mu * (hi - lo);
+            } else {
+                h += mu * (hi - x);
+                m += mu * (t.j(x) - j_lo);
+            }
+        }
+        (h, m)
+    }
+}
+
+impl Behaviour for CategoryDesk {
+    type Own = GoodDeskState;
+
+    fn decide(&self, v: &View<'_, GoodDeskState>) -> Result<Decision, AgentError> {
+        let mut out = Decision::default();
+        let mut dry = v.own.clone();
+        let w = price(v, self.labour)?;
+        let pt = price(v, self.service)?;
+        let p = price(v, self.output)?;
+        let r = price(v, self.land)?;
+        let t = Tasks::read(v, &self.schedule)?;
+        let theta = param(v, self.theta)?;
+        // The technique: the human share moves a share of its gap to 1 − X, X the measure of
+        // the line on which a machine of the task type is cheaper at posted prices,
+        // γ(X) = θ·w/p_τ. It reads prices only, so every desk's threshold rests at one x*
+        // (decision 60), whatever its own densities.
+        let target = 1.0 - t.measure((theta * w) / pt);
+        let s0 = v.own_state.share;
+        let s = s0 + param(v, self.adjust)? * (target - s0);
+        let line = Line::read(v, self)?;
+        let (h, m) = line.tasks(&t, s);
+        let ms = m / theta;
+        let b = param(v, self.direct_land)?;
+        // Unit cost at posted prices; the markup p/c is 1 at rest (M2j).
+        let c = ((w * h) + (pt * ms)) + (r * b);
+        let margin = Margin {
+            cost: c,
+            markup: p / c,
+            worth: p * v.own.get(self.output),
+        };
+        let (outlay, scale) = scale_outlay(
+            v,
+            &self.scale,
+            v.own_state.scale,
+            &margin,
+            &mut dry,
+            &mut out,
+        )?;
+        let q = outlay / c;
+        let offered = offer(&mut dry, self.output, v.own.get(self.output))?;
+        out.orders.push(sell(v, self.output, offered));
+        // An order for every input the category can use, at quantity 0 where the planned x
+        // makes its coefficient 0: hours, the task services, and land.
+        let mut lines: Vec<(GoodId, f64)> = Vec::with_capacity(3);
+        if line.all_human() > 0.0 {
+            lines.push((self.labour, h * q));
+        }
+        if line.has_tasks() {
+            lines.push((self.service, ms * q));
+        }
+        if b > 0.0 {
+            lines.push((self.land, b * q));
+        }
+        let mut wants = Vec::with_capacity(lines.len());
+        for &(g, qty) in &lines {
+            let pg = if g == self.labour {
+                w
+            } else if g == self.service {
+                pt
+            } else {
+                r
+            };
+            wants.push((g, pg * qty));
+        }
+        let budgets = budget_chain(outlay, &wants, &mut dry, v.currency)?;
+        for ((g, qty), bud) in lines.into_iter().zip(budgets) {
+            out.orders.push(buy(v, g, qty, bud));
+        }
+        out.deltas.push(set(
+            v,
+            ActorState::GoodDesk(GoodDeskState {
+                share: s,
+                scale,
+                ..*v.own_state
+            }),
+        ));
+        Ok(out)
+    }
+
+    fn produce(&self, v: &View<'_, GoodDeskState>) -> Result<Vec<Delta>, AgentError> {
+        // Leontief at the planned technique over the inputs whose coefficient is not zero.
+        let t = Tasks::read(v, &self.schedule)?;
+        let planned = v.own_state.share;
+        let line = Line::read(v, self)?;
+        let (h, m) = line.tasks(&t, planned);
+        let ms = m / param(v, self.theta)?;
+        let b = param(v, self.direct_land)?;
+        let y = leontief(&[
+            (v.own.get(self.labour), h),
+            (v.own.get(self.service), ms),
+            (v.own.get(self.land), b),
+        ])?;
+        let me = Holder::Actor(v.me);
+        let mut out = Vec::new();
+        if y > 0.0 {
+            burn(me, self.labour, h * y, Provenance::Production, &mut out);
+            burn(me, self.service, ms * y, Provenance::Production, &mut out);
+            burn(me, self.land, b * y, Provenance::Production, &mut out);
+            out.push(StateDelta::Mint {
+                to: me,
+                good: self.output,
+                qty: y,
+                prov: Provenance::Production,
+            });
+        }
+        out.push(set(
+            v,
+            ActorState::GoodDesk(GoodDeskState {
+                used: planned,
+                output: y,
+                ..*v.own_state
+            }),
+        ));
+        Ok(out)
+    }
+
+    fn upkeep(&self, _: &View<'_, GoodDeskState>) -> Result<Vec<Delta>, AgentError> {
+        Ok(Vec::new())
+    }
+}
+
+impl Behaviour for TypeDesk {
+    type Own = MachDeskState;
+
+    fn decide(&self, v: &View<'_, MachDeskState>) -> Result<Decision, AgentError> {
+        let mut out = Decision::default();
+        let mut dry = v.own.clone();
+        let w = price(v, self.labour)?;
+        let r = price(v, self.land)?;
+        let pk = price(v, self.output)?;
+        let a = param(v, self.own)?;
+        let lam = param(v, self.labour_coef)?;
+        let b = param(v, self.land_coef)?;
+        // The cash cost of one unit made, its bought services first, in list order, then
+        // hours and land; and its markup in the net form, p_k(1 − a_kk)/c_k, 1 at rest (M1k).
+        let mut bought = Vec::with_capacity(self.inputs.len());
+        let mut c = 0.0;
+        for i in &self.inputs {
+            let (coef, pl) = (param(v, i.coef)?, price(v, i.good)?);
+            c += coef * pl;
+            bought.push((i.good, coef, pl));
+        }
+        c += lam * w;
+        c += b * r;
+        let held = v.own.get(self.output);
+        let net = pk * (1.0 - a);
+        let margin = Margin {
+            cost: c,
+            markup: net / c,
+            worth: net * held,
+        };
+        let (outlay, scale) = scale_outlay(
+            v,
+            &self.scale,
+            v.own_state.scale,
+            &margin,
+            &mut dry,
+            &mut out,
+        )?;
+        let q = outlay / c;
+        // It keeps a_kk·q of what it made last tick for its own use and offers the rest; every
+        // input it buys is ordered on the whole q (RULES' graft 4).
+        let keep = (a * q).min(held);
+        let offered = offer(&mut dry, self.output, held - keep)?;
+        out.orders.push(sell(v, self.output, offered));
+        let mut lines: Vec<(GoodId, f64)> = Vec::with_capacity(bought.len() + 2);
+        let mut wants = Vec::with_capacity(bought.len() + 2);
+        for (g, coef, pl) in bought {
+            let qty = coef * q;
+            lines.push((g, qty));
+            wants.push((g, pl * qty));
+        }
+        lines.push((self.labour, lam * q));
+        wants.push((self.labour, w * (lam * q)));
+        lines.push((self.land, b * q));
+        wants.push((self.land, r * (b * q)));
+        let budgets = budget_chain(outlay, &wants, &mut dry, v.currency)?;
+        for ((g, qty), bud) in lines.into_iter().zip(budgets) {
+            out.orders.push(buy(v, g, qty, bud));
+        }
+        out.deltas.push(set(
+            v,
+            ActorState::MachDesk(MachDeskState {
+                scale,
+                ..*v.own_state
+            }),
+        ));
+        Ok(out)
+    }
+
+    fn produce(&self, v: &View<'_, MachDeskState>) -> Result<Vec<Delta>, AgentError> {
+        let a = param(v, self.own)?;
+        let lam = param(v, self.labour_coef)?;
+        let b = param(v, self.land_coef)?;
+        let mut inputs = Vec::with_capacity(self.inputs.len() + 3);
+        inputs.push((v.own.get(self.output), a));
+        let mut coefs = Vec::with_capacity(self.inputs.len());
+        for i in &self.inputs {
+            let coef = param(v, i.coef)?;
+            inputs.push((v.own.get(i.good), coef));
+            coefs.push((i.good, coef));
+        }
+        inputs.push((v.own.get(self.labour), lam));
+        inputs.push((v.own.get(self.land), b));
+        let y = leontief(&inputs)?;
+        let me = Holder::Actor(v.me);
+        let mut out = Vec::new();
+        if y > 0.0 {
+            // The own-input burn comes first, so it takes the lots made last tick; the mint
+            // makes a lot that sells next tick.
+            burn(me, self.output, a * y, Provenance::Production, &mut out);
+            for (g, coef) in coefs {
+                burn(me, g, coef * y, Provenance::Production, &mut out);
+            }
+            burn(me, self.labour, lam * y, Provenance::Production, &mut out);
+            burn(me, self.land, b * y, Provenance::Production, &mut out);
+            out.push(StateDelta::Mint {
+                to: me,
+                good: self.output,
+                qty: y,
+                prov: Provenance::Production,
+            });
+        }
+        out.push(set(
+            v,
+            ActorState::MachDesk(MachDeskState {
+                output: y,
+                ..*v.own_state
+            }),
+        ));
+        Ok(out)
+    }
+
+    fn upkeep(&self, _: &View<'_, MachDeskState>) -> Result<Vec<Delta>, AgentError> {
+        Ok(Vec::new())
+    }
+}
