@@ -1,0 +1,20 @@
+(
+    lines: [
+        (run: Some(0), tick: None, error: false, text: "loaded appb at state tick 0: tape_hash 0x8973b237f4c00029, world_id 0x26f12f8a0bc27540, state 0x8d12ce44b614110a"),
+        (run: Some(0), tick: None, error: false, text: "running from state tick 0"),
+        (run: Some(0), tick: Some(0), error: false, text: "rationing onset: good_desks (sell) at home/good, filled 7.880605524972907 of 7.880605524972908 requested"),
+        (run: Some(0), tick: Some(0), error: false, text: "rationing onset: good_desks (buy) at home/mach, filled 3.708940331297411 of 3.7089403312974114 requested"),
+        (run: Some(0), tick: Some(0), error: false, text: "rationing onset: mach_desks (sell) at home/mach, filled 3.708940331297411 of 3.708940331297412 requested"),
+        (run: Some(0), tick: Some(0), error: false, text: "stepped at state tick 1"),
+        (run: Some(0), tick: Some(0), error: false, text: "snapshot of state tick 1"),
+        (run: Some(0), tick: Some(0), error: false, text: "running from state tick 1"),
+        (run: Some(0), tick: Some(1), error: false, text: "rationing onset: workers (sell) at home/labour, filled 1.3433818800977173 of 1.3433818800977175 requested"),
+        (run: Some(0), tick: Some(2), error: false, text: "rationing onset: owners (buy) at home/good, filled 3.344431185245343 of 3.3444311852453437 requested"),
+        (run: Some(0), tick: Some(2), error: false, text: "rationing onset: workers (buy) at home/good, filled 4.5361743397275625 of 4.536174339727563 requested"),
+        (run: Some(0), tick: Some(4), error: false, text: "rationing onset: good_desks (buy) at home/labour, filled 1.0784575707193302 of 1.0784575707193305 requested"),
+        (run: Some(0), tick: Some(8), error: false, text: "rationing onset: owners (sell) at home/land, filled 9.999999999999996 of 10 requested"),
+        (run: Some(0), tick: Some(8), error: false, text: "rationing onset: workers (buy) at home/land, filled 4.536174339727562 of 4.536174339727563 requested"),
+        (run: Some(0), tick: Some(19999), error: false, text: "stepped at state tick 20000"),
+        (run: Some(0), tick: Some(19999), error: false, text: "snapshot of state tick 20000"),
+    ],
+)

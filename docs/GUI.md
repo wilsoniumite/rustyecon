@@ -25,6 +25,340 @@ again at P0.9.
 items 1, 2 and 4 landed at S2.2 and item 3 was met already (§7.2). Session 2 chose the tape hash
 and built the three raised items: §3.3 and §7.2 say how. The rest of this file is unchanged.
 
+**Amended at G0.1 (2026-09-27),** when `crates/gui` landed with its seams and no panels: the
+model and `reduce`, the Runner, `ThreadDriver`, the Extractor, the in-memory store with its
+decimation, the ring, a view-model skeleton, `session.ron` and `layout.ron`, and D1 in the
+workspace. This file was written before S2.2–S2.6, and where it was wrong or silent against the
+code the build decided. Each change is made in place, in the section named:
+1. **The GUI's gate script** is `scripts/gui.sh`, beside `scripts/gate.sh`, where the
+   repository's gate lives (STATE decision 20). Read `ci/gui.sh` below as that script. It tests
+   in release, as the engine's gate does, and checks by name that each test G0's gate names ran
+   (§8.2).
+2. **The Runner takes the build** (§3.3): `Runner::new(build, sink, wake)`. It mints the run key
+   and every ring checkpoint, so it names the binary. The stamp is the cli's `build.rs`, which the
+   GUI's manifest names as its own build script (§3.2).
+3. **Observations** (§3.3). `Obs::Loaded` carries the run key and the run's `World`, for key
+   lookups on the model's side. `Obs::Running { tick }` is new: the store holds the run's status,
+   so it needs the start of a run as well as its pause. `Obs::Refused` carries a `Refusal`: a
+   tape that does not load, ring bytes that do not decode, or a resume `Sim::resume` refused.
+4. **Effects** (§3.3). `reduce` returns `ReadTape`, `Spawn`, `Send { run, cmd }`, `Close`,
+   `SaveSession` or `SetAsideSession`. `drive::Host` carries them out and pumps observations
+   back, so tests drive the whole seam without egui; app.rs holds a Host.
+5. **vm/ reads run types only** (§3.2): the store and the log lines, never `model/`, so it moves
+   into observe with the Runner at G2 (D13). A scan holds it, with run/'s freedom from files,
+   threads and clocks (§8.1).
+6. **Series** (§3.4). A value is stamped with the tick that ran; holdings and params are read
+   from the state it left. A series is a column of (tick, value) pairs, and a gap is a tick with
+   no pair. The decimator lives in run/, free of egui, and splits a line at every gap.
+7. **Ring ticks** (§3.3). A ring tick is the tick 1 January falls in, which can begin in the old
+   year: 1751-01-01 falls in tick 51, which begins on 1750-12-26. The gate world has 41, from
+   tick 0 to tick 2,080.
+8. **The scans** (§8.1) also read `drive/` and `platform/`, which are free of egui too.
+9. **The session** (§4, U8). `session.ron` holds the bases, the plots, the pins, the breakpoints
+   and the speed cap, in `$RUSTYECON_GUI_DIR` or else the platform's configuration directory. A
+   new session plots every price and has the breakpoint on error. `layout.ron` is saved when
+   the window closes. A file that does not read is set aside, never written over.
+10. **Windows** (§8.2). C: had 114 GB free on 2026-09-27, and `ci/gate.ps1` does not exist:
+    Windows runs `scripts/gate.sh` under Git Bash, which skips the GUI's non-blocking check off
+    Linux, and `scripts/gui.sh` the same way, with `CARGO_TARGET_DIR` on D:.
+
+**Amended at G0.1's second part (2026-09-27),** when the panels landed: the toolbar, timeline,
+outliner, plots, inspector, registry and log, the view-model goldens, G0's kittest scripts,
+`every_drawn_vertex_is_recorded` and the smoke mode. Where this file was silent or wrong
+against the code, the build decided, and each change is made in place, in the section named:
+1. **The cursor** (§4). A cursor is a report tick: the tick that ran. A panel reads that tick's
+   report and the state it left. Live follows the last tick that ran. Before any tick runs,
+   a panel shows no report.
+2. **Stacked plots** (§3.4, §4). The plots stack one panel per unit, so every y axis names its
+   unit and no two units share one. The x axis is the report tick, labelled by its date. The
+   panels share their x axis and hover cursor, and each draws the model's cursor. Colours are
+   one neutral palette. Overlay, difference and ratio against a parent need a branch, so they
+   wait for G0.2.
+3. **The plot cache** (§3.4). Columns are `2^k` ticks wide: the fewest that fit the visible
+   span into the panel's pixel columns. A cache is rebuilt when its width changes or the store
+   starts afresh, and extended otherwise. Each frame it records the vertices it lent egui.
+4. **Run until** (§4). A bare number is a state tick, as the cli's `--until` takes it. A date
+   runs through the tick it falls in, so an event of that date has fired.
+5. **The registry** (§4). Its rows are `engine::registry`'s listing, made once per load. The
+   current value is the run's record after the cursor's tick. Each use shows its per-tick
+   value at genesis, from the listing, and at the current value through
+   `ClockMethod::per_tick`, the function the listing calls. "Fixed" is the listing's use:
+   live, fixed or schedule. The copied basis comes from the last fired `SetParam`'s `source`,
+   dated by the event's own date.
+6. **The actor inspector** (§3.3, §4). When an actor is selected and the run is not running,
+   the model asks the run for a snapshot of the state the cursor's tick left, once per state
+   tick. `Snapshot` carries each holding's lots. Holdings come from the record every tick.
+7. **Observations** (§3.3). `Obs::Loaded` carries the tape. The store keeps it and the listing,
+   and the event inspector reads each event's basis from it.
+8. **The log's rationing onsets** (§4). A class line's onset is logged once per load: the first
+   tick it is filled below its request, compared exactly. One line per episode flooded the log:
+   39,990 lines on appb's 20,000 ticks, where fills differ from requests by one ulp at rest,
+   and 378 on the gate, whose sellers are rationed on and off. A tolerance on a fill is a
+   criterion's registered bar (certify's `rationed_below`), not the log's.
+9. **Core, for `num` alone** (§3.2). The inspector shows ln(p′/p), and the engine re-exports
+   no `num`. So the GUI depends on `rustyecon-core` and names `rustyecon_core::num` and nothing
+   else, held by the scan `the_gui_names_core_for_num_alone`. Core's writer stays out of reach.
+10. **Open** (§3.3). `Intent::PickTape` becomes `Effect::PickTape`, which `drive::Host` carries
+    out through `platform::pick_tape` (rfd's native dialog), answering with `Intent::Open`.
+11. **"Ledger changed"** (§4). Only a branch has a parent, so a base run's health chip says
+    `false` until G0.2's branches.
+12. **The smoke mode** (§8.1): `rustyecon-gui --smoke UNTIL TAPE`. It runs the tape to state
+    tick UNTIL at ten model years a second with every price plotted, prints CPU per frame
+    (p50, p90, max) running and then for 120 paused frames, with the panes drawn, and closes.
+    It keeps no session.
+13. **The goldens** (§8.1) are one RON file per builder and point, in
+    `tests/golden/<tape>-<point>/`. The gate's points are the state ticks 1, `mine.cut`'s tick
+    plus 1, `oven.opens`'s tick plus 1 (1768) and 2,080; appb's are 1 and 20,000. The build is
+    named `golden`. Each point also asserts what this file says it shows.
+14. **Image snapshots** (§8.1). WSL has no lavapipe, only NVIDIA's ICD, so no image snapshot is
+    taken or gated.
+15. **D2's "no log axes"**, revisited on appb as STATE asked. Kept for G1: one panel per unit
+    gives each of appb's four prices its own linear scale, and `num::ln` is now in reach.
+
+**Amended at G0.1's verification fixes (2026-09-27),** after a bounded verification of G0.1
+found five major issues and seven minor ones. Each change is made in place, in the section
+named, and each fix has a test that fails without it, checked by mutation:
+1. **A failed run's snapshot** (§3.3). A failed step leaves the `Sim` poisoned at the tick it
+   began, holding what the failure left, a state no tick of the tape left. The Runner never
+   reads it: a snapshot of a poisoned run's current tick is rebuilt on a scratch `Sim` from
+   the ring, as an earlier tick's is, and a later tick is not asked for.
+2. **The scans read `use` trees** (§8.1). A reach into `ui/` or `app.rs`, and from run/ or vm/
+   into the model, the drivers, the files, threads or clocks, is refused in a group, a rename,
+   a glob import and the bare path a glob allows, as well as in a path.
+3. **The plots record what they lend** (§3.4). One function makes each segment's `Line`,
+   hands it to the plot and records the points that `Line` is made of. The drawn list is that
+   record, not the cache. `every_drawn_vertex_is_recorded` also checks that each segment lent
+   is painted as one path of as many points, on one affine map of its ticks per panel, with
+   the panel's cursor on the same map.
+4. **Plots across tapes** (§4). A run opens with every price plotted when the session's plots
+   name nothing of its world: a new session, or one another tape wrote. A plotted key of
+   another world stays in the session, is left out of the stack and is named apart. No unit is
+   made up for it.
+5. **The scripts** (§8.1). The gate script checks the painted identity chip, each panel's unit,
+   year labels and cursor, and plots from the inspector and from the outliner. A theft script
+   and a script whose session another tape wrote join the named tests. Each plot button's
+   accessible name names its series.
+6. **The ledger line by key** (§3.3, U7). The engine's ledger line names dense ids, as the cli
+   prints it. The health chip paints it, and beside it the same failure by key: a shortfall's
+   holder and good, a hook's actor, and for the events phase the tape events due in that tick.
+7. **A worker that ends unasked** (§3.3). A worker whose Runner panicked says nothing. Its
+   driver now reports `Obs::Ended` once, and the run shows `Ended`, logs it and takes no
+   command.
+8. **The log's ticks** (§4). A log line's tick is a report tick, the tick that ran, as the
+   cursor counts. A line about a state names the tick that left it and says "state tick", so a
+   click moves the cursor to the state the line names.
+9. **Year gridlines** (§3.4). The x axis marks year starts, the tick 1 January falls in, every
+   1, 5, 10, 50, 100, 500 or 1,000 years, labelled by that year. Below two years it takes
+   egui's marks, labelled by date. A year never labels a tick without a 1 January.
+10. **U10's named test** poisons NaN, +inf and −inf.
+11. **Core for `num`** (§3.2). With the GUI's edge to core, core's pub `apply`, `SimState` and
+    `Checkpoint::of` compile in the GUI. U1's guard for the GUI is therefore the scan
+    `the_gui_names_core_for_num_alone`, not the type system. At the next engine step the
+    engine's prelude should re-export the pure `num` functions, and the edge then goes.
+12. **The gate script's list** (§8.2) names 17 tests.
+
+**Amended at G0.2 (2026-09-27),** when the editor landed: `edit/` with `TapeEdit`,
+`materialise`, the lineage, `plan`, the form and export; branches in the model; the editor and
+compare panes. This file was written before S2.2–S2.6, and where it was wrong or silent against
+the code the build decided. Each change is made in place, in the section named, and each named
+test fails without what it guards, checked by mutation:
+1. **Edit names core's raw schema** (§3.2). An entry is written in core's raw types, which the
+   engine does not re-export. So `edit/`, and no other module, names `rustyecon_core::tape::raw`,
+   `rustyecon_core::Basis` and `rustyecon_core::Unit`: plain data, none of which writes a state.
+   The scan `the_gui_names_core_for_num_alone` holds that, and holds `num` as before everywhere
+   else. `edit/` reads run types and reaches no model, driver, file, thread or clock
+   (`edit_reaches_no_model_file_thread_or_clock`); run/ and vm/ may not reach `edit/`.
+2. **`materialise` as built** (§5.1). It returns a `Branch { tape, applied, world }`: the world
+   serves `plan`. It builds a `Sim` to validate, reads its world and drops it; only a Runner
+   keeps one (U1). `EditError::Orphans` lists every param the removals leave unreferenced. A
+   load error or a parse error of the round trip names the edit it comes from.
+3. **`plan` reads the parent's store** (§5.1 item 5): `plan(parent: &Store, child: &World)`, so
+   `edit/` needs no model. Each ring checkpoint stores its `prefix_id`, read off the checkpoint
+   when the Runner takes it. A checkpoint at genesis gains nothing over `Sim::new`, so a branch
+   whose only agreeing checkpoint is genesis reruns.
+4. **The world's identity since S2.2** (§5.1 items 4 and 5, §5.2, §8.1). A param only the
+   schedule reads is outside `world_id` (STATE decision 16). So `RemoveEvent(mine.cut)` with
+   `RemoveParam(mine.capacity.cut)` keeps the world, and the branch resumes from 1760-01-01's
+   ring tick, 519, not from genesis. A new value, `AddParam` of a param only a `SetParam`
+   reads and the event that copies it, resumes too. Only an edit of what the world reads
+   reruns: a genesis value the world reads, or a param the world reads added or removed.
+5. **The lineage as built** (§5.1 item 6): `Lineage { format, tape_hash, parent: Ancestor {
+   tape_hash, path }, edits, records_viewed }`. Its `tape_hash` names the tape it describes, so
+   a lineage beside a tape edited after it was saved is logged as not describing it. A
+   branch's lineage is made with the branch. A tape opened with a lineage beside it is an
+   experiment.
+6. **Keys** (§5.1 item 2). "New to the run tree" means new among the keys of every kind in
+   every tape of the tree, the staged edits, and the runs closed in this session. The serial
+   `s` of `gui.<s>.<n>` lives in `session.ron`, whose format is now 2; it grows by one at each
+   launch that reads the session. A format-1 session does not read and is set aside. (Revised
+   after G0.2's verification: item 4 of that block.)
+7. **The stamp's date** is today's date in UTC, read by `platform::today` at launch and handed
+   to the model as `Intent::Today`, so `reduce` stays pure.
+8. **The form and the raw pane** (§5.1 items 2 and 3). An act is typed as the tape writes it,
+   `SetParam(param: "mine.capacity", to: "mine.capacity.base")`, and read by the tape's own
+   parser. An act that does not read is refused with the parser's line and column, and the
+   read-only raw pane shows the text it read with a caret under the column. A parse error of
+   the round trip is reported with its line, column and edit. The editor's form is the one way
+   in at G0.2; the registry's and the inspector's ways in (§5.1 item 1) wait for G1.
+9. **"Ledger changed"** (§4, §5.1 item 2) compares the tolerances, by key, value and unit, with
+   the parent run's, or with the ancestor's that a reopened tape's lineage names, when this
+   session holds that tape. The health chip, the CSV's `#` lines and the manifest envelope
+   show it. `GuiManifest` gains the field `ledger_changed`. (Revised after G0.2's
+   verification: item 1 of that block.)
+10. **Export as built** (§4). The directory gets `series.csv`, `manifest.ron`, `tape.ron`, and
+    for an experiment `tape.lineage.ron` and `ancestor.ron`, the tape its lineage names when
+    this session holds it. The manifest is begun from a `Sim` at genesis, as the cli begins
+    one, moved to the run's start and fed every recorded tick. A resumed branch's
+    `resumed_from` records the ring checkpoint's tick, digest and state hash and the parent's
+    run key. No file is written over, by export or by "Save tape as"; a path this session
+    opened or saved is refused by name.
+11. **Compare as built** (§4). "The difference of pinned series" reads as the plotted series:
+    the session pins entities, not series. The plots' overlay, difference and ratio against a
+    parent move to G1, as §9 lets compare's parts move when G0.2 overruns.
+12. **Branches are not re-made at launch** (§5.1 item 7). `session.ron` keeps the bases and the
+    serial. A branch lives in memory until "Save tape as" writes it with its lineage. Re-making
+    branches at launch, and refusing to re-apply edits to a base whose hash changed, wait for
+    G1.
+13. **The layout** (§4). A `layout.ron` saved before a pane existed gains the pane beside the
+    inspector; it was set aside before.
+14. **The gate script** (§8.2) names 27 tests, and diffs the cli's runs of the two branch
+    tapes the branch tests write against the GUI's hashes.
+
+**Amended at G0.2's verification fixes (2026-09-27),** after a bounded verification of G0.2
+found six major issues and four minor ones. Each change is made in place, in the section
+named. Each fix has a test that fails without it, checked by mutation. Items 1 and 4 revise
+items 9 and 6 of the G0.2 block:
+1. **"Ledger changed" has three answers** (§4, §5.1 item 2). The model returns a
+   `LedgerCheck`: no parent, same, changed, or unknown with the reason. "No parent" is a tape
+   no GUI edit made, with no lineage. A branch compares with its parent run. A reopened tape
+   compares with the ancestor its lineage names. That is a run of this session with that path
+   and `tape_hash`, or else the file at that path, which the host reads
+   (`Effect::ReadAncestor`). The file is kept only when its `tape_hash` is the lineage's. When
+   neither is held, the check is unknown. So is a tape that carries the marker and has no
+   lineage. The chip then says "ledger unchecked" and why. The CSV says `# ledger changed:
+   unknown (<why>)`, and `GuiManifest.ledger_changed` is an `Option<bool>`, `None` when
+   unknown. Before, all of these said "no".
+2. **U3's other clauses are tested** (§2, §8.1). A tape with a lineage beside it and no marker
+   in its text is an experiment. So is a tape whose only marker is in one basis. The same tape
+   without the lineage is a run.
+3. **A reopened experiment exports its ancestor** (§4). The reopened run keeps the ancestor
+   tape it found or read, so its export carries `ancestor.ron`, as a branch's does.
+4. **Keys are new to the whole session** (§5.1 item 2, E8). A new key must be new to every
+   tape open in this session, to every run closed in it and to the staged edits. That covers
+   every run tree, a saved branch reopened as its own root, and a second root of one file. The
+   form checks a typed key so, and Apply checks it again. A minted key's `n` is one more than
+   every `n` under the session's serial, in those keys and in every key staged this session,
+   so no `n` is minted twice in a session. When a session is set aside and its serial still
+   reads, the new session takes the next serial. Two windows launched from one `session.ron`,
+   or a session whose file is lost, can still share a serial. Their keys are then new only to
+   the tapes each one opened. That is recorded here, not fixed.
+5. **Compare reaches back** (§4, §5.1 item 5). A parent that itself resumed from its own
+   parent's ring holds no record before its start. Compare reads the states before it, and the
+   plotted series, in the records of the runs it resumed from, while they are open. When those
+   records do not reach far enough, a difference at the first state both hold says the hashes
+   may differ earlier. The range compared is always shown, and each identity names its origin.
+6. **A stale lineage is flagged** (§4, §5.1 item 6). A lineage can describe another
+   `tape_hash` than its tape's. The CSV's lineage line then says which, and
+   `GuiManifest.lineage_stale` is true. "Save tape as" still writes it beside the new file, and
+   logs that it describes another tape. Without it, a tape whose only mark was its lineage
+   would reopen as a run.
+7. **The gate script** (§8.2) also checks the cli's `tape_hash` of each branch tape against
+   the GUI run key's.
+8. **The toolbar's goldens** say `ledger: NoParent` where they said `ledger_changed: false`.
+   The view-model's field changed; the gate world did not.
+
+**Closed at G0.3 (2026-09-27).** G0 is built, and its gate is met but for the window checked
+by hand, which is the user's (§9; STATE.md has the command). G0 is five commits on branch `g0`
+from `397d7cd` and this one; the five blocks above say what each built and where the build
+departed from this file. This block adds what the close did, what G0 leaves to G1, and an index
+of every deviation:
+1. **What G0 built.** `crates/gui`, a library and the binary `rustyecon-gui`. `model/` holds the
+   session, the intents, the effects and `reduce`. `run/` holds the Runner, the Extractor, the
+   store and its decimator, the ring and the log. `edit/` holds the edits, `materialise`,
+   `plan`, the lineage, the form, the keys and export. `vm/` has one builder per panel.
+   `drive/` holds `ThreadDriver`, its pace, the `Host` and the smoke mode's frame timings.
+   `platform/` holds the files, rfd and the session's directory. `ui/` draws the toolbar,
+   timeline, outliner, plots, inspector, registry, editor, compare and log in an egui_tiles
+   layout. The crate has 72 tests, one of them an ignored measurement. `scripts/gui.sh` is its
+   gate.
+2. **The gate's tests by name** (§8.2, §9). §9 names "the reducer's state-machine tests" as a
+   group, and `scripts/gui.sh` did not check them by name. It now names the fifteen in
+   `tests/model.rs`, so it names 42 tests. Eight of the fifteen had killed no mutant by name.
+   At the close each of the eight kills a mutant of `reduce` (STATE.md has the ten).
+3. **The measurements** (§3.1, §5.2, §8.2) are taken again on the finished crate, on WSL. G0.1
+   took D1's costs and the recount on the crate's seams alone, and G0.2 took the rerun time
+   before its fixes. §3.1, §5.2 and §8.2 give the numbers.
+4. **Left to G1**, collected from the blocks above: the plots' overlay, difference and ratio
+   against a parent (G0.2, item 11); re-making branches at launch, with §5.1 item 7's refusal
+   (G0.2, item 12); the registry's and the inspector's ways into the editor (G0.2, item 8); a
+   lock on `session.ron`, so two windows cannot share a serial (G0.2's fixes, item 4); and what
+   the two re-checks left (item 5). The watchlist, event and date breakpoints and log axes
+   were G1's from the start (§9).
+5. **What the two re-checks left.** The bounded verification is one pass, one fix round and
+   one re-check of the fixed items; G0.1 and G0.2 each had one. Both re-checks found the fixes
+   in place. They left these, which the close records and does not fix (STATE.md, O20); G1
+   takes them first:
+   - After G0.1's fixes, two ways past the no-egui scan: a reach into `ui` through a renamed
+     crate root (`use crate as g;`, then `g::ui::…`), and a `use` group whose first root is
+     another crate (`use {std::fmt as _, crate::{ui as _}};`).
+   - After G0.1's fixes, three mutants of the plots that `every_drawn_vertex_is_recorded`
+     misses: a y changed only where a line is lent (scaled on some lines, or moved by one
+     affine map on all), and each segment's last vertex dropped from the record and the line
+     alike. The painted y and the end of a segment are not yet held to the store. Rerun at the
+     close, these five still survive.
+   - After G0.2's fixes, five mutants that pass the whole suite. Compare's hedge drops its
+     check of the branch's own start. The model's walk to earlier records takes any resumed
+     run, not only one whose resume tick is its store's start. The compare pane is handed no
+     earlier records. The pane never paints the hedge. And the ancestor is never taken from an
+     open run, so the host reads the file instead. The first two look equivalent: a run that
+     resumed starts at its checkpoint's tick, where its state is its parent's, and a run that
+     reran starts at 0, which the walk refuses. The last three are what no test paints or
+     takes.
+   - After G0.2's fixes, a branch of a hand-edited tape compares its tolerances with that
+     tape, its parent, and says "no". "Ledger changed" reads one generation, not the chain
+     back to the base.
+   - After G0.2's fixes, a tape with no marker, beside a lineage file that does not read,
+     opens as a run, and the log says the lineage does not read. Read strictly, U3 makes it an
+     experiment.
+6. **Every deviation, by section.** Each is made in place, in the section named, and the item
+   named in its block says why. "G0.1" is the first part's block and "second part" is G0.1's
+   second part's:
+   - §2, U3: a lineage alone, or a marker in one basis alone, makes an experiment (G0.2's
+     fixes, 2).
+   - §3.1: the recount and licence read with certify in the tree (here, 3).
+   - §3.2: the gate script is `scripts/gui.sh` (G0.1, 1); the build script is the cli's (G0.1,
+     2); vm/ reads run types only (G0.1, 5); the GUI depends on core, for `num` everywhere and
+     for the raw schema, `Basis` and `Unit` in `edit/` alone, held by a scan (G0.1's second
+     part, 9; G0.1's fixes, 11; G0.2, 1).
+   - §3.3: `Runner::new` takes the build (G0.1, 2); `Loaded`, `Running`, `Refused`, `Ended`
+     and `Snapshot` as built (G0.1, 3; second part, 6 and 7; G0.1's fixes, 7); the effects
+     and `drive::Host` (G0.1, 4; second part, 10; G0.2, 10); ring ticks (G0.1, 7); each ring
+     checkpoint's `prefix_id` (G0.2, 3); a poisoned run's snapshot from the ring (G0.1's fixes,
+     1); the ledger line by key (G0.1's fixes, 6).
+   - §3.4: series stamped with the tick that ran, gaps as missing pairs (G0.1, 6); stacked
+     plots, the `2^k` cache and the record of what is lent (second part, 2 and 3; G0.1's
+     fixes, 3); year gridlines (G0.1's fixes, 9).
+   - §4: the cursor is a report tick (second part, 1); run until (second part, 4); the
+     registry (second part, 5); the log's onsets and ticks (second part, 8; G0.1's fixes, 8);
+     plots across tapes (G0.1's fixes, 4); "ledger changed" with three answers (G0.2, 9; G0.2's
+     fixes, 1); export (G0.2, 10; G0.2's fixes, 3 and 6); compare (G0.2, 11; G0.2's fixes, 5);
+     the layout gains a pane (G0.2, 13); the session and its serial (G0.1, 9; G0.2, 6).
+   - §5.1: `materialise` returns the branch's world (G0.2, 2); `plan` reads the parent's store
+     (G0.2, 3); a removal of an event and its source param resumes (G0.2, 4); the lineage
+     names its tape (G0.2, 5); keys new to the whole session (G0.2, 6; G0.2's fixes, 4); the
+     stamp's date (G0.2, 7); the act as text, with the raw pane's caret (G0.2, 8); branches not
+     re-made at launch (G0.2, 12).
+   - §5.2: a new value copied from a new param resumes; only a change to what the world reads
+     reruns (G0.2, 4).
+   - §8.1: the scans read `drive/` and `platform/` and `use` trees (G0.1, 8; G0.1's fixes, 2);
+     the smoke mode (second part, 12); the goldens' points (second part, 13); no image
+     snapshot, since WSL has no lavapipe (second part, 14); U10's test poisons NaN and both
+     infinities (G0.1's fixes, 10).
+   - §8.2: `scripts/gui.sh` tests in release, names its tests and checks the branch tapes'
+     `tape_hash` (G0.1, 1; G0.2's fixes, 7; here, 2); Windows runs both scripts under Git
+     Bash, with no `ci/gate.ps1` (G0.1, 10).
+   - §9: D2's "no log axes" stays for G1 (second part, 15); what moves to G1 (here, 4).
+
 ## 0. Rulings and decisions
 
 **Rulings (2026-09-25),** numbered here 1–4; they are ADDENDUM's rulings 5–8.
@@ -156,6 +490,12 @@ which clashed with the G-stages.
     method gives the spike's own tree (with egui_dock and colorgrad) 273, 186 and 127.
   - Session 2 fixes certify's tree. G0 re-runs the count, the licence read and D1's check timing
     with certify in the tree.
+  - As re-run at G0, with certify in the tree (WSL, the same method): 274 crates on Linux, 187
+    on Windows and 125 on wasm32; 281, 196 and 129 with build dependencies. G0.1 counted them
+    on the crate's seams and the close again on the finished crate, with the same result: the
+    lockfile has not changed since G0.1's second part. The licences are as above, with 2 crates
+    under BSL-1.0 on Windows, and `self_cell` and `r-efi` each offering a permissive licence
+    among others (STATE.md).
   - All the crates are permissive (18 under Unicode-3.0). The exception is the default fonts
     (OFL-1.1, Ubuntu Font Licence 1.0), whose notices ship with every build.
   - The spike was clippy-clean under the default lints only. The workspace's `clippy.toml` rejects
@@ -181,16 +521,26 @@ which clashed with the G-stages.
 
 ```
 crates/gui       rustyecon-gui: lib + bin. Depends on rustyecon-engine, rustyecon-certify (the
-                 manifest; native only if it brings in parquet), oracle (G1) and observe (G2).
+                 manifest; native only if it brings in parquet), oracle (G1) and observe (G2),
+                 and on rustyecon-core for `num`, and in edit/ alone for the tape's raw schema,
+                 `Basis` and `Unit`, which a scan holds (G0.1, G0.2). With that edge, core's
+                 writer compiles here: the scan, not the type system, keeps it out, until the
+                 engine re-exports what the GUI names and the edge goes.
                  Nothing depends on it, and default-members leave it out (D1).
-  src/main.rs      native entry: mimalloc, a tape path, run_native; build.rs stamps commit and dirty flag
+  src/main.rs      native entry: mimalloc, a tape path, run_native; the cli's build.rs, shared
+                   (`build = "../cli/build.rs"`), stamps the commit and dirty flag (G0.1)
   src/web.rs       wasm entry (G2 proof, W1)
-  src/app.rs       eframe::App: drains the drivers into reduce(); ui() draws; supplies the wake callback
+  src/app.rs       eframe::App: its drive::Host drains the drivers into reduce(); ui() draws;
+                   supplies the wake callback
   src/model/       no egui: Model, Intent, Effect, reduce(), Session (serde)
-  src/run/         no egui: Cmd, Obs, Runner, Extractor, in-memory Store, checkpoint ring
-  src/edit/        no egui: TapeEdit, materialise, plan, branch, lineage
-  src/vm/          no egui: one pure view-model builder per panel; Serialize + Debug
-  src/drive/       ThreadDriver (G0), InlineDriver (G2): the threads, clocks and channels
+  src/run/         no egui: Cmd, Obs, Runner, Extractor, in-memory Store and its decimator,
+                   checkpoint ring, log lines; no model, file, thread or clock (G0.1)
+  src/edit/        no egui, model, file, thread or clock: TapeEdit, materialise, plan, lineage,
+                   the form, keys, and export as text (G0.2); reads run types
+  src/vm/          no egui: one pure view-model builder per panel; Serialize + Debug; reads run
+                   types, never model/ (G0.1)
+  src/drive/       ThreadDriver (G0), InlineDriver (G2): the threads, clocks and channels; Host,
+                   which carries out the model's effects (G0.1)
   src/ui/          egui only: panels draw view-models and return Intents; plot cache; tile layout
   src/platform/    rfd and std::fs natively, downloads on the web; the Parquet spill (G3)
 crates/observe   rustyecon-observe. Phase 2 creates it (§7.3) as a default member, engine-gated,
@@ -218,23 +568,56 @@ The cli gains `rustyecon figure build --check` at G6–7, and a sweep entry if P
 ### 3.3 State, threads and the web path
 
 ```rust
-pub struct Model { session: Session, runs: BTreeMap<RunId, Run>, focus: RunId,
-                   cursor: Cursor /* Live | At(tick) */, selection: Option<Sel>, log: RunLog }
-pub fn reduce(m: &mut Model, i: Intent) -> Vec<Effect>;   // the only writer; Effect = Cmd | file op
+pub struct Model { session: Session, runs: BTreeMap<RunId, Run>, focus: Option<RunId>,
+                   cursor: Cursor /* Live | At(tick) */, selection: Option<Entity>, log: Vec<Entry> }
+pub fn reduce(m: &mut Model, i: Intent) -> Vec<Effect>;   // the only writer
+pub enum Effect { PickTape, ReadTape(String), Spawn(RunId), Send { run: RunId, cmd: Cmd },
+                  Close(RunId), SaveSession, SetAsideSession,    // G0.1; drive::Host carries them out
+                  PickSaveTape, PickExportDir, Write { job: Job, files: Vec<(String, String)> } }  // G0.2
 pub struct RunKey { build: Build /* commit, dirty, target, rustc */, tape_hash: Hex, world_id: Hex }
 // certify's RunKey, reused as is (docs/CERTIFY.md §3; S2.6); Hex(u64) serialises as "0x%016x"
-pub enum Cmd { Load { tape: Tape, from: Option<ResumeFrom> }, Run { until: Option<u64>, max_tps: Option<u32> },
+pub enum Cmd { Load { tape: Box<Tape>, from: Option<ResumeFrom> }, Run { until: Option<u64>, max_tps: Option<u32> },
                Pause, Step(u64), Breakpoints(Vec<Breakpoint>), Snapshot(u64), Stop }
-pub enum ResumeFrom { Ring(RingCheckpoint), File(VerifiedCheckpoint) }
-// RingCheckpoint { run: RunKey, tick: u64, bytes: Vec<u8> /* Checkpoint::to_bytes */ }: opaque, minted only by a Runner
+pub enum ResumeFrom { Ring(RingCheckpoint) /* , File(VerifiedCheckpoint) from G3 */ }
+// RingCheckpoint { run: RunKey, tick: u64, prefix_id: u64 /* G0.2 */, bytes: Vec<u8> /* Checkpoint::to_bytes */ }:
+// opaque, minted only by a Runner
 // VerifiedCheckpoint: made only by verify() (G3)
-pub enum Obs { Loaded { tick: u64, hash: u64 }, Batch(ObsBatch), Paused { tick: u64, why: PauseReason },
-               Checkpointed(RingCheckpoint), Snapshot(Snapshot), Failed { error: RunError, last: Option<TickReport> },
-               Refused(ResumeError) }
-impl Runner { pub fn new(sink: Box<dyn FnMut(Obs) + Send>, wake: Box<dyn Fn() + Send + Sync>) -> Runner;
-              pub fn handle(&mut self, c: Cmd);  pub fn advance(&mut self, max_ticks: u32) -> Progress; }
+pub enum Obs { Loaded { run: RunKey, tape: Box<Tape>, world: Box<World>, tick: u64, hash: u64 }, Running { tick: u64 },
+               Batch(ObsBatch), Paused { tick: u64, why: PauseReason }, Checkpointed(RingCheckpoint),
+               Snapshot(Box<Snapshot>), Failed { error: RunError, last: Option<Box<TickReport>> },
+               Refused(Refusal /* Load(LoadError) | Decode(CheckpointError) | Resume(ResumeError) */),
+               Ended /* a driver's: its worker ended without a Stop */ }
+impl Runner { pub fn new(build: Build, sink: Box<dyn FnMut(Obs) + Send>, wake: Box<dyn Fn() + Send + Sync>) -> Runner;
+              pub fn handle(&mut self, c: Cmd);  pub fn advance(&mut self, max_ticks: u32) -> Progress /* { ran, busy } */;
+              pub fn busy(&self) -> bool; }
 pub trait Driver { fn send(&mut self, c: Cmd); fn poll(&mut self, out: &mut Vec<Obs>); }
 ```
+
+As built at G0.1 (amendment items 2–4 above): the Runner names the build in every run key and
+ring checkpoint it mints; `Loaded` hands the model the run's `World`; `Running` lets the store
+hold the run's status; and a `Refusal` also covers a tape that does not load and ring bytes that
+do not decode, which `ResumeError` cannot carry. A resume from the ring that is refused is
+reported, and the Runner then loads the tape from genesis.
+
+As built at G0.1's second part (amendment items 6, 7 and 10 of its block): `Loaded` also hands
+over the tape, whose listing (`engine::registry`) the store makes once; a `Snapshot` carries each
+holding's lots; the model asks for a snapshot when an actor is selected and the run is not
+running; and `Effect::PickTape` opens the native file dialog.
+
+As fixed after G0.1's verification (items 1, 6 and 7 of its block): a poisoned run's own
+state is never read, so a snapshot of its current tick is rebuilt from the ring like any
+earlier tick's; the health chip paints the ledger line by key beside the engine's; and
+`Obs::Ended` is a driver's report that its worker ended without a Stop, which a Runner never
+sends.
+
+As built at G0.2 (items 3, 5, 7 and 10 of its block): each ring checkpoint carries the
+`prefix_id` its checkpoint stores, and the store keeps the hash of the state a run loaded at,
+so compare and a manifest can name a resumed run's start. The model gains the editor's intents
+(`Today`, `Stage`, `Unstage`, `Apply`, `RemoveOrphans`, `SaveTape`, `Export` and the two
+dialogs) and `Effect::Write`, which the host carries out without writing over any file and
+answers with `Intent::Written`. `Intent::TapeRead` carries the text of a lineage beside the
+tape. A branch is a run with a parent, and its `Cmd::Load` carries the parent's
+`RingCheckpoint` when `plan` found one.
 
 **The run key.** It leaves out `prefix_id`, which changes every tick; `tape_hash` fixes the
 schedule. Each value is stamped with its tick, and `prefix_id` names chunks only.
@@ -255,7 +638,8 @@ definition: this crate calls it and never redefines it.
   per slice to its sink and then calls `wake`. app.rs sets `wake` to `ctx.request_repaint()`, which
   took 17–37 ns headless.
 - Channels are bounded from G3.
-- A failed run shows `Poisoned`, its ledger line and its last good tick.
+- A failed run shows `Poisoned`, its ledger line and its last good tick. Its inspector reads
+  the state its last good tick left, never the state the failure left.
 
 **Web (G2).**
 - `InlineDriver` calls `advance` inside `poll`, under an 8 ms `web_time::Instant` budget.
@@ -265,7 +649,10 @@ definition: this crate calls it and never redefines it.
 
 **Checkpoints (D4).**
 - **The ring.** The Runner keeps `Checkpoint::to_bytes` at each ring tick. A ring tick is
-  `tick_of(YYYY-01-01)` for every model year, thinned to decades beyond G3's memory budget.
+  `tick_of(YYYY-01-01)` for every model year, thinned to decades beyond G3's memory budget. It is
+  the tick 1 January falls in, which can begin in the old year (G0.1): at 52 ticks a year from
+  1750-01-01, 1751-01-01 falls in tick 51, which begins on 1750-12-26. Genesis is one when the
+  tape starts on 1 January; the gate world has 41, from tick 0 to tick 2,080.
 - **Passing the ring on.** Each ring checkpoint goes out as an opaque `RingCheckpoint` (the run's
   key, the tick and the bytes) in `Obs::Checkpointed`. A branch's new Runner, on its own worker,
   receives its parent's checkpoint in `Cmd::Load`.
@@ -296,6 +683,13 @@ definition: this crate calls it and never redefines it.
   - The Extractor, on the worker, turns (`&Sim`, `&TickReport`) into columnar rows plus the tick's
     hash.
   - G0–G2 keep f64 columns, with explicit gaps, in memory.
+  - As built at G0.1: a value is stamped with the tick that ran, and holdings and params are
+    read from the state it left. A series is a column of (tick, value) pairs, so a gap is a tick
+    with no pair, never a filler. The catalogue is every `MarketLine` field; each class line's
+    requested, feasible and filled; each order's settled quantity and value; every holding;
+    every registered param; the tick's audit lines, largest margin and largest drift; and the
+    run's drift per good and margin. Fired events travel in the row, with their source (§7.2
+    item 2). The store refuses a batch that does not continue the run's ticks or its catalogue.
 - **Full recording is a hypothesis, tested at G3.** Its one measurement is data first's probe, run
   on WSL with synthetic MarketLine series only: 7 fields × 23 goods × 42 regions = 6,762 series,
   over 15,600 ticks.
@@ -328,13 +722,54 @@ definition: this crate calls it and never redefines it.
   - So the plot cache decimates once, to about two points per pixel column, extends as ticks
     arrive, and lends `PlotPoints::Borrowed`.
   - Every drawn vertex is a recorded (tick, value), and each column keeps its true min and max.
-  - Log axes (G1) plot `num::ln(v)`. The x axis is the tick, labelled by `Clock::date_of`.
+  - The decimator lives in run/, free of egui (G0.1). It takes points in tick order, keeps each
+    closed column's minimum and maximum, and splits the line at every gap in the record, so a
+    gap is never bridged. The plot cache in ui/ holds one per plotted series.
+  - As built at G0.1's second part: columns are `2^k` ticks wide, the fewest that fit the
+    visible span into the panel's pixel columns, so a growing record rebuilds a decimator a few
+    times at most. The cache records the vertices it lends each frame, and
+    `every_drawn_vertex_is_recorded` checks each one against the store, bit for bit.
+  - As fixed after G0.1's verification: the record is made where a segment is lent, from the
+    points its `Line` is made of, and the test also checks each segment against the path
+    egui paints for it.
+  - Log axes (G1) plot `num::ln(v)`. The x axis is the tick, labelled by `Clock::date_of`. Its
+    gridlines fall on year starts, the tick 1 January falls in, labelled by the year; below two
+    years they are egui's, labelled by date.
 
 ## 4. Panels and lenses
 
 Selection and cursor are global. The egui_tiles layout persists in `layout.ron`: outliner left,
 plots centre, inspector right, timeline and log below. `rustyecon-gui tapes/gate.ron` opens paused
 at tick 0 with every price plotted.
+
+As built at G0.1's second part (its amendment block has each change): the cursor is a report
+tick, and live follows the last tick that ran. The plots stack one panel per unit. "Run until"
+takes a state tick, or a date it runs through. The registry's rows are `engine::registry`'s,
+with the current value from the record. The actor inspector reads a snapshot the model asks
+for. The log logs each class line's rationing onset once per load. "Ledger changed" waits for
+G0.2's branches, and so do overlay, difference and ratio against a parent.
+
+As fixed after G0.1's verification: a run opens with every price plotted whenever the
+session's plots name nothing of its world, so a session another tape wrote still gives one key
+press a live price plot, and another world's keys are left out of the stack. Every log line's
+tick is a report tick, and a line about a state says "state tick".
+
+As built at G0.2 (items 9–13 of its block): the editor and compare are panes beside the
+inspector and the registry. The editor holds the form, the raw pane, the staged edits, the
+orphan offer, Apply, "Save tape as…" and export. Compare shows a branch against its parent:
+both identities, the first differing hash and the report tick that left it, the lineage, the
+tape diff by section and key, and, for each plotted series, parent, branch and their difference
+at the cursor, the largest difference and its tick, and the first tick they differ. "Ledger
+changed" compares a run's tolerances with its parent's. The plots' overlay, difference and
+ratio against a parent move to G1.
+
+As fixed after G0.2's verification (items 1, 3, 5 and 6 of its block): "ledger changed" says
+yes, no, or unchecked and why, and never "no" when the parent is not held. A reopened tape's
+parent is the ancestor its lineage names, open in this session or read from its path with its
+`tape_hash`. The export carries that ancestor, and `GuiManifest` gains `lineage_stale`, with
+`ledger_changed` now an `Option<bool>`. Compare names each run's origin, shows the range it
+compared, and reads a resumed parent's earlier states in the records it resumed from. When
+those do not reach back far enough, it says the hashes may differ earlier.
 
 | Panel | At G0 | Grows at |
 |---|---|---|
@@ -391,12 +826,30 @@ pub enum EditOp {                                               // no arm carrie
     AddRecurring { key: Key, first: Date, every: Key, last: Option<Date>, act: RawAct<RawAgentAction> },
     RemoveRecurring(Key),  AddParam { key: Key, value: f64, unit: Unit },  RemoveParam(Key),
     SetGenesisParam { key: Key, value: f64 } }                  // a world edit: reruns from genesis
-pub fn materialise(parent: &Tape, edits: &[TapeEdit], on: Date) -> Result<(Tape, Vec<Applied>), EditError>;
-pub fn plan(parent: &Run, child: &World) -> Plan;               // Resume(RingCheckpoint) | Rerun { reason }
+pub fn materialise(parent: &Tape, edits: &[TapeEdit], on: Date) -> Result<Branch, EditError>;
+// Branch { tape: Tape, applied: Vec<Applied>, world: World }                   (as built at G0.2)
+pub fn plan(parent: &Store, child: &World) -> Plan;             // Resume(RingCheckpoint) | Rerun { reason }
 pub struct Applied { edit: TapeEdit, on: Date, replaced: Option<Replaced> }  // old value and basis, or the entry removed
-pub struct Lineage { parent: (u64 /* tape_hash */, String /* path */),       // the nearest ancestor on disk
+pub struct Lineage { format: u32, tape_hash: Hex /* the tape it describes, G0.2 */,
+                     parent: Ancestor { tape_hash: Hex, path: String },      // the nearest ancestor on disk
                      edits: Vec<Applied>, records_viewed: Vec<SeriesKey> }   // every edit since it, in order
 ```
+
+As built at G0.2 (items 1–8 and 12 of its block): `edit/` names core's raw types, `Basis` and
+`Unit`, and no other module does. `materialise` returns the branch's world beside its tape, and
+lists every orphan a removal leaves. `plan` reads the parent's store. A param only the schedule
+reads is outside `world_id`, so removals of events and of their source params, and a new value
+copied from a new param, resume from the ring; only an edit of what the world reads reruns. The
+lineage names the tape it describes. Keys are new to every tape of the tree, the staged edits
+and the runs closed this session. The stamp's date is today's, in UTC. The act is typed as the
+tape writes it, and a parser error lands on the raw pane with its line and column. A branch
+lives in memory until it is saved; the session does not re-make it at launch.
+
+As fixed after G0.2's verification (items 1, 4 and 6 of its block): a new key is new to every
+tape open in the session, to every run closed in it and to the staged edits, and a minted `n`
+only grows within a session. A hand-edited tape whose parent is not held shows "ledger
+unchecked" and why. A lineage that describes another `tape_hash` than its tape's is flagged in
+the export and logged when saved.
 
 1. **The user acts** in the registry, inspector or editor. For example: "set `mine.capacity` from
    `mine.capacity.base` on 1765-06-01". That is an `AddEvent` whose `act` is `RawAct::SetParam {
@@ -426,8 +879,9 @@ pub struct Lineage { parent: (u64 /* tape_hash */, String /* path */),       // 
      form is mapped to its entry and shown on the raw pane.
 4. **Orphaned params.** A removal that leaves a param unreferenced is a load error (ENGINE §2.6).
    For example, removing `mine.cut` orphans `mine.capacity.cut`. The editor offers a `RemoveParam`
-   with its own note. If the user accepts it, the branch reruns from genesis, because removing a
-   param changes `world_id`.
+   with its own note. If the user accepts it, the branch reruns from genesis when removing the
+   param changes `world_id`. As built at G0.2: `mine.capacity.cut` is a param only the schedule
+   reads, outside `world_id`, so that branch resumes from the ring tick before the cut.
 5. **`plan` picks the resume point.**
    - It requires the same `world_id`.
    - It scans the parent's ring checkpoints from the newest. The first whose stored `prefix_id`
@@ -448,7 +902,8 @@ pub struct Lineage { parent: (u64 /* tape_hash */, String /* path */),       // 
    lineage.
 7. **A changed base.** A base file that changes on disk becomes a new root run. Existing runs keep
    their tape and `tape_hash`. `session.ron` records each base's hash. On reopen, the GUI refuses to
-   re-apply edits to a base whose hash differs.
+   re-apply edits to a base whose hash differs. As built at G0.2 no edit is re-applied at launch,
+   so this waits for G1 with the re-making of branches.
 
 `tape_hash` is defined once, in §3.3. The raw RON pane is read-only. G4's world tables and G10's
 generator forms make branches by the same steps.
@@ -465,6 +920,14 @@ param that is not yet a source changes `world_id` too. Session 2 removes that (D
 Until levels exist, a new value reruns from genesis. On the gate world that is expected to take
 well under a second. This is an expectation, measurable since `a8f9ed8`; G0 records it (§9). A
 1750–2050 county run takes minutes (PLAN §3.9's target).
+
+As built at G0.2 (item 4 of its block): a new param that only a `SetParam` reads is outside
+`world_id`, so a new value copied from it resumes from the ring; only a change to what the
+world reads reruns. G0.2 measured the gate world's rerun (`gate_rerun_time_is_recorded`, an
+ignored test): `materialise` of a genesis value, then `Sim::new` and the run to 2,080 through
+`ThreadDriver` with the G0 Extractor took a median of 42.5 ms over 5 runs (WSL, release). At
+the close, on the finished crate, the same test gave a median of 41.3 ms (40.1 to 43.5 ms),
+and 40.2 ms when run again. There is no threshold.
 
 **Levels.** D9 defers them to a schema bump before Phase 3's long runs, ruled then.
 - **The schema.** `SetParam { param: Key, to: SetTo }`, with `enum SetTo { Param(Key), Level(Key)
@@ -651,32 +1114,36 @@ Dropped: `markets::price_step`. P0.4's public `next_price` and `imbalance` serve
 
 | Area | Stage | Tests | Checks |
 |---|---|---|---|
-| Hashes (U4) | G0 (`InlineDriver` from G2) | `gui_equals_cli`. It runs fixed command scripts: pauses, speed caps, steps of 1 and 7, run-untils, a snapshot at 300, and breakpoints. At G0 the only breakpoint is on error, and it never fires on the gate world. Event and date breakpoints join at G1. Through `ThreadDriver`, the gate world's per-tick hashes must equal `Sim::new` plus `run_until(2080)`. The test writes `{t} 0x{hash:016x}`, with t = `report.tick + 1` for t = 1..2080: the cli's convention (P0.5 amendment 8). `ci/gui.sh` diffs that output against `rustyecon run tapes/gate.ron --until 2080 --hashes <tmp>/gate.hashes`, both binaries built `--release` on the same machine. | R8 |
-| Failed runs | G0 | `failed_run_shows_its_ledger_line`. A shortfall variant of the gate tape, made by text substitution as the cli's `shortfall_stops_the_run` makes one, pauses on the error breakpoint. It shows `Poisoned`, its ledger line and the last good tick. | E5, R2 |
-| Branches | G0 | `branch_resume_equals_rerun`. It adds a `SetParam` of `mine.capacity` to `mine.capacity.base`, dated 1765-06-01, which restores capacity early. `mine.capacity.base` is already a source through `mine.restored`, so `world_id` is kept. The branch resumes from the largest ring tick at or before `tick_of(1765-06-01)`, which is `tick_of(1765-01-01)`. The first differing report hash exists and is at `tick_of(1765-06-01)`. The test saves the materialised tape and its hashes, and `ci/gui.sh` diffs them against the cli binary's run of that tape. After §7.2 item 1, a `SetParam` that copies a param not yet a source also resumes; a new value reruns from genesis until levels exist. | E1, N11 |
-| Branches | G0 | `removal_only_branch_is_an_experiment`. `RemoveEvent(mine.cut)` plus `RemoveParam(mine.capacity.cut)` rerun from genesis. The branch's name carries the marker, and its export says "experiment". At G6–7, `scorecard_refuses_gui_edited_tape` refuses the saved tape. | D3, U3 |
-| Editing (D3, D4) | G0, except as marked | `gui_edits_are_always_assumed`. `saved_tape_carries_its_lineage`, for a child and for a grandchild of an unsaved child: the lineage names the base file and lists both branches' edits in order. `removing_the_last_use_offers_remove_param`. `ledger_tolerances_are_not_editable`. `minted_keys_never_collide`, for siblings and for a grandchild after a removal. The reducer as a state machine. From G1 and G5, `no_intent_copies_a_record_or_oracle_value`. At G3, `edited_checkpoint_file_is_refused`: a RON checkpoint with one holding changed and its ids kept. | R4, R5, E8 |
-| Goldens | G0 | Each `vm::*` builder on the gate world, saved as RON, at four points: tick 0, where bread rations; after the 1760 cut, where the registry shows `mine.capacity` with `mine.capacity.cut`'s basis, `mine.cut` and its date; 1768; and tick 2,080. `UPDATE_GOLDEN=1` rewrites them, in the commit that retunes the gate world. The tests live in `crates/gui/tests` and run under `ci/gui.sh` only, including after the builders move to observe (G2). | U6 |
-| Headless egui | G0 | egui_kittest 0.36.2, probed in WSL with no GPU: `Harness::new_eframe` ran a full `App` with a worker thread. G0's scripts: open, run, pause, step. Select (town, bread) and see its inspector. An empty note, a malformed key and a malformed date are refused, and a parser line and column lands on the raw pane. Apply makes a branch. Export from a branch writes a CSV whose `#` lines say "experiment", a `manifest.ron` envelope whose `origin` says "experiment", and the lineage file. Image snapshots need a wgpu adapter, not a GPU. G0 tries mesa's lavapipe on WSL and gates snapshots if it runs; otherwise it records them. | U3 |
-| Plots, ingest, scans | G0 (digests G3) | `decimation_keeps_extremes`, `every_drawn_vertex_is_recorded`, `nonfinite_ingest_stops_with_the_series_named`, and `chunk_digest_is_checked_on_read` (G3). `model_run_edit_vm_import_no_egui` and `no_trig_outside_ui` (D12). Copies in `crates/gui/tests` of the engine's `no_raw_transcendentals` and `no_hashed_collections` (`crates/engine/tests/scans.rs`, whose list of crates is written inside it), run over the egui-free modules. From Phase 2 the engine's own scans cover observe too, `engine_path_does_no_io` included (§7.3). | U9, U10, E2 |
+| Hashes (U4) | G0 (`InlineDriver` from G2) | `gui_equals_cli`. It runs fixed command scripts: pauses, speed caps, steps of 1 and 7, run-untils, a snapshot at 300, and breakpoints. At G0 the only breakpoint is on error, and it never fires on the gate world. Event and date breakpoints join at G1. Through `ThreadDriver`, the gate world's per-tick hashes must equal `Sim::new` plus `run_until(2080)`. The test writes `{t} 0x{hash:016x}`, with t = `report.tick + 1` for t = 1..2080: the cli's convention (P0.5 amendment 8). `ci/gui.sh` diffs that output against `rustyecon run tapes/gate.ron --until 2080 --hashes <tmp>/gate.hashes`, both binaries built `--release` on the same machine. As built at G0.1 it runs the same script on `tapes/appb.ron` to 20,000 ticks too, feeds every observation into a store, and checks the snapshots (300 ahead, 250 behind, from the ring) and every ring checkpoint against the engine's run; the files go where `RUSTYECON_GUI_HASHES` names. | R8 |
+| Failed runs | G0 | `failed_run_shows_its_ledger_line`. A shortfall variant of the gate tape, made by text substitution as the cli's `shortfall_stops_the_run` makes one, pauses on the error breakpoint. It shows `Poisoned`, its ledger line and the last good tick. As built at G0.1 it runs through the model, a `drive::Host` and `ThreadDriver`, and reads the toolbar's and the log's view-models. After G0.1's verification its tape adds a gift of 1,000 coin that fires before the burn, so the failed tick leaves a state no tick left; the test selects the workers and checks the snapshot's hash against the cli's state 73 and each holding's lots against the record, and checks the ledger line by key. | E5, R2 |
+| Branches | G0 | `branch_resume_equals_rerun`. It adds a `SetParam` of `mine.capacity` to `mine.capacity.base`, dated 1765-06-01, which restores capacity early. `mine.capacity.base` is already a source through `mine.restored`, so `world_id` is kept. The branch resumes from the largest ring tick at or before `tick_of(1765-06-01)`, which is `tick_of(1765-01-01)`. The first differing report hash exists and is at `tick_of(1765-06-01)`. The test saves the materialised tape and its hashes, and `ci/gui.sh` diffs them against the cli binary's run of that tape. After §7.2 item 1, a `SetParam` that copies a param not yet a source also resumes; a new value reruns from genesis until levels exist. As built at G0.2 it runs through the model, a `drive::Host` and `ThreadDriver`: the edit is typed into the form, and the branch's Runner receives the parent's ring checkpoint at state tick 780 (1765-01-01 falls in it). Its hashes from there equal a rerun of its tape from genesis, the first differing report hash is at tick 801, and compare says the same. The files are `branch.ron` and `branch.hashes`, the parent's record before the resume and the branch's after. After G0.2's verification it also branches twice under the resumed branch: a world edit, which reruns, and an event dated 1755-05-05, before the branch's start. Compare reads the branch's parent's record before 780 and finds the first difference at genesis and at that date's tick, as the engine does. With the branch's own record alone it says the hashes may differ earlier. `ci/gui.sh` also checks the cli's `tape_hash` of each branch tape against the GUI run key's. | E1, N11 |
+| Branches | G0 | `removal_only_branch_is_an_experiment`. `RemoveEvent(mine.cut)` plus `RemoveParam(mine.capacity.cut)` rerun from genesis. The branch's name carries the marker, and its export says "experiment". At G6–7, `scorecard_refuses_gui_edited_tape` refuses the saved tape. As built at G0.2 the removals keep the world (item 4 of its block), so the branch resumes from state tick 519, where 1760-01-01 falls, and equals its rerun; `ci/gui.sh` diffs `removal.ron`'s run by the cli too. The name carries the only marker in the tape, the identity chip, the CSV's `#` lines and the manifest envelope say "experiment", the export carries the lineage, and the base's export says "run". A genesis value the world reads reruns from genesis, and the log gives the reason. | D3, U3 |
+| Editing (D3, D4) | G0, except as marked | `gui_edits_are_always_assumed`. `saved_tape_carries_its_lineage`, for a child and for a grandchild of an unsaved child: the lineage names the base file and lists both branches' edits in order. `removing_the_last_use_offers_remove_param`. `ledger_tolerances_are_not_editable`. `minted_keys_never_collide`, for siblings and for a grandchild after a removal. The reducer as a state machine. From G1 and G5, `no_intent_copies_a_record_or_oracle_value`. At G3, `edited_checkpoint_file_is_refused`: a RON checkpoint with one holding changed and its ids kept. As built at G0.2 (`tests/edit.rs`, on a host of real Runners on the test's thread): `gui_edits_are_always_assumed` checks every basis of the branch, stamped exactly where an entry was added or changed, with that edit's note, at two dates; `saved_tape_carries_its_lineage` also saves a child of the saved child, whose ancestor is the saved tape, refuses to write over the base or any file, reopens the saved tape as an experiment, and exports its lineage and the ancestor's tape; `ledger_tolerances_are_not_editable` also reopens a saved tape whose tolerance was edited by hand and sees "ledger changed" in the chip and the export; `minted_keys_never_collide` also refuses a typed key the tree has, keeps a closed run's keys and mints under another session's serial. `the_form_checks_first` and the reducer's `apply_branches_from_the_parents_ring_and_files_are_effects` join them. After G0.2's verification: `gui_edits_are_always_assumed` also removes the pension and its offered period through the model, and the lineage keeps both entries. `saved_tape_carries_its_lineage` exports the reopened run itself, the in-memory one and a fresh session's, each with `ancestor.ron`, and checks U3's clauses: a lineage alone, a marked basis alone, and neither. `ledger_tolerances_are_not_editable` opens the hand-edited tape in fresh sessions: with the base read from disk it says "changed"; with the base gone or changed on disk it says "unknown", never "no"; and the export and a save flag its stale lineage. `minted_keys_never_collide` also covers a reopened saved child, two roots of one file, a closed parent, param and recurring keys, Apply's re-check, a dropped staged key and a set-aside session's serial. | R4, R5, E8 |
+| Goldens | G0 | Each `vm::*` builder on the gate world, saved as RON, at four points: tick 0, where bread rations; after the 1760 cut, where the registry shows `mine.capacity` with `mine.capacity.cut`'s basis, `mine.cut` and its date; 1768; and tick 2,080. `UPDATE_GOLDEN=1` rewrites them, in the commit that retunes the gate world. The tests live in `crates/gui/tests` and run under `ci/gui.sh` only, including after the builders move to observe (G2). As built at G0.1's second part: `gate_view_models_equal_their_goldens` and `appb_view_models_equal_their_goldens`, one file per builder and point in `tests/golden/<tape>-<point>/`; the gate at state ticks 1, the cut's plus 1, the oven's plus 1 (1768) and 2,080, and appb at 1 and 20,000. Each point also asserts its claim: bread rations at tick 0; after the cut the registry names `mine.cut`, 1760-03-01 and `Assumed("gate world: half")`; `oven.opens` has fired by 1768; the final hashes are the cli's. They equal byte for byte on WSL and Windows. | U6 |
+| Headless egui | G0 | egui_kittest 0.36.2, probed in WSL with no GPU: `Harness::new_eframe` ran a full `App` with a worker thread. G0's scripts: open, run, pause, step. Select (town, bread) and see its inspector. An empty note, a malformed key and a malformed date are refused, and a parser line and column lands on the raw pane. Apply makes a branch. Export from a branch writes a CSV whose `#` lines say "experiment", a `manifest.ron` envelope whose `origin` says "experiment", and the lineage file. Image snapshots need a wgpu adapter, not a GPU. G0 tries mesa's lavapipe on WSL and gates snapshots if it runs; otherwise it records them. As built at G0.1's second part: `one_key_press_gives_a_live_price_plot`, `the_gate_script_runs_pauses_steps_and_inspects` (open, set and lift the speed cap, run, pause, step, step a year, run until a date, select (town, bread) and see its price and unit, select the mill and see its snapshot, the timeline's cursor, the registry's link to `mine.capacity` and the basis its value was copied with, the log's breakpoint) and `the_appb_script_runs_pauses_steps_and_inspects`, each through the panels' keys, clicks and typed text, checking the text each frame paints. The gate script caps the speed while it runs and pauses, since an uncapped gate run can pass tick 480 before a pause lands; 60 repeats in WSL and 10 on Windows ran clean. The editor's steps wait for G0.2. WSL has no lavapipe (only NVIDIA's ICD), so no image snapshot is taken. After G0.1's verification the gate script also checks the painted identity chip against the build, `world_id` and `tape_hash`, each panel's unit, year labels and cursor, and plots from the inspector and from the outliner; `the_theft_script_shows_a_failed_run` (the failed variant from a file: `Poisoned`, the ledger line, the line by key, the last good tick, no more ticks) and `a_second_tapes_session_still_plots_every_price` (the gate opened with a session appb wrote) join them. As built at G0.2, the editor's steps are two scripts. `the_editor_refuses_an_empty_note_a_malformed_key_and_a_malformed_date` also refuses a key the tree has and a ledger tolerance, and paints the parser's line, column and caret on the raw pane. `the_branch_script_applies_compares_exports_and_saves` runs the gate to its end, applies an edit typed into the form, sees the branch resume from the ring and its chip say "experiment", runs it, sees compare's first differing hash, lineage and tape diff, exports (CSV and manifest say "experiment", the lineage is there) and saves the tape with its lineage. Each line they check in those panes is scrolled into view first: Windows' longer temporary paths wrap compare's lines and pushed its tape diff below the fold. After G0.2's verification the branch script also sees each compare identity's origin and the range compared. It then opens the saved tape, its tolerance edited by hand, in two new windows: the chip paints "ledger changed" while the base is on disk, and "ledger unchecked" and why once it is gone. | U3 |
+| Plots, ingest, scans | G0 (digests G3) | `decimation_keeps_extremes`, `every_drawn_vertex_is_recorded`, `nonfinite_ingest_stops_with_the_series_named`, and `chunk_digest_is_checked_on_read` (G3). `model_run_edit_vm_import_no_egui` and `no_trig_outside_ui` (D12). Copies in `crates/gui/tests` of the engine's `no_raw_transcendentals` and `no_hashed_collections` (`crates/engine/tests/scans.rs`, whose list of crates is written inside it), run over the egui-free modules. From Phase 2 the engine's own scans cover observe too, `engine_path_does_no_io` included (§7.3). As built at G0.1 the egui-free modules are model, run, edit, vm, drive and platform; `run_and_vm_reach_no_model_file_thread_or_clock` keeps run/ and vm/ ready to move into observe (D13); and each scan is checked on a fixture first. At G0.1's second part `every_drawn_vertex_is_recorded` runs the gate to 2,080 in the app with every price, a stepping param and a series with gaps plotted, at 1,600 and 640 pixels wide, and checks every vertex lent to egui against the store bit for bit, one segment per unbroken stretch, and each line's extremes; `the_gui_names_core_for_num_alone` holds the GUI's use of core to `core::num`. After G0.1's verification the scans read `use` trees, so a group, a rename, a glob import and the bare path a glob allows are refused too; `nonfinite_ingest_stops_with_the_series_named` poisons NaN, +inf and −inf; and `every_drawn_vertex_is_recorded` reads the vertices where they are lent and checks each segment against the path egui paints for it. As built at G0.2, `edit_reaches_no_model_file_thread_or_clock` keeps `edit/` pure, run/ and vm/ may not reach `edit/`, and `the_gui_names_core_for_num_alone` lets `edit/` alone name core's raw schema, `Basis` and `Unit`. | U9, U10, E2 |
 | Map | G4 | Every node key has a region. Triangulated area equals polygon area within a relative 1e-9. Each label point hits its own region. Each shared border is drawn once. | §6 |
-| Web, frames | G0 frames; G2 web | From G0, a smoke mode records CPU per frame (p50, p90, max) with its panel set, since fps is vsync-capped. From G2, the wasm32 `cargo check` passes with certify left out of the web build. A browser run (wasm-bindgen 0.2.129, trunk) records its gate hash in STATE.md beside Linux and Windows (D11). | A5 |
+| Web, frames | G0 frames; G2 web | From G0, a smoke mode records CPU per frame (p50, p90, max) with its panel set, since fps is vsync-capped. As built at G0.1's second part it is `rustyecon-gui --smoke UNTIL TAPE`, at ten model years a second (its amendment item 12). From G2, the wasm32 `cargo check` passes with certify left out of the web build. A browser run (wasm-bindgen 0.2.129, trunk) records its gate hash in STATE.md beside Linux and Windows (D11). | A5 |
 
 ### 8.2 CI (D1)
 
 - **Default members.** `default-members` lists every crate but `crates/gui`. Engine steps run
   clippy and test with `--workspace --exclude rustyecon-gui`, and `cargo fmt --check` covers
   everything. ENGINE's step definition (preamble), §1, and §12's `ci/gate.sh` are amended in the
-  commit that adds `crates/gui`.
+  commit that adds `crates/gui`. Done at G0.1 (ENGINE, amended at G0.1).
 - **The lockfile.** Cargo resolves one lockfile for the whole workspace, `--exclude` or not. Offline
   engine steps therefore need the GUI's dependency closure cached on both machines (ENGINE §1; P0.5
   amendment 11).
   - The commit that adds `crates/gui` runs one `cargo fetch` on WSL and one on Windows. Windows'
-    `CARGO_HOME` goes on D: while C: is short.
+    `CARGO_HOME` goes on D: while C: is short. At G0.1 the lockfile was resolved offline from the
+    cache, which left every existing entry as it was and gave every crate of the GUI's closure the
+    version the spike's lockfile has; the lockfile grew from 100 packages to 473. Both fetches
+    ran. C: had 114 GB free, so Windows' `CARGO_HOME` stayed where it was.
   - Lockfile changes land only at G-stage boundaries (D6).
 - **The non-blocking check.** Each engine step also runs one `cargo check -p rustyecon-gui` on WSL,
   in its own target directory, and records the result in STATE.md. It never fails the step. An
-  engine-caused GUI break is fixed at the next G-stage at the latest.
+  engine-caused GUI break is fixed at the next G-stage at the latest. `scripts/gate.sh` runs it in
+  `$CARGO_TARGET_DIR-gui`, on Linux only (G0.1).
 - **Measured costs** (facts review; WSL, 48 threads, the spike crate, clean target):
 
   | Build | Wall time | Target directory on disk | Peak RSS |
@@ -688,12 +1155,36 @@ Dropped: `markets::price_step`. P0.4's public `next_price` and `imbalance` serve
   G0 records the warm check: `cargo check -p rustyecon-gui` after touching
   `crates/engine/src/lib.rs`, in its own target directory, median of 3. It also re-runs the clean
   check with certify in the tree.
+
+  As recorded at G0 (WSL, 48 threads, certify in the tree), on the seams at G0.1 and on the
+  finished crate at the close:
+
+  | Build | At G0.1 | At the close |
+  |---|---|---|
+  | check, clean | 16.1 s, 0.81 GB, 0.87 GB peak RSS | 17.3 s, 0.85 GB, 0.87 GB peak RSS |
+  | check, warm (median of 3) | 2.55 s | 2.92 s |
 - **`ci/gui.sh`** gates G-stages only, on WSL. It runs `cargo clippy -p rustyecon-gui --all-targets
   -- -D warnings` (the crate sets `[lints] workspace = true`), `cargo test -p rustyecon-gui`, and
-  the cli hash diffs of §8.1.
+  the cli hash diffs of §8.1. As built at G0.1 it is `scripts/gui.sh`: `cargo fmt -p
+  rustyecon-gui --check`, the clippy above, `cargo test -p rustyecon-gui --release` with warnings
+  denied (release, as the engine's gate tests, so appb's 20,000 ticks take a second), a check that
+  each test G0's gate names ran and passed, and the diffs of gate's and appb's hashes. At G0.1's
+  second part it names 15 tests: the first part's eight, `every_drawn_vertex_is_recorded`, the
+  two goldens, the three kittest scripts and `the_gui_names_core_for_num_alone`. After G0.1's
+  verification it names 17: `the_theft_script_shows_a_failed_run` and
+  `a_second_tapes_session_still_plots_every_price` join them. At G0.2 it names 27: the two
+  branch tests, the five editing tests, the editor's two kittest scripts and
+  `edit_reaches_no_model_file_thread_or_clock`. It also runs the cli binary on the two branch
+  tapes the branch tests write, `branch.ron` and `removal.ron`, to 2,080, and diffs each hash
+  file's body against the GUI's. After G0.2's verification it also checks the `tape_hash` in
+  the cli's hash file against the GUI run key's, which the branch tests write beside each tape.
+  At G0's close it names 42: the reducer's fifteen state-machine tests join them, since §9
+  names them as a group.
 - **Windows, extending A5.**
   - `ci/gate.ps1` skips the GUI while C: is short: 3.3 GB free at the last check (df, the evening
-    of 2026-09-25). `%TEMP%` is on C: too.
+    of 2026-09-25). `%TEMP%` is on C: too. At G0.1 there is no `ci/gate.ps1`: Windows runs
+    `scripts/gate.sh` under Git Bash (STATE decision 20), which skips the GUI's check off Linux,
+    and `scripts/gui.sh` the same way. C: had 114 GB free on 2026-09-27.
   - Window gates are manual and recorded. The manual Windows build sets `CARGO_TARGET_DIR` on D:
     (at least 5 GB free) before its first build.
   - WSL's disk is on D: already.
@@ -715,10 +1206,21 @@ England run, becomes roughly 35–50.
     Extractor, the in-memory store and the ring. The toolbar, timeline, outliner, plots,
     inspector, registry, and a log with a breakpoint on error. `session.ron` and `layout.ron`.
     Left out: the watchlist, event and date breakpoints and log axes (G1); `InlineDriver` and the
-    wasm check (G2).
+    wasm check (G2). G0.1 lands in two parts. The first (2026-09-27) is the crate and its seams,
+    `session.ron` and `layout.ron`, and D1 in the workspace, with `gui_equals_cli`,
+    `failed_run_shows_its_ledger_line`, `decimation_keeps_extremes`,
+    `nonfinite_ingest_stops_with_the_series_named` and the four scans. The second (2026-09-27)
+    is the panels, the view-model goldens, G0's kittest scripts,
+    `every_drawn_vertex_is_recorded` and the smoke mode; G0.1 is then built.
   - *G0.2, the editor.* `TapeEdit`, `materialise`, the lineage, `plan` and branches. Compare. CSV,
-    manifest, tape and lineage export.
+    manifest, tape and lineage export. Built on 2026-09-27 (its amendment block has each
+    change), with compare's tape diff. The plots' overlay, difference and ratio against a
+    parent, and re-making branches at launch, move to G1.
   - *If G0.2 overruns,* compare's tape diff moves to G1.
+  - *Closed at G0.3* (2026-09-27). Every gate item below is met and recorded in STATE.md but
+    the window checked by hand, which is the user's. `scripts/gui.sh` names 42 tests: the
+    fifteen of the reducer's state machine joined at the close (the block "Closed at G0.3"
+    above).
   - *If a §7.2 item slips,* G0 ships without what needs it. Without item 4, the registry panel
     shows `engine::registry`'s one method per param. Without item 2, the copied basis is joined
     from `World::schedule`. Without item 1, more dial edits rerun from genesis.
@@ -739,7 +1241,8 @@ England run, becomes roughly 35–50.
       lints.
     - On Windows, checked by hand and recorded in STATE.md, the window opens `tapes/gate.ron` and
       runs to 2080 with every price plotted and no panic. Smoke mode records CPU per frame (p50,
-      p90, max) with its panel set.
+      p90, max) with its panel set. At the close the smoke mode is recorded and the check by
+      hand is PENDING, the user's.
     - `ci/gate.sh` carries D1's changes, with ENGINE's amendment.
     - STATE.md records the warm check, the clean check with certify in the tree, and the recount.
       It also records the gate world's rerun time, with no threshold: WSL, release, median of 5
@@ -840,7 +1343,8 @@ England run, becomes roughly 35–50.
 1. Until levels exist, a new dial value on a long world reruns from genesis.
 2. egui breaks its API every 6 to 24 weeks (D6).
 3. C: is nearly full: 3.3 GB free, and one build failed with os error 112. The Windows GUI build,
-   Windows' `CARGO_HOME` and the spill therefore go to D:.
+   Windows' `CARGO_HOME` and the spill therefore go to D:. At G0 C: had 114 GB free; the
+   targets went to D: all the same, and `CARGO_HOME` stayed on C:.
 4. Full recording may not fit (§3.4).
 5. The full layout's frame time is unproven (§6). The spike left about 3 ms of headroom at 40
    regions and 1.6 ms at 700, against G4's 8 ms p90 bar and G9's same bar at 700 regions.

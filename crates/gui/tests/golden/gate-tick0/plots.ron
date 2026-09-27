@@ -1,0 +1,30 @@
+Some((
+    start: 0,
+    now: 1,
+    cursor: Some(0),
+    ticks_per_year: 52,
+    panels: [
+        (
+            unit: "coin per bread",
+            lines: [
+                (key: (measure: Price, at: Market(node: "town", good: "bread")), label: "price at town/bread", points: 1, first: Some((0, 2.0)), last: Some((0, 2.0)), min: Some((0, 2.0)), max: Some((0, 2.0)), at_cursor: Some(2.0)),
+                (key: (measure: Price, at: Market(node: "village", good: "bread")), label: "price at village/bread", points: 1, first: Some((0, 2.2)), last: Some((0, 2.2)), min: Some((0, 2.2)), max: Some((0, 2.2)), at_cursor: Some(2.2)),
+            ],
+        ),
+        (
+            unit: "coin per fuel",
+            lines: [
+                (key: (measure: Price, at: Market(node: "town", good: "fuel")), label: "price at town/fuel", points: 1, first: Some((0, 2.0)), last: Some((0, 2.0)), min: Some((0, 2.0)), max: Some((0, 2.0)), at_cursor: Some(2.0)),
+                (key: (measure: Price, at: Market(node: "village", good: "fuel")), label: "price at village/fuel", points: 1, first: Some((0, 2.0)), last: Some((0, 2.0)), min: Some((0, 2.0)), max: Some((0, 2.0)), at_cursor: Some(2.0)),
+            ],
+        ),
+        (
+            unit: "coin per grain",
+            lines: [
+                (key: (measure: Price, at: Market(node: "town", good: "grain")), label: "price at town/grain", points: 1, first: Some((0, 1.0)), last: Some((0, 1.0)), min: Some((0, 1.0)), max: Some((0, 1.0)), at_cursor: Some(1.0)),
+                (key: (measure: Price, at: Market(node: "village", good: "grain")), label: "price at village/grain", points: 1, first: Some((0, 1.0)), last: Some((0, 1.0)), min: Some((0, 1.0)), max: Some((0, 1.0)), at_cursor: Some(1.0)),
+            ],
+        ),
+    ],
+    absent: [],
+))

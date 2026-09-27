@@ -1,0 +1,33 @@
+Some((
+    start: 0,
+    now: 1,
+    cursor: Some(0),
+    ticks_per_year: 52,
+    panels: [
+        (
+            unit: "coin per good",
+            lines: [
+                (key: (measure: Price, at: Market(node: "home", good: "good")), label: "price at home/good", points: 1, first: Some((0, 0.36157583177980934)), last: Some((0, 0.36157583177980934)), min: Some((0, 0.36157583177980934)), max: Some((0, 0.36157583177980934)), at_cursor: Some(0.36157583177980934)),
+            ],
+        ),
+        (
+            unit: "coin per labour",
+            lines: [
+                (key: (measure: Price, at: Market(node: "home", good: "labour")), label: "price at home/labour", points: 1, first: Some((0, 0.5434359606967785)), last: Some((0, 0.5434359606967785)), min: Some((0, 0.5434359606967785)), max: Some((0, 0.5434359606967785)), at_cursor: Some(0.5434359606967785)),
+            ],
+        ),
+        (
+            unit: "coin per land",
+            lines: [
+                (key: (measure: Price, at: Market(node: "home", good: "land")), label: "price at home/land", points: 1, first: Some((0, 1.0)), last: Some((0, 1.0)), min: Some((0, 1.0)), max: Some((0, 1.0)), at_cursor: Some(1.0)),
+            ],
+        ),
+        (
+            unit: "coin per mach",
+            lines: [
+                (key: (measure: Price, at: Market(node: "home", good: "mach")), label: "price at home/mach", points: 1, first: Some((0, 0.6102454257640557)), last: Some((0, 0.6102454257640557)), min: Some((0, 0.6102454257640557)), max: Some((0, 0.6102454257640557)), at_cursor: Some(0.6102454257640557)),
+            ],
+        ),
+    ],
+    absent: [],
+))

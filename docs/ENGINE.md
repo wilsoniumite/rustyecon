@@ -17,7 +17,9 @@ one-sided markets. Certify is session 2 (A4), except the ledger and the state ha
 
 A step is done when `cargo test --workspace --release` is green and `cargo clippy --workspace
 --all-targets` and `cargo fmt --check` are clean, with zero warnings, on WSL (primary) and on
-Windows (secondary). Commit as `P0.n: <what>`.
+Windows (secondary). Commit as `P0.n: <what>`. From G0.1 the test and clippy commands say
+`--workspace --exclude rustyecon-gui`, since the GUI never gates engine work (D1; amended at
+G0.1); `cargo fmt --check` still covers every crate.
 
 **Amended at P0.3** (core), where the text below was wrong or silent; each change is made in
 place in the section named.
@@ -612,6 +614,40 @@ spine scripts' default cache (STATE O15) and `.gitignore` did.
    §13, not here.
 3. §12 gains session 2's steps, and §13's session-2 rows are marked done.
 
+**Amended at G0.1** (2026-09-27: `crates/gui` joins the workspace; docs/GUI.md, amended at
+G0.1), with the rest of A14's amendments (P0.11 above), the same way. No engine-path crate
+changed, so no hash, `prefix_id` or `world_id` moved.
+
+1. The step definition (preamble): test and clippy run with `--workspace --exclude
+   rustyecon-gui`; `cargo fmt --check` covers every crate (D1).
+2. §1: `crates/gui` is a member and not a default member. The workspace's `default-members`
+   list every other crate by hand, so a bare `cargo build`, `test` or `clippy` leaves the GUI
+   out, and a new crate joins the list when it lands. The GUI's stack is pinned with `=` among
+   the workspace's dependencies (GUI.md §3.1). Cargo resolves one lockfile for the workspace, so
+   the lockfile holds the GUI's closure too. It was resolved offline from the cache, with every
+   existing entry kept, and one `cargo fetch` ran on each machine, so offline engine steps still
+   build.
+3. §12: `scripts/gate.sh` excludes the GUI from its clippy and test, and on Linux runs one
+   `cargo check -p rustyecon-gui` in `$CARGO_TARGET_DIR-gui`, printed and never gated. An
+   engine change that breaks it is fixed at the next G-stage at the latest (GUI.md §8.2).
+   `scripts/gui.sh` is the GUI's own gate.
+4. §13: the GUI's row is under way, from G0.1.
+5. §1, at G0.1's second part (the panels, the same day): the GUI also depends on core, for
+   `core::num` alone, since its inspector shows ln(p′/p) and the engine re-exports no `num`. A
+   scan of the GUI (`the_gui_names_core_for_num_alone`) holds every other path into core out, so
+   core's writer stays out of the GUI's reach (E1). No engine-path crate changed, and the
+   lockfile gained only the GUI's own edge to core.
+
+**Amended at G0.3** (2026-09-27: G0, the GUI's shell, closed; docs/GUI.md, closed at G0.3),
+the same way. No crate but `crates/gui` changed during G0, so no hash, `prefix_id` or
+`world_id` moved, and the lockfile has not changed since G0.1's second part.
+
+1. §13: the GUI's row says G0 is closed; G1 follows G0 and Phase 1's gate.
+2. §1, as G0.2 left it: the GUI's `edit/` also names core's raw tape schema, `Basis` and
+   `Unit`, the plain data an entry is written in, and no other module of the GUI does. The same
+   scan holds every other path into core out (GUI.md, amended at G0.2, item 1). When the
+   engine re-exports `num` and these types, the GUI's edge to core goes.
+
 ## 0. Engine invariants
 
 Numbered so tests and reviews can cite them. Each has at least one test in §11.
@@ -675,6 +711,10 @@ crates/oracle   rustyecon-oracle   the equilibrium solver, Phase 1 (unit 1a at P
 crates/worldgen rustyecon-worldgen empty until Phase 4; nothing depends on it yet
 crates/probe    rustyecon-probe    the Phase 2 probe's harness (P2.0.1); lib `probe`; reads certify's
                                    oracle-free measures, Parquet-free (S2.5); nothing depends on it
+crates/gui      rustyecon-gui      the interactive frontend, egui (docs/GUI.md; G0.1); depends on the
+                                   engine, on certify without `parquet`, and on core for `num`
+                                   alone; nothing depends on it, and the workspace's
+                                   `default-members` leave it out (D1)
 tapes/appb.ron                     the probe's Appendix B world, generated (docs/probe/RULES.md §4)
 tapes/gate.ron                     the gate world (§10)
 ```
@@ -1892,6 +1932,10 @@ Housekeeping (PLAN Phase 0 steps 2 and 6; A3):
     `wsl -d ubuntu --exec bash -lc`.
   - `.github/workflows/ci.yml` runs the same script on `ubuntu-latest` with the toolchain file. It
     runs only once the branch is pushed.
+  - From G0.1 (D1; amended at G0.1) the script's clippy and test say `--workspace --exclude
+    rustyecon-gui`, and on Linux it runs one `cargo check -p rustyecon-gui` in its own target
+    directory, whose result it prints and never gates. `scripts/gui.sh` gates the GUI at each
+    G-stage.
   - The Windows check runs the same commands by hand, and STATE.md records whether the two
     platforms' hash streams agree, without gating on it.
 
@@ -1910,7 +1954,7 @@ Housekeeping (PLAN Phase 0 steps 2 and 6; A3):
 | Transport desks, channel state, pass-through recipes; home-node trading (Phase 0 lets an actor post at any node with no channel and no crossing cost) | Phases 4 and 9 |
 | Credit, banks, monetary regimes | Phase 8 |
 | Region shards and parallel reduction; sweeps of registered params (each point a tape edit, E1) | when §3.9's budget needs them; Phase 6 |
-| crates/gui — the interactive frontend, built with egui (eframe); the stack is pinned in docs/GUI.md §3.1 (A14) | G0, after session 2, beside Phase 1 |
+| crates/gui — the interactive frontend, built with egui (eframe); the stack is pinned in docs/GUI.md §3.1 (A14) | G0, after session 2, beside Phase 1: built from G0.1 and closed at G0.3 (2026-09-27), its window check by hand the user's; G1 after G0 and Phase 1's gate |
 
 ## 14. Open questions
 

@@ -1,0 +1,96 @@
+Some((
+    pinned: [
+        (
+            entity: Actor("desk.good"),
+            label: "desk.good",
+            detail: "Desk, good_desks, at home",
+            selected: false,
+            pinned: true,
+            series: Some((
+                measure: Held,
+                at: Holding(holder: Actor("desk.good"), good: "coin"),
+            )),
+            plotted: false,
+        ),
+    ],
+    sections: [
+        (
+            title: "Markets",
+            rows: [
+                (entity: Market(node: "home", good: "good"), label: "home/good", detail: "coin per good", selected: true, pinned: false, series: Some((measure: Price, at: Market(node: "home", good: "good"))), plotted: true),
+                (entity: Market(node: "home", good: "labour"), label: "home/labour", detail: "coin per labour", selected: false, pinned: false, series: Some((measure: Price, at: Market(node: "home", good: "labour"))), plotted: true),
+                (entity: Market(node: "home", good: "land"), label: "home/land", detail: "coin per land", selected: false, pinned: false, series: Some((measure: Price, at: Market(node: "home", good: "land"))), plotted: true),
+                (entity: Market(node: "home", good: "mach"), label: "home/mach", detail: "coin per mach", selected: false, pinned: false, series: Some((measure: Price, at: Market(node: "home", good: "mach"))), plotted: true),
+            ],
+        ),
+        (
+            title: "Actors",
+            rows: [
+                (entity: Actor("desk.good"), label: "desk.good", detail: "Desk, good_desks, at home", selected: false, pinned: true, series: Some((measure: Held, at: Holding(holder: Actor("desk.good"), good: "coin"))), plotted: false),
+                (entity: Actor("desk.mach"), label: "desk.mach", detail: "Desk, mach_desks, at home", selected: false, pinned: false, series: Some((measure: Held, at: Holding(holder: Actor("desk.mach"), good: "coin"))), plotted: false),
+                (entity: Actor("provider"), label: "provider", detail: "Pop, owners, at home", selected: false, pinned: false, series: Some((measure: Held, at: Holding(holder: Actor("provider"), good: "coin"))), plotted: false),
+                (entity: Actor("workers"), label: "workers", detail: "Pop, workers, at home", selected: false, pinned: false, series: Some((measure: Held, at: Holding(holder: Actor("workers"), good: "coin"))), plotted: false),
+            ],
+        ),
+        (
+            title: "Goods",
+            rows: [
+                (entity: Good("coin"), label: "coin", detail: "currency", selected: false, pinned: false, series: Some((measure: RunDrift, at: Good("coin"))), plotted: false),
+                (entity: Good("good"), label: "good", detail: "Ticks(1)", selected: false, pinned: false, series: Some((measure: RunDrift, at: Good("good"))), plotted: false),
+                (entity: Good("labour"), label: "labour", detail: "Instant", selected: false, pinned: false, series: Some((measure: RunDrift, at: Good("labour"))), plotted: false),
+                (entity: Good("land"), label: "land", detail: "Instant", selected: false, pinned: false, series: Some((measure: RunDrift, at: Good("land"))), plotted: false),
+                (entity: Good("mach"), label: "mach", detail: "Ticks(1)", selected: false, pinned: false, series: Some((measure: RunDrift, at: Good("mach"))), plotted: false),
+            ],
+        ),
+        (
+            title: "Nodes",
+            rows: [
+                (entity: Node("home"), label: "home", detail: "currency coin", selected: false, pinned: false, series: None, plotted: false),
+            ],
+        ),
+        (
+            title: "Classes",
+            rows: [
+                (entity: Class("good_desks"), label: "good_desks", detail: "", selected: false, pinned: false, series: None, plotted: false),
+                (entity: Class("mach_desks"), label: "mach_desks", detail: "", selected: false, pinned: false, series: None, plotted: false),
+                (entity: Class("owners"), label: "owners", detail: "", selected: false, pinned: false, series: None, plotted: false),
+                (entity: Class("workers"), label: "workers", detail: "", selected: false, pinned: false, series: None, plotted: false),
+            ],
+        ),
+        (
+            title: "Params",
+            rows: [
+                (entity: Param("adjust.technique"), label: "adjust.technique", detail: "RatePerYear", selected: false, pinned: false, series: Some((measure: Param, at: Param("adjust.technique"))), plotted: false),
+                (entity: Param("buffer.desk.good.cash"), label: "buffer.desk.good.cash", detail: "RatePerYear", selected: false, pinned: false, series: Some((measure: Param, at: Param("buffer.desk.good.cash"))), plotted: false),
+                (entity: Param("buffer.desk.mach.cash"), label: "buffer.desk.mach.cash", detail: "RatePerYear", selected: false, pinned: false, series: Some((measure: Param, at: Param("buffer.desk.mach.cash"))), plotted: false),
+                (entity: Param("inst.a"), label: "inst.a", detail: "Dimensionless", selected: false, pinned: false, series: Some((measure: Param, at: Param("inst.a"))), plotted: false),
+                (entity: Param("inst.b"), label: "inst.b", detail: "Dimensionless", selected: false, pinned: false, series: Some((measure: Param, at: Param("inst.b"))), plotted: false),
+                (entity: Param("inst.chi_max"), label: "inst.chi_max", detail: "Dimensionless", selected: false, pinned: false, series: Some((measure: Param, at: Param("inst.chi_max"))), plotted: false),
+                (entity: Param("inst.eta"), label: "inst.eta", detail: "Dimensionless", selected: false, pinned: false, series: Some((measure: Param, at: Param("inst.eta"))), plotted: false),
+                (entity: Param("inst.g0"), label: "inst.g0", detail: "Dimensionless", selected: false, pinned: false, series: Some((measure: Param, at: Param("inst.g0"))), plotted: false),
+                (entity: Param("inst.g1"), label: "inst.g1", detail: "Dimensionless", selected: false, pinned: false, series: Some((measure: Param, at: Param("inst.g1"))), plotted: false),
+                (entity: Param("inst.k"), label: "inst.k", detail: "Dimensionless", selected: false, pinned: false, series: Some((measure: Param, at: Param("inst.k"))), plotted: false),
+                (entity: Param("inst.lam"), label: "inst.lam", detail: "Dimensionless", selected: false, pinned: false, series: Some((measure: Param, at: Param("inst.lam"))), plotted: false),
+                (entity: Param("inst.land"), label: "inst.land", detail: "FlowPerYear", selected: false, pinned: false, series: Some((measure: Param, at: Param("inst.land"))), plotted: false),
+                (entity: Param("inst.space"), label: "inst.space", detail: "Dimensionless", selected: false, pinned: false, series: Some((measure: Param, at: Param("inst.space"))), plotted: false),
+                (entity: Param("inst.workers"), label: "inst.workers", detail: "FlowPerYear", selected: false, pinned: false, series: Some((measure: Param, at: Param("inst.workers"))), plotted: false),
+                (entity: Param("ledger.rel_flow"), label: "ledger.rel_flow", detail: "Dimensionless", selected: false, pinned: false, series: Some((measure: Param, at: Param("ledger.rel_flow"))), plotted: false),
+                (entity: Param("ledger.rel_stock"), label: "ledger.rel_stock", detail: "Dimensionless", selected: false, pinned: false, series: Some((measure: Param, at: Param("ledger.rel_stock"))), plotted: false),
+                (entity: Param("life.one_tick"), label: "life.one_tick", detail: "Years", selected: false, pinned: false, series: Some((measure: Param, at: Param("life.one_tick"))), plotted: false),
+                (entity: Param("price.ema_tc"), label: "price.ema_tc", detail: "Years", selected: false, pinned: false, series: Some((measure: Param, at: Param("price.ema_tc"))), plotted: false),
+                (entity: Param("rate.good"), label: "rate.good", detail: "RatePerYear", selected: false, pinned: false, series: Some((measure: Param, at: Param("rate.good"))), plotted: false),
+                (entity: Param("rate.labour"), label: "rate.labour", detail: "RatePerYear", selected: false, pinned: false, series: Some((measure: Param, at: Param("rate.labour"))), plotted: false),
+                (entity: Param("rate.land"), label: "rate.land", detail: "RatePerYear", selected: false, pinned: false, series: Some((measure: Param, at: Param("rate.land"))), plotted: false),
+                (entity: Param("rate.mach"), label: "rate.mach", detail: "RatePerYear", selected: false, pinned: false, series: Some((measure: Param, at: Param("rate.mach"))), plotted: false),
+                (entity: Param("spend.provider"), label: "spend.provider", detail: "RatePerYear", selected: false, pinned: false, series: Some((measure: Param, at: Param("spend.provider"))), plotted: false),
+                (entity: Param("spend.workers"), label: "spend.workers", detail: "RatePerYear", selected: false, pinned: false, series: Some((measure: Param, at: Param("spend.workers"))), plotted: false),
+                (entity: Param("tilt.desk.good"), label: "tilt.desk.good", detail: "Dimensionless", selected: false, pinned: false, series: Some((measure: Param, at: Param("tilt.desk.good"))), plotted: false),
+                (entity: Param("tilt.desk.mach"), label: "tilt.desk.mach", detail: "Dimensionless", selected: false, pinned: false, series: Some((measure: Param, at: Param("tilt.desk.mach"))), plotted: false),
+            ],
+        ),
+        (
+            title: "Events",
+            rows: [],
+        ),
+    ],
+))

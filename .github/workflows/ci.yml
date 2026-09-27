@@ -1,7 +1,8 @@
 # The Phase 0 gate on GitHub's Ubuntu runner: scripts/gate.sh, the same script WSL runs
-# (formatting, clippy, cargo test --workspace --release, the repeat-hash test by name,
-# certify without Parquet, two runs of tapes/gate.ron through the binary, the build stamp, the
-# committed certificates recomputed, and telemetry from two processes). The toolchain comes from
+# (formatting, clippy, cargo test --workspace --release with the GUI excluded, the repeat-hash
+# test by name, certify without Parquet, two runs of tapes/gate.ron through the binary, the build
+# stamp, the committed certificates recomputed, telemetry from two processes, and one check of
+# the GUI that never fails the job; docs/GUI.md D1). The toolchain comes from
 # rust-toolchain.toml, and the build goes to the script's default target directory in the
 # runner's home, outside the checkout. Windows stays a local, secondary check
 # (docs/PLAN.md ruling 7), and hash equality across platforms is recorded in STATE.md, not

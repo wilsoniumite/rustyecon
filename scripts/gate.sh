@@ -8,9 +8,10 @@
 # Use --exec: with a plain -- the exit code is lost.
 #
 # It fails on the first step that fails:
-#   1. cargo fmt --all --check;
-#   2. cargo clippy --workspace --all-targets, with every warning an error;
-#   3. cargo test --workspace --release, with every warning an error;
+#   1. cargo fmt --all --check, the GUI included;
+#   2. cargo clippy --workspace --exclude rustyecon-gui --all-targets, with every warning an
+#      error (D1: the GUI never gates engine work; scripts/gui.sh gates it at each G-stage);
+#   3. cargo test --workspace --exclude rustyecon-gui --release, with every warning an error;
 #   4. the repeat-hash test by name, which must run and pass (a renamed test cannot drop out);
 #   5. certify without Parquet: check, clippy and test rustyecon-certify alone, with its
 #      `parquet` feature off, and parquet absent from its tree (the GUI's web build);
@@ -26,8 +27,10 @@
 #      history must print as docs/probe/results/ does);
 #  10. telemetry written twice through the binary, from two processes: the Parquet files, and
 #      the manifests that pin them, must be byte-identical.
-# Then, recorded and never gated: cargo check of rustyecon-engine and of rustyecon-certify
-# (Parquet-free) for wasm32-unknown-unknown, when that target is installed.
+# Then, recorded and never gated: on Linux, one cargo check of rustyecon-gui in its own target
+# directory, $CARGO_TARGET_DIR-gui (D1; docs/GUI.md §8.2: an engine-caused GUI break is fixed
+# by the next G-stage at the latest), and cargo check of rustyecon-engine and of
+# rustyecon-certify (Parquet-free) for wasm32-unknown-unknown, when that target is installed.
 #
 # The build goes to CARGO_TARGET_DIR, outside the tree; the default is
 # $HOME/scratch/target-rustyecon-gate. On a machine with no network and a warm cargo cache, set
@@ -81,10 +84,10 @@ step "fmt"
 cargo fmt --all --check
 
 step "clippy"
-cargo clippy --locked --workspace --all-targets -- -D warnings
+cargo clippy --locked --workspace --exclude rustyecon-gui --all-targets -- -D warnings
 
 step "test"
-cargo test --locked --workspace --release
+cargo test --locked --workspace --exclude rustyecon-gui --release
 
 step "repeat-hash test"
 out="$(cargo test --locked --release -p rustyecon-engine --test determinism \
@@ -197,6 +200,18 @@ echo "telemetry.parquet: $(wc -c <"$work/t1/telemetry.parquet") bytes, identical
 if ! grep -A 4 'telemetry: Some' "$work/t1/manifest.ron"; then
     echo "gate: the manifest does not record the telemetry" >&2
     exit 1
+fi
+
+step "the GUI, checked once (recorded, not gated; D1)"
+# docs/GUI.md §8.2: every engine step checks the GUI once on WSL, in a target directory of its
+# own, and records the result; it never fails the step. scripts/gui.sh gates the GUI at each
+# G-stage.
+if [ "$(uname -s)" != Linux ]; then
+    echo "not on Linux: skipped (the check is WSL's)"
+elif CARGO_TARGET_DIR="$CARGO_TARGET_DIR-gui" cargo check --locked -p rustyecon-gui; then
+    echo "rustyecon-gui checks (recorded, not gated)"
+else
+    echo "rustyecon-gui does not check (recorded, not gated: the next G-stage fixes it)"
 fi
 
 step "wasm32 check (recorded, not gated)"

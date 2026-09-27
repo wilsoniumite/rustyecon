@@ -1,0 +1,31 @@
+(
+    identity: Some((
+        name: "gate",
+        commit: "golden",
+        dirty: false,
+        world_id: "0x43628a8e0fd5f695",
+        tape_hash: "0x54066d053474846b",
+        origin: Run,
+    )),
+    clock: Some((
+        tick: 2080,
+        date: "1790-01-01",
+        ticks_per_year: 52,
+    )),
+    controls: (
+        can_run: true,
+        running: false,
+    ),
+    health: (
+        status: Paused,
+        paused: Some("stepped at tick 2080"),
+        max_margin: Some(0.000007988826570120131),
+        run_margin: Some(0.00003163847291948768),
+        hash: Some("0x61f9c8529131ff17"),
+        ledger_line: None,
+        ledger_keys: [],
+        last_good_tick: None,
+        stopped: None,
+        ledger: NoParent,
+    ),
+)
