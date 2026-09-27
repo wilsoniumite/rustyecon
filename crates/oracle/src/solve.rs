@@ -358,7 +358,10 @@ pub enum Regime<E = Eq1a> {
     /// reported double can round to 1.0 (see [`Eq1a::x_star`]).
     ///
     /// In unit 1d it holds any equilibrium of the path, on the line, at the wall or at the
-    /// all-human corner, and [`Eq1d::margin`](crate::Eq1d::margin) says which.
+    /// all-human corner, and [`Eq1d::margin`](crate::Eq1d::margin) says which. In unit 1e it
+    /// also holds the equilibrium on idle land at zero rent
+    /// ([`Eq1e::land_market`](crate::Eq1e::land_market)) and the enclosure tie
+    /// ([`Eq1e::enclosure`](crate::Eq1e::enclosure)).
     Interior(Box<E>),
     /// f(1) ≥ 0: labour holds no machine-contestable task, x* would be 1 and workers
     /// would only build machines. SSRN §3.1's boundary case, which unit 1d solves: at the
@@ -475,6 +478,16 @@ pub enum SolveError {
         /// path; `None` when the shortage is the pool's or the walk's ceiling.
         reserved: Option<usize>,
     },
+    /// Unit 1e: no one works at any wage (docs/unit-1e.md §2.8 and §5.3). With idle land at
+    /// zero rent the path continues past the wall's end to the idle stretch, where the market's
+    /// land in use falls toward 0 at the ceiling of the real wage; an economy has no change of
+    /// side along it only when the pool's supply S_∞ there is 0: every type's exit, or its
+    /// support, is worth more than its wage even at that ceiling.
+    NoMarket {
+        /// f_∞, the excess demand at the end of the wall (the idle stretch's start; +∞ where
+        /// that end is short).
+        f_end: f64,
+    },
     /// A per-worker-type output of a unit-1d solve overflowed or became NaN.
     NonFiniteInWorker {
         /// The type's position in
@@ -535,6 +548,11 @@ impl fmt::Display for SolveError {
                     None => Ok(()),
                 }
             }
+            SolveError::NoMarket { f_end } => write!(
+                f,
+                "no one works at any wage: the pool's supply at the ceiling of the real wage is 0 \
+                 (the excess demand at the end of the wall is {f_end:?})"
+            ),
             SolveError::NonFiniteInWorker { worker, what } => {
                 write!(f, "{what} of worker type {worker} is not finite")
             }

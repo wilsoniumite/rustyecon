@@ -235,6 +235,49 @@ struct WorkerState {
     pool_supply: f64,
 }
 
+/// The market side of an evaluation (docs/unit-1e.md §5.1). Unit 1d's is
+/// [`WorkerEconomy::scarce`]: r = 1, the whole endowment T in use, and no exit values, with which
+/// every step below is 1d's bit for bit.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct Market {
+    /// r: 1.0 while land is scarce, 0.0 on unit 1e's idle stretch, where the pool's wage is the
+    /// numeraire.
+    pub(crate) rent: f64,
+    /// T_m, the market's land in use: T in unit 1d.
+    pub(crate) land: f64,
+    /// e_i per worker type, the money value of its exit life: 0.0 in the dependence form.
+    pub(crate) exit: Vec<f64>,
+}
+
+/// §5.1 steps 1-3 at a point: the machine block's prices, the categories' base prices and the
+/// basket's per-unit hours and machine tasks, which do not depend on the market's land.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct PriceSide {
+    pub(crate) x: f64,
+    pub(crate) gamma: f64,
+    pub(crate) j: f64,
+    pub(crate) technique: usize,
+    pub(crate) block: BlockPrices,
+    pub(crate) human: Vec<f64>,
+    pub(crate) machine: Vec<f64>,
+    pub(crate) base_prices: Vec<f64>,
+    pub(crate) base_p_s: f64,
+    pub(crate) h_s: f64,
+    pub(crate) m_s: f64,
+}
+
+/// n_S,i = N_i·F_i(ln1p((v_i − e_i)/(ν_i·P_s + e_i))), SSRN eq 8 per type with the exit life's
+/// value e_i (docs/unit-1e.md §2.3); with e_i = 0.0 it is unit 1d's N_i·F_i(ln1p(v_i/(ν_i·P_s)))
+/// bit for bit, since v − 0.0 = v and ν·P_s + 0.0 = ν·P_s for ν·P_s ≥ 0.
+pub(crate) fn supply(t: &WorkerType, wage: f64, p_s: f64, exit: f64) -> f64 {
+    t.workers * t.work_cost.cdf(marginal_cost(t, wage, p_s, exit))
+}
+
+/// ln1p((v_i − e_i)/(ν_i·P_s + e_i)), the marginal worker's work cost (docs/unit-1e.md §2.3).
+pub(crate) fn marginal_cost(t: &WorkerType, wage: f64, p_s: f64, exit: f64) -> f64 {
+    num::ln1p((wage - exit) / (t.support * p_s + exit))
+}
+
 /// The least fixed point of P = P⁰ + Σ_i max(e_i·r_i, c_i·r_i·P) (docs/unit-1d.md §4.3, the
 /// walk), with the walled set, or `None` when a denominator is ≤ 0.
 ///
@@ -558,6 +601,29 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
         self.evaluate(x, technique, block, None)
     }
 
+    /// The machine block's prices on the line at x under `technique` (§5.1 step 2).
+    pub(crate) fn block_at(&self, x: f64, technique: usize) -> BlockPrices {
+        let gamma = self.params.schedule.gamma(x);
+        self.machines.block().prices_at(gamma, technique)
+    }
+
+    /// The machine block's prices at the pool's wage v and the land rent r (a corner's, and
+    /// at r = 0 unit 1e's idle stretch: docs/unit-1e.md §4.6).
+    pub(crate) fn block_at_wage(&self, v: f64, rent: f64, technique: usize) -> BlockPrices {
+        self.machines
+            .block()
+            .prices_at_wage_and_rent(&self.wage_system, v, rent, technique)
+    }
+
+    /// Unit 1d's market: r = 1, T in use, no exit values (docs/unit-1e.md §5.1).
+    pub(crate) fn scarce(&self) -> Market {
+        Market {
+            rent: 1.0,
+            land: self.params.land,
+            exit: vec![0.0; self.params.worker_types.len()],
+        }
+    }
+
     /// §5.1 steps 1 and 3-8 with the machine block's prices given, and a type at its edge.
     fn evaluate(
         &self,
@@ -566,6 +632,20 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
         block: BlockPrices,
         edge: Option<Edge>,
     ) -> WorkerPoint {
+        let prices = self.price_side(x, technique, block, 1.0);
+        self.finish(prices, edge, &self.scarce())
+    }
+
+    /// §5.1 steps 1 and 3 with the machine block's prices given, at the land rent r: every
+    /// category's direct land is priced at r (docs/unit-1e.md §5.1), so with r = 1.0 these are
+    /// unit 1d's operations.
+    pub(crate) fn price_side(
+        &self,
+        x: f64,
+        technique: usize,
+        block: BlockPrices,
+        rent: f64,
+    ) -> PriceSide {
         let p = &self.params;
         let m = &self.machines;
         let gamma = p.schedule.gamma(x);
@@ -588,7 +668,7 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
                 None,
             );
             let h = h + p.human_required[index];
-            rhs.push(v * h + task_price * mm + category.direct_land);
+            rhs.push(v * h + task_price * mm + category.direct_land * rent);
             human.push(h);
             machine.push(mm);
         }
@@ -600,15 +680,54 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
             h_s += yhat[index] * human[index];
             m_s += yhat[index] * machine[index];
         }
+        PriceSide {
+            x,
+            gamma,
+            j,
+            technique,
+            block,
+            human,
+            machine,
+            base_prices,
+            base_p_s,
+            h_s,
+            m_s,
+        }
+    }
+
+    /// §5.1 steps 4-8 on the market's land T_m, with each type's exit value e_i (docs/unit-1e.md
+    /// §5.1 steps 3-5): the quantities, the worker types, the walk, supply and the prices with
+    /// reserved costs. With [`scarce`](Self::scarce) these are unit 1d's operations.
+    pub(crate) fn finish(
+        &self,
+        prices: PriceSide,
+        edge: Option<Edge>,
+        market: &Market,
+    ) -> WorkerPoint {
+        let m = &self.machines;
+        let PriceSide {
+            x,
+            gamma,
+            j,
+            technique,
+            block,
+            human,
+            machine,
+            base_prices,
+            base_p_s,
+            h_s,
+            m_s,
+        } = prices;
+        let (v, task_price) = (block.v, block.task_price);
         // Step 4: the quantities.
         let theta = m.block().types()[technique].task_efficiency;
         let mut task = vec![0.0; m.block().len()];
         task[technique] = m_s / theta;
-        let cleared = m.clear(&task);
+        let cleared = m.clear_with(&task, market.land);
         let final_hours = cleared.y * h_s;
         let n_d = final_hours + cleared.machine_hours;
         // Steps 5-8: the worker types, the walk, supply and the prices with reserved costs.
-        let state = self.workers_at(v, base_p_s, cleared.y, edge);
+        let state = self.workers_at(v, base_p_s, cleared.y, edge, &market.exit);
         let (reserved_costs, prices) = self.with_reserved(&base_prices, &state.wages);
         WorkerPoint {
             x,
@@ -668,8 +787,15 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
     }
 
     /// Steps 5-7 at the pool's wage v, P⁰_s and Y (docs/unit-1d.md §5.1), with a type at its
-    /// edge if one is given.
-    fn workers_at(&self, v: f64, base_p_s: f64, y: f64, edge: Option<Edge>) -> WorkerState {
+    /// edge if one is given, and each type's exit value e_i (docs/unit-1e.md §2.3).
+    fn workers_at(
+        &self,
+        v: f64,
+        base_p_s: f64,
+        y: f64,
+        edge: Option<Edge>,
+        exit: &[f64],
+    ) -> WorkerState {
         let types = &self.params.worker_types;
         let kinds = types.len();
         let (demand, clearing, short) = self.reserved_at(y, edge);
@@ -711,10 +837,8 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
             })
             .collect();
         // Step 7: supply per type, and the pool's net supply in efficiency hours.
-        let supply: Vec<f64> = types
-            .iter()
-            .zip(&wages)
-            .map(|(t, &w)| t.workers * t.work_cost.cdf(num::ln1p(w / (t.support * p_s))))
+        let supply: Vec<f64> = (0..kinds)
+            .map(|i| supply(&types[i], wages[i], p_s, exit[i]))
             .collect();
         let mut pool_supply = 0.0;
         for i in 0..kinds {
@@ -751,7 +875,7 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
 
     /// The quantities of a corner at (x, technique), which do not depend on the wage, and the
     /// basket's price-side totals L_s and B_s there (docs/unit-1d.md §4.5).
-    fn corner(&self, x: f64, technique: usize) -> Corner {
+    pub(crate) fn corner(&self, x: f64, technique: usize) -> Corner {
         let p = &self.params;
         let m = &self.machines;
         let block = m.block();
@@ -798,12 +922,13 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
             short,
             l_s,
             b_s,
+            lambda_tilde: lt_c,
         }
     }
 
     /// S(ω), the pool's net supply at the real wage ω at a corner (docs/unit-1d.md §4.5):
     /// Σ ε_i·(N_i·F_i(ln(1 + ε_i·ω/ν_i)) − D_i) over the types with ε_i·ω/ν_i ≥ ζ_i.
-    fn supply_at(&self, c: &Corner, omega: f64) -> f64 {
+    pub(crate) fn supply_at(&self, c: &Corner, omega: f64) -> f64 {
         let mut s = 0.0;
         for (i, t) in self.params.worker_types.iter().enumerate() {
             if t.efficiency > 0.0 {
@@ -818,7 +943,7 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
 
     /// The pool's wage at the real wage ω at a corner (docs/unit-1d.md §4.5):
     /// v = ω·B/((1 − C) − ω·L), with L = L_s + Σ_pooled ε_i·R_ŷi and C = Σ_walled ζ_i·ν_i·R_ŷi.
-    fn wage_at(&self, c: &Corner, omega: f64) -> f64 {
+    pub(crate) fn wage_at(&self, c: &Corner, omega: f64) -> f64 {
         let (mut hours, mut rate) = (c.l_s, 0.0);
         for (i, t) in self.params.worker_types.iter().enumerate() {
             let pooled = t.efficiency > 0.0 && (t.efficiency * omega) / t.support >= c.clearing[i];
@@ -861,7 +986,7 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
     }
 
     /// ω_∞ at a corner, `None` when the walk has no fixed point.
-    fn omega_end(&self, c: &Corner) -> Option<f64> {
+    pub(crate) fn omega_end(&self, c: &Corner) -> Option<f64> {
         let types = &self.params.worker_types;
         let efficiency: Vec<f64> = types.iter().map(|t| t.efficiency).collect();
         let rate: Vec<f64> = c
@@ -875,7 +1000,7 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
 
     /// The cheapest task type at the pool's wage v, min p_t/θ_t with the wage-given prices,
     /// ties to the lower index (the all-human corner's report, docs/unit-1d.md §5.3).
-    fn cheapest_at(&self, v: f64) -> usize {
+    pub(crate) fn cheapest_at(&self, v: f64) -> usize {
         let block = self.machines.block();
         let first = self.machines.envelope().first;
         let prices = block.prices_at_wage(&self.wage_system, v, first).prices;
@@ -920,6 +1045,50 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
     /// [`SolveError::LaborNotCleared`] if the pool's residual |n_pool − S| exceeds
     /// [`LABOR_RESIDUAL_NET`](crate::LABOR_RESIDUAL_NET) of n_pool.
     pub fn solve(&self) -> Result<Regime<Eq1d>, SolveError> {
+        let path = match self.path()? {
+            Ok(path) => path,
+            Err(d_at_1) => return Ok(Regime::NotViable { d_at_1 }),
+        };
+        // Step 3: the sides, from a positive one for v → 0. f_∞ = 0 is on the positive side
+        // (an equilibrium at v = ∞ is none), except when the last piece starts at an exact
+        // zero: f is then 0 on the whole piece (Lemma 3'), and its start is the equilibrium by
+        // the exact-zero rule (docs/unit-1d.md §12 item 17).
+        let mut sides = Vec::with_capacity(path.sequence.len() + 1);
+        sides.push(true);
+        for &(kind, f) in &path.sequence {
+            sides.push(match kind {
+                Kind::One => f >= 0.0,
+                Kind::End => f > 0.0 || (f == 0.0 && path.last_start != 0.0),
+                _ => f > 0.0,
+            });
+        }
+        let changes: Vec<usize> = (0..sides.len() - 1)
+            .filter(|&i| sides[i] != sides[i + 1])
+            .collect();
+        if changes.is_empty() {
+            return Err(SolveError::LaborShort {
+                excess: path.end.excess,
+                reserved: path.end.reserved,
+            });
+        }
+        if changes.len() > 1 {
+            return Err(SolveError::MultipleEquilibria {
+                sign_changes: changes.len(),
+                switches: path.points,
+            });
+        }
+        let eq = self.locate(&path, changes[0])?;
+        if let Some(error) = first_non_finite(&eq) {
+            return Err(error);
+        }
+        labor_net(eq.x_star, eq.residuals.labor, eq.n_pool)?;
+        Ok(Regime::Interior(Box::new(eq)))
+    }
+
+    /// Steps 1 and 2 of docs/unit-1d.md §5.3: 1c's viability test (`Err(d_at_1)` when not
+    /// viable), then the excess demand along the path in order, every value checked finite or
+    /// +∞ (short). Unit 1e reads the same sequence (docs/unit-1e.md §5.3 step 2).
+    pub(crate) fn path(&self) -> Result<Result<Path, f64>, SolveError> {
         let env = self.machines.envelope();
         let at_one = self.at_with(BRACKET_HI, env.last());
         // Step 1: 1c's viability test.
@@ -927,7 +1096,7 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
             return Err(SolveError::NonFinite { what: "D(1)" });
         }
         if at_one.d <= 0.0 {
-            return Ok(Regime::NotViable { d_at_1: at_one.d });
+            return Ok(Err(at_one.d));
         }
         // Step 2: the sequence along the path.
         let f_one = value("n_D(1) - n_S(1)", &at_one)?;
@@ -975,41 +1144,46 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
         // value above.
         let last_start = sequence.last().map_or(f_one, |&(_, f)| f);
         sequence.push((Kind::End, end.excess));
-        // Step 3: the sides, from a positive one for v → 0. f_∞ = 0 is on the positive side
-        // (an equilibrium at v = ∞ is none), except when the last piece starts at an exact
-        // zero: f is then 0 on the whole piece (Lemma 3'), and its start is the equilibrium by
-        // the exact-zero rule (docs/unit-1d.md §12 item 17).
-        let mut sides = Vec::with_capacity(sequence.len() + 1);
-        sides.push(true);
-        for &(kind, f) in &sequence {
-            sides.push(match kind {
-                Kind::One => f >= 0.0,
-                Kind::End => f > 0.0 || (f == 0.0 && last_start != 0.0),
-                _ => f > 0.0,
-            });
-        }
-        let changes: Vec<usize> = (0..sides.len() - 1)
-            .filter(|&i| sides[i] != sides[i + 1])
-            .collect();
-        if changes.is_empty() {
-            return Err(SolveError::LaborShort {
-                excess: end.excess,
-                reserved: end.reserved,
-            });
-        }
-        if changes.len() > 1 {
-            return Err(SolveError::MultipleEquilibria {
-                sign_changes: changes.len(),
-                switches: points,
-            });
-        }
+        Ok(Ok(Path {
+            at_one,
+            at_zero,
+            f_zero,
+            f_lo,
+            f_one,
+            points,
+            techniques,
+            sequence,
+            end,
+            last_start,
+        }))
+    }
+
+    /// Step 4 of docs/unit-1d.md §5.3: the equilibrium at the one change of side c of the
+    /// path's sides, between `sequence[c − 1]` (the start when c = 0) and `sequence[c]`, which
+    /// must not be the end of the wall's own value.
+    pub(crate) fn locate(&self, path: &Path, c: usize) -> Result<Eq1d, SolveError> {
+        let env = self.machines.envelope();
+        let Path {
+            at_one,
+            at_zero,
+            f_zero,
+            f_lo,
+            f_one,
+            points,
+            techniques,
+            sequence,
+            end,
+            ..
+        } = path;
+        let (f_zero, f_lo, f_one) = (*f_zero, *f_lo, *f_one);
         let context = Context {
-            points: &points,
-            at_one: &at_one,
+            points,
+            at_one,
             f_zero,
             f_lo,
             f_one,
             f_end: end.excess,
+            land_at_one: self.params.land,
         };
         let bounds: Vec<f64> = std::iter::once(BRACKET_LO)
             .chain(points.iter().copied())
@@ -1017,7 +1191,6 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
             .collect();
         // The change between sides c and c + 1 is between sequence[c − 1] (the start when
         // c = 0) and sequence[c].
-        let c = changes[0];
         let eq = if c == 0 {
             // The all-human corner: ω in [0, ω_line(0)], f(0) = n_D(0).
             let (v, steps) = if f_zero == 0.0 {
@@ -1084,7 +1257,8 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
                     // A tie at a switch of the line.
                     let (below, above) = (techniques[i], techniques[i + 1]);
                     let x = points[i];
-                    let (share, edge) = self.tie_share(&self.at_with(x, below), below, above)?;
+                    let (share, edge) =
+                        self.tie_share(&self.at_with(x, below), below, above, &self.scarce())?;
                     let tie = Tie {
                         above,
                         share,
@@ -1102,13 +1276,13 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
                         Kind::WallAbove(s) => s + 1,
                         _ => 0,
                     };
-                    self.wall_piece(piece, (f_before, f_after), &end, &context)?
+                    self.wall_piece(piece, (f_before, f_after), end, &context)?
                 }
                 (Kind::WallBelow(s), _) => {
                     // A tie at a switch of the wall.
                     let w = self.wall[s];
                     let q = self.at_wage(BRACKET_HI, w.wage, w.below);
-                    let (share, edge) = self.tie_share(&q, w.below, w.above)?;
+                    let (share, edge) = self.tie_share(&q, w.below, w.above, &self.scarce())?;
                     let tie = Tie {
                         above: w.above,
                         share,
@@ -1124,11 +1298,7 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
                 (Kind::End, _) => unreachable!("the end of the wall is the last value"),
             }
         };
-        if let Some(error) = first_non_finite(&eq) {
-            return Err(error);
-        }
-        labor_net(eq.x_star, eq.residuals.labor, eq.n_pool)?;
-        Ok(Regime::Interior(Box::new(eq)))
+        Ok(eq)
     }
 
     /// Where a root on the line is reported. A root whose bracket closed on a short point (+∞)
@@ -1165,7 +1335,7 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
     /// The type whose reserved demand exceeds its workers on the short side of an edge. A
     /// change of side cannot close on the walk's ceiling: approaching it from the finite side,
     /// P_s grows without bound and f rises to n_D > 0 (docs/unit-1d.md §12 item 16).
-    fn short_type(&self, short: Option<Shortage>) -> Result<usize, SolveError> {
+    pub(crate) fn short_type(&self, short: Option<Shortage>) -> Result<usize, SolveError> {
         match short {
             Some(Shortage::Reserved(i)) => Ok(i),
             _ => Err(SolveError::NonFinite {
@@ -1180,7 +1350,7 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
     /// end and f_b < 0 the excess demand there. `f(κ)` is the excess demand with κ in place of
     /// ζ: nondecreasing in κ (a higher walled wage raises P_s and lowers the pool's real wage),
     /// and +∞ at κ = +∞, where the walk has no fixed point.
-    fn edge_clearing(
+    pub(crate) fn edge_clearing(
         &self,
         worker: usize,
         (zeta_b, f_b): (f64, f64),
@@ -1251,25 +1421,28 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
     /// Y(σ), and σ is found by bisection of f(σ) on [0, 1] on the doubles' bit patterns. When
     /// that bisection closes on a short mix (+∞), σ is the edge of a reserved shortage: the
     /// bracket's finite end, with the short type's κ from
-    /// [`edge_clearing`](Self::edge_clearing) (docs/unit-1d.md §12 item 16).
-    fn tie_share(
+    /// [`edge_clearing`](Self::edge_clearing) (docs/unit-1d.md §12 item 16). On `market`'s land
+    /// and with its exit values (docs/unit-1e.md §5.3 step 4: the market's land does not depend on
+    /// σ, since the prices, and so the supplies and plots, do not).
+    pub(crate) fn tie_share(
         &self,
         q: &WorkerPoint,
         below: usize,
         above: usize,
+        market: &Market,
     ) -> Result<(f64, Option<Edge>), SolveError> {
         let types = self.machines.block().types();
         let mut task = vec![0.0; types.len()];
         task[above] = q.m_s / types[above].task_efficiency;
-        let b = self.machines.clear(&task);
-        let state_a = self.workers_at(q.v, q.base_p_s, q.y, None);
-        let state_b = self.workers_at(q.v, q.base_p_s, b.y, None);
+        let b = self.machines.clear_with(&task, market.land);
+        let state_a = self.workers_at(q.v, q.base_p_s, q.y, None, &market.exit);
+        let state_b = self.workers_at(q.v, q.base_p_s, b.y, None, &market.exit);
         let simple = [&state_a, &state_b]
             .iter()
             .all(|s| s.short.is_none() && !s.walled.contains(&true));
         if simple {
-            let land_a = self.params.land / q.y;
-            let land_b = self.params.land / b.y;
+            let land_a = market.land / q.y;
+            let land_b = market.land / b.y;
             let f_a = q.n_d - state_a.pool_supply;
             let f_b = (b.y * q.h_s + b.machine_hours) - state_b.pool_supply;
             if f_b >= 0.0 {
@@ -1277,7 +1450,7 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
             }
             return Ok(((land_a * f_a) / (land_a * f_a - land_b * f_b), None));
         }
-        let f = |share: f64| self.mixed_excess(q, below, above, share, None);
+        let f = |share: f64| self.mixed_excess(q, below, above, share, None, market);
         let f_one = f(1.0);
         if f_one >= 0.0 {
             return Ok((1.0, None));
@@ -1289,11 +1462,11 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
         // The edge of a reserved shortage in σ.
         let share = root.x;
         let worker = self.short_type(
-            self.mixed_state(q, below, above, share.next_down(), None)
+            self.mixed_state(q, below, above, share.next_down(), None, market)
                 .1
                 .short,
         )?;
-        let (n_d, state) = self.mixed_state(q, below, above, share, None);
+        let (n_d, state) = self.mixed_state(q, below, above, share, None, market);
         let (edge, _) = self.edge_clearing(
             worker,
             (state.clearing[worker], n_d - state.pool_supply),
@@ -1302,7 +1475,7 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
                     worker,
                     clearing: kappa,
                 };
-                self.mixed_excess(q, below, above, share, Some(edge))
+                self.mixed_excess(q, below, above, share, Some(edge), market)
             },
         )?;
         Ok((share, Some(edge)))
@@ -1313,7 +1486,7 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
     /// below (its `technique`), with `q`'s prices and the worker types at the σ-mix's Y; +∞
     /// where the mix is short. σ = 0 is `q` itself.
     pub fn excess_at_share(&self, q: &WorkerPoint, above: usize, share: f64) -> f64 {
-        self.mixed_excess(q, q.technique, above, share, None)
+        self.mixed_excess(q, q.technique, above, share, None, &self.scarce())
     }
 
     /// f(σ) at a tie: the σ-mix of the two techniques' quantities, the worker types at its Y
@@ -1326,8 +1499,9 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
         above: usize,
         share: f64,
         edge: Option<Edge>,
+        market: &Market,
     ) -> f64 {
-        let (n_d, state) = self.mixed_state(q, below, above, share, edge);
+        let (n_d, state) = self.mixed_state(q, below, above, share, edge, market);
         if state.short.is_some() {
             f64::INFINITY
         } else {
@@ -1343,13 +1517,14 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
         above: usize,
         share: f64,
         edge: Option<Edge>,
+        market: &Market,
     ) -> (f64, WorkerState) {
         let types = self.machines.block().types();
         let mut task = vec![0.0; types.len()];
         task[below] = (1.0 - share) * (q.m_s / types[below].task_efficiency);
         task[above] = share * (q.m_s / types[above].task_efficiency);
-        let c = self.machines.clear(&task);
-        let state = self.workers_at(q.v, q.base_p_s, c.y, edge);
+        let c = self.machines.clear_with(&task, market.land);
+        let state = self.workers_at(q.v, q.base_p_s, c.y, edge, &market.exit);
         (c.y * q.h_s + c.machine_hours, state)
     }
 
@@ -1364,11 +1539,6 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
         edge: Option<Edge>,
         context: &Context,
     ) -> Result<Eq1d, SolveError> {
-        let p = &self.params;
-        let m = &self.machines;
-        let block = m.block();
-        let types = block.types();
-        let k_count = block.len();
         let (q, one_minus_x, steps, margin) = match at {
             Where::Line {
                 x,
@@ -1385,6 +1555,35 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
                 (self.at_wage(x, v, technique), 1.0 - x, steps, margin)
             }
         };
+        let at = Reported {
+            q: &q,
+            one_minus_x,
+            steps,
+            margin,
+        };
+        self.report_at(&at, technique, tie, edge, context, &self.scarce())
+    }
+
+    /// [`report`](Self::report) at the evaluated point `at.q`, on `market`'s land, at its rent
+    /// and with its exit values (docs/unit-1e.md §4.8): rent income is r·T_m, and every land
+    /// cost in a price identity is priced at r. With [`scarce`](Self::scarce) these are unit
+    /// 1d's operations.
+    pub(crate) fn report_at(
+        &self,
+        at: &Reported,
+        technique: usize,
+        tie: Option<Tie>,
+        edge: Option<Edge>,
+        context: &Context,
+        market: &Market,
+    ) -> Result<Eq1d, SolveError> {
+        let p = &self.params;
+        let m = &self.machines;
+        let block = m.block();
+        let types = block.types();
+        let k_count = block.len();
+        let (q, one_minus_x, steps, margin) = (at.q, at.one_minus_x, at.steps, at.margin);
+        let rent = market.rent;
         let on_line = margin == Margin::Contestable;
         let theta = |t: usize| types[t].task_efficiency;
         // The task services per basket, by type: all to τ, or split at a tie.
@@ -1394,12 +1593,12 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
                 let mut task = vec![0.0; k_count];
                 task[technique] = (1.0 - t.share) * (q.m_s / theta(technique));
                 task[t.above] = t.share * (q.m_s / theta(t.above));
-                let c = m.clear(&task);
+                let c = m.clear_with(&task, market.land);
                 (c.y, c.services, c.machine_hours)
             }
         };
         // The worker types at the equilibrium's Y: at a tie D_i and the walk move with σ.
-        let state = self.workers_at(q.v, q.base_p_s, y, edge);
+        let state = self.workers_at(q.v, q.base_p_s, y, edge, &market.exit);
         if let Some(short) = state.short {
             return Err(SolveError::NonFinite {
                 what: match short {
@@ -1479,9 +1678,9 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
             reserved_hours += d;
         }
         let wage_bill = q.v * n_pool + reserved_bill;
-        let income = wage_bill + p.land + interest;
+        let income = wage_bill + rent * market.land + interest;
         let support_cost = self.support * p_s;
-        let provider_baskets = (p.land + interest) / p_s - self.support;
+        let provider_baskets = (rent * market.land + interest) / p_s - self.support;
         let flow_prices = u.iter().all(|&uk| uk == 1.0);
         // γ(x*) on the line; at a corner the pool's wage in machine-task units, v/π.
         let g_margin = if on_line { q.gamma } else { q.v / q.task_price };
@@ -1542,7 +1741,7 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
             let l_bar = m.all_human_hours()[index] + self.required_chain[index];
             let output = z * y;
             let gross_output = yhat[index] * y;
-            let fixed = b_tilde[index] + r;
+            let fixed = rent * b_tilde[index] + r;
             let c = CategoryEq1d {
                 price,
                 real_wage: q.v / price,
@@ -1558,10 +1757,10 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
                 final_hours: gross_output * human[index],
                 machine_services: gross_output * mm,
                 share: z * price / p_s,
-                wage_floor: 1.0 / (l_bar + (b_bar + r) / q.v),
+                wage_floor: 1.0 / (l_bar + (rent * b_bar + r) / q.v),
                 wage_ceiling: (fixed > 0.0).then(|| q.v / fixed),
                 phi_w: flow_prices.then(|| (q.v * lambda_tilde[index] + r) / price),
-                phi_r: flow_prices.then(|| b_tilde[index] / price),
+                phi_r: flow_prices.then(|| (rent * b_tilde[index]) / price),
                 chain_land: b_bar,
                 gross_output,
                 human_required: self.required_chain[index],
@@ -1573,10 +1772,16 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
             l_s_q += z * c.lambda_tilde_q;
             b_s_q += z * c.b_tilde_q;
             spending += price * output;
-            fork = worse(fork, (price - ((q.v * c.l_star + b_bar) + r)).abs() / price);
+            fork = worse(
+                fork,
+                relative((price - ((q.v * c.l_star + rent * b_bar) + r)).abs(), price),
+            );
             totals = worse(
                 totals,
-                (price - ((q.v * c.lambda_tilde + c.b_tilde) + r)).abs() / price,
+                relative(
+                    (price - ((q.v * c.lambda_tilde + rent * c.b_tilde) + r)).abs(),
+                    price,
+                ),
             );
             categories.push(c);
         }
@@ -1636,7 +1841,7 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
                     supply: state.supply[i],
                     participation: (hours[i] / t.workers).min(1.0),
                     clearing_real_wage: state.clearing[i],
-                    marginal_work_cost: num::ln1p(wage / (t.support * p_s)),
+                    marginal_work_cost: marginal_cost(t, wage, p_s, market.exit[i]),
                     at_wall: !pooled || margin == Margin::Wall,
                     edge: edge.is_some_and(|e| e.worker == i),
                 }
@@ -1645,7 +1850,8 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
         let gamma_top = p.schedule.gamma(BRACKET_HI);
         let gamma_bottom = p.schedule.gamma(0.0);
         let residuals = self.residuals(&ResidualInputs {
-            q: &q,
+            q,
+            market,
             state: &state,
             prices: &prices,
             technique,
@@ -1686,7 +1892,7 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
             funded: provider_baskets > 0.0,
             lemma_b1: at_one.short.is_none()
                 && at_one.n_s > at_one.n_d
-                && p.land > self.support * at_one.p_s,
+                && context.land_at_one > self.support * at_one.p_s,
             phi_w,
             phi_r: phi_w.map(|w| 1.0 - w),
             h_s,
@@ -1738,6 +1944,7 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
     /// that for one type 1c's twelve are its own bit for bit and the new three are 0.
     fn residuals(&self, r: &ResidualInputs) -> Residuals1d {
         let p = &self.params;
+        let rent = r.market.rent;
         let m = &self.machines;
         let block = m.block();
         let types = block.types();
@@ -1749,7 +1956,8 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
         for k in 0..k_count {
             machine_land += block.land_q()[k] * r.services[k];
         }
-        let land = (q.b_d * r.y + machine_land - p.land).abs() / p.land;
+        let t_m = r.market.land;
+        let land = (q.b_d * r.y + machine_land - t_m).abs() / t_m;
         // Services: |(X_k − task_k) − Σ_l A^q_lk·X_l|/X_k, 0 when X_k = 0.
         let mut services = 0.0;
         for k in 0..k_count {
@@ -1775,10 +1983,10 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
                 o += op.machines[l] * q.type_prices[l];
                 v_k += build.machines[l] * q.type_prices[l];
             }
-            let o = o + op.labor * q.v + op.land;
-            let v_k = v_k + build.labor * q.v + build.land;
+            let o = o + op.labor * q.v + op.land * rent;
+            let v_k = v_k + build.labor * q.v + build.land * rent;
             let price = q.type_prices[k];
-            user_cost = worse(user_cost, (price - (o + u[k] * v_k)).abs() / price);
+            user_cost = worse(user_cost, relative((price - (o + u[k] * v_k)).abs(), price));
         }
         let task_share = |k: usize| -> f64 {
             match r.tie {
@@ -1807,17 +2015,20 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
             for (i, &w) in r.state.wages.iter().enumerate() {
                 reserved += w * p.reserved[j][i];
             }
-            let cost = (inputs + q.human[j] * q.v + p.categories[j].direct_land) + reserved;
-            leontief_price = worse(leontief_price, (r.prices[j] - cost).abs() / r.prices[j]);
+            let cost = (inputs + q.human[j] * q.v + p.categories[j].direct_land * rent) + reserved;
+            leontief_price = worse(
+                leontief_price,
+                relative((r.prices[j] - cost).abs(), r.prices[j]),
+            );
         }
         for k in 0..k_count {
             let mut inputs = 0.0;
             for l in 0..k_count {
                 inputs += block.a_hat(k, l) * q.type_prices[l];
             }
-            let cost = inputs + block.lambda_hat()[k] * q.v + block.land_hat()[k];
+            let cost = inputs + block.lambda_hat()[k] * q.v + block.land_hat()[k] * rent;
             let price = q.type_prices[k];
-            leontief_price = worse(leontief_price, (price - cost).abs() / price);
+            leontief_price = worse(leontief_price, relative((price - cost).abs(), price));
         }
         // y = A^qᵀy + f over the rows with y_i > 0.
         let gross: Vec<f64> = m.basket_outputs().iter().map(|b| b * r.y).collect();
@@ -1859,8 +2070,10 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
         let mut cheapest = 0.0;
         for (t, mt) in types.iter().enumerate() {
             if mt.task_efficiency > 0.0 {
-                let undercut =
-                    (q.task_price - q.type_prices[t] / mt.task_efficiency) / q.task_price;
+                let undercut = relative(
+                    q.task_price - q.type_prices[t] / mt.task_efficiency,
+                    q.task_price,
+                );
                 cheapest = worse(cheapest, undercut.max(0.0));
             }
         }
@@ -1919,14 +2132,45 @@ fn value(what: &'static str, q: &WorkerPoint) -> Result<f64, SolveError> {
     }
 }
 
+/// err/scale, a residual relative to a price, or err itself where the price is 0: on unit 1e's
+/// idle stretch at r = 0 a good made of land alone is free (docs/unit-1e.md §12). Wherever the
+/// price is positive it is err/scale, as units 1a-1d compute it.
+pub(crate) fn relative(err: f64, scale: f64) -> f64 {
+    if scale == 0.0 {
+        err
+    } else {
+        err / scale
+    }
+}
+
 /// `Some(f)` for a finite value of the sequence, `None` for a short point (+∞).
 fn finite_or_none(f: f64) -> Option<f64> {
     f.is_finite().then_some(f)
 }
 
+/// Steps 1 and 2 of docs/unit-1d.md §5.3 for a viable economy: the path's sequence and what
+/// the location of its one change needs.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct Path {
+    pub(crate) at_one: WorkerPoint,
+    pub(crate) at_zero: WorkerPoint,
+    pub(crate) f_zero: f64,
+    pub(crate) f_lo: f64,
+    pub(crate) f_one: f64,
+    /// The line's switch points.
+    pub(crate) points: Vec<f64>,
+    /// The technique of each region of the line.
+    pub(crate) techniques: Vec<usize>,
+    /// The values in path order, the end of the wall last.
+    pub(crate) sequence: Vec<(Kind, f64)>,
+    pub(crate) end: WallEnd,
+    /// The value that starts the wall's last piece.
+    pub(crate) last_start: f64,
+}
+
 /// A value of the sequence of docs/unit-1d.md §5.3 step 2.
 #[derive(Clone, Copy, Debug, PartialEq)]
-enum Kind {
+pub(crate) enum Kind {
     Zero,
     Lo,
     SwitchBelow(usize),
@@ -1935,6 +2179,18 @@ enum Kind {
     WallBelow(usize),
     WallAbove(usize),
     End,
+}
+
+/// An evaluated equilibrium point, as [`WorkerEconomy::report_at`] reads it.
+pub(crate) struct Reported<'a> {
+    /// The point, evaluated on its market.
+    pub(crate) q: &'a WorkerPoint,
+    /// 1 − x*, carried on the line.
+    pub(crate) one_minus_x: f64,
+    /// Bisection steps.
+    pub(crate) steps: u32,
+    /// The stretch.
+    pub(crate) margin: Margin,
 }
 
 /// Where the report is evaluated.
@@ -1961,28 +2217,33 @@ impl Where {
 }
 
 /// What the report needs from the solve.
-struct Context<'a> {
-    points: &'a [f64],
-    at_one: &'a WorkerPoint,
-    f_zero: f64,
-    f_lo: f64,
-    f_one: f64,
-    f_end: f64,
+pub(crate) struct Context<'a> {
+    pub(crate) points: &'a [f64],
+    pub(crate) at_one: &'a WorkerPoint,
+    pub(crate) f_zero: f64,
+    pub(crate) f_lo: f64,
+    pub(crate) f_one: f64,
+    pub(crate) f_end: f64,
+    /// The market's land at x = 1, for Lemma B.1's flag (T in unit 1d; docs/unit-1e.md §4.8).
+    pub(crate) land_at_one: f64,
 }
 
 /// A corner's quantities (docs/unit-1d.md §4.5).
-struct Corner {
-    n_d: f64,
-    demand: Vec<f64>,
-    clearing: Vec<f64>,
-    short: Option<Shortage>,
-    l_s: f64,
-    b_s: f64,
+pub(crate) struct Corner {
+    pub(crate) n_d: f64,
+    pub(crate) demand: Vec<f64>,
+    pub(crate) clearing: Vec<f64>,
+    pub(crate) short: Option<Shortage>,
+    pub(crate) l_s: f64,
+    pub(crate) b_s: f64,
+    /// λ̃_j per category at the corner, price side (docs/unit-1e.md §5.4).
+    pub(crate) lambda_tilde: Vec<f64>,
 }
 
 /// The inputs of [`WorkerEconomy::residuals`].
 struct ResidualInputs<'a> {
     q: &'a WorkerPoint,
+    market: &'a Market,
     state: &'a WorkerState,
     prices: &'a [f64],
     technique: usize,
@@ -2522,7 +2783,7 @@ fn first_non_finite(eq: &Eq1d) -> Option<SolveError> {
         .find_map(|(key, output)| match output {
             Output1b::Float(v) | Output1b::Optional(Some(v)) if !v.is_finite() => {
                 Some(match key.item {
-                    Item::Economy | Item::Switch(_) | Item::WallSwitch(_) => {
+                    Item::Economy | Item::Switch(_) | Item::WallSwitch(_) | Item::Parcel(_) => {
                         SolveError::NonFinite { what: key.name }
                     }
                     Item::Type(machine_type) => SolveError::NonFiniteInType {
@@ -2691,10 +2952,11 @@ mod tests {
         let x = e.switch_points().unwrap()[0];
         let s = e.machines().envelope().switches[0];
         let q = e.at_with(x, s.below);
-        let (closed, edge) = e.tie_share(&q, s.below, s.above).unwrap();
+        let (closed, edge) = e.tie_share(&q, s.below, s.above, &e.scarce()).unwrap();
         assert!(closed > 0.0 && closed < 1.0);
         assert_eq!(edge, None);
-        let f = |share: f64| e.mixed_excess(&q, s.below, s.above, share, None);
+        let market = e.scarce();
+        let f = |share: f64| e.mixed_excess(&q, s.below, s.above, share, None, &market);
         let bisected = bisect_bits(f, (0.0, f(0.0)), (1.0, f(1.0))).unwrap().x;
         assert!(
             (closed - bisected).abs() <= 1e-12 * closed,
@@ -2972,7 +3234,7 @@ mod tests {
         let keys: Vec<OutputKey1c> = numbers(&numbered(0)).iter().map(|(k, _)| *k).collect();
         for (i, key) in keys.iter().enumerate() {
             let want = match key.item {
-                Item::Economy | Item::Switch(_) | Item::WallSwitch(_) => {
+                Item::Economy | Item::Switch(_) | Item::WallSwitch(_) | Item::Parcel(_) => {
                     SolveError::NonFinite { what: key.name }
                 }
                 Item::Type(machine_type) => SolveError::NonFiniteInType {

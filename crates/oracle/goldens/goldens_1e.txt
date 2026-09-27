@@ -1,0 +1,238 @@
+# goldens_1e.txt: the golden numbers for oracle unit 1e.
+# Written by goldens/generate_1e.py (mpmath, 70 digits). Do not edit by hand.
+# Each line is KEY = value  # note. Values carry 30 significant digits.
+# Equations: docs/unit-1e.md section 4. laborformal references are at 31b3482.
+# The parcel form nests generate_1d.py's solves within 1.57e-71 (1e-65 asserted).
+# Lemma 5's sign checked at 292 points against a finite difference, 5 of them negative.
+# fnv1a64 generate_1e.py = a22033912d13267f
+# fnv1a64 generate_1d.py = d686b5e68d108fe9
+# fnv1a64 generate_1c.py = c40f0a2b406dd67e
+# fnv1a64 generate_1b.py = 909520ffb1f41ee9
+# fnv1a64 generate.py = cf9d71a6ac25699d
+# fnv1a64 body = da10fc26de351b6b
+
+# P: the exit value alone, check_pinning P3 and check_enclosure N-ii, N-iii, N-vi (docs/unit-1e.md section 4.2)
+P3_Q_ENC = 1.0  # check_pinning P3 (10, 4, 6): q_enc = (s0 - s_)/h = 1
+P_Q_ENC = 1.5  # check_enclosure (1.5, 0, 1): q_enc = 1.5
+P_N_CRIT = 60.0  # N_crit = q_enc T/(g_s + q_enc h_s) = 60 at T 100, g_s = h_s = 1
+P_Q_STAR_50 = 1.0  # q* = N g_s/(T - N h_s) at N 50
+P_Q_STAR_60 = 1.5  # q* = N g_s/(T - N h_s) at N 60
+P_Q_STAR_80 = 4.0  # q* = N g_s/(T - N h_s) at N 80
+P_KAPPA_D3 = 1.05263157894736842105263157895  # SSRN D.3: kappa(q = 10/9, N 50) = 20/19
+P_TAKE_CAP = 1.4  # N-vi (1.5, 0.1, 1): the take caps at h q_enc = 1.4
+
+# Q: the race, check_enclosure N-iii and SSRN D.3 inside equilibria (docs/unit-1e.md section 4.9)
+Q1_X_STAR = 0.705796670004253714988869121132  # x*
+Q1_V = 1.26507546860429842461865122273  # v, the pool's wage
+Q1_P_S = 1.93540493160107421516789225471  # P_s
+Q1_Y = 44.1961482365283730269898266085  # Y = T_m/B^q
+Q1_N_A = 15.6892976624071206142226928257  # N_a, hours worked
+Q1_PARTICIPATION = 0.313785953248142412284453856513  # N_a/N
+Q1_INCOME = 85.5374432547491325925586236245  # I = v N_a + r T_m + interest
+Q1_Q = 1.06905572786361350430345198733  # q = r/p_g
+Q1_KAPPA = 1.03337547990305530767686517564  # coverage kappa = q T/(N (1 + q))
+Q1_T_P = 34.3107023375928793857773071743  # enclosed land in rented plots
+Q1_PROVIDER_BASKETS = -16.0591452518076962653323039618  # provider baskets (r T_m + interest)/P_s - nu
+Q1_P_G = 0.935404931601074215167892254714  # the good's price, the exit good
+Q2_X_STAR = 0.576436455808481692583359646233  # x*
+Q2_V = 0.83440886282971784135467595561  # v, the pool's wage
+Q2_P_S = 1.66666666666666666666666666667  # P_s
+Q2_Y = 53.0558268344886993952543841883  # Y = T_m/B^q
+Q2_N_A = 24.3537136435293198604637812233  # N_a, hours worked
+Q2_PARTICIPATION = 0.405895227392155331007729687055  # N_a/N
+Q2_INCOME = 88.4263780574811656587573069806  # I = v N_a + r T_m + interest
+Q2_Q = 1.5  # q = r/p_g
+Q2_KAPPA = 1.0  # coverage kappa = q T/(N (1 + q))
+Q2_T_P = 31.8945764494967185029253430562  # enclosed land in rented plots
+Q2_PROVIDER_BASKETS = -19.1367458696980311017552058337  # provider baskets (r T_m + interest)/P_s - nu
+Q2_P_G = 0.666666666666666666666666666667  # the good's price, the exit good
+Q3_X_STAR = 0.576436455808481692583359646233  # x*
+Q3_V = 0.83440886282971784135467595561  # v, the pool's wage
+Q3_P_S = 1.66666666666666666666666666667  # P_s
+Q3_Y = 70.7411024459849325270058455845  # Y = T_m/B^q
+Q3_N_A = 32.4716181913724264806183749644  # N_a, hours worked
+Q3_PARTICIPATION = 0.405895227392155331007729687055  # N_a/N
+Q3_INCOME = 117.901837409974887545009742641  # I = v N_a + r T_m + interest
+Q3_Q = 1.5  # q = r/p_g
+Q3_KAPPA = 0.75  # coverage kappa = q T/(N (1 + q))
+Q3_T_P = 9.19276859932895800390045740824  # enclosed land in rented plots
+Q3_PROVIDER_BASKETS = -25.5156611595973748023402744449  # provider baskets (r T_m + interest)/P_s - nu
+Q3_P_G = 0.666666666666666666666666666667  # the good's price, the exit good
+Q4_X_STAR = 0.733371199331102348550329805187  # x*
+Q4_V = 0.476306011934482587369663744924  # v, the pool's wage
+Q4_P_S = 1.34605344708019269859425244856  # P_s
+Q4_Y = 82.8673989027949976586004888324  # Y = T_m/B^q
+Q4_N_A = 24.2364103211539806722129475894  # N_a, hours worked
+Q4_PARTICIPATION = 0.302955129014424758402661844868  # N_a/N
+Q4_INCOME = 111.543947943676584876217642496  # I = v N_a + r T_m + interest
+Q4_Q = 2.88972703042679124427077345408  # q = r/p_g
+Q4_KAPPA = 0.928640688608206355387077779522  # coverage kappa = q T/(N (1 + q))
+Q4_T_P = 0.0  # enclosed land in rented plots
+Q4_PROVIDER_BASKETS = -5.7087449113434915690337776382  # provider baskets (r T_m + interest)/P_s - nu
+Q4_P_G = 0.34605344708019269859425244856  # the good's price, the exit good
+Q5_X_STAR = 0.79095995667054840485174190503  # x*
+Q5_V = 0.347579854547759123726916193049  # v, the pool's wage
+Q5_P_S = 1.24313198820171877857450180308  # P_s
+Q5_Y = 85.9567608199460895437180668874  # Y = T_m/B^q
+Q5_N_A = 19.7238099037675765888444493443  # N_a, hours worked
+Q5_PARTICIPATION = 0.246547623797094707360555616803  # N_a/N
+Q5_INCOME = 106.855598977479185150128370688  # I = v N_a + r T_m + interest
+Q5_Q = 4.11299231909514190747216859563  # q = r/p_g
+Q5_KAPPA = 1.0055247647582589376877580205  # coverage kappa = q T/(N (1 + q))
+Q5_T_P = 0.0  # enclosed land in rented plots
+Q5_PROVIDER_BASKETS = 0.441981180660715015020641640182  # provider baskets (r T_m + interest)/P_s - nu
+Q5_P_G = 0.243131988201718778574501803077  # the good's price, the exit good
+Q2_SHARE = 0.894751731794553859386440290177  # psi, the renting share of exiters at the enclosure tie
+Q2_F_BELOW = 11.4051325304026712050304331699  # f at the enclosure point, the type on its floor
+Q2_F_ABOVE = -1.34156817452698594193597492416  # f at the enclosure point, the type renting
+Q3_SHARE = 0.193416401937341863726817939049  # psi, the renting share of exiters at the enclosure tie
+Q3_F_BELOW = 3.28722798255956458487583942876  # f at the enclosure point, the type on its floor
+Q3_F_ABOVE = -13.7083729573466449444127046966  # f at the enclosure point, the type renting
+
+# K: the commons, G1's economy with exit (0.5, 0, 0.1) (docs/unit-1e.md section 3.3)
+K1_X_STAR = 0.920538442693758831900579930032  # x*
+K1_V = 0.573460889000361870455875726884  # v, the pool's wage
+K1_P_S = 1.36588735168482065298600913327  # P_s
+K1_Y = 7.69885900395874856818454933782  # Y = T_m/B^q
+K1_N_A = 0.899405950440895328381461172687  # N_a, hours worked
+K1_PARTICIPATION = 0.224851487610223832095365293172  # N_a/N
+K1_INCOME = 10.5157741359120512454108830434  # I = v N_a + r T_m + interest
+K1_Q = 2.73308163125958746963281132228  # q
+K1_KAPPA = 1.83031199235885196086327007869  # kappa
+K1_P_G = 0.365887351684820652986009133274  # p_g
+K1_PLOT_RENT = 0.0  # r_o, the plot rent
+K1_T_OC = 0.310059404955910467161853882731  # the commons occupied
+K1_T_P = 0.0  # enclosed land in rented plots
+K1_T_M = 10.0  # the market's land
+K2_X_STAR = 0.907296197072910982946122716357  # x*
+K2_V = 0.566513943361382534629795873764  # v, the pool's wage
+K2_P_S = 1.36503286675384388182061146242  # P_s
+K2_Y = 7.74084947015919726687076200711  # Y = T_m/B^q
+K2_N_A = 1.0  # N_a, hours worked
+K2_PARTICIPATION = 0.25  # N_a/N
+K2_INCOME = 10.5665139433613825346297958738  # I = v N_a + r T_m + interest
+K2_Q = 2.7394793485112111898190253099  # q
+K2_KAPPA = 1.8314577332816884666515816266  # kappa
+K2_P_G = 0.365032866753843881820611462422  # p_g
+K2_PLOT_RENT = 0.43259131873953323891399225368  # r_o, the plot rent
+K2_T_OC = 0.3  # the commons occupied
+K2_T_P = 0.0  # enclosed land in rented plots
+K2_T_M = 10.0  # the market's land
+K3_X_STAR = 0.885633813504559198670991019063  # x*
+K3_V = 0.555173992350150025035680579714  # v, the pool's wage
+K3_P_S = 1.36345321497720062472879601308  # P_s
+K3_Y = 7.58562353870472860955802699577  # Y = T_m/B^q
+K3_N_A = 1.13350470275809571609270362913  # N_a, hours worked
+K3_PARTICIPATION = 0.283376175689523929023175907283  # N_a/N
+K3_INCOME = 10.3426428014536916806793641676  # I = v N_a + r T_m + interest
+K3_Q = 2.75138575968499790667941934902  # q
+K3_KAPPA = 1.83357959960643348468766566896  # kappa
+K3_P_G = 0.363453214977200624728796013078  # p_g
+K3_PLOT_RENT = 1.0  # r_o, the plot rent
+K3_T_OC = 0.0  # the commons occupied
+K3_T_P = 0.286649529724190428390729637087  # enclosed land in rented plots
+K3_T_M = 9.71335047027580957160927036291  # the market's land
+K4_X_STAR = 0.898303233827205851521838466108  # x*
+K4_V = 0.561802606908774093952097619232  # v, the pool's wage
+K4_P_S = 1.36440445026639489056456440302  # P_s
+K4_Y = 8.32449765668625133056275519615  # Y = T_m/B^q
+K4_N_A = 1.14532889580983605544975861707  # N_a, hours worked
+K4_PARTICIPATION = 0.286332223952459013862439654268  # N_a/N
+K4_INCOME = 11.3579816490148972114961509316  # I = v N_a + r T_m + interest
+K4_Q = 2.74420358826287161262116136373  # q
+K4_KAPPA = 2.01553139134299418004224395224  # kappa
+K4_P_G = 0.364404450266394890564564403015  # p_g
+K4_PLOT_RENT = 1.0  # r_o, the plot rent
+K4_T_OC = 0.0  # the commons occupied
+K4_T_P = 0.285467110419016394455024138293  # enclosed land in rented plots
+K4_T_M = 10.7145328895809836055449758617  # the market's land
+K1_WASTE_USED = 0.310059404955910467161853882731  # the share of WASTE's services occupied
+K2_EXIT_VALUE = 0.139257301502968617018906505843  # e = p_g s0 - r_o h at the shadow rent
+K3_EXIT_GOODS = 0.224861424031500209332058065098  # s(q) = s0 - q h at the market rent
+
+# D: a dead exit (1, 0, 1), q_enc = 1 below q: G1 (docs/unit-1e.md section 3.3)
+D_Q = 2.76567157455638580984893273914  # q at G1, above q_enc = 1: every exiter on the floor
+
+# I: idle land at zero rent, prices per unit of the pool's wage (docs/unit-1e.md section 4.6)
+I1_Y = 5.83333333333333333333333333333  # Y
+I1_T_M = 7.83333333333333333333333333333  # the market's land in use
+I1_IDLE = 2.16666666666666666666666666667  # T_idle
+I1_N_A = 0.25  # N_a
+I1_P_S = 0.0428571428571428571428571428571  # P_s in pool wages
+I1_REAL_WAGE = 23.3333333333333333333333333333  # v/P_s, 1d's ceiling
+I1_F_END = 0.0691489361702127659574468085106  # f_inf, 1d's excess
+I2_Y = 2.79979299614507407168786140966  # Y
+I2_T_M = 3.75972202339481375340941389297  # the market's land in use
+I2_IDLE = 6.24027797660518624659058610703  # T_idle
+I2_N_A = 1.43989354087460952258232872497  # N_a
+I2_P_S = 0.514285714285714285714285714286  # P_s in pool wages
+I2_REAL_WAGE = 1.94444444444444444444444444444  # v/P_s, 1d's ceiling
+I2_F_END = 2.38989369316794366890703297716  # f_inf, 1d's excess
+I3_Y = 4.16666666666666666666666666667  # Y = 25/6: the trained's reserved demand 0.12 Y = N_T
+I3_T_M = 6.66666666666666666666666666667  # T_m = 20/3
+I3_TRAINED_CLEARING = 6.52817162147871666677518343807  # kappa_T, the trained's real wage per support basket
+I3_TRAINED_WAGE = 42.4732623239907674571613018562  # the trained's wage, in pool wages
+I3_P_S = 5.42179147887889209485935622274  # P_s
+I3_ENTRANT_HOURS = 1.35416666666666666666666666667  # the entrant's hours, 65/48
+I3_PARTICIPATION = 0.218137254901960784313725490196  # participation
+I4_Y = 1.74858716030909234063375333253  # Y
+I4_T_M = 2.34810275812935257170818304654  # T_m
+I4_T_P = 1.55036330163480482669417771449  # free plots on idle land
+I4_N_A = 0.899273396730390346611644571015  # N_a
+I4_PARTICIPATION = 0.224818349182597586652911142754  # participation
+I4_FIELDS_USED = 0.519795474635220986453648101471  # FIELDS' share of its 7.5 services used; HEATH idles
+I4_EXIT_VALUE = 0.257142857142857142857142857143  # e = p_g s0 in pool wages, the plot free
+I5_F_END = 3.0638297872340425531914893617  # NoMarket: I4 with exit (2, 0, 0.5), f at the end of the wall
+
+# T: two priced types share a commons (docs/unit-1e.md section 3.3)
+T_X_STAR = 0.86506676292016438128241872887  # x*
+T_V = 0.544435181656630007462274166898  # v
+T_P_S = 1.3617452692886884870064360313  # P_s
+T_Y = 7.87454879277600290954170426799  # Y
+T_N_POOL = 1.32821976005537739980622217002  # the pool's efficiency hours
+T_ENTRANT_HOURS = 0.985890119972311300096888914989  # the entrant's hours
+T_TRAINED_HOURS = 0.228219760055377399806222170023  # the trained's hours
+T_ENTRANT_EXITERS = 3.01410988002768869990311108501  # the entrant's exiters
+T_TRAINED_EXITERS = 0.771780239944622600193777829977  # the trained's exiters
+T_PLOT_RENT = 0.528371770457264476796787642987  # r_o, one shadow rent for both
+
+# F: 1c's M4 with a priced exit in food (0.1, 0, 0.05), rho 0.04 (docs/unit-1e.md section 3.3)
+F1_X_STAR = 0.923598571055872542171574424257  # x*
+F1_V = 0.143005893837217261984494363379  # v, the pool's wage
+F1_P_S = 1.55132233532843106846792642931  # P_s
+F1_Y = 6.49874585599294696792093909541  # Y = T_m/B^q
+F1_N_A = 0.184047324766799863494294566224  # N_a, hours worked
+F1_PARTICIPATION = 0.0460118311916999658735736415561  # N_a/N
+F1_INCOME = 10.0816495980249422789915540494  # I = v N_a + r T_m + interest
+F1_P_FOOD = 0.668130766655413269478106868311  # p_food, through the chain
+F1_T_OC = 0.190797633761660006825285271689  # the commons occupied
+F1_T_P = 0.0  # rented plots
+F2_X_STAR = 0.840478725228176981803532231848  # x*
+F2_V = 0.132673541807115754915103762106  # v, the pool's wage
+F2_P_S = 1.5509189905174605691732544046  # P_s
+F2_Y = 6.38661712889999068669738749931  # Y = T_m/B^q
+F2_N_A = 0.285226249018447804795888665423  # N_a, hours worked
+F2_PARTICIPATION = 0.0713065622546119511989721663557  # N_a/N
+F2_INCOME = 9.90512579037509590143436372899  # I = v N_a + r T_m + interest
+F2_P_FOOD = 0.668026172676942037270682971147  # p_food, through the chain
+F2_T_OC = 0.0  # the commons occupied
+F2_T_P = 0.185738687549077609760205566729  # rented plots
+
+# M: three equilibria, two inside one region of the line (docs/unit-1e.md section 3.3)
+M_V_CORNER = 0.202975693664890780199090117979  # the all-human corner's equilibrium wage
+M_X_LOW = 0.00447367298808590036284668667096  # the lower equilibrium on the line
+M_V_LOW = 0.477529819454734180145443662454  # its wage
+M_X_HIGH = 0.368312933581995336709003701895  # the upper equilibrium on the line
+M_V_HIGH = 1.3326773982758295290405269508  # its wage
+M_F_LINE_1 = -5.48025458072121043978121078257  # f on the line at 1
+M_F_LINE_0 = -0.0645161290322580645161290322581  # f on the line at 0, -2/31: the line's ends have the same sign
+
+# A: the wrong units of docs/unit-1e.md section 3.3
+A1_X_STAR = 0.889481577171851107722397570901  # x* with the market rent charged on commons plots (K1)
+A1_V = 0.557186048863542293233347270103  # its v
+A1_PARTICIPATION = 0.284270707958228709407510220215  # its participation
+A2_Y = 7.79729768568098058964128342093  # Y with rented plots left in production (K3)
+A3_X_STAR = 0.813549939342375550251043832791  # x* of Q1 with rented plots left in production
+A3_Y = 62.0867137260913319035830184103  # its Y
+A4_PARTICIPATION = 0.0133928571428571428571428571429  # Q3 with q = r/P_s: the wall, 3/224
+A4_Y = 12.5  # its Y

@@ -16,7 +16,7 @@ use crate::support_1d::*;
 
 /// The sets of docs/unit-1d.md §8.
 #[derive(Clone, Copy, Debug, PartialEq)]
-enum Set {
+pub(crate) enum Set {
     /// (a) ρ = 0, one machine type.
     One,
     /// (b) ρ = 0, K in 1..3.
@@ -324,10 +324,10 @@ fn draw_switch(rng: &mut SplitMix64, index: usize) -> Option<WorkerParams> {
 }
 
 /// A draw and its outcome.
-struct Sample {
-    set: Set,
-    economy: WorkerEconomy,
-    result: Result<Regime<Eq1d>, SolveError>,
+pub(crate) struct Sample {
+    pub(crate) set: Set,
+    pub(crate) economy: WorkerEconomy,
+    pub(crate) result: Result<Regime<Eq1d>, SolveError>,
 }
 
 impl Sample {
@@ -341,7 +341,7 @@ impl Sample {
 
 /// What a set's draws gave.
 #[derive(Debug, Default)]
-struct Tally {
+pub(crate) struct Tally {
     draws: usize,
     invalid: usize,
     contestable: usize,
@@ -410,7 +410,7 @@ fn sample(set: Set, seed: u64) -> (Vec<Sample>, Tally) {
 }
 
 /// The five sets, drawn once for every test of this module.
-fn all_sets() -> &'static [(Vec<Sample>, Tally)] {
+pub(crate) fn all_sets() -> &'static [(Vec<Sample>, Tally)] {
     static SETS: OnceLock<Vec<(Vec<Sample>, Tally)>> = OnceLock::new();
     SETS.get_or_init(|| {
         [

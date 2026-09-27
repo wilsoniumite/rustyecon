@@ -420,6 +420,12 @@ impl<S: Schedule> MachineEconomy<S> {
     /// §5.1 step 4 from the task services per basket t: forward substitution, back
     /// substitution with the division deferred, land clearing, services and machine hours.
     pub(crate) fn clear(&self, task: &[f64]) -> Cleared {
+        self.clear_with(task, self.params.land)
+    }
+
+    /// [`clear`](Self::clear) with the market's land in use T_m in place of T (docs/unit-1e.md
+    /// §4.5): Y = T_m/B^q. With T_m = T it is `clear` bit for bit.
+    pub(crate) fn clear_with(&self, task: &[f64], land: f64) -> Cleared {
         let (numerators, pivots) = self.block.clearing_numerators(task);
         let land_q = self.block.land_q();
         let lambda_q = self.block.lambda_q();
@@ -427,7 +433,7 @@ impl<S: Schedule> MachineEconomy<S> {
         for k in 0..task.len() {
             land_per_basket += (land_q[k] * numerators[k]) / pivots[k];
         }
-        let y = self.params.land / (self.basket_land + land_per_basket);
+        let y = land / (self.basket_land + land_per_basket);
         let services: Vec<f64> = (0..task.len())
             .map(|k| (y * numerators[k]) / pivots[k])
             .collect();
@@ -1381,10 +1387,13 @@ pub enum Item {
     Worker(usize),
     /// A switch of the technique on the wall, by position (unit 1d).
     WallSwitch(usize),
+    /// A parcel, by index (unit 1e).
+    Parcel(usize),
 }
 
 /// The key of a unit-1c output, printed `name`, `switch<i>.name`, `type<k>.name` or
-/// `cat<j>.name`; unit 1d adds `worker<i>.name` and `wall_switch<s>.name`.
+/// `cat<j>.name`; unit 1d adds `worker<i>.name` and `wall_switch<s>.name`, unit 1e
+/// `parcel<z>.name`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct OutputKey1c {
     /// What the output belongs to.
@@ -1402,6 +1411,7 @@ impl fmt::Display for OutputKey1c {
             Item::Category(j) => write!(f, "cat{j}.{}", self.name),
             Item::Worker(i) => write!(f, "worker{i}.{}", self.name),
             Item::WallSwitch(s) => write!(f, "wall_switch{s}.{}", self.name),
+            Item::Parcel(z) => write!(f, "parcel{z}.{}", self.name),
         }
     }
 }
@@ -1551,7 +1561,7 @@ fn first_non_finite(eq: &Eq1c) -> Option<SolveError> {
         .find_map(|(key, output)| match output {
             Output1b::Float(v) | Output1b::Optional(Some(v)) if !v.is_finite() => {
                 Some(match key.item {
-                    Item::Economy | Item::Switch(_) | Item::WallSwitch(_) => {
+                    Item::Economy | Item::Switch(_) | Item::WallSwitch(_) | Item::Parcel(_) => {
                         SolveError::NonFinite { what: key.name }
                     }
                     Item::Worker(worker) => SolveError::NonFiniteInWorker {
@@ -1783,7 +1793,7 @@ mod tests {
         let keys: Vec<OutputKey1c> = numbers(&numbered(0)).iter().map(|(k, _)| *k).collect();
         for (i, key) in keys.iter().enumerate() {
             let want = match key.item {
-                Item::Economy | Item::Switch(_) | Item::WallSwitch(_) => {
+                Item::Economy | Item::Switch(_) | Item::WallSwitch(_) | Item::Parcel(_) => {
                     SolveError::NonFinite { what: key.name }
                 }
                 Item::Worker(worker) => SolveError::NonFiniteInWorker {

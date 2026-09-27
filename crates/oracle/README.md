@@ -2,11 +2,12 @@
 
 Dated 2026-09-25; joined the workspace on 2026-09-26 (P1.1). Units 1b and 1c were added on
 2026-09-27, on branch `phase1`: 1b at P1.2, verified at P1.3; 1c at P1.4, verified at P1.5
-and P1.6. Both were closed at P1.7, the same day. Unit 1d was added at P1.8, the same day.
+and P1.6. Both were closed at P1.7, the same day. Unit 1d was added at P1.8 and verified at
+P1.9, and unit 1e at P1.10, the same day.
 
 The oracle is a static equilibrium solver for the pinning paper's economy (PLAN §3.4).
 It shares types but not logic with the agents, and no agent may read it (PLAN R13).
-It is built outward in units 1a-1f. This package holds four:
+It is built outward in units 1a-1f. This package holds five:
 
 - **Unit 1a**: one category, one machine type, one land input, with durability and
   interest through the scalar user cost u = (ρ + δ)(1 + ρ)^(J_b − 1). At
@@ -40,11 +41,24 @@ It is built outward in units 1a-1f. This package holds four:
   onto the wall. 1a-1c's `BoundaryNoMargin` and `NoInteriorAtZero` are solved; an economy
   with no wage that clears labour with land fully rented is `SolveError::LaborShort`. One
   type without human-required or reserved hours is 1c's equilibrium bit for bit.
+- **Unit 1e**: parcels, the idle margin and the priced exit. Land is cut into parcels of an
+  acreage, a quality (land service per acre) and an access: enclosed parcels are rented on the
+  market, open ones are a commons, free to exit plots and closed to production. Each worker
+  type names its exit form: SSRN's dependence form (units 1a-1d), or main.tex's priced form
+  s(q) = max(s₀ − q·h, s̲) in units of one exit good, the default of the historical runs
+  (ADDENDUM ruling 3), both under SSRN eq 8 with the exit life's value. An exit plot takes h of
+  land service: on the commons while it has room, at a shadow rent when it is full, and rented
+  on enclosed land, which it takes from production. Idle enclosed land earns zero rent: the
+  path continues past the wall's end onto an idle stretch with the pool's wage as numeraire,
+  where 1d's `LaborShort` economies have their equilibria; no one working at any wage is
+  `SolveError::NoMarket`. Where q crosses a type's q_enc the economy can sit at the threshold
+  with a share of the exiters renting (an enclosure tie). Coverage κ, q* and N_crit are
+  reported, and check_enclosure's race plays out inside equilibria. The priced form can make
+  labour supply fall along the path, so the count also scans every piece (`EXIT_SCAN`). The
+  dependence form in parcel form (one enclosed parcel of quality 1) is 1d's equilibrium bit for
+  bit, and so is a priced form with its exit option switched off.
 
-Still to come (PLAN Phase 1): 1e, parcels with quality schedules, the idle margin (which
-resolves 1d's `LaborShort` economies) and exit as s(q), the default exit form (ADDENDUM
-ruling 3); 1f, households and government. The 1e gate is constructed, as 1d's was (ADDENDUM
-§5 item 4).
+Still to come (PLAN Phase 1): 1f, households and government.
 
 The package is `rustyecon-oracle`, its library `oracle`, a member of the rustyecon
 workspace. Its one dependency is `rustyecon-core`, for `core::num`: the power, `ln1p` and
@@ -53,8 +67,8 @@ same double on every platform (R8, ADDENDUM A5). Nothing on the engine path depe
 the oracle (R13; docs/ENGINE.md §1).
 
 The specifications, with every equation and golden, are [docs/unit-1a.md](docs/unit-1a.md),
-[docs/unit-1b.md](docs/unit-1b.md), [docs/unit-1c.md](docs/unit-1c.md) and
-[docs/unit-1d.md](docs/unit-1d.md). Unit 1b's open
+[docs/unit-1b.md](docs/unit-1b.md), [docs/unit-1c.md](docs/unit-1c.md),
+[docs/unit-1d.md](docs/unit-1d.md) and [docs/unit-1e.md](docs/unit-1e.md). Unit 1b's open
 questions (its §11: the shared task line, cells in the equilibrium, gaps as a regime, bitwise
 nesting, viability at the top of the line, the generic `Regime`, the CES parameters) and unit
 1c's (its §11: machines built from categories, one capability shape per line, ties inside
@@ -64,8 +78,13 @@ to 1a's module, the random draws, every type priced) are not ruled, nor are unit
 inside `Interior`, `LaborShort`, living costs as support baskets, type hours split by net
 supply, machine recipes on pool labour, bisection on bit patterns, exogenous training,
 viability at the top of the line, a walled tie by bisection, the count over the whole path,
-the random draws). The build takes the draft's choice on each, and the repository's STATE.md
-lists them as decisions open to veto.
+the random draws), nor unit 1e's (its §11, proposed as decisions 88-100: parcels as
+efficiency units, the commons for exit only, one participation rule for both forms, support
+kept positive, one exit good, rented plots leaving production, idle land with the wage as
+numeraire and `NoMarket`, no reserved tasks with the priced form, the scan, the commons'
+shadow rent, the enclosure tie inside `Interior`, one land service, the random draws). The
+build takes the draft's choice on each, and the repository's STATE.md lists them as decisions
+open to veto.
 Each spec's §12 records where its build and its verification departed from the draft.
 
 ## The gate
@@ -182,6 +201,35 @@ human-required tasks and one worker type, exactly":
   at exact equality;
 - **d9**, `goldens_1d.txt`'s five digests and the Rust constants.
 
+Unit 1e's tests, per docs/unit-1e.md §8, cover the gate of ADDENDUM ruling 3 and A7: "the
+idle-margin regime and the enclosed regime recognised and solved", "check_enclosure's worked
+instance reproduced" and "both exit forms nest, with the exit option switched off, into 1a to
+1d exactly":
+
+- **e1**, nesting: 1a's 27 golden instances, 1b's and 1c's, and 1d's W, B, E, F, X and J
+  instances through `ParcelParams::from_workers`, bit for bit, with W2, W3 and E6 (1d's
+  `LaborShort`) on idle land with f_∞ 1d's excess; 1a's G5, 1b's C5, 1c's m6 and 1d's d7 draws;
+  the refusals and rejected rows; `at(x)` on a grid; every type priced with s₀ = s̲ = 0; and D,
+  an exit priced out of use, which is G1 bit for bit;
+- **e2**, the exit value alone: check_pinning P3, check_enclosure N-ii, N-iii and N-vi, SSRN
+  D.3's coverage, the identical-workers limit where the support cancels, bad arguments;
+- **e3**, the race (Q1-Q5): plots rented with κ ≥ 1, the enclosure ties at q = q_enc = 1.5 with
+  κ = 1 at N_crit = 60 and 0.75 at N 80, the floor inside the gap and past q*;
+- **e4**, the commons (K1-K5): with room, crowded, enclosed by price and by law, quality as
+  efficiency, rented plots leaving production;
+- **e5**, idle land (I1-I4): 1d's W2, W3 and E6 solved at zero rent, the wall at r = 0, the
+  worst parcels idling first, the edge of a reserved shortage on the idle stretch, `NoMarket`;
+- **e6**, two priced types sharing a commons, and 1c's fork economy with a priced exit in food;
+- **e7**, M's three equilibria (one when the scan is off), Lemma 5's σ against a finite
+  difference with both signs, and the root independent of the scan;
+- **e8**, 360 random equilibria in six sets, among them certified draws and enclosure ties on the
+  line, the wall and the all-human corner: every identity, the residuals, the count against a
+  scan 16 times finer, Lemma 5 at the equilibrium, the regimes;
+- **e9**, the regimes at exact equality, 1d's saturated knife edge and a priced one, Lemma B.1's
+  flag on the market's land, every validation rule, permutation, land service in other units
+  (bit for bit at c = 4), enclosure by law;
+- **e10**, `goldens_1e.txt`'s six digests and the Rust constants.
+
 The goldens are pinned to laborformal `31b3482`.
 
 ## Verification
@@ -218,6 +266,10 @@ that fails without it. Where the pass found nothing wrong in the code, the fix i
   efficiencies, a corner's φ and closure wage, d, lemma B.1's support, the first short type,
   `human_required`'s length and four rules at exact equality; each now has a test, and the fix
   round's 20 mutants are all killed (docs/unit-1d.md §12 items 16-18).
+- **1e** (P1.10, the build's own check, before its verification): 49 mutants of the new code,
+  of which the first run left nine; seven now have a test, and two are equivalent (the idle
+  end's side where S_∞ cannot be 0, and a technique tie's closed form scaled by T/T_m)
+  (docs/unit-1e.md §12 item 14).
 
 Each spec's §12 has the details.
 
@@ -235,9 +287,11 @@ Each spec's §12 has the details.
 | `src/machine_block.rs` | unit 1c's machine block alone: `Recipe`, `MachineType`, `MachineBlock` (totals, closure, envelope, gross services) |
 | `src/machines.rs` | unit 1c: `MachineParams`, `MachineEconomy`, `Eq1c` and its outputs, ties and the sign-change count |
 | `src/workers.rs` | unit 1d: `WorkerType`, `WorkerParams`, `WorkerEconomy`, `Eq1d` and its outputs, the walk, the corners, the path and its count |
+| `src/exit.rs` | unit 1e's exit value alone: `PricedExit` (s(q), q_enc, the take), `coverage`, `coverage_threshold`, `crowding_limit` |
+| `src/parcels.rs` | unit 1e: `Parcel`, `ExitForm`, `ParcelParams`, `ParcelEconomy`, the exit sub-problem, the idle stretch, enclosure points and ties, the scan, `Eq1e` and its outputs |
 | `src/dump.rs` | the one-line text interface behind `examples/dump.rs` |
 | `examples/dump.rs` | reads economies on stdin, writes one result line each |
-| `tests/gate/` | the gate: one test crate, one module per golden group (1a's `g*`, 1b's `c*`, 1c's `m*`, 1d's `d*`) |
+| `tests/gate/` | the gate: one test crate, one module per golden group (1a's `g*`, 1b's `c*`, 1c's `m*`, 1d's `d*`, 1e's `e*`) |
 | `goldens/generate.py` | computes every golden with mpmath at 70 digits |
 | `goldens/goldens.txt` | its output, 30 significant digits |
 | `goldens/generate_1b.py` | unit 1b's goldens, at 70 digits; imports `generate.py` to assert the nesting |
@@ -246,6 +300,8 @@ Each spec's §12 has the details.
 | `goldens/goldens_1c.txt` | its output, 210 goldens |
 | `goldens/generate_1d.py` | unit 1d's goldens, at 70 digits; builds on `generate_1c.py` (and so the other two), and asserts the nesting |
 | `goldens/goldens_1d.txt` | its output, 269 goldens |
+| `goldens/generate_1e.py` | unit 1e's goldens, at 70 digits; builds on `generate_1d.py` (and so the other three), and asserts the nesting |
+| `goldens/goldens_1e.txt` | its output, 208 goldens |
 
 ## Running the tests
 
@@ -278,9 +334,11 @@ The counts, the same on WSL and on Windows at each step:
 | P1.6, 1c's second verification | 2026-09-27 | 57 | 184 | 1 | 242 |
 | P1.7, units 1b and 1c closed | 2026-09-27 | 57 | 184 | 1 | 242 |
 | P1.8, unit 1d | 2026-09-27 | 66 | 227 | 1 | 294 |
+| P1.9, 1d's verification | 2026-09-27 | 67 | 230 | 1 | 298 |
+| P1.10, unit 1e | 2026-09-27 | 76 | 276 | 1 | 353 |
 
-Of the 294, 1a has 114, 1b 59 (5 unit, 54 gate), 1c 69 (10 unit, 59 gate) and 1d 52 (9 unit,
-43 gate).
+Of the 353, 1a has 114, 1b 59 (5 unit, 54 gate), 1c 69 (10 unit, 59 gate), 1d 56 (10 unit,
+46 gate) and 1e 55 (9 unit, 46 gate).
 
 ## The dump example
 
@@ -314,10 +372,9 @@ end is at most 3.8e-16, where the regime is not decidable in f64 (docs/unit-1a.m
 The largest value gaps are where 1 − x* is small: there both macro.py's brentq xtol and
 the f64 conditioning of 1 − x* matter.
 
-The dump is unit 1a's only. Units 1b, 1c and 1d have none, since there is no other
-multi-category, multi-type or multi-worker solver to compare against (docs/unit-1b.md §9,
-docs/unit-1c.md §9, docs/unit-1d.md §9); their independent checks are the verifications'
-derivations.
+The dump is unit 1a's only. Units 1b to 1e have none, since there is no other
+multi-category, multi-type, multi-worker or parcel solver to compare against (docs/unit-1b.md
+§9 to docs/unit-1e.md §9); their independent checks are the verifications' derivations.
 
 ## Regenerating the goldens
 
@@ -395,6 +452,27 @@ junctions, the wall's closed form and BP's limit. On 2026-09-27 the oracle's f64
 the 233 goldens compared by `close` within 2.0e-15 relative (F3's tie share); W5's root below
 10^-12 is within 1.1e-16 absolute (2.3e-4 relative, inside docs/unit-1d.md §5.5's bound), and
 its f on the line, n_D − n_S with n_D ≈ 10, within 9.8e-16 absolute.
+
+Unit 1e's goldens work the same way, with six digests (`generate_1e.py`, `generate_1d.py`,
+`generate_1c.py`, `generate_1b.py`, `generate.py` and its own goldens), checked by
+`e10_goldens_file`:
+
+```sh
+python goldens/generate_1e.py           # writes goldens/goldens_1e.txt, in about a minute
+python goldens/generate_1e.py --check   # exits 1 if goldens_1e.txt is not what it writes
+```
+
+Its `Economy` extends `generate_1d.py`'s (docs/unit-1e.md §12 item 1); an economy without exit
+values is solved by `generate_1d.py`'s own solve with the idle stretch after it. It asserts as
+it goes that the parcel form of fifteen of 1d's instances equals `generate_1d.py`'s solve
+(within 1.6e-71) and 1d's `LaborShort` rows are idle-land equilibria with 1d's f_∞, the exit
+option switched off is the dependence form, D is G1, every identity of docs/unit-1e.md §4.8 at
+1e-65, κ = qT/(N(1 + q)) at the Q instances, each enclosure tie against its linear root and each
+idle closed form against bisection, Lemma 5's sign at 292 points against a finite difference,
+and the count on a scan of 1024 points per piece. On 2026-09-27 the oracle's f64 values matched
+the goldens within 2.4e-14 relative (Q5's provider baskets, 80.44 − 80), 7.0e-15 (Q2's f above
+its enclosure point) and 5.1e-15 (K2's shadow rent), ψ, T_p and T_idle within 2.1e-15, and x*,
+v, P_s, Y and N_a within 1.0e-15.
 
 At the close (P1.7) all three `--check` passed, and the gate's golden comparisons were logged
 again on WSL: the largest errors are as above, 1.0e-15 on 1b's goldens away from an edge (the
@@ -494,6 +572,16 @@ tie share and 2.8e-14 on the switch points.
   the type's supply is vertical at its workers: the equilibrium is there, with the type's
   wage set by the pool's clearing (docs/unit-1d.md §12 item 16). `LaborShort` is an economy
   whose excess demand changes side nowhere on the path.
+- Unit 1e's nesting is bitwise through the same device as 1b-1d: with r = 1.0, the market's
+  land T and every exit value 0.0, each new operation is exact (v − 0.0 = v, ν·P_s + 0.0,
+  1.0·b = b, T − 0.0 = T). A crowded commons' shadow rent is the least double in [0, r] with
+  G(r_o) ≤ T_o, by bisection on bit patterns; the exit value on a plot is p_g·s₀ − r_o·h with a
+  fused multiply-add, so it keeps 2^-53·p_g·s₀ absolute as it nears the floor. At zero rent a
+  good made of land alone is free, and its real wage, wage floor and price shares are reported
+  absent; a machine type without labour is free too, and the pool's wage in machine-task units
+  with it. The count's scan finds two equilibria only when they are more than one cell apart
+  where the excess demand can rise; where §5.4's certification holds it cannot, and the count is
+  exact (docs/unit-1e.md §5.4-5.5).
 - The power x^k, ln(1 + z) and the fused multiply-add come from `core::num`, that is from
   the `libm` crate, so the outputs do not depend on the platform (docs/unit-1a.md §8).
   On 2026-09-26, 5000 random economies (every regime, J_b up to 12) gave byte-identical

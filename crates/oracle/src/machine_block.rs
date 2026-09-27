@@ -589,13 +589,26 @@ impl MachineBlock {
         v: f64,
         technique: usize,
     ) -> BlockPrices {
+        self.prices_at_wage_and_rent(factors, v, 1.0, technique)
+    }
+
+    /// [`prices_at_wage`](Self::prices_at_wage) at the land rent r (docs/unit-1e.md §5.1): every
+    /// land right-hand side multiplied by r, so that at r = 0 each price is its labour total,
+    /// p = v·λ̃, and at r = 1 the prices are `prices_at_wage`'s bit for bit.
+    pub(crate) fn prices_at_wage_and_rent(
+        &self,
+        factors: &Factors,
+        v: f64,
+        rent: f64,
+        technique: usize,
+    ) -> BlockPrices {
         let k = self.len();
         let u = &self.user_cost;
         let mut r = vec![0.0; 2 * k];
         for i in 0..k {
             let (op, build) = (&self.types[i].operating, &self.types[i].build);
-            r[i] = op.land + op.labor * v;
-            r[k + i] = build.land + build.labor * v;
+            r[i] = op.land * rent + op.labor * v;
+            r[k + i] = build.land * rent + build.labor * v;
         }
         factors.forward(&mut r);
         let (_, z) = factors.back(&r);

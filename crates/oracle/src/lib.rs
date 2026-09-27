@@ -31,7 +31,22 @@
 //! [`SolveError::LaborShort`]. One type with no human-required or reserved hours is unit 1c's
 //! equilibrium bit for bit ([`Eq1d`]).
 //!
-//! Every price is in units of the land rent r = 1, so v = w/r.
+//! Unit 1e (docs/unit-1e.md) cuts the land into parcels of an acreage, a quality and an access,
+//! enclosed or open (a commons), and prices exit: [`ParcelEconomy`]. Each worker type names its
+//! exit form, SSRN's dependence form or main.tex's s(q) = max(s₀ − q·h, s̲) in units of one exit
+//! good ([`PricedExit`]), both under SSRN eq 8 with the exit life's value. Exit plots take land:
+//! on the commons while it has room, at a shadow rent when it is full, and rented on enclosed
+//! land, which leaves production. Idle enclosed land earns zero rent, and the path continues past
+//! the wall's end onto an idle stretch with the pool's wage as numeraire, where 1d's
+//! `LaborShort` economies have their equilibria; no one working at any wage is
+//! [`SolveError::NoMarket`]. An equilibrium can sit where q crosses a type's q_enc, a share of its
+//! exiters renting ([`EnclosureTie`]), and coverage, q* and N_crit are reported ([`Eq1e`],
+//! [`coverage`]). Unit 1d's economies in parcel form, and priced forms with the exit option
+//! switched off, solve to 1d's equilibria bit for bit.
+//!
+//! Every price is in units of the land rent r = 1, so v = w/r, except at unit 1e's equilibria
+//! on idle land, where r = 0 and prices are in units of the pool's wage
+//! ([`Eq1e::land_market`]).
 //!
 //! The oracle shares types but not logic with the agents. No agent may read it
 //! (PLAN R13).
@@ -59,11 +74,13 @@
 mod categories;
 mod closure;
 pub mod dump;
+mod exit;
 mod fork;
 mod leontief;
 mod machine_block;
 mod machines;
 mod params;
+mod parcels;
 mod schedule;
 mod solve;
 mod workers;
@@ -73,6 +90,7 @@ pub use categories::{
     OutputKey, Residuals1b,
 };
 pub use closure::{closure, Closure, ClosureError};
+pub use exit::{coverage, coverage_threshold, crowding_limit, PricedExit};
 pub use fork::{cell_cost, ces_share, CategoryCost, Cell};
 pub use machine_block::{
     BlockPrices, BlockTotals, Envelope, MachineBlock, MachineType, Recipe, Switch,
@@ -83,6 +101,11 @@ pub use machines::{
 };
 pub use params::{
     user_cost, Economy, ParamError, Params, Requirement, UniformWorkCost, SCALE_CEIL, SCALE_FLOOR,
+};
+pub use parcels::{
+    Access, Branch, EnclosurePoint, EnclosureSide, EnclosureTie, Eq1e, ExitForm, ExitLand,
+    HomeAccount, LandEq, LandMarket, Parcel, ParcelEconomy, ParcelEq, ParcelParams, ParcelPoint,
+    Residuals1e, WorkerEq1e, EXIT_SCAN,
 };
 pub use schedule::{PowerSchedule, Schedule, CURVATURE_CEIL, VALIDATION_SAMPLES};
 pub use solve::{
