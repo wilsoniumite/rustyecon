@@ -166,8 +166,9 @@ A machine good is counted in units of stock (a head, an engine). **Decision (pro
 each machine names κ, its hours a period per unit of stock (250/52 horse-days a week for a head),
 and its hours type is built from 1/κ unit of its good per unit of capacity, so that 1c's unit of
 capacity is one hour a period (1c §2.1). The good's price is per unit of stock, and the hours
-type's V, per unit of capacity, is that price over κ; the stock installed is X/κ and the goods
-made a period are δX/κ. κ = 1 is the embedding of ORACLE-GOODS §2.1 as written.
+type's V, per unit of capacity, is that price over κ; the stock installed is X/κ, and the goods
+made a period are the good's gross output, δX/κ when nothing else uses it (an engine built into a
+mill adds the mills' use). κ = 1 is the embedding of ORACLE-GOODS §2.1 as written.
 
 ### 2.6 Plants as machine types
 
@@ -514,14 +515,20 @@ relative; "bitwise" means `to_bits`.
   where a clearing-side solve underflows, is accepted. [§2.1, §4.6]
 - `the_price_side_is_not_checked`: an A0 at a ρ/δ that makes u·a^I > 1 is valid and
   `NotViable`. [§2.1]
+- `both_factorisations_guard_productivity` (P1g.6): two blocks at the edge of productivity, one
+  whose row-order factorisation passes and whose transpose has a zero pivot, and one the reverse;
+  both are "not productive". [§5.1]
 
 **h2, the mapping (S1, S1Z).**
 - `s1_maps_to_its_embedding`: the types' order, θ, recipes, build 1/κ, δ, J, the categories'
   `intermediate`; `rows` and `row`. [§4.2]
 - `s1_is_m3`: S1's aggregates are 1c's M3 goldens, S1Z's M3z's; every good's readout is S1's
   golden. [§7]
-- `readouts`: the good's price κ·V, goods made δX/κ, the stock X/κ, p = O + uV, interest as
-  Σ(u − δ)VX; the fold's golden recipes give S1's aggregates (the five numbers). [§4.3-4.4]
+- `readouts`: the good's price κ·V, goods made δX/κ (nothing else uses the good), the stock X/κ,
+  p = O + uV, interest as Σ(u − δ)VX; the fold's golden recipes give S1's aggregates (the five
+  numbers). [§4.3-4.4]
+- `a_machine_good_used_by_another_recipe` (P1g.6): S1 with a mill built from two engines; the
+  engines made are the good's output, δX/κ plus the mills' use, and not δX/κ. [§4.4]
 - `e1_and_e2_are_enforced`: a category in a material's, a build or an operating recipe;
   a material or hours among a category's inputs. [§2.2]
 - `keys_and_errors`: a duplicate key, an unknown input, an input named twice, κ out of range, a
@@ -540,7 +547,10 @@ with its closure wage above v; at ρ 0 the horse on the whole line; only hours t
 
 **h6, plants.** `a_bundle_plant_at_s1_is_the_flow_economy` (P1 against L2 at 1e-12, the readouts,
 O = θp, uV = (1 − θ)p, ζ = θ, κ = θ^(−θ/(1−θ))); `a_bundle_plant_at_another_size` (P1S);
-`a_plant_with_interest` (P1R); `a_fixed_recipe_is_a_fixed_point` (P2's goldens, gap, steps);
+`a_plant_with_interest` (P1R); `a_plant_with_a_build_lag` (P1R's plants at J 2: the long run's J,
+u, ω, O = θp and uV = (1 − θ)p; P1g.6); `a_fixed_recipe_is_a_fixed_point` (P2's goldens, gap,
+its 42 steps); `the_fixed_point_starts_at_the_unplanted_prices` (step 1 replayed, its gap bit for
+bit; P1g.6);
 `no_plant_is_the_type_bit_for_bit` (θ 1); `plants_need_d_g10`; `every_step_must_be_interior`;
 `the_cap_refuses` (`solve_within(1)`); `validation`.
 
@@ -571,8 +581,9 @@ it to 20 digits.
   things; the plant keeps the type's task efficiency.
 - **κ.** A machine good's price is per unit of stock; the hours type's V is per unit of capacity,
   price/κ.
-- **The good's output is builds.** A machine good's flow-type output is the goods made a period
-  (δX/κ), not the stock (X/κ).
+- **The good's output is builds.** A machine good's flow-type output is the goods made a period,
+  its gross output (δX/κ when nothing else uses it; a mill built from engines adds its use), not
+  the stock (X/κ).
 - **A pattern is not a solve.** The chain to land is checked by reachability; b̃^q can still be
   tiny.
 - **Plants are rewrites.** A plant replaces its type's recipes, δ and J; the unplanted type's
@@ -603,7 +614,7 @@ numbered from 179 (track 1g's range, 179-199; G1's is 200-219).
     carried.
 12. **The test groups are h1-h9** (proposed 190), since "g" is 1a's.
 
-## 12. Changes during the build (P1g.2-P1g.4), 2026-09-27
+## 12. Changes during the build (P1g.2-P1g.4) and the verification's fix round (P1g.6), 2026-09-27
 
 1. **D-G10 as drafted.** `MachineBlock::new` factors I − A^q and its transpose where it factored
    I − (A^op + A^I), refuses a nonpositive pivot as "not productive" (the message now names the
@@ -672,3 +683,40 @@ numbered from 179 (track 1g's range, 179-199; G1's is 200-219).
 10. **The generators.** All seven pass `--check` under laborformal's venv on Windows:
    `generate.py` 1 s, `generate_1b.py` 2 s, `generate_1c.py` 12 s, `generate_1d.py` 14 s,
    `generate_1e.py` 41 s, `generate_1f.py` 23 s, `generate_1g.py` 24 s.
+11. **The verification's fix round** (P1g.6). The bounded verification (1g-r1: a derivation of
+   its own, which agreed with the oracle on 444 interior random chains within 1.1e-13 and on
+   1,258 boundary regimes, and 49 mutants by another hand, of which 44 were killed) found four
+   majors and two minors, and no wrong result. Each major is a mutant that survived, and each now
+   has a test; the five mutants, run again alone on this tree with the package's tests in
+   release, are killed, and so is a sixth, the fixed point started 1% off in ln r
+   (`D:/rustyecon-og/mut/mutate_fix.py`).
+   - **Both factorisations** (D1 and D10). §5.1 refuses a block when either I − A^q or its
+     transpose has a pivot that is not positive, and each half alone survived: at the edge of
+     productivity the two orders round differently. `h1::both_factorisations_guard_productivity`
+     takes the verification's two blocks (three flow types, δ 1), one whose row-order pivots are
+     positive (the last 1.1e-16) and whose transpose has a zero pivot, and one the reverse, checks
+     that with a test-local elimination, and asserts both refused as "not productive". Without
+     the transposed check the first solves `NotViable` with λ̃^q near 3e15; without the row-order
+     check the second has λ̃^q = b̃^q = ∞.
+   - **The goods made** (G15). `MachineEq::made` is the good's flow output, which is δX/κ only
+     when nothing but its own hours uses the good, and every instance was such a chain.
+     `h2::a_machine_good_used_by_another_recipe` builds ORACLE-GOODS §3.2(c)'s case, S1 with a
+     mill built from two engines and some iron (κ 0.5, δ 0.2, J 2, no tasks) on which iron is
+     rolled: the engines made are 1.14641 a period, the engines' own δX/κ 1.04672 and the mills'
+     use the rest, 8.7%, the identity within 1.9e-16. §2.5, §8 and §10, and the goldens' notes
+     (the generator now asserts δX/κ where it says so), say "the good's gross output, δX/κ when
+     nothing else uses it"; no value changed.
+   - **The plant's J** (P21). Every plant test had J 1, so the long run could drop the plant's J.
+     `h6::a_plant_with_a_build_lag` takes P1R's bundle plants at J 2 (CAPACITY registers M3's
+     timing): the long run's type has the plant's δ and J 2, u = (ρ + δ)(1 + ρ), the ratio from
+     that u, W = ω·V·X with ω = (1 + ρ) + δ, O = θp and u·V = (1 − θ)·p; with J 1 in the long run
+     the capital share is 0.19985 and x* moves by 3.3e-5.
+   - **The fixed point's start** (P15). Started from ratios of 1 rather than the unplanted
+     economy's, P2 took 47 steps and moved by less than the tolerance, so nothing failed.
+     `h6::the_fixed_point_starts_at_the_unplanted_prices` replays step 1 from the unplanted
+     equilibrium's ratios and asserts `solve_within(1)`'s gap bit for bit, and a start from 1
+     moves by another amount; `h6::a_fixed_recipe_is_a_fixed_point` asserts the 42 steps
+     recorded in item 5.
+   - **The minors**: the spec's wording on the goods made (above), and STATE.md's file map.
+   Tests: 50 in 1g (4 unit, 46 gate: h1 6, h2 7, h6 12); the package has 488 (88 unit, 399 gate,
+   1 doc) and the workspace 845.

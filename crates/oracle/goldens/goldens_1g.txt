@@ -3,11 +3,11 @@
 # Each line is KEY = value  # note. Values carry 30 significant digits.
 # Equations: docs/unit-1g.md section 4. laborformal references are at 31b3482.
 # The three forms, and the nesting with 1a, 1b and 1c, agree within 9.92e-71 (1e-65 asserted).
-# fnv1a64 generate_1g.py = f31d0ea07e1c3088
+# fnv1a64 generate_1g.py = f0d0494cd01c3b95
 # fnv1a64 generate_1c.py = c40f0a2b406dd67e
 # fnv1a64 generate_1b.py = 909520ffb1f41ee9
 # fnv1a64 generate.py = cf9d71a6ac25699d
-# fnv1a64 body = 39c401ec987563ea
+# fnv1a64 body = 9c10c5a9c7775674
 
 # D-G10: productivity and the chain to land on the per-period recipes A^op + Delta A^I (docs/unit-1g.md section 2.1); spectral radii by mp.eig
 A0_RADIUS_PHYSICAL = 148.213107318157087597773184301  # A0 as one type: spectral radius of A^op + A^I (1c's rule)
@@ -41,7 +41,7 @@ S1_COAL_OUTPUT = 4.27632803466547696310721986224  # S1: coal made a period
 S1_IRON_PRICE = 3.85892805506844813082010389049  # S1: iron's price
 S1_IRON_OUTPUT = 0.105588346534950048471783206475  # S1: iron made a period
 S1_ENGINE_PRICE = 2.48678319122092039283124728458  # S1: the engine good's price, per unit of stock
-S1_ENGINE_OUTPUT = 1.05588346534950048471783206475  # S1: units of the engine good made a period, delta X/kappa
+S1_ENGINE_OUTPUT = 1.05588346534950048471783206475  # S1: units of the engine good made a period, its gross output, delta X/kappa as nothing else uses it
 S1_ENGINE_STOCK = 10.5588346534950048471783206475  # S1: units of the engine good installed, X/kappa
 S1_ENGINE_HOURS_PRICE = 1.88181391685200389241791590197  # S1: an hour's price p = O + uV
 S1_ENGINE_HOURS_OPERATING = 1.47056214660384418245344838228  # S1: an hour's operating cost O
@@ -60,7 +60,7 @@ S1Z_COAL_OUTPUT = 4.39182987305983993730583131892  # S1Z: coal made a period
 S1Z_IRON_PRICE = 3.06352197823137602265777807225  # S1Z: iron's price
 S1Z_IRON_OUTPUT = 0.108440243779255307093971143677  # S1Z: iron made a period
 S1Z_ENGINE_PRICE = 1.91347737587810686112614643804  # S1Z: the engine good's price, per unit of stock
-S1Z_ENGINE_OUTPUT = 1.08440243779255307093971143677  # S1Z: units of the engine good made a period, delta X/kappa
+S1Z_ENGINE_OUTPUT = 1.08440243779255307093971143677  # S1Z: units of the engine good made a period, its gross output, delta X/kappa as nothing else uses it
 S1Z_ENGINE_STOCK = 10.8440243779255307093971143677  # S1Z: units of the engine good installed, X/kappa
 S1Z_ENGINE_HOURS_PRICE = 1.39760460534224402542425609536  # S1Z: an hour's price p = O + uV
 S1Z_ENGINE_HOURS_OPERATING = 1.20625686775443333931164145155  # S1Z: an hour's operating cost O
@@ -85,14 +85,14 @@ S2_IRON_OUTPUT = 0.0442590539122952752443741994335  # S2: iron made a period
 S2_FODDER_PRICE = 0.713847801184351306052549902053  # S2: fodder's price
 S2_FODDER_OUTPUT = 0.0  # S2: fodder made a period
 S2_HORSE_PRICE = 2.49693460829045914236784931437  # S2: the horse good's price, per unit of stock
-S2_HORSE_OUTPUT = 0.0  # S2: units of the horse good made a period, delta X/kappa
+S2_HORSE_OUTPUT = 0.0  # S2: units of the horse good made a period, its gross output, delta X/kappa as nothing else uses it
 S2_HORSE_STOCK = 0.0  # S2: units of the horse good installed, X/kappa
 S2_HORSE_HOURS_PRICE = 0.554075491080502343040395544364  # S2: an hour's price p = O + uV
 S2_HORSE_HOURS_OPERATING = 0.178308680710610783631529941232  # S2: an hour's operating cost O
 S2_HORSE_HOURS_BUILD = 2.49693460829045914236784931437  # S2: V per unit of capacity, the good's price/kappa
 S2_HORSE_HOURS_HOURS = 0.0  # S2: hours X a period
 S2_ENGINE_PRICE = 0.439095409597644241059665855127  # S2: the engine good's price, per unit of stock
-S2_ENGINE_OUTPUT = 0.442590539122952752443741994335  # S2: units of the engine good made a period, delta X/kappa
+S2_ENGINE_OUTPUT = 0.442590539122952752443741994335  # S2: units of the engine good made a period, its gross output, delta X/kappa as nothing else uses it
 S2_ENGINE_STOCK = 4.42590539122952752443741994335  # S2: units of the engine good installed, X/kappa
 S2_ENGINE_HOURS_PRICE = 0.616732053624342115834168994257  # S2: an hour's price p = O + uV
 S2_ENGINE_HOURS_OPERATING = 0.544116650262131699468926753465  # S2: an hour's operating cost O
@@ -117,14 +117,14 @@ S2H_IRON_OUTPUT = 0.0  # S2H: iron made a period
 S2H_FODDER_PRICE = 0.659582773260674931985844358813  # S2H: fodder's price
 S2H_FODDER_OUTPUT = 1.29180098088802910575098462093  # S2H: fodder made a period
 S2H_HORSE_PRICE = 2.11707941282472452390091051169  # S2H: the horse good's price, per unit of stock
-S2H_HORSE_OUTPUT = 0.397477224888624340231072191054  # S2H: units of the horse good made a period, delta X/kappa
+S2H_HORSE_OUTPUT = 0.397477224888624340231072191054  # S2H: units of the horse good made a period, its gross output, delta X/kappa as nothing else uses it
 S2H_HORSE_STOCK = 4.96846531110780425288840238817  # S2H: units of the horse good installed, X/kappa
 S2H_HORSE_HOURS_PRICE = 0.464351591141663783699009514331  # S2H: an hour's price p = O + uV
 S2H_HORSE_HOURS_OPERATING = 0.145749663956404959191506615288  # S2H: an hour's operating cost O
 S2H_HORSE_HOURS_BUILD = 2.11707941282472452390091051169  # S2H: V per unit of capacity, the good's price/kappa
 S2H_HORSE_HOURS_HOURS = 4.96846531110780425288840238817  # S2H: hours X a period
 S2H_ENGINE_PRICE = 0.358506075576184840067489956164  # S2H: the engine good's price, per unit of stock
-S2H_ENGINE_OUTPUT = 0.0  # S2H: units of the engine good made a period, delta X/kappa
+S2H_ENGINE_OUTPUT = 0.0  # S2H: units of the engine good made a period, its gross output, delta X/kappa as nothing else uses it
 S2H_ENGINE_STOCK = 0.0  # S2H: units of the engine good installed, X/kappa
 S2H_ENGINE_HOURS_PRICE = 0.566943162097469238903508462732  # S2H: an hour's price p = O + uV
 S2H_ENGINE_HOURS_OPERATING = 0.507655219849057670977347311232  # S2H: an hour's operating cost O
@@ -135,7 +135,7 @@ S2H_ENGINE_HOURS_HOURS = 0.0  # S2H: hours X a period
 A0_FODDER_PRICE = 0.2  # A0: fodder's price
 A0_FODDER_OUTPUT = 5.29848618756773080807246958242  # A0: fodder made a period
 A0_HORSE_PRICE = 202.679164385170061667873152893  # A0: the horse good's price, per unit of stock
-A0_HORSE_OUTPUT = 0.0107247320094178292952103793104  # A0: units of the horse good made a period, delta X/kappa
+A0_HORSE_OUTPUT = 0.0107247320094178292952103793104  # A0: units of the horse good made a period, its gross output, delta X/kappa as nothing else uses it
 A0_HORSE_STOCK = 5.29848618756773080807246958242  # A0: units of the horse good installed, X/kappa
 A0_HORSE_DAYS_PRICE = 0.610245425764055594887175221207  # A0: an hour's price p = O + uV
 A0_HORSE_DAYS_OPERATING = 0.2  # A0: an hour's operating cost O
@@ -156,7 +156,7 @@ A0R_INTEREST = 1.2339143960604518983259060784  # A0R: interest = sum (u - delta)
 A0R_FODDER_PRICE = 0.2  # A0R: fodder's price
 A0R_FODDER_OUTPUT = 4.93782308998380385097072626272  # A0R: fodder made a period
 A0R_HORSE_PRICE = 266.205368783866809047973403869  # A0R: the horse good's price, per unit of stock
-A0R_HORSE_OUTPUT = 0.00999470933306359701708042489067  # A0R: units of the horse good made a period, delta X/kappa
+A0R_HORSE_OUTPUT = 0.00999470933306359701708042489067  # A0R: units of the horse good made a period, its gross output, delta X/kappa as nothing else uses it
 A0R_HORSE_STOCK = 4.93782308998380385097072626272  # A0R: units of the horse good installed, X/kappa
 A0R_HORSE_DAYS_PRICE = 0.988719970113181282100242376109  # A0R: an hour's price p = O + uV
 A0R_HORSE_DAYS_OPERATING = 0.2  # A0R: an hour's operating cost O
@@ -177,7 +177,7 @@ HORSE_INCOME = 10.0870618473788729488045378811  # HORSE: I = Y P_s
 HORSE_FODDER_PRICE = 1.20936210321339592017283265109  # HORSE: fodder's price
 HORSE_FODDER_OUTPUT = 0.0589278215788625338184454014868  # HORSE: fodder made a period
 HORSE_HORSE_PRICE = 13.0604761188432127549285326128  # HORSE: the horse good's price, per unit of stock
-HORSE_HORSE_OUTPUT = 0.000969020333607161812665611387705  # HORSE: units of the horse good made a period, delta X/kappa
+HORSE_HORSE_OUTPUT = 0.000969020333607161812665611387705  # HORSE: units of the horse good made a period, its gross output, delta X/kappa as nothing else uses it
 HORSE_HORSE_STOCK = 0.604803241663698282838696940916  # HORSE: units of the horse good installed, X/kappa
 HORSE_HORSE_DAYS_PRICE = 0.0275651929794888813772420447185  # HORSE: an hour's price p = O + uV
 HORSE_HORSE_DAYS_OPERATING = 0.0232126694822359951627712116798  # HORSE: an hour's operating cost O

@@ -236,7 +236,9 @@ fn a_fixed_recipe_is_a_fixed_point() {
     .unwrap();
     let eq = long_run(&economy);
     check_plants(&economy, &eq);
-    assert!(eq.steps > 1 && eq.steps < MAX_PLANT_STEPS, "{}", eq.steps);
+    // The record (docs/unit-1g.md §12 item 5): 42 steps from the unplanted economy's ratios.
+    assert!(eq.steps < MAX_PLANT_STEPS);
+    assert_eq!(eq.steps, 42, "P2's steps");
     assert!(eq.gap <= PLANT_TOL);
     eprintln!("P2: {} steps, gap {:e}", eq.steps, eq.gap);
     aggregates(
@@ -474,4 +476,79 @@ fn validation() {
         other => panic!("{other:?}"),
     }
     assert_eq!(economy.base(), &l2(0.0));
+}
+
+#[test]
+fn the_fixed_point_starts_at_the_unplanted_prices() {
+    // docs/unit-1g.md §5.3: the unplanted economy's interior equilibrium gives the first ratios.
+    // Step 1 replayed here from them, as `solve_within` takes it (ln r, back by exp, the long
+    // run solved, the ratios its prices give): the gap `solve_within(1)` reports is this one,
+    // bit for bit.
+    let economy = PlantEconomy::new(
+        l2(0.0),
+        vec![(0, labour_land_plant()), (1, labour_land_plant())],
+    )
+    .unwrap();
+    let step_one_gap = |logs: &[f64]| {
+        let ratios: Vec<f64> = logs.iter().map(|&s| num::exp(s)).collect();
+        let eq = interior_1c(economy.long_run(&ratios));
+        economy
+            .ratios_at(&eq)
+            .iter()
+            .zip(logs)
+            .fold(0.0_f64, |g, (r, s)| g.max((num::ln(*r) - s).abs()))
+    };
+    let base = interior_1c(l2(0.0));
+    let logs: Vec<f64> = economy.ratios_at(&base).into_iter().map(num::ln).collect();
+    let gap = step_one_gap(&logs);
+    match economy.solve_within(1) {
+        Err(PlantError::NoFixedPoint { steps: 1, gap: g }) => {
+            assert_eq!(g.to_bits(), gap.to_bits(), "{g:e} against {gap:e}")
+        }
+        other => panic!("{other:?}"),
+    }
+    // Started from ratios of 1 instead, step 1 would move by another amount.
+    let from_one = step_one_gap(&[0.0, 0.0]);
+    assert!((from_one - gap).abs() > 1e-3 * gap, "{from_one:e} {gap:e}");
+}
+
+#[test]
+fn a_plant_with_a_build_lag() {
+    // P1R's plants with J 2 (CAPACITY registers M3's timing, J 2): ρ 5% a year a week, so
+    // u = (ρ + δ)(1 + ρ) and the plant's wealth factor ω = (1 + ρ) + δ. The long run takes the
+    // plant's J, and at it O = θp and uV = (1 − θ)p (§4.5); with J 1 in the long run and J 2 in
+    // the ratio, uV would be 0.19985 of p.
+    let rho = rho_per_week(0.05);
+    let d = per_week(0.1);
+    let lagged = || Plant {
+        build_lag: 2,
+        ..bundle_plant(None)
+    };
+    let economy = PlantEconomy::new(l2(rho), vec![(0, lagged()), (1, lagged())]).unwrap();
+    let eq = long_run(&economy);
+    check_plants(&economy, &eq);
+    let p = economy.long_run(&eq.ratios);
+    let u = (rho + d) * (1.0 + rho);
+    let omega = (1.0 + rho) + d;
+    for k in 0..2 {
+        let (planted, t) = (&p.machine_types[k], &eq.eq.types[k]);
+        assert_eq!((planted.delta, planted.build_lag), (d, 2));
+        close_to("u at J 2", t.user_cost, u, 1e-15);
+        close_to(
+            "the ratio at J 2",
+            eq.ratios[k],
+            (1.0 - PLANT_THETA) / ((PLANT_THETA * u) * P1_S1),
+            1e-14,
+        );
+        close_to(
+            "W = omega V X",
+            t.wealth,
+            omega * t.build_cost * t.services,
+            1e-14,
+        );
+        close_to("the capital share", eq.plants[k].capital_share, 0.2, 1e-13);
+    }
+    // The lag moves the long run off P1R's.
+    assert!((eq.eq.x_star - P1R_X_STAR).abs() > 1e-6);
+    assert!((eq.eq.v - P1R_V).abs() > 1e-4);
 }

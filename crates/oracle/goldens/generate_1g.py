@@ -917,7 +917,16 @@ def put_goods(prefix, chain, r, what):
         k, h = m["key"], m["hours"]
         t = tb[h]
         put(f"{prefix}_{k}_PRICE", goods["price"][k], f"{what}: the {k.lower()} good's price, per unit of stock")
-        put(f"{prefix}_{k}_OUTPUT", goods["output"][k], f"{what}: units of the {k.lower()} good made a period, delta X/kappa")
+        used = ([f["recipe"] for f in chain.materials] + [mm["build"] for mm in chain.machines]
+                + [mm["op"] for mm in chain.machines])
+        if any(k in rec["inputs"] for rec in used):
+            note = "its gross output, delta X/kappa and its other uses"
+        else:
+            # nothing but its own hours uses the good: its output is its builds
+            own = m["delta"] * t["X"] / m["kappa"]
+            assert abs(goods["output"][k] - own) <= mp.mpf("1e-65") * max(own, 1), (k, own)
+            note = "its gross output, delta X/kappa as nothing else uses it"
+        put(f"{prefix}_{k}_OUTPUT", goods["output"][k], f"{what}: units of the {k.lower()} good made a period, {note}")
         put(f"{prefix}_{k}_STOCK", t["X"] / m["kappa"], f"{what}: units of the {k.lower()} good installed, X/kappa")
         put(f"{prefix}_{h}_PRICE", t["p"], f"{what}: an hour's price p = O + uV")
         put(f"{prefix}_{h}_OPERATING", t["O"], f"{what}: an hour's operating cost O")

@@ -268,3 +268,70 @@ fn the_price_side_is_not_checked() {
     close("u a^I", u * (0.3 / d), 0.3 * (1.0 + rho_per_week(0.05) / d));
     assert!(matches!(e.solve(), Ok(Regime::Interior(_))));
 }
+
+/// The pivots of elimination without pivoting in index order, as `Factors` computes them
+/// (crates/oracle/src/leontief.rs): for k, for i > k, m = G_ik/G_kk and G_ij −= m·G_kj.
+fn pivots(n: usize, mut g: Vec<f64>) -> Vec<f64> {
+    for k in 0..n {
+        let pivot = g[k * n + k];
+        for i in k + 1..n {
+            let m = g[i * n + k] / pivot;
+            for j in k + 1..n {
+                g[i * n + j] -= m * g[k * n + j];
+            }
+        }
+    }
+    (0..n).map(|k| g[k * n + k]).collect()
+}
+
+#[test]
+fn both_factorisations_guard_productivity() {
+    // docs/unit-1g.md §5.1: I − A^q and its transpose are both factored, and a pivot of either
+    // that is not positive refuses the block. At the edge of productivity (a radius of 1 in
+    // exact arithmetic) the two orders round differently, and each block here passes one and
+    // fails the other: (a) passes in row order (its last pivot 1.1e-16) and fails transposed
+    // (a pivot of 0), and (b) the reverse. Three flow types, δ 1, labour 0.1 and land 0.5 each,
+    // found by the verification's float search (2026-09-27). Either half alone accepts one of
+    // them: (a) then solves NotViable with λ̃^q near 3e15, and (b) has λ̃^q = b̃^q = ∞.
+    let a = [
+        [0.1542239057447691, 0.679389260993892, 0.0],
+        [0.49274926300648525, 0.06397540801751217, 0.6865345916966983],
+        [0.5660698131970792, 0.134715778127488, 0.2509236060333522],
+    ];
+    let b = [
+        [0.01680285940596346, 0.7401007997313545, 0.3604751840908061],
+        [0.8690454143380153, 0.1444432462434587, 0.08348115660519802],
+        [0.336484785423343, 0.11991058425740891, 0.1314626873600697],
+    ];
+    for (what, block, row_order_passes) in [("(a)", a, true), ("(b)", b, false)] {
+        let types: Vec<MachineType> = (0..3)
+            .map(|k| {
+                let theta = if k == 0 { 1.0 } else { 0.0 };
+                machine_type(theta, recipe(&block[k], 0.1, 0.5), Recipe::zero(3), 1.0, 1)
+            })
+            .collect();
+        // I − A^q in row order and transposed; with no build recipe its diagonal is 1 − a_kk.
+        let (_, per_period) = physical_and_per_period(&types);
+        let clearing: Vec<f64> = (0..9)
+            .map(|i| {
+                if i / 3 == i % 3 {
+                    1.0 - per_period[i]
+                } else {
+                    -per_period[i]
+                }
+            })
+            .collect();
+        let transposed: Vec<f64> = (0..9).map(|i| clearing[(i % 3) * 3 + i / 3]).collect();
+        let passes = |g: Vec<f64>| pivots(3, g).iter().all(|&p| p > 0.0);
+        assert_eq!(passes(clearing), row_order_passes, "{what}: row order");
+        assert_eq!(passes(transposed), !row_order_passes, "{what}: transposed");
+        let p = appendix_b_household(linear(1.0, 0.2, 0.8), 0.0, 1.0, types);
+        match MachineEconomy::new(p) {
+            Err(ParamError::Invalid {
+                name: "machine types",
+                reason,
+            }) => assert!(reason.contains("not productive"), "{what}: {reason}"),
+            other => panic!("{what}: {other:?}"),
+        }
+    }
+}

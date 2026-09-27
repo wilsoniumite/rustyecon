@@ -7,8 +7,9 @@ P1.9, unit 1e at P1.10, verified at P1.11, and unit 1f at P1.12, verified at P1.
 day. Unit 1f completes Phase 1's oracle. Phase 1 was closed at P1.14, also on 2026-09-27: its
 gate is met item by item ("Phase 1's gate" below) and green on WSL and on Windows. Unit 1g,
 machines as goods, was added on branch `oracle-goods` at P1g.1-P1g.4, the same day: its spec
-first, then its build, with its own mutation check and not yet the adversarial pass (STATE.md
-O35).
+first, then its build, with its own mutation check. Its bounded verification found no wrong
+result and five surviving mutants, each given a test at P1g.6; the re-check of the fixed items
+is still to come (STATE.md O35).
 
 The oracle is a static equilibrium solver for the pinning paper's economy (PLAN §3.4).
 It shares types but not logic with the agents, and no agent may read it (PLAN R13).
@@ -358,19 +359,21 @@ Unit 1g's tests, per docs/unit-1g.md §8:
   refused by 1c's rule (reimplemented in the test) and accepted, their radii by power iteration
   against the goldens; 3000 random blocks, every one 1c accepts accepted; the chain to land
   through a build input, in a second pass, through a product that underflows, and a landless
-  loop named by its lowest type; an A0 at ρ/δ = 3 valid and `NotViable`;
+  loop named by its lowest type; an A0 at ρ/δ = 3 valid and `NotViable`; two blocks at the edge
+  of productivity, each passing one of I − A^q's two factorisations, both refused;
 - **h2**, the mapping on S1: the types, recipes, 1/κ, rows; S1 = 1c's M3 and S1Z = M3z on every
   aggregate; every good's price and output; the readouts' identities and S1's fold from the
   goldens; E1, E2, every key error and 1c's errors named by good; a machine good per head and
-  per unit of capacity;
+  per unit of capacity; an engine built into a mill, its goods made δX/κ and the mills' use;
 - **h3**, S2 and S2H: the switch in 1c's closed form, the unused machine priced, the horse
   everywhere at ρ 0;
 - **h4**, A0: Appendix B's equilibrium (1a's goldens) from the chain and from one type, A0R with
   interest, A0 in the fork economy = 1b's C3, and the ticks from core's `Clock`;
 - **h5**, CHAIN's horse at weekly periods: goldens, λ̃, b̃, ω, J 156;
-- **h6**, plants: P1 = L2's flow economy, P1S = the scaled flow economy, P1R with interest, P2's
-  fixed point, a bundle beside a fixed plant, θ 1 bit for bit, D-G10 needed, every step
-  interior, the cap and the half steps, validation;
+- **h6**, plants: P1 = L2's flow economy, P1S = the scaled flow economy, P1R with interest and
+  at J 2, P2's fixed point in its 42 steps and its first step replayed, a bundle beside a fixed
+  plant, θ 1 bit for bit, D-G10 needed, every step interior, the cap and the half steps,
+  validation;
 - **h7**, every 1g economy through 1d's, 1e's and 1f's forms bit for bit;
 - **h8**, eight tests for mutants the re-checks of 1d-1f left (STATE.md O28);
 - **h9**, `goldens_1g.txt`'s five digests and the Rust constants.
@@ -473,6 +476,14 @@ still survives is recorded in STATE.md (O19 for 1b and 1c, O28 for 1d-1f), not f
   is refused before. Of ten O28 mutants run on the tree, nine are killed by h8 (one after P1g.4
   made the worker-type test assert its reason), and Lemma B.1's flag without its shortage check
   survives, equivalent: a short point's P_s is NaN (docs/unit-1g.md §12 items 7-8).
+- **1g** (P1g.6): the derivation agreed with the oracle on 444 interior random chains within
+  1.1e-13 and on 1,258 boundary regimes, and found no wrong result. Five of its 49 mutants
+  survived: either half of D-G10's productivity check dropped (the row-order factorisation of
+  I − A^q or its transpose; at the edge of productivity the two round differently), the goods
+  made read as δX/κ (the same unless another recipe uses the good), a plant's J dropped in the
+  long run (every plant test had J 1), and the fixed point started from ratios of 1 (P2 in 47
+  steps rather than 42). Each now has a test, and each, run again, is killed, as is the fixed
+  point started 1% off (docs/unit-1g.md §12 item 11).
 
 Each spec's §12 (1f's §14) has the details.
 
@@ -553,8 +564,9 @@ The counts, the same on WSL and on Windows at each step:
 | P1g.2, unit 1g | 2026-09-27 | 88 | 387 | 1 | 476 |
 | P1g.3, O28's tests | 2026-09-27 | 88 | 395 | 1 | 484 |
 | P1g.4, h8's worker-type test | 2026-09-27 | 88 | 395 | 1 | 484 |
+| P1g.6, 1g's verification | 2026-09-27 | 88 | 399 | 1 | 488 |
 
-Of the 484, 1g has 46 (4 unit, 42 gate, 8 of them O28's); of the 438 before it, 1a has 114, 1b 59 (5 unit, 54 gate), 1c 69 (10 unit, 59 gate), 1d 56 (10 unit,
+Of the 488, 1g has 50 (4 unit, 46 gate, 8 of them O28's); of the 438 before it, 1a has 114, 1b 59 (5 unit, 54 gate), 1c 69 (10 unit, 59 gate), 1d 56 (10 unit,
 46 gate), 1e 63 (10 unit, 53 gate) and 1f 77 (7 unit, 62 gate, and `p1_gate`'s 8).
 
 ## The dump example

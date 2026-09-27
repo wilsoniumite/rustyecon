@@ -82,7 +82,7 @@ goldens! {
     S1_IRON_OUTPUT: f64 = 0.10558834653495004847;
     /// goldens/generate_1g.py: S1: the engine good's price, per unit of stock.
     S1_ENGINE_PRICE: f64 = 2.4867831912209203928;
-    /// goldens/generate_1g.py: S1: units of the engine good made a period, delta X/kappa.
+    /// goldens/generate_1g.py: S1: units of the engine good made a period, its gross output, delta X/kappa as nothing else uses it.
     S1_ENGINE_OUTPUT: f64 = 1.0558834653495004847;
     /// goldens/generate_1g.py: S1: units of the engine good installed, X/kappa.
     S1_ENGINE_STOCK: f64 = 10.558834653495004847;
@@ -117,7 +117,7 @@ goldens! {
     S1Z_IRON_OUTPUT: f64 = 0.10844024377925530709;
     /// goldens/generate_1g.py: S1Z: the engine good's price, per unit of stock.
     S1Z_ENGINE_PRICE: f64 = 1.9134773758781068611;
-    /// goldens/generate_1g.py: S1Z: units of the engine good made a period, delta X/kappa.
+    /// goldens/generate_1g.py: S1Z: units of the engine good made a period, its gross output, delta X/kappa as nothing else uses it.
     S1Z_ENGINE_OUTPUT: f64 = 1.0844024377925530709;
     /// goldens/generate_1g.py: S1Z: units of the engine good installed, X/kappa.
     S1Z_ENGINE_STOCK: f64 = 10.844024377925530709;
@@ -164,7 +164,7 @@ goldens! {
     S2_FODDER_OUTPUT: f64 = 0.0;
     /// goldens/generate_1g.py: S2: the horse good's price, per unit of stock.
     S2_HORSE_PRICE: f64 = 2.4969346082904591424;
-    /// goldens/generate_1g.py: S2: units of the horse good made a period, delta X/kappa.
+    /// goldens/generate_1g.py: S2: units of the horse good made a period, its gross output, delta X/kappa as nothing else uses it.
     S2_HORSE_OUTPUT: f64 = 0.0;
     /// goldens/generate_1g.py: S2: units of the horse good installed, X/kappa.
     S2_HORSE_STOCK: f64 = 0.0;
@@ -178,7 +178,7 @@ goldens! {
     S2_HORSE_HOURS_HOURS: f64 = 0.0;
     /// goldens/generate_1g.py: S2: the engine good's price, per unit of stock.
     S2_ENGINE_PRICE: f64 = 0.43909540959764424106;
-    /// goldens/generate_1g.py: S2: units of the engine good made a period, delta X/kappa.
+    /// goldens/generate_1g.py: S2: units of the engine good made a period, its gross output, delta X/kappa as nothing else uses it.
     S2_ENGINE_OUTPUT: f64 = 0.44259053912295275244;
     /// goldens/generate_1g.py: S2: units of the engine good installed, X/kappa.
     S2_ENGINE_STOCK: f64 = 4.4259053912295275244;
@@ -225,7 +225,7 @@ goldens! {
     S2H_FODDER_OUTPUT: f64 = 1.2918009808880291058;
     /// goldens/generate_1g.py: S2H: the horse good's price, per unit of stock.
     S2H_HORSE_PRICE: f64 = 2.1170794128247245239;
-    /// goldens/generate_1g.py: S2H: units of the horse good made a period, delta X/kappa.
+    /// goldens/generate_1g.py: S2H: units of the horse good made a period, its gross output, delta X/kappa as nothing else uses it.
     S2H_HORSE_OUTPUT: f64 = 0.39747722488862434023;
     /// goldens/generate_1g.py: S2H: units of the horse good installed, X/kappa.
     S2H_HORSE_STOCK: f64 = 4.9684653111078042529;
@@ -239,7 +239,7 @@ goldens! {
     S2H_HORSE_HOURS_HOURS: f64 = 4.9684653111078042529;
     /// goldens/generate_1g.py: S2H: the engine good's price, per unit of stock.
     S2H_ENGINE_PRICE: f64 = 0.35850607557618484007;
-    /// goldens/generate_1g.py: S2H: units of the engine good made a period, delta X/kappa.
+    /// goldens/generate_1g.py: S2H: units of the engine good made a period, its gross output, delta X/kappa as nothing else uses it.
     S2H_ENGINE_OUTPUT: f64 = 0.0;
     /// goldens/generate_1g.py: S2H: units of the engine good installed, X/kappa.
     S2H_ENGINE_STOCK: f64 = 0.0;
@@ -258,7 +258,7 @@ goldens! {
     A0_FODDER_OUTPUT: f64 = 5.2984861875677308081;
     /// goldens/generate_1g.py: A0: the horse good's price, per unit of stock.
     A0_HORSE_PRICE: f64 = 202.67916438517006167;
-    /// goldens/generate_1g.py: A0: units of the horse good made a period, delta X/kappa.
+    /// goldens/generate_1g.py: A0: units of the horse good made a period, its gross output, delta X/kappa as nothing else uses it.
     A0_HORSE_OUTPUT: f64 = 0.010724732009417829295;
     /// goldens/generate_1g.py: A0: units of the horse good installed, X/kappa.
     A0_HORSE_STOCK: f64 = 5.2984861875677308081;
@@ -297,7 +297,7 @@ goldens! {
     A0R_FODDER_OUTPUT: f64 = 4.937823089983803851;
     /// goldens/generate_1g.py: A0R: the horse good's price, per unit of stock.
     A0R_HORSE_PRICE: f64 = 266.20536878386680905;
-    /// goldens/generate_1g.py: A0R: units of the horse good made a period, delta X/kappa.
+    /// goldens/generate_1g.py: A0R: units of the horse good made a period, its gross output, delta X/kappa as nothing else uses it.
     A0R_HORSE_OUTPUT: f64 = 0.0099947093330635970171;
     /// goldens/generate_1g.py: A0R: units of the horse good installed, X/kappa.
     A0R_HORSE_STOCK: f64 = 4.937823089983803851;
@@ -333,7 +333,7 @@ goldens! {
     HORSE_FODDER_OUTPUT: f64 = 0.058927821578862533818;
     /// goldens/generate_1g.py: HORSE: the horse good's price, per unit of stock.
     HORSE_HORSE_PRICE: f64 = 13.060476118843212755;
-    /// goldens/generate_1g.py: HORSE: units of the horse good made a period, delta X/kappa.
+    /// goldens/generate_1g.py: HORSE: units of the horse good made a period, its gross output, delta X/kappa as nothing else uses it.
     HORSE_HORSE_OUTPUT: f64 = 0.00096902033360716181267;
     /// goldens/generate_1g.py: HORSE: units of the horse good installed, X/kappa.
     HORSE_HORSE_STOCK: f64 = 0.60480324166369828284;

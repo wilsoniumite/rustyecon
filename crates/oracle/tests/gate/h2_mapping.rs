@@ -459,3 +459,66 @@ fn units_of_stock() {
     );
     assert!(!matches!(e.solve(), Ok(Regime::Interior(_))));
 }
+
+#[test]
+fn a_machine_good_used_by_another_recipe() {
+    // ORACLE-GOODS §3.2(c), an engine as a component of a mill: S1 with a mill, built from two
+    // engines and some iron, half a mill-hour a period per mill (κ 0.5), worn at 0.2, doing no
+    // tasks, and iron rolled on a mill-hour a ton. The engine good's gross output is then its
+    // own builds, δX/κ, and the mills' two engines each; `made` is that gross output, not δX/κ.
+    let mut chain = s1(0.05);
+    chain.materials[1]
+        .recipe
+        .inputs
+        .push(("MILL_HOURS".into(), 1.0));
+    chain.machines.push(machine(
+        "MILL",
+        goods(&[("ENGINE", 2.0), ("IRON", 0.2)], 0.3, 0.05),
+        "MILL_HOURS",
+        0.5,
+        0.0,
+        goods(&[("COAL", 0.1)], 0.05, 0.0),
+        0.2,
+        2,
+    ));
+    let (e, eq) = solved_chain(chain);
+    assert_eq!(e.row("MILL"), Some(Row::MachineGood(3)));
+    assert_eq!(e.row("MILL_HOURS"), Some(Row::Hours(5)));
+    let (engine, mill) = (eq.machine("ENGINE").unwrap(), eq.machine("MILL").unwrap());
+    let (em, mm) = (&e.chain().machines[0], &e.chain().machines[1]);
+    assert!(mill.hours > 0.0 && engine.hours > 0.0);
+    // `made` is the good's output, the flow type's.
+    assert_eq!(engine.made, eq.good("ENGINE").unwrap().output);
+    assert_eq!(mill.made, eq.good("MILL").unwrap().output);
+    // Nothing else uses the mill good: its output is its builds.
+    close_to(
+        "the mills made are delta X/kappa",
+        mill.made,
+        mm.delta * mill.hours / mm.hours_per_period,
+        1e-13,
+    );
+    // The engines made are the engines' own builds and the mills' two engines each.
+    let own = em.delta * engine.hours / em.hours_per_period;
+    close_to(
+        "the engines made are delta X/kappa and the mills' use",
+        engine.made,
+        own + 2.0 * mill.made,
+        1e-13,
+    );
+    assert!(
+        engine.made - own > 0.05 * engine.made,
+        "{} {own}",
+        engine.made
+    );
+    // The stock is still X/κ, and the good's price κ·V.
+    close(
+        "the engine stock is X/kappa",
+        engine.stock,
+        engine.hours / em.hours_per_period,
+    );
+    close(
+        "the mill's price is kappa V",
+        mill.price,
+        mm.hours_per_period * mill.build_cost,
+    );
+}
