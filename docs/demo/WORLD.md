@@ -698,3 +698,16 @@ says how it is built; this section says what it shows of this world.
   county at report ticks 0, 51 and 259 against the engine's own numbers, and
   `rebuilt_mesh_colours_are_the_lens_colours` the colours of a mesh built afresh against the
   scale and the legend (docs/GUI.md, amended at D.4).
+- **Two pictures** (D.5, 2026-09-27). Beside this file are two frames from egui_kittest's
+  renderer, drawn headlessly on Windows' software adapter (docs/GUI.md, "The map and lenses,
+  brought forward", item 3):
+  - `map-1801-wage-in-land.png`, "Wage in land" at 1801-01-01's tick, with Inverness-shire
+    hovered. Inverness-shire is first of 93 at 2.04 land-service units per hour, and the
+    Highlands, the Borders and the East Riding are near it. The coal and textile counties are
+    lowest: Lancashire at 1.02, then the West Riding, Lanarkshire, Staffordshire, Glamorgan and
+    Durham.
+  - `map-1901-output-since-1750.png`, "Output per head since 1750" on its diverging scale at
+    the first tick of 1901, with the West Riding selected. The coal and textile counties are
+    orange: Lancashire leads at 0.85 in log, then Northumberland, Lanarkshire, Durham, Fife and
+    the West Riding. Ten counties end below their 1750 level. The lowest, in purple, are
+    Dunbartonshire at −0.28, Selkirkshire, Essex, Kent, Sussex and Hampshire.

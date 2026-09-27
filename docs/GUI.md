@@ -535,6 +535,132 @@ fails without it; the verifier's mutants were rerun against the new tests
 9. **Tests.** `scripts/gui.sh` names 55 tests, and diffs the demo tape's hashes as it does the
    gate's and appb's.
 
+**The map and lenses, brought forward (2026-09-27).** Closed at D.5 on branch `demo-world`, from
+`708167f`. On 2026-09-27 the user asked for "a nice looking map of the UK, and a fairly complex
+setup of regions, goods, and history", with lenses "like in victoria" that change colour as a
+run goes. So the map (§6, G4) and the lenses (§4, G2) came forward over an illustrative world,
+ahead of D8's trigger. The two blocks above say how the map and lenses were built and fixed, and
+[docs/demo/WORLD.md](demo/WORLD.md) says what the world is. This block says what landed, what
+the close did, and what G4 proper keeps (STATE.md decisions 118–128, O22 and O23):
+1. **What landed.**
+
+   | Commit | What landed |
+   |---|---|
+   | `a8d3f51` D.1 | The atlas, `data/atlas/`: 93 historic counties of the United Kingdom (England 41 with Yorkshire's three ridings, Wales 13, Scotland 33, Northern Ireland 6), from HCBP Definition B's UK file and OpenStreetMap's riding lines, under the ODbL with its own LICENSE, ATTRIBUTION and build script; its loader, `rustyecon_worldgen::atlas` |
+   | `f17b447` D.2 | The demo world's tables, `worlds/demo-gb/`; the compiler, `rustyecon_worldgen::compile` and `rustyecon worldgen`; and `tapes/demo-gb.ron`. Each county runs the probe's four roles at C2 from its own oracle point, and 605 ramp rows become 30,078 dated steps, 1750–1901 |
+   | `8327c1a` D.3 | The map pane and 25 lenses, the lean catalogue, series kept in stretches, and panels that take 30,000 events |
+   | `018cf0b` D.4 | The verification's fixes, each with a test (the block above) |
+   | D.5 | This block, STATE.md, the README and two screenshots |
+
+   Northern Ireland is in because a permissive source exists. HCBP Definition B's UK file
+   covers its six counties on the same terms as Great Britain (WORLD.md §1;
+   data/atlas/README.md).
+2. **How to open it.** `cargo run --release -p rustyecon-gui -- tapes/demo-gb.ron` opens paused at
+   1750 on "Wage in land". Space runs, and `[`, `]` and the digits pick lenses. The README's
+   "Running the GUI" has the commands for PowerShell and WSL.
+3. **Two screenshots**, in `docs/demo/`, each 2,000 × 1,250 at one pixel a point:
+   - `map-1801-wage-in-land.png`: 1801-01-01's tick, with Inverness-shire hovered;
+   - `map-1901-output-since-1750.png`: the first tick of 1901, on a diverging change lens, with
+     the West Riding selected.
+
+   egui_kittest rendered them headlessly through its wgpu renderer, which prefers a software
+   adapter. On Windows it took DX12's WARP, "Microsoft Basic Render Driver". WSL still has only
+   NVIDIA's ICD and no lavapipe, so no image is taken there, and none is gated (§8.1; G0.1's
+   second part, item 14). The renderer ran from a scratch crate, `D:/rustyecon-demo/close/shot/`.
+   It depends on the worktree by path and turns on egui_kittest's `wgpu` feature for itself, so
+   the workspace's dependencies and lockfile are unchanged. The chip names build `018cf0b`,
+   clean. D.3's images were rasterised from the shapes a frame paints, so these are the first
+   from the real renderer.
+4. **The gates at the close**, on `018cf0b`'s code (this commit changes only docs), with logs in
+   `D:/rustyecon-demo/close/`:
+   - `scripts/gate.sh` is green in WSL (183 s, fresh target) and on Windows under Git Bash (200
+     s, fresh target). 579 tests pass in the workspace with 3 ignored and run by name, and
+     certify alone passes 67 with 1 ignored. There are zero warnings, and the gate hash is
+     `0x61f9c8529131ff17`. Both certificates PASS and are byte-equal, the probe's pins hold, and
+     `derive.py --check` passes. `demo_runs_to_1901` ends at `0xfad880fe08d06645`, hash stream
+     `0xdb63cc96f769fb3e`. Telemetry is identical from two processes.
+   - `scripts/gui.sh` is green in WSL (123 s) and on Windows (162 s). 84 tests pass with 2
+     ignored measurements, the 55 named ones by name, and fmt and clippy are clean. Five hash
+     diffs are equal: gate at 2,080 ticks (`0x61f9c8529131ff17`), appb at 20,000
+     (`0xe1fa082b26995867`), demo-gb at 7,852 (`0xfad880fe08d06645`), and the two branch tapes.
+   - Recorded, not gated: the cli's per-tick hashes of all three tapes are byte-identical on WSL
+     and Windows.
+5. **The smoke mode on Windows** at the close. `rustyecon-gui --smoke 7852 tapes/demo-gb.ron`
+   drew the outliner, map, inspector and timeline, and ran to 1901 in 16.1 to 16.7 s. Over
+   three runs, CPU per frame while running was p50 5.0 to 5.9 ms and p90 6.1 to 8.3 ms, and
+   paused it was p90 4.8 to 6.6 ms. G4's bar is a p90 under 8 ms while a run streams. It held in
+   two runs of three; D.3's loaded runs gave 10.6 ms. So the bar is not yet held, and the
+   coarser mesh stays the lever. The window opened and closed by itself; nobody looked at it.
+6. **G4's gate, on the demo tape** (§9).
+   - §8.1's map tests pass: twelve in `tests/map.rs`, all named by `scripts/gui.sh`.
+   - The map's values equal the table's, because one `LensVm` makes both. Both equal the
+     engine's own numbers (`lens_values_equal_the_engine`).
+   - The ODbL licence and attribution are in `data/atlas/`. The map paints the credit, and both
+     binaries print the two files.
+   - Not met: the frame's p90 (item 5), and an E42 run's spill, which needs E42.
+
+   G4 is not closed. It opens on D8's trigger, with the research world.
+7. **What G4 proper keeps, and the stages after it:**
+   - **The research world from Phase 4.** `worldgen::compile` over the research tables, with
+     `Measured` bases from the atlas and the spine, per-line bases (§7.3's Phase 4 row) and
+     D8's trigger. The demo compiler writes illustrative worlds only. The atlas, the map and
+     the lens machinery carry over; the demo's tables do not.
+   - **Record overlays** (G5). County series on the map and in the card, with source, vintage
+     and bands, the origin "record" (§6), and provenance chips.
+   - **Flows on channels** (G4, G9). Channels on hover and trade flows need carriers (WORLD.md
+     §7), which need transport desks, home-node trading (Phases 4 and 9) and an oracle with
+     trade. Ports and coalfields are drawn with them.
+   - **From D.3's item 12:** a difference lens against a parent run, the world editor, a
+     coarser mesh for the country-wide view, the p90 bar, and an E42 run's spill.
+   - **The oracle lenses and the measures.** `gap.oracle` and `gap.wage`, and the lens measures
+     themselves, move to `crates/observe` (G2, O17). The cli calls them there.
+   - **Scoring.** The scorecard refuses the illustrative marker, and the identity chip shows it
+     (Phases 6–7; O21).
+8. **What the re-check left** (decision 128; O22). D.4's fixes had one bounded re-check, in
+   `D:/rustyecon-demo/verify-map-r2/` and `verify-world-r2/`. It found the fixes in place, and
+   17 of its 25 mutants of the map were killed. It left these, which the close carries and does
+   not fix:
+   - **Eight mutants of the map pass the whole suite:**
+     - the county card's value read a tick early, and its change lens read against the cursor
+       instead of genesis;
+     - the app handing the map no cursor;
+     - the legend painted in a reversed scale while `MapFrame::legend` records the right one;
+     - a fresh mesh whose vertices after each region's first take a neighbour's colour;
+     - the in-place recolouring skipping each region's last vertex;
+     - the credit painted transparent, or placed off the canvas.
+
+     So the card is not held to the engine, and `MapFrame` records what the painter should paint
+     rather than what it painted.
+   - **The credit clips on a narrow canvas.** A canvas narrower than the credit's longer line,
+     about 470 points, clips it. At a 1,280 × 800 window its second line loses 19% of its
+     width. At 1,024 × 768 its two lines lose 19% and 37%.
+   - **The clock is not held to 52 ticks a year.** The compiler accepts `ticks_per_year` of 1,
+     2, 4 or 12, and the dials are held to C2, which was registered at 52. At 4 a year the tape
+     runs to 46,548 dead county-ticks and 46,298 ticks with a transfer shortfall. At 1 and 2 D̂
+     is infinite. At 12 no tick is dead.
+   - **Histories at the guard's edge ran cleanly.** The re-check bisected to the largest move
+     each bound lets through. N and T ×4.42 over 20 years (Middlesex), η ×0.374 over 10 years
+     (Bedfordshire), a yearly square wave in g0 of 0.906, and a combination each compiled and
+     ran with no dead tick and no shortfall.
+9. **Seen in the screenshots**, for your look; none is a gate item:
+   - at the fitted view, the legend and the credit cover Cornwall and part of Devon;
+   - with a long lens name, the ranked table's value column and the selected county's header
+     are cut at the pane's edge (0.846806 shows as 0.846);
+   - on a 1,600-wide window the health chip wraps to five lines, and the toolbar grows with it.
+10. **Every deviation, by section.** The D.3 and D.4 blocks list their changes, and U5 was
+    amended in place at D.4:
+    - §2, U5: `certify` seals the illustrative marker (D.4, 8).
+    - §3.1: `earcut` and `colorous` pinned, and the GUI depends on worldgen (D.3, 9).
+    - §3.4: the lean catalogue, series in stretches, and the catalogue's `Trades` and `State`
+      (D.3, 4–6).
+    - §4: lenses as built (D.3, 2; D.4, 2, 3, 6 and 7), and panels at 30,000 events and the
+      layout (D.3, 7 and 8).
+    - §6: the map as built and its credit (D.3, 1; D.4, 1 and 4), and Northern Ireland in the
+      atlas (here, 1).
+    - §7.3: the measures live in worldgen until observe (D.3, 3).
+    - §8: the tests and the gate script (D.3, 10; D.4, 5 and 9), and the screenshots (here, 3).
+    - §9: G4 brought forward in part (here), and the Phases 6–7 row (D.4, 8).
+
 ## 0. Rulings and decisions
 
 **Rulings (2026-09-25),** numbered here 1–4; they are ADDENDUM's rulings 5–8.
@@ -1168,6 +1294,9 @@ and 40.2 ms when run again. There is no threshold.
     labelled construction in the spine (R11), never the GUI.
 - **When (D8), and drawing.**
   - The map arrives at G4, with Phase 4 or with Phase 5's first county series, whichever is first.
+    At the user's request it came forward in part on 2026-09-27, over the illustrative demo
+    tape (the block "The map and lenses, brought forward"). D8 still governs G4 proper and the
+    research world.
   - On record data alone, the map shows the origin "record" only. An atlas whose keys differ from
     the tape's node keys is refused.
   - egui fills only convex polygons, so each part is triangulated once with earcut, holes included,
@@ -1475,6 +1604,11 @@ England run, becomes roughly 35–50.
   - The atlas and the mesh. Lenses on the map, channels on hover, ports and coalfields, a
     difference lens.
   - The world editor, limited to numbers that have their own basis (§7.3 Phase 4).
+  - *Brought forward in part* (2026-09-27, branch `demo-world`, D.1–D.5). The atlas, the mesh
+    and 25 lenses on the map and in a ranked table came forward over the illustrative demo tape.
+    The block "The map and lenses, brought forward" has what landed and each gate item. G4
+    proper keeps the research world, record overlays, flows on channels, ports and coalfields,
+    the difference lens, the world editor, the p90 bar and the spill.
   - **Gate.**
     - §8.1's map tests pass.
     - The map's values equal the table's, because one view-model makes both.
