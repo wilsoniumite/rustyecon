@@ -10,11 +10,20 @@ the tape's schema is [docs/TAPE.md](docs/TAPE.md), and the GUI's design is
 **Collaboration:** as in laborformal. Sequencing, engineering and drafting are delegated to
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
-**State as of:** 2026-09-27, on branch `phase2-markets`, from `reboot` at `708167f`, not
-pushed. **The many-markets probe (P2.1) is closed** (P2.1.1–P2.1.4; "Where things stand"):
-many markets GO for loop-free economies at 52 ticks a year, a loop of produced inputs NO-GO, no
-fallback ([docs/probe/MARKETS.md](docs/probe/MARKETS.md)). Its decisions are 118–123 and its
-open items O21–O24. While `reboot` stays at `708167f`, taking it is a fast-forward, on your word.
+**State as of:** 2026-09-27, on `reboot`'s line. **`demo-world` is merged** into it by this
+commit, on branch `merge-demo` from `reboot` at `b2a55e3`, not pushed: while `reboot` stays at
+`b2a55e3`, taking the merge is a fast-forward, on your word. Two lines of work that both started
+at `708167f` meet here. **The many-markets probe (P2.1) is closed** (P2.1.1–P2.1.4; "Where things
+stand"), built on branch `phase2-markets` and fast-forwarded into the local `reboot` at
+`b2a55e3`: many markets GO for loop-free economies at 52 ticks a year, a loop of produced inputs
+NO-GO, no fallback ([docs/probe/MARKETS.md](docs/probe/MARKETS.md)). **The demo world and its
+map are closed** at D.5 ("Where things stand"), built on branch `demo-world`, at your request of
+2026-09-27 for a map of the United Kingdom with Victoria-style lenses over a world of regions,
+goods and history: an illustrative world of 93 historic counties, 1750–1901, each running the
+probe's four roles, with the GUI's map and 25 lenses brought forward from G4 and G2. Its window
+is yours to look at, and the command is in "Where things stand". Both copies of this file
+numbered their new decisions from 118 and their open items from O21, so the probe's keep
+118–123 and O21–O24, and the demo's are 124–134 and O25–O27.
 **`g0` is merged** into `reboot` at `708167f`, on branch `merge-g0` from `503897e`, and the local
 `reboot` took the merge by a fast-forward. Two lines of work that both started at `397d7cd`
 (S2.6) meet there. **Phase 1's units 1b and 1c are closed** (P1.2–P1.7), built on
@@ -33,12 +42,59 @@ the GUI's design, plan amendment A14 and R16 landed at P0.11 (O1); by your rulin
 the Phase 2 probe ran first, with verdict GO ([docs/probe/REPORT.md](docs/probe/REPORT.md)) and
 no fallback (decision 38); and Breakpoint B's pre-look passed beside it (S5.0,
 docs/spine/EYEBALL.md; decision 35).
-Next, in order: your look at the window (the G0 gate's item checked by hand); Phase 1's units
-1d and 1e, then 1f, which a run on branch `phase1` (from `503897e`) is building now and which
-land by a merge that numbers their decisions and open items after these; Phase 2 proper after
-1d and 1e, on the markets probe's roles and harness; G1, the oracle lab, after Phase 1's gate.
+Next, in order: your look at the window (the G0 gate's item checked by hand) and at the demo's
+map; Phase 1's units 1d and 1e, then 1f, which a run on branch `phase1` (from `503897e`) is
+building now and which land by a merge that numbers their decisions and open items after 134
+and O27; Phase 2 proper after 1d and 1e, on the markets probe's roles and harness;
+the demo's second pass, with goods, machine types and carriers, on those roles (O27); G1, the
+oracle lab, after Phase 1's gate.
 
 ## Where things stand
+
+**`demo-world` is merged** (2026-09-27, this commit). The many-markets probe (P2.1.1–P2.1.4,
+`d0ceaa6` to `b2a55e3`, on `phase2-markets`) and the demo world (D.1–D.5, `a8d3f51` to
+`5cd2758`, on `demo-world`) both started at `708167f`, and no code conflicted. `phase2-markets`
+changed `crates/agents`, `crates/probe`, one match in `crates/gui/src/vm/inspector.rs`,
+`tapes/markets-*.ron`, docs/ENGINE.md, docs/TAPE.md, docs/probe/, README.md and STATE.md.
+`demo-world` changed `crates/worldgen`, `crates/gui` but its inspector, `crates/certify`,
+`crates/cli`, the workspace manifest, the lockfile, `data/atlas/`, `worlds/`,
+`tapes/demo-gb.ron`, `scripts/`, docs/GUI.md, docs/ENGINE.md, docs/demo/, README.md and
+STATE.md. Three files were joined by hand, each side's content kept whole:
+- README.md: the crate table's worldgen row is the demo's and its probe row the probe's, and
+  the tapes paragraph names the markets probe's worlds and the demo world;
+- docs/ENGINE.md: both amendment blocks, "Amended at P2.1.1" and then "Amended at D.2";
+- this file: the probe's record first below, then the demo's.
+
+The demo's decisions move from n to n + 6, 118–128 to 124–134, and its open items O21–O23 to
+O25–O27, with every citation of them in this file, in docs/GUI.md (its blocks "Amended at D.4"
+and "The map and lenses, brought forward"), in docs/demo/WORLD.md (§8) and in README.md. The
+probe's 118–123 and O21–O24 keep their numbers. No code, test or script cites a number of either
+series. The demo's O27 (its O23) planned its second pass for when the two lines met, and now
+reads as met. The gates on the committed merge, with a clean build stamp (logs in
+`D:/rustyecon-merge-demo/`):
+- **`scripts/gate.sh`** is green in WSL (`CARGO_TARGET_DIR=/root/scratch/target-merge-demo`,
+  warm from a check before the commit, 91 s) and on Windows under Git Bash
+  (`D:/rustyecon-targets/merge-demo`, fresh, 211 s), the two run at once. 599 tests pass in the
+  workspace on each machine, with 3 ignored and run by name, which is the probe's 569 and the
+  demo's 579 less the 549 they shared at `708167f`; certify alone, Parquet-free, passes 67 with
+  1 ignored; zero warnings. The gate hash is `0x61f9c8529131ff17`, and the stamp names the
+  merge's code, clean, on both (`84d75e9`, this commit before this record was added; only this
+  file differs). Both certificates PASS and recompute byte-equal, the probe's pins hold,
+  `derive.py --check` passes, `demo_runs_to_1901` ends at `0xfad880fe08d06645` with hash stream
+  `0xdb63cc96f769fb3e`, and telemetry is identical from two processes. The GUI's non-blocking
+  check passes in WSL (skipped on Windows), as do the wasm32 checks of the engine and certify.
+- **`scripts/gui.sh`** is green in WSL (the same target, 120 s) and on Windows under Git Bash
+  (162 s): 84 tests pass with 2 ignored measurements, the 55 named ones by name, fmt and clippy
+  clean with `-D warnings`, and five hash diffs equal, the same on both machines: gate (2,080
+  ticks, final `0x61f9c8529131ff17`), appb (20,000, `0xe1fa082b26995867`), demo-gb (7,852,
+  `0xfad880fe08d06645`), and the two branch tapes as at G0.3 (`branch`, final
+  `0x9fc2f964a8510756`; `removal`, `0xd057e3ea708da495`).
+- **The probe's record is unchanged:** `crates/agents`, `crates/probe`, `tapes/markets-*.ron`
+  and docs/probe/, with its six pinned CSVs in results/markets/, are `b2a55e3`'s byte for byte,
+  and `markets_tapes_are_their_generators_output` passes. Every file of the demo's but the
+  Markdown is `5cd2758`'s, but for the probe's four lines in the GUI's inspector.
+- **Recorded, not gated:** the cli's per-tick hashes of gate (2,080), appb (20,000) and demo-gb
+  (7,852) are byte-identical on WSL and Windows.
 
 **Many-markets probe (2026-09-27; P2.1.1–P2.1.4).** The Phase 2 probe's report named many
 markets as Phase 2 proper's first untested risk (REPORT §7 Q2); units 1b and 1c give their
@@ -63,12 +119,99 @@ registered run (`run/registration.md`, sha256 `a92d9a9c…`), two reviews and th
 - **What follows:** A11 not met, no fallback; Phase 2 proper opens after 1d and 1e on loop-free
   instances with these roles, the markets harness and C2m at 52/yr; the loop goes to Phase 3
   (decisions 118–123, O21).
-- **The gate at `fef01cd`** (P2.1.4's report; this file's commit changes docs only):
+- **The gate at `fef01cd`** (P2.1.4's report; `b2a55e3` changes docs only):
   `scripts/gate.sh` is green in WSL (`/root/scratch/target-p2m-report`) and on Windows under Git
   Bash (`D:/rustyecon-targets/p2m-report`), clean stamps; 569 workspace tests pass, 2 ignored
   and run by name, zero warnings. Core, markets and engine are unchanged since `708167f`; the gate world
   ends at `0x61f9c8529131ff17` and appb's 20,000 ticks at `0xe1fa082b26995867`, both per-tick
   streams byte-identical on the two machines (logs in `D:/rustyecon-p2m/report/gate/`).
+
+**The demo world and its map are closed** (2026-09-27, D.5; [docs/GUI.md](docs/GUI.md), the
+block "The map and lenses, brought forward"; [docs/demo/WORLD.md](docs/demo/WORLD.md);
+decisions 124–134). You asked on 2026-09-27 for "a nice looking map of the UK, and a fairly
+complex setup of regions, goods, and history", with lenses like Victoria's that change colour
+as a run goes. It was built on branch `demo-world`, from `reboot` at `708167f`, in five
+commits:
+
+| Commit | What landed |
+|---|---|
+| `a8d3f51` D.1 | The atlas, `data/atlas/`: the United Kingdom's 93 historic counties from HCBP Definition B's UK file, with Yorkshire's three ridings from OpenStreetMap (ruling 7), under the ODbL with its own LICENSE and ATTRIBUTION; the loader `rustyecon_worldgen::atlas` |
+| `f17b447` D.2 | The demo world's tables (`worlds/demo-gb/`), the compiler (`rustyecon_worldgen::compile`, `rustyecon worldgen`) and `tapes/demo-gb.ron` |
+| `8327c1a` D.3 | The map pane and 25 lenses in the GUI; the lean catalogue; series kept in stretches; panels that take 30,000 events |
+| `018cf0b` D.4 | The verification's fixes, each with a test: the atlas's credit on the map and `licences` in both binaries; lens values held to the engine; the fresh mesh, the palettes and the legend; the hit test at every part; U4 on the demo tape; `no.trade`; rationing's domain; `certify` sealing `[illustrative]` UNSCORED (O25); the compiler bounding quantities, each trailing year and the dials |
+| `5cd2758` D.5 | GUI.md's block, this file, the README and two screenshots |
+
+**What it is.** 93 counties: England 41 with the three ridings, Wales 13, Scotland 33 and
+Northern Ireland 6. Northern Ireland is in because HCBP's UK file covers it on the same
+permissive terms. Each county is a node running the probe's four roles (GoodDesk, MachDesk,
+Provider, Workers) at C2, from its own oracle point. Each has one good and one machine type,
+and none trades with another yet. The history's 605 ramp rows become 30,078 dated `SetParam`
+steps, 1750–1901: population, sites, enclosure, improvement, mines and coal, steam, canals,
+railways, machine tools, textiles by kind, threshing and the Poor Law. The compiler holds each
+county date to 3% in log at the oracle and each year to 10%, so no step is a shock (O14). The
+run to 1901 has no dead tick and no shortfall. D̂ against each county's moving oracle point has
+a median of 11.4, which is 1.1% in log. Every number is `Assumed("illustrative demo …")` and the
+name carries `[illustrative]`, so nothing from it is scored or cited (O25).
+
+**The gates at the close** (logs in `D:/rustyecon-demo/close/`), on `018cf0b`'s code; D.5
+changes only docs:
+- **`scripts/gate.sh`** is green in WSL (`CARGO_TARGET_DIR=/root/scratch/target-demo-close`,
+  fresh, 183 s) and on Windows under Git Bash (`D:/rustyecon-targets/demo-close`, fresh, 200 s).
+  - 579 tests pass in the workspace with 3 ignored and run by name, and certify alone passes 67
+    with 1 ignored, with zero warnings.
+  - The gate hash is `0x61f9c8529131ff17`, and the stamp matches the checkout.
+  - Both certificates PASS, byte-equal, and the probe's pins hold.
+  - `derive.py --check` passes. `demo_runs_to_1901` ends at `0xfad880fe08d06645`, with hash
+    stream `0xdb63cc96f769fb3e`.
+  - Telemetry is identical from two processes.
+- **`scripts/gui.sh`** is green in WSL (123 s) and on Windows (162 s).
+  - 84 tests pass with 2 ignored measurements, the 55 named ones by name, and fmt and clippy
+    are clean with `-D warnings`.
+  - Five hash diffs are equal: gate at 2,080 (`0x61f9c8529131ff17`), appb at 20,000
+    (`0xe1fa082b26995867`), demo-gb at 7,852 (`0xfad880fe08d06645`), and the two branch tapes as
+    at G0.3.
+- **Recorded, not gated:** the cli's per-tick hashes of gate, appb and demo-gb are byte-identical
+  on WSL and Windows.
+- **The smoke mode on Windows,** `rustyecon-gui --smoke 7852 tapes/demo-gb.ron`, ran to 1901 in
+  16.1 to 16.7 s, three times. Running, CPU per frame had p50 5.0 to 5.9 ms and p90 6.1 to
+  8.3 ms, against G4's bar of a p90 under 8 ms. Paused, p90 was 4.8 to 6.6 ms. The window opened
+  and closed by itself.
+
+**Two screenshots** are in `docs/demo/`: the map in 1801 on "Wage in land", and in 1901 on
+"Output per head since 1750". egui_kittest's wgpu renderer drew them headlessly on Windows'
+software adapter (WARP), from a scratch crate at `D:/rustyecon-demo/close/shot/`, so no
+dependency or lockfile changed (decision 133). WSL has no software adapter, so none is taken
+or gated there.
+
+**Checked by hand: PENDING, yours** (the demo map's window). On Windows, from the repository
+once `reboot` has taken this merge, or before that from `D:\rustyecon-wt\demo`, where
+`demo-world` is checked out, in PowerShell:
+
+```powershell
+$env:CARGO_TARGET_DIR = 'D:/rustyecon-targets/demo-hand'
+cargo run --release -p rustyecon-gui -- tapes/demo-gb.ron
+```
+
+The map opens paused at 1750 on "Wage in land".
+1. Press Space, and the counties recolour as the history runs; press Space again to pause.
+2. `[` and `]` step through the 25 lenses, and `1`–`9` and `0` pick the first ten.
+3. Hover a county for its card, and click one to select it.
+
+The README's "The demo world's map" has the WSL command. WSLg is off on this machine
+(`guiApplications=false`), so a window from WSL was not tried. Three things the screenshots
+show are worth a look (GUI.md's block, item 9): the legend covers Cornwall at the fitted view,
+the ranked table's values are cut when the lens's name is long, and the health chip wraps on a
+narrow window.
+
+**The verification.** D.2 and D.3 had one bounded verification, one adversarial pass per part
+(`D:/rustyecon-demo/verify-map-r1/`, `verify-world-r1/`). On the map it found three major
+issues and four minor ones: no ODbL credit, lens values not held away from tick 0, and a
+rebuilt mesh's colours untested. On the world it found, among others, that `certify` passed
+the illustrative tape and that abrupt histories got past the compiler's bound. D.4 fixed each
+with a test, and reran the verifier's mutants against the new tests
+(`D:/rustyecon-demo/fix-r1/mutations.txt`: twelve, all killed). The re-check of D.4
+(`verify-*-r2/`) found the fixes in place. What it left is carried, not fixed: O26, decision
+134.
 
 **`g0` is merged** (2026-09-27, `708167f`). `g0` (G0.1–G0.3, `f897ca8` to `428bdcd`) and
 Phase 1's P1.2–P1.7 (`30ff1ce` to `503897e`) both started at `397d7cd`, and no code conflicted:
@@ -905,11 +1048,14 @@ same script under Git Bash, by hand.
 
 **Remote** (as the local remote-tracking refs show on 2026-09-27): `origin` has `main` and
 `reboot` at `cf3c0ff`, the three `july-v2-*` tags and `pre-foundations` (A1 done). Not pushed:
-- the local `reboot` at `708167f` (S2.1–S2.6, Phase 1's P1.2–P1.7 and the `g0` merge);
-- `phase2-markets` (P2.1.1–P2.1.4), on top of it;
-- `phase1`, at `503897e` when the merge was made, where the run for 1d–1f goes on;
-- the local branches `merge-g0`, `g0`, `phase0-s2`, `phase2-probe`, `spine-eyeball` and
-  `reboot-phase0`, whose work is in `reboot`.
+- the local `reboot` at `b2a55e3` (S2.1–S2.6, Phase 1's P1.2–P1.7, the `g0` merge and the
+  many-markets probe, P2.1.1–P2.1.4);
+- this merge, on `merge-demo`;
+- `phase1`, from `503897e` and at `a680dd4` when this merge was made, where the run for 1d–1f
+  goes on;
+- `demo-world` (D.1–D.5), whose work is in this merge;
+- the local branches `phase2-markets`, `merge-g0`, `g0`, `phase0-s2`, `phase2-probe`,
+  `spine-eyeball` and `reboot-phase0`, whose work is in `reboot`.
 
 ## Decisions — veto window (your one-word calls)
 
@@ -1354,6 +1500,59 @@ MARKETS-SPEC §9's frame decisions M1–M9 stand as the frame states them, open 
      them (MARKETS-SPEC §7.9), and Phase 2 proper's battery runs them first. Alternative: run
      them before closing the probe.
 
+Decisions 124–134 were made on branch `demo-world` (D.1–D.5, 2026-09-27), where they were
+numbered 118–128; this merge renumbered them after the many-markets probe's, from n to n + 6.
+GUI.md's blocks "Amended at D.3", "Amended at D.4" and "The map and lenses, brought forward",
+and docs/demo/WORLD.md, carry each; all are open to veto.
+
+124. **The map and lenses come forward over an illustrative world,** at your request, ahead of
+     D8's trigger. The tape's name carries `[illustrative]` and every basis says so. G4 proper
+     still opens on D8's trigger, with the research world. Alternative: wait for Phase 4.
+125. **The atlas is the United Kingdom's 93 historic counties.** Northern Ireland comes from
+     HCBP Definition B's UK file, on the same permissive terms as Great Britain. Yorkshire is
+     three ridings from OpenStreetMap (ruling 7). Ross and Cromarty is one region, the City of
+     York goes to the North Riding, and detached parts stay with their counties. The atlas is
+     under the ODbL in `data/atlas/`, with its own LICENSE and ATTRIBUTION, and is bundled by
+     `include_str!` with its digest checked. Alternative: Great Britain alone, 87 regions.
+126. **Each county is one node running the probe's four roles at C2,** from its own oracle
+     point (unit 1a), with one good, one machine type and no channels. The base county moves η,
+     λ, b, h and N/T off Appendix B so that 1750 looks like 1750, with a labour share of 0.40
+     and x\* of 0.70 (WORLD.md §2). Goods, machine types and carriers have reserved columns
+     (WORLD.md §7; O27). Alternative: Appendix B's instance in every county.
+127. **The history is dated `SetParam` steps.** A step is emitted when a county's composed
+     value moves 1% in log, and each step is a schedule param outside `world_id`. The compiler
+     holds every county date to 0.03 in log at the oracle, in prices and in quantities, every
+     trailing year to 0.1, and the dials to C2 exactly, because abrupt change gives violent
+     paths (O14). Alternative: wait for Phase 3's timelines, which `history.csv` can compile
+     to when they land.
+128. **The lens measures live in `rustyecon_worldgen::lens`** until `crates/observe` exists.
+     The GUI gathers the readings and computes no measure. The cli calls none yet, which is
+     U6's departure, recorded. Alternative: build observe first.
+129. **Lens domains are fixed for the run and chosen without it.** They are registered in
+     `lenses.csv` from the oracle's range with a margin, and held by
+     `lens_domains_hold_the_oracle_range`. The palettes are neutral: viridis, and purple to
+     orange through white. Alternative: domains from each run's range, which would change what
+     a colour means between runs.
+130. **A world of more than 16 nodes records the lean catalogue,** and series keep stretches
+     at 8 bytes a point: 5,970 series, about 0.4 GB to 1901. Alternative: the whole catalogue,
+     11,447 series.
+131. **`certify` seals a tape whose name carries `[illustrative]` UNSCORED** whatever its
+     criteria, and refuses a tape whose bases say illustrative once its name has lost the
+     marker (O25). The scorecard's refusal waits for Phase 6. Alternative: leave it all to the
+     scorecard.
+132. **The map always paints the atlas's credit,** and both binaries print the atlas's LICENSE
+     and ATTRIBUTION (`rustyecon licences`, `rustyecon-gui --licences`), as the ODbL
+     attribution asks. Alternative: a link in an About view only.
+133. **The screenshots are taken headlessly on Windows' software adapter** from a scratch
+     crate. They are not gated, and no script remakes them. The workspace turns on no `wgpu`
+     feature for egui_kittest, so its lockfile is unchanged. Alternative: a committed, ignored
+     test with the feature on, which changes the lockfile and still could not run in WSL.
+134. **What D.4's re-check left is carried, not fixed** (O26), as decision 116 carried G0's.
+     These are test gaps in the county card, the painted legend, the mesh's other vertices and
+     the credit's paint; the credit clipped on a narrow canvas; and the clock not held to 52
+     ticks a year. None is a gate item, and the demo's next pass takes them first.
+     Alternative: a second fix round before the close.
+
 ## Open — your calls
 
 - **The GUI's decisions**, 22–34 (D1–D13): G0 carried them out, none vetoed; a veto now reopens
@@ -1383,20 +1582,29 @@ MARKETS-SPEC §9's frame decisions M1–M9 stand as the frame states them, open 
 - **Decisions 76–81** (G0.1's first part), **82–89** (its second part), **90–96** (its
   verification fixes), **97–108** (G0.2), **109–113** (its verification fixes) and **114–117**
   (G0's close), open to veto.
+- **Decisions 124–134** (the demo world and its map, branch `demo-world`), open to veto. The
+  ones that shape later work: Northern Ireland in the atlas (125), the base county's departure
+  from Appendix B (126), and the lens measures in worldgen until observe (128).
+- **The demo map's window check, by hand** (the command is in "Where things stand", under "The
+  demo world and its map are closed"): the map opens `tapes/demo-gb.ron` paused at 1750, runs
+  to 1901 and recolours, the lenses switch, and hover and click work. The smoke mode ran it on
+  Windows, and two screenshots are in `docs/demo/`; nobody has looked at the window. If it fails
+  your look, a D.6 fixes it on top of this merge.
 - **The G0 gate's window check, by hand** (the command is in "Where things stand", under "G0
   is closed"): the window opens `tapes/gate.ron` and runs to 2,080 with every price plotted
   and no panic. The smoke mode ran it on Windows; nobody has looked at it. `g0` proposed
   merging after your look; the merge came first, so if the window fails your look, the G0.4
-  that fixes it (decision 114) lands on top of the merge (`708167f`), before G1.
-- **Landing the branches.** `phase0-s2`, `phase1`'s P1.2–P1.7 and the `g0` merge (`708167f`)
-  are in the local `reboot` by fast-forwards. `phase2-markets` (P2.1.1–P2.1.4) sits on
-  `708167f`; while `reboot` stays there, it lands by a fast-forward. The run on `phase1` for units
-  1d–1f started from `503897e`, and its copy of this file numbers new decisions after 75 and new
-  open items after O19. It lands by a merge that renumbers its own, as the `g0` merge renumbered
-  G0's: after 123 and O24 once `phase2-markets` has landed, or after 117 and O20 if it lands
-  first.
-- **Pushing `reboot`** (locally at `708167f`, with session 2, Phase 1's units 1b and 1c, and G0;
-  `origin/reboot` is at `cf3c0ff`), and `phase2-markets` once it has landed.
+  that fixes it (decision 114) lands on top of `reboot`'s line, before G1.
+- **Landing the branches.** `phase0-s2`, `phase1`'s P1.2–P1.7, the `g0` merge (`708167f`) and
+  `phase2-markets` (P2.1.1–P2.1.4, `b2a55e3`) are in the local `reboot` by fast-forwards.
+  `demo-world` (D.1–D.5) is merged by this commit, on `merge-demo`: while `reboot` stays at
+  `b2a55e3`, it takes the merge by a fast-forward. The run on `phase1` for units 1d–1f started
+  from `503897e` and is still running (at `a680dd4`, P1.11, when this merge was made, in
+  `D:/rustyecon-wt/p1`). Its copy of this file numbers new decisions after 75 and new open items
+  after O19, so it lands by a merge that renumbers its own after this merge's highest, 134 and
+  O27, as this merge renumbered the demo's and the `g0` merge G0's.
+- **Pushing `reboot`** (locally at `b2a55e3`, with session 2, Phase 1's units 1b and 1c, G0 and
+  the many-markets probe; `origin/reboot` is at `cf3c0ff`), and this merge once it has landed.
 - **The Phase 2 session budget** that A11's kill condition needs (PLAN Phase 2), now for Phase 2
   proper's other instances.
 - **The decisions above**, especially 10 (the engine crate, not in PLAN's crate list), 11, 15
@@ -1417,7 +1625,10 @@ MARKETS-SPEC §9's frame decisions M1–M9 stand as the frame states them, open 
   depends on the engine alone, steps a `Sim` on a worker thread and reads each `TickReport` over
   a channel. Session 2 gave it what §7.2 asked: `FiredEvent.source`, the registry's sites with
   their methods, a `world_id` that a new source event keeps, and from certify `RunKey`,
-  `tape_hash` and a manifest that needs no Parquet or I/O (GUI.md, updated at S2.6).
+  `tape_hash` and a manifest that needs no Parquet or I/O (GUI.md, updated at S2.6). On branch
+  `demo-world` (D.1–D.5), part of G4 and G2 came forward over the illustrative demo tape: the
+  atlas, the map and 25 lenses with a ranked table (GUI.md, "The map and lenses, brought
+  forward"; decision 124). G4 proper still waits for D8's trigger.
 - **O2. Phase 0 session 2: closed at S2.6** (2026-09-26; "Where things stand" above;
   docs/CERTIFY.md). The certification stack moved from `july-v2-phase-3` into `crates/certify`
   with N4, N10, N12 and N15 fixed, every threshold in dated criteria, A12's runaway detector,
@@ -1566,6 +1777,83 @@ when its fix is reverted, checked by mutation (the review's own mutants among th
 
   Planned assignment turns a missing machine service into zero output while labour clears.
   Ex-post assignment, the registered alternative, is untested in many markets.
+- **O25. The illustrative marker in scoring** (branch `demo-world`, D.4, 2026-09-27;
+  docs/GUI.md U5 and its block "Amended at D.4", item 8; docs/demo/WORLD.md §8). The demo
+  world's tape, `tapes/demo-gb.ron`, is named `demo-gb [illustrative]` and every basis in it
+  begins "illustrative demo". `certify` now seals any run of a tape whose name carries
+  `[illustrative]` UNSCORED, never PASS, and refuses a tape whose bases say illustrative once its
+  name has lost the marker (`certify_refuses_illustrative_tape`). Left for Phases 6–7: the
+  scorecard refuses it beside the GUI-experiment marker (`scorecard_refuses_gui_edited_tape`
+  gains the demo tape), and the identity chip shows it. Until then keeping its figures out of
+  citation is procedural. It was O21 on `demo-world`; this merge renumbered it after the
+  many-markets probe's O21–O24.
+- **O26. What D.4's re-check left** (decision 134; GUI.md, "The map and lenses, brought
+  forward", items 8 and 9). The re-check (`D:/rustyecon-demo/verify-map-r2/`,
+  `verify-world-r2/`) found D.4's fixes in place, and 17 of its 25 mutants of the map were
+  killed. The demo's next pass takes these first, each with a test that fails without its fix:
+  - *Eight mutants of the map survive* (`verify-map-r2/mutate.py`, `mutations.txt`):
+    - V7, the county card's value read a tick early;
+    - V8, the card's change lens read against the cursor instead of genesis;
+    - V9, the app handing the map no cursor;
+    - C6, the legend painted in a reversed scale while `MapFrame::legend` records the right one;
+    - C7, a fresh mesh whose vertices after each region's first take a neighbour's colour;
+    - C8, the in-place recolouring skipping each region's last vertex;
+    - A2, the credit painted transparent;
+    - A3, the credit placed off the canvas.
+
+    The fixes: hold the card to the engine as `lens_values_equal_the_engine` holds the map.
+    Record the legend's and the credit's colours and rectangles from the shapes painted, not
+    from what the painter meant. Check every vertex of each region. Run a script with the
+    cursor behind live.
+  - *The credit clips on a narrow canvas* (`verify-map-r2/probe2.log`). A canvas narrower than
+    its longer line, about 470 points, clips it. At a 1,280 × 800 window its second line loses
+    19% of its width, and at 1,024 × 768 its lines lose 19% and 37%.
+    `the_credit_is_painted_clear_of_the_legend` tries four widths, none that narrow. The fix is
+    to wrap the credit to the canvas, and test it at 1,024 × 768.
+  - *The clock is not held to 52 ticks a year* (`verify-world-r2/runs/tpy*.log`). The compiler
+    accepts `ticks_per_year` 1, 2, 4 or 12, and holds the dials to C2, which was registered at
+    52. At 4 a year the compiled tape runs to 46,548 dead county-ticks and 46,298 ticks with a
+    transfer shortfall, and every county ends far from its oracle point. At 1 and 2 D̂ is
+    infinite. At 12 no tick is dead. The fix is to hold the clock to 52 as the dials are held
+    to C2. Decision 121, the many-markets probe's, makes the weekly tick Phase 2 proper's
+    default too.
+  - *Seen in the close's screenshots* (`docs/demo/`):
+    - at the fitted view the legend and the credit cover Cornwall and part of Devon, so the
+      fit should leave the legend's corner free;
+    - with a long lens name, the ranked table's value column and the card's header are cut at
+      the pane's edge;
+    - on a narrow window the health chip wraps and the toolbar grows.
+
+  The re-check also ran histories at the guard's edge (N and T ×4.42 over 20 years, η ×0.374
+  over 10 years, a yearly square wave, a combination). Each compiled and ran with no dead tick
+  and no shortfall, so the compiler's bounds hold what they were set for.
+- **O27. The demo's second pass: goods, machine types and carriers** (WORLD.md §7; decision
+  126). The tables reserve their columns (`categories`, `machine_types` and `carriers` in
+  `regions.csv`), and the compiler refuses any other value in them until then. The
+  many-markets probe built the many-market roles: basket providers and basket workers buying
+  many items, category desks and type desks. They are GO for loop-free economies at 52 ticks a
+  year under C2m (docs/probe/MARKETS.md; decisions 118–121). With this merge the demo and those
+  roles are on one line, and the pass goes:
+  1. **Categories** (unit 1b): a `categories.csv` of food, textiles, metal goods, shelter
+     (space as a category) and services, each with its basket weight, direct land and segment
+     of the task line. Genesis comes from unit 1b at each county. A history row's param takes a
+     qualifier (`eta@textiles`), so the textile ramps move only textiles, which is what they
+     meant.
+  2. **Machine types** (unit 1c): a `machine_types.csv` of horse and water power, the steam
+     engine and the railway, with their recipes and θ. Genesis comes from unit 1c. No type buys
+     another's service in a loop, which is decision 120. The services cannot be stored until
+     Phase 3's durable machines (O21). The coal and steam ramps then move steam's b.
+  3. **The dials and the clock:** C2m, and 52 ticks a year (decisions 119 and 121; O26's
+     clock item).
+  4. **The battery** again, county by county, as WORLD.md §3.3 ran it, and the long run's dead
+     ticks and shortfalls checked again: O24 finds many markets' tails deeper than Appendix B's.
+  5. **Lenses** for each category's price in rent and share of output, and for each type's
+     share of machine tasks.
+  6. **Carriers, later:** a `channels.csv` from the atlas's 201 land borders and 27 port
+     sites, with road, canal, coast and rail. They need transport desks, home-node trading
+     (Phases 4 and 9) and an oracle with trade. So they switch on gradually from zero
+     capacity, and the railway ramps on b come out as they go in. The map then draws flows on
+     channels (G4, G9).
 
 ## Corrections logged (A3; ADDENDUM §1.4)
 
@@ -1589,17 +1877,21 @@ REVIEW.md is kept as written; these of its claims do not hold.
 
 ## Next steps, in order
 
-G0 is closed but for your look at its window. Phase 1 goes on (O3; PLAN Phase 1): a run on
-branch `phase1`, from `reboot` at `503897e`, is building units 1d–1f, each as 1b and 1c were
-built: a spec from `31b3482` checked by a prototype, a build with its generator, one
-adversarial pass, one fix round and a re-check of the fixed items. Its progress is recorded on
-that branch until it lands.
+G0 is closed but for your look at its window, and the demo world but for your look at its map.
+The many-markets probe is closed. Phase 1 goes on (O3; PLAN Phase 1): a run on branch `phase1`,
+from `reboot` at `503897e`, is building units 1d–1f, each as 1b and 1c were built: a spec from
+`31b3482` checked by a prototype, a build with its generator, one adversarial pass, one fix
+round and a re-check of the fixed items. Its progress is recorded on that branch until it lands,
+by a merge that renumbers its decisions and open items after 134 and O27.
 
 1. **Your look at the window**, the G0 gate's item checked by hand (the command is under "G0
    is closed" in "Where things stand", with how to try the editor). G0 is otherwise closed
    (G0.3, 2026-09-27; O1). If the window fails, a G0.4 fixes it first (decision 114), on top of
-   the merge (`708167f`).
-2. **Unit 1d, worker types and the wall.** Human-required tasks in the equilibrium, several
+   `reboot`'s line, before G1.
+2. **Your look at the demo's map** (the command is under "The demo world and its map are
+   closed" in "Where things stand"). If it fails your look, a D.6 fixes it first, on top of
+   this merge.
+3. **Unit 1d, worker types and the wall.** Human-required tasks in the equilibrium, several
    worker types each with its own margin (w_i = p_m·γ_i(x_i*)), and the boundary regimes 1a
    only classifies solved: x* = 1, where labour holds only human-required tasks at the wall and
    the machine comparison no longer pins the wage, and a root below 1e-12. Its gate is constructed
@@ -1607,22 +1899,22 @@ that branch until it lands.
    measure, so it builds on `corner/check_kset.py` P9-i (a human-required set of measure k,
    with Leontief cost concentration) and check_pinning's D1 limit, with constructed wall and
    interior cases recognised correctly (PLAN's gate).
-3. **Unit 1e, parcels, the idle margin and s(q).** Parcels with quality schedules, several
+4. **Unit 1e, parcels, the idle margin and s(q).** Parcels with quality schedules, several
    non-produced inputs (SSRN A.1's vector r) with unused ones at zero rent, idle land, and exit
    as s(q) = max(s₀ − q·h_e, s̲) from main.tex, the default form (ADDENDUM ruling 3); the SSRN
    dependence form stays 1a's, the named alternative (R6), and each form keeps its own gate.
    1e's is constructed on `corner/check_enclosure.py` N-i to N-iii (the idle margin; the worked
    instance q_enc = 1.5, N_crit = 60) and check_pinning P3.
-4. **Unit 1f, households and government**: price-responsive baskets and a basket per worker
+5. **Unit 1f, households and government**: price-responsive baskets and a basket per worker
    type, government and transfers (three-taxes' ledger is already gated in 1a), and
    check_dynamics' land-share household as a named alternative, which would make its sloped x*
    and flat m reproducible (decision 75). Then Phase 1's gate, after which G1, the oracle lab,
    may start.
-5. **At the next engine step, the engine re-exports `num`** (decision 96), and the tape's raw
+6. **At the next engine step, the engine re-exports `num`** (decision 96), and the tape's raw
    entry types, `Basis` and `Unit` (decision 97), so the GUI's edge to core goes and core's
    writer is out of its reach by type again. `scripts/gate.sh`'s check of the GUI then says
    whether the GUI still builds; a break is fixed at G1 at the latest (D1).
-6. **Before Phase 2 proper**: your rulings on decisions 61 and 67 (cells in the equilibrium,
+7. **Before Phase 2 proper**: your rulings on decisions 61 and 67 (cells in the equilibrium,
    machines built from categories), each a 1c addendum if ruled in, on 70, and on 118–123. The
    markets probe recommends keeping 67 and 70 (MARKETS §6). Phase 2 proper then opens after
    units 1d and 1e on loop-free wall and commons instances, with the markets probe's roles, the
@@ -1631,12 +1923,20 @@ that branch until it lands.
    for a market at zero rent, whose unsold price `Saturate` runs to the runaway bound. Many
    markets is no longer the first untested risk. The risks now are paths (O14, O24) and the new
    margins of 1d and 1e: several labour markets and the wall at x\* = 1.
-7. **G1, the oracle lab, after G0 and Phase 1's gate** (GUI.md §9). It starts with O20, then
+8. **G1, the oracle lab, after G0 and Phase 1's gate** (GUI.md §9). It starts with O20, then
    what G0 moved to it: the plots' overlay, difference and ratio against a parent, re-making
    branches at launch, the registry's and the inspector's ways into the editor, a lock on
    `session.ron` (decisions 106, 107, 103, 110); and its own scope: the lab, one-param sweeps,
    the price-step explainer and the log waterfall, log axes, the watchlist, and event and date
    breakpoints.
+9. **The demo's second pass, on the many-market roles** (O27; WORLD.md §7). It takes O26
+   first, the clock held to 52 among it. Then come goods as unit 1b's categories and machine
+   types as unit 1c's, on the many-market roles at C2m with no loop of produced inputs, with
+   genesis from 1b and 1c at each county. After that, the probe's battery county by county, the
+   long run's dead ticks and shortfalls checked again, and lenses by category and type. It gets
+   the same bounded verification as D.2 and D.3. Carriers come later, when transport desks,
+   home-node trading (Phases 4 and 9) and an oracle with trade exist. They switch on from zero
+   capacity, and the map then draws flows on channels.
 
 ## File map
 
@@ -1644,12 +1944,16 @@ that branch until it lands.
 STATE.md                 you are here; start here next session
 README.md                what rustyecon is, the crates, how to build and test
 docs/PLAN.md             the plan, amended by the addendum's rulings (2026-09-25) and decision 39
-docs/ENGINE.md           the Phase 0 engine contract, with each step's amendments (P0.3–G0.3)
+docs/ENGINE.md           the Phase 0 engine contract, with each step's amendments (P0.3–G0.3,
+                         P2.1.1, D.2)
 docs/CERTIFY.md          session 2's contract: criteria, batteries, kick, seal, manifest, cli,
                          telemetry, with each step's amendments (S2.2–S2.6)
 docs/TAPE.md             the tape's schema guide
 docs/GUI.md              the GUI's design (A14): stack, architecture, panels, editor, map, roadmap;
-                         amended at G0.1, in its two parts, and at G0.2; closed at G0.3
+                         amended at G0.1, in its two parts, and at G0.2; closed at G0.3; the map
+                         and lenses brought forward at D.3–D.5 (branch demo-world)
+docs/demo/WORLD.md       the illustrative demo world: its tables, history, lenses, compiler, run
+docs/demo/*.png          two screenshots of the demo's map, rendered headlessly (D.5)
 docs/reboot/             REVIEW.md and ADDENDUM.md, kept as written (links fixed) but for A14 and
                          rulings 5–8 (P0.11); GUI-review-ledger.md, the GUI design's two reviews
 docs/timeline/eras.md    era research for worldgen
@@ -1665,29 +1969,37 @@ docs/probe/figs/         the report's plots; docs/probe/results/ its three summa
 docs/probe/MARKETS*.md   the markets probe's rules as built (MARKETS-RULES.md) and its report
                          (MARKETS.md), with figs/markets/ and results/markets/ (six CSVs)
 crates/engine            Sim, the tick, reports, resume, the replay audit, the registry listing
-crates/cli               the rustyecon binary: run, resume, replay, registry, certify
+crates/cli               the rustyecon binary: run, resume, replay, registry, certify, worldgen,
+                         licences
 crates/oracle            the equilibrium solver, units 1a (P1.1), 1b and 1c (P1.2–P1.7); its
                          README, docs/unit-1{a,b,c}.md and goldens/generate{,_1b,_1c}.py
 crates/certify           criteria, batteries, the kick, the sealed certificate, the manifest;
                          Parquet telemetry behind the feature `parquet` (S2.3–S2.5)
 crates/certify/testdata  appb variants from `appb-tape --perturb`: bcycle, freeze, july, buffer16
-crates/worldgen          empty until Phase 4
+crates/worldgen          the atlas's loader (D.1), the demo world's compiler (D.2) and its lens
+                         measures (D.3); Phase 4's research compiler later
 crates/gui               the GUI (G0.1, G0.2): model/, run/, edit/, vm/, drive/, platform/, ui/,
                          app.rs, the binary rustyecon-gui; its tests run under scripts/gui.sh
-                         only (D1)
+                         only (D1); the map pane and lenses since D.3 (ui/map.rs, vm/map.rs)
 crates/gui/tests/golden  the view-model goldens, one RON file per builder and point
                          (UPDATE_GOLDEN=1 rewrites them)
 tapes/gate.ron           the gate world
 tapes/appb.ron           the probe's Appendix B world, generated from the oracle
 tapes/markets-<id>.ron   the markets probe's seven worlds (I0–I3, L2, L3, G1), from the oracle
+tapes/demo-gb.ron        the illustrative demo world, compiled from worlds/demo-gb (D.2)
+worlds/demo-gb/          the demo world's tables and derive.py
+data/atlas/              the county atlas, gb.atlas.ron, under the ODbL: LICENSE, ATTRIBUTION,
+                         README, its build script and pinned venv (D.1)
 criteria/                each tape's dated criteria, registered before its first certified run
 results/                 committed verdicts: results/<tape>/certificate.ron and manifest.ron
 data/spine/              the spine's fetch, extract and eyeball scripts, manifests, CC0 files;
                          their cache is $SPINE_ROOT or the ignored data/spine/.cache/
 docs/spine/              DATA_NOTES.md and EYEBALL.md, Breakpoint B's pre-look (S5.0)
-scripts/gate.sh          the gate as one script; the GUI excluded, checked once on Linux (D1)
+scripts/gate.sh          the gate as one script; the GUI excluded, checked once on Linux (D1);
+                         derive.py --check and the demo's long run by name (D.2)
 scripts/gui.sh           the GUI's gate, run at each G-stage (G0.1); diffs the editor's branch
-                         tapes against the cli too (G0.2); names 42 tests (G0.3)
+                         tapes against the cli too (G0.2); names 42 tests (G0.3), 55 with the
+                         map's and the demo tape's hashes (D.3, D.4)
 .github/workflows/ci.yml hosted CI, on every push
 ```
 
@@ -1704,8 +2016,21 @@ scripts/gui.sh           the GUI's gate, run at each G-stage (G0.1); diffs the e
   `/root/scratch/target-g0-*` and `D:/rustyecon-targets/g0-*` and logs in `D:/rustyecon-g0/`.
 - On Windows, the same script under Git Bash with `CARGO_TARGET_DIR` outside the tree (it skips
   the wasm32 check, since the target is not installed there), then `rustyecon run tapes/gate.ron
-  --until 2080 --hashes <file>` and the same for `tapes/appb.ron --until 20000`, and a byte
-  comparison of each file's body (the `#` header names the build and target) with WSL's.
+  --until 2080 --hashes <file>` and the same for `tapes/appb.ron --until 20000` and
+  `tapes/demo-gb.ron --until 7852`, and a byte comparison of each file's body (the `#` header
+  names the build and target) with WSL's.
+- The demo world ran from a worktree, `D:/rustyecon-wt/demo` (`/mnt/d/rustyecon-wt/demo` in
+  WSL), on branch `demo-world`. Its targets are `/root/scratch/target-demo-<label>` and
+  `D:/rustyecon-targets/demo-<label>`. Its scratch, map research, verification and gate logs
+  are in `D:/rustyecon-demo/<label>/`, with the close's in `D:/rustyecon-demo/close/`.
+  `rustyecon worldgen worlds/demo-gb --out tapes/demo-gb.ron` recompiles the tape, and
+  `derive.py --check` in `worlds/demo-gb/` checks the derived tables. The atlas rebuilds with
+  `data/atlas/build_atlas.py` under its pinned venv (`D:/rustyecon-demo/venv-atlas`).
+- The screenshots: build `D:/rustyecon-demo/close/shot/` on Windows (`cargo build --release
+  --offline`, target `D:/rustyecon-targets/demo-close-shot`), then run `demo-shot.exe OUT.png
+  DATE LENS [SELECT|-] [HOVER|-] [W H PPP]`. For example, `demo-shot.exe map.png 1901-01-01
+  since.output.per.head county.wry - 2000 1250 1.0`. It renders on WARP. The `adapters` binary
+  beside it lists what wgpu offers.
 - Session 2 ran from a worktree, `D:/rustyecon-wt/s2` (`/mnt/d/rustyecon-wt/s2` in WSL), with
   targets outside it (`/root/scratch/target-s2-*`, `D:/rustyecon-targets/s2-*`) and its logs in
   `D:/rustyecon-s2/`. The build stamp reads git through the worktree's `.git` file, mapping its
@@ -1719,6 +2044,10 @@ scripts/gui.sh           the GUI's gate, run at each G-stage (G0.1); diffs the e
   in WSL), on branch `merge-g0`, with both gates' targets `/root/scratch/target-merge-g0` and
   `D:/rustyecon-targets/merge-g0` (the engine gate's GUI check in `…-gui` beside them) and its
   logs in `D:/rustyecon-merge-g0/`.
+- The `demo-world` merge ran from a worktree, `D:/rustyecon-wt/merge-demo`
+  (`/mnt/d/rustyecon-wt/merge-demo` in WSL), on branch `merge-demo`, with both gates' targets
+  `/root/scratch/target-merge-demo` and `D:/rustyecon-targets/merge-demo` (the engine gate's GUI
+  check in `…-gui` beside them) and its logs in `D:/rustyecon-merge-demo/`.
 - The markets probe ran from a worktree, `D:/rustyecon-wt/p2m` (`/mnt/d/rustyecon-wt/p2m` in
   WSL), on branch `phase2-markets`, with targets `/root/scratch/target-p2m-<label>` and
   `D:/rustyecon-targets/p2m-<label>`. Its frame, prediction, build checks, registration, runs,

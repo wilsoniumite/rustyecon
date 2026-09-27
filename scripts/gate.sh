@@ -25,7 +25,11 @@
 #   9. the probe's report: probe_battery_csv_unchanged by name, which must run and pass (C11:
 #      the probe reads certify's measures, and its 57 rows, its negative control and its shock
 #      history must print as docs/probe/results/ does);
-#  10. telemetry written twice through the binary, from two processes: the Parquet files, and
+#  10. the demo world (D.2, docs/demo/WORLD.md): derive.py --check when a python 3 is found,
+#      and demo_runs_to_1901 by name, which must run and pass (tapes/demo-gb.ron through the
+#      first tick of 1901, every step fired, every county alive and near its moving oracle
+#      point, its recorded hashes);
+#  11. telemetry written twice through the binary, from two processes: the Parquet files, and
 #      the manifests that pin them, must be byte-identical.
 # Then, recorded and never gated: on Linux, one cargo check of rustyecon-gui in its own target
 # directory, $CARGO_TARGET_DIR-gui (D1; docs/GUI.md §8.2: an engine-caused GUI break is fixed
@@ -176,6 +180,37 @@ out="$(cargo test --locked --release -p rustyecon-probe --test pins \
 printf '%s\n' "$out"
 if ! grep -q '^test probe_battery_csv_unchanged \.\.\. ok$' <<<"$out"; then
     echo "gate: probe_battery_csv_unchanged did not run" >&2
+    exit 1
+fi
+
+step "the demo world"
+# D.2 (docs/demo/WORLD.md): regions.csv and history.csv are derive.py's output from
+# counties.csv (standard-library Python, run when a working python is found); the committed
+# tapes/demo-gb.ron is the compiler's output (demo_tape_is_its_compilers_output, in the test
+# step); and the long run by name, which must run and pass: the tape through the first tick of
+# 1901, every step fired, every county alive and near its moving oracle point every tick, and
+# the recorded hashes.
+py=""
+for c in python3 python; do
+    if "$c" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 8) else 1)' >/dev/null 2>&1; then
+        py="$c"
+        break
+    fi
+done
+if [ -n "$py" ]; then
+    "$py" worlds/demo-gb/derive.py --check
+    echo "derive.py --check: regions.csv and history.csv are derive.py's output ($py)"
+else
+    echo "no python 3.8 or later: derive.py --check skipped (recorded, not gated)"
+fi
+out="$(cargo test --locked --release -p rustyecon-worldgen --test demo \
+    -- --ignored --exact demo_runs_to_1901 --show-output 2>&1)" || {
+    printf '%s\n' "$out"
+    exit 1
+}
+printf '%s\n' "$out" | grep -v '^county\.'
+if ! grep -q '^test demo_runs_to_1901 \.\.\. ok$' <<<"$out"; then
+    echo "gate: demo_runs_to_1901 did not run" >&2
     exit 1
 fi
 

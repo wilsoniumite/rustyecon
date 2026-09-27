@@ -1,0 +1,28 @@
+The rustyecon atlas: licence of the data in data/atlas/ (2026-09-27)
+
+The atlas database, gb.atlas.ron, is derived from OpenStreetMap data and from data of the
+Historic County Borders Project. It is made available under the Open Data Commons Open Database
+License (ODbL) v1.0:
+
+    https://opendatacommons.org/licenses/odbl/1-0/
+
+In short, and the licence's own text governs: you may copy, distribute and adapt it, provided
+you attribute it as ATTRIBUTION says, offer any adapted database you use publicly under the
+ODbL, and, if you distribute it with technical restrictions, also make an unrestricted copy
+available.
+
+preview.png is a Produced Work from the atlas under the ODbL. It carries its attribution on the
+image and may be used under the same notice.
+
+This licence covers the data files only. The build script (build_atlas.py), requirements.txt and
+the Rust code that reads the atlas (crates/worldgen) are code, under the repository's terms; the
+ODbL does not reach them (docs/GUI.md §6, ruling 3).
+
+The sources' own terms, which the atlas respects:
+
+- Historic County Borders Project (Historic Counties Trust), UK Definition B. Its README makes
+  the data free "for all personal, educational, non-commercial and commercial use", with no
+  permission needed, and asks for an acknowledgement, which ATTRIBUTION gives.
+- OpenStreetMap: (c) OpenStreetMap contributors, under the ODbL 1.0
+  (https://www.openstreetmap.org/copyright). The riding lines of Yorkshire come from it, which
+  is why the atlas as a whole is under the ODbL.

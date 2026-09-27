@@ -2,10 +2,10 @@
 //! build (docs/GUI.md §8.1). The GUI's path is the whole seam: commands through a
 //! `ThreadDriver` to its worker's Runner, observations back over the channel into a Store.
 //!
-//! When `RUSTYECON_GUI_HASHES` names a directory, the test writes `gate.hashes` and
-//! `appb.hashes` there, one `{t} 0x{hash:016x}` line per tick with `t = report.tick + 1` (the
-//! cli's convention, P0.5 amendment 8), and `scripts/gui.sh` compares them with the body of
-//! `rustyecon run <tape> --until <T> --hashes`.
+//! When `RUSTYECON_GUI_HASHES` names a directory, the tests write `gate.hashes`, `appb.hashes`
+//! and `demo-gb.hashes` there, one `{t} 0x{hash:016x}` line per tick with
+//! `t = report.tick + 1` (the cli's convention, P0.5 amendment 8), and `scripts/gui.sh` compares
+//! them with the body of `rustyecon run <tape> --until <T> --hashes`.
 
 mod common;
 
@@ -16,7 +16,7 @@ use common::{
 };
 use rustyecon_engine::prelude::*;
 use rustyecon_gui::drive::Driver;
-use rustyecon_gui::run::{Breakpoint, Cmd, Obs, PauseReason, Store};
+use rustyecon_gui::run::{Breakpoint, Catalogue, Cmd, Obs, PauseReason, Store};
 use std::time::Duration;
 
 /// Run `t` through a `ThreadDriver` by a fixed script of pauses, speed caps, steps of 1 and 7,
@@ -151,4 +151,69 @@ fn check(name: &str, text: &str, until: u64) {
 fn gui_equals_cli() {
     check("gate", GATE, GATE_TICKS);
     check("appb", APPB, APPB_TICKS);
+}
+
+/// The demo world's run in the gate: through the first tick of 1901, when its last steps fire
+/// (worldgen's `demo_runs_to_1901`).
+const DEMO_TICKS: u64 = 7_852;
+
+#[test]
+fn gui_equals_cli_demo_gb() {
+    // U4 on the demo tape (D.4, 2026-09-27): tapes/demo-gb.ron through a ThreadDriver with the
+    // lean catalogue the model sends a world of 93 nodes, by steps of 1 and 7 and a run-until,
+    // hashes as the engine does at every tick; `scripts/gui.sh` diffs the written
+    // `demo-gb.hashes` against `rustyecon run tapes/demo-gb.ron --until 7852 --hashes`.
+    let text = std::fs::read_to_string(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../tapes/demo-gb.ron"
+    ))
+    .expect("tapes/demo-gb.ron");
+    let t = tape_of(&text);
+    assert_eq!(Catalogue::for_nodes(t.nodes.len()), Catalogue::Lean);
+    let mut d = driver();
+    let mut log = Vec::new();
+    d.send(Cmd::Catalogue(Catalogue::Lean));
+    d.send(Cmd::Load {
+        tape: Box::new(t.clone()),
+        from: None,
+    });
+    wait_for(&mut d, &mut log, |o| matches!(o, Obs::Loaded { .. }));
+    d.send(Cmd::Step(1));
+    assert_eq!(wait_paused(&mut d, &mut log), (1, PauseReason::Stepped));
+    d.send(Cmd::Step(7));
+    assert_eq!(wait_paused(&mut d, &mut log), (8, PauseReason::Stepped));
+    d.send(Cmd::Run {
+        until: Some(DEMO_TICKS),
+        max_tps: None,
+    });
+    assert_eq!(
+        wait_paused(&mut d, &mut log),
+        (DEMO_TICKS, PauseReason::Reached(DEMO_TICKS))
+    );
+    drop(d);
+    let mut ticks = Vec::new();
+    for o in &log {
+        if let Obs::Batch(b) = o {
+            ticks.extend(b.rows.iter().map(|r| (r.tick, r.hash)));
+        }
+    }
+    assert_eq!(ticks.len() as u64, DEMO_TICKS, "one row a tick");
+    assert!(ticks.iter().enumerate().all(|(i, r)| r.0 == i as u64));
+    let mut store = Store::default();
+    for o in log {
+        store.ingest(o).expect("every observation ingests");
+    }
+    assert_eq!(store.tick(), DEMO_TICKS);
+    let reference = reference_hashes(&t, DEMO_TICKS);
+    let got: Vec<u64> = ticks.iter().map(|r| r.1).collect();
+    assert_eq!(got, reference, "the GUI's demo-gb hashes are the engine's");
+    assert_eq!(store.hashes(), reference.as_slice());
+    if let Some(dir) = std::env::var_os("RUSTYECON_GUI_HASHES") {
+        let mut body = String::new();
+        for (tick, hash) in &ticks {
+            body.push_str(&Manifest::line(tick + 1, *hash));
+        }
+        let path = std::path::Path::new(&dir).join("demo-gb.hashes");
+        std::fs::write(&path, body).expect("the hash file is written");
+    }
 }

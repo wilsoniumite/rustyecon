@@ -691,6 +691,23 @@ gate world's and appb's per-tick hash streams are too (finals `0x61f9c8529131ff1
    `markets_batteries_are_registered`, `markets_shocks_and_shapes_apply_as_named`,
    `markets_kick_set_decays_at_a_stable_point` and `run_length_follows_the_rule`.
 
+**Amended at D.2** (2026-09-27, branch `demo-world`: the first world compiler and the demo tape;
+docs/demo/WORLD.md §8), the same way. No crate on the engine path changed, so no hash,
+`prefix_id` or `world_id` moved: the gate world's final hash is still `0x61f9c8529131ff17` and
+appb's `0xe1fa082b26995867`.
+
+1. §1: `crates/worldgen` holds the atlas loader (D.1) and the compiler (D.2),
+   `compile(&Tables, &Atlas) -> Result<Compiled, CompileError>`. It depends on core and on the
+   oracle, which it solves outside any `Sim` to seed genesis and check every county's history;
+   no agent reads it (R13), and nothing on the engine path depends on worldgen. It reads no
+   file. The cli depends on it, and `tapes/demo-gb.ron` is its output.
+2. §8: the cli gains `worldgen <dir> [--out <tape>]`, exit 1 when the tables do not compile or
+   the compiled tape does not load, 3 on an I/O error (`worldgen_writes_the_committed_demo_tape`).
+3. §13: the worldgen row says its first form landed.
+4. No engine change was needed. A tape of 93 nodes, each with its own four Appendix B roles
+   trading at their home node, 30,078 dated `SetParam` events and 31,116 params, loads, resolves
+   and runs as the engine is (docs/demo/WORLD.md §8), and every lens reads accessors that exist.
+
 ## 0. Engine invariants
 
 Numbered so tests and reviews can cite them. Each has at least one test in §11.
@@ -746,12 +763,15 @@ crates/agents   rustyecon-agents   the Behaviour seam, View, the scripted actor
 crates/engine   rustyecon-engine   Sim: the tick loop, step, run, checkpoint, resume, the replay audit;
                                    TickReport; the hook whitelist
 crates/cli      rustyecon-cli      bin `rustyecon`: argument parsing, file I/O, exit codes; depends on
-                                   certify with its `parquet` feature (S2.4)
+                                   certify with its `parquet` feature (S2.4), and on worldgen for
+                                   `rustyecon worldgen` (D.2)
 crates/certify  rustyecon-certify  lib `certify`: criteria, batteries, the kick, the certificate and
                                    the manifest (docs/CERTIFY.md; S2.3); telemetry behind the feature
                                    `parquet` (S2.4); nothing on the engine path depends on it
 crates/oracle   rustyecon-oracle   the equilibrium solver, Phase 1 (unit 1a at P1.1); lib `oracle`
-crates/worldgen rustyecon-worldgen empty until Phase 4; nothing depends on it yet
+crates/worldgen rustyecon-worldgen the county atlas (D.1) and the tape compiler (D.2): tables and
+                                   the atlas in, a tape's text out; depends on core and on the
+                                   oracle, which it solves outside any Sim (R13); reads no file
 crates/probe    rustyecon-probe    the Phase 2 probe's harness (P2.0.1); lib `probe`; reads certify's
                                    oracle-free measures, Parquet-free (S2.5); the markets probe's
                                    harness (P2.1.1); nothing depends on it
@@ -760,6 +780,8 @@ crates/gui      rustyecon-gui      the interactive frontend, egui (docs/GUI.md; 
                                    alone; nothing depends on it, and the workspace's
                                    `default-members` leave it out (D1)
 tapes/appb.ron                     the probe's Appendix B world, generated (docs/probe/RULES.md §4)
+tapes/demo-gb.ron                  the illustrative demo world, compiled from worlds/demo-gb
+                                   (docs/demo/WORLD.md; D.2)
 tapes/gate.ron                     the gate world (§10)
 ```
 
@@ -1770,6 +1792,7 @@ rustyecon resume   <checkpoint.bin|.ron> --tape <tape.ron> --until <tick> [--man
 rustyecon replay   <tape.ron> --until <tick>                                              # audit_replay
 rustyecon registry <tape.ron>
 rustyecon certify  <tape.ron> (--criteria FILE | --until <tick>) --out DIR [--telemetry]   # S2.4
+rustyecon worldgen <world dir> [--out <tape.ron>]                                            # D.2
 ```
 
 From S2.4 the cli depends on certify too, with its `parquet` feature, and `build.rs` stamps the
@@ -1996,7 +2019,7 @@ Housekeeping (PLAN Phase 0 steps 2 and 6; A3):
 | Oracle | Phase 1 (other run; unit 1a joined at P1.1) |
 | Pops as rules (pairs, participation, logit); labour and parcel services as Instant goods; machines and (A, Λ, B) desks; the task margin; the income-identity check | Phase 2 |
 | Investment, vintages, depreciation, construction, build lags, user cost; population, technology and enclosure timelines (as world-level `Ext` deltas) | Phase 3 |
-| Worldgen compiler and its human-editable tables (the runtime tape is its target) | Phase 4 |
+| Worldgen compiler and its human-editable tables (the runtime tape is its target). Its first form landed at D.2 for the illustrative demo world (docs/demo/WORLD.md); the research world's is Phase 4's | Phase 4 |
 | Transport desks, channel state, pass-through recipes; home-node trading (Phase 0 lets an actor post at any node with no channel and no crossing cost) | Phases 4 and 9 |
 | Credit, banks, monetary regimes | Phase 8 |
 | Region shards and parallel reduction; sweeps of registered params (each point a tape edit, E1) | when §3.9's budget needs them; Phase 6 |

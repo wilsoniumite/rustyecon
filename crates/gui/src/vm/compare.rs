@@ -343,7 +343,7 @@ fn series_diff(
     let mut largest: Option<(u64, f64)> = None;
     let mut first = None;
     if let Some(c) = c {
-        for (&t, &y) in c.ticks().iter().zip(c.values()) {
+        for (t, y) in c.iter() {
             let Some(x) = parent.value_at(key, t) else {
                 continue;
             };

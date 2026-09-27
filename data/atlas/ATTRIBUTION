@@ -1,0 +1,22 @@
+Attribution for the rustyecon atlas (data/atlas/), 2026-09-27
+
+This atlas made use of data provided by the Historic County Borders Project
+(https://www.county-borders.co.uk): Historic Counties Trust, UK Definition B County Border
+Vector data, OSGB, simplified, release 2026-09-25, based on the Historic Counties Standard
+(https://historiccountiestrust.co.uk/Historic_Counties_Standard.pdf).
+
+Contains OpenStreetMap data (c) OpenStreetMap contributors, available under the Open Database
+License (https://www.openstreetmap.org/copyright): the boundary=traditional relations of the
+West, North and East Ridings of Yorkshire (relations 13390974, 13391138 and 17849894), as of
+2026-09-25T17:35:44Z.
+
+The atlas is under the ODbL 1.0 (LICENSE). Any build or copy that bundles gb.atlas.ron (the
+GUI's binaries included) carries this file and LICENSE with it, and any map drawn from it shows
+the two lines above or a link to them.
+
+As built (2026-09-27): the binaries that bundle the atlas bundle this file and LICENSE too
+(crates/worldgen, include_str!), and print both: `rustyecon licences` and
+`rustyecon-gui --licences`. The GUI's map paints this credit in its lower right corner:
+
+    Contains data from the Historic County Borders Project (county-borders.co.uk)
+    and OpenStreetMap data © OpenStreetMap contributors, ODbL 1.0 (openstreetmap.org/copyright)

@@ -11,7 +11,7 @@
 
 use super::{At, Measure, Obs, ObsBatch, PauseReason, RunId, SeriesKey};
 use serde::Serialize;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 /// How a line reads.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -26,43 +26,71 @@ pub enum Level {
     Error,
 }
 
+/// One class line the watch knows: where its requested and filled series sit in the
+/// catalogue, and whether its onset is logged.
+#[derive(Debug, Clone, Copy, Default)]
+struct Line {
+    requested: Option<usize>,
+    filled: Option<usize>,
+    rationed: bool,
+}
+
 /// Watches every class line of a run for the onset of rationing. One per run, fed each batch
 /// before the store records it, and started afresh by a load.
+///
+/// As built at D.3, it learns each class line's two series once, as the catalogue grows, and
+/// reads each row through a scratch column by catalogue index: the demo world's rows hold
+/// 5,970 cells and 1,116 class lines, and building a map of every row's lines cost the UI
+/// thread about a millisecond a tick. The onsets, and their order within a tick (by line), are
+/// as before.
 #[derive(Debug, Clone, Default)]
 pub struct RationWatch {
-    /// The class lines already filled below their request once.
-    rationed: BTreeSet<At>,
+    /// Every class line seen, in line order.
+    lines: BTreeMap<At, Line>,
+    /// How much of the catalogue `lines` has read.
+    read: usize,
+    /// One row's values by catalogue index, NaN where the row has none.
+    scratch: Vec<f64>,
 }
 
 impl RationWatch {
+    fn learn(&mut self, i: usize, k: &SeriesKey) {
+        match k.measure {
+            Measure::Requested => self.lines.entry(k.at.clone()).or_default().requested = Some(i),
+            Measure::Filled => self.lines.entry(k.at.clone()).or_default().filled = Some(i),
+            _ => {}
+        }
+    }
+
     /// The onset lines of a batch of run `run`, whose series `batch.known..` are the batch's
     /// new ones and whose earlier ones are `catalogue`'s.
     pub fn onsets(&mut self, run: RunId, batch: &ObsBatch, catalogue: &[SeriesKey]) -> Vec<Entry> {
-        let key = |i: u32| -> Option<&SeriesKey> {
-            let i = i as usize;
-            let known = batch.known as usize;
-            if i < known {
-                catalogue.get(i)
-            } else {
-                batch.new_series.get(i - known)
-            }
-        };
+        let known = batch.known as usize;
+        for (i, k) in catalogue.iter().enumerate().take(known).skip(self.read) {
+            self.learn(i, k);
+        }
+        for (j, k) in batch.new_series.iter().enumerate() {
+            self.learn(known + j, k);
+        }
+        self.read = self.read.max(known + batch.new_series.len());
+        let n = self.read;
         let mut out = Vec::new();
         for row in &batch.rows {
-            let mut lines: BTreeMap<&At, (Option<f64>, Option<f64>)> = BTreeMap::new();
+            self.scratch.clear();
+            self.scratch.resize(n, f64::NAN);
             for &(i, v) in &row.cells {
-                let Some(k) = key(i) else { continue };
-                match k.measure {
-                    Measure::Requested => lines.entry(&k.at).or_default().0 = Some(v),
-                    Measure::Filled => lines.entry(&k.at).or_default().1 = Some(v),
-                    _ => {}
+                if let Some(x) = self.scratch.get_mut(i as usize) {
+                    *x = v;
                 }
             }
-            for (at, line) in lines {
-                let (Some(requested), Some(filled)) = line else {
+            for (at, line) in &mut self.lines {
+                let (false, Some(r), Some(f)) = (line.rationed, line.requested, line.filled) else {
                     continue;
                 };
-                if filled < requested && self.rationed.insert(at.clone()) {
+                let (requested, filled) = (self.scratch[r], self.scratch[f]);
+                // A line the row lacks is NaN, and NaN is never below anything.
+                if filled < requested {
+                    line.rationed = true;
                     out.push(Entry {
                         run: Some(run),
                         tick: Some(row.tick),

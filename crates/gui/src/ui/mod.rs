@@ -14,6 +14,7 @@ pub mod editor;
 pub mod inspector;
 pub mod layout;
 pub mod log;
+pub mod map;
 pub mod outliner;
 pub mod plots;
 pub mod registry;
@@ -21,7 +22,7 @@ pub mod timeline;
 pub mod toolbar;
 
 use crate::model::{Cursor, Intent, Model};
-use crate::run::SeriesKey;
+use crate::run::{Entity, SeriesKey};
 use crate::vm;
 use layout::Pane;
 use std::collections::BTreeSet;
@@ -35,7 +36,57 @@ pub struct State {
     toolbar: toolbar::ToolbarState,
     /// The editor's form and file fields.
     pub editor: editor::EditorState,
+    /// The map: the atlas triangulated once, the lens shown, the view (D.3).
+    pub map: map::MapState,
     drawn: BTreeSet<Pane>,
+    /// The run and load whose tab was last brought forward: the map for a tape with one,
+    /// the plots for a tape without.
+    shown: Option<(crate::run::RunId, u64)>,
+    outliner: OutlinerCache,
+    /// The log's view-model and the number of lines it was made from: the log only grows, and
+    /// a run of the demo world logs 30,078 fired events (D.3).
+    log: Option<(usize, vm::log::LogVm)>,
+    /// The map's view-model, what it was made from and when (D.3): kept while the run, its
+    /// record, the cursor, the lens and the selection are unchanged, so a paused map remakes
+    /// nothing, and while a run streams live remade at most 30 times a second.
+    map_vm: Option<(MapKey, std::time::Instant, Option<vm::map::MapVm>)>,
+    /// The registry's view-model, what it was made from and when (D.3). The demo world's 31,116
+    /// params take about 75 ms to list, so while a run streams live the registry is remade at
+    /// most four times a second; it names the tick it was made at.
+    registry: Option<(
+        RegistryKey,
+        std::time::Instant,
+        Option<vm::registry::RegistryVm>,
+    )>,
+}
+
+/// What the map's view-model reads: the run, its load and its latest tick, the cursor, the lens
+/// and the selection.
+type MapKey = (
+    crate::run::RunId,
+    u64,
+    u64,
+    Option<u64>,
+    String,
+    Option<Entity>,
+);
+
+/// What the registry's view-model reads: the run, its load and its latest tick, and the
+/// cursor.
+type RegistryKey = (crate::run::RunId, u64, u64, Option<u64>);
+
+/// What the outliner's view-model reads, the selection aside: the run and its load, the pins
+/// and the plots. It reads no tick.
+type OutlinerKey = (crate::run::RunId, u64, Vec<Entity>, Vec<SeriesKey>);
+
+/// The outliner's view-model and filter, kept while its key is unchanged: listing the demo
+/// world's 31,116 params and 30,078 events took about 60 ms, too slow for a frame (D.3). The
+/// panel marks the selection itself, so a new selection does not remake it.
+#[derive(Default)]
+struct OutlinerCache {
+    key: Option<OutlinerKey>,
+    vm: Option<vm::outliner::OutlinerVm>,
+    filter: String,
 }
 
 impl State {
@@ -129,6 +180,18 @@ pub fn draw(
     }
     state.drawn.clear();
     state.plots.begin_frame();
+    // A tape with a map opens on the map, and one without on the plots, once per load.
+    if let Some(run) = m.focused() {
+        let load = (run.id, run.store.generation());
+        if let (Some(w), true) = (run.store.world(), state.shown != Some(load)) {
+            state.shown = Some(load);
+            let mapped = state
+                .map
+                .geo()
+                .is_ok_and(|g| vm::map::geography(w, &g.atlas).is_ok());
+            layout::bring_forward(tree, if mapped { Pane::Map } else { Pane::Plots });
+        }
+    }
     egui::Panel::top("toolbar").show(ui, |ui| {
         toolbar::show(ui, m, &mut state.toolbar, &mut intents);
     });
@@ -172,14 +235,76 @@ impl egui_tiles::Behavior<Pane> for Panes<'_> {
         let out = &mut *self.intents;
         match pane {
             Pane::Outliner => {
-                match vm::outliner::build(store, m.selection(), &m.session.pins, &m.session.plots) {
-                    Some(v) => outliner::show(ui, &v, out),
+                let key = (
+                    run.id,
+                    store.generation(),
+                    m.session.pins.clone(),
+                    m.session.plots.clone(),
+                );
+                let cache = &mut self.state.outliner;
+                if cache.key.as_ref() != Some(&key) {
+                    cache.vm = vm::outliner::build(
+                        store,
+                        m.selection(),
+                        &m.session.pins,
+                        &m.session.plots,
+                    );
+                    cache.key = Some(key);
+                }
+                match &cache.vm {
+                    Some(v) => outliner::show(ui, v, m.selection(), &mut cache.filter, out),
                     None => loading(ui),
                 }
             }
             Pane::Plots => match vm::plots::build(store, &m.session.plots, at) {
                 Some(v) => plots::show(ui, run.id, store, &v, &mut self.state.plots, out),
                 None => loading(ui),
+            },
+            Pane::Map => match self.state.map.ready() {
+                Err(e) => {
+                    ui.colored_label(ui.visuals().error_fg_color, e);
+                }
+                Ok(()) => {
+                    let key = (
+                        run.id,
+                        store.generation(),
+                        store.tick(),
+                        at,
+                        self.state.map.lens.clone(),
+                        m.selection().cloned(),
+                    );
+                    // While the run streams live, the map is remade at most every 33 ms,
+                    // 30 times a second; its overlay names the tick it shows.
+                    let live = at.is_none()
+                        && matches!(store.status(), crate::run::RunStatus::Running { .. });
+                    let fresh = match &self.state.map_vm {
+                        None => false,
+                        Some((k, _, _)) if *k == key => true,
+                        Some((k, made, _)) => {
+                            live && (k.0, k.1, k.3, &k.4, &k.5)
+                                == (key.0, key.1, key.3, &key.4, &key.5)
+                                && made.elapsed() < std::time::Duration::from_millis(33)
+                        }
+                    };
+                    if !fresh {
+                        let built = self.state.map.parts().and_then(|(geo, lenses)| {
+                            vm::map::build(
+                                store,
+                                run.origin,
+                                &geo.atlas,
+                                lenses,
+                                &self.state.map.lens,
+                                m.selection(),
+                                at,
+                            )
+                        });
+                        self.state.map_vm = Some((key, std::time::Instant::now(), built));
+                    }
+                    match self.state.map_vm.as_ref().and_then(|(_, _, v)| v.as_ref()) {
+                        Some(v) => map::show(ui, v, &mut self.state.map, out),
+                        None => loading(ui),
+                    }
+                }
             },
             Pane::Inspector => match m.selection() {
                 None => {
@@ -190,10 +315,33 @@ impl egui_tiles::Behavior<Pane> for Panes<'_> {
                     None => loading(ui),
                 },
             },
-            Pane::Registry => match vm::registry::build(store, at) {
-                Some(v) => registry::show(ui, &v, out),
-                None => loading(ui),
-            },
+            Pane::Registry => {
+                let key = (run.id, store.generation(), store.tick(), at);
+                let live =
+                    at.is_none() && matches!(store.status(), crate::run::RunStatus::Running { .. });
+                let fresh = match &self.state.registry {
+                    None => false,
+                    Some((k, _, _)) if *k == key => true,
+                    // While the run streams live, the last listing stands for 250 ms.
+                    Some((k, made, _)) => {
+                        live && (k.0, k.1, k.3) == (key.0, key.1, key.3)
+                            && made.elapsed() < std::time::Duration::from_millis(250)
+                    }
+                };
+                if !fresh {
+                    let v = vm::registry::build(store, at);
+                    self.state.registry = Some((key, std::time::Instant::now(), v));
+                }
+                match self
+                    .state
+                    .registry
+                    .as_ref()
+                    .and_then(|(_, _, v)| v.as_ref())
+                {
+                    Some(v) => registry::show(ui, v, out),
+                    None => loading(ui),
+                }
+            }
             Pane::Timeline => match vm::timeline::build(store, at) {
                 Some(v) => timeline::show(ui, &v, out),
                 None => loading(ui),
@@ -203,7 +351,19 @@ impl egui_tiles::Behavior<Pane> for Panes<'_> {
                     .session
                     .breakpoints
                     .contains(&crate::run::Breakpoint::OnError);
-                log::show(ui, &vm::log::build(m.log()), on, out);
+                // The log only grows: the lines added since the last frame are appended.
+                let all = m.log();
+                let (n, v) = self
+                    .state
+                    .log
+                    .get_or_insert_with(|| (0, vm::log::build(&[])));
+                if *n > all.len() {
+                    *v = vm::log::build(all);
+                } else {
+                    v.lines.extend(vm::log::build(&all[*n..]).lines);
+                }
+                *n = all.len();
+                log::show(ui, v, on, out);
             }
             Pane::Editor => editor::show(ui, m, &mut self.state.editor, out),
             Pane::Compare => match m.parent_of(run.id) {

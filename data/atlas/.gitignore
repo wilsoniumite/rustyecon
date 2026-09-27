@@ -1,0 +1,2 @@
+# build_atlas.py's default download cache: the pinned sources, never committed.
+.cache/

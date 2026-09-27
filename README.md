@@ -32,8 +32,10 @@ at the paper's margins reach the oracle's equilibrium of the SSRN Appendix B eco
 ([docs/probe/REPORT.md](docs/probe/REPORT.md)). Phase 1's oracle units 1a, 1b (many
 categories and the fork) and 1c (many machine types and the Leontief inverse) have landed;
 1d–1f are next. The GUI is designed ([docs/GUI.md](docs/GUI.md)), and its shell, G0, is
-closed: G0.1, the viewer, and G0.2, the editor (see "Running the GUI" below). The crates
-fill in phase by phase:
+closed: G0.1, the viewer, and G0.2, the editor (see "Running the GUI" below). On branch
+`demo-world` (2026-09-27, D.1–D.5), the GUI's county map and its lenses came forward over an
+illustrative world of the United Kingdom's 93 historic counties, 1750–1901 (see "The demo
+world's map" below). The crates fill in phase by phase:
 
 | Crate | What it holds | Fills in |
 |---|---|---|
@@ -41,16 +43,21 @@ fill in phase by phase:
 | `crates/markets` | orders and admission, clearing, settlement, the price update | Phase 0 |
 | `crates/agents` | the behaviour seam and the scripted actor; the agent rules | Phase 0; rules in Phase 2 (the probe's four Appendix B roles since P2.0.1, and four many-market roles since P2.1.1) |
 | `crates/engine` | `Sim`: the tick loop, checkpoints, resume, the replay audit, the read-only per-tick report a frontend drives and reads | Phase 0 |
-| `crates/cli` | the `rustyecon` binary (`run`, `resume`, `replay`, `registry`, `certify`): arguments, files, exit codes, the build stamp | Phase 0 |
+| `crates/cli` | the `rustyecon` binary (`run`, `resume`, `replay`, `registry`, `certify`, `worldgen`, `licences`): arguments, files, exit codes, the build stamp | Phase 0 |
 | `crates/certify` | dated criteria, the batteries and the kick check, sealed certificates, the run's manifest, and Parquet telemetry behind the feature `parquet` ([docs/CERTIFY.md](docs/CERTIFY.md)) | Phase 0, second session |
 | `crates/oracle` | the equilibrium solver (library `oracle`): unit 1a, one category with durability and interest, reproduces the SSRN Appendix B; 1b adds many categories and the fork, 1c many machine types and the Leontief inverse ([its README](crates/oracle/README.md)) | Phase 1: 1a–1c landed; 1d–1f to come |
-| `crates/worldgen` | the tape compiler | Phase 4 |
+| `crates/worldgen` | the tape compiler: the county atlas (D.1), and a first compiler for the illustrative demo world, `worlds/demo-gb` ([docs/demo/WORLD.md](docs/demo/WORLD.md), D.2), and that world's lens measures, which the GUI's map shows (D.3) | Phase 4; the demo world's form on branch `demo-world` |
 | `crates/probe` | the Phase 2 probe's harness: the Appendix B tape's generator, named perturbations, per-tick observables against the oracle ([docs/probe/RULES.md](docs/probe/RULES.md)); its oracle-free measures are certify's; the markets probe's harness, tapes and kick sets ([docs/probe/MARKETS-RULES.md](docs/probe/MARKETS-RULES.md)) | the probe, P2.0.1; the markets probe, P2.1.1 |
 | `crates/gui` | the interactive frontend, in egui: live runs, plots, lenses, the tape editor, and a county map ([docs/GUI.md](docs/GUI.md)); the binary `rustyecon-gui` | from G0, after Phase 0's second session; one stage beside each phase (G0 closed at G0.3) |
 
-Packages are named `rustyecon-<crate>`. `tapes/gate.ron` is the Phase 0 gate world, and
-`tapes/appb.ron` the probe's Appendix B world, and `tapes/markets-<id>.ron` the markets probe's
-worlds. `criteria/` holds each tape's dated
+Packages are named `rustyecon-<crate>`. `tapes/gate.ron` is the Phase 0 gate world,
+`tapes/appb.ron` the probe's Appendix B world, `tapes/markets-<id>.ron` the markets probe's
+worlds, and `tapes/demo-gb.ron` the illustrative demo world, 93 historic counties of the United
+Kingdom from 1750 to 1901, compiled by
+`rustyecon worldgen worlds/demo-gb --out tapes/demo-gb.ron`; nothing from it may be scored or
+cited (`certify` seals any run of it UNSCORED; citation is kept out by hand). The county atlas
+in `data/atlas/` is under the ODbL 1.0, with its own LICENSE and ATTRIBUTION, which
+`rustyecon licences` and `rustyecon-gui --licences` print. `criteria/` holds each tape's dated
 criteria, registered before its first certified run, and `results/` the certificates and
 manifests they gave.
 
@@ -117,9 +124,9 @@ two platforms is recorded in STATE.md, not gated. `.github/workflows/ci.yml` run
 The GUI never gates engine work (docs/GUI.md, D1): the workspace's default members leave
 `crates/gui` out, and `scripts/gate.sh` excludes it from clippy and the tests and checks it
 once without gating. `scripts/gui.sh` is the GUI's own gate, run at each of its stages:
-formatting, clippy, its tests in release with 42 of them checked by name, and the GUI's
-hashes of the gate and Appendix B worlds and of two edited branches against the cli's. It runs
-as the gate does:
+formatting, clippy, its tests in release with 55 of them checked by name, and the GUI's
+hashes of the gate, Appendix B and demo worlds and of two edited branches against the cli's.
+It runs as the gate does:
 
 ```sh
 wsl -d ubuntu --exec bash -lc '/mnt/c/<path to the repository>/scripts/gui.sh'
@@ -171,6 +178,70 @@ years a second, prints the CPU each frame took, and closes, keeping no session:
 ```sh
 cargo run --release -p rustyecon-gui -- --smoke 2080 tapes/gate.ron
 ```
+
+### The demo world's map
+
+![The demo world in 1901 on the lens "Output per head since 1750"](docs/demo/map-1901-output-since-1750.png)
+
+`tapes/demo-gb.ron` is an illustrative world: the United Kingdom's 93 historic counties, 1750
+to 1901, each running the probe's four roles, pushed along 150 years of gradual history
+([docs/demo/WORLD.md](docs/demo/WORLD.md)). The GUI opens it on its map. The first build takes
+a few minutes, and after that it starts in seconds.
+
+**Windows, PowerShell,** from the repository (the checked way):
+
+```powershell
+$env:CARGO_TARGET_DIR = 'D:/rustyecon-targets/gui'
+cargo run --release -p rustyecon-gui -- tapes/demo-gb.ron
+```
+
+**WSL,** from the repository (`/mnt/c/...` or `/mnt/d/...`), with a display:
+
+```sh
+CARGO_TARGET_DIR=$HOME/scratch/target-rustyecon-gui cargo run --release -p rustyecon-gui -- tapes/demo-gb.ron
+```
+
+Or from a Windows shell:
+
+```sh
+wsl -d ubuntu --exec bash -lc 'cd /mnt/c/<path to the repository> && CARGO_TARGET_DIR=$HOME/scratch/target-rustyecon-gui cargo run --release -p rustyecon-gui -- tapes/demo-gb.ron'
+```
+
+A window from WSL needs WSLg. On the build machine `%USERPROFILE%\.wslconfig` sets
+`guiApplications=false`, so the WSL window has not been tried there. To try it, remove that
+line and run `wsl --shutdown`. Without a display, the cli runs the same tape and prints its
+final hash (`0xfad880fe08d06645` at state tick 7,852):
+`cargo run --release -p rustyecon-cli -- run tapes/demo-gb.ron --until 7852`.
+
+- **The map.** It opens paused at 1750 on the lens "Wage in land" (w/r). Press Space to run,
+  and the counties recolour as the history moves them. "Step a year" and "Run until" (a tick,
+  or a date such as `1851-01-01`) move in steps. Drag to pan, scroll to zoom, double-click to
+  fit. Hover a county for its value with its unit, rank, run and tick. Click it to select it,
+  and its card beside the map lists every lens and plots its prices, volumes, params and
+  states.
+- **Lenses.** `1`–`9` and `0` pick the first ten, `[` and `]` step through all 25, and the
+  selector above the ranked table lists them by group: wages, prices, income, production,
+  relief, markets, change since the record's first tick, the history's levers, and against
+  the oracle. Each has a neutral scale fixed for the whole run, so a colour means the same number
+  in 1750 and in 1900, and its unit and reference are on the legend. The ranked table beside
+  the map shows the same values. The two oracle lenses wait for `crates/observe`.
+- **Not research.** Every number is `Assumed("illustrative demo …")` and the tape's name
+  carries `[illustrative]`, so nothing from it may be scored or cited. `certify` seals any run
+  of it UNSCORED. Keeping its figures out of citation rests on its readers (GUI.md U5).
+- **One economy per county.** Each county has one good and one machine type, and no county
+  trades with another. More goods, machine types and carriers come in a second pass, on the
+  many-market roles (WORLD.md §7; STATE.md O27).
+- **The map's data.** The county borders are the Historic County Borders Project's and
+  OpenStreetMap's, under the ODbL 1.0. The map credits both in its corner, and `rustyecon
+  licences` and `rustyecon-gui --licences` print the licence and attribution.
+- **Its size.** 93 nodes record the lean catalogue: each market's price, supply, demand,
+  cleared volume and whether it traded; each class line's requested and filled; each actor's
+  state; and every param. Nothing is plotted until you plot it. Opening the tape takes a few
+  seconds, and a run to 1901 takes about 20 s and holds about 0.4 GB.
+
+`docs/demo/` also has the map in 1801 on "Wage in land"
+([map-1801-wage-in-land.png](docs/demo/map-1801-wage-in-land.png)). Both images were rendered
+headlessly (docs/GUI.md, "The map and lenses, brought forward", item 3).
 
 ## History
 

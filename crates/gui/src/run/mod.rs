@@ -22,7 +22,9 @@ mod runner;
 mod store;
 
 pub use decimate::{decimate, Decimator};
-pub use extract::{At, Entity, Extractor, HolderKey, Measure, SeriesKey};
+pub use extract::{
+    state_fields, At, Catalogue, Entity, Extractor, HolderKey, Measure, SeriesKey, StateField,
+};
 pub use ring::ring_tick_at_or_after;
 pub use runner::{Progress, Runner};
 pub use store::{Failure, IngestError, RunStatus, Series, Store};
@@ -144,6 +146,9 @@ pub enum Cmd {
     Step(u64),
     /// Replace the breakpoints.
     Breakpoints(Vec<Breakpoint>),
+    /// What the next load records (D.3): G0's whole catalogue unless told otherwise. The
+    /// model sends the lean one before it loads a world too large to record whole.
+    Catalogue(Catalogue),
     /// Report the state at this tick: now, when the run reaches it, or from a scratch `Sim`
     /// resumed at the latest ring checkpoint at or before it (deep inspection).
     Snapshot(u64),

@@ -7,12 +7,68 @@
 //! the tick's audit lines, its largest margin and drift; the run's drift per good and its margin.
 //! Fired events travel in the row. A value is stamped with the tick that ran: report fields
 //! describe that tick, and holdings and params are read from the state it left.
+//!
+//! D.3 (2026-09-27) adds two measures the map's lenses read, each the engine's own: whether a
+//! market traded (`MarketLine::trades`, 1 or 0) and each actor's own state (`Sim::actor_state`:
+//! the provider's due and paid, the workers' share, a desk's share, used, scale and output). It
+//! also adds the lean [`Catalogue`], for a world too large to record whole (the demo world's
+//! 93 counties, docs/demo/WORLD.md §8): the model chooses it when it loads such a tape.
 
 use super::Row;
 use rustyecon_engine::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::fmt;
+
+/// A number of an actor's own state (`ActorState`), by its field's name.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum StateField {
+    /// A desk's planned human share, or the workers' participation share.
+    Share,
+    /// The human share a good desk's last production used.
+    Used,
+    /// A desk's scale.
+    Scale,
+    /// What a desk's last production made.
+    Output,
+    /// What the provider's last transfer owed.
+    Due,
+    /// What it paid.
+    Paid,
+}
+
+impl StateField {
+    /// The field's name, as the state's type calls it.
+    pub fn name(self) -> &'static str {
+        match self {
+            StateField::Share => "share",
+            StateField::Used => "used",
+            StateField::Scale => "scale",
+            StateField::Output => "output",
+            StateField::Due => "due",
+            StateField::Paid => "paid",
+        }
+    }
+}
+
+/// An actor state's numbers, by field, in the order the state's type lists them. A scripted
+/// actor's state holds none.
+pub fn state_fields(s: &ActorState) -> Vec<(StateField, f64)> {
+    match s {
+        ActorState::Scripted(_) => Vec::new(),
+        ActorState::Provider(p) => vec![(StateField::Due, p.due), (StateField::Paid, p.paid)],
+        ActorState::Workers(w) => vec![(StateField::Share, w.share)],
+        ActorState::GoodDesk(d) => vec![
+            (StateField::Share, d.share),
+            (StateField::Used, d.used),
+            (StateField::Scale, d.scale),
+            (StateField::Output, d.output),
+        ],
+        ActorState::MachDesk(d) => {
+            vec![(StateField::Scale, d.scale), (StateField::Output, d.output)]
+        }
+    }
+}
 
 /// What a series measures.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -57,6 +113,10 @@ pub enum Measure {
     RunDrift,
     /// The run's largest margin (`RunAudit::max_margin`).
     RunMargin,
+    /// `MarketLine::trades`: 1 when the market traded in the tick, 0 when it did not (D.3).
+    Trades,
+    /// A number of an actor's own state after the tick, `Sim::actor_state` (D.3).
+    State(StateField),
 }
 
 impl Measure {
@@ -83,7 +143,67 @@ impl Measure {
             Measure::TickDrift => "tick_drift",
             Measure::RunDrift => "run_drift",
             Measure::RunMargin => "run_margin",
+            Measure::Trades => "trades",
+            Measure::State(f) => f.name(),
         }
+    }
+}
+
+/// What an Extractor records (docs/GUI.md §3.4, the catalogue filter of §10, brought forward
+/// at D.3). A gap in a series is still a tick with no value; a series the catalogue leaves out
+/// is simply not in the store.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Catalogue {
+    /// Everything: G0's catalogue with D.3's two measures.
+    #[default]
+    Full,
+    /// For a world too large to record whole: each market's price, supply, demand, cleared
+    /// volume and whether it traded; each class line's requested and filled; each actor's own
+    /// state; every registered param; the run's margins and the tick's largest drift. No next
+    /// price, EMA or fills, no feasible line, settle line, holding, audit line or drift by good.
+    Lean,
+}
+
+impl Catalogue {
+    /// A world of more nodes than this records the lean catalogue. The gate world has two and
+    /// the Appendix B world one; the demo world has 93, whose whole catalogue would be 11,447
+    /// series (1,116 settle lines each of quantity and value, 619 holdings, …).
+    pub const LEAN_ABOVE: usize = 16;
+
+    /// The catalogue for a world of `nodes` nodes.
+    pub fn for_nodes(nodes: usize) -> Catalogue {
+        if nodes > Catalogue::LEAN_ABOVE {
+            Catalogue::Lean
+        } else {
+            Catalogue::Full
+        }
+    }
+
+    /// Whether it records a measure at all.
+    pub fn records(&self, m: Measure) -> bool {
+        match self {
+            Catalogue::Full => true,
+            Catalogue::Lean => matches!(
+                m,
+                Measure::Price
+                    | Measure::Supply
+                    | Measure::Demand
+                    | Measure::Cleared
+                    | Measure::Trades
+                    | Measure::Requested
+                    | Measure::Filled
+                    | Measure::State(_)
+                    | Measure::Param
+                    | Measure::TickMargin
+                    | Measure::TickDrift
+                    | Measure::RunMargin
+            ),
+        }
+    }
+
+    /// Whether it is the lean one.
+    pub fn is_lean(&self) -> bool {
+        matches!(self, Catalogue::Lean)
     }
 }
 
@@ -153,6 +273,8 @@ pub enum At {
         /// The provenance.
         prov: Provenance,
     },
+    /// An actor's own state (D.3).
+    Actor(Key),
 }
 
 /// A tape entity by key (U7): what a selection or a pin names. Dense ids are resolved against
@@ -223,6 +345,7 @@ impl SeriesKey {
                 w.id_of::<ParamId>(p.as_str()).is_some() || w.schedule.param(p.as_str()).is_some()
             }
             At::Good(g) | At::Line { good: g, .. } => good(g),
+            At::Actor(a) => actor(a),
         }
     }
 }
@@ -260,6 +383,7 @@ impl fmt::Display for SeriesKey {
             At::Param(p) => write!(f, "{m} {p}"),
             At::Good(g) => write!(f, "{m} of {g}"),
             At::Line { good, prov } => write!(f, "{m} of {good} by {prov:?}"),
+            At::Actor(a) => write!(f, "{m} of {a}"),
         }
     }
 }
@@ -275,37 +399,62 @@ enum Slot {
     Param(ParamId),
     Good(GoodId),
     Line(GoodId, Provenance),
+    Actor(ActorId),
 }
 
 /// Turns each tick into a [`Row`], numbering series as they first appear.
 #[derive(Debug, Clone)]
 pub struct Extractor {
     world: World,
+    catalogue: Catalogue,
     params: Vec<ParamId>,
+    actors: Vec<ActorId>,
     index: BTreeMap<(Measure, Slot), u32>,
-    catalogue: Vec<SeriesKey>,
+    series: Vec<SeriesKey>,
+    /// The last tick's cells in the order they were made, so a tick of the same shape finds
+    /// each index without a search.
+    layout: Vec<((Measure, Slot), u32)>,
+    next: Vec<((Measure, Slot), u32)>,
 }
 
 impl Extractor {
-    /// An Extractor for runs of `world`, with an empty catalogue.
+    /// An Extractor for runs of `world` that records G0's whole catalogue, with an empty
+    /// catalogue so far.
     pub fn new(world: &World) -> Extractor {
+        Extractor::with(world, Catalogue::Full)
+    }
+
+    /// An Extractor for runs of `world` that records `catalogue`.
+    pub fn with(world: &World, catalogue: Catalogue) -> Extractor {
+        let params = world.registry.params().iter().map(|p| p.id).collect();
         Extractor {
             world: world.clone(),
-            params: world.registry.params().iter().map(|p| p.id).collect(),
+            catalogue,
+            params,
+            actors: world.actors.iter().map(|a| a.id).collect(),
             index: BTreeMap::new(),
-            catalogue: Vec::new(),
+            series: Vec::new(),
+            layout: Vec::new(),
+            next: Vec::new(),
         }
     }
 
     /// Every series seen so far, by catalogue index.
     pub fn catalogue(&self) -> &[SeriesKey] {
+        &self.series
+    }
+
+    /// What it records.
+    pub fn records(&self) -> &Catalogue {
         &self.catalogue
     }
 
     /// The row of the tick `r` reports, read from `r` and from `sim` after it. Series seen for
     /// the first time are appended to `new`, in catalogue order.
     pub fn row(&mut self, sim: &Sim, r: &TickReport, new: &mut Vec<SeriesKey>) -> Row {
-        let mut cells = Vec::new();
+        let mut cells = Vec::with_capacity(self.layout.len());
+        self.next.clear();
+        let full = !self.catalogue.is_lean();
         for m in &r.markets {
             let at = Slot::Market(m.node, m.good);
             for (measure, v) in [
@@ -318,8 +467,12 @@ impl Extractor {
                 (Measure::BuyerFill, m.buyer_fill),
                 (Measure::SellerFill, m.seller_fill),
             ] {
-                cells.push((self.slot(measure, at, new), v));
+                if full || self.catalogue.records(measure) {
+                    cells.push((self.slot(measure, at, new), v));
+                }
             }
+            let traded = if m.trades() { 1.0 } else { 0.0 };
+            cells.push((self.slot(Measure::Trades, at, new), traded));
         }
         for l in &r.rationing {
             let at = Slot::Class(l.node, l.good, l.class, l.side);
@@ -328,19 +481,23 @@ impl Extractor {
                 (Measure::Feasible, l.feasible),
                 (Measure::Filled, l.filled),
             ] {
-                cells.push((self.slot(measure, at, new), v));
+                if full || self.catalogue.records(measure) {
+                    cells.push((self.slot(measure, at, new), v));
+                }
             }
         }
-        for s in &r.settlements {
-            let at = Slot::Order(s.actor, s.node, s.good, s.side);
-            cells.push((self.slot(Measure::SettledQty, at, new), s.qty));
-            cells.push((self.slot(Measure::SettledValue, at, new), s.value));
-        }
-        for (holder, good, q) in sim.observe_holdings().0 {
-            cells.push((
-                self.slot(Measure::Held, Slot::Holding(holder, good), new),
-                q,
-            ));
+        if full {
+            for s in &r.settlements {
+                let at = Slot::Order(s.actor, s.node, s.good, s.side);
+                cells.push((self.slot(Measure::SettledQty, at, new), s.qty));
+                cells.push((self.slot(Measure::SettledValue, at, new), s.value));
+            }
+            for (holder, good, q) in sim.observe_holdings().0 {
+                cells.push((
+                    self.slot(Measure::Held, Slot::Holding(holder, good), new),
+                    q,
+                ));
+            }
         }
         let params = std::mem::take(&mut self.params);
         for &p in &params {
@@ -349,14 +506,16 @@ impl Extractor {
             }
         }
         self.params = params;
-        for (good, prov, v) in &r.audit.lines {
-            cells.push((
-                self.slot(Measure::Declared, Slot::Line(*good, *prov), new),
-                *v,
-            ));
-        }
-        for (good, d) in &r.run.drift {
-            cells.push((self.slot(Measure::RunDrift, Slot::Good(*good), new), *d));
+        if full {
+            for (good, prov, v) in &r.audit.lines {
+                cells.push((
+                    self.slot(Measure::Declared, Slot::Line(*good, *prov), new),
+                    *v,
+                ));
+            }
+            for (good, d) in &r.run.drift {
+                cells.push((self.slot(Measure::RunDrift, Slot::Good(*good), new), *d));
+            }
         }
         for (measure, v) in [
             (Measure::TickMargin, r.audit.max_margin),
@@ -365,6 +524,16 @@ impl Extractor {
         ] {
             cells.push((self.slot(measure, Slot::World, new), v));
         }
+        let actors = std::mem::take(&mut self.actors);
+        for &a in &actors {
+            if let Some(s) = sim.actor_state(a) {
+                for (f, v) in state_fields(s) {
+                    cells.push((self.slot(Measure::State(f), Slot::Actor(a), new), v));
+                }
+            }
+        }
+        self.actors = actors;
+        std::mem::swap(&mut self.layout, &mut self.next);
         Row {
             tick: r.tick,
             hash: r.hash,
@@ -373,19 +542,30 @@ impl Extractor {
         }
     }
 
-    /// The catalogue index of `(measure, slot)`, numbering it if it is new.
+    /// The catalogue index of `(measure, slot)`, numbering it if it is new. A tick shaped as
+    /// the last one finds it at the same place in the last tick's layout.
     fn slot(&mut self, measure: Measure, slot: Slot, new: &mut Vec<SeriesKey>) -> u32 {
-        if let Some(&i) = self.index.get(&(measure, slot)) {
+        let want = (measure, slot);
+        let i = match self.layout.get(self.next.len()) {
+            Some(&(k, i)) if k == want => i,
+            _ => self.lookup(want, new),
+        };
+        self.next.push((want, i));
+        i
+    }
+
+    fn lookup(&mut self, want: (Measure, Slot), new: &mut Vec<SeriesKey>) -> u32 {
+        if let Some(&i) = self.index.get(&want) {
             return i;
         }
         let key = SeriesKey {
-            measure,
-            at: self.at(slot),
+            measure: want.0,
+            at: self.at(want.1),
         };
-        let i = u32::try_from(self.catalogue.len()).expect("fewer than 2^32 series");
-        self.catalogue.push(key.clone());
+        let i = u32::try_from(self.series.len()).expect("fewer than 2^32 series");
+        self.series.push(key.clone());
         new.push(key);
-        self.index.insert((measure, slot), i);
+        self.index.insert(want, i);
         i
     }
 
@@ -434,6 +614,7 @@ impl Extractor {
                 good: good(g),
                 prov,
             },
+            Slot::Actor(a) => At::Actor(actor(a)),
         }
     }
 }

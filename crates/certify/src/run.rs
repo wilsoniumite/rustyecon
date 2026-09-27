@@ -1,15 +1,20 @@
 //! `certify`: one run from genesis, scored (docs/CERTIFY.md §6–§8). It gathers what each
 //! battery reads (the base run's observations and hashes, a second run, the replay audit, the
 //! resumes, the kicks) and hands each to its pure function; then the reports, the seal and the
-//! manifest. It returns an error only for a base tape that does not load, a reserved key, or
-//! criteria that do not fit the tape; every failure after that is inside the certificate.
+//! manifest. It returns an error only for a base tape that does not load, a reserved key,
+//! criteria that do not fit the tape, or an illustrative tape that has lost its name's marker;
+//! every failure after that is inside the certificate.
 
 use crate::battery::{self, BalanceBars, DeterminismInputs, KickBars, ResumeRun, SettlesBars};
-use crate::certificate::{seal, BatteryId, BatteryResult, Certificate, CriteriaRef, Parts};
+use crate::certificate::{
+    seal, BatteryId, BatteryResult, Certificate, CriteriaRef, Parts, ILLUSTRATIVE,
+    ILLUSTRATIVE_BASIS,
+};
 use crate::criteria::{BatterySpec, Criteria, CriteriaError, Fit};
 use crate::kick::{kick_segment, reserved_keys};
 use crate::manifest::{tape_hash, Build, Hex, Manifest, RunKey};
 use crate::obs::{kick_ticks, segment_before, segments, Names, Obs, Segment};
+use rustyecon_core::Basis;
 use rustyecon_engine::prelude::{audit_replay, Checkpoint, LoadError, Sim, Tape, TickReport};
 use std::fmt;
 
@@ -51,6 +56,9 @@ pub enum CertifyError {
     Reserved(Vec<String>),
     /// The criteria do not fit the tape.
     Criteria(CriteriaError),
+    /// A basis says the tape is illustrative, and its name lacks the marker that keeps it
+    /// unscored (R5): the entry, by path.
+    Illustrative(String),
 }
 
 impl fmt::Display for CertifyError {
@@ -63,11 +71,54 @@ impl fmt::Display for CertifyError {
                 k.join(", ")
             ),
             CertifyError::Criteria(e) => write!(f, "the criteria do not fit the tape: {e}"),
+            CertifyError::Illustrative(at) => write!(
+                f,
+                "{at} has an illustrative basis, and the tape's name lacks {ILLUSTRATIVE}: an \
+                 illustrative tape is never scored (R5), so its name keeps the marker"
+            ),
         }
     }
 }
 
 impl std::error::Error for CertifyError {}
+
+/// The first entry of `tape` whose basis says it is illustrative (its text starts with
+/// [`ILLUSTRATIVE_BASIS`]), by path: the params, the actors, genesis, the events and the
+/// recurring entries, in that order.
+pub fn illustrative_basis(tape: &Tape) -> Option<String> {
+    let says = |b: &Basis| {
+        let text = match b {
+            Basis::Measured { source, .. } => source,
+            Basis::Literature(s) | Basis::Approximate(s) | Basis::Assumed(s) => s,
+            Basis::Fitted { fit } => fit,
+        };
+        text.starts_with(ILLUSTRATIVE_BASIS)
+    };
+    let params = tape
+        .params
+        .iter()
+        .map(|p| (format!("params[{}]", p.key), &p.basis));
+    let actors = tape
+        .actors
+        .iter()
+        .map(|a| (format!("actors[{}]", a.key), &a.basis));
+    let genesis = std::iter::once(("genesis".to_string(), &tape.genesis.basis));
+    let events = tape
+        .events
+        .iter()
+        .map(|e| (format!("events[{}]", e.key), &e.basis));
+    let recurring = tape
+        .recurring
+        .iter()
+        .map(|r| (format!("recurring[{}]", r.key), &r.basis));
+    params
+        .chain(actors)
+        .chain(genesis)
+        .chain(events)
+        .chain(recurring)
+        .find(|(_, b)| says(b))
+        .map(|(path, _)| path)
+}
 
 /// The base run: its observations, hashes and last report, the checkpoints it kept, how far it
 /// got and why it stopped.
@@ -185,6 +236,13 @@ pub fn certify(
     let reserved = reserved_keys(tape);
     if !reserved.is_empty() {
         return Err(CertifyError::Reserved(reserved));
+    }
+    // R5: an illustrative tape's name carries the marker the seal reads, so a tape whose bases
+    // say illustrative and whose name has lost it is refused before it runs (D.4).
+    if !tape.header.name.contains(ILLUSTRATIVE) {
+        if let Some(at) = illustrative_basis(tape) {
+            return Err(CertifyError::Illustrative(at));
+        }
     }
     let mut sim = Sim::new(tape).map_err(CertifyError::Load)?;
     let world = sim.world().clone();
