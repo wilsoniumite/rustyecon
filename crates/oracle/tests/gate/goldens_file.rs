@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use crate::goldens::TABLE;
 
 /// Significant digits the Rust constants keep.
-const SIGNIFICANT: usize = 20;
+pub(crate) const SIGNIFICANT: usize = 20;
 
 const GOLDENS_TXT: &str = include_str!("../../goldens/goldens.txt");
 
@@ -16,9 +16,9 @@ const GENERATE_PY: &[u8] = include_bytes!("../../goldens/generate.py");
 
 /// A decimal as (negative, significant digits without leading or trailing zeros,
 /// decimal exponent of the first digit). Zero is (false, [], 0).
-type Decimal = (bool, Vec<u8>, i32);
+pub(crate) type Decimal = (bool, Vec<u8>, i32);
 
-fn parse_decimal(text: &str) -> Decimal {
+pub(crate) fn parse_decimal(text: &str) -> Decimal {
     let compact: String = text.chars().filter(|c| !c.is_whitespace()).collect();
     let (negative, unsigned) = match compact.strip_prefix('-') {
         Some(rest) => (true, rest),
@@ -55,7 +55,10 @@ fn parse_decimal(text: &str) -> Decimal {
     (negative, digits, first)
 }
 
-fn round_half_up((negative, mut digits, mut first): Decimal, significant: usize) -> Decimal {
+pub(crate) fn round_half_up(
+    (negative, mut digits, mut first): Decimal,
+    significant: usize,
+) -> Decimal {
     if digits.len() > significant {
         let up = digits[significant] >= 5;
         digits.truncate(significant);
@@ -149,7 +152,7 @@ fn constants_match_goldens_txt() {
 
 /// FNV-1a, 64 bits, over the bytes with every CRLF read as LF: generate.py's `fnv1a64`,
 /// so the digests do not depend on how git checked the files out.
-fn fnv1a64(data: &[u8]) -> u64 {
+pub(crate) fn fnv1a64(data: &[u8]) -> u64 {
     let mut hash: u64 = 0xCBF2_9CE4_8422_2325;
     for (i, &byte) in data.iter().enumerate() {
         if byte == b'\r' && data.get(i + 1) == Some(&b'\n') {

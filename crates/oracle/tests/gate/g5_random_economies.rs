@@ -11,10 +11,10 @@ use crate::support::*;
 
 /// SplitMix64 (Steele, Lea and Flood, OOPSLA 2014): a fixed, seedable generator
 /// written out here, so the draws are the same on every platform and need no crate.
-struct SplitMix64(u64);
+pub(crate) struct SplitMix64(pub(crate) u64);
 
 impl SplitMix64 {
-    fn next_u64(&mut self) -> u64 {
+    pub(crate) fn next_u64(&mut self) -> u64 {
         self.0 = self.0.wrapping_add(0x9E37_79B9_7F4A_7C15);
         let mut z = self.0;
         z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
@@ -23,7 +23,7 @@ impl SplitMix64 {
     }
 
     /// Uniform on [lo, hi), from the top 53 bits.
-    fn uniform(&mut self, lo: f64, hi: f64) -> f64 {
+    pub(crate) fn uniform(&mut self, lo: f64, hi: f64) -> f64 {
         let unit = (self.next_u64() >> 11) as f64 / (1u64 << 53) as f64;
         lo + (hi - lo) * unit
     }
@@ -31,20 +31,20 @@ impl SplitMix64 {
 
 /// Seed of the first set; the others follow it. The number is check_macro.py's
 /// (:46, `default_rng(923)`), though the generator differs.
-const SEED: u64 = 923;
+pub(crate) const SEED: u64 = 923;
 
 /// Interior economies per set: at least 60, as the spec and check_macro.py:48,111 ask.
-const WANTED: usize = 60;
+pub(crate) const WANTED: usize = 60;
 
 /// Draws allowed per set before the test fails. Most draws from these ranges are
 /// interior, so a set needs far fewer.
-const MAX_DRAWS: usize = 10_000;
+pub(crate) const MAX_DRAWS: usize = 10_000;
 
 /// Intervals in the grid on which single crossing is checked.
 const GRID: usize = 100;
 
 #[derive(Clone, Copy, Debug)]
-enum Set {
+pub(crate) enum Set {
     /// (ρ, δ, J_b) = (0, 1, 1), check_macro.py I (:49-51).
     Flow,
     /// ρ ~ U(0, 0.12), δ ~ U(0.03, 1), J_b = 1, check_macro.py A (:112-114).
@@ -54,9 +54,9 @@ enum Set {
 }
 
 /// Build lags drawn in the `BuildLag` set: 1..=MAX_LAG.
-const MAX_LAG: u64 = 5;
+pub(crate) const MAX_LAG: u64 = 5;
 
-fn draw(rng: &mut SplitMix64, set: Set) -> Params {
+pub(crate) fn draw(rng: &mut SplitMix64, set: Set) -> Params {
     // Ranges: docs/unit-1a.md §6 G5. Fields are evaluated in the order written.
     let base = Params {
         workers: rng.uniform(1.0, 5.0),

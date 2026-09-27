@@ -85,15 +85,39 @@ pub enum ParamError {
         /// The value computed for u.
         u: f64,
     },
+    /// A parameter of one item of a list failed: a category of unit 1b
+    /// ([`CategoryParams`](crate::CategoryParams)) or a cell of the price block
+    /// ([`cell_cost`](crate::cell_cost)).
+    Item {
+        /// What the list holds: `"category"` or `"cell"`.
+        kind: &'static str,
+        /// The item's position in its list, from 0.
+        index: usize,
+        /// Which of the item's parameters failed, and why.
+        error: Box<ParamError>,
+    },
+    /// A condition on the shape or the combination of parameters failed: unit 1b's task
+    /// line, its categories and its basket (docs/unit-1b.md §3.2).
+    Invalid {
+        /// What failed: `"edges"`, `"density"`, `"categories"`, `"category"`, `"basket"` or
+        /// `"J(0)"`.
+        name: &'static str,
+        /// The condition, in words.
+        reason: &'static str,
+    },
 }
 
 impl ParamError {
-    /// The name of the offending parameter (`"u"` for [`ParamError::UserCostNotFinite`]).
+    /// The name of the offending parameter (`"u"` for [`ParamError::UserCostNotFinite`];
+    /// for [`ParamError::Item`], the item's parameter).
     pub fn name(&self) -> &'static str {
         match self {
-            ParamError::NotFinite { name, .. } | ParamError::OutOfRange { name, .. } => name,
+            ParamError::NotFinite { name, .. }
+            | ParamError::OutOfRange { name, .. }
+            | ParamError::Invalid { name, .. } => name,
             ParamError::BuildLag { .. } => "build_lag",
             ParamError::UserCostNotFinite { .. } => "u",
+            ParamError::Item { error, .. } => error.name(),
         }
     }
 }
@@ -116,6 +140,8 @@ impl fmt::Display for ParamError {
                     "user cost u = {u:?} is not finite: the build lag is too long"
                 )
             }
+            ParamError::Item { kind, index, error } => write!(f, "{kind} {index}: {error}"),
+            ParamError::Invalid { name, reason } => write!(f, "{name}: {reason}"),
         }
     }
 }
@@ -135,6 +161,11 @@ pub enum Requirement {
     MachineShare,
     /// [`SCALE_FLOOR`] ≤ value ≤ 1: δ.
     Depreciation,
+    /// value = 0 or [`SCALE_FLOOR`] ≤ value ≤ [`SCALE_CEIL`]: unit 1b's basket weights,
+    /// direct land and task densities, and a cell's weight and machine productivity.
+    ZeroOrScale,
+    /// 0 < value < 1: the CES weight α of [`ces_share`](crate::ces_share).
+    OpenUnit,
     /// [`SCALE_FLOOR`] ≤ value ≤ [`CURVATURE_CEIL`]: the [`PowerSchedule`]'s k.
     Curvature,
     /// value > 0: the inputs of [`closure`](crate::closure).
@@ -156,6 +187,8 @@ impl Requirement {
             Requirement::NonNegative => (0.0..=SCALE_CEIL).contains(&value),
             Requirement::MachineShare => (0.0..1.0).contains(&value),
             Requirement::Depreciation => (SCALE_FLOOR..=1.0).contains(&value),
+            Requirement::ZeroOrScale => value == 0.0 || (SCALE_FLOOR..=SCALE_CEIL).contains(&value),
+            Requirement::OpenUnit => value > 0.0 && value < 1.0,
             Requirement::Curvature => (SCALE_FLOOR..=CURVATURE_CEIL).contains(&value),
             Requirement::Positive => value > 0.0,
             Requirement::SampledIncrease | Requirement::Schedule(_) => false,
@@ -177,6 +210,11 @@ impl fmt::Display for Requirement {
             Requirement::Depreciation => {
                 write!(f, "must be in [SCALE_FLOOR, 1] = [{SCALE_FLOOR:e}, 1]")
             }
+            Requirement::ZeroOrScale => write!(
+                f,
+                "must be 0 or in [SCALE_FLOOR, SCALE_CEIL] = [{SCALE_FLOOR:e}, {SCALE_CEIL:e}]"
+            ),
+            Requirement::OpenUnit => write!(f, "must satisfy 0 < value < 1"),
             Requirement::Curvature => write!(
                 f,
                 "must be in [SCALE_FLOOR, CURVATURE_CEIL] = [{SCALE_FLOOR:e}, {CURVATURE_CEIL}]"
@@ -264,6 +302,16 @@ pub(crate) fn curvature(name: &'static str, value: f64) -> Result<f64, ParamErro
 /// A finite parameter in [0, [`SCALE_CEIL`]], with −0.0 made +0.0.
 pub(crate) fn nonnegative(name: &'static str, value: f64) -> Result<f64, ParamError> {
     check(name, value, Requirement::NonNegative)
+}
+
+/// 0 or a finite parameter in [[`SCALE_FLOOR`], [`SCALE_CEIL`]], with −0.0 made +0.0.
+pub(crate) fn zero_or_scale(name: &'static str, value: f64) -> Result<f64, ParamError> {
+    check(name, value, Requirement::ZeroOrScale)
+}
+
+/// [`SCALE_FLOOR`] ≤ δ ≤ 1.
+pub(crate) fn depreciation(name: &'static str, value: f64) -> Result<f64, ParamError> {
+    check(name, value, Requirement::Depreciation)
 }
 
 /// 0 ≤ a < 1: machine services must not use a whole machine service each (SSRN p.28).
@@ -365,7 +413,7 @@ impl<S: Schedule> Economy<S> {
         params.schedule.validate()?;
         scale("chi_max", params.work_cost.chi_max)?;
         params.rho = nonnegative("rho", params.rho)?;
-        check("delta", params.delta, Requirement::Depreciation)?;
+        depreciation("delta", params.delta)?;
         if params.build_lag == 0 {
             return Err(ParamError::BuildLag {
                 value: params.build_lag,

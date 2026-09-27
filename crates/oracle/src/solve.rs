@@ -341,7 +341,9 @@ impl Eq1a {
     }
 }
 
-/// The outcome of a solve (spec §5).
+/// The outcome of a solve (spec §5), for unit 1a's [`Eq1a`] by default and for unit 1b's
+/// [`Eq1b`](crate::Eq1b) as `Regime<Eq1b>`. Both units decide it the same way, on the same
+/// bracket.
 ///
 /// The regime is decided on the f64 evaluation of D(1), f(1) and f([`BRACKET_LO`]), with
 /// the spec's convention at exact equality: D(1) = 0 is `NotViable`, f(1) = 0 is
@@ -350,10 +352,10 @@ impl Eq1a {
 /// exact sign on the same inputs, and so can another implementation's; the regime is
 /// then not decidable in f64, and a comparison of regimes must exclude such cases.
 #[derive(Clone, Debug, PartialEq)]
-pub enum Regime {
+pub enum Regime<E = Eq1a> {
     /// A unique interior threshold with n_D = n_S. In exact arithmetic x* ∈ (0, 1); the
     /// reported double can round to 1.0 (see [`Eq1a::x_star`]).
-    Interior(Box<Eq1a>),
+    Interior(Box<E>),
     /// f(1) ≥ 0: labour holds no machine-contestable task, x* would be 1 and workers
     /// would only build machines. SSRN §3.1's boundary case, which unit 1d solves.
     BoundaryNoMargin {
@@ -380,7 +382,7 @@ pub enum Regime {
     },
 }
 
-impl Regime {
+impl<E> Regime<E> {
     /// The variant's name, as the dump example prints it.
     pub fn name(&self) -> &'static str {
         match self {
@@ -392,7 +394,7 @@ impl Regime {
     }
 
     /// The equilibrium, if interior.
-    pub fn interior(&self) -> Option<&Eq1a> {
+    pub fn interior(&self) -> Option<&E> {
         match self {
             Regime::Interior(eq) => Some(eq.as_ref()),
             _ => None,
@@ -408,6 +410,14 @@ pub enum SolveError {
     NonFinite {
         /// What was not finite: a bracket value, or the key (as [`Eq1a::outputs`] and the
         /// dump name it) of the first output in that list that was.
+        what: &'static str,
+    },
+    /// A per-category output of a unit-1b interior solve overflowed or became NaN.
+    NonFiniteInCategory {
+        /// The category's position in [`CategoryParams::categories`](crate::CategoryParams).
+        category: usize,
+        /// The output's key within the category, as [`Eq1b::outputs`](crate::Eq1b::outputs)
+        /// names it.
         what: &'static str,
     },
     /// Bisection hit [`MAX_BISECTION_STEPS`].
@@ -432,6 +442,9 @@ impl fmt::Display for SolveError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             SolveError::NonFinite { what } => write!(f, "{what} is not finite"),
+            SolveError::NonFiniteInCategory { category, what } => {
+                write!(f, "{what} of category {category} is not finite")
+            }
             SolveError::NoConvergence { steps } => {
                 write!(f, "bisection did not converge in {steps} steps")
             }
@@ -516,42 +529,17 @@ impl<S: Schedule> Economy<S> {
     /// `Interior` result is always a root.
     pub fn solve(&self) -> Result<Regime, SolveError> {
         let at_hi = self.at(BRACKET_HI);
-        // D = (1 − u·a) − u·λγ with u finite and a < 1: 1 − u·a is finite, so D is finite
-        // or −∞ (u·λγ overflowed), and −∞ is not viable. NaN would be undecidable.
-        let d_at_1 = at_hi.d;
-        if d_at_1.is_nan() {
-            return Err(SolveError::NonFinite { what: "D(1)" });
-        }
-        if d_at_1 <= 0.0 {
-            return Ok(Regime::NotViable { d_at_1 });
-        }
-        let f_hi = finite("n_D(1) - n_S(1)", at_hi.excess_demand())?;
-        if f_hi >= 0.0 {
-            return Ok(Regime::BoundaryNoMargin { f_at_1: f_hi });
-        }
-        let f_lo = finite(
-            "n_D - n_S at BRACKET_LO",
-            self.at(BRACKET_LO).excess_demand(),
-        )?;
-        if f_lo <= 0.0 {
-            return Ok(Regime::NoInteriorAtZero { f_at_0: f_lo });
-        }
-        let root = bisect(
-            |x| self.at(x).excess_demand(),
-            (BRACKET_LO, f_lo),
-            (BRACKET_HI, f_hi),
-        )?;
+        let root = match classify(at_hi.d, at_hi.excess_demand(), |x| {
+            self.at(x).excess_demand()
+        })? {
+            Ok(root) => root,
+            Err(regime) => return Ok(regime),
+        };
         let eq = self.report(root, &at_hi);
         if let Some(what) = first_non_finite(&eq) {
             return Err(SolveError::NonFinite { what });
         }
-        // The safety net: a sign change of f that is not a root (LABOR_RESIDUAL_NET).
-        if eq.residuals.labor > LABOR_RESIDUAL_NET * eq.n_a {
-            return Err(SolveError::LaborNotCleared {
-                x_star: eq.x_star,
-                relative: eq.residuals.labor / eq.n_a,
-            });
-        }
+        labor_net(eq.x_star, eq.residuals.labor, eq.n_a)?;
         Ok(Regime::Interior(Box::new(eq)))
     }
 
@@ -640,15 +628,55 @@ fn first_non_finite(eq: &Eq1a) -> Option<&'static str> {
         })
 }
 
+/// Spec §4 steps 2-4, shared by units 1a and 1b: the regime tests in the spec's order,
+/// then bisection. `d_at_1` and `f_at_1` are D(1) and f(1) from the evaluation at
+/// [`BRACKET_HI`]; `f` evaluates f = n_D − n_S at any x.
+///
+/// Returns the root, or the boundary regime that holds instead.
+pub(crate) fn classify<E>(
+    d_at_1: f64,
+    f_at_1: f64,
+    f: impl Fn(f64) -> f64,
+) -> Result<Result<Root, Regime<E>>, SolveError> {
+    // D = (1 − u·a) − u·λγ with u finite and a < 1: 1 − u·a is finite, so D is finite
+    // or −∞ (u·λγ overflowed), and −∞ is not viable. NaN would be undecidable.
+    if d_at_1.is_nan() {
+        return Err(SolveError::NonFinite { what: "D(1)" });
+    }
+    if d_at_1 <= 0.0 {
+        return Ok(Err(Regime::NotViable { d_at_1 }));
+    }
+    let f_hi = finite("n_D(1) - n_S(1)", f_at_1)?;
+    if f_hi >= 0.0 {
+        return Ok(Err(Regime::BoundaryNoMargin { f_at_1: f_hi }));
+    }
+    let f_lo = finite("n_D - n_S at BRACKET_LO", f(BRACKET_LO))?;
+    if f_lo <= 0.0 {
+        return Ok(Err(Regime::NoInteriorAtZero { f_at_0: f_lo }));
+    }
+    bisect(f, (BRACKET_LO, f_lo), (BRACKET_HI, f_hi)).map(Ok)
+}
+
+/// The safety net: a sign change of f that is not a root ([`LABOR_RESIDUAL_NET`]).
+pub(crate) fn labor_net(x_star: f64, labor: f64, n_a: f64) -> Result<(), SolveError> {
+    if labor > LABOR_RESIDUAL_NET * n_a {
+        return Err(SolveError::LaborNotCleared {
+            x_star,
+            relative: labor / n_a,
+        });
+    }
+    Ok(())
+}
+
 /// Where bisection leaves the root.
 #[derive(Clone, Copy, Debug, PartialEq)]
-struct Root {
+pub(crate) struct Root {
     /// The double reported as x*.
-    x: f64,
+    pub(crate) x: f64,
     /// 1 − x*, resolved below the spacing of doubles (see [`Eq1a::one_minus_x_star`]).
-    one_minus_x: f64,
+    pub(crate) one_minus_x: f64,
     /// Bisection steps taken.
-    steps: u32,
+    pub(crate) steps: u32,
 }
 
 impl Root {

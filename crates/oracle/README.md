@@ -1,13 +1,22 @@
 # rustyecon-oracle
 
-Dated 2026-09-25; joined the workspace on 2026-09-26 (P1.1).
+Dated 2026-09-25; joined the workspace on 2026-09-26 (P1.1); unit 1b added on 2026-09-27
+(P1.2).
 
 The oracle is a static equilibrium solver for the pinning paper's economy (PLAN §3.4).
 It shares types but not logic with the agents, and no agent may read it (PLAN R13).
-It is built outward in units 1a-1f. This package is **unit 1a**: one category, one
-machine type, one land input, with durability and interest through the scalar user
-cost u = (ρ + δ)(1 + ρ)^(J_b − 1). At (ρ, δ, J_b) = (0, 1, 1) it is the SSRN Appendix B
-economy (SSRN 7226858, pp.28-30).
+It is built outward in units 1a-1f. This package holds two:
+
+- **Unit 1a**: one category, one machine type, one land input, with durability and
+  interest through the scalar user cost u = (ρ + δ)(1 + ρ)^(J_b − 1). At
+  (ρ, δ, J_b) = (0, 1, 1) it is the SSRN Appendix B economy (SSRN 7226858, pp.28-30).
+- **Unit 1b**: many categories bought in a fixed basket (SSRN eq 7), on one task line cut
+  into segments, each category a density of tasks on them with its own direct land. Space
+  is a category. It reports the fork identity in both its forms (SSRN eq 12, main.tex eq
+  composites), the category bounds and the purchasing-power pair for every category, and a
+  one-category economy solves to 1a's equilibrium bit for bit. On its own, without an
+  equilibrium, it prices categories given as task cells (`cell_cost`), and gives SSRN eq
+  26's CES share (`ces_share`).
 
 The package is `rustyecon-oracle`, its library `oracle`, a member of the rustyecon
 workspace. Its one dependency is `rustyecon-core`, for `core::num`: the power, `ln1p` and
@@ -15,7 +24,11 @@ the fused multiply-add go through the pure-Rust `libm` crate there, so every out
 same double on every platform (R8, ADDENDUM A5). Nothing on the engine path depends on
 the oracle (R13; docs/ENGINE.md §1).
 
-The specification, with every equation and golden, is [docs/unit-1a.md](docs/unit-1a.md).
+The specifications, with every equation and golden, are [docs/unit-1a.md](docs/unit-1a.md)
+and [docs/unit-1b.md](docs/unit-1b.md). Unit 1b's open questions (its §11: the shared task
+line, cells in the equilibrium, gaps as a regime, bitwise nesting, viability at the top of
+the line, the generic `Regime`, the CES parameters) are not ruled; the build takes the
+first draft's choice on each.
 
 ## The gate
 
@@ -48,6 +61,29 @@ warnings` and `cargo fmt --all --check` are clean, under the workspace's lints a
   values checked against a solve built without the parser;
 - `goldens.txt` carries digests of `generate.py` and of itself, which the gate checks.
 
+Unit 1b's tests, per docs/unit-1b.md §8, cover the PLAN's "fork identity and category
+bounds on random instances", the income identity at 1e-12, and "1a's results as the
+one-category case exactly":
+
+- **C1**, nesting: 1a's G1, 27 golden instances, G5's 180 random draws and every skipped
+  one, G8's regime rows and rejections, and `at(x)` on a grid, all bit for bit in category
+  form; the fork at G1 and along G3's path;
+- **C2**, SSRN eq 26's CES share: goldens on G3's path and at q = 1, σ = 1, limits,
+  monotonicity, extreme prices, bad arguments;
+- **C3**, the fork economy (manufactures, food, care, shelter on three segments) in flow,
+  durable and ρ = 0 versions, pinned field by field, with care on its human bound and
+  manufactures fully automated;
+- **C4**, task and recursive automation on it: the wage in manufactures rises 27% while
+  the wage in shelter falls 96%;
+- **C5**, 180 random multi-category economies: every identity, the fork identity in both
+  forms, the bounds and the pair for every category, the residuals, the root and single
+  crossing;
+- **C6**, check_interior.py's price-block batteries on task cells, its parity instance,
+  the flat case at four user costs, and cells against the line;
+- **C7**, the gap economy, reductions (an unbought category, split categories and
+  segments, permutation, rescaling), the regime rows and validation;
+- **C8**, `goldens_1b.txt`'s three digests and the Rust constants.
+
 The goldens are pinned to laborformal `31b3482`.
 
 ## Layout
@@ -56,13 +92,17 @@ The goldens are pinned to laborformal `31b3482`.
 |---|---|
 | `src/params.rs` | `Params`, validation (`ParamError`), `Economy`, the user cost u |
 | `src/schedule.rs` | the `Schedule` trait (γ and its integral J) and `PowerSchedule`, γ = η(g0 + g1·x^k) |
-| `src/solve.rs` | `Economy::at(x)`, `Economy::solve`, `Regime`, `Eq1a`, residuals, the cost-system view |
+| `src/solve.rs` | `Economy::at(x)`, `Economy::solve`, `Regime<E>`, `Eq1a`, residuals, the cost-system view, and the regime tests and bisection both units share |
 | `src/closure.rs` | `closure(a, λ, γ*, b, r, u)`, the price block alone |
+| `src/categories.rs` | unit 1b: `Category`, `CategoryParams`, `CategoryEconomy`, `Eq1b` and its outputs |
+| `src/fork.rs` | unit 1b's price block alone: `Cell`, `cell_cost`, `ces_share` |
 | `src/dump.rs` | the one-line text interface behind `examples/dump.rs` |
 | `examples/dump.rs` | reads economies on stdin, writes one result line each |
-| `tests/gate/` | the gate: one test crate, one module per golden group |
+| `tests/gate/` | the gate: one test crate, one module per golden group (1a's `g*`, 1b's `c*`) |
 | `goldens/generate.py` | computes every golden with mpmath at 70 digits |
 | `goldens/goldens.txt` | its output, 30 significant digits |
+| `goldens/generate_1b.py` | unit 1b's goldens, at 70 digits; imports `generate.py` to assert the nesting |
+| `goldens/goldens_1b.txt` | its output, 249 goldens |
 
 ## Running the tests
 
@@ -84,7 +124,8 @@ In PowerShell, set `$env:CARGO_TARGET_DIR` instead. To drive WSL from Windows, u
 
 On 2026-09-25, after the final verification round, both gave 114 tests: 42 unit tests,
 71 gate tests and 1 doc test. In the workspace (P1.1, 2026-09-26) the same 114 pass on
-both.
+both. With unit 1b (P1.2, 2026-09-27) there are 169: 46 unit tests (42 + 4), 122 gate
+tests (71 + 51) and 1 doc test.
 
 ## The dump example
 
@@ -140,6 +181,21 @@ it, and `goldens_file::goldens_txt_is_from_generate_py` recomputes both. So the 
 even where mpmath is missing, fails if `goldens.txt` was edited by hand or not rewritten
 after `generate.py` changed. It cannot prove that the values are what `generate.py`
 computes: **run `generate.py --check` before committing any change to either file.**
+
+Unit 1b's goldens work the same way:
+
+```sh
+python goldens/generate_1b.py           # writes goldens/goldens_1b.txt
+python goldens/generate_1b.py --check   # exits 1 if goldens_1b.txt is not what it writes
+```
+
+`generate_1b.py` imports `generate.py` to assert that the category form of six 1a
+instances equals 1a's solve, so `goldens_1b.txt` records the digests of both generators
+and of its own goldens, and `c8_goldens_file` recomputes all three: a change to
+`generate.py` means rerunning both. The constants in `tests/gate/goldens_1b.rs` are
+`goldens_1b.txt` rounded to 20 significant digits (`c8_goldens_file::
+constants_match_goldens_1b_txt`). On 2026-09-27 the oracle's f64 values matched all 245
+numeric goldens of unit 1b within 1.0e-15 relative.
 
 ## Numerics
 

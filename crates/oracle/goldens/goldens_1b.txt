@@ -1,0 +1,271 @@
+# goldens_1b.txt: the golden numbers for oracle unit 1b.
+# Written by goldens/generate_1b.py (mpmath, 70 digits). Do not edit by hand.
+# Each line is KEY = value  # note. Values carry 30 significant digits.
+# Equations: docs/unit-1b.md section 4. laborformal references are at 31b3482.
+# The category form nests generate.py's 1a solves within 0.0 (1e-65 asserted).
+# fnv1a64 generate_1b.py = 5caff80206f5b32a
+# fnv1a64 generate.py = cf9d71a6ac25699d
+# fnv1a64 body = d38c47f5b1dda742
+
+# C1: the fork at G1, SSRN Appendix B in category form (docs/unit-1b.md section 3.3): the good (z 1, b 0, mu 1) and space (z = h = 1, b 1, mu 0) on one segment
+C1_GOOD_L_STAR = 0.665351316310033838484188748534  # L* = (1 - x*) + J(x*)/gamma(x*), main.tex eq effective-hours
+C1_GOOD_LAMBDA_TILDE = 0.17046683479342606591158462325  # lambda-tilde of the good = 1a's L_s, SSRN eq 4
+C1_GOOD_B_TILDE = 0.268938023646904782623819373388  # b-tilde of the good, SSRN eq 4
+C1_GOOD_P = 0.361575831779809274639993586449  # p of the good = 1a's p, SSRN eq 12
+C1_GOOD_REAL_WAGE = 1.5029653890908211133849932429  # v/p of the good, SSRN eq 12
+C1_GOOD_WAGE_CEILING = 2.02067358615778521363398847224  # v/b-tilde of the good, SSRN eq 13's ceiling
+C1_RENT_CEILING = 0.428260443433599120194903455187  # v/B_s, the basket's rent ceiling (check_macro C3)
+C1_REAL_WAGE = 0.399122801692518193604986573693  # v/P_s
+C1_GOOD_SHARE = 0.26555688147546558170431568228  # p/P_s, the good's expenditure share
+
+# C2: the fork along G3's path (lambda 0, gamma = eta (1 + x)), with the CES share of SSRN eq 26 at alpha 0.3 (parameters constructed)
+C2_ETA_1_GOOD_REAL_WAGE = 1.18191878779998207906586619358  # v/p of the good at eta = 1
+C2_ETA_1_V = 0.988401220292139589517309670143  # v at eta = 1 (1a's G3)
+C2_ETA_1_Q = 1.19578847489751674412115344548  # q = r/p of the good at eta = 1
+C2_ETA_1_CES_HALF = 0.417207856183266365647320802448  # alpha(q), sigma 0.5, at eta = 1
+C2_ETA_1_CES_TWO = 0.133148630992441170427579239105  # alpha(q), sigma 2, at eta = 1
+C2_ETA_0_3_GOOD_REAL_WAGE = 1.26402370582388772200232282736  # v/p of the good at eta = 0.3
+C2_ETA_0_3_V = 0.323678629033399338435984875842  # v at eta = 0.3 (1a's G3)
+C2_ETA_0_3_Q = 3.90518122743734574003428595399  # q = r/p of the good at eta = 0.3
+C2_ETA_0_3_CES_HALF = 0.56402241581444845786617561635  # alpha(q), sigma 0.5, at eta = 0.3
+C2_ETA_0_3_CES_TWO = 0.0449205176037126522383869914678  # alpha(q), sigma 2, at eta = 0.3
+C2_ETA_0_1_GOOD_REAL_WAGE = 1.30584862385531422274644520217  # v/p of the good at eta = 0.1
+C2_ETA_0_1_V = 0.111862804791188771611615039278  # v at eta = 0.1 (1a's G3)
+C2_ETA_0_1_Q = 11.6736624501138338051336948951  # q = r/p of the good at eta = 0.1
+C2_ETA_0_1_CES_HALF = 0.691047001836147496269084052645  # alpha(q), sigma 0.5, at eta = 0.1
+C2_ETA_0_1_CES_TWO = 0.0154902813443675828738633606142  # alpha(q), sigma 2, at eta = 0.1
+C2_ETA_0_03_GOOD_REAL_WAGE = 1.32448241230620405811624379324  # v/p of the good at eta = 0.03
+C2_ETA_0_03_V = 0.0340560821391793034781173750841  # v at eta = 0.03 (1a's G3)
+C2_ETA_0_03_Q = 38.8912149933557196603907482191  # q = r/p of the good at eta = 0.03
+C2_ETA_0_03_CES_HALF = 0.803250498431349404156384938701  # alpha(q), sigma 0.5, at eta = 0.03
+C2_ETA_0_03_CES_TWO = 0.00470055006204000464537892755893  # alpha(q), sigma 2, at eta = 0.03
+C2_ETA_0_01_GOOD_REAL_WAGE = 1.33031896128202274018279292384  # v/p of the good at eta = 0.01
+C2_ETA_0_01_V = 0.0114026557751972340640113871676  # v at eta = 0.01 (1a's G3)
+C2_ETA_0_01_Q = 116.667466554212625226458963193  # q = r/p of the good at eta = 0.01
+C2_ETA_0_01_CES_HALF = 0.876101029012220655604277257045  # alpha(q), sigma 0.5, at eta = 0.01
+C2_ETA_0_01_CES_TWO = 0.00157185860018702976499655159041  # alpha(q), sigma 2, at eta = 0.01
+C2_LIMIT_GOOD_REAL_WAGE = 1.33333333333333333333333333333  # gamma(1)/J(1) = 2/(3/2), the limit of v/p as eta -> 0
+C2_Q1_CES_ZERO = 0.5  # alpha(1) at sigma 0 = 1/2
+C2_Q1_CES_HALF = 0.395643923738960001647011798432  # alpha(1) at sigma 0.5 = 1/(1 + sqrt(7/3))
+C2_Q1_CES_ONE = 0.3  # alpha(1) at sigma 1 = alpha
+C2_Q1_CES_TWO = 0.155172413793103448275862068966  # alpha(1) at sigma 2 = 9/58
+
+# C3: the fork economy (constructed 2026-09-27): G1's scalars, edges (0, 0.4, 0.75, 1); manufactures (z 0.3, b 0, mu (2, 0, 0)), food (1, 0.6, (0.5, 1.5, 0)), care (0.2, 0.1, (0, 0, 1)), shelter (0.8, 1, (0, 0.4, 0))
+C3_X_STAR = 0.710903477853200592257581690296  # x*, C3 flow
+C3_ONE_MINUS_X_STAR = 0.289096522146799407742418309704  # 1 - x*, C3 flow
+C3_GAMMA_STAR = 0.768722782282560473806065352237  # gamma(x*), C3 flow
+C3_V = 0.464791278806068125902438668766  # v, C3 flow
+C3_P_M = 0.604627948486147723278745619198  # p_m, C3 flow
+C3_P_S = 1.79253749779684928471769594438  # P_s, C3 flow
+C3_Y = 5.81780321293208882371528022284  # Y, C3 flow
+C3_K = 4.34679859409108467581075520893  # K, C3 flow
+C3_M_S = 0.523008239450273990870236940048  # M_s, machine services per basket, C3 flow
+C3_H_S = 0.12115567030717492209120132366  # H_s, hours at final tasks per basket, C3 flow
+C3_FINAL_HOURS = 0.704859847978023134611091794173  # Y H_s, C3 flow
+C3_MACHINE_HOURS = 0.217339929704554233790537760446  # lambda delta K, C3 flow
+C3_N_A = 0.922199777682577368401629554619  # N_a, C3 flow
+C3_PARTICIPATION = 0.230549944420644342100407388655  # N_a / N, C3 flow
+C3_INCOME = 10.4286304139837568598975109422  # I, C3 flow
+C3_LABOR_SHARE = 0.0411013140717889548847497794926  # v N_a / I, C3 flow
+C3_REAL_WAGE = 0.259292360342435388413415130511  # v / P_s, C3 flow
+C3_SUPPORT_COST = 7.1701499911873971388707837775  # N P_s, C3 flow
+C3_WORKER_BASKETS = 4.2391193570625846558009464185  # N + v N_a / P_s, C3 flow
+C3_PROVIDER_BASKETS = 1.57868385586950416791433380434  # T / P_s - N, C3 flow
+C3_L_STAR_S = 0.80151567979890759228225315653  # L_s* = sum z_j L_j*, C3 flow
+C3_L_S = 0.158513401696480207153361105092  # L_s = sum z_j lambda-tilde_j, C3 flow
+C3_B_S = 1.71886185111444228049727825146  # B_s = sum z_j b-tilde_j, C3 flow
+C3_RENT_CEILING = 0.270406419518075742430149697999  # v / B_s, C3 flow
+C3_LAMBDA_TILDE_MACHINE = 0.0714285714285714285714285714286  # u lambda / (1 - u a), C3 flow
+C3_B_TILDE_MACHINE = 0.571428571428571428571428571429  # u b / (1 - u a), C3 flow
+C3_FUNDED = true  # funded, C3 flow
+C3_LEMMA_B1 = true  # lemma_b1, C3 flow
+C3_F_AT_LO = 7.64819614004425556233842059433  # n_D - n_S at x = 1e-12, C3 flow
+C3_F_AT_1 = -0.92326297508086722453393330616  # n_D(1) - n_S(1), C3 flow
+C3_N_S_AT_1 = 1.17408965530037173106695869843  # n_S(1), C3 flow
+C3_N_D_AT_1 = 0.250826680219504506533025392271  # n_D(1), C3 flow
+C3_P_S_AT_1 = 1.80388923076923076923076923077  # P_s(1), C3 flow
+C3_MANUFACTURES_P = 0.174132849164010544304278738329  # p_j of manufactures, C3 flow
+C3_MANUFACTURES_REAL_WAGE = 2.66917632737000164515994913971  # v/p_j of manufactures, C3 flow
+C3_MANUFACTURES_L_STAR = 0.374647410793322175920660152342  # L_j* of manufactures, C3 flow
+C3_MANUFACTURES_H = 0.0  # H_j of manufactures, C3 flow
+C3_MANUFACTURES_M = 0.288  # M_j of manufactures, C3 flow
+C3_MANUFACTURES_LAMBDA_TILDE = 0.0205714285714285714285714285714  # lambda-tilde_j of manufactures, C3 flow
+C3_MANUFACTURES_B_TILDE = 0.164571428571428571428571428571  # b-tilde_j of manufactures, C3 flow
+C3_MANUFACTURES_SHARE = 0.0291429634322347532603684157023  # z_j p_j / P_s of manufactures, C3 flow
+C3_MANUFACTURES_WAGE_FLOOR = 1.25  # 1/(Lbar_j + b_j/v) of manufactures, C3 flow
+C3_MANUFACTURES_PHI_W = 0.0549087701630400338432903823027  # v lambda-tilde_j / p_j of manufactures, C3 flow
+C3_MANUFACTURES_PHI_R = 0.945091229836959966156709617697  # b-tilde_j / p_j of manufactures, C3 flow
+C3_FOOD_P = 0.852482278348425778154548287486  # p_j of food, C3 flow
+C3_FOOD_REAL_WAGE = 0.545221045188811607138524994438  # v/p_j of food, C3 flow
+C3_FOOD_L_STAR = 0.543216471266391309523481032104  # L_j* of food, C3 flow
+C3_FOOD_H = 0.0586447832201991116136274645553  # H_j of food, C3 flow
+C3_FOOD_M = 0.372501296250225816651294181358  # M_j of food, C3 flow
+C3_FOOD_LAMBDA_TILDE = 0.0852520186666438128030056203666  # lambda-tilde_j of food, C3 flow
+C3_FOOD_B_TILDE = 0.81285788357155760951502524649  # b-tilde_j of food, C3 flow
+C3_FOOD_SHARE = 0.47557291236372158473536536829  # z_j p_j / P_s of food, C3 flow
+C3_FOOD_WAGE_FLOOR = 0.4960558553016837002448423258  # 1/(Lbar_j + b_j/v) of food, C3 flow
+C3_FOOD_PHI_W = 0.0464811947218836169154916544807  # v lambda-tilde_j / p_j of food, C3 flow
+C3_FOOD_PHI_R = 0.953518805278116383084508345519  # b-tilde_j / p_j of food, C3 flow
+C3_CARE_P = 0.216197819701517031475609667192  # p_j of care, C3 flow
+C3_CARE_REAL_WAGE = 2.14984258142732207691550315048  # v/p_j of care, C3 flow
+C3_CARE_L_STAR = 0.25  # L_j* of care, C3 flow
+C3_CARE_H = 0.25  # H_j of care, C3 flow
+C3_CARE_M = 0.0  # M_j of care, C3 flow
+C3_CARE_LAMBDA_TILDE = 0.25  # lambda-tilde_j of care, C3 flow
+C3_CARE_B_TILDE = 0.1  # b-tilde_j of care, C3 flow
+C3_CARE_SHARE = 0.0241219857288607777564994241342  # z_j p_j / P_s of care, C3 flow
+C3_CARE_WAGE_FLOOR = 2.14984258142732207691550315048  # 1/(Lbar_j + b_j/v) of care, C3 flow
+C3_CARE_PHI_W = 0.537460645356830519228875787619  # v lambda-tilde_j / p_j of care, C3 flow
+C3_CARE_PHI_R = 0.462539354643169480771124212381  # b-tilde_j / p_j of care, C3 flow
+C3_SHELTER_P = 1.05571975094864617122092762744  # p_j of shelter, C3 flow
+C3_SHELTER_REAL_WAGE = 0.440260095909370902246221670936  # v/p_j of shelter, C3 flow
+C3_SHELTER_L_STAR = 0.119881231618149537478217598405  # L_j* of shelter, C3 flow
+C3_SHELTER_H = 0.0156386088587197630969673238814  # H_j of shelter, C3 flow
+C3_SHELTER_M = 0.0801336790000602177736784483622  # M_j of shelter, C3 flow
+C3_SHELTER_LAMBDA_TILDE = 0.021362443073009778652230070193  # lambda-tilde_j of shelter, C3 flow
+C3_SHELTER_B_TILDE = 1.04579067371432012444210197049  # b-tilde_j of shelter, C3 flow
+C3_SHELTER_SHARE = 0.471162138475182884247766791873  # z_j p_j / P_s of shelter, C3 flow
+C3_SHELTER_WAGE_FLOOR = 0.436394733529472561638483394129  # 1/(Lbar_j + b_j/v) of shelter, C3 flow
+C3_SHELTER_PHI_W = 0.00940503123618176121684623336155  # v lambda-tilde_j / p_j of shelter, C3 flow
+C3_SHELTER_PHI_R = 0.990594968763818238783153766638  # b-tilde_j / p_j of shelter, C3 flow
+C3D_X_STAR = 0.769161999166263301991730601922  # x*, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_ONE_MINUS_X_STAR = 0.230838000833736698008269398078  # 1 - x*, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_V = 0.15349426647317235432301861706  # v, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_P_M = 0.188260387699330466510691795193  # p_m, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_P_S = 1.53663806086253736387721671851  # P_s, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_Y = 6.61802043925119552836383739592  # Y, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_K = 4.30293554473787392659536355564  # K, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_N_A = 0.380839493567623590065214841157  # N_a, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_INCOME = 10.1695020945195948531429481286  # I, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_INTEREST = 0.111045415810418029031024525605  # interest, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_LABOR_SHARE = 0.00574823409896139122221242468775  # v N_a / I, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_CAPITAL_SHARE = 0.0109194545394961926297405512988  # interest / I, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_REAL_WAGE = 0.0998896684799111268881280787764  # v / P_s, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_PROVIDER_BASKETS = 2.57997850849466836188171274509  # (T + interest) / P_s - N, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_L_S = 0.0596037534722800812396475160076  # L_s, price side, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_B_S = 1.52748922644426193310394909114  # B_s, price side, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_L_S_Q = 0.0575458321810070091784692459135  # L_s^q, clearing side, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_B_S_Q = 1.51102585611407735661452293038  # B_s^q, clearing side, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_MANUFACTURES_P = 0.0542189916574071743550792370156  # p_j of manufactures, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_MANUFACTURES_REAL_WAGE = 2.83100555323962028331036278312  # v/p_j of manufactures, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_MANUFACTURES_LAMBDA_TILDE = 0.00664978595500500956371254212588  # lambda-tilde_j of manufactures, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_MANUFACTURES_B_TILDE = 0.053198287640040076509700337007  # b-tilde_j of manufactures, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_MANUFACTURES_LAMBDA_Q = 0.00563128491620111731843575418994  # lambda-tilde_j^q of manufactures, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_MANUFACTURES_B_Q = 0.0450502793296089385474860335196  # b-tilde_j^q of manufactures, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_FOOD_P = 0.678786972252169800234724516288  # p_j of food, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_FOOD_REAL_WAGE = 0.226130248145288703067790288631  # v/p_j of food, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_FOOD_LAMBDA_TILDE = 0.00966297021586665452226978777666  # lambda-tilde_j of food, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_FOOD_B_TILDE = 0.677303761726933236178158302213  # b-tilde_j of food, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_FOOD_LAMBDA_Q = 0.00818296089385474860335195530726  # lambda-tilde_j^q of food, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_FOOD_B_Q = 0.665463687150837988826815642458  # b-tilde_j^q of food, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_CARE_P = 0.138345916272054516257490468083  # p_j of care, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_CARE_REAL_WAGE = 1.10949618614928181985975759127  # v/p_j of care, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_CARE_LAMBDA_TILDE = 0.231195345373969856967888732237  # lambda-tilde_j of care, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_CARE_B_TILDE = 0.102858756321865271676954673278  # b-tilde_j of care, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_CARE_LAMBDA_Q = 0.231140613419001526339273603869  # lambda-tilde_j^q of care, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_CARE_B_Q = 0.102420900682118626648033646331  # b-tilde_j^q of care, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_SHELTER_P = 1.01739525982341813510558792188  # p_j of shelter, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_SHELTER_REAL_WAGE = 0.150869846297311462939714488278  # v/p_j of shelter, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_SHELTER_LAMBDA_TILDE = 0.00213347299389744056835777393205  # lambda-tilde_j of shelter, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_SHELTER_B_TILDE = 1.01706778395117952454686219146  # b-tilde_j of shelter, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_SHELTER_LAMBDA_Q = 0.00180670391061452513966480446927  # lambda-tilde_j^q of shelter, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3D_SHELTER_B_Q = 1.01445363128491620111731843575  # b-tilde_j^q of shelter, C3d, (rho, delta, J_b) = (0.04, 0.35, 2)
+C3Z_X_STAR = 0.938078704219794047191284577887  # x*, C3z, (rho, delta, J_b) = (0, 0.1, 1)
+C3Z_V = 0.0393873190463241268469266423991  # v, C3z, (rho, delta, J_b) = (0, 0.1, 1)
+C3Z_Y = 6.91933066630312289052537752455  # Y, C3z, (rho, delta, J_b) = (0, 0.1, 1)
+C3Z_N_A = 0.107509590889036728377158757912  # N_a, C3z, (rho, delta, J_b) = (0, 0.1, 1)
+C3Z_P_S = 1.4458384773078020047719108424  # P_s, C3z, (rho, delta, J_b) = (0, 0.1, 1)
+C3Z_REAL_WAGE = 0.0272418528518238001805743063409  # v / P_s, C3z, (rho, delta, J_b) = (0, 0.1, 1)
+C3Z_MANUFACTURES_REAL_WAGE = 3.30021862283276124219801271635  # v/p_j of manufactures, C3z, (rho, delta, J_b) = (0, 0.1, 1)
+C3Z_FOOD_REAL_WAGE = 0.0638013847323277541725533434489  # v/p_j of food, C3z, (rho, delta, J_b) = (0, 0.1, 1)
+C3Z_CARE_REAL_WAGE = 0.360490095334856737412464324398  # v/p_j of care, C3z, (rho, delta, J_b) = (0, 0.1, 1)
+C3Z_SHELTER_REAL_WAGE = 0.0392370775684948950793079344336  # v/p_j of shelter, C3z, (rho, delta, J_b) = (0, 0.1, 1)
+
+# C4: the fork economy along the paths: task automation (eta) and recursive automation (lambda)
+C4_ETA_1_X_STAR = 0.710903477853200592257581690296  # x*, task automation, eta = 1
+C4_ETA_1_V = 0.464791278806068125902438668766  # v, task automation, eta = 1
+C4_ETA_1_REAL_WAGE = 0.259292360342435388413415130511  # v/P_s, task automation, eta = 1
+C4_ETA_1_MANUFACTURES_REAL_WAGE = 2.66917632737000164515994913971  # v/p of manufactures, task automation, eta = 1
+C4_ETA_1_FOOD_REAL_WAGE = 0.545221045188811607138524994438  # v/p of food, task automation, eta = 1
+C4_ETA_1_CARE_REAL_WAGE = 2.14984258142732207691550315048  # v/p of care, task automation, eta = 1
+C4_ETA_1_SHELTER_REAL_WAGE = 0.440260095909370902246221670936  # v/p of shelter, task automation, eta = 1
+C4_ETA_0_5_X_STAR = 0.741335476856610992432361457943  # x*, task automation, eta = 0.5
+C4_ETA_0_5_V = 0.233195978908726118444718837227  # v, task automation, eta = 0.5
+C4_ETA_0_5_REAL_WAGE = 0.145579930520744317592491922536  # v/P_s, task automation, eta = 0.5
+C4_ETA_0_5_MANUFACTURES_REAL_WAGE = 2.75370965793503053453433738318  # v/p of manufactures, task automation, eta = 0.5
+C4_ETA_0_5_FOOD_REAL_WAGE = 0.322519926911588501884269717152  # v/p of food, task automation, eta = 0.5
+C4_ETA_0_5_CARE_REAL_WAGE = 1.47313619590967638226131663031  # v/p of care, task automation, eta = 0.5
+C4_ETA_0_5_SHELTER_REAL_WAGE = 0.2270285188204597715212652715  # v/p of shelter, task automation, eta = 0.5
+C4_ETA_0_25_X_STAR = 0.815804697741307058665204180594  # x*, task automation, eta = 0.25
+C4_ETA_0_25_V = 0.123689520774765319148225226806  # v, task automation, eta = 0.25
+C4_ETA_0_25_REAL_WAGE = 0.0819080973352805140427100106708  # v/P_s, task automation, eta = 0.25
+C4_ETA_0_25_MANUFACTURES_REAL_WAGE = 2.96056860483696405184778939054  # v/p of manufactures, task automation, eta = 0.25
+C4_ETA_0_25_FOOD_REAL_WAGE = 0.187206954923346215754381019964  # v/p of food, task automation, eta = 0.25
+C4_ETA_0_25_CARE_REAL_WAGE = 0.946571279116722002443354591256  # v/p of care, task automation, eta = 0.25
+C4_ETA_0_25_SHELTER_REAL_WAGE = 0.122053504889994990743218208708  # v/p of shelter, task automation, eta = 0.25
+C4_ETA_0_1_X_STAR = 0.916361224043467633486770562669  # x*, task automation, eta = 0.1
+C4_ETA_0_1_V = 0.053677124048319267321283176045  # v, task automation, eta = 0.1
+C4_ETA_0_1_REAL_WAGE = 0.036869857767907098279080665318  # v/P_s, task automation, eta = 0.1
+C4_ETA_0_1_MANUFACTURES_REAL_WAGE = 3.23989228900963231524102934075  # v/p of manufactures, task automation, eta = 0.1
+C4_ETA_0_1_FOOD_REAL_WAGE = 0.0860107298662669391924491602222  # v/p of food, task automation, eta = 0.1
+C4_ETA_0_1_CARE_REAL_WAGE = 0.4759351154494526325991465508  # v/p of care, task automation, eta = 0.1
+C4_ETA_0_1_SHELTER_REAL_WAGE = 0.0533933157812355469277766402107  # v/p of shelter, task automation, eta = 0.1
+C4_ETA_0_03_X_STAR = 0.973204346059929434514616958526  # x*, task automation, eta = 0.03
+C4_ETA_0_03_V = 0.0168106244526340779473608013351  # v, task automation, eta = 0.03
+C4_ETA_0_03_REAL_WAGE = 0.0117498020801203727117051230693  # v/P_s, task automation, eta = 0.03
+C4_ETA_0_03_MANUFACTURES_REAL_WAGE = 3.39778985016647065142949155146  # v/p of manufactures, task automation, eta = 0.03
+C4_ETA_0_03_FOOD_REAL_WAGE = 0.0276859667274870339547699406876  # v/p of food, task automation, eta = 0.03
+C4_ETA_0_03_CARE_REAL_WAGE = 0.161858016597774999778080908501  # v/p of care, task automation, eta = 0.03
+C4_ETA_0_03_SHELTER_REAL_WAGE = 0.016783982758397044790584198176  # v/p of shelter, task automation, eta = 0.03
+C4_LAM_0_025_X_STAR = 0.703101598585613350655721834823  # x*, recursive automation, lambda = 0.025
+C4_LAM_0_025_V = 0.447900581062511967563047910573  # v, recursive automation, lambda = 0.025
+C4_LAM_0_025_REAL_WAGE = 0.251422216801668623409978993747  # v/P_s, recursive automation, lambda = 0.025
+C4_LAM_0_025_MANUFACTURES_REAL_WAGE = 2.64750444051559264071033843006  # v/p of manufactures, recursive automation, lambda = 0.025
+C4_LAM_0_025_FOOD_REAL_WAGE = 0.530020869490551000029563234593  # v/p of food, recursive automation, lambda = 0.025
+C4_LAM_0_025_CARE_REAL_WAGE = 2.11298631498161567867695180605  # v/p of care, recursive automation, lambda = 0.025
+C4_LAM_0_025_SHELTER_REAL_WAGE = 0.424924348302004696207975624996  # v/p of shelter, recursive automation, lambda = 0.025
+C4_LAM_0_X_STAR = 0.695559882172401819182141246083  # x*, recursive automation, lambda = 0
+C4_LAM_0_V = 0.432255946135955117340407426781  # v, recursive automation, lambda = 0
+C4_LAM_0_REAL_WAGE = 0.244056013806175983073490149154  # v/P_s, recursive automation, lambda = 0
+C4_LAM_0_MANUFACTURES_REAL_WAGE = 2.62655522825667171995039235023  # v/p of manufactures, recursive automation, lambda = 0
+C4_LAM_0_FOOD_REAL_WAGE = 0.515740561182810992256321542546  # v/p of food, recursive automation, lambda = 0
+C4_LAM_0_CARE_REAL_WAGE = 2.0775144864646863617336378826  # v/p of care, recursive automation, lambda = 0
+C4_LAM_0_SHELTER_REAL_WAGE = 0.410683157914989224802393236012  # v/p of shelter, recursive automation, lambda = 0
+
+# C6: check_interior.py's parity instance (:50-58 at 31b3482): (a, lambda, b) = (0.2, 0.1, 0.4), relative capability 0.35 everywhere, human productivity 0.2 + i 0.008125, i = 0..320
+C6_PARITY_V = 0.183006535947712418300653594771  # v = b gbar / (1 - a - lambda gbar) = 0.14/0.765
+C6_PARITY_P_M = 0.522875816993464052287581699346  # p_m = (lambda v + b)/(1 - a)
+C6_PARITY_L_BAR = 1.02025690127886724399889592842  # Lbar = mean of 1/gamma_L over the 321 cells
+C6_PARITY_TASK_COST = 0.186713681279792698248163960756  # v Lbar, the task cost of every land level
+
+# C7: the gap economy (constructed 2026-09-27): C3 with N 5 and edges (0, 0.4, 0.6, 1), the middle segment used by no category: manufactures (0.3, 0, (2, 0, 0)), food (1, 0.6, (0.5, 0, 0.2)), care (0.2, 0.1, (0, 0, 0.3)), shelter (0.8, 1, (0, 0, 0.1))
+C7_GAP_X_STAR = 0.455345066246977030362196863264  # x*, the gap economy, N 5
+C7_GAP_GAMMA_STAR = 0.564276052997581624289757490612  # gamma(x*) = w/p_m, the gap economy, N 5
+C7_GAP_V = 0.335985499686289472641739809495  # v, the gap economy, N 5
+C7_GAP_P_S = 1.56000974961092881488402315594  # P_s, the gap economy, N 5
+C7_GAP_Y = 6.62026178406597563743663463721  # Y, the gap economy, N 5
+C7_GAP_K = 1.49807066656578648709994703791  # K, the gap economy, N 5
+C7_GAP_N_A = 0.975259135961262011046379662556  # N_a, the gap economy, N 5
+C7_GAP_INCOME = 10.3276729281195635395590547132  # I, the gap economy, N 5
+C7_GAP_H_S = 0.136  # H_s, the gap economy, N 5
+C7_GAP_M_S = 0.1584  # M_s, the gap economy, N 5
+C7_GAP_L_S_Q = 0.147314285714285714285714285714  # L_s^q = 1.0312/7, the gap economy, N 5
+C7_GAP_B_S_Q = 1.51051428571428571428571428571  # B_s^q = 10.5736/7, the gap economy, N 5
+C7_GAP_MANUFACTURES_P = 0.171483130279260812008630076081  # p_j of manufactures, the gap economy, N 5
+C7_GAP_MANUFACTURES_REAL_WAGE = 1.95929185068604730656165795351  # v/p_j of manufactures, the gap economy, N 5
+C7_GAP_FOOD_P = 0.66974962254471836081349670378  # p_j of food, the gap economy, N 5
+C7_GAP_FOOD_REAL_WAGE = 0.501658363628052859308498095344  # v/p_j of food, the gap economy, N 5
+C7_GAP_CARE_P = 0.140318259962354736717008777139  # p_j of care, the gap economy, N 5
+C7_GAP_CARE_REAL_WAGE = 2.39445315083317945877922620038  # v/p_j of care, the gap economy, N 5
+C7_GAP_SHELTER_P = 1.01343941998745157890566959238  # p_j of shelter, the gap economy, N 5
+C7_GAP_SHELTER_REAL_WAGE = 0.331529929722340630686409954572  # v/p_j of shelter, the gap economy, N 5
+C7_GAP_N4_5_X_STAR = 0.54168278552109559195691037351  # x*, the gap economy at N 4.5: N_a, Y and K as at N 5
+
+# C7: regimes on the fork economy
+C7_N0_2_F_AT_1 = 0.192122197454485919979677457349  # f(1) at N = 0.2: BoundaryNoMargin
+C7_LAM0_6_F_AT_1 = 0.194287275054603668060039275524  # f(1) at lambda = 0.6: BoundaryNoMargin
+C7_LAM0_8_D_AT_1 = -0.1  # D(1) at lambda = 0.8: NotViable
+C7_N20_F_AT_LO = -12.0633802816984792983251626868  # f(1e-12) at N = 20, chi_max = 0.05: NoInteriorAtZero
+C7_N6_X_STAR = 0.672234051549796321247910708418  # x* at N = 6: Interior, with funded and lemma_b1 both false
+C7_N6_FUNDED = false  # funded at N = 6
+C7_N6_LEMMA_B1 = false  # lemma_b1 at N = 6

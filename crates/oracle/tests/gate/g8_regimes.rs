@@ -212,7 +212,7 @@ fn d_at_1_exactly_zero_is_not_viable() {
 
 /// The Appendix B instance with χ_max = 0.05, low enough that everyone works at x = lo
 /// and at x = 1 (z = ln(1 + v/P_s) > 0.05 at both), so n_S = N there exactly.
-fn saturated(workers: f64) -> Params {
+pub(crate) fn saturated(workers: f64) -> Params {
     Params {
         workers,
         work_cost: UniformWorkCost { chi_max: 0.05 },
@@ -328,7 +328,7 @@ fn huge_parameters_are_rejected() {
 }
 
 /// The review's economy of 2026-09-25 (G1 with N = 1) at curvature k.
-fn steep(k: f64) -> Params {
+pub(crate) fn steep(k: f64) -> Params {
     let base = appendix_b();
     Params {
         workers: 1.0,
@@ -399,11 +399,11 @@ fn solve_at_the_curvature_ceiling() {
 /// γ = c + s·x below x0 and C + s·x from x0 on: positive and strictly increasing, with
 /// J its exact integral, but with a jump at x0. It breaks the `Schedule` contract
 /// (continuity) and passes the sampled check, which cannot see a jump.
-struct Jump {
-    x0: f64,
-    below: f64,
-    above: f64,
-    slope: f64,
+pub(crate) struct Jump {
+    pub(crate) x0: f64,
+    pub(crate) below: f64,
+    pub(crate) above: f64,
+    pub(crate) slope: f64,
 }
 
 impl Schedule for Jump {
