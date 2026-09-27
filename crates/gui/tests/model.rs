@@ -494,7 +494,7 @@ fn a_session_that_does_not_read_is_set_aside() {
     );
     assert_eq!(m.mint_key(), None, "no run is open to mint a key for");
     // A G0.1 session, format 1 with no serial, does not read and is set aside.
-    let old = s.to_ron().replacen("format: 2,", "format: 1,", 1);
+    let old = s.to_ron().replacen("format: 3,", "format: 1,", 1);
     let e = reduce(&mut m, Intent::SessionRead(Ok(old)));
     assert!(matches!(&e[..], [Effect::SetAsideSession]));
 }

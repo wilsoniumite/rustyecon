@@ -426,15 +426,16 @@ fn curve(ui: &mut egui::Ui, st: &mut LabState) {
         .y_axis_label(c.field.clone())
         .show(ui, |pui| {
             for s in &c.segments {
-                pui.line(Line::new(c.field.clone(), PlotPoints::from(s.clone())));
+                let line = Line::new(c.field.clone(), PlotPoints::from(s.clone()));
+                pui.line(line.color(super::plots::OTHER[0]));
             }
             if c.field == fields::F {
-                pui.hline(HLine::new("0", 0.0).color(Color32::GRAY));
+                pui.hline(HLine::new("0", 0.0).color(Color32::from_gray(128)));
             }
             pui.vline(VLine::new("bracket", c.bracket.0).color(Color32::DARK_GRAY));
             pui.vline(VLine::new("bracket", c.bracket.1).color(Color32::DARK_GRAY));
             if let Some(r) = c.root {
-                pui.vline(VLine::new("x*", r).color(Color32::from_rgb(0xf5, 0x85, 0x18)));
+                pui.vline(VLine::new("x*", r).color(super::plots::OTHER[1]));
             }
         });
 }
@@ -520,7 +521,7 @@ fn sweep(ui: &mut egui::Ui, st: &mut LabState) {
                 .x_axis_label(s.knob.clone())
                 .show(ui, |pui| {
                     for (i, l) in s.lines.iter().enumerate() {
-                        let colour = super::plots::PALETTE[i % super::plots::PALETTE.len()];
+                        let colour = super::plots::OTHER[i % super::plots::OTHER.len()];
                         // A point with no equilibrium, or no number, breaks the line.
                         let mut segments: Vec<Vec<[f64; 2]>> = vec![Vec::new()];
                         for (x, v) in s.xs.iter().zip(&l.values) {

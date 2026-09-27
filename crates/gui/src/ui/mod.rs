@@ -41,6 +41,8 @@ pub struct State {
     pub map: map::MapState,
     /// The oracle lab's form and what it last solved (G1).
     pub lab: lab::LabState,
+    /// The log's breakpoint field (G1).
+    break_at: String,
     drawn: BTreeSet<Pane>,
     /// The run and load whose tab was last brought forward: the map for a tape with one,
     /// the plots for a tape without.
@@ -163,6 +165,23 @@ pub fn value_label(ui: &mut egui::Ui, v: Option<f64>, unit: &str) -> egui::Respo
     }
 }
 
+/// A small "watch" or "unwatch" button for a series (G1): the outliner's watchlist shows a
+/// watched series at the cursor. Its accessible name, and its hover text, name the series.
+pub fn watch_button(ui: &mut egui::Ui, s: &SeriesKey, watched: bool, out: &mut Vec<Intent>) {
+    let (text, act) = if watched {
+        ("unwatch", Intent::Unwatch(s.clone()))
+    } else {
+        ("watch", Intent::Watch(s.clone()))
+    };
+    let r = ui.small_button(text).on_hover_text(s.to_string());
+    r.widget_info(|| {
+        egui::WidgetInfo::labeled(egui::WidgetType::Button, true, format!("{text} {s}"))
+    });
+    if r.clicked() {
+        out.push(act);
+    }
+}
+
 /// A small "plot" or "unplot" button for a series. It reads "plot"; its accessible name, and
 /// its hover text, name the series, so a screen reader or a script can tell one row's button
 /// from another's.
@@ -277,15 +296,25 @@ impl egui_tiles::Behavior<Pane> for Panes<'_> {
                     );
                     cache.key = Some(key);
                 }
+                let watch = vm::watch::build(store, &m.session.watch, &m.session.plots, at);
                 match &cache.vm {
-                    Some(v) => outliner::show(ui, v, m.selection(), &mut cache.filter, out),
+                    Some(v) => {
+                        let ctx = outliner::Ctx {
+                            selection: m.selection(),
+                            watch: &m.session.watch,
+                            watchlist: watch.as_ref(),
+                        };
+                        outliner::show(ui, v, &ctx, &mut cache.filter, out);
+                    }
                     None => loading(ui),
                 }
             }
-            Pane::Plots => match vm::plots::build(store, &m.session.plots, at) {
-                Some(v) => plots::show(ui, run.id, store, &v, &mut self.state.plots, out),
-                None => loading(ui),
-            },
+            Pane::Plots => {
+                match vm::plots::build_with(store, &m.session.plots, &m.session.log_axes, at) {
+                    Some(v) => plots::show(ui, run.id, store, &v, &mut self.state.plots, out),
+                    None => loading(ui),
+                }
+            }
             Pane::Map => match self.state.map.ready() {
                 Err(e) => {
                     ui.colored_label(ui.visuals().error_fg_color, e);
@@ -375,6 +404,8 @@ impl egui_tiles::Behavior<Pane> for Panes<'_> {
                         };
                         let ctx = inspector::Ctx {
                             plots: &m.session.plots,
+                            watch: &m.session.watch,
+                            breakpoints: &m.session.breakpoints,
                             waterfall,
                         };
                         inspector::show(ui, &v, &ctx, out);
@@ -414,10 +445,6 @@ impl egui_tiles::Behavior<Pane> for Panes<'_> {
                 None => loading(ui),
             },
             Pane::Log => {
-                let on = m
-                    .session
-                    .breakpoints
-                    .contains(&crate::run::Breakpoint::OnError);
                 // The log only grows: the lines added since the last frame are appended.
                 let all = m.log();
                 let (n, v) = self
@@ -430,7 +457,8 @@ impl egui_tiles::Behavior<Pane> for Panes<'_> {
                     v.lines.extend(vm::log::build(&all[*n..]).lines);
                 }
                 *n = all.len();
-                log::show(ui, v, on, out);
+                let field = &mut self.state.break_at;
+                log::show(ui, v, &m.session.breakpoints, field, out);
             }
             Pane::Editor => editor::show(ui, m, &mut self.state.editor, out),
             // Drawn above, with or without a tape.

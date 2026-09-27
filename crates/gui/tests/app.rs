@@ -35,8 +35,8 @@ use rustyecon_gui::edit::{lineage_path, Lineage};
 use rustyecon_gui::model::{Intent, Model};
 use rustyecon_gui::platform::Files;
 use rustyecon_gui::run::{
-    At, Entity, LedgerCheck, Measure, Origin, PauseReason, RunId, RunStatus, Series, SeriesKey,
-    Store,
+    At, Breakpoint, Entity, LedgerCheck, Measure, Origin, PauseReason, RunId, RunStatus, Series,
+    SeriesKey, Store,
 };
 use rustyecon_gui::ui::fmt;
 use rustyecon_gui::ui::plots::{DrawnLine, PALETTE};
@@ -760,6 +760,14 @@ fn check_drawn(store: &Store, lines: &[DrawnLine]) -> usize {
     let mut n = 0;
     for l in lines {
         let s = store.series(&l.key).expect("a drawn series is recorded");
+        // On a log scale each y lent is ln of the recorded value, through the engine's num.
+        let shown = |v: f64| {
+            if l.log {
+                rustyecon_engine::num::ln(v)
+            } else {
+                v
+            }
+        };
         let mut all: Vec<[f64; 2]> = Vec::new();
         for seg in &l.segments {
             assert!(!seg.is_empty(), "{}: an empty segment", l.key);
@@ -767,7 +775,7 @@ fn check_drawn(store: &Store, lines: &[DrawnLine]) -> usize {
                 assert!(x >= 0.0 && x.fract() == 0.0, "{}: x {x} is no tick", l.key);
                 let t = x as u64;
                 assert_eq!(
-                    s.at(t).map(f64::to_bits),
+                    s.at(t).map(|v| shown(v).to_bits()),
                     Some(y.to_bits()),
                     "{}: the vertex ({t}, {y}) is not recorded",
                     l.key
@@ -789,8 +797,8 @@ fn check_drawn(store: &Store, lines: &[DrawnLine]) -> usize {
         let stretches = 1 + s.ticks().windows(2).filter(|w| w[1] != w[0] + 1).count();
         assert_eq!(l.segments.len(), stretches, "{}", l.key);
         // The series' least and greatest values are drawn.
-        let min = s.values().iter().copied().fold(f64::INFINITY, f64::min);
-        let max = s.values().iter().copied().fold(f64::NEG_INFINITY, f64::max);
+        let min = shown(s.values().iter().copied().fold(f64::INFINITY, f64::min));
+        let max = shown(s.values().iter().copied().fold(f64::NEG_INFINITY, f64::max));
         assert!(all.iter().any(|p| p[1] == min), "{}: its minimum", l.key);
         assert!(all.iter().any(|p| p[1] == max), "{}: its maximum", l.key);
         n += all.len();
@@ -857,6 +865,31 @@ fn every_drawn_vertex_is_recorded() {
         .unwrap();
     let n: usize = bread.segments.iter().map(Vec::len).sum();
     assert!(n < 2080, "the price of bread is thinned: {n} vertices");
+    // G1: the bread panel on a log scale lends ln of each recorded price, bit for bit, keeps
+    // its extremes and bridges no gap; its axis says so, and the other panels stay linear.
+    h.set_size(egui::vec2(1600.0, 1000.0));
+    h.state_mut().act(Intent::LogAxis {
+        unit: "coin per bread".to_string(),
+        on: true,
+    });
+    h.step();
+    h.step();
+    let drawn = h.state().drawn();
+    let logged: Vec<&SeriesKey> = drawn.iter().filter(|l| l.log).map(|l| &l.key).collect();
+    assert_eq!(
+        logged,
+        [&price("town", "bread"), &price("village", "bread")],
+        "the bread panel alone is on a log scale"
+    );
+    check_drawn(store(h.state()), &drawn);
+    lent_is_painted(&h, &drawn);
+    let axes = axis_labels(&h);
+    assert_eq!(axes[0], "coin per bread (log scale)", "{axes:?}");
+    assert_eq!(&axes[1..3], ["coin per fuel", "coin per grain"], "{axes:?}");
+    assert_eq!(
+        h.state().model().session.log_axes,
+        ["coin per bread".to_string()]
+    );
 }
 
 /// The act that restores the mine's capacity from its base value.
@@ -1336,5 +1369,75 @@ fn the_explainer_script_paints_the_step_and_the_waterfall() {
             fmt(w.explained),
             fmt(w.residual)
         ),
+    );
+}
+
+#[test]
+fn the_watch_and_breakpoint_script() {
+    // G1's panels on the gate: watch a price from the inspector and see it in the outliner's
+    // watchlist at the cursor; add an event breakpoint in the log's field, run, and pause after
+    // the tick it fires in, the log naming it; clear it from the event's inspector.
+    let mut h = harness("gate");
+    step_until(&mut h, "paused at tick 0", |a| {
+        status(a.model()) == Some(RunStatus::Paused { tick: 0, why: None })
+    });
+    click(&mut h, "town/bread");
+    // The outliner's row and the inspector each have the button; the inspector's is the last.
+    has(&mut h, "watch price at town/bread");
+    let buttons: Vec<_> = h.query_all_by_label("watch price at town/bread").collect();
+    assert_eq!(buttons.len(), 2, "the outliner's and the inspector's");
+    buttons[1].click_accesskit();
+    h.step();
+    h.step();
+    assert_eq!(
+        h.state().model().session.watch,
+        [price("town", "bread")],
+        "watched"
+    );
+    see(&mut h, "Watchlist (1)");
+    // The log's field: an event's key.
+    click(&mut h, "Log");
+    fill(&mut h, "break at", "mine.cut");
+    press(&mut h, "Add breakpoint");
+    see(&mut h, "breakpoint on event mine.cut");
+    let cut = store(h.state())
+        .world()
+        .unwrap()
+        .clock
+        .tick_of(Date::parse("1760-03-01").unwrap())
+        .unwrap();
+    // Run on (the field keeps the keyboard, so not by Space).
+    assert_eq!(
+        h.state().model().session.breakpoints,
+        [Breakpoint::OnError, Breakpoint::OnEvent(key("mine.cut"))]
+    );
+    h.state_mut().act(Intent::Run { until: Some(2080) });
+    let hit = PauseReason::Breakpoint(Breakpoint::OnEvent(key("mine.cut")));
+    step_until(&mut h, "the breakpoint", |a| paused(a, hit.clone()));
+    assert_eq!(store(h.state()).tick(), cut + 1);
+    shows_part(
+        &mut h,
+        &format!("breakpoint on event mine.cut at state tick {}", cut + 1),
+    );
+    // The watchlist reads the cursor: the price at the tick that ran.
+    let p = store(h.state())
+        .series(&price("town", "bread"))
+        .and_then(|s| s.at(cut))
+        .unwrap();
+    let text = format!("{} coin per bread", fmt(p));
+    let times = painted(&h).iter().filter(|t| **t == text).count();
+    assert!(
+        times >= 2,
+        "the watchlist and the inspector paint {text}: {times}"
+    );
+    // The event's inspector clears it.
+    h.state_mut()
+        .act(Intent::Select(Some(Entity::Event(key("mine.cut")))));
+    h.step();
+    press(&mut h, "break on event mine.cut");
+    assert_eq!(
+        h.state().model().session.breakpoints,
+        [Breakpoint::OnError],
+        "cleared"
     );
 }

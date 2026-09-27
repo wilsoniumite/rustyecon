@@ -9,7 +9,7 @@
 
 use super::{fmt, value_label};
 use crate::model::Intent;
-use crate::run::SeriesKey;
+use crate::run::{Breakpoint, SeriesKey};
 use crate::vm::inspector::{
     ActorVm, EventVm, InspectorVm, MarketVm, OtherVm, ParamRefVm, ParamVm, ValueVm,
 };
@@ -22,21 +22,24 @@ use egui_plot::{Bar, BarChart, Legend, Line, Plot, PlotPoints, VLine};
 pub struct Ctx<'a> {
     /// The plotted series.
     pub plots: &'a [SeriesKey],
+    /// The watched series.
+    pub watch: &'a [SeriesKey],
+    /// The session's breakpoints.
+    pub breakpoints: &'a [Breakpoint],
     /// A market's log waterfall up to the cursor, or why there is none.
     pub waterfall: Option<&'a Result<WaterfallVm, String>>,
 }
 
 /// Draw the inspector.
 pub fn show(ui: &mut egui::Ui, vm: &InspectorVm, ctx: &Ctx<'_>, out: &mut Vec<Intent>) {
-    let plots = ctx.plots;
     egui::ScrollArea::both()
         .id_salt("inspector")
         .show(ui, |ui| match vm {
             InspectorVm::Market(m) => market(ui, m, ctx, out),
-            InspectorVm::Actor(a) => actor(ui, a, plots, out),
-            InspectorVm::Param(p) => param(ui, p, plots, out),
-            InspectorVm::Event(e) => event(ui, e),
-            InspectorVm::Other(o) => other(ui, o, plots, out),
+            InspectorVm::Actor(a) => actor(ui, a, ctx, out),
+            InspectorVm::Param(p) => param(ui, p, ctx, out),
+            InspectorVm::Event(e) => event(ui, e, ctx.breakpoints, out),
+            InspectorVm::Other(o) => other(ui, o, ctx, out),
             InspectorVm::Unknown(e) => {
                 ui.weak(format!("{e:?} is not in this run's world"));
             }
@@ -50,37 +53,29 @@ fn at(ui: &mut egui::Ui, tick: Option<u64>, date: &str) {
     };
 }
 
-/// Rows of numbers: label, value and unit, and a plot toggle for a recorded series.
-fn values(
-    ui: &mut egui::Ui,
-    id: &str,
-    rows: &[ValueVm],
-    plots: &[SeriesKey],
-    out: &mut Vec<Intent>,
-) {
+/// Rows of numbers: label, value and unit, and plot and watch toggles for a recorded series.
+fn values(ui: &mut egui::Ui, id: &str, rows: &[ValueVm], ctx: &Ctx<'_>, out: &mut Vec<Intent>) {
     egui::Grid::new(("values", id))
-        .num_columns(3)
+        .num_columns(4)
         .show(ui, |ui| {
             for r in rows {
                 ui.label(&r.label);
                 value_label(ui, r.value, &r.unit);
-                plot_toggle(ui, r.series.as_ref(), plots, out);
+                plot_toggle(ui, r.series.as_ref(), ctx, out);
                 ui.end_row();
             }
         });
 }
 
-fn plot_toggle(
-    ui: &mut egui::Ui,
-    s: Option<&SeriesKey>,
-    plots: &[SeriesKey],
-    out: &mut Vec<Intent>,
-) {
+/// A series' plot and watch buttons, or two empty cells.
+fn plot_toggle(ui: &mut egui::Ui, s: Option<&SeriesKey>, ctx: &Ctx<'_>, out: &mut Vec<Intent>) {
     let Some(s) = s else {
+        ui.label("");
         ui.label("");
         return;
     };
-    super::plot_button(ui, s, plots.contains(s), out);
+    super::plot_button(ui, s, ctx.plots.contains(s), out);
+    super::watch_button(ui, s, ctx.watch.contains(s), out);
 }
 
 fn copied(ui: &mut egui::Ui, c: &Option<CopiedVm>) {
@@ -120,10 +115,9 @@ fn param_refs(ui: &mut egui::Ui, id: &str, refs: &[ParamRefVm]) {
 }
 
 fn market(ui: &mut egui::Ui, m: &MarketVm, ctx: &Ctx<'_>, out: &mut Vec<Intent>) {
-    let plots = ctx.plots;
     ui.heading(format!("Market {}/{}", m.node, m.good));
     at(ui, m.tick, &m.date);
-    values(ui, "market", &m.values, plots, out);
+    values(ui, "market", &m.values, ctx, out);
     ui.horizontal(|ui| {
         ui.label("ln(p′/p)");
         value_label(ui, m.log_step, "per tick");
@@ -167,7 +161,7 @@ fn market(ui: &mut egui::Ui, m: &MarketVm, ctx: &Ctx<'_>, out: &mut Vec<Intent>)
             ui,
             &format!("ration {} {}", r.class, r.side),
             &r.values,
-            plots,
+            ctx,
             out,
         );
     }
@@ -270,23 +264,27 @@ fn waterfall(ui: &mut egui::Ui, w: &WaterfallVm) {
         .collect();
     let mut level: Vec<[f64; 2]> = vec![[w.start as f64, 0.0]];
     level.extend(w.bins.iter().map(|b| [b.to as f64, b.level]));
-    let (orange, blue) = (super::plots::PALETTE[1], super::plots::PALETTE[0]);
+    let (orange, blue) = (super::plots::OTHER[1], super::plots::OTHER[0]);
     Plot::new("waterfall")
         .height(200.0)
         .legend(Legend::default())
-        .y_axis_label("ln(p/p₀)")
         .show(ui, |pui| {
             pui.bar_chart(BarChart::new("Σ k·x", bars).color(blue));
             pui.line(Line::new("ln(p/p₀)", PlotPoints::from(level)).color(orange));
             for e in &w.events {
-                let colour = if e.moves { orange } else { Color32::GRAY };
+                // Not the plots' grey, which marks their cursor.
+                let colour = if e.moves {
+                    orange
+                } else {
+                    Color32::from_gray(128)
+                };
                 let name = format!("{} ({})", e.key, e.what);
                 pui.vline(VLine::new(name, e.tick as f64).color(colour));
             }
         });
 }
 
-fn actor(ui: &mut egui::Ui, a: &ActorVm, plots: &[SeriesKey], out: &mut Vec<Intent>) {
+fn actor(ui: &mut egui::Ui, a: &ActorVm, ctx: &Ctx<'_>, out: &mut Vec<Intent>) {
     ui.heading(format!("Actor {}", a.key));
     ui.label(format!(
         "{}, class {}, at {}, spec {}; {}",
@@ -327,7 +325,7 @@ fn actor(ui: &mut egui::Ui, a: &ActorVm, plots: &[SeriesKey], out: &mut Vec<Inte
             for h in &a.holdings {
                 ui.label(h.good.to_string());
                 value_label(ui, h.held.value, &h.held.unit);
-                plot_toggle(ui, h.held.series.as_ref(), plots, out);
+                plot_toggle(ui, h.held.series.as_ref(), ctx, out);
                 ui.end_row();
                 if let Some(lots) = &h.lots {
                     ui.label("");
@@ -354,13 +352,13 @@ fn actor(ui: &mut egui::Ui, a: &ActorVm, plots: &[SeriesKey], out: &mut Vec<Inte
             ui,
             &format!("settle {} {} {}", s.side, s.node, s.good),
             &s.values,
-            plots,
+            ctx,
             out,
         );
     }
 }
 
-fn param(ui: &mut egui::Ui, p: &ParamVm, plots: &[SeriesKey], out: &mut Vec<Intent>) {
+fn param(ui: &mut egui::Ui, p: &ParamVm, ctx: &Ctx<'_>, out: &mut Vec<Intent>) {
     let r = &p.row;
     ui.heading(format!("Param {}", r.key));
     ui.label(format!(
@@ -371,7 +369,7 @@ fn param(ui: &mut egui::Ui, p: &ParamVm, plots: &[SeriesKey], out: &mut Vec<Inte
         r.unit
     ));
     ui.weak(&r.basis);
-    values(ui, "param", std::slice::from_ref(&p.value), plots, out);
+    values(ui, "param", std::slice::from_ref(&p.value), ctx, out);
     copied(ui, &r.copied);
     ui.separator();
     ui.strong("Uses");
@@ -404,8 +402,18 @@ fn param(ui: &mut egui::Ui, p: &ParamVm, plots: &[SeriesKey], out: &mut Vec<Inte
     }
 }
 
-fn event(ui: &mut egui::Ui, e: &EventVm) {
+fn event(ui: &mut egui::Ui, e: &EventVm, breakpoints: &[Breakpoint], out: &mut Vec<Intent>) {
     ui.heading(format!("Event {}", e.key));
+    // G1: a breakpoint on this event pauses a run after each tick it fires in.
+    let at = Breakpoint::OnEvent(e.key.clone());
+    let mut on = breakpoints.contains(&at);
+    if ui
+        .checkbox(&mut on, format!("break on event {}", e.key))
+        .on_hover_text("pause a run after each tick this event fires in")
+        .changed()
+    {
+        out.push(Intent::Breakpoint { at, on });
+    }
     ui.label(format!("{}, {} (tick {})", e.kind, e.date, e.tick));
     if let Some(every) = &e.every {
         ui.label(format!("every {every}"));
@@ -427,7 +435,7 @@ fn event(ui: &mut egui::Ui, e: &EventVm) {
     }
 }
 
-fn other(ui: &mut egui::Ui, o: &OtherVm, plots: &[SeriesKey], out: &mut Vec<Intent>) {
+fn other(ui: &mut egui::Ui, o: &OtherVm, ctx: &Ctx<'_>, out: &mut Vec<Intent>) {
     ui.heading(&o.title);
     egui::Grid::new("other-facts")
         .num_columns(2)
@@ -438,5 +446,5 @@ fn other(ui: &mut egui::Ui, o: &OtherVm, plots: &[SeriesKey], out: &mut Vec<Inte
                 ui.end_row();
             }
         });
-    values(ui, "other", &o.values, plots, out);
+    values(ui, "other", &o.values, ctx, out);
 }

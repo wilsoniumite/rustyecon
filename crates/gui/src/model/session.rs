@@ -1,17 +1,23 @@
 //! `session.ron` (U8): what a session keeps between launches, outside every tape. The tapes it
 //! opened, by path with their `tape_hash`; the plotted series; the pinned entities; the
-//! breakpoints; the speed cap; and the session's serial, which minted keys carry
-//! (`gui.<serial>.<n>`, docs/GUI.md §5.1 item 2). A branch lives in memory until "Save tape
-//! as" writes it: the session does not re-make branches at launch (G0.2). Text in, text out:
-//! `platform` reads and writes the file.
+//! breakpoints; the speed cap; the session's serial, which minted keys carry
+//! (`gui.<serial>.<n>`, docs/GUI.md §5.1 item 2); and, from G1, the watchlist and the plot
+//! panels shown on a log scale. A branch lives in memory until "Save tape as" writes it: the
+//! session does not re-make branches at launch (G0.2). Text in, text out: `platform` reads and
+//! writes the file.
 
 use crate::run::{Breakpoint, Entity, SeriesKey};
 use certify::Hex;
 use serde::{Deserialize, Deserializer, Serialize};
 
-/// The format this build reads and writes. Format 2 (G0.2) adds the serial; a format-1 file
-/// does not read, and is set aside.
-pub const SESSION_FORMAT: u32 = 2;
+/// The format this build writes. Format 2 (G0.2) adds the serial; format 3 (G1) the watchlist,
+/// the log-scale panels, and event and date breakpoints. This build reads format 2 too, with
+/// no series watched and every panel linear, and writes it back as 3; a format-1 file does not
+/// read, and is set aside. A G0 build sets a format-3 file aside.
+pub const SESSION_FORMAT: u32 = 3;
+
+/// The oldest format this build reads.
+pub const SESSION_FORMAT_READ: u32 = 2;
 
 /// A tape opened from a file: its path and its `tape_hash` when last read. A base whose file
 /// changed on disk opens as a new root run (docs/GUI.md §5.1 item 7).
@@ -48,6 +54,14 @@ pub struct Session {
     /// always, as `None` or `Some(..)`.
     #[serde(deserialize_with = "required")]
     pub speed: Option<u32>,
+    /// The watched series, by key, in the order they were watched (G1). Absent from a
+    /// format-2 file, where it reads as none.
+    #[serde(default)]
+    pub watch: Vec<SeriesKey>,
+    /// The units whose plot panel is drawn on a log scale (G1). Absent from a format-2 file,
+    /// where it reads as none.
+    #[serde(default)]
+    pub log_axes: Vec<String>,
 }
 
 /// Read an `Option` field that must be written, as core reads a tape's: serde would otherwise
@@ -67,6 +81,8 @@ impl Default for Session {
             pins: Vec::new(),
             breakpoints: vec![Breakpoint::OnError],
             speed: None,
+            watch: Vec::new(),
+            log_axes: Vec::new(),
         }
     }
 }
@@ -78,24 +94,37 @@ impl Session {
         ron::ser::to_string_pretty(self, pretty).expect("a session serialises")
     }
 
-    /// A session from RON, if it is one this build reads: every field present, none unknown,
-    /// and the format this build writes.
+    /// A session from RON, if it is one this build reads: every field its format has present,
+    /// none unknown, and a format from [`SESSION_FORMAT_READ`] to [`SESSION_FORMAT`]. A
+    /// format-2 session reads as format 3 with nothing watched and no log scale.
     pub fn from_ron(text: &str) -> Result<Session, String> {
         #[derive(Deserialize)]
         #[serde(rename = "Session")]
         struct Probe {
             format: u32,
         }
-        let format = |f: u32| format!("session format {f}; this build reads {SESSION_FORMAT}");
+        let readable = |f: u32| (SESSION_FORMAT_READ..=SESSION_FORMAT).contains(&f);
+        let format = |f: u32| {
+            format!(
+                "session format {f}; this build reads {SESSION_FORMAT_READ} to {SESSION_FORMAT}"
+            )
+        };
         if let Ok(p) = ron::from_str::<Probe>(text) {
-            if p.format != SESSION_FORMAT {
+            if !readable(p.format) {
                 return Err(format(p.format));
             }
         }
-        let s: Session = ron::from_str(text).map_err(|e| e.to_string())?;
-        if s.format != SESSION_FORMAT {
+        let mut s: Session = ron::from_str(text).map_err(|e| e.to_string())?;
+        if !readable(s.format) {
             return Err(format(s.format));
         }
+        if s.format < 3 && !(s.watch.is_empty() && s.log_axes.is_empty()) {
+            return Err(format!(
+                "session format {} does not have the watchlist or log scales",
+                s.format
+            ));
+        }
+        s.format = SESSION_FORMAT;
         Ok(s)
     }
 }

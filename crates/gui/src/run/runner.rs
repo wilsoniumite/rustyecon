@@ -180,11 +180,16 @@ impl Runner {
                 Ok(report) => {
                     ran += 1;
                     rows.push(live.extractor.row(&live.sim, &report, &mut new_series));
+                    let hit = hit(&self.breakpoints, &live.sim.world().clock, &report);
                     last = Some(report);
                     if let Mode::Stepping { left } = &mut live.mode {
                         *left -= 1;
                     }
                     live.reached(&mut after);
+                    if let Some(b) = hit {
+                        paused = Some(PauseReason::Breakpoint(b));
+                        break;
+                    }
                 }
                 Err(error) => {
                     let last = live.sim.last_report().cloned().map(Box::new);
@@ -362,6 +367,25 @@ impl Live {
             out.push(Obs::Snapshot(Box::new(snapshot_of(&scratch))));
         }
     }
+}
+
+/// The event or date breakpoint the tick `r` reports hits, if one does: an event breakpoint
+/// whose key fired in the tick, else a date breakpoint whose date falls in it (G1). The error
+/// breakpoint is the failed step's, not a report's.
+fn hit(breakpoints: &[Breakpoint], clock: &Clock, r: &TickReport) -> Option<Breakpoint> {
+    breakpoints
+        .iter()
+        .find(|b| match b {
+            Breakpoint::OnEvent(k) => r.events.iter().any(|e| &e.key == k),
+            _ => false,
+        })
+        .or_else(|| {
+            breakpoints.iter().find(|b| match b {
+                Breakpoint::OnDate(d) => clock.tick_of(*d).ok() == Some(r.tick),
+                _ => false,
+            })
+        })
+        .cloned()
 }
 
 /// Every holding, its lots, and every actor's state of `sim`, read without changing it.

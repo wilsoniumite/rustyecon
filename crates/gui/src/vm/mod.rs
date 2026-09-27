@@ -19,6 +19,7 @@ pub mod pricestep;
 pub mod registry;
 pub mod timeline;
 pub mod toolbar;
+pub mod watch;
 
 use crate::run::{At, HolderKey, Measure, SeriesKey, StateField, Store};
 use rustyecon_engine::prelude::*;
