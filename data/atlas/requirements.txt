@@ -1,0 +1,18 @@
+# The atlas build's venv (build_atlas.py): Python 3.10.12 on WSL Ubuntu 22.04, 2026-09-27.
+# Every package is pinned, because the output's bytes depend on GEOS 3.13.1 (inside the shapely
+# wheel), PROJ 9.5.1 (inside the pyproj wheel) and matplotlib's renderer.
+certifi==2026.7.22
+contourpy==1.3.2
+cycler==0.12.1
+fonttools==4.65.0
+kiwisolver==1.5.1
+matplotlib==3.10.9
+numpy==2.2.6
+packaging==26.3
+pillow==12.3.0
+pyparsing==3.3.3
+pyproj==3.7.1
+pyshp==3.1.6
+python-dateutil==2.9.0.post0
+shapely==2.1.2
+six==1.17.0

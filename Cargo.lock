@@ -3131,7 +3131,9 @@ dependencies = [
 name = "rustyecon-worldgen"
 version = "0.2.0"
 dependencies = [
+ "ron",
  "rustyecon-core",
+ "serde",
 ]
 
 [[package]]
