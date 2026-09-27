@@ -10,18 +10,81 @@ the tape's schema is [docs/TAPE.md](docs/TAPE.md), and the GUI's design is
 **Collaboration:** as in laborformal. Sequencing, engineering and drafting are delegated to
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
-**State as of:** 2026-09-26. **Phase 0 is closed.** Session 1 closed at P0.9, on `reboot`.
-Session 2 closed at S2.6, on branch `phase0-s2` (S2.1–S2.6, from `reboot` at `cf3c0ff`), which
-is not merged or pushed: merging is a fast-forward, on your word. Session 2 built the
+**State as of:** 2026-09-27. **G0, the GUI's shell, is under way** on branch `g0`, from
+`reboot` at `397d7cd` (S2.6): G0.1's first part, the crate and its seams, landed as G0.1
+(below). **Phase 0 is closed.** Session 1 closed at P0.9, on `reboot`.
+Session 2 closed at S2.6, built on branch `phase0-s2` (S2.1–S2.6, from `reboot` at `cf3c0ff`);
+`reboot` has since moved to it by a fast-forward, at `397d7cd`, and neither is pushed
+(`origin/reboot` is at `cf3c0ff`). Session 2 built the
 certification stack, the GUI's engine asks and the probe's criteria, and both tapes certify
 PASS. Before it: oracle unit 1a joined at P1.1 (O3); the GUI's design, plan amendment A14 and
 R16 landed at P0.11 (O1); by your ruling of 2026-09-26 the Phase 2 probe ran first, with verdict
 GO ([docs/probe/REPORT.md](docs/probe/REPORT.md)) and no fallback (decision 38); and Breakpoint
 B's pre-look passed beside it (S5.0, docs/spine/EYEBALL.md; decision 35).
-Next, in order: G0, the GUI's shell (G0.1 the viewer, then G0.2 the editor); Phase 1's units
-1b–1f alongside.
+Next, in order: G0.1's second part (the panels), then G0.2 the editor; Phase 1's units 1b–1f
+alongside.
 
 ## Where things stand
+
+**G0.1's first part: `crates/gui` and its seams** (2026-09-27; [docs/GUI.md](docs/GUI.md),
+amended at G0.1; ENGINE, amended at G0.1). The crate `rustyecon-gui` (lib and binary) holds the
+seam GUI.md §3 fixes, with no panels yet: `model/` (the `Session`, `Intent`, `Effect` and
+`reduce`, a pure state machine), `run/` (`Cmd`, `Obs`, the `Runner` that owns the `Sim`, the
+`Extractor`, the in-memory `Store` with a decimator that keeps each column's extremes, the ring
+of checkpoints, the log lines), `vm/` (the toolbar and the log), `drive/` (`ThreadDriver`, one
+worker per run, and the `Host` that carries out effects), `platform/` (`session.ron`,
+`layout.ron`), and `ui/` with the tile layout and a status line. D1 is in the workspace:
+`default-members` leave the GUI out, `scripts/gate.sh` excludes it from clippy and the tests
+and checks it once on Linux without gating, and `scripts/gui.sh` is its own gate.
+
+- **Tests** (33, all in `crates/gui`, run by `scripts/gui.sh` only): `gui_equals_cli` (gate to
+  2,080 ticks and appb to 20,000, through `ThreadDriver` by a fixed script of steps of 1 and 7,
+  run-untils, speed caps, a pause, snapshots at 300 and 250 and the breakpoint on error; every
+  hash equal to `Sim::new` plus `run_until`, and `scripts/gui.sh` diffs the files against the
+  cli's `--hashes`), `failed_run_shows_its_ledger_line` (the theft variant pauses on the
+  breakpoint at tick 73; the toolbar shows `Poisoned`, the ledger line and last good tick 72),
+  `decimation_keeps_extremes`, `nonfinite_ingest_stops_with_the_series_named`,
+  `model_run_edit_vm_import_no_egui`, `no_trig_outside_ui`, and the copied
+  `no_raw_transcendentals` and `no_hashed_collections`; with them the reducer's state machine
+  (9 tests), the Runner (5: pauses, the ring's 41 checkpoints on the gate, a resume from the
+  ring, a refused resume that reruns from genesis, snapshots), persistence (4), the store (2
+  more), the scanner's own test, a fifth scan that keeps run/ and vm/ free of the model, files,
+  threads and clocks (D13), two unit tests and one headless app test (egui_kittest, no GPU:
+  the gate opens paused at tick 0 with every price among its plots, Space runs and pauses,
+  `.` steps).
+- **Mutation** (checked 2026-09-27, WSL): 23 mutants of what the eight named tests guard, all
+  killed. One first survived: naming `catalogue[0]` for the non-finite series was equivalent on
+  the price of bread in town, which is the first series; the test now poisons the price of bread
+  in the village.
+- **Hashes**: the GUI's path gives the gate's 2,080 and appb's 20,000 per-tick hashes byte for
+  byte as the cli does (finals `0x61f9c8529131ff17` and `0xe1fa082b26995867`), on WSL and on
+  Windows.
+- **The gates** (logs in `D:/rustyecon-g0/g01-seams/`): `scripts/gate.sh` is green in WSL and on
+  Windows under Git Bash, with the engine unaffected: 421 tests pass with 2 ignored and run by
+  name, as at S2.5, zero warnings, the gate hash `0x61f9c8529131ff17`, and the GUI's
+  non-blocking check passing in WSL (skipped on Windows). `scripts/gui.sh` is green in WSL and on
+  Windows: 33 tests, clippy clean under the workspace lints with `-D warnings`, and both hash
+  diffs equal.
+- **D1's costs, with certify in the tree** (WSL, 48 threads, 2026-09-27): a clean `cargo check -p
+  rustyecon-gui` took 16.1 s, 0.81 GB of target and 0.87 GB peak RSS (GUI.md: 14.9 s, 0.76 GB,
+  0.88 GB without it); the warm check after touching `crates/engine/src/lib.rs` took 2.51, 2.57
+  and 2.55 s, median 2.55 s. The non-blocking check passes.
+- **The recount** (`cargo tree -e normal`, root included): 274 crates on Linux, 187 on Windows,
+  125 on wasm32; 281, 196 and 129 with build dependencies (GUI.md §3.1: 268, 181, 120 and 275,
+  190, 124 without certify). **Licences**: all permissive or with a permissive choice (18 under
+  Unicode-3.0, 2 BSL-1.0 on Windows, `self_cell` Apache-2.0 or GPL-2.0, `r-efi` MIT or Apache-2.0
+  or LGPL-2.1); the default fonts' OFL-1.1 and Ubuntu Font Licence remain the exception.
+- **The lockfile** was resolved offline from the cache: every existing entry kept, every crate of
+  the GUI's closure at the spike's version, 100 packages to 473. One `cargo fetch` ran on each
+  machine. C: had 114 GB free, so Windows' `CARGO_HOME` stayed on C:.
+- **Checked by hand: PENDING, yours** (the G0 gate's window item, due once G0.1's second part
+  brings the plots and the smoke mode). On Windows, from the repository, in PowerShell:
+  `$env:CARGO_TARGET_DIR = 'D:/rustyecon-targets/g0-hand'; cargo run --release -p rustyecon-gui --
+  tapes/gate.ron`, then Space, and let it run past tick 2,080 with every price plotted and no
+  panic. Nobody has looked at a window yet; the headless app test is all that ran.
+- **Not yet recorded**: the gate world's rerun time through `ThreadDriver` (it times
+  `materialise` too, so it waits for G0.2), and CPU per frame (the smoke mode comes with the
+  panels).
 
 **Phase 0 session 2 is closed, and the gate is green in WSL and on Windows** (2026-09-26;
 [docs/CERTIFY.md](docs/CERTIFY.md), with each step's amendments). It moved July's certification
@@ -508,6 +571,29 @@ building. All are open to veto; a veto of one that shapes a verdict means new ce
     state hash moved. Alternative: keep the methods out of `world_id`, which would let two
     worlds that convert a rate differently share an identity.
 
+Decisions 59–64 were made while building G0.1's first part, where GUI.md was silent or wrong
+against the code as it stood after S2.6. GUI.md's G0.1 amendment carries each; all are open to
+veto.
+
+59. **The GUI's gate is `scripts/gui.sh`,** beside `scripts/gate.sh` (decision 20), not
+    `ci/gui.sh`. It tests in release, as the engine's gate does, and checks by name that each
+    test G0's gate names ran and passed.
+60. **The Runner takes the build and hands out the world.** `Runner::new(build, sink, wake)`
+    mints each run key and ring checkpoint; `Obs::Loaded` carries the run key and the `World`;
+    `Obs::Running` is new; `Obs::Refused` carries a `Refusal` (a tape that does not load, ring
+    bytes that do not decode, a refused resume). A refused ring resume reruns from genesis.
+61. **The store holds the run's status, and vm/ reads run types only.** No builder takes the
+    model, so vm/ moves into observe with the Runner at G2 (D13); a scan holds run/ and vm/ free
+    of the model, files, threads and clocks. `drive::Host` carries out the model's effects, so
+    tests drive the whole seam without egui.
+62. **The GUI shares the cli's build script** (`build = "../cli/build.rs"`), so a GUI run and a
+    cli run of one checkout name the same build, by one definition.
+63. **The session** lives in `$RUSTYECON_GUI_DIR`, else the platform's configuration directory.
+    A new one plots every price and has the breakpoint on error; `layout.ron` is saved when the
+    window closes; a file that does not read is set aside, never written over.
+64. **The engine gate's GUI check runs on Linux only** (D1 says WSL), in
+    `$CARGO_TARGET_DIR-gui`, so Windows engine steps build no GUI.
+
 ## Open — your calls
 
 - **The GUI's decisions**, 22–34 (D1–D13): open to veto before G0. D10's items are built.
@@ -516,13 +602,17 @@ building. All are open to veto; a veto of one that shapes a verdict means new ce
 - **Decisions 35–40** (Breakpoint B's three calls and the probe's proposals), taken by Claude on
   your word and open to veto.
 - **Decisions 41–58** (session 2's), open to veto.
+- **Decisions 59–64** (G0.1's first part), open to veto.
+- **The G0 gate's window check, by hand** (see "Where things stand"), once G0.1's second part
+  lands.
 - **CERTIFY §15.1's questions:** (1) is a registered `price_shocks` count above 0 ever
   acceptable in a certified tape, or does `ScalePrice` belong to the kick alone; (2) should the
   cli resume under a dated edit behind an explicit `--edited` flag that records the parent and
   marks the run; (3) BalanceWatch's bars are absolute on the imbalance, a number in [−1, 1],
   read as allowed by A12; (4) C11 edited probe code that REPORT cites at `55c9e88`, guarded by
   its pins; (6) the kick's horizon is one L, so an instability slower than L passes.
-- **Merging `phase0-s2` into `reboot`** (a fast-forward) and pushing it.
+- **Pushing `reboot`** (at `397d7cd`, session 2 merged by a fast-forward), and merging `g0` into
+  it when G0 closes.
 - **The Phase 2 session budget** that A11's kill condition needs (PLAN Phase 2), now for Phase 2
   proper's other instances.
 - **The decisions above**, especially 10 (the engine crate, not in PLAN's crate list), 11, 15
@@ -531,9 +621,10 @@ building. All are open to veto; a veto of one that shapes a verdict means new ce
 ## Open — work
 
 - **O1. The GUI.** Designed ([docs/GUI.md](docs/GUI.md); A14), with egui in `crates/gui`. G0,
-  the shell, is next (two to three sessions; GUI.md §9): G0.1 the viewer (the crate's seams, the
-  Runner and `ThreadDriver`, the toolbar, timeline, outliner, plots, inspector, registry and
-  log), then G0.2 the editor (`materialise`, lineage, branches, compare and export). G1, the
+  the shell, is under way (two to three sessions; GUI.md §9): G0.1 the viewer, whose first part
+  (the crate's seams, the Runner and `ThreadDriver`, the Extractor, the store and the ring) landed
+  on 2026-09-27 and whose second is the toolbar, timeline, outliner, plots, inspector, registry
+  and log; then G0.2 the editor (`materialise`, lineage, branches, compare and export). G1, the
   oracle lab, starts after G0 and Phase 1's gate. `crates/engine` was built for it: a frontend
   depends on the engine alone, steps a `Sim` on a worker thread and reads each `TickReport` over
   a channel. Session 2 gave it what §7.2 asked: `FiredEvent.source`, the registry's sites with
@@ -631,13 +722,14 @@ REVIEW.md is kept as written; these of its claims do not hold.
 
 ## Next steps, in order
 
-1. **G0.1, the viewer** (O1; docs/GUI.md §9): `crates/gui` with its seams, `reduce`, the Runner,
-   `ThreadDriver`, the Extractor, the in-memory store and the ring; the toolbar, timeline,
-   outliner, plots, inspector, registry and a log with a breakpoint on error. `tapes/appb.ron` is
-   a second world beside the gate world, and D2's "no log axes" is revisited in G0.1, since every
-   probe plot needed a log scale. It builds on session 2's pieces: certify's `RunKey`,
-   `tape_hash` and Parquet-free manifest, `FiredEvent.source` and the registry's sites. The
-   commit that adds `crates/gui` carries A14's ENGINE amendments (D1).
+1. **G0.1, the viewer** (O1; docs/GUI.md §9). Its first part landed on 2026-09-27: `crates/gui`
+   with its seams, `reduce`, the Runner, `ThreadDriver`, the Extractor, the in-memory store and
+   the ring, and A14's ENGINE amendments (D1). Its second part is the panels: the toolbar,
+   timeline, outliner, plots (with the plot cache over `run::Decimator`), inspector, registry
+   and a log with a breakpoint on error; the vm goldens, the kittest scripts,
+   `every_drawn_vertex_is_recorded`, and the smoke mode's CPU per frame. `tapes/appb.ron` is a
+   second world beside the gate world (`gui_equals_cli` runs both), and D2's "no log axes" is
+   revisited there, since every probe plot needed a log scale.
 2. **G0.2, the editor**: `TapeEdit`, `materialise`, the lineage, `plan` and branches; compare;
    CSV, manifest, tape and lineage export. G0's gate is GUI.md §9's.
 3. **Alongside, Phase 1's units 1b–1f** (O3; PLAN Phase 1), each with its gate: many categories
@@ -651,11 +743,12 @@ REVIEW.md is kept as written; these of its claims do not hold.
 STATE.md                 you are here; start here next session
 README.md                what rustyecon is, the crates, how to build and test
 docs/PLAN.md             the plan, amended by the addendum's rulings (2026-09-25) and decision 39
-docs/ENGINE.md           the Phase 0 engine contract, with each step's amendments (P0.3–S2.6)
+docs/ENGINE.md           the Phase 0 engine contract, with each step's amendments (P0.3–G0.1)
 docs/CERTIFY.md          session 2's contract: criteria, batteries, kick, seal, manifest, cli,
                          telemetry, with each step's amendments (S2.2–S2.6)
 docs/TAPE.md             the tape's schema guide
-docs/GUI.md              the GUI's design (A14): stack, architecture, panels, editor, map, roadmap
+docs/GUI.md              the GUI's design (A14): stack, architecture, panels, editor, map, roadmap;
+                         amended at G0.1
 docs/reboot/             REVIEW.md and ADDENDUM.md, kept as written (links fixed) but for A14 and
                          rulings 5–8 (P0.11); GUI-review-ledger.md, the GUI design's two reviews
 docs/timeline/eras.md    era research for worldgen
@@ -674,6 +767,8 @@ crates/certify           criteria, batteries, the kick, the sealed certificate, 
                          Parquet telemetry behind the feature `parquet` (S2.3–S2.5)
 crates/certify/testdata  appb variants from `appb-tape --perturb`: bcycle, freeze, july, buffer16
 crates/worldgen          empty until Phase 4
+crates/gui               the GUI (G0.1): model/, run/, vm/, drive/, platform/, ui/, app.rs, the
+                         binary rustyecon-gui; its tests run under scripts/gui.sh only (D1)
 tapes/gate.ron           the gate world
 tapes/appb.ron           the probe's Appendix B world, generated from the oracle
 criteria/                each tape's dated criteria, registered before its first certified run
@@ -681,7 +776,8 @@ results/                 committed verdicts: results/<tape>/certificate.ron and 
 data/spine/              the spine's fetch, extract and eyeball scripts, manifests, CC0 files;
                          their cache is $SPINE_ROOT or the ignored data/spine/.cache/
 docs/spine/              DATA_NOTES.md and EYEBALL.md, Breakpoint B's pre-look (S5.0)
-scripts/gate.sh          the gate as one script
+scripts/gate.sh          the gate as one script; the GUI excluded, checked once on Linux (D1)
+scripts/gui.sh           the GUI's gate, run at each G-stage (G0.1)
 .github/workflows/ci.yml hosted CI, on every push
 ```
 
@@ -692,6 +788,10 @@ scripts/gate.sh          the gate as one script
   code is lost. The script puts the build in `$HOME/scratch/target-rustyecon-gate` unless
   `CARGO_TARGET_DIR` says otherwise, and refuses a target directory inside the tree. With no
   network and a warm cache, set `CARGO_NET_OFFLINE=true`.
+- The GUI's gate the same way: `wsl -d ubuntu --exec bash -lc '<repo>/scripts/gui.sh'` (default
+  target `$HOME/scratch/target-rustyecon-gui`), and on Windows under Git Bash with
+  `CARGO_TARGET_DIR` on D:. G0 runs from a worktree, `D:/rustyecon-wt/g0`, with targets in
+  `/root/scratch/target-g0-*` and `D:/rustyecon-targets/g0-*` and logs in `D:/rustyecon-g0/`.
 - On Windows, the same script under Git Bash with `CARGO_TARGET_DIR` outside the tree (it skips
   the wasm32 check, since the target is not installed there), then `rustyecon run tapes/gate.ron
   --until 2080 --hashes <file>` and the same for `tapes/appb.ron --until 20000`, and a byte

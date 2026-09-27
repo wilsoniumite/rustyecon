@@ -30,8 +30,9 @@ the run's manifest and Parquet telemetry. The gate world and the Appendix B worl
 certify PASS, and their certificates are in `results/`. A Phase 2 probe found that agents
 at the paper's margins reach the oracle's equilibrium of the SSRN Appendix B economy
 ([docs/probe/REPORT.md](docs/probe/REPORT.md)). Oracle unit 1a, the first of Phase 1, has
-landed. The GUI is designed ([docs/GUI.md](docs/GUI.md)); its shell, G0, is next. The
-crates fill in phase by phase:
+landed. The GUI is designed ([docs/GUI.md](docs/GUI.md)), and its shell, G0, is under way:
+G0.1's first part laid the crate's seams, and its panels come next. The crates fill in phase
+by phase:
 
 | Crate | What it holds | Fills in |
 |---|---|---|
@@ -44,7 +45,7 @@ crates fill in phase by phase:
 | `crates/oracle` | the equilibrium solver (library `oracle`): unit 1a, one category with durability and interest, reproduces the SSRN Appendix B ([its README](crates/oracle/README.md)) | Phase 1: 1a landed; 1b–1f to come |
 | `crates/worldgen` | the tape compiler | Phase 4 |
 | `crates/probe` | the Phase 2 probe's harness: the Appendix B tape's generator, named perturbations, per-tick observables against the oracle ([docs/probe/RULES.md](docs/probe/RULES.md)); its oracle-free measures are certify's | the probe, P2.0.1 |
-| `crates/gui` | the interactive frontend, in egui: live runs, plots, lenses, the tape editor, and a county map ([docs/GUI.md](docs/GUI.md)) | from G0, after Phase 0's second session; one stage beside each phase |
+| `crates/gui` | the interactive frontend, in egui: live runs, plots, lenses, the tape editor, and a county map ([docs/GUI.md](docs/GUI.md)); the binary `rustyecon-gui` | from G0, after Phase 0's second session; one stage beside each phase (the seams since G0.1) |
 
 Packages are named `rustyecon-<crate>`. `tapes/gate.ron` is the Phase 0 gate world, and
 `tapes/appb.ron` the probe's Appendix B world. `criteria/` holds each tape's dated
@@ -96,8 +97,8 @@ certified run:
 
 ```sh
 cargo fmt --all --check
-cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace --release
+cargo clippy --workspace --exclude rustyecon-gui --all-targets -- -D warnings
+cargo test --workspace --exclude rustyecon-gui --release
 cargo run --release -p rustyecon-cli -- run tapes/gate.ron --until 2080
 cargo run --release -p rustyecon-cli -- certify tapes/gate.ron \
     --criteria criteria/gate-2026-09-26.ron --out <dir>
@@ -109,6 +110,18 @@ first, and exits 0 only on PASS.
 Windows is the secondary check: the same script under Git Bash. Hash equality between the
 two platforms is recorded in STATE.md, not gated. `.github/workflows/ci.yml` runs
 `scripts/gate.sh` on GitHub's Ubuntu runner; it runs only once the branch is pushed.
+
+The GUI never gates engine work (docs/GUI.md, D1): the workspace's default members leave
+`crates/gui` out, and `scripts/gate.sh` excludes it from clippy and the tests and checks it
+once without gating. `scripts/gui.sh` is the GUI's own gate, run at each of its stages:
+formatting, clippy, its tests in release, and the GUI's hashes of the gate and Appendix B
+worlds against the cli's. The window opens with
+
+```sh
+cargo run --release -p rustyecon-gui -- tapes/gate.ron
+```
+
+and keeps its session in `$RUSTYECON_GUI_DIR`, or else the platform's configuration directory.
 
 `clippy.toml` enforces two standing rules: no std hash containers (R8, no unordered
 iteration on the delta path), and no platform transcendentals (`exp`, `ln`, `powf` and

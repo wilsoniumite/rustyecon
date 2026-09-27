@@ -5,6 +5,20 @@
 
 [workspace]
 members = ["crates/*"]
+# D1 (docs/GUI.md §8.2): the GUI never gates engine work. A bare `cargo build`, `test` or
+# `clippy` covers every crate but crates/gui; scripts/gate.sh says `--workspace --exclude
+# rustyecon-gui`, and scripts/gui.sh gates the GUI. A new crate joins this list by hand.
+default-members = [
+    "crates/agents",
+    "crates/certify",
+    "crates/cli",
+    "crates/core",
+    "crates/engine",
+    "crates/markets",
+    "crates/oracle",
+    "crates/probe",
+    "crates/worldgen",
+]
 resolver = "2"
 
 [workspace.package]
@@ -24,6 +38,18 @@ tempfile = "3.27.0"
 # Certify's telemetry, behind its `parquet` feature (docs/CERTIFY.md §12, C7): pure Rust, no C
 # build. LZ4_RAW through lz4_flex; no zstd, snappy, brotli or flate2, and no arrow.
 parquet = { version = "=60.0.0", default-features = false, features = ["lz4"] }
+# The GUI's stack (docs/GUI.md §3.1, D6), for crates/gui alone: pinned with `=` and upgraded
+# together, only at a G-stage boundary. eframe keeps its default features (wgpu, winit,
+# accesskit) and leaves out `persistence`, which would bring a second ron. mimalloc is native
+# only, and egui_kittest is a dev-dependency.
+eframe = "=0.36.2"
+egui = "=0.36.2"
+egui_plot = "=0.37.0"
+egui_extras = { version = "=0.36.2", default-features = false }
+egui_tiles = "=0.17.1"
+rfd = "=0.17.2"
+mimalloc = "=0.1.52"
+egui_kittest = { version = "=0.36.2", features = ["eframe"] }
 
 # The workspace's own crates.
 rustyecon-core = { path = "crates/core" }

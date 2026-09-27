@@ -1,0 +1,471 @@
+//! The reducer as a state machine (docs/GUI.md §3.3, §8.1): what each intent does to the model
+//! and which effects it asks for, driven by real Runners on this thread so every step is
+//! deterministic.
+
+mod common;
+
+use common::{collecting, drain, edit, tape_of, GATE};
+use rustyecon_engine::prelude::*;
+use rustyecon_gui::model::{reduce, Cursor, Effect, Intent, Model, Session};
+use rustyecon_gui::run::{
+    At, Breakpoint, Cmd, Entity, Measure, Obs, Origin, RunId, RunStatus, Runner, SeriesKey,
+    EXPERIMENT_MARKER,
+};
+use std::collections::BTreeMap;
+use std::sync::{Arc, Mutex};
+
+/// A Runner and what its sink collected.
+type Collected = (Runner, Arc<Mutex<Vec<Obs>>>);
+
+/// A host on this thread: one Runner per run, advanced until idle after every command.
+#[derive(Default)]
+struct Sync {
+    runners: BTreeMap<RunId, Collected>,
+    sent: Vec<(RunId, String)>,
+    saves: usize,
+    slice: u32,
+}
+
+impl Sync {
+    fn new(slice: u32) -> Sync {
+        Sync {
+            slice,
+            ..Sync::default()
+        }
+    }
+
+    fn act(&mut self, m: &mut Model, i: Intent) -> Vec<Effect> {
+        let effects = reduce(m, i);
+        self.apply(m, effects.clone());
+        effects
+    }
+
+    fn apply(&mut self, m: &mut Model, effects: Vec<Effect>) {
+        for e in effects {
+            match e {
+                Effect::Spawn(run) => {
+                    self.runners.insert(run, collecting());
+                }
+                Effect::Send { run, cmd } => {
+                    self.sent.push((run, format!("{cmd:?}")));
+                    if let Some((r, _)) = self.runners.get_mut(&run) {
+                        r.handle(cmd);
+                    }
+                }
+                Effect::Close(run) => {
+                    self.runners.remove(&run);
+                }
+                Effect::SaveSession => self.saves += 1,
+                Effect::ReadTape(_) | Effect::SetAsideSession => {}
+            }
+        }
+        self.settle(m);
+    }
+
+    /// Advance every runner until idle, feeding each observation back.
+    fn settle(&mut self, m: &mut Model) {
+        loop {
+            let mut arrived = Vec::new();
+            for (id, (r, seen)) in &mut self.runners {
+                while r.advance(self.slice).busy {}
+                arrived.extend(drain(seen).into_iter().map(|o| (*id, o)));
+            }
+            if arrived.is_empty() {
+                return;
+            }
+            for (run, obs) in arrived {
+                let e = reduce(m, Intent::Observed { run, obs });
+                self.apply(m, e);
+            }
+        }
+    }
+
+    /// The commands sent since the last call.
+    fn sent(&mut self) -> Vec<(RunId, String)> {
+        std::mem::take(&mut self.sent)
+    }
+}
+
+fn open(h: &mut Sync, m: &mut Model, path: &str, text: &str) -> Vec<Effect> {
+    h.act(
+        m,
+        Intent::TapeRead {
+            path: path.to_string(),
+            text: Ok(text.to_string()),
+        },
+    )
+}
+
+fn status(m: &Model) -> RunStatus {
+    m.focused().expect("a focused run").store.status()
+}
+
+fn key(s: &str) -> Key {
+    Key::new(s).unwrap()
+}
+
+#[test]
+fn opening_a_tape_records_its_base_and_loads_it_paused() {
+    let mut m = Model::default();
+    assert!(matches!(
+        reduce(&mut m, Intent::Open("tapes/gate.ron".to_string()))[..],
+        [Effect::ReadTape(ref p)] if p == "tapes/gate.ron"
+    ));
+    let mut h = Sync::new(64);
+    let e = open(&mut h, &mut m, "tapes/gate.ron", GATE);
+    let kinds: Vec<String> = e
+        .iter()
+        .map(|x| {
+            format!("{x:?}")
+                .split([' ', '(', '{'])
+                .next()
+                .unwrap()
+                .to_string()
+        })
+        .collect();
+    assert_eq!(kinds, ["SaveSession", "Spawn", "Send", "Send"]);
+    assert!(
+        matches!(&e[2], Effect::Send { cmd: Cmd::Breakpoints(b), .. } if b == &[Breakpoint::OnError])
+    );
+    assert!(matches!(
+        &e[3],
+        Effect::Send {
+            cmd: Cmd::Load { from: None, .. },
+            ..
+        }
+    ));
+    let hash = certify::tape_hash(&tape_of(GATE));
+    assert_eq!(m.session.bases.len(), 1);
+    assert_eq!(m.session.bases[0].path, "tapes/gate.ron");
+    assert_eq!(m.session.bases[0].tape_hash.0, hash);
+    let run = m.focused().expect("the new run is focused");
+    assert_eq!(
+        (run.id, run.tape_hash, run.origin),
+        (RunId(0), hash, Origin::Run)
+    );
+    assert_eq!(status(&m), RunStatus::Paused { tick: 0, why: None });
+    assert_eq!(run.store.run().unwrap().tape_hash.0, hash);
+    assert_eq!(m.cursor(), Cursor::Live);
+    // A new session plots every price: six markets.
+    assert_eq!(m.session.plots.len(), 6);
+    assert!(m.session.plots.iter().all(|k| k.measure == Measure::Price));
+    assert!(m.session.plots.contains(&SeriesKey {
+        measure: Measure::Price,
+        at: At::Market {
+            node: key("village"),
+            good: key("grain")
+        }
+    }));
+}
+
+#[test]
+fn a_tape_that_does_not_parse_or_read_is_logged_and_not_run() {
+    let mut m = Model::default();
+    let mut h = Sync::new(64);
+    assert!(open(&mut h, &mut m, "bad.ron", "Tape(schema: 1,").is_empty());
+    let e = h.act(
+        &mut m,
+        Intent::TapeRead {
+            path: "gone.ron".to_string(),
+            text: Err("not found".to_string()),
+        },
+    );
+    assert!(e.is_empty());
+    assert!(m.focused().is_none() && m.session.bases.is_empty());
+    let log: Vec<&str> = m.log().iter().map(|l| l.text.as_str()).collect();
+    assert!(
+        log[0].starts_with("the tape bad.ron does not load: "),
+        "{log:?}"
+    );
+    assert_eq!(log[1], "cannot read the tape gone.ron: not found");
+}
+
+#[test]
+fn space_runs_and_pauses_and_steps_follow_the_status() {
+    let mut m = Model::default();
+    let mut h = Sync::new(8);
+    open(&mut h, &mut m, "gate.ron", GATE);
+    h.sent();
+    // Space on a paused run runs it on, at the session's speed.
+    m.session.speed = Some(1_000);
+    let e = reduce(&mut m, Intent::RunPause);
+    assert!(matches!(
+        &e[..],
+        [Effect::Send {
+            cmd: Cmd::Run {
+                until: None,
+                max_tps: Some(1_000)
+            },
+            ..
+        }]
+    ));
+    // While it runs (a run with an until, stopped by the host before it settles), Space pauses.
+    h.act(&mut m, Intent::Run { until: Some(20) });
+    assert_eq!(
+        status(&m),
+        RunStatus::Paused {
+            tick: 20,
+            why: Some(rustyecon_gui::run::PauseReason::Reached(20))
+        }
+    );
+    let running = Obs::Running { tick: 20 };
+    reduce(
+        &mut m,
+        Intent::Observed {
+            run: RunId(0),
+            obs: running,
+        },
+    );
+    assert_eq!(status(&m), RunStatus::Running { tick: 20 });
+    assert!(matches!(
+        &reduce(&mut m, Intent::RunPause)[..],
+        [Effect::Send {
+            cmd: Cmd::Pause,
+            ..
+        }]
+    ));
+    assert!(matches!(
+        &reduce(&mut m, Intent::Pause)[..],
+        [Effect::Send {
+            cmd: Cmd::Pause,
+            ..
+        }]
+    ));
+    // Steps: `.` one tick, a year 52; no step of zero.
+    let mut m = Model::default();
+    let mut h = Sync::new(8);
+    open(&mut h, &mut m, "gate.ron", GATE);
+    h.act(&mut m, Intent::Step(1));
+    assert_eq!(m.focused().unwrap().store.tick(), 1);
+    h.act(&mut m, Intent::StepYear);
+    assert_eq!(m.focused().unwrap().store.tick(), 53);
+    assert!(reduce(&mut m, Intent::Step(0)).is_empty());
+    // Nothing to run without a focus.
+    let mut empty = Model::default();
+    for i in [
+        Intent::RunPause,
+        Intent::Pause,
+        Intent::Step(1),
+        Intent::StepYear,
+    ] {
+        assert!(reduce(&mut empty, i).is_empty());
+    }
+}
+
+#[test]
+fn a_poisoned_run_takes_no_more_commands() {
+    let mut m = Model::default();
+    let mut h = Sync::new(16);
+    open(&mut h, &mut m, "theft.ron", &common::theft());
+    h.act(&mut m, Intent::Run { until: Some(200) });
+    assert!(matches!(status(&m), RunStatus::Poisoned { tick: 73, .. }));
+    h.sent();
+    for i in [
+        Intent::RunPause,
+        Intent::Run { until: None },
+        Intent::Step(3),
+        Intent::StepYear,
+        Intent::Pause,
+    ] {
+        assert!(reduce(&mut m, i).is_empty());
+    }
+}
+
+#[test]
+fn a_stopped_record_pauses_its_run_once() {
+    // U10 at the model: a non-finite value stops the record, logs the series and tick, and
+    // pauses the run, once.
+    let mut m = Model::default();
+    let mut h = Sync::new(4);
+    open(&mut h, &mut m, "gate.ron", GATE);
+    let (mut r, seen) = collecting();
+    r.handle(Cmd::Load {
+        tape: Box::new(tape_of(GATE)),
+        from: None,
+    });
+    r.handle(Cmd::Step(4));
+    while r.advance(4).busy {}
+    let mut obs: Vec<Obs> = drain(&seen)
+        .into_iter()
+        .filter(|o| matches!(o, Obs::Batch(_)))
+        .collect();
+    let Obs::Batch(b) = &mut obs[0] else {
+        unreachable!()
+    };
+    b.rows[2].cells[0].1 = f64::INFINITY;
+    let mut effects = Vec::new();
+    for _ in 0..2 {
+        effects.extend(reduce(
+            &mut m,
+            Intent::Observed {
+                run: RunId(0),
+                obs: obs[0].clone(),
+            },
+        ));
+    }
+    assert!(matches!(
+        &effects[..],
+        [Effect::Send {
+            cmd: Cmd::Pause,
+            ..
+        }]
+    ));
+    assert_eq!(status(&m), RunStatus::Stopped);
+    let errors: Vec<&str> = m
+        .log()
+        .iter()
+        .filter(|l| l.level == rustyecon_gui::run::log::Level::Error)
+        .map(|l| l.text.as_str())
+        .collect();
+    assert_eq!(errors.len(), 1, "{errors:?}");
+    assert!(
+        errors[0].contains("(inf) in price at town/bread at tick 2"),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn speed_breakpoints_plots_and_pins_live_in_the_session() {
+    let mut m = Model::default();
+    let mut h = Sync::new(8);
+    open(&mut h, &mut m, "gate.ron", GATE);
+    open(&mut h, &mut m, "gate-too.ron", GATE);
+    h.sent();
+    // The breakpoint reaches every run.
+    let e = reduce(&mut m, Intent::BreakOnError(false));
+    assert!(m.session.breakpoints.is_empty());
+    assert_eq!(e.len(), 3);
+    assert!(matches!(e[0], Effect::SaveSession));
+    assert!(e[1..]
+        .iter()
+        .all(|x| matches!(x, Effect::Send { cmd: Cmd::Breakpoints(b), .. } if b.is_empty())));
+    reduce(&mut m, Intent::BreakOnError(true));
+    assert_eq!(m.session.breakpoints, [Breakpoint::OnError]);
+    // A speed change saves, and a running run gets its run again at the new cap.
+    reduce(
+        &mut m,
+        Intent::Observed {
+            run: RunId(1),
+            obs: Obs::Running { tick: 0 },
+        },
+    );
+    let e = reduce(&mut m, Intent::Speed(Some(250)));
+    assert_eq!(m.session.speed, Some(250));
+    assert!(matches!(
+        &e[..],
+        [
+            Effect::SaveSession,
+            Effect::Send {
+                run: RunId(1),
+                cmd: Cmd::Run {
+                    until: None,
+                    max_tps: Some(250)
+                }
+            }
+        ]
+    ));
+    // Plots and pins by key, each once.
+    let k = SeriesKey {
+        measure: Measure::Held,
+        at: At::Holding {
+            holder: rustyecon_gui::run::HolderKey::Actor(key("mill")),
+            good: key("bread"),
+        },
+    };
+    assert_eq!(reduce(&mut m, Intent::Plot(k.clone())).len(), 1);
+    assert!(reduce(&mut m, Intent::Plot(k.clone())).is_empty());
+    assert_eq!(reduce(&mut m, Intent::Unplot(k.clone())).len(), 1);
+    assert!(reduce(&mut m, Intent::Unplot(k)).is_empty());
+    let pin = Entity::Actor(key("mill"));
+    assert_eq!(reduce(&mut m, Intent::Pin(pin.clone())).len(), 1);
+    assert!(reduce(&mut m, Intent::Pin(pin.clone())).is_empty());
+    assert_eq!(m.session.pins, std::slice::from_ref(&pin));
+    // Selection, cursor and focus change the model and ask for nothing.
+    assert!(reduce(&mut m, Intent::Select(Some(pin.clone()))).is_empty());
+    assert_eq!(m.selection(), Some(&pin));
+    assert!(reduce(&mut m, Intent::Cursor(Cursor::At(9))).is_empty());
+    assert_eq!(m.cursor(), Cursor::At(9));
+    assert!(reduce(&mut m, Intent::Focus(RunId(0))).is_empty());
+    assert_eq!(m.focus(), Some(RunId(0)));
+    reduce(&mut m, Intent::Focus(RunId(7)));
+    assert_eq!(m.focus(), Some(RunId(0)), "an unknown run is not focused");
+    // The session round-trips.
+    assert_eq!(
+        Session::from_ron(&m.session.to_ron()),
+        Ok(m.session.clone())
+    );
+}
+
+#[test]
+fn closing_a_run_stops_its_driver_and_ignores_its_late_observations() {
+    let mut m = Model::default();
+    let mut h = Sync::new(8);
+    open(&mut h, &mut m, "a.ron", GATE);
+    open(&mut h, &mut m, "b.ron", GATE);
+    open(&mut h, &mut m, "b.ron", GATE);
+    assert_eq!(m.session.bases.len(), 2, "one base per path");
+    let e = reduce(&mut m, Intent::Close(RunId(2)));
+    assert!(
+        matches!(&e[..], [Effect::Close(RunId(2))]),
+        "b.ron is still open"
+    );
+    assert_eq!(m.focus(), Some(RunId(1)));
+    let e = reduce(&mut m, Intent::Close(RunId(1)));
+    assert!(matches!(
+        &e[..],
+        [Effect::Close(RunId(1)), Effect::SaveSession]
+    ));
+    assert_eq!(m.session.bases.len(), 1);
+    assert!(reduce(&mut m, Intent::Close(RunId(1))).is_empty());
+    let before = m.log().len();
+    let late = reduce(
+        &mut m,
+        Intent::Observed {
+            run: RunId(1),
+            obs: Obs::Running { tick: 3 },
+        },
+    );
+    assert!(late.is_empty() && m.log().len() == before);
+    assert_eq!(m.runs().count(), 1);
+}
+
+#[test]
+fn a_changed_base_is_logged_and_an_edited_tape_is_an_experiment() {
+    let mut m = Model::default();
+    let mut h = Sync::new(8);
+    open(&mut h, &mut m, "gate.ron", GATE);
+    let changed = edit(
+        GATE,
+        r#"name: "gate","#,
+        &format!(r#"name: "gate [{EXPERIMENT_MARKER} 2026-09-27]","#),
+    );
+    let e = open(&mut h, &mut m, "gate.ron", &changed);
+    assert!(matches!(e[0], Effect::SaveSession));
+    assert_eq!(
+        m.session.bases[0].tape_hash.0,
+        certify::tape_hash(&tape_of(&changed))
+    );
+    assert!(m
+        .log()
+        .iter()
+        .any(|l| l.text.starts_with("the tape gate.ron changed on disk")));
+    assert_eq!(m.focused().unwrap().origin, Origin::Experiment);
+    assert_eq!(m.run(RunId(0)).unwrap().origin, Origin::Run);
+}
+
+#[test]
+fn a_session_that_does_not_read_is_set_aside() {
+    let mut m = Model::default();
+    let e = reduce(
+        &mut m,
+        Intent::SessionRead(Ok("Session(format: 9)".to_string())),
+    );
+    assert!(matches!(&e[..], [Effect::SetAsideSession]));
+    assert_eq!(m.session, Session::default());
+    let s = Session {
+        speed: Some(3),
+        ..Session::default()
+    };
+    assert!(reduce(&mut m, Intent::SessionRead(Ok(s.to_ron()))).is_empty());
+    assert_eq!(m.session, s);
+}
