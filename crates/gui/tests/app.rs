@@ -1441,3 +1441,64 @@ fn the_watch_and_breakpoint_script() {
         "cleared"
     );
 }
+
+#[test]
+fn the_toolbar_keeps_its_chips_whole() {
+    // G1 (and O26's note of the chip on a narrow window): a chip that would start with too
+    // little of its row left goes to the next row whole, rather than wrap its text into a column
+    // one word wide, which grew the toolbar down the window. At each width the health chip is
+    // painted in a line or two and the tiles' tabs stay near the top.
+    for (w, hgt) in [
+        (1600.0, 1000.0),
+        (1280.0, 800.0),
+        (1024.0, 768.0),
+        (800.0, 700.0),
+    ] {
+        let mut h = Harness::builder()
+            .with_size(egui::vec2(w, hgt))
+            .build_eframe(move |cc| {
+                GuiApp::new(
+                    &cc.egui_ctx,
+                    Launch {
+                        tape: Some(tape_path("gate")),
+                        files: None,
+                        smoke: None,
+                    },
+                )
+            });
+        step_until(&mut h, "paused at tick 0", |a| {
+            status(a.model()) == Some(RunStatus::Paused { tick: 0, why: None })
+        });
+        h.step();
+        fn walk(s: &egui::Shape, out: &mut Vec<(String, egui::Rect)>) {
+            match s {
+                egui::Shape::Text(t) => {
+                    out.push((t.galley.text().to_string(), t.visual_bounding_rect()))
+                }
+                egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, out)),
+                _ => {}
+            }
+        }
+        let mut texts = Vec::new();
+        for c in &h.output().shapes {
+            walk(&c.shape, &mut texts);
+        }
+        let (_, chip) = texts
+            .iter()
+            .find(|(t, _)| {
+                t.starts_with("Paused · max_margin")
+                    || t.starts_with("Paused ·")
+                    || t.starts_with("Paused")
+            })
+            .expect("the health chip is painted");
+        assert!(
+            chip.height() < 60.0 && chip.width() > 100.0,
+            "at {w} × {hgt}: the health chip is painted in {chip:?}"
+        );
+        let tab = h.get_by_label("Plots").rect();
+        assert!(
+            tab.min.y < 160.0,
+            "at {w} × {hgt}: the tabs start at {tab:?}"
+        );
+    }
+}

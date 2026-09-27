@@ -61,7 +61,8 @@ step() { printf '\n== gui: %s\n' "$*"; }
 # every part, the atlas's credit) and the demo tape's hashes against the cli's. G1 (2026-09-27)
 # renames the core scan (the GUI's edge to core went at G1.1) and adds the oracle lab's, the
 # price-step explainer's and waterfall's, the breakpoints', the watchlist's and log axes', the
-# snapshots', the lab's scan, and the credit on a narrow window (O26).
+# snapshots', the lab's scan, the credit on a narrow window (O26), and the toolbar's chips kept
+# whole.
 named=(
     gui_equals_cli
     failed_run_shows_its_ledger_line
@@ -137,6 +138,7 @@ named=(
     png_snapshots_say_never_citable
     the_snapshot_script_marks_the_picture_never_citable
     the_credit_is_painted_whole_on_a_narrow_window
+    the_toolbar_keeps_its_chips_whole
 )
 
 step "toolchain (rust-toolchain.toml)"

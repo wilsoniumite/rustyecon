@@ -290,3 +290,38 @@ fn a_200_point_sweep_builds_in_under_16_ms() {
     );
     assert!(median < 16.0, "median {median} ms");
 }
+
+/// Each preset's 200-point sweep of its first real knob, ±10% about its value, timed: recorded,
+/// never gated (G1). The heavier units' solves scan their paths, and a sweep runs on the UI
+/// thread when asked for. Ignored by default: a measurement, run by name.
+#[test]
+#[ignore = "a measurement: run by name"]
+fn every_presets_sweep_time_is_recorded() {
+    for p in presets::all() {
+        let inst = p.instance();
+        let k = knobs::list(&inst)
+            .into_iter()
+            .find(|k| !k.whole && k.value > 0.0)
+            .expect("a real knob");
+        let outs = vec!["x_star".to_string(), "v".to_string()];
+        let mut times = Vec::new();
+        let mut last = None;
+        for _ in 0..5 {
+            let t0 = std::time::Instant::now();
+            let s = lab::sweep(&inst, &k.path, k.value * 0.9, k.value * 1.1, 200, &outs).unwrap();
+            times.push(t0.elapsed().as_secs_f64() * 1e3);
+            last = Some(s);
+        }
+        times.sort_by(f64::total_cmp);
+        let s = last.unwrap();
+        let counts: Vec<String> = s.counts.iter().map(|(r, n)| format!("{r} {n}")).collect();
+        println!(
+            "{:<11} unit {} {:<28} median {:>8.2} ms of 5: {}",
+            p.id,
+            p.unit,
+            k.path,
+            times[2],
+            counts.join(", ")
+        );
+    }
+}
