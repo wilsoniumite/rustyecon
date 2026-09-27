@@ -28,6 +28,7 @@
 pub mod app;
 pub mod drive;
 pub mod edit;
+pub mod lab;
 pub mod model;
 pub mod platform;
 pub mod run;

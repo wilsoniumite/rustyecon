@@ -12,6 +12,7 @@
 pub mod compare;
 pub mod editor;
 pub mod inspector;
+pub mod lab;
 pub mod layout;
 pub mod log;
 pub mod map;
@@ -38,6 +39,8 @@ pub struct State {
     pub editor: editor::EditorState,
     /// The map: the atlas triangulated once, the lens shown, the view (D.3).
     pub map: map::MapState,
+    /// The oracle lab's form and what it last solved (G1).
+    pub lab: lab::LabState,
     drawn: BTreeSet<Pane>,
     /// The run and load whose tab was last brought forward: the map for a tape with one,
     /// the plots for a tape without.
@@ -226,6 +229,11 @@ impl egui_tiles::Behavior<Pane> for Panes<'_> {
     ) -> egui_tiles::UiResponse {
         self.state.drawn.insert(*pane);
         let m = self.m;
+        // The lab needs no tape: it solves the oracle, outside any run (G1).
+        if *pane == Pane::Lab {
+            lab::show(ui, &mut self.state.lab);
+            return egui_tiles::UiResponse::None;
+        }
         let Some(run) = m.focused() else {
             ui.weak("no tape open: Open, or rustyecon-gui <tape.ron>");
             return egui_tiles::UiResponse::None;
@@ -366,6 +374,8 @@ impl egui_tiles::Behavior<Pane> for Panes<'_> {
                 log::show(ui, v, on, out);
             }
             Pane::Editor => editor::show(ui, m, &mut self.state.editor, out),
+            // Drawn above, with or without a tape.
+            Pane::Lab => {}
             Pane::Compare => match m.parent_of(run.id) {
                 None => {
                     ui.weak(

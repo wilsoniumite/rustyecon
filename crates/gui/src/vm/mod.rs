@@ -10,6 +10,7 @@
 
 pub mod compare;
 pub mod inspector;
+pub mod lab;
 pub mod log;
 pub mod map;
 pub mod outliner;

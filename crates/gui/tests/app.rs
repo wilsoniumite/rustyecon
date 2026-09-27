@@ -1166,3 +1166,116 @@ fn the_branch_script_applies_compares_exports_and_saves() {
         &format!("ledger unchecked: its lineage's ancestor {path} cannot be read: "),
     );
 }
+
+/// The app with no tape and no session, in a 1600 × 1000 window.
+fn harness_bare<'a>() -> Harness<'a, GuiApp> {
+    Harness::builder()
+        .with_size(egui::vec2(1600.0, 1000.0))
+        .build_eframe(move |cc| {
+            GuiApp::new(
+                &cc.egui_ctx,
+                Launch {
+                    tape: None,
+                    files: None,
+                    smoke: None,
+                },
+            )
+        })
+}
+
+#[test]
+fn the_lab_script_shows_appendix_b_and_its_goldens() {
+    // §9 G1's gate, on the screen: with no tape open, the Lab tab paints the SSRN Appendix B
+    // instance's x*, v, Y and N_a as the oracle's own doubles (its outputs, called here
+    // directly, printed with the shortest digits that read back), beside the paper's published
+    // 0.86315, 0.54344, 7.88061 and 1.34338 and the generator's 70-digit goldens; its regime;
+    // f over x with the root; an edited knob that drops the goldens; and a sweep.
+    use oracle::{Economy, Regime};
+    let eq = match Economy::new(rustyecon_gui::lab::presets::appendix_b())
+        .expect("valid")
+        .solve()
+    {
+        Ok(Regime::Interior(eq)) => eq,
+        other => panic!("{other:?}"),
+    };
+    let mut h = harness_bare();
+    h.step();
+    click(&mut h, "Lab");
+    shows(&mut h, "regime Interior");
+    for (value, published, golden) in [
+        (eq.x_star, "0.86315", "0.863150418162437031916392798424"),
+        (eq.v, "0.54344", "0.543435960696778328420453096896"),
+        (eq.y, "7.88061", "7.88060552497290767677101216703"),
+        (eq.n_a, "1.34338", "1.34338188009771734611380197514"),
+    ] {
+        let text = format!("{value:?}");
+        see(&mut h, &text);
+        let back: f64 = text.parse().unwrap();
+        assert_eq!(back.to_bits(), value.to_bits());
+        see(&mut h, published);
+        see(&mut h, golden);
+    }
+    // The painted value is the lab's view of the oracle's own output.
+    let vm = h
+        .state()
+        .ui_state()
+        .lab
+        .view()
+        .cloned()
+        .expect("the lab solved");
+    let x = vm.outputs.iter().find(|o| o.key == "x_star").unwrap();
+    assert_eq!(x.value, format!("{:?}", eq.x_star));
+    assert_eq!(vm.origin, "oracle");
+    // f over x: the root is named, and the bracket.
+    see(
+        &mut h,
+        &format!("x* {:?}; bracket [1e-12, 1]; regime Interior", eq.x_star),
+    );
+    // An edit: N 5. The regime is solved again, and no golden is shown beside another
+    // economy's output.
+    press(&mut h, "Instance");
+    scroll_to(&mut h, "workers");
+    fill(&mut h, "workers", "5");
+    h.key_press(egui::Key::Enter);
+    h.step();
+    h.step();
+    shows_part(
+        &mut h,
+        "edited from its preset: its goldens are another economy's",
+    );
+    let vm = h
+        .state()
+        .ui_state()
+        .lab
+        .view()
+        .cloned()
+        .expect("solved again");
+    assert!(vm.edited);
+    let mut p = rustyecon_gui::lab::presets::appendix_b();
+    p.workers = 5.0;
+    let five = match Economy::new(p).unwrap().solve() {
+        Ok(Regime::Interior(eq)) => eq,
+        other => panic!("{other:?}"),
+    };
+    see(&mut h, &format!("{:?}", five.x_star));
+    // A sweep of N over 200 points.
+    press(&mut h, "Reset to preset");
+    press(&mut h, "Run the sweep");
+    let s = match h.state().ui_state().lab.swept() {
+        Some(Ok(s)) => s.clone(),
+        other => panic!("{other:?}"),
+    };
+    assert_eq!((s.xs.len(), s.xs[0], s.xs[199]), (200, 2.0, 6.0));
+    assert_eq!(s.knob, "workers");
+    see(&mut h, &rustyecon_gui::ui::lab::sweep_line(&s));
+    // Another unit: 1c's M3, its x* beside the generator's 70-digit golden.
+    press(&mut h, "unit");
+    press(&mut h, "1c many machine types and the Leontief inverse");
+    let vm = h.state().ui_state().lab.view().cloned();
+    let vm = vm.expect("solved");
+    assert_eq!((vm.unit.as_str(), vm.preset.as_deref()), ("1c", Some("M3")));
+    let x = vm.outputs.iter().find(|o| o.key == "x_star").unwrap();
+    assert!(x.golden.as_ref().is_some_and(|g| g.agrees));
+    see(&mut h, &x.value);
+    see(&mut h, "0.910574687993354806041937921365");
+}

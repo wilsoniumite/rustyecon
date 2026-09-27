@@ -124,7 +124,7 @@ fn the_scanner_reads_what_it_should() {
     // The lists of files are what they claim: the egui-free modules hold files, the ui holds
     // the tile layout, and nothing under ui/ counts as egui-free.
     let free = egui_free_sources();
-    for m in ["model", "run", "edit", "vm", "drive", "platform"] {
+    for m in ["model", "run", "edit", "vm", "drive", "platform", "lab"] {
         assert!(
             free.iter().any(|(p, _)| p.starts_with(&format!("{m}/"))),
             "no sources read under {m}/"
@@ -221,6 +221,11 @@ const NOT_OBSERVE: [&str; 6] = ["model", "edit", "drive", "platform", "ui", "app
 /// The modules edit/ may not reach: it reads run types, and nothing of the model, the
 /// drivers, the files or the drawing.
 const NOT_EDIT: [&str; 5] = ["model", "drive", "platform", "ui", "app"];
+/// The modules lab/ may not reach (G1): it reads the oracle alone, and nothing of the runs, the
+/// model, the editor, the drivers, the files, the view-models or the drawing.
+const NOT_LAB: [&str; 8] = [
+    "model", "run", "edit", "vm", "drive", "platform", "ui", "app",
+];
 
 /// Paths a pure module may not reach: the modules of this crate in `own`, and E2's list of
 /// global state and I/O.
@@ -339,6 +344,31 @@ fn edit_reaches_no_model_file_thread_or_clock() {
         }
     }
     assert!(found.is_empty(), "edit/ reaches too far: {found:#?}");
+}
+
+#[test]
+fn lab_reaches_no_run_model_file_thread_or_clock() {
+    // G1: the oracle lab's domain is parameters in and the oracle's numbers out. It reads the
+    // oracle and the engine's `num`, and nothing of the runs, the model, the editor, the
+    // drivers, the files, the view-models or the drawing, and no thread, clock or I/O, so it
+    // moves with vm/ into crates/observe, which depends on the engine and the oracle (§3.2).
+    let fx = fixture(
+        "use oracle::Economy; use crate::run::Store; use crate::vm::lab; \
+         use super::presets; std::fs::read_to_string(p); let t = Instant::now();",
+    );
+    assert_eq!(
+        observe_violations(&fx, &NOT_LAB),
+        ["crate::run", "crate::vm", "std::fs", "Instant"]
+    );
+    let files = sources_under(&src().join("lab"));
+    assert!(files.len() >= 5, "lab/ is read: {}", files.len());
+    let mut found = Vec::new();
+    for (path, toks) in shipped_tokens(&files) {
+        for v in observe_violations(&toks, &NOT_LAB) {
+            found.push(format!("{path}: {v}"));
+        }
+    }
+    assert!(found.is_empty(), "lab/ reaches too far: {found:#?}");
 }
 
 /// Trigonometric functions, and the constants that only serve them.

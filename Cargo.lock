@@ -3115,6 +3115,7 @@ dependencies = [
  "ron",
  "rustyecon-certify",
  "rustyecon-engine",
+ "rustyecon-oracle",
  "rustyecon-worldgen",
  "serde",
  "tempfile",
