@@ -285,7 +285,7 @@ fn permutation() {
 
 /// An economy with its land service measured in units of 1/c: every Q_z, every direct land
 /// requirement, every machine recipe's land and every plot times c.
-fn in_units(mut p: ParcelParams, c: f64) -> ParcelParams {
+pub(crate) fn in_units(mut p: ParcelParams, c: f64) -> ParcelParams {
     for z in &mut p.parcels {
         z.quality *= c;
     }

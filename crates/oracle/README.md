@@ -3,11 +3,12 @@
 Dated 2026-09-25; joined the workspace on 2026-09-26 (P1.1). Units 1b and 1c were added on
 2026-09-27, on branch `phase1`: 1b at P1.2, verified at P1.3; 1c at P1.4, verified at P1.5
 and P1.6. Both were closed at P1.7, the same day. Unit 1d was added at P1.8 and verified at
-P1.9, and unit 1e at P1.10, verified at P1.11, the same day.
+P1.9, unit 1e at P1.10, verified at P1.11, and unit 1f at P1.12, the same day. Unit 1f completes
+Phase 1's oracle; its verification follows.
 
 The oracle is a static equilibrium solver for the pinning paper's economy (PLAN §3.4).
 It shares types but not logic with the agents, and no agent may read it (PLAN R13).
-It is built outward in units 1a-1f. This package holds five:
+It is built outward in units 1a-1f. This package holds all six:
 
 - **Unit 1a**: one category, one machine type, one land input, with durability and
   interest through the scalar user cost u = (ρ + δ)(1 + ρ)^(J_b − 1). At
@@ -58,8 +59,26 @@ It is built outward in units 1a-1f. This package holds five:
   can make labour supply fall along the path, so the count also scans every piece (`EXIT_SCAN`).
   The dependence form in parcel form (one enclosed parcel of quality 1) is 1d's equilibrium bit
   for bit, and so is a priced form with its exit option switched off.
+- **Unit 1f**: households and government. The government has SSRN A.1's instruments: a payroll
+  tax on gross wages, a uniform tax on final purchases at producer value, a tax on market rent, a
+  uniform transfer and a program paying (m_w, m_e) in work and in exit, the transfers counted in
+  composites at consumer prices (R14). Its budget balances at every equilibrium: by default the
+  owners pay the levy that balances it (`Budget::RentRate`, whose rate at one composite per person
+  is SSRN eq 16's 1/κ), or every rate is given and the uniform transfer is the residual
+  (`Budget::Dividend`, SSRN A.1's d = τ_R·R/N). A transfer supplements the provider's support (the
+  reservation wage (e^χ − 1)(P_s + d), SSRN p.16) or replaces it. Producers pay gross prices, so
+  the government enters only through one participation rule that has SSRN eq 9, p.16, eq 27 and
+  1d's and 1e's forms as cases; a walled type's wage is still a multiple of P. The path's start
+  is evaluated, and an in-work benefit that alone overfills the economy is
+  `SolveError::SurplusLabour`. The basket is 1b's fixed one or a CES over the categories
+  (`Basket::Ces`, SSRN eq 26), whose σ = 1 case is check_pinning's A-joint household; a category
+  that becomes free at the wall's end empties the idle stretch. Every equilibrium reports the
+  basket, the budget, the households' and the provider's accounts, the income identity with
+  government and three-taxes' ledger, legs and circular flow (`Eq1f`). With the fixed basket and
+  `Government::none()` it is 1e's equilibrium bit for bit.
 
-Still to come (PLAN Phase 1): 1f, households and government.
+Phase 1's gate is complete with 1f: `tests/gate/p1_gate.rs` names each item of PLAN Phase 1's
+gate in one test and lists every test that covers it (docs/unit-1f.md §13).
 
 The package is `rustyecon-oracle`, its library `oracle`, a member of the rustyecon
 workspace. Its one dependency is `rustyecon-core`, for `core::num`: the power, `ln1p` and
@@ -69,7 +88,8 @@ the oracle (R13; docs/ENGINE.md §1).
 
 The specifications, with every equation and golden, are [docs/unit-1a.md](docs/unit-1a.md),
 [docs/unit-1b.md](docs/unit-1b.md), [docs/unit-1c.md](docs/unit-1c.md),
-[docs/unit-1d.md](docs/unit-1d.md) and [docs/unit-1e.md](docs/unit-1e.md). Unit 1b's open
+[docs/unit-1d.md](docs/unit-1d.md), [docs/unit-1e.md](docs/unit-1e.md) and
+[docs/unit-1f.md](docs/unit-1f.md). Unit 1b's open
 questions (its §11: the shared task line, cells in the equilibrium, gaps as a regime, bitwise
 nesting, viability at the top of the line, the generic `Regime`, the CES parameters) and unit
 1c's (its §11: machines built from categories, one capability shape per line, ties inside
@@ -85,7 +105,13 @@ kept positive, one exit good, rented plots leaving production, idle land with th
 numeraire and `NoMarket`, no reserved tasks with the priced form, the scan, the commons'
 shadow rent, the enclosure tie inside `Interior`, one land service, the random draws; and from
 its verification, 101-102: a free exit good at r = 0 decided at the wall's end, free plots on
-idle land labelled `Idle`). The
+idle land labelled `Idle`), nor unit 1f's (its §12, proposed as decisions 103-118: where each tax
+is levied, transfers in composites at consumer prices, the owners' levy as the default closure,
+supplement or replace, the Dividend closure only where the budget does not depend on who works,
+walled types without in-work benefits, the evaluated start and `SurplusLabour`, the CES basket
+and its limits, the land-share household and decision 75, a basket per worker type deferred,
+the rent base, 1e's accounts kept in `Eq1f::base`, the random draws, no government purchases or
+debt). The
 build takes the draft's choice on each, and the repository's STATE.md lists them as decisions
 open to veto.
 Each spec's §12 records where its build and its verification departed from the draft.
@@ -238,6 +264,42 @@ instance reproduced" and "both exit forms nest, with the exit option switched of
   (bit for bit at c = 4), enclosure by law;
 - **e10**, `goldens_1e.txt`'s six digests and the Rust constants.
 
+Unit 1f's tests, per docs/unit-1f.md §8, cover the brief's gate for 1f (three-taxes' ledger
+inside the full closure, the income identity with government to 1e-12, Prop 6's identities and
+κ, each tax's incidence as the paper states it, nesting with no government exactly) and close
+Phase 1's:
+
+- **f1**, nesting: every golden instance of 1a-1e (78 of them) and 1d's and 1e's random draws
+  through `HouseholdParams::from_parcels`, every equilibrium, error and count bit for bit; the
+  refusals and rejected rows; `at(x)` on a grid; the Dividend closure and Replace mode at zero
+  rates; the producer side the same under every government; a replacing transfer moving nothing
+  (GA, GR); CES at σ = 2^-40 within 1e-8 of the fixed basket;
+- **f2**, three-taxes inside the closure (TX): x* = 1/2 to 4 ulps, (φ_w, φ_r) = (0.6, 0.4) for
+  the machine service and the basket, every tax on a grid leaving the allocation bit for bit,
+  T6's legs, λ = 0's corner, T5's circular flow (R₀ 4.8, the multiplier 5/3);
+- **f3**, Prop 6's receipts, eq 16 (GA's τ_R = 1/κ, TXD outside the rent, KR1-KR5 with parcels),
+  D.3's identity, eq 17 at full automation, and the corollary along SSRN's automation path;
+- **f4**, a supplementing transfer (GB, the reservation wage (e^χ − 1)(P + d)), the Dividend
+  closure (GC), a transfer above the support in Replace mode;
+- **f5**, payroll incidence: ε_D/(ε_D + ε_S) = 0.88586 by a three-point difference at G1, none on
+  the wall (W1), all on idle land (WI) and where participation saturates (TX);
+- **f6**, a consumption tax t as a payroll tax t/(1 + t) (GT, KT with plots rented, ER with a
+  walled type), the support at consumer prices, home output untaxed;
+- **f7**, eq 27 at GW and GE, an in-work benefit lowering the wage, a uniform program as a
+  supplementing transfer bit for bit, `SurplusLabour`, a walled type's c_T·P (ER);
+- **f8**, the CES household: eq 26 at C1-C3 and along the path (CP), A-joint's land-share
+  household (AJ1, AJW) and A-joint itself `NotViable`, a free category on the wall (CW), the
+  idle stretch without one (CI), Lemma F1 against a finite difference, the frozen composite;
+- **f9**, 341 random draws in five sets (RentRate, Dividend, CES, reserved hours, in-work
+  benefits), seeds 951-955: every identity, the residuals, the consumption tax as a wage tax
+  on every (a) and (d) equilibrium, a replacing rent tax's neutrality, the count against a scan
+  16 times finer, the regimes and their tallies;
+- **f10**, every validation rule, exact zeros (L_R = 0, the Replace kink, f_0 = 0), units,
+  permutation, the certification under a government, and the scan where Proposition F does not
+  reach (ρ > 0 under a CES basket or a moving Dividend transfer);
+- **f11**, `goldens_1f.txt`'s seven digests and the Rust constants;
+- **p1_gate**, Phase 1's gate item by item, and a check that every test its table names exists.
+
 The goldens are pinned to laborformal `31b3482`.
 
 ## Verification
@@ -278,6 +340,12 @@ that fails without it. Where the pass found nothing wrong in the code, the fix i
   of which the first run left nine; seven now have a test, and two are equivalent (the idle
   end's side where S_∞ cannot be 0, and a technique tie's closed form scaled by T/T_m)
   (docs/unit-1e.md §12 item 14).
+- **1f** (P1.12, the build's own check, before its verification): 57 mutants of the new code
+  (the participation rule, the CES basket, the evaluation, the path, the report and the
+  validation). The first run killed 56; the survivor, the scan at ρ > 0 switched off, now has a
+  test (`f10::the_scan_where_monotonicity_is_not_proved`). The 22 that the unit tests caught
+  first were run again against the gate alone, which kills each; it kills the survivor now too
+  (docs/unit-1f.md §14 item 14).
 - **1e** (P1.11): the derivation found that an exit good made of land alone, free at r = 0,
   put its plot-takers on the floor there while they rented on the wall, so the idle stretch
   did not start where the wall ends and an economy with one equilibrium was refused; such a
@@ -303,9 +371,10 @@ Each spec's §12 has the details.
 | `src/workers.rs` | unit 1d: `WorkerType`, `WorkerParams`, `WorkerEconomy`, `Eq1d` and its outputs, the walk, the corners, the path and its count |
 | `src/exit.rs` | unit 1e's exit value alone: `PricedExit` (s(q), q_enc, the take), `coverage`, `coverage_threshold`, `crowding_limit` |
 | `src/parcels.rs` | unit 1e: `Parcel`, `ExitForm`, `ParcelParams`, `ParcelEconomy`, the exit sub-problem, the idle stretch, enclosure points and ties, the scan, `Eq1e` and its outputs |
+| `src/households.rs` | unit 1f: `Basket`, `Government`, `HouseholdParams`, `HouseholdEconomy`, the participation rule and the CES basket (crate-private), `Eq1f` with the budget, the accounts and the ledger |
 | `src/dump.rs` | the one-line text interface behind `examples/dump.rs` |
 | `examples/dump.rs` | reads economies on stdin, writes one result line each |
-| `tests/gate/` | the gate: one test crate, one module per golden group (1a's `g*`, 1b's `c*`, 1c's `m*`, 1d's `d*`, 1e's `e*`) |
+| `tests/gate/` | the gate: one test crate, one module per golden group (1a's `g*`, 1b's `c*`, 1c's `m*`, 1d's `d*`, 1e's `e*`, 1f's `f*`), and `p1_gate`, Phase 1's gate item by item |
 | `goldens/generate.py` | computes every golden with mpmath at 70 digits |
 | `goldens/goldens.txt` | its output, 30 significant digits |
 | `goldens/generate_1b.py` | unit 1b's goldens, at 70 digits; imports `generate.py` to assert the nesting |
@@ -316,6 +385,8 @@ Each spec's §12 has the details.
 | `goldens/goldens_1d.txt` | its output, 269 goldens |
 | `goldens/generate_1e.py` | unit 1e's goldens, at 70 digits; builds on `generate_1d.py` (and so the other three), and asserts the nesting |
 | `goldens/goldens_1e.txt` | its output, 223 goldens |
+| `goldens/generate_1f.py` | unit 1f's goldens, at 70 digits; builds on `generate_1e.py` (and so the other four), and asserts the nesting |
+| `goldens/goldens_1f.txt` | its output, 215 goldens |
 
 ## Running the tests
 
@@ -351,9 +422,10 @@ The counts, the same on WSL and on Windows at each step:
 | P1.9, 1d's verification | 2026-09-27 | 67 | 230 | 1 | 298 |
 | P1.10, unit 1e | 2026-09-27 | 76 | 276 | 1 | 353 |
 | P1.11, 1e's verification | 2026-09-27 | 77 | 283 | 1 | 361 |
+| P1.12, unit 1f | 2026-09-27 | 83 | 348 | 1 | 432 |
 
-Of the 361, 1a has 114, 1b 59 (5 unit, 54 gate), 1c 69 (10 unit, 59 gate), 1d 56 (10 unit,
-46 gate) and 1e 63 (10 unit, 53 gate).
+Of the 432, 1a has 114, 1b 59 (5 unit, 54 gate), 1c 69 (10 unit, 59 gate), 1d 56 (10 unit,
+46 gate), 1e 63 (10 unit, 53 gate) and 1f 71 (6 unit, 57 gate, and `p1_gate`'s 8).
 
 ## The dump example
 
@@ -490,6 +562,29 @@ the goldens within 2.4e-14 relative (Q5's provider baskets, 80.44 − 80), 7.0e-
 its enclosure point) and 5.1e-15 (K2's shadow rent), ψ, T_p and T_idle within 2.1e-15, and x*,
 v, P_s, Y and N_a within 1.0e-15.
 
+Unit 1f's goldens work the same way, with seven digests (`generate_1f.py`, `generate_1e.py`,
+`generate_1d.py`, `generate_1c.py`, `generate_1b.py`, `generate.py` and its own goldens), checked
+by `f11_goldens_file`:
+
+```sh
+python goldens/generate_1f.py           # writes goldens/goldens_1f.txt, in about half a minute
+python goldens/generate_1f.py --check   # exits 1 if goldens_1f.txt is not what it writes
+```
+
+Its `Economy` extends `generate_1e.py`'s with the basket (fixed and CES), the participation rule,
+the walled c_i, the budget in both closures, the start and the accounts (docs/unit-1f.md §14 item
+1). It asserts as it goes that the household form of six of 1e's instances equals
+`generate_1e.py`'s solve (to 0 at 70 digits), every identity of docs/unit-1f.md §4.8-4.9 at
+1e-65 with the CES's shares and Shephard's lemma, the incidence share against ε_D/(ε_D + ε_S)
+to 1e-35, the equivalences of §4.10 (c), (f) and (h) at 1e-65, A-joint's root from
+check_pinning's equations against its printed values (within 5.1e-16) and the household form's
+with γ(1) 10^-29 below A-joint's (within 1e-20), Lemma F1 against a derivative at 14 points, and
+f nonincreasing at 96 grid points. On 2026-09-27 the oracle's f64 values matched the 444 golden
+comparisons of `f1`-`f11` and `p1_gate` within 1.9e-15 relative (CW's wage near the wall's
+real-wage ceiling), all but three within 1.0e-15; the three made by finite differences are
+within their 1e-8: the incidence share by a three-point difference in τ_w (6.7e-10), ε_D
+(1.9e-10) and ε_S (2.2e-11).
+
 At the close (P1.7) all three `--check` passed, and the gate's golden comparisons were logged
 again on WSL: the largest errors are as above, 1.0e-15 on 1b's goldens away from an edge (the
 cells of `c6::cells_approach_the_line` are compared with the line's closed forms at the
@@ -598,6 +693,16 @@ tie share and 2.8e-14 on the switch points.
   with it. The count's scan finds two equilibria only when they are more than one cell apart
   where the excess demand can rise; where §5.4's certification holds it cannot, and the count is
   exact (docs/unit-1e.md §5.4-5.5).
+- Unit 1f's nesting is bitwise through the same device: with no government each new operation
+  is exact (1.0·P = P, ν·P + 0.0, (0.0 − 0.0) + (1.0·v − 1.0·e) = v − e, ((ν + 0.0)·ζ − 0.0)·1.0/1.0
+  = ν·ζ), and the start's f_0 = n_D(0) − 0.0 is the value 1e assumed positive. A CES basket is
+  evaluated in logs, the prices scaled by the largest (σ < 1) or the smallest (σ > 1) so that no
+  exponent is positive, with ln1p and expm1 near σ = 1; a category's content stays finite for price
+  ratios up to about 2^16 at `SIGMA_CEIL` = 64. Its corners are parametrized by ω = v/P_z with the
+  fixed basket's P_z, and a weighted category that embodies no labour at the wall's end (or no
+  land at the all-human corner's start) is free there: the wall's end is then −S_∞ and the start
+  +∞, limits, not evaluations. The consumption-tax equivalence is exact in real numbers and came
+  out bit for bit at GT and ER; in general the two allocations agree to the supply's sensitivity.
 - The power x^k, ln(1 + z) and the fused multiply-add come from `core::num`, that is from
   the `libm` crate, so the outputs do not depend on the platform (docs/unit-1a.md §8).
   On 2026-09-26, 5000 random economies (every regime, J_b up to 12) gave byte-identical

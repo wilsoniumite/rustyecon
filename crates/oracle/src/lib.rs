@@ -44,6 +44,18 @@
 //! [`coverage`]). Unit 1d's economies in parcel form, and priced forms with the exit option
 //! switched off, solve to 1d's equilibria bit for bit.
 //!
+//! Unit 1f (docs/unit-1f.md) adds households and a government: [`HouseholdEconomy`]. The
+//! government has SSRN A.1's payroll tax, uniform tax on final purchases, tax on market rent,
+//! uniform transfer and program (m_w, m_e), transfers counted in composites at consumer prices,
+//! and a budget closed by the owners' levy ([`Budget::RentRate`], whose rate at one composite per
+//! person is SSRN eq 16's 1/κ) or by the uniform transfer ([`Budget::Dividend`]). Producers pay
+//! gross prices, so the government enters through one participation rule with SSRN eq 9, p.16,
+//! eq 27 and 1d's and 1e's forms as cases; an in-work benefit that alone overfills the economy is
+//! [`SolveError::SurplusLabour`]. The basket is 1b's fixed one or a CES over the categories
+//! ([`Basket::Ces`], SSRN eq 26). Every equilibrium reports the budget, the households' and the
+//! provider's accounts and three-taxes' ledger ([`Eq1f`]); with the fixed basket and
+//! [`Government::none`] it is unit 1e's equilibrium bit for bit. Unit 1f closes Phase 1.
+//!
 //! Every price is in units of the land rent r = 1, so v = w/r, except at unit 1e's equilibria
 //! on idle land, where r = 0 and prices are in units of the pool's wage
 //! ([`Eq1e::land_market`]).
@@ -76,6 +88,7 @@ mod closure;
 pub mod dump;
 mod exit;
 mod fork;
+mod households;
 mod leontief;
 mod machine_block;
 mod machines;
@@ -92,6 +105,11 @@ pub use categories::{
 pub use closure::{closure, Closure, ClosureError};
 pub use exit::{coverage, coverage_threshold, crowding_limit, PricedExit};
 pub use fork::{cell_cost, ces_share, CategoryCost, Cell};
+pub use households::{
+    Accounts, Basket, BasketEq, Budget, Eq1f, Government, GovernmentEq, HouseholdEconomy,
+    HouseholdParams, HouseholdPoint, Ledger, Program, ProviderAccount, Residuals1f, TransferMode,
+    TypeAccount, SIGMA_CEIL,
+};
 pub use machine_block::{
     BlockPrices, BlockTotals, Envelope, MachineBlock, MachineType, Recipe, Switch,
 };

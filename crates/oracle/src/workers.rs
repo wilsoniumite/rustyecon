@@ -25,11 +25,12 @@
 use rustyecon_core::num;
 
 use crate::categories::{segment_of, tasks, Category, Output1b};
+use crate::households::{Ces, Closure, Rule};
 use crate::leontief::Factors;
 use crate::machine_block::{BlockPrices, MachineType};
 use crate::machines::{
-    in_category, no_basket_work, unpriced_category, worse, Item, MachineEconomy, MachineParams,
-    OutputKey1c, SwitchPoint, Tie, TypeEq,
+    in_category, no_basket_work, unpriced_category, worse, Cleared, Item, MachineEconomy,
+    MachineParams, OutputKey1c, SwitchPoint, Tie, TypeEq,
 };
 use crate::params::{self, ParamError, UniformWorkCost};
 use crate::schedule::{PowerSchedule, Schedule};
@@ -211,6 +212,13 @@ pub struct WorkerEconomy<S = PowerSchedule> {
     wage_system: Factors,
     /// The switches of the envelope above γ(1).
     wall: Vec<WallSwitch>,
+    /// z_j, the fixed basket's weights.
+    weights: Vec<f64>,
+    /// The participation rule with a government (docs/unit-1f.md §4.4): [`Rule::none`] in units
+    /// 1d and 1e, with which every supply below is unit 1d's bit for bit.
+    rule: Rule,
+    /// A CES basket over the categories (docs/unit-1f.md §4.2), or `None` for the fixed basket.
+    ces: Option<Ces>,
 }
 
 /// The error for a parameter of worker type `index`.
@@ -233,6 +241,9 @@ struct WorkerState {
     wages: Vec<f64>,
     supply: Vec<f64>,
     pool_supply: f64,
+    /// d, the uniform transfer in money the supplies read (docs/unit-1f.md §4.3); 0 without a
+    /// government.
+    transfer: f64,
 }
 
 /// The market side of an evaluation (docs/unit-1e.md §5.1). Unit 1d's is
@@ -264,18 +275,23 @@ pub(crate) struct PriceSide {
     pub(crate) base_p_s: f64,
     pub(crate) h_s: f64,
     pub(crate) m_s: f64,
+    /// The basket's content where it is not the fixed one (unit 1f's CES basket).
+    pub(crate) basket: Option<Content>,
+    /// P_z = Σ_j z_j·p⁰_j, the fixed basket's price, which parametrizes the corners (unit 1f,
+    /// docs/unit-1f.md §5.3 step 2); `base_p_s` itself for the fixed basket.
+    pub(crate) reference_p_s: f64,
 }
 
-/// n_S,i = N_i·F_i(ln1p((v_i − e_i)/(ν_i·P_s + e_i))), SSRN eq 8 per type with the exit life's
-/// value e_i (docs/unit-1e.md §2.3); with e_i = 0.0 it is unit 1d's N_i·F_i(ln1p(v_i/(ν_i·P_s)))
-/// bit for bit, since v − 0.0 = v and ν·P_s + 0.0 = ν·P_s for ν·P_s ≥ 0.
-pub(crate) fn supply(t: &WorkerType, wage: f64, p_s: f64, exit: f64) -> f64 {
-    t.workers * t.work_cost.cdf(marginal_cost(t, wage, p_s, exit))
-}
-
-/// ln1p((v_i − e_i)/(ν_i·P_s + e_i)), the marginal worker's work cost (docs/unit-1e.md §2.3).
-pub(crate) fn marginal_cost(t: &WorkerType, wage: f64, p_s: f64, exit: f64) -> f64 {
-    num::ln1p((wage - exit) / (t.support * p_s + exit))
+/// The basket at a point where it is not the fixed one (docs/unit-1f.md §4.2): a CES basket's
+/// content at the point's prices, its gross outputs through the chain and its chain land.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct Content {
+    /// c_j, units of category j per composite.
+    pub(crate) weights: Vec<f64>,
+    /// ŷ = (I − A_ccᵀ)⁻¹c.
+    pub(crate) outputs: Vec<f64>,
+    /// B_ŷ = Σ_j ŷ_j·b_j.
+    pub(crate) land: f64,
 }
 
 /// The least fixed point of P = P⁰ + Σ_i max(e_i·r_i, c_i·r_i·P) (docs/unit-1d.md §4.3, the
@@ -481,6 +497,7 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
             })
             .collect();
         let wage_system = block.wage_system();
+        let weights = params.categories.iter().map(|c| c.weight).collect();
         Ok(WorkerEconomy {
             params,
             machines,
@@ -492,7 +509,56 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
             workers,
             wage_system,
             wall,
+            weights,
+            rule: Rule::none(),
+            ces: None,
         })
+    }
+
+    /// Sets unit 1f's participation rule and basket (docs/unit-1f.md §5.2), after unit 1f's
+    /// validation.
+    pub(crate) fn set_households(&mut self, rule: Rule, ces: Option<Ces>) {
+        self.rule = rule;
+        self.ces = ces;
+    }
+
+    /// The participation rule (unit 1f; [`Rule::none`] in units 1d and 1e).
+    pub(crate) fn rule(&self) -> &Rule {
+        &self.rule
+    }
+
+    /// The CES basket, if the basket is one (unit 1f).
+    pub(crate) fn ces(&self) -> Option<&Ces> {
+        self.ces.as_ref()
+    }
+
+    /// z_j, the fixed basket's weights.
+    pub(crate) fn weights(&self) -> &[f64] {
+        &self.weights
+    }
+
+    /// The basket's content at a point: its own for a CES basket, z for the fixed one.
+    pub(crate) fn content_of<'a>(&'a self, basket: &'a Option<Content>) -> &'a [f64] {
+        match basket {
+            Some(c) => &c.weights,
+            None => &self.weights,
+        }
+    }
+
+    /// The basket's gross outputs ŷ at a point.
+    pub(crate) fn outputs_of<'a>(&'a self, basket: &'a Option<Content>) -> &'a [f64] {
+        match basket {
+            Some(c) => &c.outputs,
+            None => self.machines.basket_outputs(),
+        }
+    }
+
+    /// The basket's chain land B_ŷ at a point.
+    pub(crate) fn land_of(&self, basket: &Option<Content>) -> f64 {
+        match basket {
+            Some(c) => c.land,
+            None => self.machines.basket_land(),
+        }
     }
 
     /// The validated parameters.
@@ -673,12 +739,36 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
             machine.push(mm);
         }
         let base_prices = m.chain().solve(&rhs);
-        let yhat = m.basket_outputs();
-        let (mut base_p_s, mut h_s, mut m_s) = (0.0, 0.0, 0.0);
-        for index in 0..count {
-            base_p_s += p.categories[index].weight * base_prices[index];
-            h_s += yhat[index] * human[index];
-            m_s += yhat[index] * machine[index];
+        // The basket at the point (docs/unit-1f.md §5.1 step 2): the fixed basket's z, or a CES
+        // basket's content at the prices p⁰, with no reserved hours beside it (§2.11).
+        let mut reference_p_s = 0.0;
+        for (z, p0) in self.weights.iter().zip(&base_prices) {
+            reference_p_s += z * p0;
+        }
+        let (basket, base_p_s) = match &self.ces {
+            None => (None, reference_p_s),
+            Some(ces) => {
+                let (price, weights) = ces.at(&base_prices);
+                let outputs = m.outputs_of(&weights);
+                let mut land = 0.0;
+                for (y, category) in outputs.iter().zip(&p.categories) {
+                    land += y * category.direct_land;
+                }
+                let content = Content {
+                    weights,
+                    outputs,
+                    land,
+                };
+                (Some(content), price)
+            }
+        };
+        let (mut h_s, mut m_s) = (0.0, 0.0);
+        {
+            let yhat = self.outputs_of(&basket);
+            for index in 0..count {
+                h_s += yhat[index] * human[index];
+                m_s += yhat[index] * machine[index];
+            }
         }
         PriceSide {
             x,
@@ -692,7 +782,50 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
             base_p_s,
             h_s,
             m_s,
+            basket,
+            reference_p_s,
         }
+    }
+
+    /// The task services per basket and the clearing of the market's land T_m at a price side
+    /// (docs/unit-1d.md §5.1 step 4): Y, the machine services and their hours, and n_D.
+    fn clearing_at(&self, prices: &PriceSide, land: f64) -> (Cleared, f64, f64) {
+        let m = &self.machines;
+        let theta = m.block().types()[prices.technique].task_efficiency;
+        let mut task = vec![0.0; m.block().len()];
+        task[prices.technique] = prices.m_s / theta;
+        let cleared = m.clear_basket(&task, land, self.land_of(&prices.basket));
+        let final_hours = cleared.y * prices.h_s;
+        let n_d = final_hours + cleared.machine_hours;
+        (cleared, final_hours, n_d)
+    }
+
+    /// d at a price side on `market`'s land before its supplies (docs/unit-1f.md §4.3), for unit
+    /// 1e's exit sub-problem: every priced economy has no reserved hours, so P is P⁰ and the
+    /// reserved wage bill 0, and this is the d that [`finish`](Self::finish) computes, bit for
+    /// bit.
+    pub(crate) fn transfer_at(&self, prices: &PriceSide, market: &Market) -> f64 {
+        let (cleared, _, n_d) = self.clearing_at(prices, market.land);
+        self.transfer_of(prices.block.v, prices.base_p_s, cleared.y, n_d, 0.0, market)
+    }
+
+    /// d at a point (docs/unit-1f.md §4.3) from the pool's wage v, the composite's price P, Y,
+    /// n_D and the reserved wage bill Σ_i v_i·D_i: W = v·n_D + Σ_i v_i·D_i, R = r·T_m, C = Y·P.
+    fn transfer_of(
+        &self,
+        v: f64,
+        p_s: f64,
+        y: f64,
+        n_d: f64,
+        reserved_bill: f64,
+        market: &Market,
+    ) -> f64 {
+        self.rule.transfer(
+            p_s,
+            v * n_d + reserved_bill,
+            market.rent * market.land,
+            y * p_s,
+        )
     }
 
     /// §5.1 steps 4-8 on the market's land T_m, with each type's exit value e_i (docs/unit-1e.md
@@ -704,7 +837,9 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
         edge: Option<Edge>,
         market: &Market,
     ) -> WorkerPoint {
-        let m = &self.machines;
+        // Step 4: the quantities.
+        let (cleared, final_hours, n_d) = self.clearing_at(&prices, market.land);
+        let b_d = self.land_of(&prices.basket);
         let PriceSide {
             x,
             gamma,
@@ -717,17 +852,13 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
             base_p_s,
             h_s,
             m_s,
+            basket,
+            reference_p_s,
         } = prices;
-        let (v, task_price) = (block.v, block.task_price);
-        // Step 4: the quantities.
-        let theta = m.block().types()[technique].task_efficiency;
-        let mut task = vec![0.0; m.block().len()];
-        task[technique] = m_s / theta;
-        let cleared = m.clear_with(&task, market.land);
-        let final_hours = cleared.y * h_s;
-        let n_d = final_hours + cleared.machine_hours;
+        let v = block.v;
+        let task_price = block.task_price;
         // Steps 5-8: the worker types, the walk, supply and the prices with reserved costs.
-        let state = self.workers_at(v, base_p_s, cleared.y, edge, &market.exit);
+        let state = self.workers_at(v, base_p_s, cleared.y, n_d, edge, market);
         let (reserved_costs, prices) = self.with_reserved(&base_prices, &state.wages);
         WorkerPoint {
             x,
@@ -749,7 +880,7 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
             p_s: state.p_s,
             h_s,
             m_s,
-            b_d: m.basket_land(),
+            b_d,
             y: cleared.y,
             services: cleared.services,
             final_hours,
@@ -762,6 +893,9 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
             supply: state.supply,
             n_s: state.pool_supply,
             short: state.short,
+            basket,
+            transfer: state.transfer,
+            reference_p_s,
         }
     }
 
@@ -786,15 +920,17 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
         (demand, clearing, short)
     }
 
-    /// Steps 5-7 at the pool's wage v, P⁰_s and Y (docs/unit-1d.md §5.1), with a type at its
-    /// edge if one is given, and each type's exit value e_i (docs/unit-1e.md §2.3).
+    /// Steps 5-7 at the pool's wage v, P⁰_s, Y and n_D (docs/unit-1d.md §5.1), with a type at its
+    /// edge if one is given, each type's exit value e_i (docs/unit-1e.md §2.3) from `market`,
+    /// and the participation rule's transfer and payments (docs/unit-1f.md §5.1 steps 3-6).
     fn workers_at(
         &self,
         v: f64,
         base_p_s: f64,
         y: f64,
+        n_d: f64,
         edge: Option<Edge>,
-        exit: &[f64],
+        market: &Market,
     ) -> WorkerState {
         let types = &self.params.worker_types;
         let kinds = types.len();
@@ -808,16 +944,19 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
             wages: vec![f64::NAN; kinds],
             supply: vec![f64::NAN; kinds],
             pool_supply: f64::NAN,
+            transfer: f64::NAN,
         };
         if let Some(short) = short {
             return unsolved(short);
         }
-        // Step 6: the walk.
+        // Step 6: the walk, with c_i = ((â_i + μ_e)·ζ_i − (μ_w − μ_e))·(1 + t_c)/(1 − τ_w) per
+        // unit of P (docs/unit-1f.md §4.5), which is 1d's ζ_i·ν_i without a government.
         let pooled_wage: Vec<f64> = types.iter().map(|t| t.efficiency * v).collect();
+        let delta = self.rule.fixed_delta();
         let walled_rate: Vec<f64> = clearing
             .iter()
             .zip(types)
-            .map(|(z, t)| z * t.support)
+            .map(|(&z, t)| self.rule.walled_rate(t.support, z, delta))
             .collect();
         let Some((p_s, walled)) = walk(
             base_p_s,
@@ -836,9 +975,18 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
                 }
             })
             .collect();
-        // Step 7: supply per type, and the pool's net supply in efficiency hours.
+        // The transfer d (docs/unit-1f.md §4.3), then step 7: supply per type under the
+        // participation rule, and the pool's net supply in efficiency hours.
+        let mut reserved_bill = 0.0;
+        for i in 0..kinds {
+            reserved_bill += wages[i] * demand[i];
+        }
+        let transfer = self.transfer_of(v, p_s, y, n_d, reserved_bill, market);
         let supply: Vec<f64> = (0..kinds)
-            .map(|i| supply(&types[i], wages[i], p_s, exit[i]))
+            .map(|i| {
+                self.rule
+                    .supply(&types[i], wages[i], p_s, market.exit[i], transfer)
+            })
             .collect();
         let mut pool_supply = 0.0;
         for i in 0..kinds {
@@ -855,6 +1003,7 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
             wages,
             supply,
             pool_supply,
+            transfer,
         }
     }
 
@@ -916,6 +1065,7 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
         let n_d = cleared.y * h_s + cleared.machine_hours;
         let (demand, clearing, short) = self.reserved_at(cleared.y, None);
         Corner {
+            y: cleared.y,
             n_d,
             demand,
             clearing,
@@ -927,12 +1077,15 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
     }
 
     /// S(ω), the pool's net supply at the real wage ω at a corner (docs/unit-1d.md §4.5):
-    /// Σ ε_i·(N_i·F_i(ln(1 + ε_i·ω/ν_i)) − D_i) over the types with ε_i·ω/ν_i ≥ ζ_i.
+    /// Σ ε_i·(N_i·F_i(ln(1 + ratio_i(ω))) − D_i) over the types with ratio_i(ω) ≥ ζ_i, where
+    /// ratio_i is unit 1f's corner form (docs/unit-1f.md §4.4), 1d's ε_i·ω/ν_i without a
+    /// government.
     pub(crate) fn supply_at(&self, c: &Corner, omega: f64) -> f64 {
+        let delta = self.corner_delta(c, omega);
         let mut s = 0.0;
         for (i, t) in self.params.worker_types.iter().enumerate() {
             if t.efficiency > 0.0 {
-                let r = (t.efficiency * omega) / t.support;
+                let r = self.rule.ratio(t, omega, delta);
                 if r >= c.clearing[i] {
                     s += t.efficiency * (t.workers * t.work_cost.cdf(num::ln1p(r)) - c.demand[i]);
                 }
@@ -942,18 +1095,44 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
     }
 
     /// The pool's wage at the real wage ω at a corner (docs/unit-1d.md §4.5):
-    /// v = ω·B/((1 − C) − ω·L), with L = L_s + Σ_pooled ε_i·R_ŷi and C = Σ_walled ζ_i·ν_i·R_ŷi.
+    /// v = ω·B/((1 − C) − ω·L), with L = L_s + Σ_pooled ε_i·R_ŷi and C = Σ_walled c_i·R_ŷi, c_i
+    /// unit 1f's walled rate (1d's ζ_i·ν_i without a government).
     pub(crate) fn wage_at(&self, c: &Corner, omega: f64) -> f64 {
+        let delta = self.corner_delta(c, omega);
+        let fixed = self.rule.fixed_delta();
         let (mut hours, mut rate) = (c.l_s, 0.0);
         for (i, t) in self.params.worker_types.iter().enumerate() {
-            let pooled = t.efficiency > 0.0 && (t.efficiency * omega) / t.support >= c.clearing[i];
+            let pooled = t.efficiency > 0.0 && self.rule.ratio(t, omega, delta) >= c.clearing[i];
             if pooled {
                 hours += t.efficiency * self.reserved_per_basket[i];
             } else {
-                rate += (c.clearing[i] * t.support) * self.reserved_per_basket[i];
+                rate += self.rule.walled_rate(t.support, c.clearing[i], fixed)
+                    * self.reserved_per_basket[i];
             }
         }
         (omega * c.b_s) / ((1.0 - rate) - omega * hours)
+    }
+
+    /// δ(ω) = d/P^c at a corner of an economy without exit values (docs/unit-1f.md §4.3): d̂
+    /// under RentRate; under Dividend (τ_w·ω·n_D + τ_R·T·(1 − ω·L_s)/B_s + t_c·Y)/(N·(1 + t_c)) −
+    /// μ, with r = 1 and P = B_s/(1 − ω·L_s) there (no reserved hours with the Dividend closure).
+    /// At ω = +∞ every ratio is +∞ and δ is not read.
+    pub(crate) fn corner_delta(&self, c: &Corner, omega: f64) -> f64 {
+        match self.rule.budget {
+            Closure::RentRate { dividend } => dividend,
+            Closure::Dividend { .. } if omega == f64::INFINITY => 0.0,
+            Closure::Dividend {
+                payroll,
+                rent_tax,
+                consumption,
+                program,
+                people,
+            } => {
+                let wages = payroll * (omega * c.n_d);
+                let rent = rent_tax * ((self.params.land * (1.0 - omega * c.l_s)) / c.b_s);
+                ((wages + rent) + consumption * c.y) / (people * self.rule.consumer) - program
+            }
+        }
     }
 
     /// The end of the wall (docs/unit-1d.md §4.5): ω_∞ = 1/ρ_∞ from the walk with P⁰ → L_s
@@ -989,11 +1168,12 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
     pub(crate) fn omega_end(&self, c: &Corner) -> Option<f64> {
         let types = &self.params.worker_types;
         let efficiency: Vec<f64> = types.iter().map(|t| t.efficiency).collect();
+        let delta = self.rule.fixed_delta();
         let rate: Vec<f64> = c
             .clearing
             .iter()
             .zip(types)
-            .map(|(z, t)| z * t.support)
+            .map(|(&z, t)| self.rule.walled_rate(t.support, z, delta))
             .collect();
         walk(c.l_s, &efficiency, &rate, &self.reserved_per_basket).map(|(rho, _)| 1.0 / rho)
     }
@@ -1144,6 +1324,14 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
         // value above.
         let last_start = sequence.last().map_or(f_one, |&(_, f)| f);
         sequence.push((Kind::End, end.excess));
+        // The start, v → 0 at the all-human corner (docs/unit-1f.md §2.9).
+        let start = self.corner(0.0, env.first);
+        let f_start = start.n_d - self.supply_at(&start, 0.0);
+        if f_start.is_nan() {
+            return Err(SolveError::NonFinite {
+                what: "n_D - n_S at the start of the path",
+            });
+        }
         Ok(Ok(Path {
             at_one,
             at_zero,
@@ -1155,6 +1343,7 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
             sequence,
             end,
             last_start,
+            f_start,
         }))
     }
 
@@ -1173,6 +1362,7 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
             techniques,
             sequence,
             end,
+            f_start,
             ..
         } = path;
         let (f_zero, f_lo, f_one) = (*f_zero, *f_lo, *f_one);
@@ -1192,7 +1382,8 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
         // The change between sides c and c + 1 is between sequence[c − 1] (the start when
         // c = 0) and sequence[c].
         let eq = if c == 0 {
-            // The all-human corner: ω in [0, ω_line(0)], f(0) = n_D(0).
+            // The all-human corner: ω in [0, ω_line(0)], f(0) = f_0, n_D(0) without an in-work
+            // benefit (docs/unit-1f.md §2.9).
             let (v, steps) = if f_zero == 0.0 {
                 (at_zero.v, 0)
             } else {
@@ -1201,7 +1392,7 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
                 // and the walk's ceiling cannot bind below a point where it does not (§12).
                 let root = bisect_bits(
                     |w| corner.n_d - self.supply_at(&corner, w),
-                    (0.0, corner.n_d),
+                    (0.0, *f_start),
                     (at_zero.v / at_zero.p_s, f_zero),
                 )?;
                 (self.wage_at(&corner, root.x), root.steps)
@@ -1434,9 +1625,10 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
         let types = self.machines.block().types();
         let mut task = vec![0.0; types.len()];
         task[above] = q.m_s / types[above].task_efficiency;
-        let b = self.machines.clear_with(&task, market.land);
-        let state_a = self.workers_at(q.v, q.base_p_s, q.y, None, &market.exit);
-        let state_b = self.workers_at(q.v, q.base_p_s, b.y, None, &market.exit);
+        let b = self.machines.clear_basket(&task, market.land, q.b_d);
+        let n_d_b = b.y * q.h_s + b.machine_hours;
+        let state_a = self.workers_at(q.v, q.base_p_s, q.y, q.n_d, None, market);
+        let state_b = self.workers_at(q.v, q.base_p_s, b.y, n_d_b, None, market);
         let simple = [&state_a, &state_b]
             .iter()
             .all(|s| s.short.is_none() && !s.walled.contains(&true));
@@ -1444,7 +1636,7 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
             let land_a = market.land / q.y;
             let land_b = market.land / b.y;
             let f_a = q.n_d - state_a.pool_supply;
-            let f_b = (b.y * q.h_s + b.machine_hours) - state_b.pool_supply;
+            let f_b = n_d_b - state_b.pool_supply;
             if f_b >= 0.0 {
                 return Ok((1.0, None));
             }
@@ -1523,9 +1715,10 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
         let mut task = vec![0.0; types.len()];
         task[below] = (1.0 - share) * (q.m_s / types[below].task_efficiency);
         task[above] = share * (q.m_s / types[above].task_efficiency);
-        let c = self.machines.clear_with(&task, market.land);
-        let state = self.workers_at(q.v, q.base_p_s, c.y, edge, &market.exit);
-        (c.y * q.h_s + c.machine_hours, state)
+        let c = self.machines.clear_basket(&task, market.land, q.b_d);
+        let n_d = c.y * q.h_s + c.machine_hours;
+        let state = self.workers_at(q.v, q.base_p_s, c.y, n_d, edge, market);
+        (n_d, state)
     }
 
     /// docs/unit-1d.md §4.7 at the equilibrium: unit 1c's report in 1c's order of operations,
@@ -1593,12 +1786,14 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
                 let mut task = vec![0.0; k_count];
                 task[technique] = (1.0 - t.share) * (q.m_s / theta(technique));
                 task[t.above] = t.share * (q.m_s / theta(t.above));
-                let c = m.clear_with(&task, market.land);
+                let c = m.clear_basket(&task, market.land, q.b_d);
                 (c.y, c.services, c.machine_hours)
             }
         };
-        // The worker types at the equilibrium's Y: at a tie D_i and the walk move with σ.
-        let state = self.workers_at(q.v, q.base_p_s, y, edge, &market.exit);
+        // The worker types at the equilibrium's Y: at a tie D_i and the walk move with σ. n_D is
+        // the point's, bit for bit, off a tie.
+        let n_d = y * q.h_s + machine_hours;
+        let state = self.workers_at(q.v, q.base_p_s, y, n_d, edge, market);
         if let Some(short) = state.short {
             return Err(SolveError::NonFinite {
                 what: match short {
@@ -1617,9 +1812,11 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
                 _ => 0.0,
             })
             .collect();
-        // Hours-type outputs take the carried 1 − x* in the top segment (1b §5.1 step 5).
+        // Hours-type outputs take the carried 1 − x* in the top segment (1b §5.1 step 5). The
+        // basket is the point's: z, or a CES basket's content there (docs/unit-1f.md §5.3 step 6).
         let count = p.categories.len();
-        let yhat = m.basket_outputs();
+        let yhat = self.outputs_of(&q.basket);
+        let weights = self.content_of(&q.basket);
         let mut human = Vec::with_capacity(count);
         let mut h_s = 0.0;
         for (index, category) in p.categories.iter().enumerate() {
@@ -1734,8 +1931,8 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
         let mut categories = Vec::with_capacity(count);
         let (mut l_star_s, mut l_s, mut b_s, mut l_s_q, mut b_s_q) = (0.0, 0.0, 0.0, 0.0, 0.0);
         let (mut spending, mut fork, mut totals) = (0.0, 0.0, 0.0);
-        for (index, category) in p.categories.iter().enumerate() {
-            let (price, mm, z) = (prices[index], q.machine[index], category.weight);
+        for index in 0..count {
+            let (price, mm, z) = (prices[index], q.machine[index], weights[index]);
             let r = reserved_costs[index];
             let b_bar = m.chain_land()[index];
             let l_bar = m.all_human_hours()[index] + self.required_chain[index];
@@ -1841,7 +2038,13 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
                     supply: state.supply[i],
                     participation: (hours[i] / t.workers).min(1.0),
                     clearing_real_wage: state.clearing[i],
-                    marginal_work_cost: marginal_cost(t, wage, p_s, market.exit[i]),
+                    marginal_work_cost: self.rule.marginal_cost(
+                        t,
+                        wage,
+                        p_s,
+                        market.exit[i],
+                        state.transfer,
+                    ),
                     at_wall: !pooled || margin == Margin::Wall,
                     edge: edge.is_some_and(|e| e.worker == i),
                 }
@@ -1928,7 +2131,7 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
             replacement_top: gamma_top * q.task_price,
             replacement_bottom: gamma_bottom * q.task_price,
             n_pool,
-            required_hours: y * self.required_per_basket,
+            required_hours: y * self.required_of(&q.basket),
             reserved_hours,
             wage_bill,
             f_line_0: finite_or_none(context.f_zero),
@@ -1937,7 +2140,23 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
             f_end: context.f_end,
             wall_switches: self.wall.clone(),
             workers,
+            transfer: state.transfer,
+            basket: q.basket.clone(),
         })
+    }
+
+    /// L^H_ŷ = Σ_j ŷ_j·L^H_j of a point's basket.
+    fn required_of(&self, basket: &Option<Content>) -> f64 {
+        match basket {
+            None => self.required_per_basket,
+            Some(c) => {
+                let mut total = 0.0;
+                for (y, h) in c.outputs.iter().zip(&self.params.human_required) {
+                    total += y * h;
+                }
+                total
+            }
+        }
     }
 
     /// docs/unit-1d.md §6's residuals, each recomputed from the recipes in a fixed order, so
@@ -2030,16 +2249,17 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
             let price = q.type_prices[k];
             leontief_price = worse(leontief_price, relative((price - cost).abs(), price));
         }
-        // y = A^qᵀy + f over the rows with y_i > 0.
-        let gross: Vec<f64> = m.basket_outputs().iter().map(|b| b * r.y).collect();
+        // y = A^qᵀy + f over the rows with y_i > 0, with the point's basket.
+        let weights = self.content_of(&q.basket);
+        let gross: Vec<f64> = self.outputs_of(&q.basket).iter().map(|b| b * r.y).collect();
         let mut leontief_quantity = 0.0;
-        for (j, (&y_j, category)) in gross.iter().zip(&p.categories).enumerate() {
+        for (j, &y_j) in gross.iter().enumerate() {
             if y_j > 0.0 {
                 let mut used = 0.0;
                 for (row, &y_l) in p.intermediate.iter().zip(&gross) {
                     used += row[j] * y_l;
                 }
-                let demand = used + category.weight * r.y;
+                let demand = used + weights[j] * r.y;
                 leontief_quantity = worse(leontief_quantity, (y_j - demand).abs() / y_j);
             }
         }
@@ -2092,10 +2312,10 @@ impl<S: Schedule + Clone> WorkerEconomy<S> {
                 reserved = worse(reserved, (r.state.supply[i] - d).abs() / d);
             }
         }
-        // The basket: P_s against Σ_j z_j·p_j.
+        // The basket: P_s against Σ_j z_j·p_j (Euler's Σ_j c_j·p_j for a CES basket).
         let mut spent = 0.0;
-        for (category, &price) in p.categories.iter().zip(r.prices) {
-            spent += category.weight * price;
+        for (&z, &price) in weights.iter().zip(r.prices) {
+            spent += z * price;
         }
         let basket = (r.state.p_s - spent).abs() / r.state.p_s;
         Residuals1d {
@@ -2166,6 +2386,9 @@ pub(crate) struct Path {
     pub(crate) end: WallEnd,
     /// The value that starts the wall's last piece.
     pub(crate) last_start: f64,
+    /// f_0 = n_D(x = 0) − S(v = 0), the start of the path in the corner form (docs/unit-1f.md
+    /// §2.9): n_D(0) > 0 without an in-work benefit.
+    pub(crate) f_start: f64,
 }
 
 /// A value of the sequence of docs/unit-1d.md §5.3 step 2.
@@ -2230,6 +2453,8 @@ pub(crate) struct Context<'a> {
 
 /// A corner's quantities (docs/unit-1d.md §4.5).
 pub(crate) struct Corner {
+    /// Y, fixed on the corner (unit 1f's δ(ω) under the Dividend closure).
+    pub(crate) y: f64,
     pub(crate) n_d: f64,
     pub(crate) demand: Vec<f64>,
     pub(crate) clearing: Vec<f64>,
@@ -2331,6 +2556,12 @@ pub struct WorkerPoint {
     pub n_s: f64,
     /// Why the point has no finite excess demand, if it has none.
     pub short: Option<Shortage>,
+    /// The basket's content where it is not the fixed one (unit 1f's CES basket).
+    pub(crate) basket: Option<Content>,
+    /// d, the uniform transfer in money the supplies read (unit 1f; 0 without a government).
+    pub(crate) transfer: f64,
+    /// P_z = Σ_j z_j·p⁰_j (unit 1f; `base_p_s` for the fixed basket).
+    pub(crate) reference_p_s: f64,
 }
 
 impl WorkerPoint {
@@ -2363,7 +2594,8 @@ pub struct WorkerEq {
     pub reserved_hours: f64,
     /// The type's hours at pool tasks, its share of n_pool over ε_i (0 when walled).
     pub pool_hours: f64,
-    /// n_S,i = N_i·F_i(ln(1 + v_i/(ν_i·P_s))) at the reported prices.
+    /// n_S,i = N_i·F_i(ln(1 + v_i/(ν_i·P_s))) at the reported prices (unit 1f: by its
+    /// participation rule, docs/unit-1f.md §4.4).
     pub supply: f64,
     /// hours/N_i, capped at 1.
     pub participation: f64,
@@ -2583,6 +2815,12 @@ pub struct Eq1d {
     pub wall_switches: Vec<WallSwitch>,
     /// Every worker type, in order.
     pub workers: Vec<WorkerEq>,
+    /// d, the uniform transfer in money the supplies read (unit 1f, docs/unit-1f.md §4.3); 0
+    /// without a government.
+    pub(crate) transfer: f64,
+    /// The basket's content where it is not the fixed one (unit 1f's CES basket at the
+    /// equilibrium's prices).
+    pub(crate) basket: Option<Content>,
 }
 
 impl Eq1d {
@@ -3052,6 +3290,8 @@ mod tests {
             f_end: 0.0,
             wall_switches: Vec::new(),
             workers: Vec::new(),
+            transfer: 0.0,
+            basket: None,
         };
         eq.d = n();
         eq.tie = Some(Tie {

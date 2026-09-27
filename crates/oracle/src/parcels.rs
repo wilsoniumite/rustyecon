@@ -21,6 +21,7 @@ use rustyecon_core::num;
 
 use crate::categories::{Category, Output1b};
 use crate::exit::PricedExit;
+use crate::households::{Ces, Closure, Rule};
 use crate::machine_block::MachineType;
 use crate::machines::{Item, OutputKey1c, Tie};
 use crate::params::{self, ParamError, SCALE_CEIL, SCALE_FLOOR};
@@ -28,7 +29,7 @@ use crate::schedule::{PowerSchedule, Schedule};
 use crate::solve::{bisect, bisect_bits, labor_net, Regime, Root, SolveError};
 use crate::solve::{BRACKET_HI, BRACKET_LO};
 use crate::workers::{
-    self, Context, Edge, Eq1d, Kind, Margin, Market, Path, Reported, WorkerEconomy, WorkerParams,
+    Context, Edge, Eq1d, Kind, Margin, Market, Path, Reported, WorkerEconomy, WorkerParams,
     WorkerPoint, WorkerType,
 };
 
@@ -574,6 +575,31 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
         &self.params
     }
 
+    /// Sets unit 1f's participation rule and basket (docs/unit-1f.md §5.2) on the worker economy
+    /// underneath, and recomputes §5.4's certification as unit 1f states it: 1e's Proposition 5
+    /// with κ_w·ε_i in place of ε_i, κ_w = (1 − τ_w)/(1 + t_c), which needs μ_w = μ_e where a
+    /// type takes plots (docs/unit-1f.md §5.4). With [`Rule::none`] it is 1e's bit for bit.
+    pub(crate) fn set_households(&mut self, rule: Rule, ces: Option<Ces>) {
+        let kappa = rule.net / rule.consumer;
+        let even = rule.gap == 0.0 || self.plot_takers.is_empty();
+        self.certified = self.params.rho == 0.0
+            && even
+            && (self.plot_takers.len() <= 1 || self.commons == 0.0)
+            && self.plot_takers.iter().all(|&i| {
+                let p = self.exits[i].priced.expect("a plot taker is priced");
+                p.plot <= p.gross * self.exit_good_land
+                    && p.plot * self.demand_per_land
+                        <= kappa * self.params.worker_types[i].efficiency
+            });
+        self.workers.set_households(rule, ces);
+    }
+
+    /// Whether every type is without an exit value: in the dependence form, or priced with
+    /// s₀ = s̲ = 0 (docs/unit-1e.md §2.12).
+    pub(crate) fn exit_free(&self) -> bool {
+        self.exit_free
+    }
+
     /// Unit 1d's economy on the enclosed land T underneath.
     pub fn workers(&self) -> &WorkerEconomy<S> {
         &self.workers
@@ -703,7 +729,16 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
             self.free_state()
         } else {
             let p_g = prices.base_prices[self.params.exit_good];
-            self.exit_state(prices.block.v, prices.base_p_s, p_g, rent, force, wall)
+            // d at the point (docs/unit-1f.md §4.3): d̂·P^c under RentRate, and under Dividend
+            // on the whole endowment, since the Dividend closure has no plot-taking type (§2.6).
+            let market = Market {
+                rent,
+                land: land.unwrap_or(self.enclosed),
+                exit: Vec::new(),
+            };
+            let transfer = self.workers.transfer_at(&prices, &market);
+            let point = (prices.block.v, prices.base_p_s, transfer);
+            self.exit_state(point, p_g, rent, force, wall)
         };
         let market_land = land.unwrap_or(self.enclosed - exit.rented);
         let market = Market {
@@ -772,8 +807,7 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
     fn trial(
         &self,
         plot_rent: f64,
-        v: f64,
-        p_s: f64,
+        (v, p_s, transfer): (f64, f64, f64),
         p_g: f64,
         force: Force,
         wall: Option<f64>,
@@ -821,7 +855,7 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
                     }
                 },
             };
-            let supply = workers::supply(t_i, wage, p_s, value);
+            let supply = self.workers.rule().supply(t_i, wage, p_s, value, transfer);
             let households = share * (t_i.workers - supply);
             let plot = exit.priced.map_or(0.0, |p| p.plot) * households;
             if share > 0.0 {
@@ -844,8 +878,7 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
     /// rent reported in money is 0.
     fn exit_state(
         &self,
-        v: f64,
-        p_s: f64,
+        point: (f64, f64, f64),
         p_g: f64,
         rent: f64,
         force: Force,
@@ -855,7 +888,7 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
         // the rent in the units the plots are decided in, and a rent reported in money
         let top = if wall.is_some() { 1.0 } else { rent };
         let money = |r: f64| if wall.is_some() { 0.0 } else { r };
-        let trial = |r: f64| self.trial(r, v, p_s, p_g, force, wall);
+        let trial = |r: f64| self.trial(r, point, p_g, force, wall);
         let state = |t: Trial, regime, plot_rent, commons_occupied, rented| ExitState {
             regime,
             plot_rent,
@@ -912,7 +945,7 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
             .find(|&i| below.branches[i] == Branch::Plot && t.branches[i] == Branch::Floor)
         {
             let plot = self.exits[i].priced.map_or(0.0, |p| p.plot);
-            let exiters = self.params.worker_types[i].workers - self.point_supply(&t, i, v, p_s);
+            let exiters = self.params.worker_types[i].workers - self.point_supply(&t, i, point);
             let land = (t_o - t.demand).max(0.0).min(plot * exiters);
             t.plots[i] = land;
             t.households[i] = land / plot;
@@ -932,17 +965,20 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
             .base_prices[self.params.exit_good]
     }
 
-    /// n_S,i at a trial's exit value.
-    fn point_supply(&self, t: &Trial, i: usize, v: f64, p_s: f64) -> f64 {
+    /// n_S,i at a trial's exit value, with the point's wage, P_s and transfer.
+    fn point_supply(&self, t: &Trial, i: usize, (v, p_s, transfer): (f64, f64, f64)) -> f64 {
         let ty = &self.params.worker_types[i];
-        workers::supply(ty, ty.efficiency * v, p_s, t.values[i])
+        self.workers
+            .rule()
+            .supply(ty, ty.efficiency * v, p_s, t.values[i], transfer)
     }
 }
 
 /// A value of the path's sequence (docs/unit-1e.md §5.3 step 2).
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Station {
-    /// v → 0: positive by §5.3 step 3.
+    /// v → 0: f_0 = n_D(0) − S(0), positive when > 0 (docs/unit-1f.md §2.9), which it is in every
+    /// economy without an in-work benefit.
     Start,
     /// An enclosure point, the type on its floor (index into the path's points).
     EnclosureBelow(usize),
@@ -963,10 +999,10 @@ enum Station {
 
 impl Station {
     /// §5.3 step 3: a value is on the positive side when > 0, f(1) when ≥ 0, and the idle
-    /// stretch's end when ≥ 0 (S_∞ = 0: no production is no equilibrium).
+    /// stretch's end when ≥ 0 (S_∞ = 0: no production is no equilibrium). The start is
+    /// evaluated (docs/unit-1f.md §2.9), and > 0 in every economy without an in-work benefit.
     fn positive(self, f: f64) -> bool {
         match self {
-            Station::Start => true,
             Station::One | Station::Rest => f >= 0.0,
             _ => f > 0.0,
         }
@@ -1081,9 +1117,11 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
     /// the all-human corner, [0, lo], the line's regions, the wall's pieces, the end of the wall
     /// f_∞, and the idle stretch's end −S_∞, with each enclosure point (§4.7) as a pair of
     /// values and, in an economy with a plot-taking type, `EXIT_SCAN` interior points of every
-    /// piece of the corner, the line on [lo, 1] and the wall. v → 0 is positive; a value is
+    /// piece of the corner, the line on [lo, 1] and the wall. The start v → 0 is evaluated, f_0 =
+    /// n_D(0) − S(0), positive without an in-work benefit (docs/unit-1f.md §2.9); a value is
     /// positive when > 0, f(1) and −S_∞ when ≥ 0. No change of side is
-    /// [`SolveError::NoMarket`], more than one [`SolveError::MultipleEquilibria`]. One is the
+    /// [`SolveError::NoMarket`], or [`SolveError::SurplusLabour`] from a start that is not
+    /// positive; more than one is [`SolveError::MultipleEquilibria`]. One is the
     /// equilibrium, inside [`Regime::Interior`]: on the line, a corner or the idle stretch, at a
     /// technique tie or an enclosure tie. In an economy without exit values (every type in the
     /// dependence form, or priced with s₀ = s̲ = 0) the sequence is unit 1d's with −S_∞
@@ -1101,8 +1139,9 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
     /// which reads f only at the sequence's values. The equilibrium, when there is one, does not
     /// depend on it bit for bit, only `scan_points` does.
     pub fn solve_scanned(&self, scan: usize) -> Result<Regime<Eq1e>, SolveError> {
-        let eq = if self.exit_free {
-            match self.solve_exit_free()? {
+        // A CES basket evaluates whole points at the corners (docs/unit-1f.md §5.3 step 2).
+        let eq = if self.exit_free && self.workers.ces().is_none() {
+            match self.solve_exit_free(scan)? {
                 Ok(eq) => eq,
                 Err(d_at_1) => return Ok(Regime::NotViable { d_at_1 }),
             }
@@ -1120,8 +1159,10 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
     }
 
     /// §5.3 for an economy without exit values: 1d's sequence and location, with the idle
-    /// stretch after the wall's end.
-    fn solve_exit_free(&self) -> Result<Result<Eq1e, f64>, SolveError> {
+    /// stretch after the wall's end, from the evaluated start (docs/unit-1f.md §2.9), and, where
+    /// the Dividend closure's transfer moves at ρ > 0, `scan` interior points of each piece
+    /// (§5.3 step 4).
+    fn solve_exit_free(&self, scan: usize) -> Result<Result<Eq1e, f64>, SolveError> {
         let path = match self.workers.path()? {
             Ok(path) => path,
             Err(d_at_1) => return Ok(Err(d_at_1)),
@@ -1129,26 +1170,45 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
         let tau_e = path.end.technique;
         let rest = self.at_idle(0.0, tau_e);
         let f_rest = value("n_D - n_S at the end of the idle stretch", &rest)?;
+        let start = path.f_start > 0.0;
+        let (gaps, scan_points) = if scan > 0 && self.scans_everywhere() {
+            self.exit_free_scan(&path, scan)?
+        } else {
+            (vec![Vec::new(); path.sequence.len()], 0)
+        };
         let mut sides = Vec::with_capacity(path.sequence.len() + 2);
-        sides.push(true);
-        for &(kind, f) in &path.sequence {
-            sides.push(match kind {
+        let mut counted = vec![start];
+        sides.push(start);
+        for (&(kind, f), gap) in path.sequence.iter().zip(&gaps) {
+            let side = match kind {
                 Kind::One => f >= 0.0,
                 _ => f > 0.0,
-            });
+            };
+            counted.extend(gap);
+            counted.push(side);
+            sides.push(side);
         }
         sides.push(f_rest >= 0.0);
+        counted.push(f_rest >= 0.0);
         let changes: Vec<usize> = (0..sides.len() - 1)
             .filter(|&i| sides[i] != sides[i + 1])
             .collect();
-        if changes.is_empty() {
+        let counted_changes = (0..counted.len() - 1)
+            .filter(|&i| counted[i] != counted[i + 1])
+            .count();
+        if counted_changes == 0 {
+            if !start {
+                return Err(SolveError::SurplusLabour {
+                    f_start: path.f_start,
+                });
+            }
             return Err(SolveError::NoMarket {
                 f_end: path.end.excess,
             });
         }
-        if changes.len() > 1 {
+        if counted_changes > 1 {
             return Err(SolveError::MultipleEquilibria {
-                sign_changes: changes.len(),
+                sign_changes: counted_changes,
                 switches: path.points,
             });
         }
@@ -1158,11 +1218,171 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
         if c < n && !junction {
             let eq = self.workers.locate(&path, c)?;
             let side = self.free_side(&eq);
-            return Ok(Ok(self.extend(eq, &side, None, f_end, 0)));
+            return Ok(Ok(self.extend(eq, &side, None, f_end, scan_points)));
         }
         let found = self.idle_equilibrium(tau_e, self.enclosed, junction)?;
         let context = self.exit_free_context(&path);
-        self.report(found, &context, f_end, 0).map(Ok)
+        self.report(found, &context, f_end, scan_points).map(Ok)
+    }
+
+    /// Whether the count scans every piece of the path, not only where a type takes plots
+    /// (docs/unit-1f.md §5.3 step 4): at ρ > 0 with a CES basket, or with the Dividend
+    /// closure's transfer moving with the point, where §5.4's monotonicity does not reach.
+    fn scans_everywhere(&self) -> bool {
+        self.params.rho > 0.0
+            && (self.workers.ces().is_some() || self.workers.rule().moving_transfer())
+    }
+
+    /// The scan of an exit-free economy's path (docs/unit-1f.md §5.3 step 4), gap by gap of 1d's
+    /// sequence (the gap before `sequence[k]`): `scan` interior points of the all-human corner
+    /// and of each piece of the wall in ω, by the corner form, and of each region of the line in
+    /// x, each on the positive side when > 0; [0, lo] is not scanned. With the count of points.
+    fn exit_free_scan(
+        &self,
+        path: &Path,
+        scan: usize,
+    ) -> Result<(Vec<Vec<bool>>, u32), SolveError> {
+        let w = &self.workers;
+        let env = w.machines().envelope();
+        let side = |f: f64| -> Result<bool, SolveError> {
+            if f.is_nan() {
+                Err(SolveError::NonFinite {
+                    what: "n_D - n_S at a scan point",
+                })
+            } else {
+                Ok(f > 0.0)
+            }
+        };
+        let corner_sides = |x: f64, technique: usize, lo: f64, hi: f64| {
+            let corner = w.corner(x, technique);
+            let mut out = Vec::new();
+            if hi > lo {
+                for s in scan_grid(lo, hi, scan) {
+                    out.push(side(corner.n_d - w.supply_at(&corner, s))?);
+                }
+            }
+            Ok::<Vec<bool>, SolveError>(out)
+        };
+        let bounds: Vec<f64> = std::iter::once(BRACKET_LO)
+            .chain(path.points.iter().copied())
+            .chain(std::iter::once(BRACKET_HI))
+            .collect();
+        let omega_at = |v: f64, technique: usize| v / w.at_wage(BRACKET_HI, v, technique).p_s;
+        let mut gaps = Vec::with_capacity(path.sequence.len());
+        let mut count = 0u32;
+        let mut region = 0;
+        let mut piece = 0;
+        for &(kind, _) in &path.sequence {
+            let gap = match kind {
+                Kind::Zero => corner_sides(0.0, env.first, 0.0, path.at_zero.v / path.at_zero.p_s)?,
+                Kind::Lo | Kind::SwitchAbove(_) | Kind::WallAbove(_) => Vec::new(),
+                Kind::SwitchBelow(_) | Kind::One => {
+                    let t = path.techniques[region];
+                    let (lo, hi) = (bounds[region], bounds[region + 1]);
+                    region += 1;
+                    let mut out = Vec::new();
+                    if hi > lo {
+                        for x in scan_grid(lo, hi, scan) {
+                            out.push(side(w.at_with(x, t).excess_demand())?);
+                        }
+                    }
+                    out
+                }
+                Kind::WallBelow(_) | Kind::End => {
+                    let technique = match piece {
+                        0 => env.last(),
+                        s => w.wall_switches()[s - 1].above,
+                    };
+                    let lo = match piece {
+                        0 => path.at_one.v / path.at_one.p_s,
+                        s => omega_at(w.wall_switches()[s - 1].wage, technique),
+                    };
+                    let hi = match w.wall_switches().get(piece) {
+                        Some(sw) => omega_at(sw.wage, technique),
+                        None => path.end.omega.unwrap_or(f64::NAN),
+                    };
+                    piece += 1;
+                    if hi.is_nan() {
+                        Vec::new()
+                    } else {
+                        corner_sides(BRACKET_HI, technique, lo, hi)?
+                    }
+                }
+            };
+            count += gap.len() as u32;
+            gaps.push(gap);
+        }
+        Ok((gaps, count))
+    }
+
+    /// f_0, the start of the path (docs/unit-1f.md §2.9 and §5.3 step 1): n_D(x = 0) − S(v = 0),
+    /// by 1d's corner form in an economy without exit values and a fixed basket, else at the
+    /// point v = 0 of the all-human corner; +∞ under a CES basket that weighs a category made
+    /// of labour alone at x = 0, free at v = 0, whose content, and n_D, grow without bound
+    /// there. Positive in every economy without an in-work benefit.
+    pub(crate) fn start_value(&self) -> Result<f64, SolveError> {
+        let w = &self.workers;
+        let env = w.machines().envelope();
+        if self.exit_free && w.ces().is_none() {
+            let start = w.corner(0.0, env.first);
+            let f = start.n_d - w.supply_at(&start, 0.0);
+            return if f.is_nan() {
+                Err(SolveError::NonFinite {
+                    what: "n_D - n_S at the start of the path",
+                })
+            } else {
+                Ok(f)
+            };
+        }
+        if w.ces().is_some() {
+            let land = w.machines().chain_land();
+            let weights = w.weights();
+            if (0..land.len()).any(|j| weights[j] > 0.0 && land[j] == 0.0) {
+                return Ok(f64::INFINITY);
+            }
+        }
+        value(
+            "n_D - n_S at the start of the path",
+            &self.at_wage(0.0, 0.0, env.first),
+        )
+    }
+
+    /// Whether a CES basket weighs a category that embodies no labour under the wall's last
+    /// technique, free relative to the rest as v/r → ∞ (docs/unit-1f.md §2.12).
+    fn free_at_the_end(&self, technique: usize) -> bool {
+        let w = &self.workers;
+        if w.ces().is_none() {
+            return false;
+        }
+        let corner = w.corner(BRACKET_HI, technique);
+        let weights = w.weights();
+        (0..weights.len()).any(|j| weights[j] > 0.0 && corner.lambda_tilde[j] == 0.0)
+    }
+
+    /// S_∞, the pool's supply at the wall's end under a CES basket with a free weighted category
+    /// (docs/unit-1f.md §2.12 and §5.3 step 3): ω_∞ = 1/(Z·M(λ̃)) for σ < 1, +∞ otherwise, where
+    /// n_D → 0, W, R and C over P vanish, and the transfer tends to d̂ composites (RentRate) or
+    /// −μ (Dividend). No reserved hours with a CES basket, so every type is pooled.
+    fn supply_at_the_end(&self, technique: usize) -> f64 {
+        let w = &self.workers;
+        let ces = w.ces().expect("a CES basket");
+        let corner = w.corner(BRACKET_HI, technique);
+        let omega = ces
+            .labour_at_the_end(&corner.lambda_tilde)
+            .map_or(f64::INFINITY, |l| 1.0 / l);
+        let rule = w.rule();
+        let delta = match rule.budget {
+            Closure::RentRate { dividend } => dividend,
+            Closure::Dividend { program, .. } => -program,
+        };
+        let mut s = 0.0;
+        for t in &self.params.worker_types {
+            if t.efficiency > 0.0 {
+                let r = rule.ratio(t, omega, delta);
+                s += t.efficiency * (t.workers * t.work_cost.cdf(num::ln1p(r)));
+            }
+        }
+        s
     }
 
     /// 1d's report context for an exit-free economy.
@@ -1202,7 +1422,9 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
             return Ok(found(self.at_idle(start, technique), 0, None));
         }
         let reserved = self.workers.reserved_per_basket().iter().any(|&r| r > 0.0);
-        if !reserved {
+        // Supply is fixed on the idle stretch unless the Dividend closure's transfer moves with
+        // T_m (docs/unit-1f.md §5.3 step 3), which bisects as with reserved hours.
+        if !reserved && !self.workers.rule().moving_on_idle_land() {
             let q = self.at_idle(start, technique);
             let market_land = start * (q.point.n_s / q.point.n_d);
             return Ok(found(self.at_idle(market_land, technique), 0, None));
@@ -1280,19 +1502,21 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
         let techniques: Vec<usize> = std::iter::once(env.first)
             .chain(env.switches.iter().map(|s| s.above))
             .collect();
+        let f_start = self.start_value()?;
         let mut path = PricedPath {
-            stations: vec![(Station::Start, f64::INFINITY)],
+            stations: vec![(Station::Start, f_start)],
             pieces: vec![None],
             enclosures: Vec::new(),
         };
-        // The all-human corner, ω in [0, ω(0)].
+        // The all-human corner, ω in [0, ω(0)], ω = v/P_z with the fixed basket's P_z
+        // (docs/unit-1f.md §5.3 step 2; P_s itself for the fixed basket without reserved hours).
         let c0 = w.corner(0.0, env.first);
         let span = Span::AllHuman {
             technique: env.first,
             l_s: c0.l_s,
             b_s: c0.b_s,
         };
-        let omega_zero = at_zero.point.v / at_zero.point.p_s;
+        let omega_zero = at_zero.point.v / at_zero.point.reference_p_s;
         self.push_piece(
             &mut path,
             span,
@@ -1348,11 +1572,12 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
             }
         };
         let mut technique = env.last();
-        let (mut v_lo, mut omega_lo) = (at_one.point.v, at_one.point.v / at_one.point.p_s);
+        let (mut v_lo, mut omega_lo) =
+            (at_one.point.v, at_one.point.v / at_one.point.reference_p_s);
         for (s, sw) in w.wall_switches().iter().enumerate() {
             let what = "n_D - n_S at a wall switch";
             let below = self.at_wage(BRACKET_HI, sw.wage, sw.below);
-            let omega_hi = sw.wage / below.point.p_s;
+            let omega_hi = sw.wage / below.point.reference_p_s;
             let end = (Station::WallBelow(s), value(what, &below)?);
             self.push_piece(
                 &mut path,
@@ -1366,7 +1591,7 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
             path.push(None, (Station::WallAbove(s), value(what, &above)?));
             technique = sw.above;
             v_lo = sw.wage;
-            omega_lo = sw.wage / above.point.p_s;
+            omega_lo = sw.wage / above.point.reference_p_s;
         }
         // The wall's last piece, to ω_∞ = 1/L_s, and the idle stretch's start.
         let last = wall_span(technique);
@@ -1374,35 +1599,52 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
             Span::Wall { l_s, .. } => 1.0 / l_s,
             _ => f64::NAN,
         };
-        let plots_at_rest = self.at_idle(self.enclosed, technique).rented_plots;
-        let start = self.enclosed - plots_at_rest;
-        let f_end = value(
-            "n_D - n_S at the end of the wall",
-            &self.at_idle(start, technique),
-        )?;
-        self.push_piece(
-            &mut path,
-            last,
-            (omega_lo, v_lo),
-            (omega_end, f64::INFINITY),
-            true,
-            (Station::End, f_end),
-        )?;
-        // The idle stretch.
-        let f_rest = value(
-            "n_D - n_S at the end of the idle stretch",
-            &self.at_idle(0.0, technique),
-        )?;
-        let idle = Piece {
-            span: Span::Idle { technique },
-            lo: 0.0,
-            hi: start,
-            v_lo: f64::NAN,
-            v_hi: f64::NAN,
+        let (start, f_end) = if self.free_at_the_end(technique) {
+            // A CES basket with a free weighted category: n_D → 0 on the wall's last piece, so
+            // f_∞ = −S_∞, land never idles and the idle stretch is empty (docs/unit-1f.md §2.12).
+            // The wall's end is then the path's end, positive when ≥ 0 as the idle stretch's is.
+            let f_end = -self.supply_at_the_end(technique);
+            self.push_piece(
+                &mut path,
+                last,
+                (omega_lo, v_lo),
+                (omega_end, f64::INFINITY),
+                true,
+                (Station::Rest, f_end),
+            )?;
+            (self.enclosed, f_end)
+        } else {
+            let plots_at_rest = self.at_idle(self.enclosed, technique).rented_plots;
+            let start = self.enclosed - plots_at_rest;
+            let f_end = value(
+                "n_D - n_S at the end of the wall",
+                &self.at_idle(start, technique),
+            )?;
+            self.push_piece(
+                &mut path,
+                last,
+                (omega_lo, v_lo),
+                (omega_end, f64::INFINITY),
+                true,
+                (Station::End, f_end),
+            )?;
+            // The idle stretch.
+            let f_rest = value(
+                "n_D - n_S at the end of the idle stretch",
+                &self.at_idle(0.0, technique),
+            )?;
+            let idle = Piece {
+                span: Span::Idle { technique },
+                lo: 0.0,
+                hi: start,
+                v_lo: f64::NAN,
+                v_hi: f64::NAN,
+            };
+            path.push(Some(idle), (Station::Rest, f_rest));
+            (start, f_end)
         };
-        path.push(Some(idle), (Station::Rest, f_rest));
         // Step 3: the sides, with the scan.
-        let scanning = scan > 0 && !self.plot_takers.is_empty();
+        let scanning = scan > 0 && (!self.plot_takers.is_empty() || self.scans_everywhere());
         let mut sides = Vec::new();
         let mut scan_points = 0u32;
         for (k, &(station, f)) in path.stations.iter().enumerate() {
@@ -1421,6 +1663,9 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
             .filter(|&i| sides[i] != sides[i + 1])
             .count();
         if changes == 0 {
+            if !Station::Start.positive(f_start) {
+                return Err(SolveError::SurplusLabour { f_start });
+            }
             return Err(SolveError::NoMarket { f_end });
         }
         if changes > 1 {
@@ -1508,11 +1753,8 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
                 _ => unreachable!("only a switch or an enclosure point has two values"),
             };
         };
-        let f_lo = if before == Station::Start {
-            value("n_D - n_S at v = 0", &self.at_span(piece.span, piece.lo))?
-        } else {
-            f_before
-        };
+        // The start's value is the evaluated f_0 (docs/unit-1f.md §2.9).
+        let f_lo = f_before;
         match piece.span {
             Span::Idle { technique } => self.idle_equilibrium(technique, start, false),
             Span::Bottom { technique } => {
@@ -2408,39 +2650,44 @@ mod tests {
         let (v, p_s, p_g) = (0.55, 1.36, 0.36);
         let exit = priced(0.5, 0.0, 0.1);
         let big = with_commons(1.0, exit);
-        let t0 = big.trial(0.0, v, p_s, p_g, Force::None, None);
-        let t1 = big.trial(1.0, v, p_s, p_g, Force::None, None);
+        let t0 = big.trial(0.0, (v, p_s, 0.0), p_g, Force::None, None);
+        let t1 = big.trial(1.0, (v, p_s, 0.0), p_g, Force::None, None);
         assert!(t1.demand < t0.demand && t0.demand < 0.4);
-        let s = big.exit_state(v, p_s, p_g, 1.0, Force::None, None);
+        let s = big.exit_state((v, p_s, 0.0), p_g, 1.0, Force::None, None);
         assert_eq!(
             (s.regime, s.plot_rent, s.rented),
             (ExitLand::Commons, 0.0, 0.0)
         );
         assert_eq!(s.commons_occupied, t0.demand);
         let crowded = with_commons(0.5 * (t0.demand + t1.demand), exit);
-        let s = crowded.exit_state(v, p_s, p_g, 1.0, Force::None, None);
+        let s = crowded.exit_state((v, p_s, 0.0), p_g, 1.0, Force::None, None);
         assert_eq!(s.regime, ExitLand::Crowded);
         assert!(s.plot_rent > 0.0 && s.plot_rent < 1.0);
         // r_o is the least double with G ≤ T_o
         let t_o = crowded.commons();
         assert!(
             crowded
-                .trial(s.plot_rent, v, p_s, p_g, Force::None, None)
+                .trial(s.plot_rent, (v, p_s, 0.0), p_g, Force::None, None)
                 .demand
                 <= t_o
         );
         let before = s.plot_rent.next_down();
-        assert!(crowded.trial(before, v, p_s, p_g, Force::None, None).demand > t_o);
+        assert!(
+            crowded
+                .trial(before, (v, p_s, 0.0), p_g, Force::None, None)
+                .demand
+                > t_o
+        );
         let small = with_commons(0.5 * t1.demand, exit);
-        let s = small.exit_state(v, p_s, p_g, 1.0, Force::None, None);
+        let s = small.exit_state((v, p_s, 0.0), p_g, 1.0, Force::None, None);
         assert_eq!((s.regime, s.plot_rent), (ExitLand::Enclosed, 1.0));
         assert_eq!(s.rented, t1.demand - small.commons());
         // everyone works at a high enough wage: no plot is asked for
-        let s = big.exit_state(50.0, p_s, p_g, 1.0, Force::None, None);
+        let s = big.exit_state((50.0, p_s, 0.0), p_g, 1.0, Force::None, None);
         assert_eq!((s.regime, s.demand), (ExitLand::Unused, 0.0));
         // at r = 0 plots are free everywhere, the excess over the commons on idle land: not
         // enclosure, since suitable land idles
-        let s = small.exit_state(v, p_s, p_g, 0.0, Force::None, None);
+        let s = small.exit_state((v, p_s, 0.0), p_g, 0.0, Force::None, None);
         assert_eq!((s.regime, s.plot_rent), (ExitLand::Idle, 0.0));
         assert_eq!(s.rented, t0.demand - small.commons());
     }
@@ -2454,20 +2701,20 @@ mod tests {
         // a plot is worth its land there (h = 0.1 < p_wall·Δ = 0.5): the type rents, and the
         // spill past the commons stands free on idle land
         let rents = with_commons(0.01, priced(0.5, 0.0, 0.1));
-        let s = rents.exit_state(v, p_s, 0.0, 0.0, Force::None, Some(p_wall));
+        let s = rents.exit_state((v, p_s, 0.0), 0.0, 0.0, Force::None, Some(p_wall));
         assert_eq!((s.regime, s.plot_rent), (ExitLand::Idle, 0.0));
         assert_eq!((s.branches[0], s.values[0]), (Branch::Plot, 0.0));
         assert_eq!(s.goods[0], num::fma(-(1.0 / p_wall), 0.1, 0.5));
         assert_eq!(s.rented, s.demand - 0.01);
         // without the frame the type would stand on its floor at p_g = 0 (0 < 0 is false),
         // which is not where the wall's last piece leaves it
-        let plain = rents.exit_state(v, p_s, 0.0, 0.0, Force::None, None);
+        let plain = rents.exit_state((v, p_s, 0.0), 0.0, 0.0, Force::None, None);
         assert_eq!(plain.branches[0], Branch::Floor);
         // a plot not worth its land there (h = 1 ≥ 0.5): the floor at the wall's rent, a plot
         // on the commons at a low enough shadow rent, so a small commons is crowded, rationed
         // at the type's drop ρ = p_wall·Δ/h = 0.5 in the wall's units, and 0 in money
         let floor = with_commons(0.01, priced(0.5, 0.0, 1.0));
-        let s = floor.exit_state(v, p_s, 0.0, 0.0, Force::None, Some(p_wall));
+        let s = floor.exit_state((v, p_s, 0.0), 0.0, 0.0, Force::None, Some(p_wall));
         assert_eq!(
             (s.regime, s.plot_rent, s.rented),
             (ExitLand::Crowded, 0.0, 0.0)
@@ -2476,7 +2723,7 @@ mod tests {
         assert_eq!(s.plots[0], 0.01);
         // with no commons every exiter stands on the floor, as on the wall's last piece
         let none = g1(vec![land(10.0, Access::Enclosed)], priced(0.5, 0.0, 1.0));
-        let s = none.exit_state(v, p_s, 0.0, 0.0, Force::None, Some(p_wall));
+        let s = none.exit_state((v, p_s, 0.0), 0.0, 0.0, Force::None, Some(p_wall));
         assert_eq!(
             (s.branches[0], s.rented, s.demand),
             (Branch::Floor, 0.0, 0.0)
@@ -2493,15 +2740,27 @@ mod tests {
         let drop: f64 = p_g * 0.3 / 0.5;
         let probe = with_commons(1.0, exit);
         let left = probe
-            .trial(drop.next_down().next_down(), v, p_s, p_g, Force::None, None)
+            .trial(
+                drop.next_down().next_down(),
+                (v, p_s, 0.0),
+                p_g,
+                Force::None,
+                None,
+            )
             .demand;
         assert!(left > 0.0);
         let right = probe
-            .trial(drop.next_up().next_up(), v, p_s, p_g, Force::None, None)
+            .trial(
+                drop.next_up().next_up(),
+                (v, p_s, 0.0),
+                p_g,
+                Force::None,
+                None,
+            )
             .demand;
         assert_eq!(right, 0.0);
         let split = with_commons(0.5 * left, exit);
-        let s = split.exit_state(v, p_s, p_g, 1.0, Force::None, None);
+        let s = split.exit_state((v, p_s, 0.0), p_g, 1.0, Force::None, None);
         assert_eq!(s.regime, ExitLand::Crowded);
         assert!((s.plot_rent - drop).abs() <= 4.0 * f64::EPSILON * drop);
         assert_eq!(s.branches[0], Branch::Floor);

@@ -488,6 +488,13 @@ pub enum SolveError {
         /// that end is short).
         f_end: f64,
     },
+    /// Unit 1f: the path's start is not in excess demand (docs/unit-1f.md §2.9 and §5.3), and
+    /// its excess demand changes side nowhere after it: an in-work benefit alone draws at least
+    /// as many people into work at a zero wage as the economy employs at any wage.
+    SurplusLabour {
+        /// f_0 = n_D(x = 0) − S(v = 0), at most 0.
+        f_start: f64,
+    },
     /// A per-worker-type output of a unit-1d solve overflowed or became NaN.
     NonFiniteInWorker {
         /// The type's position in
@@ -552,6 +559,11 @@ impl fmt::Display for SolveError {
                 f,
                 "no one works at any wage: the pool's supply at the ceiling of the real wage is 0 \
                  (the excess demand at the end of the wall is {f_end:?})"
+            ),
+            SolveError::SurplusLabour { f_start } => write!(
+                f,
+                "an in-work benefit draws more people into work at a zero wage than the economy \
+                 employs at any wage: the excess demand at the start of the path is {f_start:?}"
             ),
             SolveError::NonFiniteInWorker { worker, what } => {
                 write!(f, "{what} of worker type {worker} is not finite")

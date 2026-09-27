@@ -252,11 +252,26 @@ pub fn point_of_1e(economy: &ParcelEconomy, eq: &Eq1e) -> ParcelPoint {
 /// pinned to the evaluation that set them bit for bit (§8). An equilibrium without exit values
 /// on scarce land is also checked as unit 1d's.
 pub fn check_identities_1e(economy: &ParcelEconomy, eq: &Eq1e) {
+    check_identities_1e_under(economy, eq, None);
+}
+
+/// A type's supply at its wage and exit value under unit 1f's participation rule
+/// (docs/unit-1f.md §4.4): (worker type, wage, exit value) to n_S,i.
+pub type SupplyRule<'a> = &'a dyn Fn(usize, f64, f64) -> f64;
+
+/// [`check_identities_1e`] with each pooled type's supply from `rule` in place of 1e's formula
+/// (unit 1f's economies, docs/unit-1f.md §8); 1d's own check, whose supply is 1d's, runs only
+/// without one.
+pub fn check_identities_1e_under(economy: &ParcelEconomy, eq: &Eq1e, rule: Option<SupplyRule>) {
     let p = economy.params();
     let b = &eq.base;
     let at = |what: &str| format!("{what} at {p:?}");
     let exit_free = eq.workers.iter().all(|w| w.exit_value == 0.0) && eq.home.output == 0.0;
-    if eq.land_market == LandMarket::Scarce && exit_free && eq.land.rented_plots == 0.0 {
+    if eq.land_market == LandMarket::Scarce
+        && exit_free
+        && eq.land.rented_plots == 0.0
+        && rule.is_none()
+    {
         check_identities_1d(economy.workers(), b);
     }
     let q = point_of_1e(economy, eq);
@@ -427,8 +442,13 @@ pub fn check_identities_1e(economy: &ParcelEconomy, eq: &Eq1e) {
             }
         }
         if b.workers[i].pooled {
-            let z = num::ln1p((wage - w.exit_value) / (ty.support * b.p_s + w.exit_value));
-            let n = ty.workers * ty.work_cost.cdf(z);
+            let n = match rule {
+                Some(f) => f(i, wage, w.exit_value),
+                None => {
+                    let z = num::ln1p((wage - w.exit_value) / (ty.support * b.p_s + w.exit_value));
+                    ty.workers * ty.work_cost.cdf(z)
+                }
+            };
             close_to("supply", supply, n, 1e-12);
             assert!(
                 (w.exiters - (ty.workers - supply)).abs() <= 1e-12 * ty.workers,

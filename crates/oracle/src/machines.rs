@@ -98,6 +98,9 @@ pub struct MachineEconomy<S = PowerSchedule> {
     integral_at_edges: Vec<f64>,
     /// The factors of I − A_cc.
     cc: Factors,
+    /// The factors of I − A_ccᵀ, which give a basket's gross outputs (unit 1f's CES content at
+    /// each point, docs/unit-1f.md §4.2).
+    cc_t: Factors,
     /// ŷ = (I − A_ccᵀ)⁻¹z, the categories' gross outputs per basket.
     basket_outputs: Vec<f64>,
     /// L̄^dir_j, each category's own all-human hours.
@@ -252,6 +255,7 @@ impl<S: Schedule> MachineEconomy<S> {
             block,
             integral_at_edges,
             cc,
+            cc_t,
             basket_outputs,
             direct_hours,
             all_human,
@@ -318,6 +322,13 @@ impl<S: Schedule> MachineEconomy<S> {
     /// The factors of I − A_cc.
     pub(crate) fn chain(&self) -> &Factors {
         &self.cc
+    }
+
+    /// (I − A_ccᵀ)⁻¹c, the gross outputs of a basket whose content is c (unit 1f's CES basket,
+    /// docs/unit-1f.md §4.2); with c = z it is [`basket_outputs`](Self::basket_outputs) bit for
+    /// bit.
+    pub(crate) fn outputs_of(&self, content: &[f64]) -> Vec<f64> {
+        self.cc_t.solve(content)
     }
 
     /// J at every edge of the task line.
@@ -426,6 +437,12 @@ impl<S: Schedule> MachineEconomy<S> {
     /// [`clear`](Self::clear) with the market's land in use T_m in place of T (docs/unit-1e.md
     /// §4.5): Y = T_m/B^q. With T_m = T it is `clear` bit for bit.
     pub(crate) fn clear_with(&self, task: &[f64], land: f64) -> Cleared {
+        self.clear_basket(task, land, self.basket_land)
+    }
+
+    /// [`clear_with`](Self::clear_with) for a basket whose chain land is B_ŷ = `basket_land` (unit
+    /// 1f's CES content at a point, docs/unit-1f.md §4.2): Y = T_m/(B_ŷ + Σ_k b^q_k·x̂_k).
+    pub(crate) fn clear_basket(&self, task: &[f64], land: f64, basket_land: f64) -> Cleared {
         let (numerators, pivots) = self.block.clearing_numerators(task);
         let land_q = self.block.land_q();
         let lambda_q = self.block.lambda_q();
@@ -433,7 +450,7 @@ impl<S: Schedule> MachineEconomy<S> {
         for k in 0..task.len() {
             land_per_basket += (land_q[k] * numerators[k]) / pivots[k];
         }
-        let y = land / (self.basket_land + land_per_basket);
+        let y = land / (basket_land + land_per_basket);
         let services: Vec<f64> = (0..task.len())
             .map(|k| (y * numerators[k]) / pivots[k])
             .collect();

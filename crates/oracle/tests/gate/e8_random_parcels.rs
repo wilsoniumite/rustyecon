@@ -19,7 +19,7 @@ use crate::support_1e::*;
 
 /// The sets of docs/unit-1e.md §8.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-enum Set {
+pub(crate) enum Set {
     /// (a) one priced type, one machine type, ρ = 0.
     One,
     /// (b) 1-3 types, some in the dependence form, K in 1..3, ρ = 0.
@@ -106,7 +106,7 @@ fn draw_exit(rng: &mut SplitMix64) -> ExitForm {
 
 /// Sets (a)-(c) and (e): d7's table for the scalars, segments, categories and machine types,
 /// then §8's parcels, exits and supports.
-fn draw(rng: &mut SplitMix64, set: Set) -> ParcelParams {
+pub(crate) fn draw(rng: &mut SplitMix64, set: Set) -> ParcelParams {
     let schedule = PowerSchedule {
         eta: 1.0,
         g0: rng.uniform(0.01, 0.5),
@@ -301,10 +301,10 @@ fn draw_tie(rng: &mut SplitMix64, set: Set) -> Option<ParcelParams> {
 }
 
 /// One draw and what 1e gave.
-struct Sample {
-    set: Set,
-    economy: ParcelEconomy,
-    result: Result<Regime<Eq1e>, SolveError>,
+pub(crate) struct Sample {
+    pub(crate) set: Set,
+    pub(crate) economy: ParcelEconomy,
+    pub(crate) result: Result<Regime<Eq1e>, SolveError>,
 }
 
 impl Sample {
@@ -317,7 +317,7 @@ impl Sample {
 }
 
 /// What a set's draws gave, by label.
-type Tally = BTreeMap<String, usize>;
+pub(crate) type Tally = BTreeMap<String, usize>;
 
 fn label(result: &Result<Regime<Eq1e>, SolveError>) -> Vec<String> {
     match result {
@@ -419,7 +419,7 @@ fn sample(set: Set, seed: u64) -> (Vec<Sample>, Tally) {
 }
 
 /// The six sets, drawn once for every test of this module.
-fn all_sets() -> &'static [(Vec<Sample>, Tally)] {
+pub(crate) fn all_sets() -> &'static [(Vec<Sample>, Tally)] {
     static SAMPLES: OnceLock<Vec<(Vec<Sample>, Tally)>> = OnceLock::new();
     SAMPLES.get_or_init(|| {
         SETS.into_iter()

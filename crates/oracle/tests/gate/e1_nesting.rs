@@ -149,7 +149,7 @@ fn nest_1a(what: &str, params: Params) -> Nesting {
 }
 
 /// Unit 1d's golden instances (docs/unit-1d.md §3.3) and what each is in 1d.
-fn instances_1d() -> Vec<(&'static str, WorkerParams)> {
+pub(crate) fn instances_1d() -> Vec<(&'static str, WorkerParams)> {
     vec![
         ("W1", goodspace(4.0, 0.6, 1.0)),
         ("W2", goodspace(0.25, 0.05, 1.0)),
