@@ -337,7 +337,7 @@ fn sample(set: Set, seed: u64) -> (Vec<Sample>, Tally) {
 }
 
 /// The four sets.
-fn all_sets() -> Vec<(Vec<Sample>, Tally)> {
+pub(crate) fn all_sets() -> Vec<(Vec<Sample>, Tally)> {
     [Set::Zero, Set::Interest, Set::Chain, Set::Switch]
         .into_iter()
         .zip(SEED_1C..)

@@ -10,10 +10,19 @@ the tape's schema is [docs/TAPE.md](docs/TAPE.md), and the GUI's design is
 **Collaboration:** as in laborformal. Sequencing, engineering and drafting are delegated to
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
-**State as of:** 2026-09-27, on `reboot`'s line. **`demo-world` is merged** into it by this
-commit, on branch `merge-demo` from `reboot` at `b2a55e3`, not pushed: while `reboot` stays at
-`b2a55e3`, taking the merge is a fast-forward, on your word. Two lines of work that both started
-at `708167f` meet here. **The many-markets probe (P2.1) is closed** (P2.1.1–P2.1.4; "Where things
+**State as of:** 2026-09-27, on `reboot`'s line. **`phase1` is merged** into it by this
+commit, on branch `merge-p1` from `reboot` at `2398b6a`, not pushed: while `reboot` stays at
+`2398b6a`, taking the merge is a fast-forward, on your word. Two lines of work that both started
+at `503897e` meet here. **Phase 1 is closed** at P1.14 ("Where things stand"), built on branch
+`phase1`: units 1d (worker types and the wall), 1e (parcels, the idle margin and the priced
+exit) and 1f (households and government) are built and verified (P1.8–P1.13), and PLAN Phase
+1's gate is met item by item. `phase1`'s copy of this file numbered its new decisions from 76
+and its open items from O20, as this line's copy had, so Phase 1's are renumbered after this
+line's 134 and O27: 76–119 become 135–178, and O20–O22 become O28–O30. With G0 closed and
+Phase 1's gate met, G1, the oracle lab, is unblocked.
+**`demo-world` is merged** into `reboot` at `2398b6a`, on branch `merge-demo` from `b2a55e3`,
+and the local `reboot` took the merge by a fast-forward. Two lines of work that both started at
+`708167f` meet there. **The many-markets probe (P2.1) is closed** (P2.1.1–P2.1.4; "Where things
 stand"), built on branch `phase2-markets` and fast-forwarded into the local `reboot` at
 `b2a55e3`: many markets GO for loop-free economies at 52 ticks a year, a loop of produced inputs
 NO-GO, no fallback ([docs/probe/MARKETS.md](docs/probe/MARKETS.md)). **The demo world and its
@@ -43,15 +52,261 @@ the Phase 2 probe ran first, with verdict GO ([docs/probe/REPORT.md](docs/probe/
 no fallback (decision 38); and Breakpoint B's pre-look passed beside it (S5.0,
 docs/spine/EYEBALL.md; decision 35).
 Next, in order: your look at the window (the G0 gate's item checked by hand) and at the demo's
-map; Phase 1's units 1d and 1e, then 1f, which a run on branch `phase1` (from `503897e`) is
-building now and which land by a merge that numbers their decisions and open items after 134
-and O27; Phase 2 proper after 1d and 1e, on the markets probe's roles and harness;
-the demo's second pass, with goods, machine types and carriers, on those roles (O27); G1, the
-oracle lab, after Phase 1's gate.
+map; G1, the oracle lab; the oracle's addendum for machines built from goods; the goods chain,
+with a plant stock as its loop damper, on design evidence kept outside the repository; Phase 2
+proper on loop-free wall and commons instances, after your rulings on the decisions that bind
+it; the demo's second pass, with goods, machine types and carriers, on the many-market roles
+(O27). "Next steps" has each.
 
 ## Where things stand
 
-**`demo-world` is merged** (2026-09-27, this commit). The many-markets probe (P2.1.1–P2.1.4,
+**`phase1` is merged** (2026-09-27, this commit). Phase 1's units 1d–1f and its close
+(P1.8–P1.14, `a2a9b93` to `78d6edc`, on `phase1`) and `reboot`'s line since `503897e` (the `g0`
+merge, the many-markets probe and the demo world, to `2398b6a`) both started at `503897e`, and no
+code conflicted: `phase1` changed only `crates/oracle`, README.md and STATE.md, and `reboot`
+never touched `crates/oracle`. Two files were joined by hand, each side's content kept whole:
+- README.md: the status paragraph says Phase 1 is closed, beside G0's close and the demo's map,
+  and the crate table's oracle row is `phase1`'s, its other rows `reboot`'s;
+- this file: Phase 1's record of units 1d–1f first below, after a note of the goods chain's
+  design evidence, then `reboot`'s records as they were, with 1b and 1c's heading as `phase1`
+  wrote it. The lists (the decisions, the open calls and items, the next steps, the file map
+  and the repro notes) are joined.
+
+Phase 1's decisions move from n to n + 59, 76–119 to 135–178, and its open items O20–O22 to
+O28–O30, with every citation of them: in this file; in crates/oracle/README.md; in
+crates/oracle/docs/unit-1d.md, unit-1e.md and unit-1f.md, which cite them as proposed
+decisions (their open questions and the records of each build and verification); and in five
+comments of the oracle's code and gate tests (`households.rs`, `f1_nesting.rs`,
+`f3_coverage.rs`, and `f9_random_households.rs` twice), which cite 174–176. Both lines had used
+76–119 and O20–O22, for different things, so each citation was read in its context: `reboot`'s
+76–134 and O20–O27 keep their numbers, and 59–75, which the two lines share, are unchanged. No
+other code changed. `probe::markets` and `worldgen` call the oracle through 1a's and 1c's API,
+which 1d–1f extended without changing it, and they build and pass as they were. The gates on
+the committed merge, with a clean build stamp (logs in `D:/rustyecon-merge-p1/`):
+- **`scripts/gate.sh`** is green in WSL (`CARGO_TARGET_DIR=/root/scratch/target-merge-p1`, 93 s)
+  and on Windows under Git Bash (`D:/rustyecon-targets/merge-p1`, 108 s), the two run at once,
+  each target warm from a green run on the merge before it was committed (fresh targets, 206 s
+  and 220 s). 795 tests pass in the workspace on each machine, with 3 ignored and run by name,
+  which is the demo merge's 599 and P1.14's 745 less the 549 they shared at `503897e`; certify
+  alone, Parquet-free, passes 67 with 1 ignored; zero warnings. The gate hash is
+  `0x61f9c8529131ff17`, and the stamp names the merge's code, clean, on both (`ac8ed51`, this
+  commit before this record was added; only this file differs). Both certificates PASS and
+  recompute byte-equal, the probe's pins hold, `derive.py --check` passes, `demo_runs_to_1901`
+  ends at `0xfad880fe08d06645` with hash stream `0xdb63cc96f769fb3e`, and telemetry is
+  identical from two processes. The GUI's non-blocking check passes in WSL (skipped on
+  Windows), as do the wasm32 checks of the engine and certify.
+- **`scripts/gui.sh`** is green in WSL (the same target, 129 s) and on Windows under Git Bash
+  (173 s): 84 tests pass with 2 ignored measurements, the 55 named ones by name, fmt and clippy
+  clean with `-D warnings`, and five hash diffs equal, the same on both machines: gate (2,080
+  ticks, final `0x61f9c8529131ff17`), appb (20,000, `0xe1fa082b26995867`), demo-gb (7,852,
+  `0xfad880fe08d06645`), and the two branch tapes as at G0.3 (`branch`, final
+  `0x9fc2f964a8510756`; `removal`, `0xd057e3ea708da495`).
+- **The oracle:** its 438 tests pass in both gates, the code `78d6edc`'s but for the five
+  renumbered comments, and all six generators pass `--check` under laborformal's venv on
+  Windows (about 105 s together: `generate_1e.py` 48 s, `generate_1f.py` 29 s).
+- **The markets probe's record is unchanged:** `crates/agents`, `crates/probe`,
+  `tapes/markets-*.ron` and docs/probe/, with its six pinned CSVs in results/markets/, and every
+  file outside `crates/oracle`, README.md and this file, are `2398b6a`'s byte for byte, and
+  `markets_tapes_are_their_generators_output` passes on both machines.
+- **Recorded, not gated:** the cli's per-tick hashes of gate (2,080), appb (20,000) and demo-gb
+  (7,852) are byte-identical on WSL and Windows.
+
+**The goods chain's design evidence, outside the repository** (2026-09-27; it changed no
+repository or branch). Python mirrors of the many-markets probe, which the engine has not run,
+on what "Next steps" 5 and 6 build:
+- **`D:/rustyecon-goods/GOODS-CHAIN.md`**, at your request of 2026-09-27 that goods use other
+  goods rather than abstract machine services. Machines become durable goods built from goods
+  and run on goods, with the task margin unchanged. At rest the equilibrium is a unit 1c
+  economy with more rows (its steam chain reproduces 1c's M3 to 70 digits, and the unchanged
+  Rust oracle to 3.9e-16) once one check changes, D-G10: productivity on the per-period matrix,
+  since 1c's check per machine built rejects, at weekly periods, a machine whose build embodies
+  more than about a period of its own chain's services. Its §2 is the
+  oracle addendum, timed for after `phase1` lands (it edits `machine_block.rs`), and its §7
+  proposes decisions D-G1 (67 reworded) to D-G15, none ruled.
+- **`D:/rustyecon-loops/LOOPS.md`**, on what damps the markets probe's loop (L2, L3; decision
+  120, O21). Diminishing returns on each loop desk's own output does, but only when strong: at
+  θ 0.7 every C2m battery run converges (77/77, 119/119), and the rest point then lies off the
+  constant-returns oracle (7% in log at θ 0.8 after a doubled land coefficient). Graded land
+  (1e's parcels) is far too weak, buffer stocks change the loop's clock and not its gain, and a
+  planning rule removes the amplification but not the absorbing zero.
+- **`D:/rustyecon-loops/capacity/CAPACITY.md`**, on a plant stock as the damper: each loop desk
+  makes y = K^(1−θ)·z^θ with a plant K built from its own recipe, worn at δ and ordered by
+  GOODS-CHAIN's rule (s_K = 2δ). At θ 0.8 and δ 10% a year it passes the goods chain's dials
+  C2g on L2 and L3 (77/77, 119/119), and every converged run ends at the constant-returns
+  oracle of its shocked instance (583 runs, within 5.3e-10 in log), so the long run is the
+  registered instance and no new solve is needed at ρ = 0. Its costs: 15–98 years to recover
+  from a cost shock, a user cost of 1 − θ of each loop price, and the absorbing zero kept. It
+  recommends the plant as the goods chain's default loop damper, with LOOPS.md's drs θ 0.8 the
+  registered alternative.
+
+**Phase 1 is closed, and its gate is green in WSL and on Windows** (2026-09-27;
+[crates/oracle/README.md](crates/oracle/README.md), with the specs
+[unit-1d.md](crates/oracle/docs/unit-1d.md), [unit-1e.md](crates/oracle/docs/unit-1e.md) and
+[unit-1f.md](crates/oracle/docs/unit-1f.md)). Units 1d, 1e and 1f were built as 1b and 1c were:
+a spec from laborformal `31b3482` checked against a 70-digit mpmath prototype in scratch; a
+build whose goldens come from a committed mpmath generator computing from the equations; one
+adversarial pass (an independent derivation that does not read the crate, and mutation
+testing); one fix round, each fix with a test; and one re-check of exactly the fixed items. Each
+pass found something: a blocker in 1d, a major error in 1e, two blockers and a major error in
+1f. The re-checks confirmed every fix and left a few mutants alive, which are recorded (O28),
+not fixed, as the bounded verification has it. Each unit nests the earlier ones bit for bit in
+its trivial case (decision 63). Only `crates/oracle` changed since `503897e`, besides this file
+and the root README.
+
+| Commit | What landed |
+|---|---|
+| `a2a9b93` P1.8 | unit 1d, worker types and the wall, with its spec (docs/unit-1d.md, its §12 the build's departures), `generate_1d.py` and `goldens_1d.txt` |
+| `2856982` P1.9 | 1d's verification fixes: the edge of a reserved shortage solved, not refused (the blocker); f_∞ = 0 after an exact zero is the junction; a test for each surviving mutant |
+| `03c9d7a` P1.10 | unit 1e, parcels, the idle margin and the priced exit, with its spec, `generate_1e.py` and `goldens_1e.txt` |
+| `a680dd4` P1.11 | 1e's verification fixes: an exit good free at r = 0 decided at the wall's end, free plots on idle land labelled `Idle`; a test for each surviving mutant |
+| `c713578` P1.12 | unit 1f, households and government, with its spec (its §14 the departures), `generate_1f.py`, `goldens_1f.txt`, and `p1_gate`, Phase 1's gate item by item |
+| `44d7909` P1.13 | 1f's verification fixes: a CES point beyond every double reads +∞, a CES economy's corners bisected in v, the power mean's direct sum; a test for each surviving mutant |
+| P1.14 | this file, the oracle's README, the root README's status lines |
+
+**Unit 1d, worker types and the wall** (P1.8, P1.9). Worker types share the line's capability
+shape, each with an efficiency ε_i and a support ν_i (support baskets on the one basket). The
+paper's human-required set H is hours per unit of each category that any pooled worker can do;
+reserved tasks are hours only one type can do. Types selling on the line are one pool with one
+wage per efficiency hour; a type whose reserved work takes all its hours is walled, paid a
+scarcity price at its own wall, and a walk over the types settles the basket's price. The
+pool's wage runs along one path: the all-human corner, 1a–1c's task line, and the wall (x* = 1,
+the wage set by labour clearing above γ(1)·π, where the machine comparison no longer pins it),
+with 1c's switches and ties continued onto the wall. So 1a–1c's `BoundaryNoMargin` and
+`NoInteriorAtZero` are solved, and a root below 10⁻¹² is found by bisection on bit patterns.
+Where a type's reserved demand reaches its workers, its supply is vertical, and the equilibrium
+sits at that edge, the type's wage set through the pool's clearing (P1.9). An economy whose
+excess demand changes side nowhere on the path is `LaborShort`. The constructed gate builds on
+check_kset P9-i and check_pinning D1: along D1's automation path to the wall, services' price
+tends to |H|·v and labour's share to 1 (SSRN Prop E.1). One type without human-required or
+reserved hours is 1c bit for bit: every 1a–1c golden instance, and of 1116 random draws 600
+the same equilibrium, 366 of 1c's boundary rows solved at the wall and 2 at the all-human
+corner, 131 `LaborShort`, and 17 refused as 1c refuses them.
+- **Tests**: 56 (10 unit, 46 gate in groups d1–d9).
+- **Goldens**: `generate_1d.py` writes 269 (240 at P1.8; J1, J1b, J2 and E9 at P1.9) and
+  reproduces every number in the spec's §7; its one-type form nests `generate_1c.py`'s solves
+  within 8.7e-72.
+- **Largest errors**: 2.0e-15 relative on the 233 goldens compared at P1.8 (F3's tie share),
+  3.1e-15 on J1, J1b and E9, and 8.0e-14 on J2's trained wage (its σ 3.6e-14), a tie at the
+  edge of a reserved shortage. W5's root below 10⁻¹² is within 1.1e-16 absolute (unit-1d.md
+  §5.5).
+
+**Unit 1e, parcels, the idle margin and the priced exit** (P1.10, P1.11). Land is cut into
+parcels of an acreage, a quality (land service per acre) and an access: enclosed parcels are
+rented, open ones are a commons, free to exit plots and closed to production. Each worker type
+names its exit form: SSRN's dependence form, or main.tex's priced form s(q) = max(s₀ − q·h, s̲)
+in units of one exit good, the default of the historical runs (ADDENDUM ruling 3), both under
+SSRN eq 8 with the exit life's value. Plots go on the commons while it has room, then at a
+shadow rent nobody receives, then on rented enclosed land, which leaves production. Past the
+wall's end the path goes on to an idle stretch at zero rent, with the pool's wage as numeraire,
+where 1d's `LaborShort` economies have their equilibria; no one working at any wage is
+`NoMarket`. Where q crosses a type's q_enc the economy can sit at the threshold with a share of
+the exiters renting (an enclosure tie). Coverage κ, q* and N_crit are reported at every
+equilibrium, and check_enclosure's race plays out inside equilibria: at its worked instance
+q_enc = 1.5 and N_crit = 60, with κ = 1 at N 60 and 0.75 at N 80. The priced form can make
+labour supply fall along the path, so where monotonicity is not certified the count scans every
+piece (`EXIT_SCAN` = 256 points). The dependence form in parcel form, and a priced form with its
+exit option switched off, are 1d bit for bit: of 1423 of 1a–1d's draws, 1172 the same
+equilibrium, 222 of 1d's `LaborShort` on idle land with 1d's f_∞, 21 `NotViable` and 7
+`MultipleEquilibria` in both, and one refused at the walk's ceiling (unit-1e.md §12 item 8).
+- **Tests**: 63 (10 unit, 53 gate in groups e1–e10).
+- **Goldens**: `generate_1e.py` writes 223 (208 at P1.10; L1 and Q6 at P1.11) in about a
+  minute and reproduces every number in the spec's §7; its parcel form nests fifteen of
+  `generate_1d.py`'s instances within 1.6e-71.
+- **Largest errors**: 2.4e-14 relative on Q5's provider baskets (80.44 − 80, a cancellation),
+  2.1e-14 on Q6's f below its enclosure point, 7.0e-15 on Q2's f above its own; x*, v, P_s, Y
+  and N_a within 1.0e-15.
+
+**Unit 1f, households and government** (P1.12, P1.13). The government has SSRN A.1's
+instruments: a payroll tax on gross wages, a tax on final purchases at producer value, a tax on
+market rent, a uniform transfer, and a program paying (μ_w, μ_e) in work and in exit, the
+transfers counted in composites at consumer prices. Its budget balances at every equilibrium:
+by default the owners pay the levy that balances it (`Budget::RentRate`, from which SSRN eq 16's
+τ_R = 1/κ comes out), or every rate is given and the uniform transfer is the residual
+(`Budget::Dividend`). A transfer supplements the provider's support or replaces it. Producers
+pay gross prices, and the government enters through one participation rule that has SSRN eq 9,
+p.16, eq 27 and 1d's and 1e's forms as cases. The path's start is evaluated, and an in-work
+benefit that alone overfills the economy is `SurplusLabour`. The basket is 1b's fixed one or a
+CES over the categories (SSRN eq 26), whose σ = 1 case is check_pinning's A-joint household:
+its viable neighbours AJ1 and AJW are goldens, and A-joint itself is `NotViable` (D(1) = 0
+exactly; decisions 75 and 172). Three-taxes' ledger holds inside the full closure: (φ_w, φ_r) =
+(0.6, 0.4) at TX, each tax leaving the allocation bit for bit, T6's legs and T5's circular flow
+(R₀ 4.8, the multiplier 5/3). The payroll tax's incidence at G1 is ε_D/(ε_D + ε_S) = 0.88586.
+With the fixed basket and no government it is 1e bit for bit: every golden instance of 1a–1e
+(78), and of 1d's and 1e's 897 draws 871 the same equilibrium and 26 the same refusal.
+- **Tests**: 77 (7 unit, 62 gate in groups f1–f11, and `p1_gate`'s 8).
+- **Goldens**: `generate_1f.py` writes 235 (215 at P1.12; CA, CF2, CF3 and CS at P1.13) in
+  about half a minute and reproduces every number in the spec's §7; its household form of six
+  of 1e's instances equals `generate_1e.py`'s solve to 0 at 70 digits.
+- **Largest errors**: 1.9e-15 relative on the 444 golden comparisons at P1.12 (CW's wage near
+  the wall's real-wage ceiling, 2.5e-16 since P1.13), and 3.7e-15 on P1.13's goldens (CF3's P at
+  v 4.3e8). The three values computed by finite differences are within their 1e-8: the
+  incidence share 6.7e-10, ε_D 1.9e-10, ε_S 2.2e-11.
+
+**The verification**, per unit (one pass, one fix round, one re-check of the fixed items):
+- **1d** (P1.9; re-checked on `2856982`). The derivation, with the pool's wage v as its unknown
+  and the walled set enumerated, found a blocker: where a type's reserved demand reaches its
+  workers its supply is vertical, and the wage that clears the pool is an equilibrium, which
+  P1.8 refused as `LaborShort` (7 of the derivation's 60 targeted draws, 2 of d7's). It is
+  solved now, and the saturated knife edge with f(1) = 0 is the junction. The mutation pass left
+  eleven survivors; each has a test, and the fix round's 20 mutants are killed. The re-check's
+  derivation agreed with the oracle on 850 economies, 33 of them at the edge of a reserved
+  shortage and 66 ties, within 1.2e-13 (a tie's σ within 8.9e-12, where unit-1d.md §5.5 puts it),
+  and with the fix taken out 13 of those edges are refused. Its mutation run killed all eleven
+  survivors; of six variants of them and seven mutants of the fix, seven survive, and the
+  re-check's own probe tests kill four of these (O28).
+- **1e** (P1.11; re-checked on `a680dd4`). The derivation found that an exit good made of land
+  alone, free at r = 0, put its plot-takers on the floor there while they rented on the wall, so
+  the idle stretch did not start where the wall ends, and L1, with one equilibrium, was refused
+  as three. Such a good's plots are now decided at the wall's end (decision 160). It also found
+  free plots on idle land labelled `Enclosed`; they are `Idle` (161). Thirteen of the pass's 30
+  mutants survived; each has a test, and six mutants of the fixes are killed. The re-check's
+  derivation agreed on 1,092 draws (189 on idle land, 120 of them decided in the wall's-end
+  frame, 15 ties) within 5.1e-14, with 48 invalid in both. Its mutation run killed the thirteen
+  and 11 of 13 mutants of the fix; the two left change the frame's price, which the gate cannot
+  tell, and the re-check's probe kills both (O28).
+- **1f** (P1.13; re-checked on `44d7909`). The derivation agreed on 566 equilibria within
+  1.8e-13 and found two blockers under a CES basket: at the all-human corner a bisection midpoint
+  near v = 1e-154 overflowed Y (σ ≥ 2), and economies with one equilibrium were refused as
+  `NonFinite`; on a wall far out the corners' parameter ω = v/P_z lost 3.8e-11 at v 4e6 and was
+  refused at 4e8. Such a point now reads +∞, and a CES economy bisects its corners in v. A major
+  error: the power mean's ln1p form cancelled with a small weight at large σ (2.6e-11 in P at σ
+  20); it takes the direct sum there. Nine of the pass's 30 mutants survived, two equivalent;
+  the other seven have tests, and seven mutants of the fixes are killed. The re-check's
+  derivation agreed on 593 economies of the three fixed items within 5.7e-13 (a provider's
+  receipts on a wall at v 9e8; walls out to v 1.4e46) and killed its six mutants of the fixes;
+  six more economies, at σ = 64 with eq 26's weights, were refused as invalid (O29). Its
+  mutation run killed 16 of 18 mutants of the seven new tests; the two left are O28's.
+
+**Phase 1's gate, item by item** (PLAN Phase 1; checked at P1.14). `p1_gate` has one test per
+item, which checks the item on its own instances, and a table naming every test that covers it
+in full; `p1_gate::the_checklist_names_real_tests` fails if a named test is renamed or removed.
+Every test the table names passed in `scripts/gate.sh` on WSL and on Windows, on `44d7909` and
+again on the committed tree at P1.14; the count is of those tests, `p1_gate`'s own included.
+
+| Gate item | Met | Tests |
+|---|---|---|
+| the SSRN Appendix B instance: x* 0.86315, v 0.54344, Y 7.88061, N_a 1.34338 to 5e-6, and ADDENDUM §5's full-precision values to 1e-12 | the published figures, both kinds of hours and N·P_s within 5e-6; x* and Y the golden's own double, v within 2.0e-16 and N_a 1.7e-16 of the 70-digit values; the same economy in 1b's, 1e's and 1f's forms bit for bit | 12 (g1, the nesting of c1, m1, d1, e1, f1) |
+| the replacement closure's worked instance (c = 1, w = 3; at λ = 0, c = 0.4 and w = 1.2) | to 1e-12 as a price block (1a), per machine type (1c), and inside the full closure at TX, under every tax, and TX3 (1f) | 9 (g6, m2, f2) |
+| the fork identity and the category bounds on random instances | both forms and the bounds at 1e-12 on 1b's 180 random economies and check_interior's batteries, 1c's 240, and every equilibrium of 1d's 300, 1e's 480 and 1f's 341 draws | 19 (c5, c6, m6, d7, e8, f9) |
+| the income identity to 1e-12 | at every equilibrium of every unit's draws (1a's with interest and build lags), and with a government, (I1)–(I4), at every 1f golden instance | 12 (g5, c5, m3, m6, d7, e8, f9) |
+| three-taxes' ledger, (φ_w, φ_r) = (0.6, 0.4) on its worked instance | (3/5, 2/5) to 1e-12 in the price block, and for TX's machine service and basket inside the full closure under every tax, with T6's legs and T5's circular flow | 9 (g7, m2, f2) |
+| constructed wall and interior cases recognised correctly | the line, the wall, the all-human corner, a root below 10⁻¹², idle land, the edge of a reserved shortage, an enclosure tie, a CES wall, and the refusals (`NotViable`, `MultipleEquilibria`, 1d's `LaborShort`, `NoMarket`, `SurplusLabour`), each on a constructed economy against its goldens, with exact zeros at every junction | 77 (g8, c7, m7, d2–d8, e5, e9, f5, f8) |
+| each exit form on its own gate, the 1d and 1e gates constructed | the dependence form on 1a's Appendix B, Figure 3 and automation path, and on 1d's constructed gate (check_kset P9-i, check_pinning D1); s(q) on 1e's (check_pinning P3, check_enclosure N-i to N-iii: q_enc 1.5, N_crit 60); both nest with the exit option off, and keep their gates under a government | 91 (g1–g3, d2–d9, e1–e5, e10, f1, f4–f6) |
+
+**The gate at P1.14**, `scripts/gate.sh` in WSL (`CARGO_TARGET_DIR=/root/scratch/target-p1-close`)
+and under Git Bash on Windows (`D:/rustyecon-targets/p1-close`), on the committed tree with a
+clean build stamp: 745 tests pass in the workspace on each machine, with 2 ignored and run by
+name, and zero warnings. Session 2's table below holds for every crate but the oracle, which has
+438 (84 unit, 353 gate, 1 doc): 114 of 1a, 59 of 1b, 69 of 1c, 56 of 1d, 63 of 1e and 77 of 1f.
+The count grew 549 (P1.7) → 601 (P1.8) → 605 (P1.9) → 660 (P1.10) → 668 (P1.11) → 739 (P1.12)
+→ 745 (P1.13), and P1.14 changes no code. The committed certificates recompute byte-equal on
+both machines, the probe's report pins hold, and the gate world's final hash is still
+`0x61f9c8529131ff17` on both. All six generators pass `--check` under laborformal's venv
+(`generate_1e.py` takes 49 s, `generate_1f.py` 28 s). The gate's golden comparisons, logged
+again on Windows at the close, give the largest errors above. The logs are in
+`D:/rustyecon-p1/close/phase1/`.
+
+**`demo-world` is merged** (2026-09-27, `2398b6a`). The many-markets probe (P2.1.1–P2.1.4,
 `d0ceaa6` to `b2a55e3`, on `phase2-markets`) and the demo world (D.1–D.5, `a8d3f51` to
 `5cd2758`, on `demo-world`) both started at `708167f`, and no code conflicted. `phase2-markets`
 changed `crates/agents`, `crates/probe`, one match in `crates/gui/src/vm/inspector.rs`,
@@ -78,7 +333,7 @@ reads as met. The gates on the committed merge, with a clean build stamp (logs i
   workspace on each machine, with 3 ignored and run by name, which is the probe's 569 and the
   demo's 579 less the 549 they shared at `708167f`; certify alone, Parquet-free, passes 67 with
   1 ignored; zero warnings. The gate hash is `0x61f9c8529131ff17`, and the stamp names the
-  merge's code, clean, on both (`84d75e9`, this commit before this record was added; only this
+  merge's code, clean, on both (`84d75e9`, `2398b6a` before its record was added; only this
   file differs). Both certificates PASS and recompute byte-equal, the probe's pins hold,
   `derive.py --check` passes, `demo_runs_to_1901` ends at `0xfad880fe08d06645` with hash stream
   `0xdb63cc96f769fb3e`, and telemetry is identical from two processes. The GUI's non-blocking
@@ -184,8 +439,7 @@ dependency or lockfile changed (decision 133). WSL has no software adapter, so n
 or gated there.
 
 **Checked by hand: PENDING, yours** (the demo map's window). On Windows, from the repository
-once `reboot` has taken this merge, or before that from `D:\rustyecon-wt\demo`, where
-`demo-world` is checked out, in PowerShell:
+(`reboot` has had the demo since `2398b6a`), in PowerShell:
 
 ```powershell
 $env:CARGO_TARGET_DIR = 'D:/rustyecon-targets/demo-hand'
@@ -244,7 +498,7 @@ committed merge, with a clean build stamp (logs in `D:/rustyecon-merge-g0/`):
 - **Recorded, not gated:** the cli's 2,080 gate and 20,000 appb per-tick hashes are
   byte-identical on WSL and Windows.
 
-**Phase 1's units 1b and 1c are closed, and the gate is green in WSL and on Windows**
+**Phase 1's units 1b and 1c were closed at P1.7, with the gate green in WSL and on Windows**
 (2026-09-27; [crates/oracle/README.md](crates/oracle/README.md), with the specs
 [unit-1b.md](crates/oracle/docs/unit-1b.md) and [unit-1c.md](crates/oracle/docs/unit-1c.md)).
 Each unit had a spec written from laborformal `31b3482` and checked against a 70-digit mpmath
@@ -1046,16 +1300,16 @@ CI is wanted at all is your call (A5). Since S2.4 it checks out full history, si
 checks that each committed certificate's build commit is an ancestor of HEAD. Windows runs the
 same script under Git Bash, by hand.
 
-**Remote** (as the local remote-tracking refs show on 2026-09-27): `origin` has `main` and
-`reboot` at `cf3c0ff`, the three `july-v2-*` tags and `pre-foundations` (A1 done). Not pushed:
-- the local `reboot` at `b2a55e3` (S2.1–S2.6, Phase 1's P1.2–P1.7, the `g0` merge and the
-  many-markets probe, P2.1.1–P2.1.4);
-- this merge, on `merge-demo`;
-- `phase1`, from `503897e` and at `a680dd4` when this merge was made, where the run for 1d–1f
-  goes on;
-- `demo-world` (D.1–D.5), whose work is in this merge;
-- the local branches `phase2-markets`, `merge-g0`, `g0`, `phase0-s2`, `phase2-probe`,
-  `spine-eyeball` and `reboot-phase0`, whose work is in `reboot`.
+**Remote** (as the local remote-tracking refs show on 2026-09-27): `origin` has `main` at
+`f614792`, `reboot` at `cf3c0ff`, the three `july-v2-*` tags and `pre-foundations` (A1 done).
+Not pushed:
+- the local `reboot` at `2398b6a` (S2.1–S2.6, Phase 1's P1.2–P1.7, the `g0` merge, the
+  many-markets probe, P2.1.1–P2.1.4, and the `demo-world` merge);
+- this merge, on `merge-p1`;
+- `phase1` (P1.8–P1.14), whose work is in this merge;
+- the local branches `merge-demo`, `demo-world`, `phase2-markets`, `merge-g0`, `g0`,
+  `phase0-s2`, `phase2-probe`, `spine-eyeball` and `reboot-phase0`, whose work is in
+  `reboot`.
 
 ## Decisions — veto window (your one-word calls)
 
@@ -1064,7 +1318,8 @@ while building. 22–34 are the GUI's D1–D13 (A14; [docs/GUI.md](docs/GUI.md) 
 carried out): each stands unless vetoed before G0. D10's window closed with session 2, which
 built its items. 41–58 are session 2's. 59–75 are Phase 1's units 1b and 1c.
 76–117 are G0's, numbered 59–100 on `g0` and renumbered after Phase 1's when `g0` was merged
-(n became n + 17).
+(n became n + 17). 135–178 are Phase 1's units 1d, 1e and 1f, numbered 76–119 on `phase1` and
+renumbered after the demo's when `phase1` was merged (n became n + 59).
 
 1. **Package names and layout.** Each crate is `crates/<short name>`, package
    `rustyecon-<short name>`; the root is a virtual workspace, `members = ["crates/*"]`, resolver
@@ -1501,7 +1756,8 @@ MARKETS-SPEC §9's frame decisions M1–M9 stand as the frame states them, open 
      them before closing the probe.
 
 Decisions 124–134 were made on branch `demo-world` (D.1–D.5, 2026-09-27), where they were
-numbered 118–128; this merge renumbered them after the many-markets probe's, from n to n + 6.
+numbered 118–128; the `demo-world` merge renumbered them after the many-markets probe's, from n
+to n + 6.
 GUI.md's blocks "Amended at D.3", "Amended at D.4" and "The map and lenses, brought forward",
 and docs/demo/WORLD.md, carry each; all are open to veto.
 
@@ -1553,6 +1809,140 @@ and docs/demo/WORLD.md, carry each; all are open to veto.
      ticks a year. None is a gate item, and the demo's next pass takes them first.
      Alternative: a second fix round before the close.
 
+Decisions 135–178 are Phase 1's units 1d, 1e and 1f (2026-09-27), made on branch `phase1`,
+where they were numbered 76–119; this merge renumbered them after the demo's, from n to n + 59,
+and the specs cite them so. Most are the open questions of each spec (1d's §11 Q1–Q12, 1e's §11
+Q1–Q15, 1f's §12 Q1–Q16), which the builds took as their drafts proposed; 160, 161 and 178 came
+from the verifications. Each spec gives the reasoning. All are open to veto; a veto of one means
+a change to the oracle and its goldens, not to any engine path. **Binds Phase 2** marks those
+that decide what the agents must do or which instances Phase 2 may use; "Open — your calls"
+lists them together.
+
+135. **Worker types: one capability shape, an efficiency per type, and reserved tasks** (1d Q1).
+     The oracle solves a world whose task cells scale one common human productivity by a type's
+     efficiency, or reserve a cell to one type, but not one where the ranking of types changes
+     across cells. Alternative: a schedule per type, with a threshold each and an I-dimensional
+     solve whose uniqueness is not proved. **Binds Phase 2**: the agents' cells carry
+     productivity by type in this form.
+136. **The solved corners are reported inside `Interior`**, `margin` saying which (1d Q2), as 62
+     and 69 do. Alternative: new regimes `Wall` and `AllHuman`, which change 1a's `Regime`.
+137. **No equilibrium with land fully rented is `LaborShort`** (1d Q3), only where the excess
+     demand changes side nowhere on the path; the edge of a reserved shortage is solved (P1.9),
+     and the saturated knife edge is the junction. 1e resolves `LaborShort` economies on idle
+     land. **Binds Phase 2**: its wall-regime instance is a solved wall, not a knife edge and not
+     the edge of a reserved shortage, where a type's supply is vertical and its wage is set
+     through the pool's clearing, which an agent market may not reach.
+138. **Living costs are support baskets on the one basket** (1d Q4): s_i = (e^χ − 1)·ν_i·P_s.
+     Alternative: a basket per type, which 1f deferred (173).
+139. **Type hours are split by net supply** (1d Q5). Pooled types are perfect substitutes, so
+     the model does not say which of them works which pool task. **Binds Phase 2**: compare
+     per-type hours only through each type's supply at the oracle's wages, or in total.
+140. **Machine recipes use pool labour only** (1d Q6). **Binds Phase 2**: the desks buy labour
+     by type (PLAN §3.1), and the sources name trained machine builders (main.tex:584); a
+     reserved type in machine recipes couples the walk and the (O, V) system, a 1d addendum.
+141. **Bisection on bit patterns** (1d Q7) for a root in [0, 10⁻¹²], the corners' real wage and a
+     walled tie's σ, at most 64 steps each; 1a's arithmetic bisection stays on [10⁻¹², 1], so
+     the line nests bit for bit. Alternative: keep 1a's `NoInteriorAtZero` below 10⁻¹².
+142. **Training is exogenous** (1d Q8): the N_i are inputs, and a walled type's premium is a
+     scarcity price, not a cost of training recovered (SSRN p.18's industrial era; p.17's
+     pre-industrial craftsman reads the other way).
+143. **Viability is checked at the top of the line still** (1d Q9; decision 64), although the
+     wall prices machines at any wage.
+144. **A tie with a walled type is solved by bisection on σ** (1d Q10), with 1c's closed form
+     where no type is walled; with interest its uniqueness within the switch is measured, not
+     proved.
+145. **The count covers the whole path; `MultipleEquilibria::switches` lists the line's switch
+     points only** (1d Q11). Alternative: add the wall's switch wages to the error.
+146. **1d's random draws** (1d Q12): the ranges and tallies of unit-1d.md §12 item 12.
+147. **Parcels are efficiency units** (1e Q1): rent r·Q_z per acre, the worst idling first by
+     convention. Alternative: a Ricardian working cost per acre, with a margin at positive rent.
+     **Binds Phase 2**: a tape's parcel quality scales its service, and comparisons use totals,
+     not which parcel idles.
+148. **The commons is for exit only** (1e Q2). Alternative: production on open land.
+149. **One participation rule for both exit forms**, SSRN eq 8 with the exit life's value (1e
+     Q3). **Binds Phase 2**: under the default form a pop's participation share is
+     F(ln((ν·P_s + w)/(ν·P_s + p_g·s(q)))), its s(q) at the rent its plot actually pays.
+150. **Support stays positive** (1e Q4). Alternative: main.tex's pure form with ν = 0, which
+     needs a regime for surplus labour at every wage and often has several equilibria.
+151. **The exit good is one category** (1e Q5). Alternative: a bundle. **Binds Phase 2**: the
+     tapes name it (food).
+152. **Plots rented on enclosed land leave production, and the home account is in kind** (1e
+     Q6). Alternatives: plots outside the land market (land counted twice), or rent paid in money
+     from home goods sold.
+153. **Idle land at zero rent with the pool's wage as numeraire; `NoMarket`; no `LaborShort`**
+     (1e Q7). At zero rent a good made of land alone is free, and its real wage, wage floor and
+     price shares are reported absent. **Binds Phase 2**: an idle-land instance is compared in
+     wage units, and rests neither on a free good's absent outputs nor on an equilibrium at the
+     walk's ceiling, which is refused (unit-1e.md §12 items 4 and 8).
+154. **No reserved tasks with the priced form, for now** (1e Q8). **Binds Phase 2**: the eras'
+     trained type at its wall under the default exit form needs a 1e addendum; until then such an
+     economy takes the dependence form.
+155. **The count scans where supply can fall** (1e Q9): exact where certified, resolved to
+     `EXIT_SCAN` elsewhere, and multiple equilibria refused. Alternative: refuse uncertified
+     economies, which refuses the race and the commons (Q, K: Appendix B's good carries no
+     land). **Binds Phase 2**: the
+     default form has several equilibria in a few per cent of economies with little support and
+     land-heavy exits, so decision 70 now matters for the historical runs.
+156. **The commons clears by a shadow rent that nobody receives** (1e Q10). Alternative:
+     congestion that lowers each plot's yield.
+157. **The enclosure tie is `Interior` with `enclosure` set** (1e Q11), as 62, 69 and 136.
+158. **One land service** (1e Q12): SSRN A.1's vector of non-produced services is not in 1e.
+     **Binds Phase 2 and later**: the tape's land classes need an addendum before a region has
+     two scarce classes.
+159. **1e's random draws** (1e Q13): the ranges and tallies of unit-1e.md §12 item 12.
+160. **A free exit good at r = 0 is decided at the wall's end** (1e Q14, the verification):
+     q = 1/b̃_g, its limit there. Alternative: §4.6 read literally, every such type on a plot at
+     q = 0, which breaks the junction when the type is on its floor on the wall's last piece.
+     **Binds Phase 2**: an idle-land instance whose exit good is land alone decides its plots at
+     the wall's end; food, which embodies labour, is decided as before.
+161. **Free plots on idle land are `ExitLand::Idle`** (1e Q15, the verification). Alternatives:
+     `Commons`, or `Enclosed` by convention. **Binds Phase 2**: `Enclosed` means closed by
+     price with no suitable land idle; `Idle`, plots free on idle enclosed land at r = 0.
+162. **Where each tax is levied** (1f Q1): payroll on gross wages of every hour sold;
+     consumption on final purchases at producer value (support and space included,
+     intermediates and home output not); rent on market rent in money. Alternative: a tax on
+     every purchase, which breaks the ledger. **Binds Phase 2**: the tapes' tax bases.
+163. **Transfers in composites at consumer prices** (1f Q2). Alternative: in rent units, which
+     R14 forbids for the historical runs.
+164. **The budget closes by the owners' levy** (`RentRate`, 1f Q3). Alternative: every rate
+     given and the uniform transfer the residual (`Dividend`). **Binds Phases 2 and 6**: a tape
+     that gives every rate needs the Dividend closure or a deficit; one that gives relief scales
+     in baskets (the poor law) is RentRate's.
+165. **A transfer supplements the support by default, or replaces it** (1f Q4). **Binds Phase
+     2**: the agents' participation rule reads a transfer as supplementing unless the tape says
+     it replaces.
+166. **The Dividend closure only where the budget does not depend on who works** (1f Q5).
+     Alternative: an inner fixed point in d at each point, with its own uniqueness condition.
+167. **Walled types only under RentRate and without in-work benefits** (1f Q6). **Binds Phase
+     2**: the eras' trained type at its wall under a wage supplement (Speenhamland) needs an
+     addendum.
+168. **The path's start is evaluated; `SurplusLabour`** (1f Q7). **Binds Phase 2**: an agent
+     economy with an in-work benefit large enough to overfill it has no oracle equilibrium to
+     reach.
+169. **The price-responsive basket is a CES over the categories with the basket's weights**,
+     P = Z·M (1f Q8), the fixed basket kept as the default. Alternatives: a nested CES, or
+     Stone-Geary around a subsistence basket, which PLAN §3.2 suggests for the agents. **Binds
+     Phase 2**: the oracle and the agents share the consumption rule on any instance compared.
+170. **CES only with the dependence form and without reserved hours** (1f Q9).
+171. **A category free at the wall's end under CES leaves no idle stretch** (1f Q10).
+172. **The land-share household reproduces A-joint in the generator only** (1f Q11), amending
+     75: A-joint is `NotViable` in the oracle (D(1) = 0 exactly), which keeps 64, and its viable
+     neighbours AJ1 and AJW are the goldens; check_dynamics' ρ > 0 targets also need external
+     finance. **Binds Phase 3**: the dynamics thread's steady states need both.
+173. **A basket per worker type is deferred** (1f Q12). **Binds Phase 2**: the 1750-like
+     instance, with owners buying domestic service, needs it, or takes the common basket in both
+     the oracle and the agents.
+174. **The rent base is market rent in money; κ keeps 1e's definition** (1f Q13), so eq 16's τ_R
+     is 1/κ only where no plot is rented.
+175. **`Eq1f::base` keeps 1e's accounts without a government, labelled** (1f Q14).
+     Alternative: recompute them with the government, which breaks `base`'s identity with 1e.
+176. **1f's random draws** (1f Q15): the ranges and tallies of unit-1f.md §14 item 11.
+177. **No government purchases, deficits or taxes on interest** (1f Q16). **Binds Phases 6–8**:
+     wars and debt.
+178. **A CES basket's numerics** (the verification): the power mean's direct sum where
+     1 + S < 1/2, the corners bisected in v, a point beyond every double read +∞. No
+     fixed-basket result changes.
+
 ## Open — your calls
 
 - **The GUI's decisions**, 22–34 (D1–D13): G0 carried them out, none vetoed; a veto now reopens
@@ -1568,14 +1958,25 @@ and docs/demo/WORLD.md, carry each; all are open to veto.
   marks the run; (3) BalanceWatch's bars are absolute on the imbalance, a number in [−1, 1],
   read as allowed by A12; (4) C11 edited probe code that REPORT cites at `55c9e88`, guarded by
   its pins; (6) the kick's horizon is one L, so an instability slower than L passes.
-- **Decisions 59–75** (Phase 1's units 1b and 1c), open to veto. Three matter before Phase 2
-  proper: cells in the equilibrium (61) and machines built from categories (67), each a 1c
-  addendum if ruled in, and whether multiple equilibria are refused or all reported (70),
-  which decides what Phase 2 compares the agents against. The markets probe recommends keeping
-  67 for Phase 2 proper: its GO depends on it, and a veto would give every multi-category
-  instance a goods-and-machines loop, the structure it found NO-GO, and so put those instances
-  behind Phase 3. It confirmed 70 on every instance and leaves 61 to a probe of its own
-  (MARKETS §6).
+- **Decisions 59–75 and 135–178** (Phase 1), open to veto. Those that bind Phase 2 proper:
+  from 1b and 1c, cells in the equilibrium (61) and machines built from categories (67), each a
+  1c addendum if ruled in, and whether multiple equilibria are refused or all reported (70),
+  which decides what Phase 2 compares the agents against and which 155 makes matter for the
+  default exit form; from 1d, one shape with an efficiency per type (135), a solved wall as the
+  wall instance (137), type hours compared through supply or in total (139), machine recipes on
+  pool labour (140); from 1e, parcels as efficiency units (147), the participation rule under
+  the default form (149), one exit good the tape names (151), idle land in wage units (153), no
+  reserved tasks with the priced form (154), multiple equilibria where support is low (155), one
+  land service (158), a free exit good at r = 0 (160), `Idle` plots (161); from 1f, the tax
+  bases (162), the closure (164), supplement or replace (165), walled types and in-work
+  benefits (167), `SurplusLabour` (168), one consumption rule for the oracle and the agents
+  (169), one basket for every type (173). 172 binds Phase 3, and 177 Phases 6–8. The markets
+  probe recommends keeping 67 for Phase 2 proper: its GO depends on it, and a veto would give
+  every multi-category instance a goods-and-machines loop, the structure it found NO-GO, and so
+  put those instances behind Phase 3. It confirmed 70 on every instance and leaves 61 to a
+  probe of its own (MARKETS §6). GOODS-CHAIN, outside the repository ("Where things stand"),
+  proposes rewording 67 so that machines are goods built from and run on goods, its mathematics
+  kept (D-G1), and asks for a ruling on each of its D-G1 to D-G15.
 - **Decisions 118–123** (the many-markets probe's), open to veto, with MARKETS-SPEC §9's frame
   decisions M1–M9. Of its questions, Q1 is answered by 120 and Q2 by the GO at 52 a year. Q3, a
   switch between machine types, waits for durable machines; Q4, category inputs, is untested.
@@ -1589,22 +1990,21 @@ and docs/demo/WORLD.md, carry each; all are open to veto.
   demo world and its map are closed"): the map opens `tapes/demo-gb.ron` paused at 1750, runs
   to 1901 and recolours, the lenses switch, and hover and click work. The smoke mode ran it on
   Windows, and two screenshots are in `docs/demo/`; nobody has looked at the window. If it fails
-  your look, a D.6 fixes it on top of this merge.
+  your look, a D.6 fixes it on top of `reboot`'s line.
 - **The G0 gate's window check, by hand** (the command is in "Where things stand", under "G0
   is closed"): the window opens `tapes/gate.ron` and runs to 2,080 with every price plotted
   and no panic. The smoke mode ran it on Windows; nobody has looked at it. `g0` proposed
   merging after your look; the merge came first, so if the window fails your look, the G0.4
   that fixes it (decision 114) lands on top of `reboot`'s line, before G1.
-- **Landing the branches.** `phase0-s2`, `phase1`'s P1.2–P1.7, the `g0` merge (`708167f`) and
-  `phase2-markets` (P2.1.1–P2.1.4, `b2a55e3`) are in the local `reboot` by fast-forwards.
-  `demo-world` (D.1–D.5) is merged by this commit, on `merge-demo`: while `reboot` stays at
-  `b2a55e3`, it takes the merge by a fast-forward. The run on `phase1` for units 1d–1f started
-  from `503897e` and is still running (at `a680dd4`, P1.11, when this merge was made, in
-  `D:/rustyecon-wt/p1`). Its copy of this file numbers new decisions after 75 and new open items
-  after O19, so it lands by a merge that renumbers its own after this merge's highest, 134 and
-  O27, as this merge renumbered the demo's and the `g0` merge G0's.
-- **Pushing `reboot`** (locally at `b2a55e3`, with session 2, Phase 1's units 1b and 1c, G0 and
-  the many-markets probe; `origin/reboot` is at `cf3c0ff`), and this merge once it has landed.
+- **Landing the branches.** `phase0-s2`, `phase1`'s P1.2–P1.7, the `g0` merge (`708167f`),
+  `phase2-markets` (P2.1.1–P2.1.4, `b2a55e3`) and the `demo-world` merge (`2398b6a`) are in the
+  local `reboot` by fast-forwards. `phase1`'s P1.8–P1.14 are merged by this commit, on
+  `merge-p1`: while `reboot` stays at `2398b6a`, it takes the merge by a fast-forward. Its
+  decisions and open items are renumbered after 134 and O27, as the `demo-world` merge
+  renumbered the demo's and the `g0` merge G0's.
+- **Pushing `reboot`** (locally at `2398b6a`, with session 2, Phase 1's units 1b and 1c, G0, the
+  many-markets probe and the demo world; `origin/reboot` is at `cf3c0ff`), and this merge once
+  it has landed.
 - **The Phase 2 session budget** that A11's kill condition needs (PLAN Phase 2), now for Phase 2
   proper's other instances.
 - **The decisions above**, especially 10 (the engine crate, not in PLAN's crate list), 11, 15
@@ -1617,11 +2017,11 @@ and docs/demo/WORLD.md, carry each; all are open to veto.
   the Runner and `ThreadDriver`, the Extractor, the store and the ring; the toolbar, timeline,
   outliner, plots, inspector, registry and log, the goldens, the kittest scripts and the smoke
   mode) and G0.2 the editor (`materialise`, the lineage, branches, compare and export), each
-  verified and fixed. Its window check by hand is yours. G1, the oracle lab, starts after G0
-  and Phase 1's gate, and takes O20 first, with what G0 moved to it: the plots' overlay,
-  difference and ratio against a parent; re-making branches at launch; the registry's and
-  the inspector's ways into the editor; a lock on `session.ron`; log axes, the watchlist, and
-  event and date breakpoints. `crates/engine` was built for it: a frontend
+  verified and fixed. Its window check by hand is yours. G1, the oracle lab, may start now that
+  G0 and Phase 1's gate are both met, and takes O20 first, with what G0 moved to it: the
+  plots' overlay, difference and ratio against a parent; re-making branches at launch; the
+  registry's and the inspector's ways into the editor; a lock on `session.ron`; log axes, the
+  watchlist, and event and date breakpoints. `crates/engine` was built for it: a frontend
   depends on the engine alone, steps a `Sim` on a worker thread and reads each `TickReport` over
   a channel. Session 2 gave it what §7.2 asked: `FiredEvent.source`, the registry's sites with
   their methods, a `world_id` that a new source event keeps, and from certify `RunKey`,
@@ -1633,14 +2033,15 @@ and docs/demo/WORLD.md, carry each; all are open to veto.
   docs/CERTIFY.md). The certification stack moved from `july-v2-phase-3` into `crates/certify`
   with N4, N10, N12 and N15 fixed, every threshold in dated criteria, A12's runaway detector,
   the probe's three criteria, and D10's items 1, 2 and 4. Both tapes certify PASS.
-- **O3. The oracle: unit 1a landed at P1.1, units 1b and 1c at P1.2–P1.7** ("Where things
-  stand" above). Unit 1a was built by another run and verified there (114 tests), and joined
-  through the members glob. The oracle depends on `core` alone, for `num`, and nothing on the
-  engine path depends on it (R13). The workspace's `clippy.toml` denies the platform maths, so
-  x^k, ln(1 + z) and its fused multiply-add go through `core::num` (libm), which gained `fma`;
-  1a's outputs are byte-identical on WSL and Windows (5000 random economies, every regime), no
-  golden moved, and G8's exact tie still ties. Units 1b and 1c needed no new `num` function.
-  Units 1d–1f follow (PLAN Phase 1; "Next steps" below), on branch `phase1`.
+- **O3. The oracle: Phase 1 closed at P1.14.** Unit 1a landed at P1.1, units 1b and 1c at
+  P1.2–P1.7, units 1d–1f at P1.8–P1.13 ("Where things stand" above). Unit 1a was built by
+  another run and verified there (114 tests), and joined through the members glob. The oracle
+  depends on `core` alone, for `num`, and nothing on the engine path depends on it (R13). The
+  workspace's `clippy.toml` denies the platform maths, so x^k, ln(1 + z) and its fused
+  multiply-add go through `core::num` (libm), which gained `fma`; 1a's outputs are
+  byte-identical on WSL and Windows (5000 random economies, every regime), no golden moved, and
+  G8's exact tie still ties. Units 1b–1f needed no new `num` function. What Phase 1 leaves is
+  O18, O19 and O28–O30, and the decisions that bind Phase 2.
 - **O4. `test_01` is retired with the v1 agents** (A3), not ported. It failed at every commit
   where its tests compile (from `03eb06a`; the April commits do not compile theirs) and on all
   three July branches: `building_inventory_cycles_correctly`, "farm should produce wheat on tick
@@ -1785,8 +2186,8 @@ when its fix is reverted, checked by mutation (the review's own mutants among th
   name has lost the marker (`certify_refuses_illustrative_tape`). Left for Phases 6–7: the
   scorecard refuses it beside the GUI-experiment marker (`scorecard_refuses_gui_edited_tape`
   gains the demo tape), and the identity chip shows it. Until then keeping its figures out of
-  citation is procedural. It was O21 on `demo-world`; this merge renumbered it after the
-  many-markets probe's O21–O24.
+  citation is procedural. It was O21 on `demo-world`; the `demo-world` merge renumbered it
+  after the many-markets probe's O21–O24.
 - **O26. What D.4's re-check left** (decision 134; GUI.md, "The map and lenses, brought
   forward", items 8 and 9). The re-check (`D:/rustyecon-demo/verify-map-r2/`,
   `verify-world-r2/`) found D.4's fixes in place, and 17 of its 25 mutants of the map were
@@ -1832,8 +2233,8 @@ when its fix is reverted, checked by mutation (the review's own mutants among th
   `regions.csv`), and the compiler refuses any other value in them until then. The
   many-markets probe built the many-market roles: basket providers and basket workers buying
   many items, category desks and type desks. They are GO for loop-free economies at 52 ticks a
-  year under C2m (docs/probe/MARKETS.md; decisions 118–121). With this merge the demo and those
-  roles are on one line, and the pass goes:
+  year under C2m (docs/probe/MARKETS.md; decisions 118–121). Since the `demo-world` merge the
+  demo and those roles are on one line, and the pass goes:
   1. **Categories** (unit 1b): a `categories.csv` of food, textiles, metal goods, shelter
      (space as a category) and services, each with its basket weight, direct land and segment
      of the task line. Genesis comes from unit 1b at each county. A history row's param takes a
@@ -1854,6 +2255,42 @@ when its fix is reverted, checked by mutation (the review's own mutants among th
      (Phases 4 and 9) and an oracle with trade. So they switch on gradually from zero
      capacity, and the railway ramps on b come out as they go in. The map then draws flows on
      channels (G4, G9).
+
+- **O28. What the re-checks of 1d–1f left** (recorded, not fixed: the bounded verification ends
+  at the re-check). In each case the re-check found the oracle's results right; what is missing
+  is an economy in the gate that tells a mutant apart. A test for each is cheap, and the next
+  change to the oracle should add them, before Phase 2 proper compares against these lines.
+  - 1d (on `2856982`; the logs in `D:/rustyecon-p1/verify-1d-mutation-r2/`). Four mutants the
+    re-check's own probe tests kill: another type's closure wage at a corner taken at γ*, lemma
+    B.1's flag at the base basket price, the wall's last piece started from f(1) instead of the
+    last wall switch's value, and f_∞ = 0 read as negative after a positive start. Three survive
+    without a probe: lemma B.1's flag without its shortage check, the edge's κ bracket started
+    at 0 rather than ζ, and a tie edge's share one double up. Seven survivors of the first pass
+    that the fix round did not take: the walk's and the corners' orders at a tie, the corner
+    supply at equality, a tie's σ where f(1) ≥ 0, the all-human corner's ω at the base price, no
+    worker types accepted, the labour net removed and the pool share's zero guard.
+  - 1e (on `a680dd4`). The wall's-end frame's price b̃_g set to 1, or inverted: every free exit
+    good the gate builds has b̃_g = 1 (Appendix B's space), and the re-check's probe with space's
+    b at 0.5, 2 and 3 kills both.
+  - 1f (on `44d7909`). A CES economy's required hours taken from final content rather than
+    gross outputs, the same without intermediate inputs, which no CES instance has; and the
+    exit-free scan's sides not passed to the count, which only the unit test of
+    `count_changes` sees.
+- **O29. A CES weight below the scale floor is refused** (the 1f re-check). A weight must be 0
+  or within [1e-30, 1e30]; eq 26's weights α_j^σ fall below that near `SIGMA_CEIL` = 64
+  (0.3^64 = 3.4e-34), and six such economies, each with an equilibrium, were refused as
+  `Invalid`. Either lower the floor for weights, with the CES evaluation checked there, or state
+  the σ each weight allows. No Phase 2 instance needs σ near 64.
+- **O30. Precision and refusals of 1d–1f that Phase 2's bands must allow for** (recorded, as
+  O18). A tie with a walled type, or at a wall switch with nearly parallel delivered costs,
+  carries v's error into σ amplified (8.8e-12 measured, dlog σ/dlog v = −201; unit-1d.md §12
+  item 18); a wall near its real-wage ceiling has a wage ill-conditioned in the data (§5.5);
+  with walled types on idle land P_s is the walk's fixed point, and one ulp of T_m moved it by
+  4.5e-10 on one draw, where another, ill-conditioned, was refused by the labour net at 5.0e-9
+  (unit-1e.md §12 item 19); an idle-land equilibrium at the walk's ceiling is refused, as 1d
+  refuses one on the line (item 8); an uncertified economy's scan finds two equilibria only
+  when they are more than one cell apart (§5.5); a consumption tax equals a wage tax in real
+  numbers, and in f64 the two allocations agree to the supply's sensitivity (unit-1f.md §5.5).
 
 ## Corrections logged (A3; ADDENDUM §1.4)
 
@@ -1878,11 +2315,10 @@ REVIEW.md is kept as written; these of its claims do not hold.
 ## Next steps, in order
 
 G0 is closed but for your look at its window, and the demo world but for your look at its map.
-The many-markets probe is closed. Phase 1 goes on (O3; PLAN Phase 1): a run on branch `phase1`,
-from `reboot` at `503897e`, is building units 1d–1f, each as 1b and 1c were built: a spec from
-`31b3482` checked by a prototype, a build with its generator, one adversarial pass, one fix
-round and a re-check of the fixed items. Its progress is recorded on that branch until it lands,
-by a merge that renumbers its decisions and open items after 134 and O27.
+The many-markets probe is closed, and Phase 1 is closed (O3) and merged by this commit, so G1,
+the oracle lab, is unblocked. What follows joins both lines' lists. Steps 5 and 6 build on the
+goods chain's design evidence, which is outside the repository ("Where things stand"), and each
+needs your rulings first.
 
 1. **Your look at the window**, the G0 gate's item checked by hand (the command is under "G0
    is closed" in "Where things stand", with how to try the editor). G0 is otherwise closed
@@ -1890,53 +2326,67 @@ by a merge that renumbers its decisions and open items after 134 and O27.
    `reboot`'s line, before G1.
 2. **Your look at the demo's map** (the command is under "The demo world and its map are
    closed" in "Where things stand"). If it fails your look, a D.6 fixes it first, on top of
-   this merge.
-3. **Unit 1d, worker types and the wall.** Human-required tasks in the equilibrium, several
-   worker types each with its own margin (w_i = p_m·γ_i(x_i*)), and the boundary regimes 1a
-   only classifies solved: x* = 1, where labour holds only human-required tasks at the wall and
-   the machine comparison no longer pins the wage, and a root below 1e-12. Its gate is constructed
-   (ADDENDUM §5 item 4): laborformal has no equilibrium with a human-required set of positive
-   measure, so it builds on `corner/check_kset.py` P9-i (a human-required set of measure k,
-   with Leontief cost concentration) and check_pinning's D1 limit, with constructed wall and
-   interior cases recognised correctly (PLAN's gate).
-4. **Unit 1e, parcels, the idle margin and s(q).** Parcels with quality schedules, several
-   non-produced inputs (SSRN A.1's vector r) with unused ones at zero rent, idle land, and exit
-   as s(q) = max(s₀ − q·h_e, s̲) from main.tex, the default form (ADDENDUM ruling 3); the SSRN
-   dependence form stays 1a's, the named alternative (R6), and each form keeps its own gate.
-   1e's is constructed on `corner/check_enclosure.py` N-i to N-iii (the idle margin; the worked
-   instance q_enc = 1.5, N_crit = 60) and check_pinning P3.
-5. **Unit 1f, households and government**: price-responsive baskets and a basket per worker
-   type, government and transfers (three-taxes' ledger is already gated in 1a), and
-   check_dynamics' land-share household as a named alternative, which would make its sloped x*
-   and flat m reproducible (decision 75). Then Phase 1's gate, after which G1, the oracle lab,
-   may start.
-6. **At the next engine step, the engine re-exports `num`** (decision 96), and the tape's raw
+   `reboot`'s line.
+3. **G1, the oracle lab** (GUI.md §9; PLAN Phase 1's GUI line), now that G0 and Phase 1's gate
+   are both met. It starts with O20, then what G0 moved to it: the plots' overlay, difference
+   and ratio against a parent, re-making branches at launch, the registry's and the
+   inspector's ways into the editor, a lock on `session.ron` (decisions 106, 107, 103, 110).
+   Then its own scope: the lab, which shows an instance's regime and outputs beside their
+   goldens, any field over x, one-parameter sweeps, the price-step explainer and the log
+   waterfall; log axes, the watchlist, and event and date breakpoints. With 1d–1f the lab has
+   the path's margins to show (the line, the wall, the all-human corner, idle land), worker
+   types, parcels, the two exit forms and a government.
+4. **At the next engine step, the engine re-exports `num`** (decision 96), and the tape's raw
    entry types, `Basis` and `Unit` (decision 97), so the GUI's edge to core goes and core's
    writer is out of its reach by type again. `scripts/gate.sh`'s check of the GUI then says
    whether the GUI still builds; a break is fixed at G1 at the latest (D1).
-7. **Before Phase 2 proper**: your rulings on decisions 61 and 67 (cells in the equilibrium,
-   machines built from categories), each a 1c addendum if ruled in, on 70, and on 118–123. The
-   markets probe recommends keeping 67 and 70 (MARKETS §6). Phase 2 proper then opens after
-   units 1d and 1e on loop-free wall and commons instances, with the markets probe's roles, the
-   `probe::markets` harness and C2m at 52 ticks a year (decisions 119–121). Its battery runs
-   O22's families first, stocks first. The commons' idle land needs an answer, without a clamp,
-   for a market at zero rent, whose unsold price `Saturate` runs to the runaway bound. Many
-   markets is no longer the first untested risk. The risks now are paths (O14, O24) and the new
-   margins of 1d and 1e: several labour markets and the wall at x\* = 1.
-8. **G1, the oracle lab, after G0 and Phase 1's gate** (GUI.md §9). It starts with O20, then
-   what G0 moved to it: the plots' overlay, difference and ratio against a parent, re-making
-   branches at launch, the registry's and the inspector's ways into the editor, a lock on
-   `session.ron` (decisions 106, 107, 103, 110); and its own scope: the lab, one-param sweeps,
-   the price-step explainer and the log waterfall, log axes, the watchlist, and event and date
-   breakpoints.
-9. **The demo's second pass, on the many-market roles** (O27; WORLD.md §7). It takes O26
+5. **The oracle's addendum for machines built from goods** (GOODS-CHAIN §2), after your ruling
+   on 67's rewording (D-G1): machines are durable goods built from and run on goods, and the
+   equilibrium stays a unit 1c economy with more rows. It is D-G10, productivity and the chain
+   to land checked on the per-period matrix, which keeps every economy 1c accepts today and its
+   results bit for bit; the mapping of a tape's chain to `MachineParams`, where tapes are built;
+   and `generate_1g.py` at 70 digits (S1, S2 and S2h, with A0 at 52 ticks a year and the horse
+   at weekly periods as D-G10's validation goldens), nesting 1c bit for bit. It waited for
+   `phase1`, which edits `machine_block.rs`, and it is the next change to the oracle, so O28's
+   tests come with it. Machine recipes stay on pool labour (decision 140).
+6. **The goods chain, with a plant stock as its loop damper** (GOODS-CHAIN §3–§6; CAPACITY.md,
+   in place of LOOPS.md's diminishing returns, which stay the registered alternative). First
+   the mirror's own next step, in Python: a material market, the fodder–horse-days loop with
+   stocks, build lags and interest, with the plant on both sides of every loop at θ 0.8 and
+   δ 10% a year under C2g. Then two registered probes on the engine: machine stocks without
+   loops (P2.2a), and the loops (P2.2b). The engine needs a plant good for each loop desk, held
+   and never traded (D-G2's `Indefinite` good, worn by `Depreciation` burns), the form
+   y = K^(1−θ)·z^θ, and a plan that reads only the desk's own coin, plant and recipe and the
+   posted prices (R13); at θ = 1 it must be the flow run bit for bit. The oracle needs no new
+   solve at ρ = 0, only closed-form readouts per plant desk (K\*, V and the user cost). Loops in
+   Phase 2 need your ruling against decision 120, and machine stocks brought forward from Phase
+   3 your ruling on D-G11.
+7. **Phase 2 proper** (PLAN Phase 2), after your rulings on the decisions that bind it: 61, 67
+   and 70 from 1b and 1c, 118–123 from the markets probe, and 135, 137, 139, 140, 147, 149, 151,
+   153–155, 158, 160–162, 164, 165, 167–169 and 173 from 1d–1f. The markets probe recommends
+   keeping 67 and 70 (MARKETS §6). It opens on loop-free wall and commons instances, which need
+   neither step 5 nor step 6, with the markets probe's roles, the `probe::markets` harness and
+   C2m at 52 ticks a year (decisions 119–121): beside the Appendix B instance (1a), a
+   wall-regime instance, a solved wall (1d; decision 137), and an open-commons instance under
+   the default exit form, with the commons' shadow rent and idle land at zero rent (1e;
+   decisions 149, 153, 160 and 161). The 1750-like instance follows (1e and 1f, with the common
+   basket unless a basket per type is ruled in, decision 173), as the goods chain at ρ = 0 if
+   D-G1 and D-G11 are ruled in. The agents' participation rule under the default form is
+   decision 149's, and under a government 165's. Its battery runs O22's families first, stocks
+   first. The commons' idle land needs an answer, without a clamp, for a market at zero rent,
+   whose unsold price `Saturate` runs to the runaway bound. Many markets is no longer the first
+   untested risk. The risks now are paths (O14, O24) and the new margins of 1d and 1e: several
+   labour markets and the wall at x\* = 1. O30's precision sets the bands of any comparison
+   against them.
+8. **The demo's second pass, on the many-market roles** (O27; WORLD.md §7). It takes O26
    first, the clock held to 52 among it. Then come goods as unit 1b's categories and machine
    types as unit 1c's, on the many-market roles at C2m with no loop of produced inputs, with
-   genesis from 1b and 1c at each county. After that, the probe's battery county by county, the
-   long run's dead ticks and shortfalls checked again, and lenses by category and type. It gets
-   the same bounded verification as D.2 and D.3. Carriers come later, when transport desks,
-   home-node trading (Phases 4 and 9) and an oracle with trade exist. They switch on from zero
-   capacity, and the map then draws flows on channels.
+   genesis from 1b and 1c at each county; GOODS-CHAIN §5 proposes these as a chain of goods
+   instead, stage by stage from its rule A (D-G12). After that, the probe's battery county by
+   county, the long run's dead ticks and shortfalls checked again, and lenses by category and
+   type. It gets the same bounded verification as D.2 and D.3. Carriers come later, when
+   transport desks, home-node trading (Phases 4 and 9) and an oracle with trade exist. They
+   switch on from zero capacity, and the map then draws flows on channels.
 
 ## File map
 
@@ -1971,8 +2421,9 @@ docs/probe/MARKETS*.md   the markets probe's rules as built (MARKETS-RULES.md) a
 crates/engine            Sim, the tick, reports, resume, the replay audit, the registry listing
 crates/cli               the rustyecon binary: run, resume, replay, registry, certify, worldgen,
                          licences
-crates/oracle            the equilibrium solver, units 1a (P1.1), 1b and 1c (P1.2–P1.7); its
-                         README, docs/unit-1{a,b,c}.md and goldens/generate{,_1b,_1c}.py
+crates/oracle            the equilibrium solver, units 1a (P1.1) and 1b–1f (P1.2–P1.13),
+                         Phase 1 closed at P1.14; its README, docs/unit-1{a,…,f}.md and
+                         goldens/generate{,_1b,…,_1f}.py; tests/gate/p1_gate.rs, the gate
 crates/certify           criteria, batteries, the kick, the sealed certificate, the manifest;
                          Parquet telemetry behind the feature `parquet` (S2.3–S2.5)
 crates/certify/testdata  appb variants from `appb-tape --perturb`: bcycle, freeze, july, buffer16
@@ -2035,11 +2486,12 @@ scripts/gui.sh           the GUI's gate, run at each G-stage (G0.1); diffs the e
   targets outside it (`/root/scratch/target-s2-*`, `D:/rustyecon-targets/s2-*`) and its logs in
   `D:/rustyecon-s2/`. The build stamp reads git through the worktree's `.git` file, mapping its
   Windows path for WSL.
-- Phase 1's units 1b and 1c ran from a worktree, `D:/rustyecon-wt/p1` (`/mnt/d/rustyecon-wt/p1`
+- Phase 1's units 1b–1f ran from a worktree, `D:/rustyecon-wt/p1` (`/mnt/d/rustyecon-wt/p1`
   in WSL), on branch `phase1`, with targets `/root/scratch/target-p1-<label>` and
   `D:/rustyecon-targets/p1-<label>`, and scratch, prototypes, gate and mutation logs in
-  `D:/rustyecon-p1/<label>/`. The prototypes are scratch; the committed generators reproduce
-  their numbers.
+  `D:/rustyecon-p1/<label>/` (each unit's `spec-`, `build-`, `verify-…-r1`, `fix-` and the
+  re-check's `verify-…-r2`; the close's in `close/` and `close/phase1/`). The prototypes are
+  scratch; the committed generators reproduce their numbers.
 - The `g0` merge ran from a worktree, `D:/rustyecon-wt/merge-g0` (`/mnt/d/rustyecon-wt/merge-g0`
   in WSL), on branch `merge-g0`, with both gates' targets `/root/scratch/target-merge-g0` and
   `D:/rustyecon-targets/merge-g0` (the engine gate's GUI check in `…-gui` beside them) and its
@@ -2048,6 +2500,16 @@ scripts/gui.sh           the GUI's gate, run at each G-stage (G0.1); diffs the e
   (`/mnt/d/rustyecon-wt/merge-demo` in WSL), on branch `merge-demo`, with both gates' targets
   `/root/scratch/target-merge-demo` and `D:/rustyecon-targets/merge-demo` (the engine gate's GUI
   check in `…-gui` beside them) and its logs in `D:/rustyecon-merge-demo/`.
+- The `phase1` merge ran from a worktree, `D:/rustyecon-wt/merge-p1`
+  (`/mnt/d/rustyecon-wt/merge-p1` in WSL), on branch `merge-p1`, with both gates' targets
+  `/root/scratch/target-merge-p1` and `D:/rustyecon-targets/merge-p1` (the engine gate's GUI
+  check in `…-gui` beside them) and its logs in `D:/rustyecon-merge-p1/`.
+- The goods chain's design evidence is outside the repository: `D:/rustyecon-goods/`
+  (GOODS-CHAIN.md over its `oracle/`, `agents/`, `chain/` and `synthesis/` passes) and
+  `D:/rustyecon-loops/` (LOOPS.md over `diminishing/`, `buffers/`, `planning/` and
+  `synthesis/`, and `capacity/CAPACITY.md` over `capacity/model/` and `capacity/test/`). Each
+  pass keeps its scripts and their outputs beside its report, and the mirrors' passes keep
+  `SHA256SUMS` of the unedited files they copied.
 - The markets probe ran from a worktree, `D:/rustyecon-wt/p2m` (`/mnt/d/rustyecon-wt/p2m` in
   WSL), on branch `phase2-markets`, with targets `/root/scratch/target-p2m-<label>` and
   `D:/rustyecon-targets/p2m-<label>`. Its frame, prediction, build checks, registration, runs,
@@ -2055,11 +2517,12 @@ scripts/gui.sh           the GUI's gate, run at each G-stage (G0.1); diffs the e
   `-p rustyecon-probe`) lists, runs and kicks the batteries and families (`markets list`, `run`,
   `kick`, `family`, `point`, `elasticity`), and `D:/rustyecon-p2m/report/make_results.py`
   (WSL's python3) remakes docs/probe/results/markets/ from `D:/rustyecon-p2m/runs/`.
-- The oracle's goldens: from `crates/oracle`, run `goldens/generate.py`, `generate_1b.py` and
-  `generate_1c.py` with `--check` under laborformal's venv
+- The oracle's goldens: from `crates/oracle`, run `goldens/generate.py`, `generate_1b.py`, …,
+  `generate_1f.py` with `--check` under laborformal's venv
   (`C:/Users/wilso/Documents/GitHub/laborformal/venv/Scripts/python.exe`,
-  `PYTHONIOENCODING=utf-8`); together they take about 15 s. A change to `generate.py` means
-  rerunning all three, since each later one records the earlier ones' digests.
+  `PYTHONIOENCODING=utf-8`); together they take about two minutes (`generate_1e.py` 49 s,
+  `generate_1f.py` 28 s). A change to `generate.py` means rerunning all six, since each later
+  one records the earlier ones' digests.
 - To certify a tape: `rustyecon certify <tape> --criteria criteria/<tape>-<date>.ron --out
   <dir>`. Committed results are made in WSL by a clean build, without `--telemetry` (C3), and a
   change that moves a verdict's path regenerates them in their own commit.

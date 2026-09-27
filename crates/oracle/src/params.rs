@@ -170,6 +170,13 @@ pub enum Requirement {
     Curvature,
     /// value > 0: the inputs of [`closure`](crate::closure).
     Positive,
+    /// 0 ≤ value < 1: unit 1f's payroll tax τ_w.
+    BelowOne,
+    /// 0 ≤ value ≤ 1: unit 1f's rent tax τ_R.
+    UnitInterval,
+    /// [`SCALE_FLOOR`] ≤ value ≤ [`SIGMA_CEIL`](crate::SIGMA_CEIL): unit 1f's elasticity of
+    /// substitution σ.
+    Elasticity,
     /// γ strictly increases at the points x = i/[`VALIDATION_SAMPLES`], as the default
     /// [`Schedule::validate`] checks it. Decided by sampling, so [`Requirement::admits`]
     /// is false for it.
@@ -191,6 +198,9 @@ impl Requirement {
             Requirement::OpenUnit => value > 0.0 && value < 1.0,
             Requirement::Curvature => (SCALE_FLOOR..=CURVATURE_CEIL).contains(&value),
             Requirement::Positive => value > 0.0,
+            Requirement::BelowOne => (0.0..1.0).contains(&value),
+            Requirement::UnitInterval => (0.0..=1.0).contains(&value),
+            Requirement::Elasticity => (SCALE_FLOOR..=crate::SIGMA_CEIL).contains(&value),
             Requirement::SampledIncrease | Requirement::Schedule(_) => false,
         }
     }
@@ -220,6 +230,13 @@ impl fmt::Display for Requirement {
                 "must be in [SCALE_FLOOR, CURVATURE_CEIL] = [{SCALE_FLOOR:e}, {CURVATURE_CEIL}]"
             ),
             Requirement::Positive => write!(f, "must be > 0"),
+            Requirement::BelowOne => write!(f, "must satisfy 0 <= value < 1"),
+            Requirement::UnitInterval => write!(f, "must be in [0, 1]"),
+            Requirement::Elasticity => write!(
+                f,
+                "must be in [SCALE_FLOOR, SIGMA_CEIL] = [{SCALE_FLOOR:e}, {}]",
+                crate::SIGMA_CEIL
+            ),
             Requirement::SampledIncrease => write!(
                 f,
                 "gamma must strictly increase on [0, 1] (sampled at x = i/{VALIDATION_SAMPLES})"
@@ -323,6 +340,21 @@ pub(crate) fn machine_share(name: &'static str, value: f64) -> Result<f64, Param
 /// 0 < value < 1: the CES weight α of [`ces_share`](crate::ces_share).
 pub(crate) fn open_unit(name: &'static str, value: f64) -> Result<f64, ParamError> {
     check(name, value, Requirement::OpenUnit)
+}
+
+/// 0 ≤ value < 1, with −0.0 made +0.0: unit 1f's payroll tax.
+pub(crate) fn below_one(name: &'static str, value: f64) -> Result<f64, ParamError> {
+    check(name, value, Requirement::BelowOne)
+}
+
+/// 0 ≤ value ≤ 1, with −0.0 made +0.0: unit 1f's rent tax.
+pub(crate) fn unit_interval(name: &'static str, value: f64) -> Result<f64, ParamError> {
+    check(name, value, Requirement::UnitInterval)
+}
+
+/// [`SCALE_FLOOR`] ≤ value ≤ [`SIGMA_CEIL`](crate::SIGMA_CEIL): unit 1f's σ.
+pub(crate) fn elasticity(name: &'static str, value: f64) -> Result<f64, ParamError> {
+    check(name, value, Requirement::Elasticity)
 }
 
 /// The scalar user-cost factor u = (ρ + δ)(1 + ρ)^(J_b − 1) (spec §3.0).

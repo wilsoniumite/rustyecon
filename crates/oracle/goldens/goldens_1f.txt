@@ -1,0 +1,284 @@
+# goldens_1f.txt: the golden numbers for oracle unit 1f.
+# Written by goldens/generate_1f.py (mpmath, 70 digits). Do not edit by hand.
+# Each line is KEY = value  # note. Values carry 30 significant digits.
+# Equations: docs/unit-1f.md section 4. laborformal references are at 31b3482.
+# The household form nests generate_1e.py's solves within 0.0 (1e-65 asserted).
+# f nonincreasing at 96 grid points; Lemma F1 at 14 points against a derivative.
+# A-joint's root (check_pinning.py:225-267) within 5.12e-16 of its printed values, and the
+# household form's with gamma(1) 1e-29 below A-joint's within 1e-20 of it.
+# fnv1a64 generate_1f.py = a3cbf2dc18013df8
+# fnv1a64 generate_1e.py = 04760f5301d9cba1
+# fnv1a64 generate_1d.py = d686b5e68d108fe9
+# fnv1a64 generate_1c.py = c40f0a2b406dd67e
+# fnv1a64 generate_1b.py = 909520ffb1f41ee9
+# fnv1a64 generate.py = cf9d71a6ac25699d
+# fnv1a64 body = c537c1345ed01dd8
+
+# H0: unit 1e's instances in household form equal generate_1e.py's solve (docs/unit-1f.md section 9)
+
+# TX: three-taxes' worked instance inside the closure (check_three_taxes.py T1 :27-61, T6 :63-85, T5 :105-134)
+TX_X_STAR = 0.5  # x* = 1/2 exactly: labour demand T L_s/B_s = N at x = 1/2
+TX_GAMMA_STAR = 3.0  # gamma(x*) = 3
+TX_P_M = 1.0  # p_m = 1
+TX_V = 3.0  # v = gamma* p_m = 3
+TX_P_GOOD = 2.75  # the good's price 11/4
+TX_P = 3.75  # P = 15/4
+TX_L_S = 0.75  # L_s = 3/4
+TX_B_S = 1.5  # B_s = 3/2
+TX_Y = 5.33333333333333333333333333333  # Y = 16/3
+TX_N_A = 4.0  # N_a = N = 4, supply saturated
+TX_W = 12.0  # the wage bill 12
+TX_R = 8.0  # rent 8
+TX_I = 20.0  # I = 20
+TX_LAMBDA_M = 0.2  # lambda-tilde_m = lambda/(1 - a) = 0.2
+TX_B_M = 0.4  # b-tilde_m = b/(1 - a) = 0.4
+TX_PHI_W = 0.6  # phi_w = lambda gamma*/(1 - a) = 0.6, the machine service and the basket
+TX_PHI_R = 0.4  # phi_r = 0.4
+TX_KAPPA = 0.533333333333333333333333333333  # kappa = 8/15
+TX_OMEGA_NET = 0.8  # the net real wage v/P = 0.8
+TX1_G_C = 5.0  # the consumption tax's revenue t_c Y P = 5
+TX1_D = 1.25  # d = G_c/N = 5/4, returned uniformly
+TX1_LEG_WAGE_MACHINE = 0.15  # per unit of machine service: t v lambda-tilde = 0.15
+TX1_LEG_RENT_MACHINE = 0.1  # per unit of machine service: t r b-tilde = 0.10
+TX1_LEG_WAGE_BASKET = 0.5625  # per composite: t v L_s = 0.5625
+TX1_LEG_RENT_BASKET = 0.375  # per composite: t r B_s = 0.375
+TX1_WAGE_LEG = 3.0  # in aggregate, t_c W = 3
+TX1_RENT_LEG = 2.0  # t_c R = 2
+TX2_D = 2.0  # d = tau_R R/N = 2: (1 - 1) 8 + 4 2 = 8 (Prop 6 (iii))
+TX2_RENT_SHARE = 0.4  # phi^q_r = r B^q_s/P = 0.4
+TX2_R0 = 4.8  # R_0 = phi^q_r (C - G_R) = 4.8
+TX2_MULTIPLIER = 1.66666666666666666666666666667  # 1/(1 - phi^q_r tau_R) = 5/3
+TX3_X_STAR = 0.5  # x* = 1/2 at T 12
+TX3_P_M = 0.4  # p_m = b/(1 - a) = 0.4
+TX3_V = 1.2  # v = 3 p_m = 1.2
+TX3_P = 2.1  # P = 2.1
+TX3_Y = 8.0  # Y = 8
+TX3_N_A = 4.0  # N_a = 4
+TX3_TAX_PER_UNIT = 0.12  # a 30% consumption tax and a 30% rent tax each take 0.12 per unit
+TXD_RENT_TAX = 1.875  # tau_R = N P/R = 15/8, outside the rent: kappa = 8/15 < 1
+
+# G: Appendix B's economy with a government (docs/unit-1f.md section 3.3)
+GA_RENT_TAX = 0.54463033271192370985599743458  # GA, a replacing transfer of one composite: tau_R = N P/R = 1/kappa (eq 16)
+G1_KAPPA = 1.8361077963113360457392107943  # G1's coverage kappa = T/(N P)
+GB_X_STAR = 0.937460833987473122210602013847  # x*
+GB_V = 0.582354872850975620416944201438  # v, the pool's wage
+GB_P = 1.36685615586605573639315342996  # P, the composite's producer price
+GB_N_A = 0.77247596469536914465374909452  # N_a, hours worked
+GC_X_STAR = 0.933604262370434496533493226033  # x*
+GC_V = 0.580326332556769766740609890906  # v, the pool's wage
+GC_P = 1.36664754399782764671021906182  # P, the composite's producer price
+GC_N_A = 0.80124305493560295051869799443  # N_a, hours worked
+GP_X_STAR = 0.876271700397310203210367211724  # x*
+GP_V = 0.550282344882754309288946866314  # v, the pool's wage
+GP_P = 1.36270085363843571762206565871  # P, the composite's producer price
+GP_N_A = 1.24003099577540755556056334595  # N_a, hours worked
+GT_X_STAR = 0.890158711464327400312081213668  # x*
+GT_V = 0.557540231035520066440588920154  # v, the pool's wage
+GT_P = 1.36380179124977424568240690187  # P, the composite's producer price
+GT_N_A = 1.13183552247157266784873655741  # N_a, hours worked
+GW_X_STAR = 0.80372644083560730740189621793  # x*
+GW_V = 0.512566661156350296462416846918  # v, the pool's wage
+GW_P = 1.35545479277487995203863277546  # P, the composite's producer price
+GW_N_A = 1.82501577614030854308245212569  # N_a, hours worked
+GE_X_STAR = 0.947178374621529229915878525847  # x*
+GE_V = 0.587470513819713918483112063935  # v, the pool's wage
+GE_P = 1.3673498760635844704714537809  # P, the composite's producer price
+GE_N_A = 0.700409163185894962907941394737  # N_a, hours worked
+GU_X_STAR = 0.885439133578937688384084756032  # x*
+GU_V = 0.555072216283556796822546301535  # v, the pool's wage
+GU_P = 1.36343799751713985451577292993  # P, the composite's producer price
+GU_N_A = 1.16846933997195291718264173136  # N_a, hours worked
+GB_RENT_TAX = 0.546742462346422294557261371983  # the levy's rate, (N d)/R
+GB_KAPPA = 1.82901469863591559003439577402  # kappa at GB
+GC_D = 1.25  # d = tau_R R/N = 5/4
+GT_OMEGA_NET = 0.327050593194834158959722112662  # the net wage in producer composites, kappa_w v/P, as at tau_w = t/(1 + t)
+
+# INC: payroll incidence at G1, workers bear eps_D/(eps_D + eps_S) (SSRN D.2 p.32; main.tex:829-833)
+INC_SHARE = 0.885858418004256971228024763497  # -d ln omega_net/d tau_w at tau_w = 0 = eps_D/(eps_D + eps_S)
+INC_EPS_D = 6.59221919184642432919741246299  # eps_D = -d ln n_D/d ln omega along the line at x*
+INC_EPS_S = 0.849397953586341179747979088448  # eps_S = d ln S/d ln omega_net at x*
+
+# W: the wall, where labour demand does not move with the wage (docs/unit-1f.md section 4.10 (e))
+W1_V_0 = 12.3477763477288147937935290394  # the wall's gross wage at tau_w 0
+W1_V_005 = 17.3046326764895334364711600366  # the wall's gross wage at tau_w 0.05
+W1_V_01 = 28.9103025767454169740914429585  # the wall's gross wage at tau_w 0.1
+W1_OMEGA_NET = 1.60503681752050350522305833924  # the net real wage, the same at every tau_w on the wall
+WI_OMEGA_NET = 1.55555555555555555555555555556  # (1 - 0.2) 35/18 = 14/9 on idle land
+WI_T_M = 9.79970511419282766150318462764  # the market's land in use
+WI_N_A = 3.75307855437172123206504943186  # N_a
+WI_Y = 7.29765274461168017345981833973  # Y
+SL_F_START = -10.0  # SurplusLabour: f_0 = n_D(0) - S(0) = 10 - 20
+
+# AP: SSRN's automation path with a payroll tax, the corollary and eq 17 (SSRN p.16, p.31)
+AP0_X_STAR = 0.832997732782590400791478235478  # x* at eta 2^-0
+AP0_V = 1.04742727587576594330941613456  # v/r at eta 2^-0
+AP0_LABOR_SHARE = 0.0945950441812215277769069565821  # the labour share W/I at eta 2^-0
+AP0_KAPPA = 1.35195472138464457382470618835  # kappa = r T/(N P) at eta 2^-0
+AP0_T_NB = 1.49320446358948952782150478653  # T/(N B_s) at eta 2^-0
+AP0_GW_NP = 0.0706248711024224769983992990861  # payroll revenue per person over P, G_w/(N P) at eta 2^-0
+AP0_BOUND = 0.31280461672461467007527909188  # the corollary's bound tau_w (v/r)/B_s at eta 2^-0
+AP0_C_R = 1.10447816037816698191340481696  # C/R, the consumption base over the rent base at eta 2^-0
+AP4_X_STAR = 0.986060489270491784577781558118  # x* at eta 2^-4
+AP4_V = 0.0709307317596604208777779127899  # v/r at eta 2^-4
+AP4_LABOR_SHARE = 0.000938467887337860654507102872018  # the labour share W/I at eta 2^-4
+AP4_KAPPA = 2.37288917077963360786222173417  # kappa = r T/(N P) at eta 2^-4
+AP4_T_NB = 2.37511814288536505946308663055  # T/(N B_s) at eta 2^-4
+AP4_GW_NP = 0.00111448605286572580043244819117  # payroll revenue per person over P, G_w/(N P) at eta 2^-4
+AP4_BOUND = 0.0336937735781009281856635762476  # the corollary's bound tau_w (v/r)/B_s at eta 2^-4
+AP4_C_R = 1.00093934943661911660650808614  # C/R, the consumption base over the rent base at eta 2^-4
+AP8_X_STAR = 0.999108535180176266176505253956  # x* at eta 2^-8
+AP8_V = 0.00446229583745575059414398494187  # v/r at eta 2^-8
+AP8_LABOR_SHARE = 0.00000396470507607981919607417292327  # the labour share W/I at eta 2^-8
+AP8_KAPPA = 2.49165739931050485898479529473  # kappa = r T/(N P) at eta 2^-8
+AP8_T_NB = 2.49166727803640999192568211679  # T/(N B_s) at eta 2^-8
+AP8_GW_NP = 0.00000493936295256647044341102992665  # payroll revenue per person over P, G_w/(N P) at eta 2^-8
+AP8_BOUND = 0.00222371130462131453675387889975  # the corollary's bound tau_w (v/r)/B_s at eta 2^-8
+AP8_C_R = 1.00000396472079502848048470714  # C/R, the consumption base over the rent base at eta 2^-8
+AP12_X_STAR = 0.999944201877462057461843266097  # x* at eta 2^-12
+AP12_V = 0.000279010072806565577212868759221  # v/r at eta 2^-12
+AP12_LABOR_SHARE = 0.0000000155649810510398978039800704069  # the labour share W/I at eta 2^-12
+AP12_KAPPA = 2.49947695097341390248414232994  # kappa = r T/(N P) at eta 2^-12
+AP12_T_NB = 2.49947698987772588744118821793  # T/(N B_s) at eta 2^-12
+AP12_GW_NP = 0.0000000194521559924785229439945457106  # payroll revenue per person over P, G_w/(N P) at eta 2^-12
+AP12_BOUND = 0.000139475851384823934424448305168  # the corollary's bound tau_w (v/r)/B_s at eta 2^-12
+AP12_C_R = 1.00000001556498129330853669412  # C/R, the consumption base over the rent base at eta 2^-12
+AP16_X_STAR = 0.999996512298072922139031837662  # x* at eta 2^-16
+AP16_V = 0.0000174385856610811324823785560622  # v/r at eta 2^-16
+AP16_LABOR_SHARE = 0.0000000000608197933558956152359858737679  # the labour share W/I at eta 2^-16
+AP16_KAPPA = 2.4999673030225087318793965542  # kappa = r T/(N P) at eta 2^-16
+AP16_T_NB = 2.49996730317455622665496870821  # T/(N B_s) at eta 2^-16
+AP16_GW_NP = 0.0000000000760237473877860770025866941613  # payroll revenue per person over P, G_w/(N P) at eta 2^-16
+AP16_BOUND = 0.00000871917879326229690947107586263  # the corollary's bound tau_w (v/r)/B_s at eta 2^-16
+AP16_C_R = 1.0000000000608197933595946625  # C/R, the consumption base over the rent base at eta 2^-16
+AP20_X_STAR = 0.999999782017382260903809990904  # x* at eta 2^-20
+AP20_V = 0.00000108991338567318630812716347335  # v/r at eta 2^-20
+AP20_LABOR_SHARE = 0.000000000000237581978710067028881813983579  # the labour share W/I at eta 2^-20
+AP20_KAPPA = 2.49999795641384962860377315676  # kappa = r T/(N P) at eta 2^-20
+AP20_T_NB = 2.49999795641444358306502922417  # T/(N B_s) at eta 2^-20
+AP20_GW_NP = 0.000000000000296977230628033707677903796946  # payroll revenue per person over P, G_w/(N P) at eta 2^-20
+AP20_BOUND = 0.000000544956247370342612622805458781  # the corollary's bound tau_w (v/r)/B_s at eta 2^-20
+AP20_C_R = 1.00000000000023758197871012347  # C/R, the consumption base over the rent base at eta 2^-20
+
+# K: coverage with parcels, RentRate d-hat 1 in Replace mode (SSRN eq 16; docs/unit-1f.md section 3.3)
+KR4_KAPPA = 0.928640688608206355387077779522  # kappa = r T/(N P)
+KR4_RENT_TAX = 1.07684275766415415887540195885  # the levy's rate at d-hat 1: 1/kappa with T_m = T, N P/(r T_m) with rented plots
+KR5_KAPPA = 1.0055247647582589376877580205  # kappa = r T/(N P)
+KR5_RENT_TAX = 0.994505590561375022859601442462  # the levy's rate at d-hat 1: 1/kappa with T_m = T, N P/(r T_m) with rented plots
+KR1_KAPPA = 1.03337547990305530767686517564  # kappa = r T/(N P)
+KR1_RENT_TAX = 1.47315087881406431998897097823  # the levy's rate at d-hat 1: 1/kappa with T_m = T, N P/(r T_m) with rented plots
+KT_X_STAR = 0.914290464770694893489839769991  # x*
+KT_V = 0.570181766398236436152733004299  # v, the pool's wage
+KT_P = 1.36549471508458088060644595307  # P, the composite's producer price
+KT_N_A = 0.917547229609302407943543135141  # N_a, hours worked
+KT_T_P = 0.308245277039069759205645686486  # enclosed land in rented plots
+
+# E: a walled type under a government (docs/unit-1f.md section 4.5)
+ER_V = 2.01878678685410432052016466229  # the pool's wage, on the wall
+ER_P = 2.9365136181386231297426395257  # P
+ER_N_A = 2.78125  # N_a
+ER_TRAINED_WAGE = 5.67006593675866021311321675377  # the trained's wage c_T P at its wall
+ER_TRAINED_RATE = 1.93088358308134196694803109218  # c_T = ((a_T + mu_e) zeta_T - (mu_w - mu_e)) (1 + t_c)/(1 - tau_w)
+
+# C: the CES household on G1's economy, alpha 0.3 (SSRN eq 26; docs/unit-1f.md section 3.3)
+C1_X_STAR = 0.891762021978420917552232499285  # x*
+C1_V = 0.558378976274807562556400774028  # v, the pool's wage
+C1_P = 0.800099076623645863512373768496  # P, the composite's producer price
+C1_N_A = 2.11753883025423436841859608454  # N_a, hours worked
+C1_SPACE_SHARE = 0.520428029763053506210294596217  # space's share = eq 26's alpha(q)
+C1_Q = 2.74783442566210542219888200903  # q = r/p_g
+C2_X_STAR = 0.900660334657214721409549589564  # x*
+C2_V = 0.563036970647261733701117760268  # v, the pool's wage
+C2_P = 0.493456740593387669126951377  # P, the composite's producer price
+C2_N_A = 3.04510275173198736779976199757  # N_a, hours worked
+C2_SPACE_SHARE = 0.3  # space's share = eq 26's alpha(q)
+C2_Q = 2.74293547738170377742529940428  # q = r/p_g
+C3_X_STAR = 0.909607220099512451176595727935  # x*
+C3_V = 0.567725506097203825361165640194  # v, the pool's wage
+C3_P = 0.234953220587346056665529654984  # P, the composite's producer price
+C3_N_A = 4.0  # N_a, hours worked
+C3_SPACE_SHARE = 0.0628590661500034039830489564465  # space's share = eq 26's alpha(q)
+C3_Q = 2.73831504615027211444273923892  # q = r/p_g
+
+# CP: C1-C3's baskets on AP's path, space's share toward eq 26's limits (SSRN App. C p.31)
+CP05_0_SHARE = 0.417252909834667088424045646777  # space's share at sigma 0.5, eta 2^-0
+CP05_0_Q = 1.19623169760215480349051754821  # q = r/p_g at sigma 0.5, eta 2^-0
+CP05_8_SHARE = 0.91878969786344465733543318371  # space's share at sigma 0.5, eta 2^-8
+CP05_8_Q = 298.666674712669464680542592104  # q = r/p_g at sigma 0.5, eta 2^-8
+CP05_16_SHARE = 0.994506078188917020329467216829  # space's share at sigma 0.5, eta 2^-16
+CP05_16_Q = 76458.6666666668130514740657809  # q = r/p_g at sigma 0.5, eta 2^-16
+CP1_0_SHARE = 0.3  # space's share at sigma 1, eta 2^-0
+CP1_0_Q = 1.19714415549743692231928822637  # q = r/p_g at sigma 1, eta 2^-0
+CP1_8_SHARE = 0.3  # space's share at sigma 1, eta 2^-8
+CP1_8_Q = 298.66668366291228841453303925  # q = r/p_g at sigma 1, eta 2^-8
+CP1_16_SHARE = 0.3  # space's share at sigma 1, eta 2^-16
+CP1_16_Q = 76458.6666666695092802102239857  # q = r/p_g at sigma 1, eta 2^-16
+CP2_0_SHARE = 0.133015557722958511495402927804  # space's share at sigma 2, eta 2^-0
+CP2_0_Q = 1.19716853535206357709149674474  # q = r/p_g at sigma 2, eta 2^-0
+CP2_8_SHARE = 0.000614599802062611918831357273788  # space's share at sigma 2, eta 2^-8
+CP2_8_Q = 298.666844821282793546934846405  # q = r/p_g at sigma 2, eta 2^-8
+CP2_16_SHARE = 0.00000240225256551709487651973888749  # space's share at sigma 2, eta 2^-16
+CP2_16_Q = 76458.666667364204929596282888  # q = r/p_g at sigma 2, eta 2^-16
+
+# CW: W3 under CES, a free category at the wall's end: no idle stretch (docs/unit-1f.md section 2.12)
+CW05_V = 29.2674922703624846575799423056  # v, on the wall with land scarce
+CW05_P = 10.5984752717979542129837459105  # P
+CW05_N_A = 1.76641715685100812409107606904  # N_a
+CW05_F_END = -2.10406922738996817924191945115  # f_inf = -S_inf, the path's end
+CW2_V = 5.79355104035508461015165788543  # v, on the wall with land scarce
+CW2_P = 1.41651737719065601613799189271  # P
+CW2_N_A = 2.16970284346739542326530207093  # N_a
+CW2_F_END = -4.0  # f_inf = -S_inf, the path's end
+
+# CI: W3 with space given one human-required hour, C1's basket: the idle stretch (docs/unit-1f.md section 2.12)
+CI_T_M = 0.79084422487257830457817809584  # the market's land in use
+CI_Y = 1.00653513531313447146857576266  # Y
+CI_N_A = 0.95773784128167540424072593984  # N_a
+CI_P = 0.951519532384452568936397859043  # P in pool wages
+CI_IDLE = 9.20915577512742169542182190416  # T_idle
+CI_SPACE_SHARE = 0.477225575051661134569697828008  # space's share at the idle prices
+
+# CA: C3's basket at the all-human corner, the good free as v -> 0 (docs/unit-1f.md section 5.3 step 2)
+CA_V = 0.639009650422693799033131413268  # v, at the all-human corner
+CA_P = 0.392618409523423060516803740141  # P
+CA_N_A = 40.0  # N_a
+CA_SPACE_SHARE = 0.105040597078204742706635959015  # space's share = eq 26's alpha(q)
+
+# CF: C1's basket on W3 with few workers, the wall far out (docs/unit-1f.md section 5.5)
+CF2_V = 4337700.46541409803260754597818  # v, on the wall with land scarce, N 0.01
+CF2_P = 1128980.98072833476390120611272  # P
+CF2_N_A = 0.00525785436939112221597221212588  # N_a
+CF2_Y = 0.0202102583964413518956199488026  # Y
+CF3_V = 433699594.498736986273982175296  # v, on the wall with land scarce, N 0.001
+CF3_P = 112790744.585956814378746827776  # P
+CF3_N_A = 0.000525994115170036312229471977845  # N_a
+CF3_Y = 0.00202262548487840033732127350907  # Y
+
+# CS: W1 under a steep CES (sigma 20) with eq 26's weights, space's weight 0.3^20 (docs/unit-1f.md section 5.5)
+CS_X_STAR = 0.993491277354042203622486532132  # x*
+CS_V = 3.85862154001450486669185460629  # v, the pool's wage
+CS_P = 0.0018238205950235484235810466363  # P, the composite's producer price
+CS_N_A = 4.0  # N_a, hours worked
+CS_Y = 13945.7171552170238608665888251  # Y
+CS_SPACE_SHARE = 0.289646913340494532183914003081  # space's share
+CS_GOOD_CONTENT = 0.000556695804894933600751733744615  # c_good, units of the good per composite
+CS_SPACE_CONTENT = 0.000528264005835394903486197359512  # c_space, units of space per composite
+
+# AJ: check_pinning's A-joint household, Ces { sigma: 1 } over (good, space) (check_pinning.py:225-267)
+AJ1_X_STAR = 0.896310619661782568855592865241  # AJ1 (gamma = 1 + 3.9x): x*
+AJ1_V = 17.825984034366138325763996363  # AJ1 (gamma = 1 + 3.9x): v
+AJ1_P = 5.56534990746882905424540863797  # AJ1 (gamma = 1 + 3.9x): P = p^0.7 r^0.3
+AJ1_W_P = 1.53484408068253291007515382744  # AJ1 (gamma = 1 + 3.9x): w/p
+AJ1_R_P = 0.0861015065268518487796629699468  # AJ1 (gamma = 1 + 3.9x): r/p
+AJ1_GOODS = 1.67710140216573597851024846883  # AJ1 (gamma = 1 + 3.9x): goods, the good's final output
+AJW_GOODS = 2.08333333333333333333333333333  # AJW (lambda 0.08), the wall in closed form: goods 25/12 = N/lambda-tilde_g
+AJW_R_P = 0.119047619047619047619047619048  # AJW (lambda 0.08), the wall in closed form: r/p = 5/42
+AJW_P_GOOD = 8.4  # AJW (lambda 0.08), the wall in closed form: p = 8.4
+AJW_V = 15.0  # AJW (lambda 0.08), the wall in closed form: v = 15
+AJW_W_P = 1.78571428571428571428571428571  # AJW (lambda 0.08), the wall in closed form: w/p = 25/14
+AJW_HOUSING = 7.5  # AJW (lambda 0.08), the wall in closed form: housing 7.5 = T - 1.2 goods
+
+# X: the wrong units of docs/unit-1f.md section 3.3
+X1_X_STAR = 0.873892216891540255288336934151  # x* with C1's composite frozen at one good and (3/7)^0.5 space
+X1_SPACE_SHARE = 0.643611475596560762187371363063  # space's share with the composite frozen
+X3_X_STAR = 0.902368718556885308040105379761  # x* with C3's composite frozen at one good and (3/7)^2 space
+X3_SPACE_SHARE = 0.334946354408904074533080724224  # space's share with the composite frozen

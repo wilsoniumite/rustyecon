@@ -20,7 +20,45 @@
 //! equilibrium is refused. One type with no operating recipe solves to 1b's equilibrium bit
 //! for bit. The machine block alone, at any margin, is [`MachineBlock`].
 //!
-//! Every price is in units of the land rent r = 1, so v = w/r.
+//! Unit 1d (docs/unit-1d.md) adds worker types and the tasks closed to machines:
+//! [`WorkerEconomy`]. The paper's human-required set H is hours any pooled worker can do, and
+//! reserved tasks are hours only one type can do. Types share the line's shape, each with an
+//! efficiency; those selling on the line form a pool with one wage per efficiency hour, and a
+//! type whose reserved work takes all its hours is paid a scarcity price at its own wall. The
+//! boundary regimes of units 1a-1c are solved: the wall (x* = 1, the wage set by labour
+//! clearing above labour's replacement value at the top task), the all-human corner and roots
+//! below 10^-12; an economy with no wage that clears labour with land fully rented is
+//! [`SolveError::LaborShort`]. One type with no human-required or reserved hours is unit 1c's
+//! equilibrium bit for bit ([`Eq1d`]).
+//!
+//! Unit 1e (docs/unit-1e.md) cuts the land into parcels of an acreage, a quality and an access,
+//! enclosed or open (a commons), and prices exit: [`ParcelEconomy`]. Each worker type names its
+//! exit form, SSRN's dependence form or main.tex's s(q) = max(s₀ − q·h, s̲) in units of one exit
+//! good ([`PricedExit`]), both under SSRN eq 8 with the exit life's value. Exit plots take land:
+//! on the commons while it has room, at a shadow rent when it is full, and rented on enclosed
+//! land, which leaves production. Idle enclosed land earns zero rent, and the path continues past
+//! the wall's end onto an idle stretch with the pool's wage as numeraire, where 1d's
+//! `LaborShort` economies have their equilibria; no one working at any wage is
+//! [`SolveError::NoMarket`]. An equilibrium can sit where q crosses a type's q_enc, a share of its
+//! exiters renting ([`EnclosureTie`]), and coverage, q* and N_crit are reported ([`Eq1e`],
+//! [`coverage`]). Unit 1d's economies in parcel form, and priced forms with the exit option
+//! switched off, solve to 1d's equilibria bit for bit.
+//!
+//! Unit 1f (docs/unit-1f.md) adds households and a government: [`HouseholdEconomy`]. The
+//! government has SSRN A.1's payroll tax, uniform tax on final purchases, tax on market rent,
+//! uniform transfer and program (m_w, m_e), transfers counted in composites at consumer prices,
+//! and a budget closed by the owners' levy ([`Budget::RentRate`], whose rate at one composite per
+//! person is SSRN eq 16's 1/κ) or by the uniform transfer ([`Budget::Dividend`]). Producers pay
+//! gross prices, so the government enters through one participation rule with SSRN eq 9, p.16,
+//! eq 27 and 1d's and 1e's forms as cases; an in-work benefit that alone overfills the economy is
+//! [`SolveError::SurplusLabour`]. The basket is 1b's fixed one or a CES over the categories
+//! ([`Basket::Ces`], SSRN eq 26). Every equilibrium reports the budget, the households' and the
+//! provider's accounts and three-taxes' ledger ([`Eq1f`]); with the fixed basket and
+//! [`Government::none`] it is unit 1e's equilibrium bit for bit. Unit 1f closes Phase 1.
+//!
+//! Every price is in units of the land rent r = 1, so v = w/r, except at unit 1e's equilibria
+//! on idle land, where r = 0 and prices are in units of the pool's wage
+//! ([`Eq1e::land_market`]).
 //!
 //! The oracle shares types but not logic with the agents. No agent may read it
 //! (PLAN R13).
@@ -48,20 +86,30 @@
 mod categories;
 mod closure;
 pub mod dump;
+mod exit;
 mod fork;
+mod households;
 mod leontief;
 mod machine_block;
 mod machines;
 mod params;
+mod parcels;
 mod schedule;
 mod solve;
+mod workers;
 
 pub use categories::{
     Category, CategoryEconomy, CategoryEq, CategoryParams, CategoryPoint, Eq1b, Output1b,
     OutputKey, Residuals1b,
 };
 pub use closure::{closure, Closure, ClosureError};
+pub use exit::{coverage, coverage_threshold, crowding_limit, PricedExit};
 pub use fork::{cell_cost, ces_share, CategoryCost, Cell};
+pub use households::{
+    Accounts, Basket, BasketEq, Budget, Eq1f, Government, GovernmentEq, HouseholdEconomy,
+    HouseholdParams, HouseholdPoint, Ledger, Program, ProviderAccount, Residuals1f, TransferMode,
+    TypeAccount, SIGMA_CEIL,
+};
 pub use machine_block::{
     BlockPrices, BlockTotals, Envelope, MachineBlock, MachineType, Recipe, Switch,
 };
@@ -72,10 +120,19 @@ pub use machines::{
 pub use params::{
     user_cost, Economy, ParamError, Params, Requirement, UniformWorkCost, SCALE_CEIL, SCALE_FLOOR,
 };
+pub use parcels::{
+    Access, Branch, EnclosurePoint, EnclosureSide, EnclosureTie, Eq1e, ExitForm, ExitLand,
+    HomeAccount, LandEq, LandMarket, Parcel, ParcelEconomy, ParcelEq, ParcelParams, ParcelPoint,
+    Residuals1e, WorkerEq1e, EXIT_SCAN,
+};
 pub use schedule::{PowerSchedule, Schedule, CURVATURE_CEIL, VALIDATION_SAMPLES};
 pub use solve::{
     CostSystem, Eq1a, Output, Point, Regime, Residuals, SolveError, BRACKET_HI, BRACKET_LO,
     LABOR_RESIDUAL_NET, MAX_BISECTION_STEPS,
+};
+pub use workers::{
+    CategoryEq1d, Edge, Eq1d, Margin, Residuals1d, Shortage, WallEnd, WallSwitch, WorkerEconomy,
+    WorkerEq, WorkerParams, WorkerPoint, WorkerType,
 };
 
 /// 2^n exactly, for the unit tests' dyadic inputs (`powi` is denied: clippy.toml, A5). The

@@ -549,6 +549,84 @@ impl MachineBlock {
         }
     }
 
+    /// The (O, V) system at a given wage (docs/unit-1d.md §5.1, a corner's evaluation): §5.1
+    /// step 2's matrix without the margin column, so that labour enters the right-hand side at
+    /// the wage. Its factors do not depend on the wage, the line or the technique; for one type
+    /// with no operating recipe its pivots are 1.0 and 1 − u·a.
+    pub(crate) fn wage_system(&self) -> Factors {
+        let k = self.len();
+        let n = 2 * k;
+        let u = &self.user_cost;
+        let mut g = vec![0.0; n * n];
+        for i in 0..k {
+            let (op, build) = (&self.types[i].operating, &self.types[i].build);
+            for l in 0..k {
+                g[i * n + l] = if i == l {
+                    1.0 - op.machines[i]
+                } else {
+                    -op.machines[l]
+                };
+                g[i * n + k + l] = -(op.machines[l] * u[l]);
+                g[(k + i) * n + l] = -build.machines[l];
+                g[(k + i) * n + k + l] = if i == l {
+                    num::fma(-u[i], build.machines[i], 1.0)
+                } else {
+                    -(build.machines[l] * u[l])
+                };
+            }
+        }
+        Factors::new(n, g)
+    }
+
+    /// The machine block's prices at the wage v, with the factors of
+    /// [`MachineBlock::wage_system`] (docs/unit-1d.md §4.2 and §5.1): O = A^op·p + λ^op·v + b^op,
+    /// V = A^I·p + λ^I·v + b^I and p_k = O_k + u_k·V_k, so p = v·λ̃ + b̃; π = p_τ/θ_τ for the
+    /// technique τ. `d` is the system's least pivot. Evaluated as written: where I − Â is not a
+    /// nonsingular M-matrix the prices mean nothing, and `d` says so.
+    pub(crate) fn prices_at_wage(
+        &self,
+        factors: &Factors,
+        v: f64,
+        technique: usize,
+    ) -> BlockPrices {
+        self.prices_at_wage_and_rent(factors, v, 1.0, technique)
+    }
+
+    /// [`prices_at_wage`](Self::prices_at_wage) at the land rent r (docs/unit-1e.md §5.1): every
+    /// land right-hand side multiplied by r, so that at r = 0 each price is its labour total,
+    /// p = v·λ̃, and at r = 1 the prices are `prices_at_wage`'s bit for bit.
+    pub(crate) fn prices_at_wage_and_rent(
+        &self,
+        factors: &Factors,
+        v: f64,
+        rent: f64,
+        technique: usize,
+    ) -> BlockPrices {
+        let k = self.len();
+        let u = &self.user_cost;
+        let mut r = vec![0.0; 2 * k];
+        for i in 0..k {
+            let (op, build) = (&self.types[i].operating, &self.types[i].build);
+            r[i] = op.land * rent + op.labor * v;
+            r[k + i] = build.land * rent + build.labor * v;
+        }
+        factors.forward(&mut r);
+        let (_, z) = factors.back(&r);
+        let operating = z[..k].to_vec();
+        let build = z[k..].to_vec();
+        let prices: Vec<f64> = (0..k).map(|i| operating[i] + u[i] * build[i]).collect();
+        let task_price = prices[technique] / self.types[technique].task_efficiency;
+        BlockPrices {
+            v,
+            task_price,
+            pivots: factors.pivots(),
+            d: factors.least_pivot(),
+            prices,
+            operating,
+            build,
+        }
+    }
+
     /// The machine block's prices at the margin γ* with task type τ doing the machine tasks
     /// (docs/unit-1c.md §4.2 and §4.9): p_k, O_k, V_k and v = γ*·p_τ/θ_τ.
     ///
