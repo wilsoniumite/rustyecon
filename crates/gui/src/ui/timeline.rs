@@ -2,6 +2,10 @@
 //! first tick, the fired and the scheduled events, and the ring checkpoints. A click or a drag
 //! on the strip moves the cursor; "Live" makes it follow the run again. Below the strip, the
 //! events are listed with their dates.
+//!
+//! As built at D.3: a schedule too long to list whole (the view-model's `density`) is drawn as a
+//! bar a year on the strip, filled for the firings that ran and outlined for those to come, and
+//! its list of the firings near the cursor lays out only the rows on screen.
 
 use crate::model::{Cursor, Intent};
 use crate::vm::timeline::TimelineVm;
@@ -24,11 +28,23 @@ pub fn show(ui: &mut egui::Ui, vm: &TimelineVm, out: &mut Vec<Intent>) {
         if ui.add_enabled(!live, egui::Button::new("Live")).clicked() {
             out.push(Intent::Cursor(Cursor::Live));
         }
-        ui.weak(format!(
-            "{fired} fired · {} scheduled · {} ring checkpoints",
-            vm.events.len() - fired,
-            vm.ring.len()
-        ));
+        match vm.total {
+            None => ui.weak(format!(
+                "{fired} fired · {} scheduled · {} ring checkpoints",
+                vm.events.len() - fired,
+                vm.ring.len()
+            )),
+            Some(total) => {
+                let done: u32 = vm.density.iter().map(|y| y.fired).sum();
+                ui.weak(format!(
+                    "{done} fired · {} scheduled · {} ring checkpoints; {total} firings, counted \
+                     a year at a time, and the {} within a year of the cursor listed",
+                    total.saturating_sub(done as usize),
+                    vm.ring.len(),
+                    vm.events.len()
+                ))
+            }
+        };
     });
     let width = ui.available_width().max(100.0);
     let (rect, resp) = ui.allocate_exact_size(vec2(width, 72.0), Sense::click_and_drag());
@@ -80,6 +96,33 @@ pub fn show(ui: &mut egui::Ui, vm: &TimelineVm, out: &mut Vec<Intent>) {
             fg,
         );
     }
+    // A long schedule's firings, a bar a year: filled once fired, outlined while scheduled.
+    let most = vm
+        .density
+        .iter()
+        .map(|y| y.fired + y.scheduled)
+        .max()
+        .unwrap_or(0)
+        .max(1);
+    for (k, y) in vm.density.iter().enumerate() {
+        let x0 = x_of(y.tick);
+        let x1 = vm.density.get(k + 1).map_or(x_of(vm.end), |n| x_of(n.tick));
+        let h = |n: u32| 16.0 * n as f32 / most as f32;
+        let bottom = mid - 5.0;
+        let fired = egui::Rect::from_min_max(
+            pos2(x0, bottom - h(y.fired)),
+            pos2(x1.max(x0 + 1.0), bottom),
+        );
+        p.rect_filled(fired, 0.0, weak);
+        if y.scheduled > 0 {
+            let top = bottom - h(y.fired + y.scheduled);
+            let sched = egui::Rect::from_min_max(
+                pos2(x0, top),
+                pos2(x1.max(x0 + 1.0), bottom - h(y.fired)),
+            );
+            p.rect_stroke(sched, 0.0, Stroke::new(0.5, weak), egui::StrokeKind::Inside);
+        }
+    }
     // Events above it: filled once fired, hollow while scheduled.
     let mut hovered = None;
     let pointer = resp.hover_pos();
@@ -125,6 +168,26 @@ pub fn show(ui: &mut egui::Ui, vm: &TimelineVm, out: &mut Vec<Intent>) {
                 out.push(Intent::Cursor(Cursor::At(t.min(vm.now - 1))));
             }
         }
+    }
+    if !vm.density.is_empty() {
+        // A long list: only the rows on screen are laid out.
+        let row = ui.text_style_height(&egui::TextStyle::Body) + 4.0;
+        egui::ScrollArea::vertical()
+            .id_salt("timeline-events")
+            .show_rows(ui, row, vm.events.len(), |ui, range| {
+                for e in &vm.events[range] {
+                    ui.horizontal(|ui| {
+                        if ui.link(&e.date).clicked() && e.tick < vm.now {
+                            out.push(Intent::Cursor(Cursor::At(e.tick)));
+                        }
+                        ui.label(format!("tick {}", e.tick));
+                        ui.label(e.key.to_string());
+                        ui.label(&e.what);
+                        ui.weak(if e.fired { "fired" } else { "scheduled" });
+                    });
+                }
+            });
+        return;
     }
     egui::ScrollArea::vertical()
         .id_salt("timeline-events")

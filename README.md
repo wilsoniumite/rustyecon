@@ -44,7 +44,7 @@ fill in phase by phase:
 | `crates/cli` | the `rustyecon` binary (`run`, `resume`, `replay`, `registry`, `certify`, `worldgen`): arguments, files, exit codes, the build stamp | Phase 0 |
 | `crates/certify` | dated criteria, the batteries and the kick check, sealed certificates, the run's manifest, and Parquet telemetry behind the feature `parquet` ([docs/CERTIFY.md](docs/CERTIFY.md)) | Phase 0, second session |
 | `crates/oracle` | the equilibrium solver (library `oracle`): unit 1a, one category with durability and interest, reproduces the SSRN Appendix B; 1b adds many categories and the fork, 1c many machine types and the Leontief inverse ([its README](crates/oracle/README.md)) | Phase 1: 1a–1c landed; 1d–1f to come |
-| `crates/worldgen` | the tape compiler: the county atlas (D.1), and a first compiler for the illustrative demo world, `worlds/demo-gb` ([docs/demo/WORLD.md](docs/demo/WORLD.md), D.2) | Phase 4; the demo world's form on branch `demo-world` |
+| `crates/worldgen` | the tape compiler: the county atlas (D.1), and a first compiler for the illustrative demo world, `worlds/demo-gb` ([docs/demo/WORLD.md](docs/demo/WORLD.md), D.2), and that world's lens measures, which the GUI's map shows (D.3) | Phase 4; the demo world's form on branch `demo-world` |
 | `crates/probe` | the Phase 2 probe's harness: the Appendix B tape's generator, named perturbations, per-tick observables against the oracle ([docs/probe/RULES.md](docs/probe/RULES.md)); its oracle-free measures are certify's | the probe, P2.0.1 |
 | `crates/gui` | the interactive frontend, in egui: live runs, plots, lenses, the tape editor, and a county map ([docs/GUI.md](docs/GUI.md)); the binary `rustyecon-gui` | from G0, after Phase 0's second session; one stage beside each phase (G0 closed at G0.3) |
 
@@ -118,7 +118,7 @@ two platforms is recorded in STATE.md, not gated. `.github/workflows/ci.yml` run
 The GUI never gates engine work (docs/GUI.md, D1): the workspace's default members leave
 `crates/gui` out, and `scripts/gate.sh` excludes it from clippy and the tests and checks it
 once without gating. `scripts/gui.sh` is the GUI's own gate, run at each of its stages:
-formatting, clippy, its tests in release with 42 of them checked by name, and the GUI's
+formatting, clippy, its tests in release with 48 of them checked by name, and the GUI's
 hashes of the gate and Appendix B worlds and of two edited branches against the cli's. It runs
 as the gate does:
 
@@ -145,6 +145,29 @@ cargo run --release -p rustyecon-gui -- tapes/gate.ron
 
 Elsewhere, `cargo run --release -p rustyecon-gui -- tapes/gate.ron` with a display. With no tape
 it reopens the tapes of the last session, and the toolbar's Open picks another.
+
+The illustrative demo world, 93 historic counties of the United Kingdom from 1750 to 1901
+([docs/demo/WORLD.md](docs/demo/WORLD.md)), opens on its map:
+
+```powershell
+$env:CARGO_TARGET_DIR = 'D:/rustyecon-targets/gui'
+cargo run --release -p rustyecon-gui -- tapes/demo-gb.ron
+```
+
+- **The map.** It opens paused at 1750 on the lens "Wage in land" (w/r). Press Space to run;
+  the counties recolour as the history moves them. Drag to pan, scroll to zoom, double-click
+  to fit. Hover a county for its value with its unit, the run and the tick; click it to
+  select it, and its card beside the map lists every lens and plots its prices, volumes,
+  params and states.
+- **Lenses.** `1`–`9` and `0` pick the first ten, `[` and `]` step through all 25, and the
+  selector above the ranked table lists them by group. Each has a neutral scale fixed for the
+  whole run, its unit and its reference on the legend, and the ranked table beside the map
+  shows the same values. The two oracle lenses wait for `crates/observe`. Nothing from this
+  world may be scored or cited: its name carries `[illustrative]`.
+- **Its size.** 93 nodes record the lean catalogue (each market's price, supply, demand,
+  cleared volume and whether it traded; each class line's requested and filled; each actor's
+  state; every param), and nothing is plotted until you plot it. Opening the tape takes a few
+  seconds.
 
 - **Run.** The tape opens paused at tick 0 with every price plotted. Space runs and pauses,
   `.` steps one tick, and the toolbar steps a year, runs until a tick or a date, and caps the

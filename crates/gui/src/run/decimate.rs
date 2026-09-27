@@ -100,12 +100,12 @@ impl Decimator {
     /// Take the points `series` gained since the last call. The series must be the same one,
     /// grown only at its end.
     pub fn extend(&mut self, series: &Series) {
-        let (ticks, values) = (series.ticks(), series.values());
-        let from = self.taken.min(ticks.len());
-        for (&t, &v) in ticks[from..].iter().zip(&values[from..]) {
+        let n = series.len();
+        let from = self.taken.min(n);
+        for (t, v) in series.points(from, n) {
             self.push(t, v);
         }
-        self.taken = ticks.len();
+        self.taken = n;
     }
 
     fn close(&mut self) {
@@ -140,8 +140,7 @@ pub fn decimate(series: &Series, lo: u64, hi: u64, columns: usize) -> Vec<Vec<(u
     let columns = u64::try_from(columns.max(1)).unwrap_or(u64::MAX);
     let mut d = Decimator::new(lo, span.div_ceil(columns));
     let (from, to) = series.range(lo, hi);
-    let (ticks, values) = (series.ticks(), series.values());
-    for (&t, &v) in ticks[from..to].iter().zip(&values[from..to]) {
+    for (t, v) in series.points(from, to) {
         d.push(t, v);
     }
     d.segments()

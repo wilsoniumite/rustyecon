@@ -24,8 +24,8 @@ use crate::edit::{
 use crate::run::log::{self, Entry, Level, RationWatch};
 use crate::run::{At, LedgerCheck, RunStatus};
 use crate::run::{
-    Breakpoint, Cmd, Entity, Measure, Obs, Origin, ResumeFrom, RingCheckpoint, RunId, SeriesKey,
-    Store,
+    Breakpoint, Catalogue, Cmd, Entity, Measure, Obs, Origin, ResumeFrom, RingCheckpoint, RunId,
+    SeriesKey, Store,
 };
 use certify::{tape_hash, Hex};
 use rustyecon_engine::prelude::*;
@@ -791,22 +791,31 @@ fn run_focused(m: &mut Model, until: Option<u64>) -> Vec<Effect> {
 }
 
 /// Start a run's driver with the session's breakpoints and load its tape, from genesis or from
-/// a ring checkpoint.
-fn start(m: &Model, id: RunId, tape: Tape, from: Option<ResumeFrom>) -> [Effect; 3] {
-    [
+/// a ring checkpoint. A tape of more than [`Catalogue::LEAN_ABOVE`] nodes records the lean
+/// catalogue (D.3), and its driver is told so before the load.
+fn start(m: &Model, id: RunId, tape: Tape, from: Option<ResumeFrom>) -> Vec<Effect> {
+    let mut out = vec![
         Effect::Spawn(id),
         Effect::Send {
             run: id,
             cmd: Cmd::Breakpoints(m.session.breakpoints.clone()),
         },
-        Effect::Send {
+    ];
+    let catalogue = Catalogue::for_nodes(tape.nodes.len());
+    if catalogue.is_lean() {
+        out.push(Effect::Send {
             run: id,
-            cmd: Cmd::Load {
-                tape: Box::new(tape),
-                from,
-            },
+            cmd: Cmd::Catalogue(catalogue),
+        });
+    }
+    out.push(Effect::Send {
+        run: id,
+        cmd: Cmd::Load {
+            tape: Box::new(tape),
+            from,
         },
-    ]
+    });
+    out
 }
 
 /// A tape file's text: parse it, record it as a base, and start its run paused at genesis. A
@@ -988,7 +997,24 @@ fn observed(m: &mut Model, id: RunId, obs: Obs) -> Vec<Effect> {
         // A run opens with every price plotted (docs/GUI.md §4): in a new session, and in a
         // session whose plots name nothing of this run's world, as another tape's do. Plots
         // are keys, kept across tapes, so a tape that shares keys keeps the user's choice.
-        if !m.session.plots.iter().any(|k| k.in_world(world)) {
+        // A world of more than `Catalogue::LEAN_ABOVE` nodes opens with nothing plotted (D.3):
+        // the demo world's 372 prices would stack four panels of 93 lines. Its map and its
+        // county card plot what the user picks.
+        let large = world.nodes.len() > Catalogue::LEAN_ABOVE;
+        if large {
+            m.log.push(Entry {
+                run: Some(id),
+                tick: None,
+                level: Level::Info,
+                text: format!(
+                    "{} nodes: the run records the lean catalogue (each market's price, supply, \
+                     demand, cleared and whether it traded; each class line's requested and \
+                     filled; each actor's state; every param), and opens with nothing plotted",
+                    world.nodes.len()
+                ),
+            });
+        }
+        if !large && !m.session.plots.iter().any(|k| k.in_world(world)) {
             for (n, g) in world.markets() {
                 if let (Some(node), Some(good)) = (world.key_of(n), world.key_of(g)) {
                     m.session.plots.push(SeriesKey {
@@ -1203,7 +1229,7 @@ fn branch(m: &mut Model, pid: RunId, b: edit::Branch) -> Vec<Effect> {
     m.focus = Some(id);
     m.cursor = Cursor::Live;
     m.editor = Editor::default();
-    start(m, id, b.tape, from).into()
+    start(m, id, b.tape, from)
 }
 
 /// "Save tape as": the focused run's canonical tape, and its lineage beside it. The base file

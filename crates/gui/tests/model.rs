@@ -595,11 +595,9 @@ fn rationing_onsets_are_logged_once_a_class_line() {
             })
             .unwrap();
         let first = req
-            .ticks()
             .iter()
-            .zip(req.values())
-            .find(|(&t, &r)| filled.at(t).expect("a line has both") < r);
-        if let Some((&t, _)) = first {
+            .find(|&(t, r)| filled.at(t).expect("a line has both") < r);
+        if let Some((t, _)) = first {
             let side = if *side == SideTag::Buy { "buy" } else { "sell" };
             want.push((
                 t,

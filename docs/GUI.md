@@ -359,6 +359,128 @@ of every deviation:
      Bash, with no `ci/gate.ps1` (G0.1, 10).
    - §9: D2's "no log axes" stays for G1 (second part, 15); what moves to G1 (here, 4).
 
+**Amended at D.3 (2026-09-27), on branch `demo-world`,** when the map landed ahead of its
+stage. The user asked for a map of the United Kingdom with Victoria-style lenses over an
+illustrative world (docs/demo/WORLD.md), so the map (§6, G4) and the lenses (§4, G2) were
+brought forward over the demo tape `tapes/demo-gb.ron`: 93 historic counties, each running
+the probe's four roles, 1750–1901. Where this file was silent or wrong against the code, the
+build decided, and each change is made here:
+1. **The map pane** (§6). `ui/map.rs` triangulates each region's parts once with earcut,
+   holes included (`Geo::build`), and draws them each frame as one mesh in the lens's colours.
+   The atlas stores each shared border once and the map strokes it once, thinned in screen
+   space so that no two kept points lie within 0.75 points: thin county lines, heavier lines
+   where England meets Wales and Scotland, the coast in dark ink over a pale band on a muted
+   sea. Names are drawn where they fit, the full name or else the Chapman code. Drag pans, the
+   wheel zooms about the pointer, a double click fits. A region the tape lacks is hatched grey;
+   one with no value is plain grey and its card says why. The hover card names the county,
+   the lens's value with its unit and rank, the report tick and date, and the run (tape,
+   origin, build, `tape_hash`, `world_id`). A click selects the county as
+   `Entity::Node(county.<chapman>)`, which the inspector and the outliner follow by key, and
+   the county's card beside the map plots its recorded inputs. A tape whose nodes are not the
+   atlas's regions has no map, and one with a node the atlas lacks is refused (§6); either says
+   why in the pane.
+2. **Lenses** (§4, "Lenses (G2)"). A `LensVm` per lens (`vm/map.rs`) holds every region's
+   value, its place on the scale and whether it lies beyond the domain, the legend's marks,
+   the counts, and the ranked table as indices into the same regions, so the map's values are
+   the table's by construction; `map_values_equal_table` holds what each draws to the other.
+   Scales are colorous' viridis for a sequential lens and purple to orange through white for a
+   diverging one, which centres on its reference. **Each domain is fixed for the run and
+   chosen without the run:** `worlds/demo-gb/lenses.csv` registers it, from the oracle's range
+   over every county and step of the history with a margin (WORLD.md §6), and the legend
+   follows from it alone. A value outside takes the end colour and is marked below or above.
+   The selector lists the 25 lenses by group; `1`–`9` and `0` pick the first ten and `[` and
+   `]` step. The two oracle lenses (`gap.oracle`, `gap.wage`) are listed and disabled: they
+   wait for `crates/observe`'s `oracle_gap` (§7.3), which does not exist.
+3. **Where the measures are defined** (U6, §7.3). observe does not exist, so the lens
+   measures live in `rustyecon_worldgen::lens`, beside the table that lists them and the
+   compiler that writes the keys they read: `value(measure, readings, first)` over a county's
+   recorded prices, cleared volumes, trade flags, rationing lines, params and states. The GUI
+   gathers the readings (`vm::map::readings`) and computes no measure; N per tick goes through
+   the engine's `ClockMethod::per_tick` for the param's recorded use. The cli calls none of
+   them yet. This is WORLD.md §6's departure, recorded: the measures move to observe's
+   `measure` when it lands. worldgen's table check now refuses a lens key that names no
+   measure, a change lens before its level, and a diverging scale whose reference is not inside
+   its domain.
+4. **Two measures in the catalogue** (§3.4): `Trades`, the engine's `MarketLine::trades` as 1
+   or 0, and `State(field)`, each number of an actor's own state after the tick
+   (`Sim::actor_state`), at the new `At::Actor(key)`. Both are recorded for every world.
+5. **The lean catalogue** (§3.4, §10's catalogue filter, brought forward). A world of more
+   than 16 nodes records each market's price, supply, demand, cleared volume and trade flag,
+   each class line's requested and filled, each actor's state, every param, and the run's
+   margins; no next price, EMA, fills, feasible line, settle line, holding, audit line or drift
+   by good. The model sends `Cmd::Catalogue(Catalogue::Lean)` before such a tape's load, logs
+   it, and opens it with nothing plotted: 372 prices would stack four panels of 93 lines. The
+   demo's whole catalogue would be 11,447 series; the lean one is 5,970. The Extractor finds
+   each cell's series at its place in the last tick's layout before it searches its index.
+6. **Series in stretches** (§3.4). A series keeps each unbroken run of ticks as its first tick
+   and the index of its first value, so a series with no gap costs 8 bytes a point, not 16. The
+   points and the gaps are the same. `Series::ticks` now makes a list; `iter`, `points(from,
+   to)`, `tick(i)` and `first` read it in place.
+7. **Panels at 30,000 events** (§4). The demo tape has 30,078 dated steps and 31,116 params.
+   The timeline lists every firing when the span holds at most 2,000 (the gate's and appb's
+   are unchanged), and otherwise the firings within a year of the cursor, with every firing
+   counted a year at a time on the strip. The outliner's view-model is kept while the run's
+   load, the selection, the pins and the plots are unchanged; a filter narrows it, a section
+   lays out at most 300 rows and says how many more, and long sections start closed. The
+   registry finds each param's last copy in one pass over the fired events, and
+   `firing_date` finds a tick's events by bisection. The log's view-model grows with the log
+   rather than being remade each frame, and the rationing watch learns each class line's
+   series once and reads a row through a column by catalogue index (a demo row holds 5,970
+   cells and 1,116 class lines); its onsets and their order are unchanged.
+8. **The layout** (§4). The map is a tab beside the plots in the centre. The pane a tape
+   needs is brought forward once per load: the map for a tape with one, the plots for one
+   without, so the gate's scripts open on their plots as before. A new layout gives the centre
+   half the width and the top row two thirds of the height. A `layout.ron` saved before the
+   map gains it as a tab beside the plots.
+9. **Dependencies** (§3.1, D6). `earcut =0.4.11` (G4's pin) and `colorous =1.0.16` (G2's)
+   join the workspace, and the GUI depends on `rustyecon-worldgen` for the atlas and the
+   lenses. worldgen names core for `num` and its own tables; the GUI's scan
+   `the_gui_names_core_for_num_alone` still holds.
+10. **Tests** (§8.1's map row, G4's gate). `tests/map.rs`:
+    `the_atlas_triangulates_and_labels_hit_their_regions` (every node key has a region; each
+    region's triangles cover its drawn area to a relative 1e-9; each label point lies in its
+    own triangles), `every_region_drawn_once` (each fill once, each border stroked once, and a
+    one-county tape hatches the other 92), `map_values_equal_table` (every lens at report
+    ticks 0, 51 and 259), `lens_domains_are_fixed_for_the_run`,
+    `demo_lens_view_models_equal_their_goldens` (25 files in
+    `tests/golden/demo-gb-tick0/`), the kittest script
+    `the_demo_script_switches_lenses_runs_hovers_and_selects`, and the ignored measurement
+    `map_mesh_frame_time_is_recorded`. worldgen's `tests/lens.rs` holds the measures.
+    `scripts/gui.sh` names 48 tests. On the committed tree both gates are green on WSL and on
+    Windows: the GUI passes 77 tests with 2 ignored, the workspace 575 with 3 ignored, and the
+    gate world's final hash is still `0x61f9c8529131ff17` and appb's `0xe1fa082b26995867`.
+11. **Measured,** on Windows in release, with the machine shared with branch
+    `phase2-markets`'s runs throughout, so each figure is one run's and loose:
+    - A frame's map at 93 regions, the fill mesh of 124,779 vertices and 2,446 thinned strokes
+      on a 1,260 × 900 canvas: a median of 1.71 ms over 60 frames
+      (`map_mesh_frame_time_is_recorded`; 1.52 ms on WSL, load average 150). Triangulating the
+      atlas once: 21 ms (80 ms on WSL).
+    - The Extractor on the demo world: 0.28 ms a tick for the whole catalogue of 11,447
+      series, and 0.21 ms for the lean one of 5,970, beside the engine's step of 2.5 ms.
+    - A Runner ran the demo to 1901 into a store in 22.7 s, 346 ticks a second, 0.8 s of it
+      ingest, and held 46.9 million points, 375 MB of values. Its final hash is the cli's,
+      `0x9c78e47631ea8224`.
+    - Headless (kittest, the run capped at 520 ticks a second), a running frame took p50
+      4.51 ms and p90 7.61 ms with the map in front, and 2.56 ms and 4.52 ms with the plots in
+      front instead. Before the map's view-model was made at most 30 times a second, it was
+      p50 7.19 ms with the map.
+    - The smoke mode, `rustyecon-gui --smoke 7851 tapes/demo-gb.ron`, with the outliner, the
+      map, the inspector and the timeline drawn, ran to 1901 in 19.2 s. CPU per frame while
+      running was p50 8.49 ms and p90 10.62 ms, with a first frame of 1.8 s that reads the
+      tape; paused, p50 was between 5.0 and 7.5 ms over three runs. G4's bar, a p90 under
+      8 ms while a run streams, is not met on this machine. Most of what is left is
+      tessellating a 125,000-vertex mesh every frame; a coarser mesh for the country-wide view
+      is the next lever.
+    - Opening the tape parses 12 MB of RON on the UI thread (0.2 s here, 1.7 s on a loaded
+      WSL), and the run loads on its worker in about 4 s.
+
+    Nobody has looked at the window; the images checked were rasterised from the shapes a
+    headless frame paints.
+12. **Not done, and still G4's:** channels on hover, ports and coalfields drawn, a difference
+    lens against a parent run, the world editor, a coarser mesh for the country-wide view, the
+    frame's p90 under 8 ms on Windows while a run streams, and an E42 run's spill. The map of a
+    branch shows the branch; comparing two runs on the map waits for the difference lens.
+
 ## 0. Rulings and decisions
 
 **Rulings (2026-09-25),** numbered here 1–4; they are ADDENDUM's rulings 5–8.

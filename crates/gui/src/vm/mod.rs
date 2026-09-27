@@ -11,13 +11,14 @@
 pub mod compare;
 pub mod inspector;
 pub mod log;
+pub mod map;
 pub mod outliner;
 pub mod plots;
 pub mod registry;
 pub mod timeline;
 pub mod toolbar;
 
-use crate::run::{At, HolderKey, Measure, SeriesKey, Store};
+use crate::run::{At, HolderKey, Measure, SeriesKey, StateField, Store};
 use rustyecon_engine::prelude::*;
 use rustyecon_engine::rustyecon_agents::{AgentDelta, Agents};
 use rustyecon_engine::RegistryLine;
@@ -74,6 +75,17 @@ pub fn unit_of(w: &World, key: &SeriesKey) -> String {
         (Measure::Param, At::Param(p)) => param_unit(w, p),
         (Measure::TickMargin | Measure::RunMargin, _) => "of its tolerance".to_string(),
         (Measure::TickDrift, _) => "largest over goods, each in its own unit".to_string(),
+        (Measure::Trades, _) => "1 if it traded, else 0".to_string(),
+        (Measure::State(f), At::Actor(a)) => match f {
+            StateField::Share | StateField::Used => "share".to_string(),
+            StateField::Scale | StateField::Output => "of its output per tick".to_string(),
+            StateField::Due | StateField::Paid => w
+                .id_of::<ActorId>(a.as_str())
+                .and_then(|id| w.actor(id))
+                .and_then(|d| w.node(d.home))
+                .and_then(|n| w.key_of(n.currency))
+                .map_or_else(String::new, |c| format!("{c} per tick")),
+        },
         _ => String::new(),
     }
 }
@@ -193,11 +205,12 @@ pub fn param_key(l: &RegistryLine) -> Option<&str> {
 /// The date a firing is dated: a dated event's own date, and a recurring occurrence's tick's
 /// first day.
 pub fn firing_date(w: &World, tick: u64, key: &Key) -> String {
-    let dated = w
-        .schedule
-        .once()
-        .iter()
-        .find(|f| f.tick == tick && w.key_of(f.event) == Some(key));
+    // The dated events are sorted by (tick, day, key), so the tick's are found by bisection:
+    // a schedule of 30,078 events (the demo world's) is read once a frame.
+    let once = w.schedule.once();
+    let lo = once.partition_point(|f| f.tick < tick);
+    let hi = once.partition_point(|f| f.tick <= tick);
+    let dated = once[lo..hi].iter().find(|f| w.key_of(f.event) == Some(key));
     match dated.and_then(|f| Date::from_days(f.day)) {
         Some(d) => d.to_string(),
         None => date(w, tick),

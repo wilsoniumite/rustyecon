@@ -7,7 +7,7 @@
 //! [`run::Decimator`](crate::run::Decimator) and lends egui the recorded points it keeps.
 
 use super::{report_tick, unit_of};
-use crate::run::{SeriesKey, Store};
+use crate::run::{Series, SeriesKey, Store};
 use rustyecon_engine::prelude::*;
 use serde::Serialize;
 
@@ -65,7 +65,7 @@ fn line(store: &Store, key: &SeriesKey, cursor: Option<u64>) -> LineVm {
     let mut min: Option<(u64, f64)> = None;
     let mut max: Option<(u64, f64)> = None;
     if let Some(s) = s {
-        for (&t, &v) in s.ticks().iter().zip(s.values()) {
+        for (t, v) in s.iter() {
             if min.is_none_or(|m| v < m.1) {
                 min = Some((t, v));
             }
@@ -78,7 +78,7 @@ fn line(store: &Store, key: &SeriesKey, cursor: Option<u64>) -> LineVm {
         key: key.clone(),
         label: key.to_string(),
         points,
-        first: s.and_then(|s| Some((*s.ticks().first()?, *s.values().first()?))),
+        first: s.and_then(Series::first),
         last: s.and_then(|s| s.last()),
         min,
         max,

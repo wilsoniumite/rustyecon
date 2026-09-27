@@ -17,9 +17,16 @@ use std::collections::BTreeMap;
 use std::fmt;
 
 /// One series: the ticks it has a value at, in increasing order, and the values.
+///
+/// As built at D.3, the ticks are kept as stretches: each unbroken run of consecutive ticks is
+/// its first tick and the index of its first value, so a series with no gap costs 8 bytes a
+/// point, not 16. The demo world's lean record of 93 counties is about 6,000 series over 7,851
+/// ticks (docs/demo/WORLD.md §8). A gap is still a tick with no value, and the points are the
+/// same points.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Series {
-    ticks: Vec<u64>,
+    /// Each unbroken stretch: its first tick and the index of its first value, increasing.
+    runs: Vec<(u64, usize)>,
     values: Vec<f64>,
 }
 
@@ -28,7 +35,7 @@ impl Series {
     pub fn from_points(points: &[(u64, f64)]) -> Series {
         let mut s = Series::default();
         for &(t, v) in points {
-            assert!(s.ticks.last().is_none_or(|&l| t > l), "ticks must increase");
+            assert!(s.last().is_none_or(|(l, _)| t > l), "ticks must increase");
             assert!(v.is_finite(), "values must be finite");
             s.push(t, v);
         }
@@ -36,13 +43,47 @@ impl Series {
     }
 
     fn push(&mut self, tick: u64, value: f64) {
-        self.ticks.push(tick);
+        if self
+            .last()
+            .is_none_or(|(l, _)| l.checked_add(1) != Some(tick))
+        {
+            self.runs.push((tick, self.values.len()));
+        }
         self.values.push(value);
     }
 
-    /// The ticks with a value, increasing.
-    pub fn ticks(&self) -> &[u64] {
-        &self.ticks
+    /// The tick of point `i`, which must be below [`Series::len`].
+    pub fn tick(&self, i: usize) -> u64 {
+        let r = self.runs.partition_point(|&(_, s)| s <= i) - 1;
+        let (t0, s0) = self.runs[r];
+        t0 + (i - s0) as u64
+    }
+
+    /// The ticks with a value, increasing, as a new list.
+    pub fn ticks(&self) -> Vec<u64> {
+        self.iter().map(|(t, _)| t).collect()
+    }
+
+    /// The points `[from, to)` by index, in tick order.
+    pub fn points(&self, from: usize, to: usize) -> impl Iterator<Item = (u64, f64)> + '_ {
+        let to = to.min(self.values.len());
+        let from = from.min(to);
+        let mut r = self
+            .runs
+            .partition_point(|&(_, s)| s <= from)
+            .saturating_sub(1);
+        (from..to).map(move |i| {
+            while self.runs.get(r + 1).is_some_and(|&(_, s)| s <= i) {
+                r += 1;
+            }
+            let (t0, s0) = self.runs[r];
+            (t0 + (i - s0) as u64, self.values[i])
+        })
+    }
+
+    /// Every point, in tick order.
+    pub fn iter(&self) -> impl Iterator<Item = (u64, f64)> + '_ {
+        self.points(0, self.values.len())
     }
 
     /// The values, one per tick.
@@ -52,29 +93,51 @@ impl Series {
 
     /// The number of points.
     pub fn len(&self) -> usize {
-        self.ticks.len()
+        self.values.len()
     }
 
     /// Whether it has no point.
     pub fn is_empty(&self) -> bool {
-        self.ticks.is_empty()
+        self.values.is_empty()
+    }
+
+    /// The first point.
+    pub fn first(&self) -> Option<(u64, f64)> {
+        Some((self.runs.first()?.0, *self.values.first()?))
     }
 
     /// The last point.
     pub fn last(&self) -> Option<(u64, f64)> {
-        Some((*self.ticks.last()?, *self.values.last()?))
+        let &(t0, s0) = self.runs.last()?;
+        let n = self.values.len();
+        Some((t0 + (n - 1 - s0) as u64, self.values[n - 1]))
+    }
+
+    /// The number of points with ticks below `t`.
+    fn before(&self, t: u64) -> usize {
+        let r = self.runs.partition_point(|&(t0, _)| t0 < t);
+        if r == 0 {
+            return 0;
+        }
+        let (t0, s0) = self.runs[r - 1];
+        let end = self.runs.get(r).map_or(self.values.len(), |x| x.1);
+        let within = usize::try_from(t - t0).unwrap_or(usize::MAX);
+        s0.saturating_add(within).min(end)
     }
 
     /// The value at `tick`, if the series has one there.
     pub fn at(&self, tick: u64) -> Option<f64> {
-        let i = self.ticks.binary_search(&tick).ok()?;
-        Some(self.values[i])
+        let r = self.runs.partition_point(|&(t0, _)| t0 <= tick);
+        let &(t0, s0) = self.runs.get(r.checked_sub(1)?)?;
+        let end = self.runs.get(r).map_or(self.values.len(), |x| x.1);
+        let i = s0.checked_add(usize::try_from(tick - t0).ok()?)?;
+        (i < end).then(|| self.values[i])
     }
 
     /// The index range of the points with ticks in `[lo, hi)`.
     pub fn range(&self, lo: u64, hi: u64) -> (usize, usize) {
-        let from = self.ticks.partition_point(|&t| t < lo);
-        let to = self.ticks.partition_point(|&t| t < hi).max(from);
+        let from = self.before(lo);
+        let to = self.before(hi).max(from);
         (from, to)
     }
 }

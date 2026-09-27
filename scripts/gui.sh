@@ -50,7 +50,8 @@ step() { printf '\n== gui: %s\n' "$*"; }
 # branch tests, the five rules of §8.1's editing row, the editor's two kittest scripts (the
 # form's refusals; apply, compare, export and save), and the scan that keeps edit/ pure. G0's
 # close (G0.3) adds the reducer's state-machine tests (tests/model.rs), which the gate names as a
-# group, so every test it names is checked by name.
+# group, so every test it names is checked by name. D.3 (the map, brought forward on branch
+# demo-world) adds the map's six (tests/map.rs, docs/GUI.md §8.1's map row and G4's gate).
 named=(
     gui_equals_cli
     failed_run_shows_its_ledger_line
@@ -94,6 +95,12 @@ named=(
     a_run_whose_worker_ended_says_so_and_stops
     a_session_of_another_tape_still_plots_every_price
     apply_branches_from_the_parents_ring_and_files_are_effects
+    the_atlas_triangulates_and_labels_hit_their_regions
+    every_region_drawn_once
+    map_values_equal_table
+    lens_domains_are_fixed_for_the_run
+    demo_lens_view_models_equal_their_goldens
+    the_demo_script_switches_lenses_runs_hovers_and_selects
 )
 
 step "toolchain (rust-toolchain.toml)"

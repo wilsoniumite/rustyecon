@@ -408,6 +408,13 @@ each lens's inputs and a note.
   the cli also calls (observe's `measure`), not in `vm/`. The map stage either brings
   `crates/observe` forward for the lenses or records the departure.
 
+As built at D.3 (the map, §10): the departure is recorded. The measures are defined once, in
+`crates/worldgen/src/lens.rs`, beside this table and the compiler that writes the keys they
+read, and the GUI gathers each county's recorded numbers and calls them (docs/GUI.md, amended
+at D.3, item 3). They move to observe's `measure` when it exists; the cli calls none of them
+yet. The Extractor now records the four roles' states and each market's trade flag. The two
+oracle lenses are listed and disabled until observe lands.
+
 ## 7. Goods, machine types and carriers, later
 
 The tables are shaped so that these switch on without a redesign.
@@ -556,7 +563,8 @@ when it finds a Python 3, and the long run by name.
   24 settlement values a county, holdings, and 1,000 params), so the map stage wants the
   catalogue filter parked in GUI.md §10, or the lenses' inputs alone (about 5,000 series,
   0.6 GB). The 30,078 schedule params and events load in about a second, but the registry
-  listing and the timeline have not been tried with them.
+  listing and the timeline have not been tried with them. *Done at D.3 (§10):* the lean
+  catalogue and series kept in stretches, and the panels made to take 30,000 events.
 - **The oracle lenses** (`gap.oracle`, `gap.wage`) need `crates/observe` (§6). The long run's
   scoring is the definition to move there, with the probe's.
 - **The battery** of §3.3 at six dates stays in scratch; the 93-node run above stands in for
@@ -579,3 +587,24 @@ built in release on WSL against this worktree at `a8d3f51` (D.1):
 
 The compiler's evidence (D.2) is its tests, above, and their output in
 `D:/rustyecon-demo/worldgen/`: the long run's per-county lines on WSL and on Windows.
+
+## 10. The map (D.3)
+
+`rustyecon-gui tapes/demo-gb.ron` opens on the map: the 93 counties coloured by a lens, the
+legend, the ranked table and the selected county's card. docs/GUI.md's block "Amended at D.3"
+says how it is built; this section says what it shows of this world.
+
+- **Opening.** The tape opens paused at 1750 on "Wage in land", w/r, the paper's v. Before the
+  first tick there is no report and the map says so; after it, every county has a value.
+- **Lenses.** The 25 rows of `lenses.csv`, each drawn on its registered domain for the whole
+  run, so a county's colour means the same number in 1750 and in 1900. 23 have a value in
+  every county at each report tick `map_values_equal_table` samples (0, 51 and 259) of a run
+  from genesis; `gap.oracle` and `gap.wage` wait for `crates/observe`. A change lens reads the county at the record's first tick, so it has no
+  value on a branch resumed after genesis. `dead` counts over the ticks of the trailing year
+  the record holds, fewer than 52 in the first year.
+- **The record.** 93 nodes record the lean catalogue: 5,970 series, 8 bytes a point, so a run
+  to 1901 holds about 0.37 GB of series. Measured: 46.9 million points, 375 MB of values,
+  and the run ends at the cli's final hash, `0x9c78e47631ea8224` (docs/GUI.md, amended at
+  D.3, item 11).
+- **What it cannot show.** No trade (there are no channels), so no county's colour reflects
+  another's; §5.2's caveats hold on the map as in the tables.

@@ -12,6 +12,7 @@ use crate::run::{At, Measure, SeriesKey, Store};
 use rustyecon_engine::prelude::*;
 use rustyecon_engine::{Entry, RegistryLine};
 use serde::Serialize;
+use std::collections::BTreeMap;
 
 /// One use of a param.
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -149,10 +150,16 @@ pub fn build(store: &Store, cursor: Option<u64>) -> Option<RegistryVm> {
             })
         }
     };
+    // Every param's last copy, in one pass over the fired events: a schedule of 30,078 steps
+    // (the demo world's, D.3) made a search per param too slow to draw.
+    let mut copies = tick
+        .map(|t| last_copies(store, w, lines, t))
+        .unwrap_or_default();
     let mut params = Vec::new();
     let mut inline = Vec::new();
     for l in lines {
-        match param_row(store, w, lines, l, tick) {
+        let copied = param_key(l).and_then(|k| copies.remove(k));
+        match row(store, w, l, tick, copied) {
             Some(row) => params.push(row),
             None => inline.push(InlineRowVm {
                 path: l.path.clone(),
@@ -169,6 +176,42 @@ pub fn build(store: &Store, cursor: Option<u64>) -> Option<RegistryVm> {
     })
 }
 
+/// The last `SetParam` into each param fired at or before report tick `tick`, by the param's
+/// key, from one pass over the fired events in firing order.
+fn last_copies(
+    store: &Store,
+    w: &World,
+    lines: &[RegistryLine],
+    tick: u64,
+) -> BTreeMap<String, CopiedVm> {
+    let index: BTreeMap<&str, &RegistryLine> = lines
+        .iter()
+        .filter_map(|l| Some((param_key(l)?, l)))
+        .collect();
+    let mut out = BTreeMap::new();
+    for (t, e) in store.events() {
+        if *t > tick {
+            break;
+        }
+        let (Some(source), Some(target)) = (&e.source, set_param_target(w, &e.action)) else {
+            continue;
+        };
+        out.insert(
+            target.to_string(),
+            CopiedVm {
+                event: e.key.clone(),
+                date: firing_date(w, *t, &e.key),
+                tick: *t,
+                basis: index
+                    .get(source.as_str())
+                    .map_or_else(String::new, |l| basis(&l.basis)),
+                source: source.clone(),
+            },
+        );
+    }
+    out
+}
+
 /// A listing line's row, if it lists a param, at report tick `tick`.
 pub fn param_row(
     store: &Store,
@@ -176,6 +219,20 @@ pub fn param_row(
     lines: &[RegistryLine],
     l: &RegistryLine,
     tick: Option<u64>,
+) -> Option<ParamRowVm> {
+    let copied = param_key(l)
+        .zip(tick)
+        .and_then(|(k, t)| copied_into(store, lines, k, t));
+    row(store, w, l, tick, copied)
+}
+
+/// A listing line's row with the last copy into it, if it lists a param.
+fn row(
+    store: &Store,
+    w: &World,
+    l: &RegistryLine,
+    tick: Option<u64>,
+    copied: Option<CopiedVm>,
 ) -> Option<ParamRowVm> {
     let (Entry::Param { unit, use_, sites }, Some(k)) = (&l.entry, param_key(l)) else {
         return None;
@@ -201,6 +258,6 @@ pub fn param_row(
         current,
         basis: basis(&l.basis),
         sites,
-        copied: tick.and_then(|t| copied_into(store, lines, k, t)),
+        copied,
     })
 }

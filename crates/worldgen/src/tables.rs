@@ -1143,6 +1143,22 @@ fn lenses(text_: &str) -> Result<Vec<Lens>, CompileError> {
                 ));
             }
         }
+        // D.3: every lens is a measure that `lens::value` defines, so the GUI computes none.
+        let Some(measure) = crate::lens::Measure::of(&key) else {
+            return Err(CompileError::new(
+                &wr,
+                "the key names no measure that crates/worldgen/src/lens.rs defines",
+            ));
+        };
+        if let crate::lens::Measure::Since(_) = measure {
+            let base = key.trim_start_matches("since.");
+            if !keys.contains(base) {
+                return Err(CompileError::new(
+                    &wr,
+                    format!("a change lens comes after its level's row, `{base}`"),
+                ));
+            }
+        }
         let scale = match r.get(4) {
             "sequential" => Scale::Sequential,
             "sequential-log" => Scale::SequentialLog,
@@ -1166,6 +1182,22 @@ fn lenses(text_: &str) -> Result<Vec<Lens>, CompileError> {
             return Err(CompileError::new(
                 &wr,
                 format!("the domain [{lo}, {hi}] does not fit a {} scale", r.get(4)),
+            ));
+        }
+        // A reference, when there is one, names its value (`<value> = <what>`), and a
+        // diverging scale centres on it (D.3).
+        let reference = r.get(5);
+        let centre = crate::lens::reference_value(reference);
+        if !reference.is_empty() && centre.is_none() {
+            return Err(CompileError::new(
+                &wr,
+                format!("the reference `{reference}` names no value (`<value> = <what>`)"),
+            ));
+        }
+        if scale == Scale::Diverging && !centre.is_some_and(|c| lo < c && c < hi) {
+            return Err(CompileError::new(
+                &wr,
+                "a diverging scale centres on a reference inside its domain",
             ));
         }
         let source = match r.get(9) {
@@ -1197,6 +1229,12 @@ fn lenses(text_: &str) -> Result<Vec<Lens>, CompileError> {
         });
     }
     Ok(out)
+}
+
+/// Read and check `lenses.csv` alone. The GUI's map reads the bundled table through
+/// [`crate::lens::demo_gb`].
+pub fn parse_lenses(text: &str) -> Result<Vec<Lens>, CompileError> {
+    lenses(text)
 }
 
 /// Read and check every table against the atlas.

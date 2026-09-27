@@ -15,11 +15,16 @@
 //! The compiler reads no file: the cli reads the tables and writes the tape. The oracle is
 //! solved here, outside any `Sim`, to seed genesis and check the tables; no agent reads it
 //! (R13).
+//!
+//! [`lens`] (D.3, 2026-09-27) defines the demo world's lenses, the measures its map colours by,
+//! over a county's recorded numbers, beside `lenses.csv` and the keys the compiler writes. The
+//! GUI calls it and defines none (U6), until `crates/observe` takes them (docs/GUI.md §7.3).
 
 pub mod atlas;
 pub mod compile;
 mod csv;
 pub mod history;
+pub mod lens;
 pub mod tables;
 
 pub use compile::{compile, Compiled, Plan, Summary};

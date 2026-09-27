@@ -8,8 +8,8 @@
 
 use super::ring::ring_tick_at_or_after;
 use super::{
-    Breakpoint, Cmd, Extractor, Obs, ObsBatch, PauseReason, Refusal, ResumeFrom, RingCheckpoint,
-    Snapshot,
+    Breakpoint, Catalogue, Cmd, Extractor, Obs, ObsBatch, PauseReason, Refusal, ResumeFrom,
+    RingCheckpoint, Snapshot,
 };
 use certify::{tape_hash, Build, Hex, RunKey};
 use rustyecon_engine::prelude::*;
@@ -51,6 +51,7 @@ pub struct Runner {
     sink: Box<dyn FnMut(Obs) + Send>,
     wake: Box<dyn Fn() + Send + Sync>,
     breakpoints: Vec<Breakpoint>,
+    catalogue: Catalogue,
     live: Option<Live>,
 }
 
@@ -68,6 +69,7 @@ impl Runner {
             sink,
             wake,
             breakpoints: Vec::new(),
+            catalogue: Catalogue::Full,
             live: None,
         }
     }
@@ -122,6 +124,7 @@ impl Runner {
                 }
             }
             Cmd::Breakpoints(b) => self.breakpoints = b,
+            Cmd::Catalogue(c) => self.catalogue = c,
             Cmd::Snapshot(t) => {
                 if let Some(live) = self.live.as_mut() {
                     live.snapshot(t, &mut out);
@@ -272,7 +275,7 @@ impl Runner {
         });
         let mut live = Live {
             key,
-            extractor: Extractor::new(sim.world()),
+            extractor: Extractor::with(sim.world(), self.catalogue),
             next_ring: ring_tick_at_or_after(&sim.world().clock, sim.tick()),
             tape,
             sim,

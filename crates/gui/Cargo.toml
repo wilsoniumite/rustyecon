@@ -25,10 +25,14 @@ path = "src/main.rs"
 # the_gui_names_core_for_num_alone). With this edge core's writer compiles here, so U1's guard
 # (E1) for the GUI is that scan, not the type system, until the engine re-exports `num` and the
 # edge goes (docs/GUI.md §3.2).
+# The map (D.3) reads the county atlas and the demo world's lenses from rustyecon-worldgen,
+# which has no egui, file, thread or clock, triangulates with earcut and colours with colorous
+# (docs/GUI.md §3.1, §6).
 [dependencies]
 rustyecon-engine.workspace = true
 rustyecon-certify.workspace = true
 rustyecon-core.workspace = true
+rustyecon-worldgen.workspace = true
 serde.workspace = true
 ron.workspace = true
 eframe.workspace = true
@@ -36,6 +40,8 @@ egui.workspace = true
 egui_plot.workspace = true
 egui_extras.workspace = true
 egui_tiles.workspace = true
+earcut.workspace = true
+colorous.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 rfd.workspace = true
