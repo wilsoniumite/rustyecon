@@ -1,8 +1,9 @@
 //! The inspector's view-model (docs/GUI.md §4): the selection in detail, at the cursor.
 //!
 //! - **Market:** p, next p, ema, S, D, cleared, both fills, rationing by class, ln(p′/p) (the
-//!   last step, "why is this price 12.3", through `core::num`), and the rule with its rate
-//!   param, unit, basis and per-tick step.
+//!   last step, "why is this price 12.3", through the engine's `num`), and the rule with its
+//!   rate param, unit, basis and per-tick step; and the price-step explainer (G1), the tick's
+//!   step recomputed by markets' own `imbalance` and `next_price` ([`super::pricestep`]).
 //! - **Actor:** its spec's uses of params, each with key, unit, current value and basis; its
 //!   inline numbers; its holdings after the tick; the lots behind them and its own state, from
 //!   a snapshot of that state (the model asks the Runner for one); and its settle lines.
@@ -96,6 +97,10 @@ pub struct MarketVm {
     pub rate: Option<ParamRefVm>,
     /// The EMA's time constant.
     pub ema_time_constant: Option<ParamRefVm>,
+    /// The tick's step, recomputed by markets' own functions from its recorded inputs (G1).
+    pub explainer: Option<super::pricestep::ExplainerVm>,
+    /// Why there is no explainer, when there is none.
+    pub unexplained: Option<String>,
 }
 
 /// One lot.
@@ -388,6 +393,12 @@ fn market(store: &Store, w: &World, node: &Key, good: &Key, tick: Option<u64>) -
         w.market.ema_time_constant,
         tick,
     );
+    let (explainer, unexplained) =
+        match tick.map(|t| super::pricestep::explain(store, node, good, t)) {
+            Some(Ok(e)) => (Some(e), None),
+            Some(Err(why)) => (None, Some(why)),
+            None => (None, Some("no tick has run".to_string())),
+        };
     Some(MarketVm {
         node: node.clone(),
         good: good.clone(),
@@ -400,6 +411,8 @@ fn market(store: &Store, w: &World, node: &Key, good: &Key, tick: Option<u64>) -
         one_sided: format!("{:?}", w.market.one_sided),
         rate,
         ema_time_constant,
+        explainer,
+        unexplained,
     })
 }
 

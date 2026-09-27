@@ -15,6 +15,7 @@ pub mod log;
 pub mod map;
 pub mod outliner;
 pub mod plots;
+pub mod pricestep;
 pub mod registry;
 pub mod timeline;
 pub mod toolbar;

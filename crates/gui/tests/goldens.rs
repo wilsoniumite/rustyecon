@@ -138,6 +138,15 @@ fn golden(rig: &Rig, selections: &[Entity], pins: &[Entity]) -> Golden {
 /// or write them under `UPDATE_GOLDEN=1`. Each is pretty RON down to the depth where one
 /// record (a year, an event, a param, a row, a log line) fits on one line.
 fn check(point: &str, g: &Golden) {
+    // G1: every market the point inspects explains its step, and the explainer's next price,
+    // markets' own function of the recorded inputs, is the run's bit for bit.
+    for (e, v) in &g.inspector {
+        if let (Entity::Market { .. }, Some(InspectorVm::Market(m))) = (e, v) {
+            let x = m.explainer.as_ref().expect("the explainer");
+            assert_eq!(x.equal, Some(true), "{point} {e:?}");
+            assert_eq!(x.recorded.map(f64::to_bits), Some(x.next.to_bits()));
+        }
+    }
     compare(point, "toolbar", &g.toolbar, 3);
     compare(point, "timeline", &g.timeline, 2);
     compare(point, "outliner", &g.outliner, 4);

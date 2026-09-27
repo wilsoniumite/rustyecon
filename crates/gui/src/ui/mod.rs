@@ -61,6 +61,13 @@ pub struct State {
         std::time::Instant,
         Option<vm::registry::RegistryVm>,
     )>,
+    /// The selected market's log waterfall, what it was made from and when (G1): remade when
+    /// its key changes, and at most four times a second while a run streams live.
+    waterfall: Option<(
+        WaterfallKey,
+        std::time::Instant,
+        Result<vm::pricestep::WaterfallVm, String>,
+    )>,
 }
 
 /// What the map's view-model reads: the run, its load and its latest tick, the cursor, the lens
@@ -72,6 +79,17 @@ type MapKey = (
     Option<u64>,
     String,
     Option<Entity>,
+);
+
+/// What a market's log waterfall reads: the run, its load and its latest tick, the cursor, and
+/// the market.
+type WaterfallKey = (
+    crate::run::RunId,
+    u64,
+    u64,
+    Option<u64>,
+    rustyecon_engine::prelude::Key,
+    rustyecon_engine::prelude::Key,
 );
 
 /// What the registry's view-model reads: the run, its load and its latest tick, and the
@@ -319,7 +337,48 @@ impl egui_tiles::Behavior<Pane> for Panes<'_> {
                     ui.weak("select an entity in the outliner");
                 }
                 Some(sel) => match vm::inspector::build(store, sel, at) {
-                    Some(v) => inspector::show(ui, &v, &m.session.plots, out),
+                    Some(v) => {
+                        let waterfall = match sel {
+                            Entity::Market { node, good } => {
+                                let key = (
+                                    run.id,
+                                    store.generation(),
+                                    store.tick(),
+                                    at,
+                                    node.clone(),
+                                    good.clone(),
+                                );
+                                let live = at.is_none()
+                                    && matches!(
+                                        store.status(),
+                                        crate::run::RunStatus::Running { .. }
+                                    );
+                                let fresh = match &self.state.waterfall {
+                                    None => false,
+                                    Some((k, _, _)) if *k == key => true,
+                                    // While the run streams live, a waterfall stands 250 ms.
+                                    Some((k, made, _)) => {
+                                        live && (&k.0, k.1, k.3, &k.4, &k.5)
+                                            == (&key.0, key.1, key.3, &key.4, &key.5)
+                                            && made.elapsed()
+                                                < std::time::Duration::from_millis(250)
+                                    }
+                                };
+                                if !fresh {
+                                    let w = vm::pricestep::waterfall(store, node, good, at);
+                                    self.state.waterfall =
+                                        Some((key, std::time::Instant::now(), w));
+                                }
+                                self.state.waterfall.as_ref().map(|(_, _, w)| w)
+                            }
+                            _ => None,
+                        };
+                        let ctx = inspector::Ctx {
+                            plots: &m.session.plots,
+                            waterfall,
+                        };
+                        inspector::show(ui, &v, &ctx, out);
+                    }
                     None => loading(ui),
                 },
             },

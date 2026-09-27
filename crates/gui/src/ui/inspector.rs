@@ -1,6 +1,11 @@
 //! The inspector (docs/GUI.md §4): the selection in detail, at the cursor. Every number shows
 //! its unit, and each one the run records has a "plot" toggle, so any series can be plotted
 //! from here.
+//!
+//! A market also shows why its price is what it is (G1): the tick's step recomputed by
+//! markets' own `imbalance` and `next_price` from the tick's recorded inputs, beside the next
+//! price the run recorded, and the log waterfall, ln(p_t/p_0) as Σ k·x a year at a time with
+//! the residual and the events fired.
 
 use super::{fmt, value_label};
 use crate::model::Intent;
@@ -8,14 +13,26 @@ use crate::run::SeriesKey;
 use crate::vm::inspector::{
     ActorVm, EventVm, InspectorVm, MarketVm, OtherVm, ParamRefVm, ParamVm, ValueVm,
 };
+use crate::vm::pricestep::{ExplainerVm, WaterfallVm};
 use crate::vm::registry::CopiedVm;
+use egui::Color32;
+use egui_plot::{Bar, BarChart, Legend, Line, Plot, PlotPoints, VLine};
+
+/// What the inspector reads besides its view-model.
+pub struct Ctx<'a> {
+    /// The plotted series.
+    pub plots: &'a [SeriesKey],
+    /// A market's log waterfall up to the cursor, or why there is none.
+    pub waterfall: Option<&'a Result<WaterfallVm, String>>,
+}
 
 /// Draw the inspector.
-pub fn show(ui: &mut egui::Ui, vm: &InspectorVm, plots: &[SeriesKey], out: &mut Vec<Intent>) {
+pub fn show(ui: &mut egui::Ui, vm: &InspectorVm, ctx: &Ctx<'_>, out: &mut Vec<Intent>) {
+    let plots = ctx.plots;
     egui::ScrollArea::both()
         .id_salt("inspector")
         .show(ui, |ui| match vm {
-            InspectorVm::Market(m) => market(ui, m, plots, out),
+            InspectorVm::Market(m) => market(ui, m, ctx, out),
             InspectorVm::Actor(a) => actor(ui, a, plots, out),
             InspectorVm::Param(p) => param(ui, p, plots, out),
             InspectorVm::Event(e) => event(ui, e),
@@ -102,7 +119,8 @@ fn param_refs(ui: &mut egui::Ui, id: &str, refs: &[ParamRefVm]) {
         });
 }
 
-fn market(ui: &mut egui::Ui, m: &MarketVm, plots: &[SeriesKey], out: &mut Vec<Intent>) {
+fn market(ui: &mut egui::Ui, m: &MarketVm, ctx: &Ctx<'_>, out: &mut Vec<Intent>) {
+    let plots = ctx.plots;
     ui.heading(format!("Market {}/{}", m.node, m.good));
     at(ui, m.tick, &m.date);
     values(ui, "market", &m.values, plots, out);
@@ -110,6 +128,25 @@ fn market(ui: &mut egui::Ui, m: &MarketVm, plots: &[SeriesKey], out: &mut Vec<In
         ui.label("ln(p′/p)");
         value_label(ui, m.log_step, "per tick");
     });
+    ui.separator();
+    ui.strong("Why this price: the tick's step, recomputed");
+    match (&m.explainer, &m.unexplained) {
+        (Some(e), _) => explainer(ui, e),
+        (None, Some(why)) => {
+            ui.weak(why);
+        }
+        (None, None) => {}
+    }
+    if let Some(w) = ctx.waterfall {
+        ui.separator();
+        ui.strong("ln(p/p₀) as Σ k·x: the log waterfall");
+        match w {
+            Ok(w) => waterfall(ui, w),
+            Err(why) => {
+                ui.weak(why);
+            }
+        }
+    }
     ui.separator();
     ui.label(format!("rule {}, one-sided {}", m.rule, m.one_sided));
     let refs: Vec<ParamRefVm> = m
@@ -134,6 +171,119 @@ fn market(ui: &mut egui::Ui, m: &MarketVm, plots: &[SeriesKey], out: &mut Vec<In
             out,
         );
     }
+}
+
+/// The explainer: every input, and markets' own result beside the run's, bit for bit.
+fn explainer(ui: &mut egui::Ui, e: &ExplainerVm) {
+    egui::Grid::new("explainer")
+        .num_columns(2)
+        .striped(true)
+        .show(ui, |ui| {
+            let row = |ui: &mut egui::Ui, k: &str, v: String| {
+                ui.label(k);
+                ui.label(v);
+                ui.end_row();
+            };
+            row(ui, "p, posted", format!("{:?}", e.price));
+            row(ui, "S", format!("{:?}", e.supply));
+            row(ui, "D", format!("{:?}", e.demand));
+            let side = if e.one_side { " (one side posted)" } else { "" };
+            row(
+                ui,
+                "x = imbalance(S, D)",
+                format!("{:?}{side}", e.imbalance),
+            );
+            row(
+                ui,
+                &format!("k = {}({})", e.method, e.rate),
+                format!(
+                    "{:?} per tick, of {} {}",
+                    e.k,
+                    fmt(e.rate_value),
+                    e.rate_unit
+                ),
+            );
+            row(ui, "k·x", format!("{:?}", e.kx));
+            row(
+                ui,
+                &format!("next_price({}, {}, p, k, S, D)", e.rule, e.one_sided),
+                format!("{:?}", e.next),
+            );
+            match (e.recorded, e.equal) {
+                (Some(r), Some(eq)) => {
+                    let said = if eq {
+                        "equal bit for bit"
+                    } else {
+                        "DIFFERS from the recomputed step"
+                    };
+                    row(ui, "the run's next price", format!("{r:?}: {said}"));
+                }
+                _ => row(
+                    ui,
+                    "the run's next price",
+                    "not recorded (the lean catalogue)".to_string(),
+                ),
+            }
+            if let Some(l) = e.log_step {
+                row(ui, "ln(next/p)", format!("{l:?}"));
+            }
+        });
+}
+
+/// The waterfall: a bar a year of Σ k·x, stacked from ln(p/p₀) at the year's start; the line
+/// of ln(p/p₀) itself; and each event fired, a line at its tick, orange where it acts on this
+/// market's price or its rate.
+fn waterfall(ui: &mut egui::Ui, w: &WaterfallVm) {
+    ui.label(format!(
+        "at tick {}: ln(p/p₀) {} = Σ k·x {} + residual {}",
+        w.tick,
+        fmt(w.level),
+        fmt(w.explained),
+        fmt(w.residual)
+    ))
+    .on_hover_text(format!(
+        "p₀ {:?} at tick {}, p {:?}; ln(p/p₀) {:?}, Σ k·x {:?}, residual {:?}",
+        w.p0, w.start, w.p, w.level, w.explained, w.residual
+    ));
+    let moving = w.events.iter().filter(|e| e.moves).count();
+    ui.weak(format!(
+        "{} ticks one-sided, {} without every input recorded; {} events fired, {moving} on \
+         this price or its rate",
+        w.one_sided,
+        w.missing,
+        w.events.len()
+    ));
+    let mut before = 0.0;
+    let bars: Vec<Bar> = w
+        .bins
+        .iter()
+        .map(|b| {
+            let mid = (b.from + b.to) as f64 / 2.0;
+            let width = (b.to - b.from) as f64 * 0.9;
+            let bar = Bar::new(mid, b.kx)
+                .base_offset(before)
+                .width(width)
+                .name(format!("{}: Σ k·x {}", b.label, fmt(b.kx)));
+            before = b.level;
+            bar
+        })
+        .collect();
+    let mut level: Vec<[f64; 2]> = vec![[w.start as f64, 0.0]];
+    level.extend(w.bins.iter().map(|b| [b.to as f64, b.level]));
+    let (orange, blue) = (super::plots::PALETTE[1], super::plots::PALETTE[0]);
+    Plot::new("waterfall")
+        .height(200.0)
+        .legend(Legend::default())
+        .y_axis_label("ln(p/p₀)")
+        .show(ui, |pui| {
+            pui.bar_chart(BarChart::new("Σ k·x", bars).color(blue));
+            pui.line(Line::new("ln(p/p₀)", PlotPoints::from(level)).color(orange));
+            for e in &w.events {
+                let colour = if e.moves { orange } else { Color32::GRAY };
+                let name = format!("{} ({})", e.key, e.what);
+                pui.vline(VLine::new(name, e.tick as f64).color(colour));
+            }
+        });
 }
 
 fn actor(ui: &mut egui::Ui, a: &ActorVm, plots: &[SeriesKey], out: &mut Vec<Intent>) {

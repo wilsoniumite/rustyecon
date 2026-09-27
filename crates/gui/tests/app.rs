@@ -1279,3 +1279,62 @@ fn the_lab_script_shows_appendix_b_and_its_goldens() {
     see(&mut h, &x.value);
     see(&mut h, "0.910574687993354806041937921365");
 }
+
+#[test]
+fn the_explainer_script_paints_the_step_and_the_waterfall() {
+    // G1 (docs/GUI.md §4, "Why is this price 12.3?"): on the gate run to 1760-03-01, the
+    // market inspector of (town, bread) paints the tick's step recomputed by markets' own
+    // `next_price` from the recorded inputs, the run's next price beside it and that they are
+    // equal bit for bit, and the log waterfall's sum at the cursor.
+    let mut h = harness("gate");
+    step_until(&mut h, "paused at tick 0", |a| {
+        status(a.model()) == Some(RunStatus::Paused { tick: 0, why: None })
+    });
+    let clock = store(h.state()).world().unwrap().clock;
+    let cut = clock.tick_of(Date::parse("1760-03-01").unwrap()).unwrap();
+    h.state_mut().act(Intent::Run {
+        until: Some(cut + 1),
+    });
+    step_until(&mut h, "reached", |a| {
+        paused(a, PauseReason::Reached(cut + 1))
+    });
+    click(&mut h, "town/bread");
+    step_until(&mut h, "selected", |a| {
+        a.model().selection()
+            == Some(&Entity::Market {
+                node: key("town"),
+                good: key("bread"),
+            })
+    });
+    see(&mut h, "Why this price: the tick's step, recomputed");
+    let next = store(h.state())
+        .series(&SeriesKey {
+            measure: Measure::NextPrice,
+            at: At::Market {
+                node: key("town"),
+                good: key("bread"),
+            },
+        })
+        .and_then(|s| s.at(cut))
+        .expect("the next price at the cut's tick");
+    see(&mut h, &format!("{next:?}"));
+    see(&mut h, &format!("{next:?}: equal bit for bit"));
+    see(&mut h, "k = log_step(rate.bread)");
+    let w = rustyecon_gui::vm::pricestep::waterfall(
+        store(h.state()),
+        &key("town"),
+        &key("bread"),
+        None,
+    )
+    .expect("the waterfall");
+    assert_eq!(w.tick, cut);
+    see(
+        &mut h,
+        &format!(
+            "at tick {cut}: ln(p/p₀) {} = Σ k·x {} + residual {}",
+            fmt(w.level),
+            fmt(w.explained),
+            fmt(w.residual)
+        ),
+    );
+}
