@@ -10,6 +10,14 @@ the tape's schema is [docs/TAPE.md](docs/TAPE.md), and the GUI's design is
 **Collaboration:** as in laborformal. Sequencing, engineering and drafting are delegated to
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
+**Branch `oracle-goods`, track 1g** (2026-09-27): unit 1g, the oracle's addendum for machines
+built from goods (next step 5), is built on branch `oracle-goods` from `reboot` at `16eb728`,
+P1g.1-P1g.5, not merged and not pushed. It is D-G10 (productivity and the chain to land checked on
+the per-period recipes, which accepts every economy 1c accepted with every result bit for bit),
+the mapping of a chain of goods to unit 1c, plants as machine types (the capacity damper's long
+run), 210 goldens at 70 digits, and tests for some of O28's mutants. Its record is the first block
+of "Where things stand"; its proposed decisions are 179-190 and its open items O31-O35 (track G1,
+on its own branch, numbers 200-219 and O36-O40, so the two do not collide).
 **State as of:** 2026-09-27, on `reboot`'s line. **`phase1` is merged** into it by this
 commit, on branch `merge-p1` from `reboot` at `2398b6a`, not pushed: while `reboot` stays at
 `2398b6a`, taking the merge is a fast-forward, on your word. Two lines of work that both started
@@ -59,6 +67,89 @@ it; the demo's second pass, with goods, machine types and carriers, on the many-
 (O27). "Next steps" has each.
 
 ## Where things stand
+
+**Unit 1g, machines as goods, is built** (2026-09-27, branch `oracle-goods`, worktree
+`D:/rustyecon-wt/og`; [crates/oracle/docs/unit-1g.md](crates/oracle/docs/unit-1g.md)). You asked
+on 2026-09-27 that goods use other goods rather than abstract machine services; GOODS-CHAIN §2 made
+the oracle's part an addendum to unit 1c, and D-G1 rewords decision 67: machines are durable goods
+built from and run on goods, never from a category (E1). The unit was built as Phase 1's were but
+for the adversarial pass (O35): a spec checked against the generator's draft at 70 digits, then a
+build whose goldens come from the committed generator, with the build's own mutation check. Only
+`crates/oracle` changed, besides this file and the root README.
+
+| Commit | What landed |
+|---|---|
+| `1a70eab` P1g.1 | the spec, docs/unit-1g.md, its open questions proposed as decisions 179-190 |
+| `af68f3c` P1g.2 | D-G10 in `machine_block.rs`; `src/goods.rs`, the mapping; `src/plants.rs`, plants as machine types; `generate_1g.py` and `goldens_1g.txt`; the gate groups h1-h7 and h9; `m7::validation`'s two rows on A^op + A^I amended, and a note in unit-1c.md |
+| `f054556` P1g.3 | O28: eight tests for mutants the re-checks of 1d-1f left (h8) |
+| `8cce6b1` P1g.4 | h8's worker-type test asserts its reason, after the build's mutation check found its mutant alive |
+| P1g.5 | the spec's §12, the oracle's README, this file, the root README's status line |
+
+- **D-G10** (decision 180, amending 71). 1c asked that I − (A^op + A^I) be a nonsingular M-matrix:
+  a machine buildable from one period of its own chain's services. At weekly ticks that refuses
+  A0 (a^I = a/δ = 148, radius 148) and CHAIN's horse (radius 1.50 on its chain), though their
+  per-period matrices A^q = A^op + Δ·A^I are productive (0.3; 0.24). 1g checks A^q, which 1c
+  already factored and refused on a nonpositive pivot, and the chain to land as a pattern by
+  reachability, so no rounding refuses a chain that reaches land. Every economy 1c accepted is
+  accepted and nothing computed after validation changed, so every result is bit for bit: the
+  1a-1f gate passes unchanged but for `m7::validation`, whose two rows on A^op + A^I now read per
+  period (0.6 + 4.1 refused, 0.6 + 0.6 valid). Of 3000 random blocks with δ down to 1e-3, 498
+  are accepted by both rules, 470 by D-G10 only (279 of them interior, every 1c identity holding)
+  and none by 1c only.
+- **The mapping** (decisions 181-183, 186). `GoodsChain` (categories; materials; machines, each a
+  good with a build recipe per unit of stock, its hours, κ hours a period per unit, θ, an
+  operating recipe per hour, δ and J, all per period) maps to unit 1c: materials and machine goods
+  are flow types, each machine's hours a type built from 1/κ of its good. E1 and E2 (a category
+  using a material or hours directly, G1) are refused, and every other error is named by its good.
+  `ChainEconomy` solves it and reads every good's price and output back, with each machine's
+  stock, goods made, hour price, O, V, hours, wealth and interest.
+- **Plants** (decisions 184-185). `PlantEconomy` rewrites a flow type to CAPACITY's long run:
+  operating ζ times its bundle, build κ times the plant's recipe, the plant's δ and J, at any ρ.
+  A plant of s bundles of its own recipe is closed form, and at s1 and ρ 0 its long run is the
+  flow economy (P1 is L2's within 1e-13); any other recipe is a fixed point in half steps of
+  ln(κ/ζ) to 1e-13 (P2, labour and land: 42 steps, v 0.13869, as CAPACITY's check 2c found);
+  θ = 1 is the type bit for bit.
+- **Goldens**: `generate_1g.py` writes 210 at 70 digits in about 26 s, importing generate_1c.py.
+  Each chain is solved directly, by its embedding and by its fold, agreeing within 9.9e-71, and
+  against the earlier unit where it is one of its economies: S1 = 1c's M3, S1 at ρ 0 = M3z, A0 at
+  ρ 0 = 1a's Appendix B, A0 in the fork economy = 1b's C3, P1 = L2's flow economy. The instances:
+  S1, S1Z, S2 and S2H (ORACLE-GOODS §1.6: the switch at x 0.36148547771379892814, x*
+  0.66836997221771948458), A0 at 52 ticks a year (ρ 0 and 5% a year, and in the fork economy),
+  CHAIN's horse at weekly periods (J 156, on a constructed county), and L2 with plants (P1, P1S,
+  P1R, P2). Through 1d's, 1e's and 1f's forms every 1g economy is 1c's bit for bit (h7).
+- **Largest errors**: every golden within 4.5e-16 relative, but S1Z's 1 − x* against M3z's golden
+  (2.9e-15) and P2, the fixed point, within 9.1e-14 (its ratio).
+- **Tests**: 46 (4 unit, 42 gate in h1-h9, h8's 8 for O28); the oracle has 484 (88 unit, 395
+  gate, 1 doc) and the workspace 841 (3 ignored and run by name).
+- **The mutation check** (the build's own, `D:/rustyecon-og/mut/`): 37 mutants of D-G10 (8), the
+  mapping (13) and the plants (16), each applied alone with the package's tests run in release: 36
+  killed. The survivor adds an input's coefficient where the mapping sets it, equivalent since an
+  input named twice is refused before. The damping of the fixed point is guarded by a test that each
+  step halves the move, and its tolerance by P2's goldens (docs/unit-1g.md §12 item 7).
+- **O28** (h8): eight tests: the 1d re-check's four probe tests with the assertions its probes
+  printed; 1e's wall's-end frame with space's land at 2 and 0.5; a CES economy with an intermediate
+  input and required hours (1f); and two of 1d's first-pass survivors, an economy with no worker
+  types (whose test now asserts the reason, P1g.4: without its own check the economy is still
+  refused, by the next check, with the wrong reason) and the jump schedule refused as
+  `LaborNotCleared`. Of the ten O28 mutants run on this tree nine are killed, and Lemma B.1's flag
+  without its shortage check survives, equivalent (a short point's P_s is NaN). What is left is O33.
+- **The gates on `8cce6b1`**, with a clean build stamp (logs in `D:/rustyecon-og/gate/final/`):
+  `scripts/gate.sh` is green in WSL (`CARGO_TARGET_DIR=/root/scratch/target-og`, 92 s, warm) and on
+  Windows under Git Bash (`D:/rustyecon-targets/og-gate`, 94 s, warm; 208 s and 223 s on `f054556`
+  before it): 841 tests pass in the workspace on each machine, 3 ignored and run by name, which is
+  the `phase1` merge's 795 and 1g's 46; certify alone, Parquet-free, passes 67 with 1 ignored; zero
+  warnings. The gate hash is `0x61f9c8529131ff17`, the stamp names `8cce6b1`, clean, on both; both
+  certificates PASS and recompute byte-equal, the probe's pins hold, `derive.py --check` passes,
+  `demo_runs_to_1901` passes, and telemetry is identical from two processes. The GUI's non-blocking
+  check and the wasm32 checks of the engine and certify pass in WSL (skipped on Windows).
+  `scripts/gui.sh` is green in WSL (84 s) and on Windows (96 s): 84 tests pass with 2 ignored, and
+  the five hash diffs are equal on both machines: gate (2,080 ticks, `0x61f9c8529131ff17`), appb
+  (20,000, `0xe1fa082b26995867`), demo-gb (7,852, `0xfad880fe08d06645`), `branch`
+  (`0x9fc2f964a8510756`) and `removal` (`0xd057e3ea708da495`). No file outside `crates/oracle`
+  changed but this file and the root README.
+- **The generators**: all seven pass `--check` under laborformal's venv on Windows
+  (`generate.py` 1 s, `generate_1b.py` 2 s, `generate_1c.py` 12 s, `generate_1d.py` 14 s,
+  `generate_1e.py` 41 s, `generate_1f.py` 23 s, `generate_1g.py` 24 s).
 
 **`phase1` is merged** (2026-09-27, this commit). Phase 1's units 1d–1f and its close
 (P1.8–P1.14, `a2a9b93` to `78d6edc`, on `phase1`) and `reboot`'s line since `503897e` (the `g0`
@@ -1943,6 +2034,43 @@ lists them together.
      1 + S < 1/2, the corners bisected in v, a point beyond every double read +∞. No
      fixed-basket result changes.
 
+Decisions 179-190 are unit 1g's (2026-09-27, branch `oracle-goods`; track 1g's range is 179-199,
+track G1's 200-219), the open questions of its spec (docs/unit-1g.md §11), which the build took as
+proposed. All are open to veto; a veto of one means a change to the oracle and its goldens, not to
+any engine path.
+
+179. **Decision 67 reworded (D-G1)** (1g Q1): machines are durable goods built from and run on
+     goods; machine recipes use materials, machine goods, machine hours, labour and land, never
+     a category (E1), which keeps 67's mathematics (x-free machine totals, closed-form switches,
+     no type returning). Alternative: GOODS-CHAIN's G5, machines built from categories. **Binds
+     Phase 2**: the goods chain's instances keep E1.
+180. **D-G10: productivity and the chain to land per period** (1g Q2), amending 71: I − A^q a
+     nonsingular M-matrix with A^q = A^op + Δ·A^I, and the chain to land a pattern found by
+     reachability. It accepts every economy 71's rule accepted, with every result bit for bit.
+     Alternative: the chain to land by b̃^q > 0 in f64, which can refuse a few economies 1c
+     accepts.
+181. **The mapping is the oracle's, per period** (1g Q3): `GoodsChain`, keyed by strings; the tape
+     builder converts yearly δ, ρ and J with core's `Clock`. Alternative: in worldgen, on a tape
+     schema that does not exist yet (O32).
+182. **The embedding keeps every good's row** (1g Q4): materials and machine goods as flow types,
+     so every good's price and output is an output of the equilibrium. Alternative: the fold,
+     one type per machine, which loses the goods' prices.
+183. **A machine good's unit is its stock, with κ hours a period** (1g Q5): a head, an engine; the
+     hours type is built from 1/κ of it, and the good's price is per unit of stock.
+184. **Plants on flow types, at any ρ, θ 1 as no plant** (1g Q6).
+185. **A plant of any other recipe by a damped fixed point, every step interior** (1g Q7): half
+     steps in ln(κ/ζ) to 1e-13 within 200 steps, refused otherwise. Alternative: Newton's method,
+     which the generator uses at 70 digits.
+186. **E2 enforced; G1 not approximated** (1g Q8): a category that uses a material, a machine good
+     or hours directly is refused. Alternative: G1 now. **Binds Phase 2**: hearth coal and
+     carters' fodder wait for G1.
+187. **The illustrative counties** (1g Q9): A0 on Appendix B's (GOODS-CHAIN's rule A), the horse on
+     a constructed one (N 12, T 10, h 1, χ_max 1/20). Never scored (R5).
+188. **The weekly tick for the goldens** (1g Q10): δ and ρ by `Clock`'s formulas at 52 ticks a year,
+     J in ticks (the horse's three years are 156).
+189. **O28's cheap survivors get tests** (1g Q11): eight (h8); the rest are carried (O33).
+190. **The test groups are h1-h9** (1g Q12), since "g" is 1a's.
+
 ## Open — your calls
 
 - **The GUI's decisions**, 22–34 (D1–D13): G0 carried them out, none vetoed; a veto now reopens
@@ -2292,6 +2420,39 @@ when its fix is reverted, checked by mutation (the review's own mutants among th
   when they are more than one cell apart (§5.5); a consumption tax equals a wage tax in real
   numbers, and in f64 the two allocations agree to the supply's sensitivity (unit-1f.md §5.5).
 
+- **O31. The rest of the goods addendum** (GOODS-CHAIN §2, D-G9; docs/unit-1g.md §9). 1g built
+  D-G10, the mapping and plants. Not built: G1 (categories buying machine-side goods; E2 is
+  refused instead), G3 (several recipes for one good: a chain has one recipe per good by
+  construction; until G3, one task type per recipe), G2 with G3 (several non-produced inputs
+  cleared by recipe mixes), G4 (retirement by lot life; the engine burns δ geometrically,
+  D-G2), G5 (machine goods on the task line; E1 is refused), O3 (a machine good per task
+  segment) and O6 (the spatial equilibrium). Each is 1c bit for bit when unused, and each with
+  interest or several recipes must count its roots or refuse (decision 70).
+- **O32. The mapping where tapes are built.** `GoodsChain` is per period and keyed by strings; a
+  tape's goods (materials, machine goods with κ, hours) and its yearly δ, ρ and J need a schema
+  and a builder in worldgen or the probe's generator, which converts with `Clock::fraction`,
+  `Clock::compound` and `Clock::ticks` (h4 checks the three against the goldens) and takes D-G8's
+  J (J_b under M1, J_b + 1 under M3). With the goods chain's engine work (next step 6) or the
+  demo's second pass (O27).
+- **O33. What O28 still leaves** (after h8). 1d: the edge's κ bracket started at 0 rather than ζ
+  (by reading, the same root, and only the bisection's step count would differ), a tie edge's
+  share one double up (a change in the last bit of σ), Lemma B.1's flag without its shortage check (equivalent: a short
+  point's P_s is NaN, so its funding test is false either way), and five of the first pass's
+  survivors (the walk's and the corners' orders at a tie, the corner supply at equality, a tie's
+  σ where f(1) ≥ 0, the all-human corner's ω at the base price, the pool share's zero guard). 1f:
+  the exit-free scan's sides not passed to the count, which only `count_changes`' unit test sees.
+  The O28 mutants that h8 kills are listed in docs/unit-1g.md §12 item 8.
+- **O34. The plant's fixed point** (decision 185). Its uniqueness is not proved: with a recipe
+  other than the bundle the ratio κ/ζ moves with the equilibrium's prices, and the map was a
+  contraction on every instance tried (P2's moves halve each step, as the damping sets them).
+  CAPACITY's recommendation, the bundle plant at s1, needs no fixed point. A plant built from the
+  chain's own machine goods, CAPACITY's "different 1c economy", is a fixed recipe over machine
+  services and is covered, not tried on a chain.
+- **O35. 1g's verification.** The bounded verification of Phase 1 (an independent derivation that
+  does not read the crate, mutation testing by another hand, one fix round, a re-check of the
+  fixed items) is not done for 1g; the build's own mutation check is recorded above. It should
+  come before Phase 2 compares agents against the goods chain.
+
 ## Corrections logged (A3; ADDENDUM §1.4)
 
 REVIEW.md is kept as written; these of its claims do not hold.
@@ -2340,15 +2501,13 @@ needs your rulings first.
    entry types, `Basis` and `Unit` (decision 97), so the GUI's edge to core goes and core's
    writer is out of its reach by type again. `scripts/gate.sh`'s check of the GUI then says
    whether the GUI still builds; a break is fixed at G1 at the latest (D1).
-5. **The oracle's addendum for machines built from goods** (GOODS-CHAIN §2), after your ruling
-   on 67's rewording (D-G1): machines are durable goods built from and run on goods, and the
-   equilibrium stays a unit 1c economy with more rows. It is D-G10, productivity and the chain
-   to land checked on the per-period matrix, which keeps every economy 1c accepts today and its
-   results bit for bit; the mapping of a tape's chain to `MachineParams`, where tapes are built;
-   and `generate_1g.py` at 70 digits (S1, S2 and S2h, with A0 at 52 ticks a year and the horse
-   at weekly periods as D-G10's validation goldens), nesting 1c bit for bit. It waited for
-   `phase1`, which edits `machine_block.rs`, and it is the next change to the oracle, so O28's
-   tests come with it. Machine recipes stay on pool labour (decision 140).
+5. **The oracle's addendum for machines built from goods** (GOODS-CHAIN §2): **built** as unit
+   1g on branch `oracle-goods` (P1g.1-P1g.4, "Where things stand"), not merged. What is left:
+   your rulings on decisions 179 (67 reworded, D-G1) and 180 (D-G10), and on 181-190; the merge
+   into `reboot`, whose only other change to `crates/oracle` would be track G1's, if any; 1g's
+   bounded verification (O35); the mapping's call where tapes are built (O32); and the rest of
+   the addendum when its instances need it (O31). Machine recipes stay on pool labour (decision
+   140).
 6. **The goods chain, with a plant stock as its loop damper** (GOODS-CHAIN §3–§6; CAPACITY.md,
    in place of LOOPS.md's diminishing returns, which stay the registered alternative). First
    the mirror's own next step, in Python: a material market, the fodder–horse-days loop with
@@ -2422,8 +2581,9 @@ crates/engine            Sim, the tick, reports, resume, the replay audit, the r
 crates/cli               the rustyecon binary: run, resume, replay, registry, certify, worldgen,
                          licences
 crates/oracle            the equilibrium solver, units 1a (P1.1) and 1b–1f (P1.2–P1.13),
-                         Phase 1 closed at P1.14; its README, docs/unit-1{a,…,f}.md and
-                         goldens/generate{,_1b,…,_1f}.py; tests/gate/p1_gate.rs, the gate
+                         Phase 1 closed at P1.14; unit 1g, machines as goods (P1g.1–P1g.3,
+                         branch oracle-goods); its README, docs/unit-1{a,…,g}.md and
+                         goldens/generate{,_1b,…,_1g}.py; tests/gate/p1_gate.rs, the gate
 crates/certify           criteria, batteries, the kick, the sealed certificate, the manifest;
                          Parquet telemetry behind the feature `parquet` (S2.3–S2.5)
 crates/certify/testdata  appb variants from `appb-tape --perturb`: bcycle, freeze, july, buffer16
@@ -2510,6 +2670,11 @@ scripts/gui.sh           the GUI's gate, run at each G-stage (G0.1); diffs the e
   `synthesis/`, and `capacity/CAPACITY.md` over `capacity/model/` and `capacity/test/`). Each
   pass keeps its scripts and their outputs beside its report, and the mirrors' passes keep
   `SHA256SUMS` of the unedited files they copied.
+- Unit 1g ran from a worktree, `D:/rustyecon-wt/og` (`/mnt/d/rustyecon-wt/og` in WSL), on
+  branch `oracle-goods`, with targets `/root/scratch/target-og` and `D:/rustyecon-targets/og-*`,
+  and scratch in `D:/rustyecon-og/` (the mutation runs in `mut/`, the gates' logs in `gate/`, the
+  error log of the golden comparisons in `errors-h.tsv`). Its design sources are
+  `D:/rustyecon-goods/` and `D:/rustyecon-loops/capacity/`, read-only.
 - The markets probe ran from a worktree, `D:/rustyecon-wt/p2m` (`/mnt/d/rustyecon-wt/p2m` in
   WSL), on branch `phase2-markets`, with targets `/root/scratch/target-p2m-<label>` and
   `D:/rustyecon-targets/p2m-<label>`. Its frame, prediction, build checks, registration, runs,
@@ -2518,7 +2683,7 @@ scripts/gui.sh           the GUI's gate, run at each G-stage (G0.1); diffs the e
   `kick`, `family`, `point`, `elasticity`), and `D:/rustyecon-p2m/report/make_results.py`
   (WSL's python3) remakes docs/probe/results/markets/ from `D:/rustyecon-p2m/runs/`.
 - The oracle's goldens: from `crates/oracle`, run `goldens/generate.py`, `generate_1b.py`, …,
-  `generate_1f.py` with `--check` under laborformal's venv
+  `generate_1f.py` and `generate_1g.py` with `--check` under laborformal's venv
   (`C:/Users/wilso/Documents/GitHub/laborformal/venv/Scripts/python.exe`,
   `PYTHONIOENCODING=utf-8`); together they take about two minutes (`generate_1e.py` 49 s,
   `generate_1f.py` 28 s). A change to `generate.py` means rerunning all six, since each later

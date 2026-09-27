@@ -414,8 +414,8 @@ The readouts of §4.5 come with every interior long run.
   `to_machine_params`; `ChainEconomy<S>` with `new`, `economy`, `rows`, `row(key)`, `solve`,
   `readout(&Eq1c)`; `Row::{Category(j), Material(k), MachineGood(k), Hours(k)}` (1c indices);
   `ChainEq { eq: Box<Eq1c>, goods: Vec<GoodEq>, machines: Vec<MachineEq> }`; `ChainError`.
-- `src/plants.rs`: `Plant`, `PlantRecipe`, `PlantEconomy<S>` with `new`, `long_run`,
-  `ratios_at_bundle`, `solve`, `solve_within(steps)`; `PlantEq { eq, ratios, plants:
+- `src/plants.rs`: `Plant`, `PlantRecipe`, `PlantEconomy<S>` with `new`, `base`, `plants`,
+  `long_run`, `ratios_at`, `solve`, `solve_within(steps)`; `PlantEq { eq, ratios, plants:
   Vec<PlantReadout>, steps, gap }`, `PlantReadout`, `PlantError`; `s1_size`, `PLANT_TOL`,
   `MAX_PLANT_STEPS`.
 
@@ -603,6 +603,72 @@ numbered from 179 (track 1g's range, 179-199; G1's is 200-219).
     carried.
 12. **The test groups are h1-h9** (proposed 190), since "g" is 1a's.
 
-## 12. Changes during the build
+## 12. Changes during the build (P1g.2-P1g.4), 2026-09-27
 
-(Filled by the build.)
+1. **D-G10 as drafted.** `MachineBlock::new` factors I − A^q and its transpose where it factored
+   I − (A^op + A^I), refuses a nonpositive pivot as "not productive" (the message now names the
+   per-period matrix), then checks the chain to land by reachability (`reaches_land`); the
+   physical factorisation and its solve are gone, and everything after is computed as before.
+   The only order that changed is between the two refusals: an economy refused on both counts is
+   now refused as "not productive" first, as an economy 1c refused on productivity was. No
+   economy 1c accepted changes, and the 1a-1f gate passes unchanged but for
+   `m7::validation`'s two rows on A^op + A^I (§8): 0.6 + 0.6 of the loom's own service is now
+   valid, and the rows refused are 0.6 + 4.1 (1.01 a period) and 12 to build (1.2). unit-1c.md
+   §3.2 and §8 carry a note.
+2. **The chain to land by reachability** needs more than one pass when a type reaches land
+   through a higher-indexed landless type (`h1::the_chain_to_land_is_a_pattern` has one), and
+   the lowest type that does not reach is named, as 1c named it.
+3. **The mapping's API** is §6's: `GoodsChain::rows` and `to_machine_params`, `ChainEconomy`
+   with `readout` on an `Eq1c` by value, `ChainEq::good(key)` and `machine(key)`. §3.2's checks
+   1-5 run good by good in the mapping's order (the keys first; then each material's recipe,
+   each machine good's, each machine's κ and operating recipe; then the categories' inputs), so
+   the first error in that order is the one reported. A unit-1c error that names a machine type
+   or a category is named by its good; the economy's own parameters by none.
+4. **Plants.** `PlantEconomy::new` validates the unplanted economy first; θ takes δ's range,
+   [SCALE_FLOOR, 1]. `ratios_at(&Eq1c)` gives the ratios an equilibrium's prices imply; a
+   bundle plant's stays in closed form beside a fixed one (`h6::a_fixed_recipe_beside_a_bundle`).
+   Each readout's capital share u·V/p is reported, 1 − θ at the long run.
+5. **Numbers.** The generator writes 210 goldens in about 26 s and reproduces every number of
+   §7; its three forms and the earlier units agree within 9.9e-71. The oracle's f64 values match
+   the goldens within 4.5e-16 relative, but for S1Z's 1 − x* against M3z's golden (2.9e-15, its
+   x* 0.94) and P2's, whose fixed point stops at `PLANT_TOL`: 42 steps, a last move of 9.1e-14
+   in ln r, and the ratio, κ and the plant within 9.1e-14, 1 − x* within 3.7e-14. The radii by power
+   iteration on I + A agree with mp.eig's to 1e-9, the test's tolerance. P1 matches L2's flow
+   economy within 1e-13 (4e-16 measured).
+6. **h1's draws**: of 3000 random blocks (1c's m6 ranges with machine inputs up to 3 and δ
+   log-uniform down to 1e-3, ρ up to 0.002, seed 1979), 498 are accepted by both rules, 470 by
+   D-G10 only, 279 of them interior with every 1c identity, 2032 by neither, and none by 1c
+   only.
+7. **The build's mutation check** (scratch `D:/rustyecon-og/mut/`, `mutate.py`): 37 mutants of
+   1g's code, each applied alone and the package's tests run in release: 8 of D-G10 (1c's rule
+   restored beside it, the chain to land by a clearing-side solve, build inputs, operating inputs
+   or build land ignored, one pass over the types, the highest landless type named, no
+   productivity check), 13 of the mapping (1/κ, the good's index, E1's and E2's errors, a repeated
+   input accepted, the readouts, the categories' inputs transposed, a row index, an error named by
+   another good, a machine good's δ) and 16 of the plants (the ratios, ζ's and κ's exponents,
+   damping, the tolerance, θ 1, a durable type, the stock, P_K, u at ρ 0, the capital share, the
+   closed form, s1, the base's validation, a recipe's cost). 36 are killed. The survivor adds an
+   input's coefficient where the mapping sets it, which is equivalent, since an input named twice
+   is refused before; a machine good's δ (a flow type's δ changes nothing) is killed only by the
+   test of the mapped structure. The damping is guarded by `h6::the_cap_refuses`, which checks
+   that each step halves the move; the tolerance by P2's goldens.
+8. **O28** (§8 h8): eight tests. They port the 1d re-check's four probe tests (the other types'
+   closure wages at a corner, Lemma B.1 at the basket's price with the reserved costs, the last
+   piece started at the last wall switch's value, f_∞ = 0 after a positive start) with the
+   assertions the probes printed; take 1e's frame probe with space's land at 2 and 0.5 and assert
+   the wall's end's branch, q = 1/b̃_g and the junction; add a CES economy with an intermediate
+   input and required hours (1f's required hours from gross outputs); and add two first-pass
+   survivors of 1d: an economy with no worker types, and the jump schedule, which 1d must refuse
+   as `LaborNotCleared` as 1a-1c do. The O28 mutants, run on this tree: the four 1d probe tests kill
+   their mutants, and so do the 1e frame test (its price inverted, and 1; the second is now also
+   killed by 1f's draws), the CES test, the jump test and, after P1g.4 made it assert its reason,
+   the worker-type test: without its own check an economy with no worker types is still refused,
+   by the next check, under the same name with the wrong reason. Lemma B.1's flag without its
+   shortage check survives, and is equivalent: a short point's P_s is NaN, so its funding test
+   is false either way. The rest are carried (STATE.md O33).
+9. **Tests.** 46: 4 unit (`goods::tests`, `plants::tests`) and 42 gate, h1 5, h2 6, h3 3, h4 4,
+   h5 2, h6 10, h7 2, h8 8 and h9 2. The package has 484: 88 unit, 395 gate and 1 doc, and the
+   workspace 841.
+10. **The generators.** All seven pass `--check` under laborformal's venv on Windows:
+   `generate.py` 1 s, `generate_1b.py` 2 s, `generate_1c.py` 12 s, `generate_1d.py` 14 s,
+   `generate_1e.py` 41 s, `generate_1f.py` 23 s, `generate_1g.py` 24 s.

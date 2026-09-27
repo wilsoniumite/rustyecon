@@ -32,8 +32,11 @@ at the paper's margins reach the oracle's equilibrium of the SSRN Appendix B eco
 ([docs/probe/REPORT.md](docs/probe/REPORT.md)). Phase 1, the oracle, is closed (P1.14): units
 1a to 1f have landed, among them 1d (worker types and the wall), 1e (parcels, the idle margin
 and the priced exit s(q)) and 1f (households and government), and PLAN Phase 1's gate is met
-item by item ([crates/oracle/README.md](crates/oracle/README.md)). The GUI is designed
-([docs/GUI.md](docs/GUI.md)), and its shell, G0, is closed: G0.1, the viewer, and G0.2, the
+item by item ([crates/oracle/README.md](crates/oracle/README.md)). On branch `oracle-goods`
+(2026-09-27, P1g.1–P1g.5) the oracle gained unit 1g, machines as goods: durable goods built from
+and run on goods, productivity checked per period (D-G10), a chain of goods mapped to unit 1c,
+and plants as machine types ([crates/oracle/docs/unit-1g.md](crates/oracle/docs/unit-1g.md)).
+The GUI is designed ([docs/GUI.md](docs/GUI.md)), and its shell, G0, is closed: G0.1, the viewer, and G0.2, the
 editor (see "Running the GUI" below); G1, the oracle lab, may follow, since G0 and Phase 1's
 gate are both met. On branch `demo-world` (2026-09-27, D.1–D.5), the GUI's county map and its
 lenses came forward over an illustrative world of the United Kingdom's 93 historic counties,
@@ -47,7 +50,7 @@ lenses came forward over an illustrative world of the United Kingdom's 93 histor
 | `crates/engine` | `Sim`: the tick loop, checkpoints, resume, the replay audit, the read-only per-tick report a frontend drives and reads | Phase 0 |
 | `crates/cli` | the `rustyecon` binary (`run`, `resume`, `replay`, `registry`, `certify`, `worldgen`, `licences`): arguments, files, exit codes, the build stamp | Phase 0 |
 | `crates/certify` | dated criteria, the batteries and the kick check, sealed certificates, the run's manifest, and Parquet telemetry behind the feature `parquet` ([docs/CERTIFY.md](docs/CERTIFY.md)) | Phase 0, second session |
-| `crates/oracle` | the equilibrium solver (library `oracle`): unit 1a, one category with durability and interest, reproduces the SSRN Appendix B; 1b adds many categories and the fork, 1c many machine types and the Leontief inverse, 1d worker types and the wall, 1e parcels, the idle margin and the priced exit, 1f households and government ([its README](crates/oracle/README.md)) | Phase 1: 1a–1f landed, closed at P1.14 |
+| `crates/oracle` | the equilibrium solver (library `oracle`): unit 1a, one category with durability and interest, reproduces the SSRN Appendix B; 1b adds many categories and the fork, 1c many machine types and the Leontief inverse, 1d worker types and the wall, 1e parcels, the idle margin and the priced exit, 1f households and government, 1g machines as goods ([its README](crates/oracle/README.md)) | Phase 1: 1a–1f landed, closed at P1.14; 1g on `oracle-goods` (P1g) |
 | `crates/worldgen` | the tape compiler: the county atlas (D.1), and a first compiler for the illustrative demo world, `worlds/demo-gb` ([docs/demo/WORLD.md](docs/demo/WORLD.md), D.2), and that world's lens measures, which the GUI's map shows (D.3) | Phase 4; the demo world's form on branch `demo-world` |
 | `crates/probe` | the Phase 2 probe's harness: the Appendix B tape's generator, named perturbations, per-tick observables against the oracle ([docs/probe/RULES.md](docs/probe/RULES.md)); its oracle-free measures are certify's; the markets probe's harness, tapes and kick sets ([docs/probe/MARKETS-RULES.md](docs/probe/MARKETS-RULES.md)) | the probe, P2.0.1; the markets probe, P2.1.1 |
 | `crates/gui` | the interactive frontend, in egui: live runs, plots, lenses, the tape editor, and a county map ([docs/GUI.md](docs/GUI.md)); the binary `rustyecon-gui` | from G0, after Phase 0's second session; one stage beside each phase (G0 closed at G0.3) |

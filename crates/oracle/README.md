@@ -5,11 +5,14 @@ Dated 2026-09-25; joined the workspace on 2026-09-26 (P1.1). Units 1b and 1c wer
 and P1.6. Both were closed at P1.7, the same day. Unit 1d was added at P1.8 and verified at
 P1.9, unit 1e at P1.10, verified at P1.11, and unit 1f at P1.12, verified at P1.13, the same
 day. Unit 1f completes Phase 1's oracle. Phase 1 was closed at P1.14, also on 2026-09-27: its
-gate is met item by item ("Phase 1's gate" below) and green on WSL and on Windows.
+gate is met item by item ("Phase 1's gate" below) and green on WSL and on Windows. Unit 1g,
+machines as goods, was added on branch `oracle-goods` at P1g.1-P1g.4, the same day: its spec
+first, then its build, with its own mutation check and not yet the adversarial pass (STATE.md
+O35).
 
 The oracle is a static equilibrium solver for the pinning paper's economy (PLAN §3.4).
 It shares types but not logic with the agents, and no agent may read it (PLAN R13).
-It is built outward in units 1a-1f. This package holds all six:
+It is built outward in units 1a-1g. This package holds all seven:
 
 - **Unit 1a**: one category, one machine type, one land input, with durability and
   interest through the scalar user cost u = (ρ + δ)(1 + ρ)^(J_b − 1). At
@@ -77,6 +80,21 @@ It is built outward in units 1a-1f. This package holds all six:
   basket, the budget, the households' and the provider's accounts, the income identity with
   government and three-taxes' ledger, legs and circular flow (`Eq1f`). With the fixed basket and
   `Government::none()` it is 1e's equilibrium bit for bit.
+- **Unit 1g**: machines as goods, from the request of 2026-09-27 that goods use other goods rather
+  than abstract machine services (GOODS-CHAIN §2, outside the repository). A machine is a
+  durable good held as a stock, built from goods and run on goods, whose hours are the machine
+  services; the task margin is unchanged. Unit 1c checked productivity as built,
+  ρ(A^op + A^I) < 1, which at weekly ticks refuses a machine whose build embodies more than
+  about a week of its own chain's services; D-G10 checks it per period, on A^op + Δ·A^I, and the
+  chain to land as a pattern, which accepts every economy 1c accepted with every result bit for
+  bit. A chain of materials, machine goods and hours (`GoodsChain`) maps to a unit-1c economy
+  with more rows, refusing any machine recipe that uses a category (E1) and any category that
+  uses a material or hours directly (E2), and `ChainEconomy` reads its equilibrium back per good:
+  each material's price and output, each machine good's price, output and stock, each machine's
+  hour price, operating cost, capacity cost and hours. A plant, the capacity damper
+  y = K^(1−θ)·z^θ, is a flow type rewritten to its long run (`PlantEconomy`): in closed form for a
+  plant built from its own bundle, which at s1 and ρ = 0 is the flow economy exactly, and a
+  fixed point for any other recipe.
 
 Phase 1's gate is complete with 1f: `tests/gate/p1_gate.rs` names each item of PLAN Phase 1's
 gate in one test and lists every test that covers it (docs/unit-1f.md §13). It was checked item
@@ -91,7 +109,8 @@ the oracle (R13; docs/ENGINE.md §1).
 The specifications, with every equation and golden, are [docs/unit-1a.md](docs/unit-1a.md),
 [docs/unit-1b.md](docs/unit-1b.md), [docs/unit-1c.md](docs/unit-1c.md),
 [docs/unit-1d.md](docs/unit-1d.md), [docs/unit-1e.md](docs/unit-1e.md) and
-[docs/unit-1f.md](docs/unit-1f.md). Unit 1b's open
+[docs/unit-1f.md](docs/unit-1f.md), with unit 1g's addendum in
+[docs/unit-1g.md](docs/unit-1g.md). Unit 1b's open
 questions (its §11: the shared task line, cells in the equilibrium, gaps as a regime, bitwise
 nesting, viability at the top of the line, the generic `Regime`, the CES parameters) and unit
 1c's (its §11: machines built from categories, one capability shape per line, ties inside
@@ -114,9 +133,13 @@ walled types without in-work benefits, the evaluated start and `SurplusLabour`, 
 and its limits, the land-share household and decision 75, a basket per worker type deferred,
 the rent base, 1e's accounts kept in `Eq1f::base`, the random draws, no government purchases or
 debt; and from its verification, 178: a CES basket's numerics, the direct sum of the power mean
-where ln1p would cancel, the corners bisected in v, a point beyond every double read +∞). The
-build takes the draft's choice on each, and the repository's STATE.md lists them as decisions
-59-75 and 135-178, open to veto, and flags those that bind Phase 2.
+where ln1p would cancel, the corners bisected in v, a point beyond every double read +∞), nor
+unit 1g's (its §11, proposed as decisions 179-190: decision 67 reworded, D-G10, the mapping in the
+oracle and per period, every good's row kept, a machine good's unit its stock, plants on flow
+types, the damped fixed point, E2 enforced, the illustrative counties, the weekly tick, O28's
+cheap survivors, the h groups). The build takes the draft's choice on each, and the repository's
+STATE.md lists them as decisions 59-75, 135-178 and 179-190, open to veto, and flags those that
+bind Phase 2.
 Each spec's §12 (1f's §14) records where its build and its verification departed from the
 draft.
 
@@ -145,7 +168,7 @@ item, `p1_gate`'s own included, each passing on both machines.
 The oracle is green when the workspace's gate is (`scripts/gate.sh`): `cargo test --workspace
 --release` passes on WSL and on Windows, and `cargo clippy --workspace --all-targets -- -D
 warnings` and `cargo fmt --all --check` are clean, under the workspace's lints and
-`clippy.toml`. The six generators' `--check` (below) are run by hand before any commit
+`clippy.toml`. The seven generators' `--check` (below) are run by hand before any commit
 that touches a generator or its goldens. Unit 1a's tests cover, per docs/unit-1a.md §6:
 
 - **G1**, the SSRN Appendix B instance: the published figures to 5e-6 (x* 0.86315,
@@ -328,6 +351,30 @@ Phase 1's:
 - **f11**, `goldens_1f.txt`'s seven digests and the Rust constants;
 - **p1_gate**, Phase 1's gate item by item, and a check that every test its table names exists.
 
+Unit 1g's tests, per docs/unit-1g.md §8:
+
+- **h1**, D-G10: m7's loom with 0.6 of its own service to operate and 0.6 to build, refused by
+  1c, valid per period and solved; 0.6 + 4.1 refused; A0 as one type, A0's chain and the horse's
+  refused by 1c's rule (reimplemented in the test) and accepted, their radii by power iteration
+  against the goldens; 3000 random blocks, every one 1c accepts accepted; the chain to land
+  through a build input, in a second pass, through a product that underflows, and a landless
+  loop named by its lowest type; an A0 at ρ/δ = 3 valid and `NotViable`;
+- **h2**, the mapping on S1: the types, recipes, 1/κ, rows; S1 = 1c's M3 and S1Z = M3z on every
+  aggregate; every good's price and output; the readouts' identities and S1's fold from the
+  goldens; E1, E2, every key error and 1c's errors named by good; a machine good per head and
+  per unit of capacity;
+- **h3**, S2 and S2H: the switch in 1c's closed form, the unused machine priced, the horse
+  everywhere at ρ 0;
+- **h4**, A0: Appendix B's equilibrium (1a's goldens) from the chain and from one type, A0R with
+  interest, A0 in the fork economy = 1b's C3, and the ticks from core's `Clock`;
+- **h5**, CHAIN's horse at weekly periods: goldens, λ̃, b̃, ω, J 156;
+- **h6**, plants: P1 = L2's flow economy, P1S = the scaled flow economy, P1R with interest, P2's
+  fixed point, a bundle beside a fixed plant, θ 1 bit for bit, D-G10 needed, every step
+  interior, the cap and the half steps, validation;
+- **h7**, every 1g economy through 1d's, 1e's and 1f's forms bit for bit;
+- **h8**, eight tests for mutants the re-checks of 1d-1f left (STATE.md O28);
+- **h9**, `goldens_1g.txt`'s five digests and the Rust constants.
+
 The goldens are pinned to laborformal `31b3482`.
 
 ## Verification
@@ -420,6 +467,13 @@ still survives is recorded in STATE.md (O19 for 1b and 1c, O28 for 1d-1f), not f
   inputs, which no CES instance has) and the exit-free scan's sides not passed to the count
   (STATE.md O28).
 
+- **1g** (P1g.2-P1g.4): not yet through the adversarial pass (STATE.md O35). The build's own
+  mutation check killed 36 of 37 mutants of D-G10, the mapping and the plants; the survivor, an
+  input's coefficient added where the mapping sets it, is equivalent, since an input named twice
+  is refused before. Of ten O28 mutants run on the tree, nine are killed by h8 (one after P1g.4
+  made the worker-type test assert its reason), and Lemma B.1's flag without its shortage check
+  survives, equivalent: a short point's P_s is NaN (docs/unit-1g.md §12 items 7-8).
+
 Each spec's §12 (1f's §14) has the details.
 
 ## Layout
@@ -439,9 +493,11 @@ Each spec's §12 (1f's §14) has the details.
 | `src/exit.rs` | unit 1e's exit value alone: `PricedExit` (s(q), q_enc, the take), `coverage`, `coverage_threshold`, `crowding_limit` |
 | `src/parcels.rs` | unit 1e: `Parcel`, `ExitForm`, `ParcelParams`, `ParcelEconomy`, the exit sub-problem, the idle stretch, enclosure points and ties, the scan, `Eq1e` and its outputs |
 | `src/households.rs` | unit 1f: `Basket`, `Government`, `HouseholdParams`, `HouseholdEconomy`, the participation rule and the CES basket (crate-private), `Eq1f` with the budget, the accounts and the ledger |
+| `src/goods.rs` | unit 1g: `GoodsChain` (categories, materials, machines by key), the mapping to `MachineParams`, `ChainEconomy`, `ChainEq` read per good, `ChainError` |
+| `src/plants.rs` | unit 1g: `Plant`, `PlantEconomy` (the long run of a plant on a flow type, closed form or a fixed point), `PlantEq`, `PlantError`, `s1_size` |
 | `src/dump.rs` | the one-line text interface behind `examples/dump.rs` |
 | `examples/dump.rs` | reads economies on stdin, writes one result line each |
-| `tests/gate/` | the gate: one test crate, one module per golden group (1a's `g*`, 1b's `c*`, 1c's `m*`, 1d's `d*`, 1e's `e*`, 1f's `f*`), and `p1_gate`, Phase 1's gate item by item |
+| `tests/gate/` | the gate: one test crate, one module per golden group (1a's `g*`, 1b's `c*`, 1c's `m*`, 1d's `d*`, 1e's `e*`, 1f's `f*`, 1g's `h*`), and `p1_gate`, Phase 1's gate item by item |
 | `goldens/generate.py` | computes every golden with mpmath at 70 digits |
 | `goldens/goldens.txt` | its output, 30 significant digits |
 | `goldens/generate_1b.py` | unit 1b's goldens, at 70 digits; imports `generate.py` to assert the nesting |
@@ -454,6 +510,8 @@ Each spec's §12 (1f's §14) has the details.
 | `goldens/goldens_1e.txt` | its output, 223 goldens |
 | `goldens/generate_1f.py` | unit 1f's goldens, at 70 digits; builds on `generate_1e.py` (and so the other four), and asserts the nesting |
 | `goldens/goldens_1f.txt` | its output, 235 goldens |
+| `goldens/generate_1g.py` | unit 1g's goldens, at 70 digits; its `Economy` is `generate_1c.py`'s with D-G10's validation, and it asserts the nesting with 1a, 1b and 1c |
+| `goldens/goldens_1g.txt` | its output, 210 goldens |
 
 ## Running the tests
 
@@ -492,8 +550,11 @@ The counts, the same on WSL and on Windows at each step:
 | P1.12, unit 1f | 2026-09-27 | 83 | 348 | 1 | 432 |
 | P1.13, 1f's verification | 2026-09-27 | 84 | 353 | 1 | 438 |
 | P1.14, Phase 1 closed | 2026-09-27 | 84 | 353 | 1 | 438 |
+| P1g.2, unit 1g | 2026-09-27 | 88 | 387 | 1 | 476 |
+| P1g.3, O28's tests | 2026-09-27 | 88 | 395 | 1 | 484 |
+| P1g.4, h8's worker-type test | 2026-09-27 | 88 | 395 | 1 | 484 |
 
-Of the 438, 1a has 114, 1b 59 (5 unit, 54 gate), 1c 69 (10 unit, 59 gate), 1d 56 (10 unit,
+Of the 484, 1g has 46 (4 unit, 42 gate, 8 of them O28's); of the 438 before it, 1a has 114, 1b 59 (5 unit, 54 gate), 1c 69 (10 unit, 59 gate), 1d 56 (10 unit,
 46 gate), 1e 63 (10 unit, 53 gate) and 1f 77 (7 unit, 62 gate, and `p1_gate`'s 8).
 
 ## The dump example
@@ -672,6 +733,24 @@ as above: on 1d's, 8.0e-14 on J2's trained wage (its κ 6.1e-14, σ
 the wall's limit at 1e-8, by design, and is 1.3e-10 from it); on 1f's, 3.7e-15 on CF3's P,
 with the three finite differences within their 1e-8.
 
+Unit 1g's goldens work the same way, with five digests (`generate_1g.py`, `generate_1c.py`,
+`generate_1b.py`, `generate.py` and its own goldens), checked by `h9_goldens_file`:
+
+```sh
+python goldens/generate_1g.py           # writes goldens/goldens_1g.txt, in about half a minute
+python goldens/generate_1g.py --check   # exits 1 if goldens_1g.txt is not what it writes
+```
+
+Its `Economy` is `generate_1c.py`'s with D-G10's validation in place of 1c's (docs/unit-1g.md
+§7), and it asserts that the two give the same object and solve on M3, M3z, M4 and M5. Each chain
+is solved directly (the whole price system with the margin as one more row), by its embedding
+and by its fold, which agree within 9.9e-71, and against the earlier unit where it is one of its
+economies: S1 = M3, S1Z = M3z, A0 = Appendix B, A0 in the fork economy = C3, the plants at s1 =
+L2's flow economy. The plants' fixed point is found by Newton's method after damped steps and
+checked by the full solve, and P2 reproduces CAPACITY's check 2c (v 0.13869). On 2026-09-27 the
+oracle's f64 values matched the goldens within 4.5e-16 relative, but for S1Z's 1 − x* against
+M3z's golden (2.9e-15) and P2's, within 9.1e-14, the fixed point's tolerance.
+
 ## Numerics
 
 - The root is found by bisection on [1e-12, 1] until lo and hi are adjacent doubles.
@@ -787,6 +866,13 @@ with the three finite differences within their 1e-8.
   wall's end (or no land at the all-human corner's start) is free there: the wall's end is then
   −S_∞ and the start +∞, limits, not evaluations. The consumption-tax equivalence is exact in real numbers and came
   out bit for bit at GT and ER; in general the two allocations agree to the supply's sensitivity.
+- Unit 1g adds no solve. D-G10's chain to land is a pattern, found by reachability, so it
+  refuses no chain that reaches land, even where δ·a^I underflows; its productivity check is the
+  factorisation of I − A^q that 1c already made. At weekly ticks a machine's V and its build
+  coefficients are large (A0's a/δ = 148, V = 203), but the (O, V) system's pivot is 1 − u·a^I,
+  0.7 for A0, so nothing new cancels. A plant's ζ and κ come from `num::pow`, and its fixed point
+  stops when ln(κ/ζ) moves by at most `PLANT_TOL` = 1e-13, which bounds the ratio's error at about
+  that.
 - The power x^k, ln(1 + z) and the fused multiply-add come from `core::num`, that is from
   the `libm` crate, so the outputs do not depend on the platform (docs/unit-1a.md §8).
   On 2026-09-26, 5000 random economies (every regime, J_b up to 12) gave byte-identical
