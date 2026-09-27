@@ -1,7 +1,8 @@
 # rustyecon-oracle
 
-Dated 2026-09-25; joined the workspace on 2026-09-26 (P1.1); unit 1b added on 2026-09-27
-(P1.2), and unit 1c the same day (P1.4, verified in P1.5 and P1.6).
+Dated 2026-09-25; joined the workspace on 2026-09-26 (P1.1). Units 1b and 1c were added on
+2026-09-27, on branch `phase1`: 1b at P1.2, verified at P1.3; 1c at P1.4, verified at P1.5
+and P1.6. Both were closed at P1.7, the same day.
 
 The oracle is a static equilibrium solver for the pinning paper's economy (PLAN §3.4).
 It shares types but not logic with the agents, and no agent may read it (PLAN R13).
@@ -28,6 +29,10 @@ It is built outward in units 1a-1f. This package holds three:
   solves to 1b's (and so 1a's) equilibrium bit for bit. The machine block alone, at any
   margin, is `MachineBlock`, which reproduces check_dynamics' steady-state price blocks.
 
+Still to come (PLAN Phase 1): 1d, worker types and the wall; 1e, parcels with quality
+schedules, the idle margin and exit as s(q), the default exit form (ADDENDUM ruling 3);
+1f, households and government. The 1d and 1e gates are constructed (ADDENDUM §5 item 4).
+
 The package is `rustyecon-oracle`, its library `oracle`, a member of the rustyecon
 workspace. Its one dependency is `rustyecon-core`, for `core::num`: the power, `ln1p` and
 the fused multiply-add go through the pure-Rust `libm` crate there, so every output is the
@@ -40,15 +45,17 @@ questions (its §11: the shared task line, cells in the equilibrium, gaps as a r
 nesting, viability at the top of the line, the generic `Regime`, the CES parameters) and unit
 1c's (its §11: machines built from categories, one capability shape per line, ties inside
 `Interior`, refusing multiple equilibria, bitwise nesting, physical productivity, the changes
-to 1a's module, the random draws) are not ruled; the build takes the draft's choice on each,
-and unit 1c's §12 records where the build departed from its draft.
+to 1a's module, the random draws, every type priced) are not ruled. The build takes the
+draft's choice on each, and the repository's STATE.md lists them as decisions open to veto.
+Each spec's §12 records where its build and its verification departed from the draft.
 
 ## The gate
 
-Unit 1a is green when the workspace's gate is (`scripts/gate.sh`): `cargo test --workspace
+The oracle is green when the workspace's gate is (`scripts/gate.sh`): `cargo test --workspace
 --release` passes on WSL and on Windows, and `cargo clippy --workspace --all-targets -- -D
 warnings` and `cargo fmt --all --check` are clean, under the workspace's lints and
-`clippy.toml`. The tests cover, per docs/unit-1a.md §6:
+`clippy.toml`. The three generators' `--check` (below) are run by hand before any commit
+that touches a generator or its goldens. Unit 1a's tests cover, per docs/unit-1a.md §6:
 
 - **G1**, the SSRN Appendix B instance: the published figures to 5e-6 (x* 0.86315,
   v 0.54344, Y 7.88061, N_a 1.34338, hours 1.07846 and 0.26492, N·P_s 5.44630), and
@@ -127,6 +134,35 @@ instances satisfying the Leontief identities":
 
 The goldens are pinned to laborformal `31b3482`.
 
+## Verification
+
+Each unit was checked after its build by an adversarial pass, an independent derivation
+that does not read the crate and mutation testing, then one fix round, each fix with a test
+that fails without it. Where the pass found nothing wrong in the code, the fix is a test.
+
+- **1b** (P1.3): the build's own mutation check caught 44 of 45 mutants; the survivor
+  reassociates p_j = v·H_j + (p_m·M_j + b_j), which changes only the rounding. The pass found
+  four more survivors, now caught: the carried 1 − x* in a category's final hours and λ̃_j^q,
+  the edge convention of `margin_active`, and `Requirement::OpenUnit` admitting 0. It also
+  found that outputs made of the sliver between x* and an interior edge of the task line lose
+  precision as 2^-53·x*/d; that is stated with its bound (docs/unit-1b.md §5.4) and measured
+  by 24 near-edge goldens, and no code changed.
+- **1c** (P1.5): an independent derivation in another formulation agreed with the oracle on
+  348 economies, every regime, technique, tie and switch count, and the values within
+  5.6e-14. Of 65 mutants six survived; five are now killed and one is equivalent in exact
+  arithmetic.
+- **1c, second pass** (P1.6): a second derivation found a blocker. With an upward jump of
+  labour demand at a switch and f(1) > 0, the build returned `BoundaryNoMargin` where a root
+  and a tie lay below; such an economy is now `MultipleEquilibria`, with the boundary
+  counted as one. It measured the precision at ties on 432 of them (docs/unit-1c.md §5.6),
+  and found that an unused type whose price diverges makes the economy `NotViable`, which
+  is kept and recorded as a departure from SSRN A.1 (§12 item 15, open question 9). Nine
+  mutants that survived the gate as it was are now killed, and six of the eight made of the
+  fix; three survivors are equivalent on every economy the gate can build (§12 items 12
+  and 17).
+
+Each spec's §12 has the details.
+
 ## Layout
 
 | path | what it is |
@@ -168,14 +204,20 @@ cargo fmt --all --check
 In PowerShell, set `$env:CARGO_TARGET_DIR` instead. To drive WSL from Windows, use
 `wsl -d ubuntu --exec bash -lc '…'`; `wsl -- …` loses exit codes.
 
-On 2026-09-25, after the final verification round, both gave 114 tests: 42 unit tests,
-71 gate tests and 1 doc test. In the workspace (P1.1, 2026-09-26) the same 114 pass on
-both. With unit 1b (P1.2, 2026-09-27) there are 169: 46 unit tests (42 + 4), 122 gate
-tests (71 + 51) and 1 doc test; after its verification the same day, 173: 47 unit tests
-(42 + 5), 125 gate tests (71 + 54) and 1 doc test. With unit 1c (P1.4, 2026-09-27) there are
-232: 56 unit tests (47 + 9), 175 gate tests (125 + 50) and 1 doc test; after its verification
-the same day, 235: 57 unit tests, 177 gate tests and 1 doc test; after its second
-verification the same day, 242: 57 unit tests, 184 gate tests and 1 doc test.
+The counts, the same on WSL and on Windows at each step:
+
+| Step | Date | Unit | Gate | Doc | Total |
+|---|---|---|---|---|---|
+| unit 1a, after its final verification round | 2026-09-25 | 42 | 71 | 1 | 114 |
+| P1.1, 1a in the workspace | 2026-09-26 | 42 | 71 | 1 | 114 |
+| P1.2, unit 1b | 2026-09-27 | 46 | 122 | 1 | 169 |
+| P1.3, 1b's verification | 2026-09-27 | 47 | 125 | 1 | 173 |
+| P1.4, unit 1c | 2026-09-27 | 56 | 175 | 1 | 232 |
+| P1.5, 1c's verification | 2026-09-27 | 57 | 177 | 1 | 235 |
+| P1.6, 1c's second verification | 2026-09-27 | 57 | 184 | 1 | 242 |
+| P1.7, units 1b and 1c closed | 2026-09-27 | 57 | 184 | 1 | 242 |
+
+Of the 242, 1a has 114, 1b 59 (5 unit, 54 gate) and 1c 69 (10 unit, 59 gate).
 
 ## The dump example
 
@@ -208,6 +250,10 @@ macro.py patched for u; it found no disagreement except where the true |f| at a 
 end is at most 3.8e-16, where the regime is not decidable in f64 (docs/unit-1a.md §4).
 The largest value gaps are where 1 − x* is small: there both macro.py's brentq xtol and
 the f64 conditioning of 1 − x* matter.
+
+The dump is unit 1a's only. Units 1b and 1c have none, since there is no other
+multi-category or multi-type solver to compare against (docs/unit-1b.md §9, docs/unit-1c.md
+§9); their independent checks were the verifications' derivations.
 
 ## Regenerating the goldens
 
@@ -267,6 +313,12 @@ and 199 within 1e-14; the rest are where docs/unit-1c.md §5.6 says precision go
 points (up to 2.8e-14, from the cancellation in γ_i's closed form), a least pivot near 0
 (1.7e-14), and the excess demand at M5m's switch, evaluated at the double below it where f is
 steep (4.8e-13).
+
+At the close (P1.7) all three `--check` passed, and the gate's golden comparisons were logged
+again on WSL: the largest errors are as above, 1.0e-15 on 1b's goldens away from an edge (the
+cells of `c6::cells_approach_the_line` are compared with the line's closed forms at the
+midpoint rule's error, up to 3.5e-9, by design) and 4.8e-13 on 1c's, then 4.4e-13 on M5m's
+tie share and 2.8e-14 on the switch points.
 
 ## Numerics
 

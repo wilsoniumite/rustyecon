@@ -10,18 +10,121 @@ the tape's schema is [docs/TAPE.md](docs/TAPE.md), and the GUI's design is
 **Collaboration:** as in laborformal. Sequencing, engineering and drafting are delegated to
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
-**State as of:** 2026-09-26. **Phase 0 is closed.** Session 1 closed at P0.9, on `reboot`.
-Session 2 closed at S2.6, on branch `phase0-s2` (S2.1–S2.6, from `reboot` at `cf3c0ff`), which
-is not merged or pushed: merging is a fast-forward, on your word. Session 2 built the
-certification stack, the GUI's engine asks and the probe's criteria, and both tapes certify
-PASS. Before it: oracle unit 1a joined at P1.1 (O3); the GUI's design, plan amendment A14 and
-R16 landed at P0.11 (O1); by your ruling of 2026-09-26 the Phase 2 probe ran first, with verdict
-GO ([docs/probe/REPORT.md](docs/probe/REPORT.md)) and no fallback (decision 38); and Breakpoint
-B's pre-look passed beside it (S5.0, docs/spine/EYEBALL.md; decision 35).
-Next, in order: G0, the GUI's shell (G0.1 the viewer, then G0.2 the editor); Phase 1's units
-1b–1f alongside.
+**State as of:** 2026-09-27, on branch `phase1`. **Phase 1's units 1b and 1c are closed**
+(P1.2–P1.7), on `phase1` from `reboot` at `397d7cd`, not merged or pushed: while `reboot`
+stays at `397d7cd`, merging is a fast-forward, on your word. **Phase 0 is closed.** Session 1
+closed at P0.9, on `reboot`. Session 2 closed at S2.6, on branch `phase0-s2` (S2.1–S2.6, from
+`reboot` at `cf3c0ff`), since fast-forwarded into the local `reboot`, which is not pushed.
+Session 2 built the certification stack, the GUI's engine asks and the probe's criteria, and
+both tapes certify PASS. Before it: oracle unit 1a joined at P1.1 (O3); the GUI's design, plan
+amendment A14 and R16 landed at P0.11 (O1); by your ruling of 2026-09-26 the Phase 2 probe ran
+first, with verdict GO ([docs/probe/REPORT.md](docs/probe/REPORT.md)) and no fallback (decision
+38); and Breakpoint B's pre-look passed beside it (S5.0, docs/spine/EYEBALL.md; decision 35).
+Next, in order, on this branch: Phase 1's units 1d and 1e, then 1f. G0, the GUI's shell, runs
+beside it on its own branch, `g0`, from the same commit `397d7cd`; this file does not record
+G0's progress, and the two branches' copies of it are reconciled when both land.
 
 ## Where things stand
+
+**Phase 1's units 1b and 1c are closed, and the gate is green in WSL and on Windows**
+(2026-09-27; [crates/oracle/README.md](crates/oracle/README.md), with the specs
+[unit-1b.md](crates/oracle/docs/unit-1b.md) and [unit-1c.md](crates/oracle/docs/unit-1c.md)).
+Each unit had a spec written from laborformal `31b3482` and checked against a 70-digit mpmath
+prototype in scratch; a build whose goldens come from a committed mpmath generator computing
+from the equations; an adversarial pass (an independent derivation that does not read the
+crate, and mutation testing); a fix round, each fix with a test; and a re-check of exactly the
+fixed items. Unit 1c had two passes, and the second found a blocker. Only `crates/oracle`
+changed since `397d7cd`.
+
+| Commit | What landed |
+|---|---|
+| `30ff1ce` P1.2 | unit 1b, many categories and the fork, with its spec (docs/unit-1b.md, its §12 the build's departures), `generate_1b.py` and `goldens_1b.txt` |
+| `f4de477` P1.3 | 1b's verification fixes: four surviving mutants caught, precision near an interior edge stated and measured by 24 new goldens; no code change but `ces_share` checking α through `Requirement::OpenUnit` |
+| `c9b1920` P1.4 | unit 1c, many machine types and the Leontief inverse, with its spec (docs/unit-1c.md), `generate_1c.py` and `goldens_1c.txt` |
+| `9e2a7e6` P1.5 | 1c's first verification: five surviving mutants killed by new tests; code unchanged |
+| `5081345` P1.6 | 1c's second verification: the blocker fixed (a boundary regime hid equilibria), seven tests, precision at ties stated |
+| P1.7 | this file, the oracle's README, the root README's status lines |
+
+**Unit 1b, many categories and the fork** (P1.2, P1.3). Categories are bought in a fixed
+basket (SSRN eq 7; Appendix B's z) and share 1a's task line, cut into segments, each category a
+density of tasks on them with its own direct land. Space is a category with no tasks, so
+Appendix B is the basket (1, h) over the good and space. Every equilibrium reports, per
+category, the fork identity in both forms (SSRN eq 12 with total requirements, main.tex's with
+direct land), the category bounds, the purchasing-power pair, price-side and clearing-side
+totals and the basket's rent ceiling. Without an equilibrium, the price block prices categories
+given as task cells, closed cells included (check_interior's setting), and gives SSRN eq 26's
+CES share. A one-category economy solves to 1a's equilibrium bit for bit: every 1a golden
+instance, G5's 180 random draws and every skipped one, G8's regime rows and rejections, and
+`at(x)` on a grid. Along the task-automation path of the four-category fork economy, the wage in
+manufactures rises 27% while the wage in shelter falls 96%.
+- **Tests**: 59 (5 unit, 54 gate in groups C1–C8), among them check_interior's two price-block
+  batteries and 180 random multi-category economies, where every identity, both fork forms, the
+  bounds and the pair hold.
+- **Goldens**: `generate_1b.py` writes 273 (249 at P1.2, 24 near-edge at P1.3). In mpmath its
+  category form equals `generate.py`'s 1a solves exactly.
+- **Largest errors**: 1.0e-15 relative on the 245 numeric goldens away from an interior edge
+  (C6's parity cost; 9.0e-16 on an equilibrium value). Near an edge x*, v, P_s, Y and N_a are
+  within 1.9e-16, and the outputs made of the sliver between x* and the edge miss by up to
+  7.5e-8 at 1e-9 from it, within the bound docs/unit-1b.md §5.4 states (about 2^-53·x*/d).
+
+**Unit 1c, many machine types and the Leontief inverse** (P1.4–P1.6). Each machine type has an
+operating recipe and a build recipe over machine services, labour and land, its own δ and build
+lag, and so its own user cost, at one interest rate (check_dynamics R1–R6); categories may use
+each other as intermediate inputs. The types share the line's capability shape, each with a
+task efficiency θ; the cheapest delivered cost takes the machine tasks, switching along the
+line at closed-form points. An equilibrium on a switch is a tie, solved by the share of tasks
+each type takes, and more than one equilibrium is refused (`SolveError::MultipleEquilibria`).
+Every linear system is solved by Gaussian elimination without pivoting, in index order, whose
+positive pivots are the productivity and viability tests. One type nests 1b and 1a bit for bit
+(every golden instance, the 360 random draws of G5 and C5 with the skipped ones, the regime and
+rejected rows, `at(x)` on a grid), and a flow-only type is 1a's flow economy bit for bit at any
+(ρ, δ, J_b). check_dynamics' sloped and flat targets are reproduced as the machine-price block
+and the quantities per unit of the good, the JSON's doubles within 2e-15, except the sloped x*
+and the flat m (decision 75). The income identity with interest holds to 1e-12, and 240 random
+interior economies (35 of them ties) satisfy every Leontief identity.
+- **Tests**: 69 (10 unit, 59 gate in groups m1–m8).
+- **Goldens**: `generate_1c.py` writes 210 and reproduces every number in the spec's §7; its
+  one-type form nests `generate_1b.py`'s and `generate.py`'s solves within 6.1e-71.
+- **Largest errors**: at P1.4, 191 of the 207 goldens the oracle computes were within 1.2e-15
+  relative and 199 within 1e-14. The rest are where docs/unit-1c.md §5.6 puts them: the switch
+  points (2.8e-14, where the closed form cancels), a least pivot near 0 (1.7e-14), a tie's
+  quantities (2.0e-14), and M5m's excess demand at the switch, evaluated at the double below it
+  where f is steep: 4.8e-13, the largest, with 4.4e-13 on its tie share. Logged again at the
+  close, the maxima are the same. On the second pass's 432 random ties, x*, γ* and v are good to
+  2.2e-13 (7.5e-13 near the viability edge) and the split to 1.7e-10.
+
+**The verification**, per unit:
+- **1b** (P1.3). Mutation testing found four survivors, each now caught: the carried 1 − x* in
+  a category's final hours and in λ̃_j^q, the edge convention behind `margin_active`, and
+  `Requirement::OpenUnit` admitting 0. The pass also found that outputs made of the sliver
+  near an interior edge lose precision; the loss is stated and measured, and carrying an offset
+  from each edge was tried and does not recover it. The build's own survivor, a
+  reassociation that changes only the rounding, stands. The re-check applied the three code
+  mutants to `f4de477`: all killed, 173 tests passing.
+- **1c, first pass** (P1.5). An independent derivation in another formulation agreed with the
+  oracle on 348 economies, on every regime, technique, tie and switch count, and on the values
+  within 5.6e-14. Of 65 mutants six survived; five are killed by new tests, and one is
+  equivalent in exact arithmetic.
+- **1c, second pass** (P1.6). A second derivation found a blocker: with labour demand jumping up
+  at a switch and f(1) > 0, the build returned `BoundaryNoMargin` while a root and a tie lay
+  below. The solve now reads the whole sign sequence whenever there is a switch, each corner
+  one equilibrium, and such an economy is `MultipleEquilibria`; without a switch it decides as
+  before, so 1a and 1b nest unchanged. The pass also found that an unused type whose price
+  diverges makes the economy `NotViable` (kept, decision 72), and measured the precision at
+  ties. Nine surviving mutants and six of the eight made of the fix are killed; three
+  survivors are equivalent on every economy the gate can build. The re-check applied the 17
+  mutants to `5081345`: all killed, 242 tests passing.
+
+**The gate at P1.7**, `scripts/gate.sh` in WSL
+(`CARGO_TARGET_DIR=/root/scratch/target-p1-close`) and under Git Bash on Windows
+(`D:/rustyecon-targets/p1-close`), on the committed tree with a clean build stamp: 549 tests
+pass in the workspace on each machine, with 2 ignored and run by name, and zero warnings.
+Session 2's table below holds for every crate but the oracle, which has 242 (57 unit, 184 gate,
+1 doc): 114 of 1a, 59 of 1b, 69 of 1c. The count grew 421 (S2.5) → 476 (P1.2) → 480 (P1.3) →
+539 (P1.4) → 542 (P1.5) → 549 (P1.6). The committed certificates recompute byte-equal on both
+machines, the probe's report pins hold, and the gate world's final hash is still
+`0x61f9c8529131ff17` on both. `generate.py`, `generate_1b.py` and `generate_1c.py` pass
+`--check` under laborformal's venv. The logs are in `D:/rustyecon-p1/close/`.
 
 **Phase 0 session 2 is closed, and the gate is green in WSL and on Windows** (2026-09-26;
 [docs/CERTIFY.md](docs/CERTIFY.md), with each step's amendments). It moved July's certification
@@ -296,17 +399,18 @@ CI is wanted at all is your call (A5). Since S2.4 it checks out full history, si
 checks that each committed certificate's build commit is an ancestor of HEAD. Windows runs the
 same script under Git Bash, by hand.
 
-**Remote** (as the local remote-tracking refs show on 2026-09-26): `origin` has `main` and
+**Remote** (as the local remote-tracking refs show on 2026-09-27): `origin` has `main` and
 `reboot` at `cf3c0ff`, the three `july-v2-*` tags and `pre-foundations` (A1 done). Not pushed:
-`phase0-s2` (S2.1–S2.6), and the local branches `phase2-probe`, `spine-eyeball` and
-`reboot-phase0`, whose work is in `reboot`.
+the local `reboot` at `397d7cd` (S2.1–S2.6, fast-forwarded from `phase0-s2`), `phase1`
+(P1.2–P1.7), `g0`, and the local branches `phase2-probe`, `spine-eyeball` and `reboot-phase0`,
+whose work is in `reboot`.
 
 ## Decisions — veto window (your one-word calls)
 
 The first nine record how your rulings and the standing rules were carried out; 10–21 were made
 while building. 22–34 are the GUI's D1–D13 (A14; [docs/GUI.md](docs/GUI.md) says where each is
 carried out): each stands unless vetoed before G0. D10's window closed with session 2, which
-built its items. 41–58 are session 2's.
+built its items. 41–58 are session 2's. 59–75 are Phase 1's units 1b and 1c.
 
 1. **Package names and layout.** Each crate is `crates/<short name>`, package
    `rustyecon-<short name>`; the root is a virtual workspace, `members = ["crates/*"]`, resolver
@@ -508,6 +612,68 @@ building. All are open to veto; a veto of one that shapes a verdict means new ce
     state hash moved. Alternative: keep the methods out of `world_id`, which would let two
     worlds that convert a rate differently share an identity.
 
+Decisions 59–75 are Phase 1's units 1b and 1c (2026-09-27). Most are the open questions of each
+spec's §11 (1b's Q1–Q7, 1c's Q1–Q9), which the builds took as their drafts proposed; the rest
+are the builds' main choices. Each spec gives the reasoning. All are open to veto; a veto of one
+means a change to the oracle and its goldens, not to any engine path.
+
+59. **1b's closure is a fixed basket** (SSRN eq 7; Appendix B's z = (1, 0, h)). Every household
+    buys categories in fixed proportions, and the provider's support is one basket, which keeps
+    SSRN Lemma B.1's uniqueness (generalised in unit-1b.md §5.3). Space is a category with no
+    tasks. SSRN eq 26's CES share is price-block only; a basket that answers prices is 1f's.
+    Alternative: a price-responsive basket now, without the uniqueness proof.
+60. **One task line for all categories** (1b Q1). Categories are densities of tasks on segments
+    of 1a's line, so the unknown stays 1a's threshold x. main.tex's per-category schedules are
+    priced by the cell price block, not solved: by a first-order estimate they would lose 1e-11
+    to 1e-9 relative on flat schedules and near full automation, which misses the gate.
+61. **Cells in the equilibrium are deferred** (1b Q2). The price block prices task cells, closed
+    cells included; an equilibrium on the agents' own cells, with the marginal cell split
+    between people and machines, waits for your ruling on where it goes: a 1c addendum or a 1b
+    addendum, before Phase 2 proper's multi-category instance needs it.
+62. **A root in a gap is `Interior` with `margin_active = false`** (1b Q3), not its own regime.
+63. **Nesting is gated bit for bit** (1b Q4, 1c Q5): one category is 1a, and one type is 1b and
+    1a, to the bit. It fixes the evaluation order of unit-1b.md §5.1 and unit-1c.md §5.1.
+    Alternative: 1e-12 relative, which cannot hold near 1a's viability edge.
+64. **Viability is checked at the top of the line** (1b Q5), even when no bought category uses
+    the top segment, as in 1a. Alternative: at the top of the range in use.
+65. **1a's module changed its API, not its behaviour** (1b Q6, 1c Q7): `Regime<E = Eq1a>` is
+    generic; the crate-private `classify` is split into the regime tests and the bisection;
+    `SolveError` gains `NonFiniteInCategory`, `NonFiniteInType` and `MultipleEquilibria`, and
+    `ParamError` gains `Item` and `Invalid`. 1a's uses and its 114 tests are unchanged.
+    Alternative: a regime and an error type per unit.
+66. **The CES goldens' parameters** (1b Q7) are α = 0.3, the land share of check_pinning's
+    A-joint and dynamics' targets, and σ = 0.5 and 2; the paper gives none.
+67. **Machine recipes use machine services, labour and land only** (1c §2.3, Q1), as main.tex:688
+    and check_dynamics do, with an operating and a build recipe per type. Each type's totals
+    then do not depend on x, which gives closed-form switch points and no type returning once
+    it has lost. PLAN §3.1's build bundle of goods is not built. Alternative: machines built
+    from categories, as a 1c addendum before Phase 2.
+68. **One capability shape, a task efficiency per type** (1c Q2): one threshold, and 1a's
+    unknown and precision. Alternative: a shape per type, with v the unknown.
+69. **A tie is `Interior` with `tie` set** (1c Q3), its split in closed form. Alternative: its
+    own regime, which changes 1a's `Regime`.
+70. **Multiple equilibria are refused** (1c Q4). With interest, a switch can raise labour demand
+    and make three; `MultipleEquilibria` counts the sign changes, each corner one of them
+    (P1.6). At ρ = 0 the equilibrium is proved unique. Alternative: report all of them and let
+    Phase 2 say which one the agents should reach.
+71. **Physical productivity is validated**, ρ(A^op + A^I) < 1 (1c Q6), as 1a validates a < 1.
+    It rejects some economies whose price side is viable at a user cost below 1.
+72. **Every type is priced** (1c Q9; unit-1c.md §12 item 15). A type whose price recursion
+    diverges makes the economy `NotViable` even when no technique would use it, as main.tex:688
+    reads; SSRN A.1 asks productivity of the selected recipes only. Alternative: viability,
+    prices and totals over each technique's input closure, with the other types unpriced.
+73. **Gaussian elimination without pivoting, in index order,** for every Leontief system. On
+    these M-matrices it is stable, its positive pivots are the productivity and viability tests
+    (the least pivot generalises 1a's D), and its fixed order makes the nesting bitwise.
+    Alternatives: partial pivoting, which reorders rows by the data; a Neumann series, slow near
+    the edge.
+74. **1c's random draws keep the spec's ranges** (1c Q8), with the tallies recorded (unit-1c.md
+    §12 item 6); a fourth set is built to switch mid-line and gives the ties.
+75. **check_dynamics' sloped x* and flat m are not reproduced in 1c.** They come from a
+    Cobb-Douglas land-share household with full participation, which belongs to 1f as a named
+    alternative household (R6); the sloped schedule γ = 1 + 4x is not viable at x = 1 in 1c's
+    closure. The rest of the two targets is reproduced (m2).
+
 ## Open — your calls
 
 - **The GUI's decisions**, 22–34 (D1–D13): open to veto before G0. D10's items are built.
@@ -522,7 +688,14 @@ building. All are open to veto; a veto of one that shapes a verdict means new ce
   marks the run; (3) BalanceWatch's bars are absolute on the imbalance, a number in [−1, 1],
   read as allowed by A12; (4) C11 edited probe code that REPORT cites at `55c9e88`, guarded by
   its pins; (6) the kick's horizon is one L, so an instability slower than L passes.
-- **Merging `phase0-s2` into `reboot`** (a fast-forward) and pushing it.
+- **Decisions 59–75** (Phase 1's units 1b and 1c), open to veto. Three matter before Phase 2
+  proper: cells in the equilibrium (61) and machines built from categories (67), each a 1c
+  addendum if ruled in, and whether multiple equilibria are refused or all reported (70),
+  which decides what Phase 2 compares the agents against.
+- **Landing the branches.** `phase0-s2` is in the local `reboot` (a fast-forward), which is not
+  pushed. `phase1` (P1.2–P1.7) and `g0` both start at `397d7cd`: the first to land is a
+  fast-forward, and the second needs a merge or a rebase, with STATE.md reconciled by hand.
+  Pushing is your call.
 - **The Phase 2 session budget** that A11's kill condition needs (PLAN Phase 2), now for Phase 2
   proper's other instances.
 - **The decisions above**, especially 10 (the engine crate, not in PLAN's crate list), 11, 15
@@ -531,9 +704,9 @@ building. All are open to veto; a veto of one that shapes a verdict means new ce
 ## Open — work
 
 - **O1. The GUI.** Designed ([docs/GUI.md](docs/GUI.md); A14), with egui in `crates/gui`. G0,
-  the shell, is next (two to three sessions; GUI.md §9): G0.1 the viewer (the crate's seams, the
-  Runner and `ThreadDriver`, the toolbar, timeline, outliner, plots, inspector, registry and
-  log), then G0.2 the editor (`materialise`, lineage, branches, compare and export). G1, the
+  the shell, is under way on branch `g0`, not recorded in this copy of the file (two to three
+  sessions; GUI.md §9): G0.1 the viewer (the crate's seams, the Runner and `ThreadDriver`, the
+  toolbar, timeline, outliner, plots, inspector, registry and log), then G0.2 the editor (`materialise`, lineage, branches, compare and export). G1, the
   oracle lab, starts after G0 and Phase 1's gate. `crates/engine` was built for it: a frontend
   depends on the engine alone, steps a `Sim` on a worker thread and reads each `TickReport` over
   a channel. Session 2 gave it what §7.2 asked: `FiredEvent.source`, the registry's sites with
@@ -543,13 +716,14 @@ building. All are open to veto; a veto of one that shapes a verdict means new ce
   docs/CERTIFY.md). The certification stack moved from `july-v2-phase-3` into `crates/certify`
   with N4, N10, N12 and N15 fixed, every threshold in dated criteria, A12's runaway detector,
   the probe's three criteria, and D10's items 1, 2 and 4. Both tapes certify PASS.
-- **O3. The oracle, unit 1a, landed at P1.1.** Built by another run and verified there (114
-  tests), it joined through the members glob. It depends on `core` alone, for `num`, and nothing
-  on the engine path depends on it (R13). The workspace's `clippy.toml` denies the platform
-  maths, so x^k, ln(1 + z) and its fused multiply-add now go through `core::num` (libm), which
-  gained `fma`. Its outputs are then byte-identical on WSL and Windows (5000 random economies,
-  every regime), no golden moved, and G8's exact tie still ties. Units 1b–1f follow (PLAN
-  Phase 1), alongside G0.
+- **O3. The oracle: unit 1a landed at P1.1, units 1b and 1c at P1.2–P1.7** ("Where things
+  stand" above). Unit 1a was built by another run and verified there (114 tests), and joined
+  through the members glob. The oracle depends on `core` alone, for `num`, and nothing on the
+  engine path depends on it (R13). The workspace's `clippy.toml` denies the platform maths, so
+  x^k, ln(1 + z) and its fused multiply-add go through `core::num` (libm), which gained `fma`;
+  1a's outputs are byte-identical on WSL and Windows (5000 random economies, every regime), no
+  golden moved, and G8's exact tie still ties. Units 1b and 1c needed no new `num` function.
+  Units 1d–1f follow (PLAN Phase 1; "Next steps" below), alongside G0.
 - **O4. `test_01` is retired with the v1 agents** (A3), not ported. It failed at every commit
   where its tests compile (from `03eb06a`; the April commits do not compile theirs) and on all
   three July branches: `building_inventory_cycles_correctly`, "farm should produce wheat on tick
@@ -608,6 +782,19 @@ when its fix is reverted, checked by mutation (the review's own mutants among th
   classifier. Until the dead floor arrives, a run frozen at tiny positive volumes passes Trades,
   and certifies under criteria that list no Kick, as the gate's do; under appb-style criteria the
   kick catches the probe's known case (CERTIFY, amended at S2.5, item 9).
+- **O18. Precision the oracle states but does not reach** (recorded, not scheduled). Near an
+  interior edge of 1b's task line, outputs made of the sliver between x* and the edge are good
+  to about 2^-53·x*/d relative (7.5e-8 at d = 1e-9; unit-1b.md §5.4); only more working
+  precision would help. At a tie in 1c, the split and each type's quantities carry γ_i's error
+  amplified by the excess demand's slope over the jump (1.7e-10 measured), and a tie near x = 1
+  sets 1 − x* = 1.0 − x_i without interpolation (3.2e-7 relative at a tie 1e-9 below 1;
+  unit-1c.md §5.6). Phase 2's comparisons against these outputs need bands that allow for them.
+- **O19. Mutants that survive the gate** (recorded). 1b's reassociation of
+  p_j = v·H_j + (p_m·M_j + b_j), which changes only the rounding; 1c's crossing counted at
+  exactly γ_c, and γ_c not advanced to each switch, equivalent in exact arithmetic (they differ
+  only where rounding separates a crossing from its tie or puts it below the previous one); and
+  two mutants of P1.6's count, equivalent on every economy the gate can build (unit-1c.md §12
+  items 12 and 17). A change to those lines should look at them again.
 
 ## Corrections logged (A3; ADDENDUM §1.4)
 
@@ -631,19 +818,36 @@ REVIEW.md is kept as written; these of its claims do not hold.
 
 ## Next steps, in order
 
-1. **G0.1, the viewer** (O1; docs/GUI.md §9): `crates/gui` with its seams, `reduce`, the Runner,
-   `ThreadDriver`, the Extractor, the in-memory store and the ring; the toolbar, timeline,
-   outliner, plots, inspector, registry and a log with a breakpoint on error. `tapes/appb.ron` is
-   a second world beside the gate world, and D2's "no log axes" is revisited in G0.1, since every
-   probe plot needed a log scale. It builds on session 2's pieces: certify's `RunKey`,
-   `tape_hash` and Parquet-free manifest, `FiredEvent.source` and the registry's sites. The
-   commit that adds `crates/gui` carries A14's ENGINE amendments (D1).
-2. **G0.2, the editor**: `TapeEdit`, `materialise`, the lineage, `plan` and branches; compare;
-   CSV, manifest, tape and lineage export. G0's gate is GUI.md §9's.
-3. **Alongside, Phase 1's units 1b–1f** (O3; PLAN Phase 1), each with its gate: many categories
-   and the fork, many machine types, worker types and the wall, parcels and s(q), households and
-   government. Units 1b–1e also give Phase 2 proper its other instances; it starts from the
-   probe's roles and harness, with many markets as its first untested risk.
+On this branch, Phase 1 (O3; PLAN Phase 1), each unit as 1b and 1c were built: a spec from
+`31b3482` checked by a prototype, a build with its generator, one adversarial pass, one fix
+round and a re-check of the fixed items.
+
+1. **Unit 1d, worker types and the wall.** Human-required tasks in the equilibrium, several
+   worker types each with its own margin (w_i = p_m·γ_i(x_i*)), and the boundary regimes 1a
+   only classifies solved: x* = 1, where labour holds only human-required tasks at the wall and
+   the machine comparison no longer pins the wage, and a root below 1e-12. Its gate is constructed
+   (ADDENDUM §5 item 4): laborformal has no equilibrium with a human-required set of positive
+   measure, so it builds on `corner/check_kset.py` P9-i (a human-required set of measure k,
+   with Leontief cost concentration) and check_pinning's D1 limit, with constructed wall and
+   interior cases recognised correctly (PLAN's gate).
+2. **Unit 1e, parcels, the idle margin and s(q).** Parcels with quality schedules, several
+   non-produced inputs (SSRN A.1's vector r) with unused ones at zero rent, idle land, and exit
+   as s(q) = max(s₀ − q·h_e, s̲) from main.tex, the default form (ADDENDUM ruling 3); the SSRN
+   dependence form stays 1a's, the named alternative (R6), and each form keeps its own gate.
+   1e's is constructed on `corner/check_enclosure.py` N-i to N-iii (the idle margin; the worked
+   instance q_enc = 1.5, N_crit = 60) and check_pinning P3.
+3. **Unit 1f, households and government**: price-responsive baskets and a basket per worker
+   type, government and transfers (three-taxes' ledger is already gated in 1a), and
+   check_dynamics' land-share household as a named alternative, which would make its sloped x*
+   and flat m reproducible (decision 75). Then Phase 1's gate, after which G1, the oracle lab,
+   may start.
+4. **Before Phase 2 proper's multi-category instances**: your rulings on decisions 61 and 67
+   (cells in the equilibrium, machines built from categories), each a 1c addendum if ruled in,
+   and on 70. Units 1b–1e give Phase 2 proper its other instances; it starts from the probe's
+   roles and harness, with many markets as its first untested risk.
+
+Beside it, on branch `g0`: G0, the GUI's shell (O1; docs/GUI.md §9), G0.1 the viewer, then G0.2
+the editor. Its progress is recorded on that branch.
 
 ## File map
 
@@ -669,7 +873,8 @@ docs/probe/REPORT.md     the probe's report: verdict, battery, dial map, reviews
 docs/probe/figs/         the report's plots; docs/probe/results/ its three summary tables (CSV)
 crates/engine            Sim, the tick, reports, resume, the replay audit, the registry listing
 crates/cli               the rustyecon binary: run, resume, replay, registry, certify
-crates/oracle            the equilibrium solver, unit 1a (P1.1); its README and docs/unit-1a.md
+crates/oracle            the equilibrium solver, units 1a (P1.1), 1b and 1c (P1.2–P1.7); its
+                         README, docs/unit-1{a,b,c}.md and goldens/generate{,_1b,_1c}.py
 crates/certify           criteria, batteries, the kick, the sealed certificate, the manifest;
                          Parquet telemetry behind the feature `parquet` (S2.3–S2.5)
 crates/certify/testdata  appb variants from `appb-tape --perturb`: bcycle, freeze, july, buffer16
@@ -700,6 +905,16 @@ scripts/gate.sh          the gate as one script
   targets outside it (`/root/scratch/target-s2-*`, `D:/rustyecon-targets/s2-*`) and its logs in
   `D:/rustyecon-s2/`. The build stamp reads git through the worktree's `.git` file, mapping its
   Windows path for WSL.
+- Phase 1's units 1b and 1c ran from a worktree, `D:/rustyecon-wt/p1` (`/mnt/d/rustyecon-wt/p1`
+  in WSL), on branch `phase1`, with targets `/root/scratch/target-p1-<label>` and
+  `D:/rustyecon-targets/p1-<label>`, and scratch, prototypes, gate and mutation logs in
+  `D:/rustyecon-p1/<label>/`. The prototypes are scratch; the committed generators reproduce
+  their numbers.
+- The oracle's goldens: from `crates/oracle`, run `goldens/generate.py`, `generate_1b.py` and
+  `generate_1c.py` with `--check` under laborformal's venv
+  (`C:/Users/wilso/Documents/GitHub/laborformal/venv/Scripts/python.exe`,
+  `PYTHONIOENCODING=utf-8`); together they take about 15 s. A change to `generate.py` means
+  rerunning all three, since each later one records the earlier ones' digests.
 - To certify a tape: `rustyecon certify <tape> --criteria criteria/<tape>-<date>.ron --out
   <dir>`. Committed results are made in WSL by a clean build, without `--telemetry` (C3), and a
   change that moves a verdict's path regenerates them in their own commit.
