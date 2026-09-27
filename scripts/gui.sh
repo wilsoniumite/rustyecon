@@ -11,7 +11,9 @@
 #   2. cargo clippy -p rustyecon-gui --all-targets, with every warning an error, under the
 #      workspace lints (the crate sets `[lints] workspace = true`);
 #   3. cargo test -p rustyecon-gui --release, with every warning an error, and each test G0's
-#      gate names so far run by name and passed, so a renamed test cannot drop out;
+#      and G1's gates name run by name and passed, so a renamed test cannot drop out;
+#   3b. on Linux (WSL), G1's measurement by name: a_200_point_sweep_builds_in_under_16_ms, an
+#      ignored test, must run and pass (docs/GUI.md §9, G1's gate: median of 20, under 16 ms);
 #   4. the cli's hashes: gui_equals_cli writes the GUI path's hashes of tapes/gate.ron (2,080
 #      ticks) and tapes/appb.ron (20,000), and gui_equals_cli_demo_gb those of tapes/demo-gb.ron
 #      (7,852, through the first tick of 1901, with the lean catalogue), and the body of
@@ -56,7 +58,10 @@ step() { printf '\n== gui: %s\n' "$*"; }
 # demo-world) adds the map's six (tests/map.rs, docs/GUI.md §8.1's map row and G4's gate). D.4,
 # after D.3's verification, adds six more of the map's (the lens values against the engine, the
 # palettes, the mesh built afresh and the legend, every triangle's hit, a hover and a click on
-# every part, the atlas's credit) and the demo tape's hashes against the cli's.
+# every part, the atlas's credit) and the demo tape's hashes against the cli's. G1 (2026-09-27)
+# renames the core scan (the GUI's edge to core went at G1.1) and adds the oracle lab's, the
+# price-step explainer's and waterfall's, the breakpoints', the watchlist's and log axes', the
+# snapshots', the lab's scan, and the credit on a narrow window (O26).
 named=(
     gui_equals_cli
     failed_run_shows_its_ledger_line
@@ -113,6 +118,25 @@ named=(
     hover_and_click_name_every_part
     the_credit_is_painted_clear_of_the_legend
     gui_equals_cli_demo_gb
+    lab_presets_solve_to_their_goldens
+    the_lab_shows_appendix_b_bit_for_bit
+    a_points_fields_are_the_oracles_doubles
+    f_over_x_shows_its_root_and_bracket
+    knobs_list_set_and_sweep
+    an_edited_instance_is_no_longer_its_goldens
+    the_lab_script_shows_appendix_b_and_its_goldens
+    lab_reaches_no_run_model_file_thread_or_clock
+    the_explainer_equals_next_price_on_every_gate_tick
+    the_explainer_equals_next_price_on_every_appb_tick
+    the_waterfall_adds_up_to_the_log_price
+    the_explainer_script_paints_the_step_and_the_waterfall
+    event_and_date_breakpoints_pause_after_their_tick
+    breakpoints_change_no_hash
+    breakpoints_watch_and_log_scales_live_in_the_session
+    the_watch_and_breakpoint_script
+    png_snapshots_say_never_citable
+    the_snapshot_script_marks_the_picture_never_citable
+    the_credit_is_painted_whole_on_a_narrow_window
 )
 
 step "toolchain (rust-toolchain.toml)"
@@ -140,6 +164,25 @@ for t in "${named[@]}"; do
     fi
 done
 echo "the ${#named[@]} named tests ran and passed"
+
+# G1's gate: a 200-point sweep's view-model builds in under 16 ms, on WSL, median of 20. The test
+# is ignored by default (a measurement) and run here by name; elsewhere it is not gated.
+if [ "$(uname -s)" = "Linux" ]; then
+    step "G1's sweep measurement, by name"
+    sweep="$(cargo test --locked --release -p rustyecon-gui --test lab -- --ignored --exact \
+        a_200_point_sweep_builds_in_under_16_ms --nocapture 2>&1)" || {
+        printf '%s\n' "$sweep"
+        exit 1
+    }
+    if ! grep -q "^test a_200_point_sweep_builds_in_under_16_ms \.\.\. ok$" <<<"$sweep"; then
+        printf '%s\n' "$sweep"
+        echo "gui: a_200_point_sweep_builds_in_under_16_ms did not run and pass" >&2
+        exit 1
+    fi
+    grep '^a 200-point sweep' <<<"$sweep"
+else
+    step "G1's sweep measurement: gated on Linux only, skipped here"
+fi
 
 step "the cli's hashes, against the GUI's"
 cargo build --locked --release -p rustyecon-cli
