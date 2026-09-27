@@ -21,7 +21,8 @@ below), and how the build was checked before registration:
 - the harness (§5);
 - the checks of the build: nesting, the trace diff, the probes and mode A (§6);
 - where a result depends on decisions 60, 61, 67 and 70 (§7);
-- where the build departs from MARKETS-SPEC, and what stays open (§8).
+- where the build departs from MARKETS-SPEC, and what stays open (§8);
+- the registration (§9).
 
 ## 1. What changed, and what did not
 
@@ -589,8 +590,22 @@ end state to kick; its mode A fails at tick 112 anyway.
 - `markets_conserve_every_tick`: at rest and from w×2 with every desk's coin ×0.1, each tape's
   ledger closes every tick and the money stock drifts by at most 1e-12 of itself over 2,000
   ticks.
-- `scripts/gate.sh` is green on WSL and on Windows (§8 of the commit that closes P2.1.2 records
-  the runs).
+- **The gate at P2.1.1** (`d0ceaa6`). `scripts/gate.sh` is green in WSL
+  (`CARGO_TARGET_DIR=/root/scratch/target-p2m-build`) and on Windows under Git Bash
+  (`D:/rustyecon-targets/p2m-build`, a fresh target). On each machine 569 tests pass in the
+  workspace (549 before, and the 20 of §6) with 2 ignored and run by name, and zero warnings;
+  certify alone, Parquet-free, passes 65 with 1 ignored. The gate hash is `0x61f9c8529131ff17`,
+  the stamp matches the clean checkout, both certificates recompute, the probe's pins hold
+  (`probe_battery_csv_unchanged`), and telemetry is identical from two processes. The GUI's
+  recorded check passes in WSL. Logs: `D:/rustyecon-p2m/build/gate/`.
+- **The GUI's gate.** `scripts/gui.sh` is green in WSL: its 42 named tests pass, and the cli's
+  hashes equal the GUI's for gate (2,080 ticks, final `0x61f9c8529131ff17`), appb (20,000, final
+  `0xe1fa082b26995867`) and the two branch tapes.
+- **Platforms (recorded).** The cli's per-tick hashes of the seven markets tapes over 2,000 ticks
+  are byte-identical on WSL and Windows (finals: I0 `0x6c5bf916f3b69d35`, I1
+  `0x8e3f1bc77c0e5a91`, I2 `0x958d5fb01a4847b5`, I3 `0x6749dd3193ba1712`, L2
+  `0xf45a65d427f9f629`, L3 `0x010ae4da4eecfef5`, G1 `0xe71ac0e96df39297`), and appb's 20,000 end
+  at `0xe1fa082b26995867` on both.
 
 ## 7. Where a result depends on a binding decision
 
@@ -630,3 +645,13 @@ end state to kick; its mode A fails at tick 112 anyway.
 7. **Not built here:** the run itself (P2.1.3), Tier 3 at 10·L, the kick sets at every target
    and tick length, the families, and scoring CONVERGED against the kick set. The harness and
    `markets kick` provide each.
+
+## 9. Registration
+
+The run's registration is `D:/rustyecon-p2m/run/registration.md` (MARKETS-SPEC §7.12's
+`registration-markets.md`), written at P2.1.2 before any mode-B run, with its sha256 in
+`registration.sha256` beside it and in the P2.1.2 commit's message. It names P2.1.1
+(`d0ceaa6`, clean) and freezes the frame, the prediction, the rules, the harness, the tapes, this
+file at P2.1.1, the dials, the tolerance, L per instance, dial set and tick length (§6.5), the
+kick, the batteries with their slack runs, the verdict rules and the families, with §6's checks
+made before it.
