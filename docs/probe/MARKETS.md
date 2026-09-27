@@ -12,9 +12,9 @@ Dated 2026-09-27. Step P2.1 on branch `phase2-markets`, from `reboot` at `708167
 C2m with type rates 5.2 a year and tilt 1 on every desk. `Imbalance`, `Saturate`, planned
 assignment, 52 ticks a year. L is set per instance by PROBE-SPEC §4.4 (20,000–484,000 ticks);
 tol = 1e-3 in log on every observable. A run is CONVERGED only if its class is and the 1e-9 kick
-set at its target decays (MARKETS-SPEC §7.5). Raw runs are in `D:/rustyecon-p2m/runs/`;
-[results/markets/](results/markets/) is selected from them by
-`D:/rustyecon-p2m/report/make_results.py`, and [figs/markets/](figs/markets/) holds the run's plots.
+set at its target decays (MARKETS-SPEC §7.5). Raw runs: `D:/rustyecon-p2m/runs/`; tables:
+[results/markets/](results/markets/) (`D:/rustyecon-p2m/report/make_results.py`); plots:
+[figs/markets/](figs/markets/).
 
 ## 0. The verdict
 
@@ -71,7 +71,7 @@ loops only because decision 67 keeps goods out of machine recipes. A11 is not me
 | L2, L3 at C2L NO-GO through an absorbing zero: Tiers 1–3 20/20, 26/28, 18/29 and 34/34, 41/42, 31/43 | PREDICTION §0, §9 | Those tallies, from the same 13 failing runs in each; runaway at ticks 138–181 (predicted 134–175) |
 | L2, L3 at C2L converge | frame §6.2 | **Wrong**: it used PL at the point and ran no displaced start |
 | Ticks to tolerance, Tier 1/2/3 median (slowest): I1 324/381/525 (654), I2 1,594/1,902/2,390 (2,910), I3 396/574/630 (856) | PREDICTION §4 | Identical. The class agrees in all 845 runs, ticks to tolerance in 571 of 623 CONVERGED runs (fig2) |
-| A quantity loop (1.19 a tick with prices frozen). The frame: the rationed machine desk keeps its coin and orders more; PREDICTION §3.5: power's coin falls while the goods desk's rises | frame §6.3; PREDICTION §3.5 | The open-loop probe grows about 1.2 a tick. The predictor's reading holds: in L2 C2L `p[good]*2` power's coin falls 9.87 → 3.64 by tick 11, and the goods desk's rises 24.9 → 29.6 |
+| A quantity loop (1.19 a tick with prices frozen). The frame: the rationed machine desk keeps its coin and orders more; PREDICTION §3.5: power's coin falls while the goods desk's rises | frame §6.3; PREDICTION §3.5 | In the open-loop probe the loop grows about 1.2 a tick. The predictor's reading holds: in L2 C2L `p[good]*2` power's coin falls 9.87 → 3.64 by tick 11, and the goods desk's rises 24.9 → 29.6 |
 | Mode A fails for I2 at 12/yr (mirror tick 2,558) and for L2, L3 at C2m | PREDICTION §4 | I2 at 2,427, L3 at 52/yr at 112 (mirror 115). L2 passes at 52 and 365/yr only because its genesis is a bit-exact fixed point, and its kick fails, as §4 said |
 | 62 rate-scan and 40 map cells | PREDICTION §5.1–5.2 | 62/62, and 34 of the 35 map cells run. I2 (rates ×½, turnover ×1), PL 0.99967, is GO where LOCAL was called on a 60,000-tick cap. Its slowest run takes 34,139 ticks |
 | Tick length, Tiers 1–2; O14 | PREDICTION §5.3, §7 | All but two cells: L3 C2L at 365/yr is 0/34, 2/42 (predicted 0/0), and I3 at 12/yr (below). O14 within a few per cent |
@@ -97,14 +97,16 @@ kick passes), but at `land.power`=0.45 and `b.food`=0.54 kicks grow ×1.8e3 and 
 [battery.csv](results/markets/battery.csv); fig1). Kick sets (1 ± 1e-9 on each price at every
 target, H = L) all pass for I0–I3 and G1 (470 kicks, gain_tail ≤ 1.7e-5), and 8 of 8 for L2 and L3
 at C2L; the ninth cannot be made, since its dated run dies. No run is ERROR or VACUOUS. Every
-CONVERGED run ends within 1.03e-14 in log; Tier 3 at 10·L gives the same ticks to tolerance. At C2m every L2 and L3 run DIVERGED. At C2L the same shapes fail in both: JB(1.2) in
-Tier 2, and in Tier 3 r\*2, JB(2), RT(2), JA(0.5), JB(0.5), RT(0.5), `p[engine]*0.5` and
-`p[power]*0.5`; L2 adds `p[engine]*0.8`, `p[good]*2` and `land.power`=1.2 at both times, L3 adds
-RC(2), `p[food]*2` and `b.food`=0.3 at both times. **How L2's `p[good]*2` dies** (fig4): at tick 0
-the goods desk doubles its bids and labour fills 0.54; at tick 6 the engine makes 0.094 against
-the oracle's 2.51, and at tick 7 it keeps everything; power makes 0 at tick 7 and the engine 0 at
-tick 8. Neither restarts (132 no-trade ticks on the engine's market, 131 on power's), and both
-prices rise e^0.1 a tick to the runaway bound at tick 139.
+CONVERGED run ends within 1.03e-14 in log; Tier 3 at 10·L gives the same ticks to tolerance;
+slack runs take 78–138 ticks. At C2m every L2 and L3 run DIVERGED. At C2L the same shapes fail
+in both: JB(1.2) in Tier 2, and in Tier 3 r\*2, JB(2), RT(2), JA(0.5), JB(0.5), RT(0.5),
+`p[engine]*0.5` and `p[power]*0.5`; L2 adds `p[engine]*0.8`, `p[good]*2` and `land.power`=1.2
+at both times, L3 adds RC(2), `p[food]*2` and `b.food`=0.3 at both times. **How L2's
+`p[good]*2` dies** (fig4): at tick 0 the goods desk doubles its bids and labour fills 0.54; at
+tick 6 the engine makes 0.094 against the oracle's 2.51, and at tick 7 it keeps everything; power
+makes 0 at tick 7 and the engine 0 at tick 8. Neither restarts (132 no-trade ticks on the
+engine's market, 131 on power's), and both prices rise e^0.1 a tick to the runaway bound at
+tick 139.
 
 **Families** ([families.csv](results/markets/families.csv); fig5). Tick length, Tiers 1–2: runs
 converged; median / slowest years to tolerance over the non-slack runs.
@@ -143,9 +145,8 @@ Dated cost shocks ([depth.csv](results/markets/depth.csv); fig6): the equilibriu
 **Does O14 get worse with more markets? Yes, in its tails; the medians stay at I0's** (Tier 3's
 median peak D̂ 998–1,829 against 1,290, its median trough of baskets 0.25–0.37 against 0.40).
 - **The worst runs are deeper.** Tier 2's worst trough of baskets halves (0.54 of Y\* to
-  0.28–0.34), and its worst dead ticks go from 12 to 56–99. Tier 3's worst transfer shortfall is
-  3.5–7 times I0's (not in I2). A machine-land shock of I0's size in equilibrium cuts consumption
-  to 4% of Y in I1, against 13.5% in I0.
+  0.28–0.34), its worst dead ticks go from 12 to 56–99, and Tier 3's worst transfer shortfall is
+  3.5–7 times I0's (not in I2). A machine-land shock of I0's size bottoms at 4% of Y in I1.
 - **Ticks with no baskets at all**, in two I1 Tier-3 runs (`JB(0.5)` 3, `x*/2` 1): the machine desk
   keeps its whole stock, so manufactures and food make nothing, the loop's zero in miniature. Part
   of this is the rule: output is Leontief at the *planned* technique, so a missing machine service
@@ -170,11 +171,10 @@ tally changes.
   class equals the mirror's in every run; no anchor or clamp; failing C2L runs reach exactly zero
   engine and power output. **Major:** the dependence on decision 67 is stated backwards. The
   loop's NO-GO does not depend on 67; the headline GO does (§6). Minors: the zero does not need
-  keep-first (with a shared keep, all 17 failing runs still die, at ticks 135–149); "no baskets from
-  tick 8" is partly planned assignment, since labour still clears about 1.18 a tick and ex-post
-  assignment would have people do the tasks, and the trigger is labour rationing at tick 0; "from
-  far away" needs scope (stationary coins and stocks, one task margin); I2's GO is weekly only; and
-  Q2's "must" rests on I2 alone.
+  keep-first (with a shared keep, all 17 failing runs still die); "no baskets from tick 8" is
+  partly planned assignment (labour still clears; ex-post assignment would do the tasks by hand),
+  triggered by labour rationing at tick 0; "from far away" needs scope (stationary coins and
+  stocks, one task margin); I2's GO is weekly only; Q2's "must" rests on I2 alone.
 
 **The corrected verdict** keeps every verdict and narrows the reading: many markets are GO at 52
 ticks a year for loop-free flow economies, from displaced prices, technique and costs, with
@@ -210,8 +210,8 @@ that no dial set tried removes.
   stable, but no dial set tried near it is GO; the best is LOCAL (PREDICTION §5.4; the map). The
   fix is a stock the loop can draw on (Phase 3's durable machines, or a storable service) or entry
   for a desk at zero coin. Sharing the keep does not help.
-- **Tick length.** At 12 a year I2's point is unstable, and I1 needs a median 90 years against 7 at
-  52. On Appendix B the monthly tick cost a factor of 3 in years; here it costs 13.
+- **Tick length.** At 12 a year I2 is unstable and I1 needs 90 years against 7 at 52: on
+  Appendix B the monthly tick cost a factor of 3 in years, here 13.
 
 **Recommendation.** Close P2.1 as it stands: many markets GO for loop-free economies at 52 a year,
 the loop NO-GO, no fallback. Open Phase 2 proper after units 1d and 1e on loop-free wall and

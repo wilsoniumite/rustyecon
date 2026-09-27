@@ -10,10 +10,14 @@ the tape's schema is [docs/TAPE.md](docs/TAPE.md), and the GUI's design is
 **Collaboration:** as in laborformal. Sequencing, engineering and drafting are delegated to
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
-**State as of:** 2026-09-27, on `reboot`'s line. **`g0` is merged** into it by this commit, on
-branch `merge-g0` from `reboot` at `503897e`, not pushed: while `reboot` stays at `503897e`,
-taking the merge is a fast-forward, on your word. Two lines of work that both started at
-`397d7cd` (S2.6) meet here. **Phase 1's units 1b and 1c are closed** (P1.2–P1.7), built on
+**State as of:** 2026-09-27, on branch `phase2-markets`, from `reboot` at `708167f`, not
+pushed. **The many-markets probe (P2.1) is closed** (P2.1.1–P2.1.4; "Where things stand"):
+many markets GO for loop-free economies at 52 ticks a year, a loop of produced inputs NO-GO, no
+fallback ([docs/probe/MARKETS.md](docs/probe/MARKETS.md)). Its decisions are 118–123 and its
+open items O21–O24. While `reboot` stays at `708167f`, taking it is a fast-forward, on your word.
+**`g0` is merged** into `reboot` at `708167f`, on branch `merge-g0` from `503897e`, and the local
+`reboot` took the merge by a fast-forward. Two lines of work that both started at `397d7cd`
+(S2.6) meet there. **Phase 1's units 1b and 1c are closed** (P1.2–P1.7), built on
 branch `phase1` and fast-forwarded into `reboot` at `503897e`. **G0, the GUI's shell, is
 closed** at G0.3, built on branch `g0`: G0.1, the viewer, and G0.2, the editor, are built and
 verified, and what each verification found is fixed. Every item of G0's gate is met but the
@@ -31,12 +35,42 @@ no fallback (decision 38); and Breakpoint B's pre-look passed beside it (S5.0,
 docs/spine/EYEBALL.md; decision 35).
 Next, in order: your look at the window (the G0 gate's item checked by hand); Phase 1's units
 1d and 1e, then 1f, which a run on branch `phase1` (from `503897e`) is building now and which
-land by a merge that numbers their decisions and open items after these; G1, the oracle lab,
-after Phase 1's gate.
+land by a merge that numbers their decisions and open items after these; Phase 2 proper after
+1d and 1e, on the markets probe's roles and harness; G1, the oracle lab, after Phase 1's gate.
 
 ## Where things stand
 
-**`g0` is merged** (2026-09-27, this commit). `g0` (G0.1–G0.3, `f897ca8` to `428bdcd`) and
+**Many-markets probe (2026-09-27; P2.1.1–P2.1.4).** The Phase 2 probe's report named many
+markets as Phase 2 proper's first untested risk (REPORT §7 Q2); units 1b and 1c give their
+known answers. The probe ran on branch `phase2-markets` from `reboot` at `708167f` (worktree
+`D:/rustyecon-wt/p2m`, scratch `D:/rustyecon-p2m/`): a frame (`frame/MARKETS-SPEC.md`), an
+independent prediction (`predict/PREDICTION.md`), the build (P2.1.1–P2.1.2: four new agent
+kinds, `probe::markets`, seven tapes, [MARKETS-RULES.md](docs/probe/MARKETS-RULES.md)), a
+registered run (`run/registration.md`, sha256 `a92d9a9c…`), two reviews and the report
+(P2.1.3–P2.1.4).
+- **Verdict** ([docs/probe/MARKETS.md](docs/probe/MARKETS.md)). **Many markets GO** at C2 copied
+  per role (C2m) and 52 ticks a year: I1 (four categories, desks buying land), I2 (a chain of two
+  machine types) and I3 (both); all 303 runs end within 1.03e-14 in log and every kick decays.
+  **A loop of produced inputs is NO-GO** (L2, L3: two machine types buying each other's
+  service): every run diverges at C2m, and at C2L (type rates 5.2/yr, tilt 1) ±20% displacements
+  reach an absorbing zero. Every verdict is the predictor's, run for run; the frame's C2L
+  prediction was wrong.
+- **The reviews** confirm every verdict and narrow it: stationary coins and stocks at every start
+  (families 5–9 unrun, O22); the weekly tick only (at 12 a year I2 is unstable, O23); one task
+  margin (decision 60); and the GO depends on decision 67, which keeps goods out of machine
+  recipes, while the loop's NO-GO does not. Transients are worse in the tails, not the medians
+  (O24).
+- **What follows:** A11 not met, no fallback; Phase 2 proper opens after 1d and 1e on loop-free
+  instances with these roles, the markets harness and C2m at 52/yr; the loop goes to Phase 3
+  (decisions 118–123, O21).
+- **The gate at `fef01cd`** (P2.1.4's report; this file's commit changes docs only):
+  `scripts/gate.sh` is green in WSL (`/root/scratch/target-p2m-report`) and on Windows under Git
+  Bash (`D:/rustyecon-targets/p2m-report`), clean stamps; 569 workspace tests pass, 2 ignored
+  and run by name, zero warnings. Core, markets and engine are unchanged since `708167f`; the gate world
+  ends at `0x61f9c8529131ff17` and appb's 20,000 ticks at `0xe1fa082b26995867`, both per-tick
+  streams byte-identical on the two machines (logs in `D:/rustyecon-p2m/report/gate/`).
+
+**`g0` is merged** (2026-09-27, `708167f`). `g0` (G0.1–G0.3, `f897ca8` to `428bdcd`) and
 Phase 1's P1.2–P1.7 (`30ff1ce` to `503897e`) both started at `397d7cd`, and no code conflicted:
 `reboot` changed only `crates/oracle`, README.md and STATE.md, and `g0` only `crates/gui`, the
 workspace manifest, the lockfile, `scripts/`, the CI workflow's comment, docs/ENGINE.md,
@@ -871,10 +905,11 @@ same script under Git Bash, by hand.
 
 **Remote** (as the local remote-tracking refs show on 2026-09-27): `origin` has `main` and
 `reboot` at `cf3c0ff`, the three `july-v2-*` tags and `pre-foundations` (A1 done). Not pushed:
-the local `reboot` at `503897e` (S2.1–S2.6 and Phase 1's P1.2–P1.7); this merge, on
-`merge-g0`; `phase1`, at `503897e` when the merge was made, where the run for 1d–1f goes on;
-`g0` (G0.1–G0.3); and the local branches `phase0-s2`, `phase2-probe`, `spine-eyeball` and
-`reboot-phase0`, whose work is in `reboot`.
+- the local `reboot` at `708167f` (S2.1–S2.6, Phase 1's P1.2–P1.7 and the `g0` merge);
+- `phase2-markets` (P2.1.1–P2.1.4), on top of it;
+- `phase1`, at `503897e` when the merge was made, where the run for 1d–1f goes on;
+- the local branches `merge-g0`, `g0`, `phase0-s2`, `phase2-probe`, `spine-eyeball` and
+  `reboot-phase0`, whose work is in `reboot`.
 
 ## Decisions — veto window (your one-word calls)
 
@@ -1290,6 +1325,35 @@ each; all are open to veto.
      and G0.2's rerun time before its fixes; both sets stand. §9 does not say when in G0 to
      take them, and the finished crate is what an engine step's check builds.
 
+Decisions 118–123 are the many-markets probe's (P2.1, 2026-09-27; docs/probe/MARKETS.md §6).
+MARKETS-SPEC §9's frame decisions M1–M9 stand as the frame states them, open to veto with these.
+
+118. **The many-markets probe closes: many markets GO, a loop NO-GO, no fallback.** I1, I2 and
+     I3 are GO at C2m and 52 ticks a year; L2 and L3 are NO-GO at C2m and at C2L. A11's kill
+     condition is not met: the verdict instances pass mode B at the first dials tried, and no
+     Phase 2 configuration needs a loop. Alternative: read the loop's NO-GO as A11's failing
+     mode B, and plan the fallback for economies with loops.
+119. **C2m, C2 copied per role, is Phase 2 proper's default; C2L is not adopted** (MARKETS-SPEC
+     Q1). C2L makes the loop's point locally stable, but no dial set tried near it is GO, and it
+     was never run on I1–I3. Alternative: C2L's type rates and tilt as the default.
+120. **No Phase 2 instance carries a loop of non-storable produced inputs; the loop goes to
+     Phase 3** (O21). Its absorbing zero needs a stock to draw on (durable machines, or a
+     storable service) or entry for a desk at zero coin; a keep rule that shares the shortfall
+     does not close it. Alternative: a storable machine service in Phase 2 as a named variant
+     (R6), under its own registration.
+121. **The weekly tick is Phase 2 proper's default** (REPORT §7 Q5; O23). At 12 a year I2's
+     point is unstable, and I1 takes a median of 90 years to reach tolerance, against 7 at 52 a
+     year; 365 a year agrees with 52 in years, except for the loop. Alternative: monthly ticks
+     with the dials restated per tick length, which needs a probe of its own.
+122. **The report takes its task's names:** docs/probe/MARKETS.md, results/markets/ and
+     figs/markets/, not MARKETS-SPEC §8's MARKETS-REPORT.md and results/markets-*.csv.
+     MARKETS-RULES.md stays as registered; the reviews' corrections are in the report (the
+     loop's NO-GO comes from the frame's restrictions, not from decision 67; 132 no-trade ticks,
+     not 131). Alternative: amend MARKETS-RULES §7 as well.
+123. **The families the time box left are carried, not run** (O22). The verdicts do not need
+     them (MARKETS-SPEC §7.9), and Phase 2 proper's battery runs them first. Alternative: run
+     them before closing the probe.
+
 ## Open — your calls
 
 - **The GUI's decisions**, 22–34 (D1–D13): G0 carried them out, none vetoed; a veto now reopens
@@ -1308,7 +1372,14 @@ each; all are open to veto.
 - **Decisions 59–75** (Phase 1's units 1b and 1c), open to veto. Three matter before Phase 2
   proper: cells in the equilibrium (61) and machines built from categories (67), each a 1c
   addendum if ruled in, and whether multiple equilibria are refused or all reported (70),
-  which decides what Phase 2 compares the agents against.
+  which decides what Phase 2 compares the agents against. The markets probe recommends keeping
+  67 for Phase 2 proper: its GO depends on it, and a veto would give every multi-category
+  instance a goods-and-machines loop, the structure it found NO-GO, and so put those instances
+  behind Phase 3. It confirmed 70 on every instance and leaves 61 to a probe of its own
+  (MARKETS §6).
+- **Decisions 118–123** (the many-markets probe's), open to veto, with MARKETS-SPEC §9's frame
+  decisions M1–M9. Of its questions, Q1 is answered by 120 and Q2 by the GO at 52 a year. Q3, a
+  switch between machine types, waits for durable machines; Q4, category inputs, is untested.
 - **Decisions 76–81** (G0.1's first part), **82–89** (its second part), **90–96** (its
   verification fixes), **97–108** (G0.2), **109–113** (its verification fixes) and **114–117**
   (G0's close), open to veto.
@@ -1316,15 +1387,16 @@ each; all are open to veto.
   is closed"): the window opens `tapes/gate.ron` and runs to 2,080 with every price plotted
   and no panic. The smoke mode ran it on Windows; nobody has looked at it. `g0` proposed
   merging after your look; the merge came first, so if the window fails your look, the G0.4
-  that fixes it (decision 114) lands on top of this merge, before G1.
-- **Landing the branches.** `phase0-s2` and `phase1`'s P1.2–P1.7 are in the local `reboot` by
-  fast-forwards. `g0` is merged by this commit, on `merge-g0`: while `reboot` stays at
-  `503897e`, it takes the merge by a fast-forward. The run on `phase1` for units 1d–1f started
-  from `503897e` too, and its copy of this file numbers new decisions after 75 and new open
-  items after O19, so it lands by a merge that renumbers its own after 117 and O20, as this one
-  renumbered G0's.
-- **Pushing `reboot`** (locally at `503897e`, with session 2 and Phase 1's units 1b and 1c;
-  `origin/reboot` is at `cf3c0ff`), and this merge once it has landed.
+  that fixes it (decision 114) lands on top of the merge (`708167f`), before G1.
+- **Landing the branches.** `phase0-s2`, `phase1`'s P1.2–P1.7 and the `g0` merge (`708167f`)
+  are in the local `reboot` by fast-forwards. `phase2-markets` (P2.1.1–P2.1.4) sits on
+  `708167f`; while `reboot` stays there, it lands by a fast-forward. The run on `phase1` for units
+  1d–1f started from `503897e`, and its copy of this file numbers new decisions after 75 and new
+  open items after O19. It lands by a merge that renumbers its own, as the `g0` merge renumbered
+  G0's: after 123 and O24 once `phase2-markets` has landed, or after 117 and O20 if it lands
+  first.
+- **Pushing `reboot`** (locally at `708167f`, with session 2, Phase 1's units 1b and 1c, and G0;
+  `origin/reboot` is at `cf3c0ff`), and `phase2-markets` once it has landed.
 - **The Phase 2 session budget** that A11's kill condition needs (PLAN Phase 2), now for Phase 2
   proper's other instances.
 - **The decisions above**, especially 10 (the engine crate, not in PLAN's crate list), 11, 15
@@ -1397,7 +1469,9 @@ when its fix is reverted, checked by mutation (the review's own mutants among th
   Carried. Session 2 built its first instrument: every scored certificate reports, per segment,
   the troughs of cleared volume, dead ticks, fills and rationing, ticks with no consumption,
   spoilage and the transfer shortfall (CERTIFY §6). They are reported, not scored. Scoring a
-  path needs the oracle's reference, so it waits for Phase 2 proper and `crates/observe`.
+  path needs the oracle's reference, so it waits for Phase 2 proper and `crates/observe`. The
+  many-markets probe measured them on six economies, and with many markets retired as a risk
+  for loop-free economies, paths are now Phase 2 proper's first (O24).
 - **O15. The spine scripts' default cache: done at S2.6.** The scripts read `$SPINE_ROOT`, else
   `data/spine/.cache/` beside them, which `.gitignore` keeps out; the finer overrides stand.
   With `SPINE_ROOT=D:/rustyecon-spine` every path equals the old default (checked by evaluating
@@ -1456,6 +1530,42 @@ when its fix is reverted, checked by mutation (the review's own mutants among th
     generation. And a tape with no marker, beside a lineage file that does not read, opens as
     a run, with the log saying the lineage does not read; U3 read strictly makes it an
     experiment.
+- **O21. The loop's absorbing zero** (decision 120; MARKETS §3, §6). In L2 and L3, two machine
+  types buy each other's non-storable service. They diverge at C2m. At C2L, ±20% displacements
+  kill them:
+  - a type desk whose plan exceeds 1/a_kk of its stock keeps all of it;
+  - its partner then makes nothing, and neither restarts, since services cannot be stored, the
+    genesis lots are gone and no role enters;
+  - the prices then run away under `Saturate`.
+
+  A keep rule that shares the shortfall does not help. The fix is a stock (Phase 3's durable
+  machines, or a storable service) or entry at zero coin. Two I1 runs show the one-type cousin, a
+  tick with no machines traded and no baskets. Carried to Phase 3.
+- **O22. The markets probe's unrun families** (decision 123). Each family is built into
+  `markets family`, and the variants are flags (`--one-sided hold`, `--set tilt.*=1`):
+  - stocks: every desk's coin and stock, and each type's stock ×0.01 and ×10, which matter most
+    for the chain and the zero;
+  - joint2 and joint4, basin, history (`cycle`), and the `Hold` and tilt-1 variants;
+  - five map cells of I3.
+
+  Phase 2 proper's battery runs them first, stocks first.
+- **O23. Tick length and the kick's horizon in many markets** (decision 121).
+  - At 12 a year I2's point is unstable, and I1 takes a median of 90 years to reach tolerance
+    (7 at 52 a year).
+  - At 12 a year I3's base kick misses the bar at H = L, though its slow mode is stable: it
+    passes at 5L. Two of its cost targets are slowly unstable there. This is CERTIFY §15.1 (6) from the
+    other side: H = L can fail a slow stable mode as well as pass a slow unstable one.
+  - The mirror's PL from random directions misses such slow cones, so a registration that
+    relies on it should search for them.
+- **O24. Paths in many markets** (O14; MARKETS §4). The medians are as on Appendix B, but the
+  tails are deeper:
+  - Tier 2's worst consumption trough is 0.28–0.34 of Y\*, against 0.54, with up to 99 dead
+    ticks against 12;
+  - a machine-land shock cuts consumption to 4% of Y in I1, where Appendix B fell to 13.5%;
+  - one small, fully automated category binds up to three quarters of short household ticks.
+
+  Planned assignment turns a missing machine service into zero output while labour clears.
+  Ex-post assignment, the registered alternative, is untested in many markets.
 
 ## Corrections logged (A3; ADDENDUM §1.4)
 
@@ -1488,7 +1598,7 @@ that branch until it lands.
 1. **Your look at the window**, the G0 gate's item checked by hand (the command is under "G0
    is closed" in "Where things stand", with how to try the editor). G0 is otherwise closed
    (G0.3, 2026-09-27; O1). If the window fails, a G0.4 fixes it first (decision 114), on top of
-   this merge.
+   the merge (`708167f`).
 2. **Unit 1d, worker types and the wall.** Human-required tasks in the equilibrium, several
    worker types each with its own margin (w_i = p_m·γ_i(x_i*)), and the boundary regimes 1a
    only classifies solved: x* = 1, where labour holds only human-required tasks at the wall and
@@ -1512,10 +1622,15 @@ that branch until it lands.
    entry types, `Basis` and `Unit` (decision 97), so the GUI's edge to core goes and core's
    writer is out of its reach by type again. `scripts/gate.sh`'s check of the GUI then says
    whether the GUI still builds; a break is fixed at G1 at the latest (D1).
-6. **Before Phase 2 proper's multi-category instances**: your rulings on decisions 61 and 67
-   (cells in the equilibrium, machines built from categories), each a 1c addendum if ruled in,
-   and on 70. Units 1b–1e give Phase 2 proper its other instances; it starts from the probe's
-   roles and harness, with many markets as its first untested risk.
+6. **Before Phase 2 proper**: your rulings on decisions 61 and 67 (cells in the equilibrium,
+   machines built from categories), each a 1c addendum if ruled in, on 70, and on 118–123. The
+   markets probe recommends keeping 67 and 70 (MARKETS §6). Phase 2 proper then opens after
+   units 1d and 1e on loop-free wall and commons instances, with the markets probe's roles, the
+   `probe::markets` harness and C2m at 52 ticks a year (decisions 119–121). Its battery runs
+   O22's families first, stocks first. The commons' idle land needs an answer, without a clamp,
+   for a market at zero rent, whose unsold price `Saturate` runs to the runaway bound. Many
+   markets is no longer the first untested risk. The risks now are paths (O14, O24) and the new
+   margins of 1d and 1e: several labour markets and the wall at x\* = 1.
 7. **G1, the oracle lab, after G0 and Phase 1's gate** (GUI.md §9). It starts with O20, then
    what G0 moved to it: the plots' overlay, difference and ratio against a parent, re-making
    branches at launch, the registry's and the inspector's ways into the editor, a lock on
@@ -1540,12 +1655,15 @@ docs/reboot/             REVIEW.md and ADDENDUM.md, kept as written (links fixed
 docs/timeline/eras.md    era research for worldgen
 crates/core              ids, clock, inventory, deltas, apply, ledgers, hash, checkpoints, tape
 crates/markets           admission, clearing, settlement, prices
-crates/agents            the behaviour seam, the scripted actor, the Appendix B roles (P2.0.1)
+crates/agents            the behaviour seam, the scripted actor, the Appendix B roles (P2.0.1),
+                         the many-market roles in roles/many/ (P2.1.1)
 crates/probe             the Phase 2 probe's harness and tape generator (P2.0.1); reads certify's
-                         measures (S2.5)
+                         measures (S2.5); the markets probe's harness, probe::markets (P2.1.1)
 docs/probe/RULES.md      the probe's rules, dials and lineage, as built
 docs/probe/REPORT.md     the probe's report: verdict, battery, dial map, reviews, what it means
 docs/probe/figs/         the report's plots; docs/probe/results/ its three summary tables (CSV)
+docs/probe/MARKETS*.md   the markets probe's rules as built (MARKETS-RULES.md) and its report
+                         (MARKETS.md), with figs/markets/ and results/markets/ (six CSVs)
 crates/engine            Sim, the tick, reports, resume, the replay audit, the registry listing
 crates/cli               the rustyecon binary: run, resume, replay, registry, certify
 crates/oracle            the equilibrium solver, units 1a (P1.1), 1b and 1c (P1.2–P1.7); its
@@ -1561,6 +1679,7 @@ crates/gui/tests/golden  the view-model goldens, one RON file per builder and po
                          (UPDATE_GOLDEN=1 rewrites them)
 tapes/gate.ron           the gate world
 tapes/appb.ron           the probe's Appendix B world, generated from the oracle
+tapes/markets-<id>.ron   the markets probe's seven worlds (I0–I3, L2, L3, G1), from the oracle
 criteria/                each tape's dated criteria, registered before its first certified run
 results/                 committed verdicts: results/<tape>/certificate.ron and manifest.ron
 data/spine/              the spine's fetch, extract and eyeball scripts, manifests, CC0 files;
@@ -1600,6 +1719,13 @@ scripts/gui.sh           the GUI's gate, run at each G-stage (G0.1); diffs the e
   in WSL), on branch `merge-g0`, with both gates' targets `/root/scratch/target-merge-g0` and
   `D:/rustyecon-targets/merge-g0` (the engine gate's GUI check in `…-gui` beside them) and its
   logs in `D:/rustyecon-merge-g0/`.
+- The markets probe ran from a worktree, `D:/rustyecon-wt/p2m` (`/mnt/d/rustyecon-wt/p2m` in
+  WSL), on branch `phase2-markets`, with targets `/root/scratch/target-p2m-<label>` and
+  `D:/rustyecon-targets/p2m-<label>`. Its frame, prediction, build checks, registration, runs,
+  reviews and report scripts are in `D:/rustyecon-p2m/<label>/`. The binary `markets` (release,
+  `-p rustyecon-probe`) lists, runs and kicks the batteries and families (`markets list`, `run`,
+  `kick`, `family`, `point`, `elasticity`), and `D:/rustyecon-p2m/report/make_results.py`
+  (WSL's python3) remakes docs/probe/results/markets/ from `D:/rustyecon-p2m/runs/`.
 - The oracle's goldens: from `crates/oracle`, run `goldens/generate.py`, `generate_1b.py` and
   `generate_1c.py` with `--check` under laborformal's venv
   (`C:/Users/wilso/Documents/GitHub/laborformal/venv/Scripts/python.exe`,
