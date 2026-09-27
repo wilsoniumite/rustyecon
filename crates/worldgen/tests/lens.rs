@@ -173,7 +173,7 @@ fn the_measures_follow_their_formulas() {
         "the largest 1 − filled/requested"
     );
     assert_eq!(
-        lv(Level::Dead),
+        lv(Level::NoTrade),
         2.0,
         "the ticks in the window a market did not trade"
     );
@@ -216,7 +216,7 @@ fn the_measures_follow_their_formulas() {
         Err(NoValue::Missing("a rationing line with a request"))
     );
     assert_eq!(
-        value(Measure::Level(Level::Dead), &none, None),
+        value(Measure::Level(Level::NoTrade), &none, None),
         Err(NoValue::Missing("whether the markets traded"))
     );
     for l in [Level::GapOracle, Level::GapWage] {

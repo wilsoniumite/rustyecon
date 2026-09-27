@@ -29,8 +29,8 @@ pub fn demo_gb() -> Result<Vec<Lens>, CompileError> {
     tables::parse_lenses(DEMO_GB_LENSES)
 }
 
-/// The trailing window the `dead` lens counts over: a year of the demo's 52 ticks.
-pub const DEAD_WINDOW: u64 = 52;
+/// The trailing window the `no.trade` lens counts over: a year of the demo's 52 ticks.
+pub const NO_TRADE_WINDOW: u64 = 52;
 
 /// What a level lens measures.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -63,9 +63,11 @@ pub enum Level {
     Shortfall,
     /// The largest 1 − filled/requested over the county's rationing lines.
     Rationing,
-    /// Ticks of the trailing [`DEAD_WINDOW`] in which one of the county's four markets did
-    /// not trade.
-    Dead,
+    /// Ticks of the trailing [`NO_TRADE_WINDOW`] in which one of the county's four markets did
+    /// not trade (`MarketLine::trades`). Not the probe's dead tick, which also counts a market
+    /// that clears below half its oracle volume and waits for `crates/observe` (O17); so it is
+    /// not called `dead`.
+    NoTrade,
     /// D̂ against the county's own oracle point: needs `crates/observe`.
     GapOracle,
     /// ln((w/r)/v*): needs `crates/observe`.
@@ -107,7 +109,7 @@ impl Level {
             "relief.burden" => Level::ReliefBurden,
             "shortfall" => Level::Shortfall,
             "rationing" => Level::Rationing,
-            "dead" => Level::Dead,
+            "no.trade" => Level::NoTrade,
             "gap.oracle" => Level::GapOracle,
             "gap.wage" => Level::GapWage,
             _ => return None,
@@ -339,7 +341,7 @@ pub fn level(l: Level, x: &Readings) -> Result<f64, NoValue> {
             .map(|(req, fill)| 1.0 - fill / req)
             .fold(None, |m: Option<f64>, v| Some(m.map_or(v, |m| m.max(v))))
             .ok_or(NoValue::Missing("a rationing line with a request")),
-        Level::Dead => {
+        Level::NoTrade => {
             if x.traded.is_empty() {
                 return Err(NoValue::Missing("whether the markets traded"));
             }

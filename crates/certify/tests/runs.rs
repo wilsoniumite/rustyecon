@@ -816,6 +816,71 @@ fn a_failed_kick_is_a_fail_not_an_error() {
 }
 
 #[test]
+fn certify_refuses_illustrative_tape() {
+    // R5 (D.4, 2026-09-27): an illustrative tape is never scored. The demo world's tape, run
+    // against criteria registered for its own name and tape_hash, is UNSCORED although every
+    // battery passes (verify-world-r1 certified it PASS); so is the gate renamed with the
+    // marker. A tape whose bases say illustrative and whose name has lost the marker does not
+    // certify at all.
+    let demo_text = std::fs::read_to_string(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../tapes/demo-gb.ron"
+    ))
+    .expect("tapes/demo-gb.ron");
+    let demo = tape(&demo_text);
+    assert_eq!(demo.header.name, "demo-gb [illustrative]");
+    let c = run(
+        &demo,
+        &demo.header.name.clone(),
+        104,
+        1.0,
+        &gate_batteries(),
+    )
+    .certificate;
+    assert!(c.batteries().iter().all(|b| b.pass), "{:?}", c.failures());
+    assert_eq!(c.verdict(), Verdict::Unscored, "{:?}", c.failures());
+    assert_eq!(
+        c.failures(),
+        ["unscored: an illustrative tape (its name carries [illustrative]) is never scored (R5)"]
+    );
+    assert_eq!(
+        certify::illustrative_basis(&demo).as_deref(),
+        Some("params[ledger.rel_flow]")
+    );
+    let mut gate = tape(GATE);
+    gate.header.name = "gate [illustrative]".to_string();
+    let c = run(&gate, "gate [illustrative]", 2080, 1.0, &gate_batteries()).certificate;
+    assert_eq!(c.verdict(), Verdict::Unscored, "{:?}", c.failures());
+    // The marker dropped from the name, and one basis left saying illustrative.
+    let mut unmarked = demo.clone();
+    unmarked.header.name = "demo-gb".to_string();
+    let e = certify(
+        &unmarked,
+        Scoring::Unscored { until: 1 },
+        &build(),
+        &mut |_| {},
+    )
+    .unwrap_err();
+    assert_eq!(
+        e,
+        CertifyError::Illustrative("params[ledger.rel_flow]".to_string())
+    );
+    let mut gate = tape(GATE);
+    let last = gate.events.len() - 1;
+    gate.events[last].basis =
+        rustyecon_core::Basis::Assumed("illustrative demo, 2026-09-27: a test".to_string());
+    let e = certify(&gate, Scoring::Unscored { until: 1 }, &build(), &mut |_| {}).unwrap_err();
+    assert!(
+        matches!(&e, CertifyError::Illustrative(at) if at.starts_with("events[")),
+        "{e}"
+    );
+    assert!(e.to_string().contains("never scored (R5)"), "{e}");
+    // The gate as it is has no illustrative basis.
+    assert_eq!(certify::illustrative_basis(&tape(GATE)), None);
+    assert_eq!(certify::illustrative_basis(&tape(APPB)), None);
+}
+
+#[test]
 fn reserved_keys_do_not_load() {
     // §7: keys under `certify.` are the kick's; a base tape that uses one does not certify.
     let gate = tape(GATE);

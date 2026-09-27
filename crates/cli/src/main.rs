@@ -12,7 +12,8 @@
 //! manifest of the run that made it.
 //!
 //! `worldgen` compiles a world's tables into a tape through `rustyecon-worldgen`, which reads no
-//! file: the cli reads the tables and writes the tape.
+//! file: the cli reads the tables and writes the tape. `licences` prints the licence and
+//! attribution of the county atlas the binary bundles (data/atlas/, ODbL 1.0).
 //!
 //! Exit codes: 0 ok (for `certify`, PASS); 1 a load or argument error (an unknown checkpoint
 //! extension, criteria that do not load or fit, and an `--out` holding the manifest a resume
@@ -140,6 +141,9 @@ enum Cmd {
         #[arg(short, long, value_name = "FILE")]
         out: Option<PathBuf>,
     },
+    /// Print the licence and attribution of the data this binary bundles: the county atlas,
+    /// data/atlas/gb.atlas.ron, under the ODbL 1.0 (data/atlas/LICENSE and ATTRIBUTION).
+    Licences,
 }
 
 #[derive(Args)]
@@ -589,6 +593,10 @@ fn run(cmd: Cmd) -> Result<(), Exit> {
             telemetry,
         } => certify_run(&tape, criteria.as_deref(), until, &out, telemetry),
         Cmd::Worldgen { dir, out } => worldgen(&dir, out.as_deref()),
+        Cmd::Licences => {
+            print!("{}", rustyecon_worldgen::atlas::licences());
+            Ok(())
+        }
     }
 }
 
@@ -645,8 +653,14 @@ fn worldgen(dir: &Path, out: Option<&Path>) -> Result<(), Exit> {
         s.max_x.1
     );
     println!(
-        "  largest move at one date: relative prices and technique {:.4} in log ({}),          quantities {:.4} ({})",
+        "  largest move at one date: relative prices and technique {:.4} in log ({}), \
+         quantities {:.4} ({})",
         s.max_step_prices.0, s.max_step_prices.1, s.max_step_quantities.0, s.max_step_quantities.1
+    );
+    println!(
+        "  largest move over a trailing year: relative prices and technique {:.4} in log ({}), \
+         quantities {:.4} ({})",
+        s.max_year_prices.0, s.max_year_prices.1, s.max_year_quantities.0, s.max_year_quantities.1
     );
     println!(
         "tape {:?}: {} bytes, tape_hash 0x{:016x}, world_id 0x{:016x}",

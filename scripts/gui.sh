@@ -13,8 +13,10 @@
 #   3. cargo test -p rustyecon-gui --release, with every warning an error, and each test G0's
 #      gate names so far run by name and passed, so a renamed test cannot drop out;
 #   4. the cli's hashes: gui_equals_cli writes the GUI path's hashes of tapes/gate.ron (2,080
-#      ticks) and tapes/appb.ron (20,000), and the body of `rustyecon run <tape> --until <T>
-#      --hashes` must equal them byte for byte, both binaries built --release on this machine;
+#      ticks) and tapes/appb.ron (20,000), and gui_equals_cli_demo_gb those of tapes/demo-gb.ron
+#      (7,852, through the first tick of 1901, with the lean catalogue), and the body of
+#      `rustyecon run <tape> --until <T> --hashes` must equal them byte for byte, both binaries
+#      built --release on this machine;
 #      and the same for the two branches the editor's tests materialise and run (G0.2):
 #      branch_resume_equals_rerun writes branch.ron with its hashes, a branch resumed from its
 #      parent's ring, and removal_only_branch_is_an_experiment writes removal.ron with its
@@ -51,7 +53,10 @@ step() { printf '\n== gui: %s\n' "$*"; }
 # form's refusals; apply, compare, export and save), and the scan that keeps edit/ pure. G0's
 # close (G0.3) adds the reducer's state-machine tests (tests/model.rs), which the gate names as a
 # group, so every test it names is checked by name. D.3 (the map, brought forward on branch
-# demo-world) adds the map's six (tests/map.rs, docs/GUI.md §8.1's map row and G4's gate).
+# demo-world) adds the map's six (tests/map.rs, docs/GUI.md §8.1's map row and G4's gate). D.4,
+# after D.3's verification, adds six more of the map's (the lens values against the engine, the
+# palettes, the mesh built afresh and the legend, every triangle's hit, a hover and a click on
+# every part, the atlas's credit) and the demo tape's hashes against the cli's.
 named=(
     gui_equals_cli
     failed_run_shows_its_ledger_line
@@ -101,6 +106,13 @@ named=(
     lens_domains_are_fixed_for_the_run
     demo_lens_view_models_equal_their_goldens
     the_demo_script_switches_lenses_runs_hovers_and_selects
+    lens_values_equal_the_engine
+    the_scales_are_the_neutral_palettes
+    rebuilt_mesh_colours_are_the_lens_colours
+    every_triangle_hits_its_region
+    hover_and_click_name_every_part
+    the_credit_is_painted_clear_of_the_legend
+    gui_equals_cli_demo_gb
 )
 
 step "toolchain (rust-toolchain.toml)"
@@ -132,7 +144,7 @@ echo "the ${#named[@]} named tests ran and passed"
 step "the cli's hashes, against the GUI's"
 cargo build --locked --release -p rustyecon-cli
 bin="$CARGO_TARGET_DIR/release/rustyecon"
-for spec in gate:2080 appb:20000; do
+for spec in gate:2080 appb:20000 demo-gb:7852; do
     name="${spec%%:*}"
     until="${spec##*:}"
     "$bin" run "tapes/$name.ron" --until "$until" --hashes "$work/$name.cli" >"$work/$name.out"

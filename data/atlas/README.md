@@ -21,6 +21,12 @@ The loader is `crates/worldgen/src/atlas.rs`: `Atlas::gb()` parses the bundled f
 `include_str!`, so no file I/O), refuses it unless its digest is the recorded one, and checks it
 whole. worldgen has no egui dependency, so the GUI and the compiler use the same loader.
 
+Every binary that bundles the atlas bundles `LICENSE` and `ATTRIBUTION` with it
+(`atlas::LICENSE`, `atlas::ATTRIBUTION`, also through `include_str!`) and prints both:
+`rustyecon licences` and `rustyecon-gui --licences`. The GUI's map paints the credit,
+`atlas::CREDIT`, in its lower right corner, with the whole attribution on its hover (D.4,
+2026-09-27).
+
 ## The regions
 
 93 regions: 41 in England, 13 in Wales, 33 in Scotland and 6 in Northern Ireland.

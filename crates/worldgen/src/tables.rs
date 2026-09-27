@@ -216,13 +216,49 @@ pub const DIALS: [(&str, &str); 14] = [
     ("tilt.desk.mach", "Dimensionless"),
 ];
 
+/// The probe's registered dials, C2 (docs/probe/RULES.md §3, §5; REPORT §4), in the units of
+/// [`DIALS`]. A world's dials must be these: C2 is the one point at which the probe's battery,
+/// its kicks and this history's run are evidence (O14), so a world at other dials needs its own
+/// probe run first. `dials_are_the_probes_registered_c2` holds this list to
+/// `probe::setup::Dials::registered()`. The ledger's tolerances and `price.ema_tc` are not the
+/// probe's dials and are not listed.
+pub const C2: [(&str, f64); 11] = [
+    ("rate.labour", 5.2),
+    ("rate.land", 1.3),
+    ("rate.mach", 1.3),
+    ("rate.good", 2.6),
+    ("adjust.technique", 2.6),
+    ("spend.workers", 13.0),
+    ("spend.provider", 13.0),
+    ("buffer.desk.good.cash", 5.2),
+    ("buffer.desk.mach.cash", 5.2),
+    ("tilt.desk.good", 0.0),
+    ("tilt.desk.mach", 0.0),
+];
+
+/// The most `max_step` may be, in log: the design's gradual history, whose largest move at one
+/// date is 0.026, ran with no dead tick and no shortfall (docs/demo/WORLD.md §4.4; O14). A
+/// larger `max_step` would let an abrupt history compile.
+pub const MAX_STEP_CEILING: f64 = 0.03;
+
+/// The most `step_log` may be, in log: the coarsest stepping that has been run, §4.4's 2%
+/// fallback.
+pub const STEP_LOG_CEILING: f64 = 0.02;
+
+/// What an illustrative world's tape name carries (R4, R5), and what its basis marker starts
+/// with. Until Phase 4's research tables, the compiler writes illustrative worlds only.
+pub const ILLUSTRATIVE_NAME: &str = "[illustrative]";
+
+/// See [`ILLUSTRATIVE_NAME`].
+pub const ILLUSTRATIVE_BASIS: &str = "illustrative";
+
 /// `world.csv`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct World {
-    /// The tape's name. It must carry `[illustrative]` while the basis marker says
-    /// "illustrative".
+    /// The tape's name. It carries [`ILLUSTRATIVE_NAME`].
     pub name: String,
-    /// The basis marker: every entry's basis is `Assumed("<marker>: <why>")`.
+    /// The basis marker: every entry's basis is `Assumed("<marker>: <why>")`. It starts with
+    /// [`ILLUSTRATIVE_BASIS`].
     pub basis: String,
     /// Tick 0's date, the first of a year.
     pub start: Date,
@@ -597,10 +633,21 @@ fn world(text_: &str) -> Result<World, CompileError> {
     }
     text(&wb, "the basis marker", &basis)?;
     text(&w, "the name", &name)?;
-    if basis.contains("illustrative") && !name.contains("[illustrative]") {
+    // Until Phase 4's research tables, every world this compiler writes is illustrative, so the
+    // marker cannot be dropped from both cells to make an unmarked tape of the same tables.
+    if !basis.starts_with(ILLUSTRATIVE_BASIS) {
+        return Err(CompileError::new(
+            wb,
+            format!(
+                "the basis marker starts with `{ILLUSTRATIVE_BASIS}`: until Phase 4's research \
+                 tables, this compiler writes illustrative worlds only (R4, R5)"
+            ),
+        ));
+    }
+    if !name.contains(ILLUSTRATIVE_NAME) {
         return Err(CompileError::new(
             w,
-            "an illustrative world's name carries the marker [illustrative] (R4, R5)",
+            format!("an illustrative world's name carries the marker {ILLUSTRATIVE_NAME} (R4, R5)"),
         ));
     }
     let start = date(take("start", "")?)?;
@@ -625,8 +672,28 @@ fn world(text_: &str) -> Result<World, CompileError> {
     if one_sided != "Saturate" && one_sided != "Hold" {
         return Err(CompileError::new(wo, "one_sided is Saturate or Hold"));
     }
-    let step_log = positive(take("step_log", "Dimensionless")?)?;
-    let max_step = positive(take("max_step", "Dimensionless")?)?;
+    let mut ceiling = |key: &str, most: f64, why: &str| -> Result<f64, CompileError> {
+        let row = take(key, "Dimensionless")?;
+        let at = row.2.clone();
+        let v = positive(row)?;
+        if v > most {
+            return Err(CompileError::new(
+                at,
+                format!("{key} {v} is above its ceiling {most}: {why} (O14)"),
+            ));
+        }
+        Ok(v)
+    };
+    let step_log = ceiling(
+        "step_log",
+        STEP_LOG_CEILING,
+        "the coarsest stepping that has been run (docs/demo/WORLD.md §4.4)",
+    )?;
+    let max_step = ceiling(
+        "max_step",
+        MAX_STEP_CEILING,
+        "a larger bound would let an abrupt history compile",
+    )?;
     let mut dials = Vec::new();
     for (key, unit) in DIALS {
         let (v, note, w) = take(key, unit)?;
@@ -641,6 +708,18 @@ fn world(text_: &str) -> Result<World, CompileError> {
         };
         if key.starts_with("ledger.") && !(value > 0.0 && value < 1.0) {
             return Err(CompileError::new(w, "a ledger tolerance is in (0, 1)"));
+        }
+        if let Some(&(_, c2)) = C2.iter().find(|(k, _)| *k == key) {
+            if value != c2 {
+                return Err(CompileError::new(
+                    w,
+                    format!(
+                        "{key} is {value}, not the probe's registered C2 value {c2}: C2 is the \
+                         one point at which the probe's battery and this history's run are \
+                         evidence (docs/probe/RULES.md §3, REPORT §4; O14)"
+                    ),
+                ));
+            }
         }
         dials.push(Dial {
             key: key.to_string(),

@@ -8,7 +8,7 @@
     centre: None,
     reference: None,
     inputs: "Sim::actor_state(county.C.provider)",
-    note: "zero in every county on the gradual history",
+    note: "0 at the oracle and in every county on this history; it shows only under an abrupt edit",
     unavailable: None,
     legend: [
         (value: 0.0, at: 0.0),

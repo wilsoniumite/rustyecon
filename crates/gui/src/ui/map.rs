@@ -9,7 +9,9 @@
 //! - **Looks.** A muted sea with a pale band along the coast, the regions in the lens's
 //!   colours, thin county borders, heavier lines where England meets Wales and Scotland, the
 //!   coast in dark ink, and the names wherever they fit. A region the tape lacks is hatched
-//!   grey; a region with no value is plain grey, and its hover card says why.
+//!   grey; a region with no value is plain grey, and its hover card says why. The atlas's
+//!   credit (data/atlas/ATTRIBUTION, ODbL) sits in the lower right corner, always, with the
+//!   whole attribution on its hover.
 //! - **Colours.** Neutral scales: viridis for a sequential lens, purple to orange through
 //!   white for a diverging one, and nothing good or bad (U-rules). A value outside the fixed
 //!   domain takes the end colour, and the legend and the card say so.
@@ -284,6 +286,27 @@ pub struct MapFrame {
     pub vertices: usize,
     /// Why there was no map, when there was none.
     pub refused: Option<String>,
+    /// The legend as drawn.
+    pub legend: LegendFrame,
+    /// The atlas's credit, as painted on the map (data/atlas/ATTRIBUTION, ODbL).
+    pub credit: Vec<String>,
+    /// Where the credit was painted.
+    pub credit_rect: Option<Rect>,
+}
+
+/// The legend as the last frame drew it.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct LegendFrame {
+    /// The bar's segments: where each starts and ends on the scale, from 0 to 1, and its colour.
+    pub segments: Vec<(f64, f64, Color32)>,
+    /// Each mark: its value, and where along the bar it was drawn, from 0 to 1.
+    pub marks: Vec<(f64, f64)>,
+    /// Where along the bar the reference's mark was drawn, when it was.
+    pub reference: Option<f64>,
+    /// The header's text.
+    pub head: String,
+    /// Its box, once drawn.
+    pub rect: Option<Rect>,
 }
 
 /// The map's state between frames.
@@ -872,8 +895,19 @@ fn canvas(
         });
     }
     overlay_title(&p, rect, lens, &ink);
-    legend(&p, rect, lens, &ink);
-    scale_bar(&p, rect, &view, &ink);
+    let (legend, legend_rect) = legend(&p, rect, lens, &ink);
+    let (credit, credit_rect) = credit(&p, rect, legend_rect, &ink);
+    // The scale bar sits above the credit in the corner, or in the corner itself when a narrow
+    // canvas puts the credit above the legend.
+    let bar_y = if credit_rect.max.y >= rect.max.y - 5.0 {
+        credit_rect.min.y - 6.0
+    } else {
+        rect.max.y - 18.0
+    };
+    scale_bar(&p, rect, bar_y, &view, &ink);
+    // The whole attribution and licence, on the credit's hover (data/atlas/ATTRIBUTION).
+    ui.interact(credit_rect, ui.id().with("map-credit"), Sense::hover())
+        .on_hover_text(rustyecon_worldgen::atlas::ATTRIBUTION);
     if lens.tick.is_none() {
         // Before the first tick there is no report, so no value (docs/GUI.md §4: a cursor is
         // a report tick).
@@ -921,6 +955,36 @@ fn canvas(
     state.frame.borders = stroked;
     state.frame.hover = card;
     state.frame.vertices = vertices;
+    state.frame.legend = legend;
+    state.frame.credit = credit;
+    state.frame.credit_rect = Some(credit_rect);
+}
+
+/// The atlas's credit (data/atlas/ATTRIBUTION; ODbL), in the canvas's lower right corner on a
+/// pale panel, or just above the legend (`avoid`) when the canvas is too narrow for both side
+/// by side: the lines painted and the panel's rect.
+fn credit(p: &egui::Painter, rect: Rect, avoid: Rect, ink: &Ink) -> (Vec<String>, Rect) {
+    let font = FontId::proportional(10.0);
+    let galleys: Vec<_> = rustyecon_worldgen::atlas::CREDIT
+        .iter()
+        .map(|t| p.layout_no_wrap((*t).to_string(), font.clone(), ink.weak))
+        .collect();
+    let w = galleys.iter().map(|g| g.size().x).fold(0.0, f32::max) + 10.0;
+    let h = galleys.iter().map(|g| g.size().y).sum::<f32>() + 6.0;
+    let mut r = Rect::from_min_size(pos2(rect.max.x - w - 4.0, rect.max.y - h - 4.0), vec2(w, h));
+    if r.intersects(avoid) {
+        r = Rect::from_min_size(pos2(avoid.min.x, avoid.min.y - h - 4.0), vec2(w, h));
+    }
+    p.rect_filled(r, 3.0, ink.panel);
+    let mut y = r.min.y + 3.0;
+    let mut lines = Vec::with_capacity(galleys.len());
+    for g in galleys {
+        let hgt = g.size().y;
+        lines.push(g.text().to_string());
+        p.galley(pos2(r.min.x + 5.0, y), g, ink.weak);
+        y += hgt;
+    }
+    (lines, r)
 }
 
 fn ordinal(k: usize) -> String {
@@ -996,8 +1060,10 @@ fn hover_card(p: &egui::Painter, rect: Rect, pointer: Pos2, lines: &[String], in
     panel(p, rect, pointer + vec2(16.0, 16.0), &styled, ink);
 }
 
-/// The legend: the scale as a bar with its marks, the unit, the reference and the domain.
-fn legend(p: &egui::Painter, rect: Rect, lens: &LensVm, ink: &Ink) {
+/// The legend: the scale as a bar with its marks, the unit, the reference and the domain; and
+/// what it drew, with its box.
+fn legend(p: &egui::Painter, rect: Rect, lens: &LensVm, ink: &Ink) -> (LegendFrame, Rect) {
+    let mut drawn = LegendFrame::default();
     let bar_w = (rect.width() * 0.42).clamp(180.0, 380.0);
     let box_h = 74.0;
     let r = Rect::from_min_size(
@@ -1012,6 +1078,8 @@ fn legend(p: &egui::Painter, rect: Rect, lens: &LensVm, ink: &Ink) {
         StrokeKind::Inside,
     );
     let bar = Rect::from_min_size(r.min + vec2(12.0, 22.0), vec2(bar_w, 12.0));
+    // Where a point of the bar sits on the scale, from 0 to 1, as drawn.
+    let along = |x: f32| f64::from((x - bar.min.x) / bar.width());
     let steps = 64;
     for k in 0..steps {
         let a = k as f32 / steps as f32;
@@ -1020,7 +1088,9 @@ fn legend(p: &egui::Painter, rect: Rect, lens: &LensVm, ink: &Ink) {
             pos2(bar.min.x + a * bar.width(), bar.min.y),
             pos2(bar.min.x + b * bar.width() + 0.5, bar.max.y),
         );
-        p.rect_filled(seg, 0.0, colour(&lens.scale, f64::from((a + b) / 2.0)));
+        let c = colour(&lens.scale, f64::from((a + b) / 2.0));
+        p.rect_filled(seg, 0.0, c);
+        drawn.segments.push((f64::from(a), f64::from(b), c));
     }
     p.rect_stroke(bar, 0.0, Stroke::new(1.0, ink.county), StrokeKind::Outside);
     let font = FontId::proportional(11.0);
@@ -1031,6 +1101,7 @@ fn legend(p: &egui::Painter, rect: Rect, lens: &LensVm, ink: &Ink) {
             [pos2(x, bar.max.y), pos2(x, bar.max.y + 4.0)],
             Stroke::new(1.0, ink.text),
         );
+        drawn.marks.push((t.value, along(x)));
         if x - last_x > 34.0 {
             p.text(
                 pos2(x, bar.max.y + 5.0),
@@ -1042,16 +1113,17 @@ fn legend(p: &egui::Painter, rect: Rect, lens: &LensVm, ink: &Ink) {
             last_x = x;
         }
     }
-    if let Some(rf) = &lens.reference {
-        if let Some(at) = rf.at {
-            let x = bar.min.x + at as f32 * bar.width();
-            p.line_segment(
-                [pos2(x, bar.min.y - 4.0), pos2(x, bar.max.y)],
-                Stroke::new(2.0, ink.text),
-            );
-        }
+    // The reference is marked, and named in the header, only where it lies on the scale.
+    let reference = lens.reference.as_ref().filter(|rf| rf.at.is_some());
+    if let Some(at) = reference.and_then(|rf| rf.at) {
+        let x = bar.min.x + at as f32 * bar.width();
+        p.line_segment(
+            [pos2(x, bar.min.y - 4.0), pos2(x, bar.max.y)],
+            Stroke::new(2.0, ink.text),
+        );
+        drawn.reference = Some(along(x));
     }
-    let head = match (&lens.reference, lens.counts.below + lens.counts.above) {
+    let head = match (reference, lens.counts.below + lens.counts.above) {
         (Some(rf), 0) => format!("{} · ▏{}", lens.unit, rf.text),
         (Some(rf), n) => format!("{} · ▏{} · {n} beyond the scale", lens.unit, rf.text),
         (None, 0) => format!("{} · {}", lens.unit, lens.scale),
@@ -1060,14 +1132,17 @@ fn legend(p: &egui::Painter, rect: Rect, lens: &LensVm, ink: &Ink) {
     p.text(
         r.min + vec2(12.0, 5.0),
         Align2::LEFT_TOP,
-        head,
+        head.clone(),
         font,
         ink.text,
     );
+    drawn.head = head;
+    drawn.rect = Some(r);
+    (drawn, r)
 }
 
-/// A scale bar of a round number of kilometres, about 120 points long.
-fn scale_bar(p: &egui::Painter, rect: Rect, view: &View, ink: &Ink) {
+/// A scale bar of a round number of kilometres, about 120 points long, its line at `y`.
+fn scale_bar(p: &egui::Painter, rect: Rect, y: f32, view: &View, ink: &Ink) {
     let per_km = view.scale * 1000.0;
     let mut km = 1.0;
     for k in [1.0, 2.0, 5.0, 10.0, 20.0, 50.0, 100.0, 200.0, 500.0] {
@@ -1076,7 +1151,7 @@ fn scale_bar(p: &egui::Painter, rect: Rect, view: &View, ink: &Ink) {
         }
     }
     let len = (km * per_km) as f32;
-    let a = pos2(rect.max.x - len - 20.0, rect.max.y - 22.0);
+    let a = pos2(rect.max.x - len - 20.0, y - 4.0);
     let b = a + vec2(len, 0.0);
     p.line_segment([a, b], Stroke::new(2.0, ink.text));
     for q in [a, b] {

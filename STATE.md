@@ -1456,6 +1456,15 @@ when its fix is reverted, checked by mutation (the review's own mutants among th
     generation. And a tape with no marker, beside a lineage file that does not read, opens as
     a run, with the log saying the lineage does not read; U3 read strictly makes it an
     experiment.
+- **O21. The illustrative marker in scoring** (branch `demo-world`, D.4, 2026-09-27;
+  docs/GUI.md U5 and its block "Amended at D.4", item 8; docs/demo/WORLD.md §8). The demo
+  world's tape, `tapes/demo-gb.ron`, is named `demo-gb [illustrative]` and every basis in it
+  begins "illustrative demo". `certify` now seals any run of a tape whose name carries
+  `[illustrative]` UNSCORED, never PASS, and refuses a tape whose bases say illustrative once its
+  name has lost the marker (`certify_refuses_illustrative_tape`). Left for Phases 6–7: the
+  scorecard refuses it beside the GUI-experiment marker (`scorecard_refuses_gui_edited_tape`
+  gains the demo tape), and the identity chip shows it. Until then keeping its figures out of
+  citation is procedural. Numbered after O20; a merge that brings another O21 renumbers this one.
 
 ## Corrections logged (A3; ADDENDUM §1.4)
 

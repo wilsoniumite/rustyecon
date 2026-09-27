@@ -7,6 +7,9 @@
 //! tick UNTIL at ten model years a second with every price plotted, prints the CPU each frame
 //! took (p50, p90, max) while running and then paused, with the panes drawn, and closes. It
 //! reads and writes no session.
+//!
+//! `rustyecon-gui --licences` prints the licence and attribution of the county atlas the
+//! binary bundles (data/atlas/LICENSE and ATTRIBUTION, ODbL 1.0), which the map credits.
 
 use rustyecon_gui::app::{GuiApp, Launch};
 use rustyecon_gui::platform::Files;
@@ -16,7 +19,9 @@ use std::process::ExitCode;
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
-const USAGE: &str = "usage: rustyecon-gui [TAPE]\n       rustyecon-gui --smoke UNTIL TAPE";
+const USAGE: &str = "usage: rustyecon-gui [TAPE]
+       rustyecon-gui --smoke UNTIL TAPE
+       rustyecon-gui --licences";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -28,6 +33,10 @@ fn main() -> ExitCode {
         },
         [flag] if flag == "-h" || flag == "--help" => {
             println!("{USAGE}");
+            return ExitCode::SUCCESS;
+        }
+        [flag] if flag == "--licences" => {
+            print!("{}", rustyecon_worldgen::atlas::licences());
             return ExitCode::SUCCESS;
         }
         [t] if !t.starts_with('-') => Launch {

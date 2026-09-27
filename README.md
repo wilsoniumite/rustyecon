@@ -52,7 +52,9 @@ Packages are named `rustyecon-<crate>`. `tapes/gate.ron` is the Phase 0 gate wor
 `tapes/appb.ron` the probe's Appendix B world, and `tapes/demo-gb.ron` the illustrative demo
 world, 93 historic counties of the United Kingdom from 1750 to 1901, compiled by
 `rustyecon worldgen worlds/demo-gb --out tapes/demo-gb.ron`; nothing from it may be scored or
-cited. `criteria/` holds each tape's dated
+cited (`certify` seals any run of it UNSCORED; citation is kept out by hand). The county atlas
+in `data/atlas/` is under the ODbL 1.0, with its own LICENSE and ATTRIBUTION, which
+`rustyecon licences` and `rustyecon-gui --licences` print. `criteria/` holds each tape's dated
 criteria, registered before its first certified run, and `results/` the certificates and
 manifests they gave.
 
@@ -163,7 +165,11 @@ cargo run --release -p rustyecon-gui -- tapes/demo-gb.ron
   selector above the ranked table lists them by group. Each has a neutral scale fixed for the
   whole run, its unit and its reference on the legend, and the ranked table beside the map
   shows the same values. The two oracle lenses wait for `crates/observe`. Nothing from this
-  world may be scored or cited: its name carries `[illustrative]`.
+  world may be scored or cited: its name carries `[illustrative]`, and `certify` seals any run
+  of it UNSCORED; that no figure from it is cited rests on its readers (GUI.md U5).
+- **The map's data.** The county borders are the Historic County Borders Project's and
+  OpenStreetMap's, under the ODbL 1.0: the map credits both in its corner, and
+  `rustyecon-gui --licences` prints the licence and attribution.
 - **Its size.** 93 nodes record the lean catalogue (each market's price, supply, demand,
   cleared volume and whether it traded; each class line's requested and filled; each actor's
   state; every param), and nothing is plotted until you plot it. Opening the tape takes a few

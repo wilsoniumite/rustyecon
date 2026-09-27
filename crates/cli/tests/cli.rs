@@ -1231,3 +1231,28 @@ fn worldgen_writes_the_committed_demo_tape() {
     let out = rustyecon(&["worldgen", s(dir.path())]);
     assert_eq!(code(&out), 3, "{}", stderr(&out));
 }
+
+#[test]
+fn licences_prints_the_atlas_licence_and_attribution() {
+    // data/atlas/ATTRIBUTION (ODbL 1.0; ruling 7): a binary that bundles the atlas carries its
+    // LICENSE and ATTRIBUTION, and `rustyecon licences` prints both, as they are in the tree.
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let out = rustyecon(&["licences"]);
+    assert_eq!(code(&out), 0, "{}", stderr(&out));
+    let printed = stdout(&out);
+    for f in ["ATTRIBUTION", "LICENSE"] {
+        let text = fs::read_to_string(root.join("data/atlas").join(f)).expect("the file reads");
+        assert!(
+            printed.contains(text.trim_end()),
+            "`rustyecon licences` does not print data/atlas/{f}"
+        );
+    }
+    for line in [
+        "Historic County Borders Project",
+        "https://www.county-borders.co.uk",
+        "OpenStreetMap contributors",
+        "https://opendatacommons.org/licenses/odbl/1-0/",
+    ] {
+        assert!(printed.contains(line), "{line}");
+    }
+}

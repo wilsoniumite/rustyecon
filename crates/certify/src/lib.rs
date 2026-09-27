@@ -50,7 +50,7 @@ pub mod telemetry;
 
 pub use certificate::{
     nonfinite_paths, BatteryId, BatteryResult, Certificate, CertificateError, CriteriaRef, Limit,
-    RawCertificate, Reading, Verdict,
+    RawCertificate, Reading, Verdict, ILLUSTRATIVE, ILLUSTRATIVE_BASIS,
 };
 pub use criteria::{
     Bar, BarUnit, BatterySpec, Count, Criteria, CriteriaError, Fit, ReportSpec, TapeRef,
@@ -60,4 +60,4 @@ pub use manifest::{
     RunKey, TelemetryRecord, VerifyError,
 };
 pub use obs::{kick_ticks, segment_before, segments, MarketObs, Names, Obs, RationObs, Segment};
-pub use run::{certify, Certified, CertifyError, Scoring};
+pub use run::{certify, illustrative_basis, Certified, CertifyError, Scoring};

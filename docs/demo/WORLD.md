@@ -15,7 +15,11 @@ the compiled tape does when it runs.
 
 Nothing from this world is research. Every number in it is
 `Assumed("illustrative demo, 2026-09-27: <why>")`, and the tape's name carries the marker
-`[illustrative]` (§8), so nothing it produces can be scored or cited (R4, R5, R11).
+`[illustrative]` (§8), so nothing it produces may be scored or cited (R4, R5, R11). As built at
+D.4 (§8): `certify` seals any run of a tape whose name carries the marker UNSCORED, never PASS,
+and refuses a tape whose bases say illustrative once its name has lost the marker; the compiler
+writes illustrative worlds only. The scorecard's refusal waits for Phase 6, and citation is kept
+out by its readers: those guards are procedural (docs/GUI.md U5).
 
 The tables are in `worlds/demo-gb/`:
 
@@ -283,10 +287,12 @@ event shorter than a few years (they would be shocks, §4.4).
 - **Values.** A step's value is the composed value to six significant figures, as the tables
   write their numbers; the threshold is measured from the composed value, so rounding never
   accumulates. The rule's size is `step_log` in `world.csv`, 0.01; 0.02 is §4.4's fallback.
-- **The result**: 30,078 events on 25,480 county dates (1,706 calendar dates). The largest step at one date, over the
-  oracle's relative prices and technique (1 − x\*, w/r, p_m/r, p/r), is 2.6% in log (Durham,
-  July 1843, when b, η and T crossed their thresholds together); over quantities (Y, K, N_a)
-  2.2% (Gloucestershire, May 1848).
+- **The result**: 30,078 events on 25,480 county dates (1,706 calendar dates). The largest step
+  at one date, over the oracle's relative prices and technique (1 − x\*, w/r, p_m/r, p/r), is
+  2.6% in log (Durham, July 1843, when b, η and T crossed their thresholds together); over
+  quantities (Y, K, N_a) 2.2% (Gloucestershire, May 1848). Over any trailing year (D.4) the
+  largest moves are 3.9% in prices (Lanarkshire, to October 1848) and 5.1% in quantities
+  (Monmouthshire, to March 1840).
 
 ### 4.4 Gradual, and why
 
@@ -311,6 +317,29 @@ has ended returns to tolerance: Perthshire and Sutherland end at D̂ 0.06 and 0.
 
 The 2% fallback halves the events if the tape or the GUI's registry and timeline struggle with
 30,000; its paths are nearly as smooth.
+
+**What the compiler holds a history to (D.4).** D.2 bounded each date's move in the relative
+prices and technique alone. D.2's verification (2026-09-27, `D:/rustyecon-demo/verify-world-r1/`)
+compiled three abrupt histories that bound let through, and ran them: Middlesex's N and T
+doubled within 1800 (no relative price moves, but quantities 6.4% a month; the county dead for
+17 ticks, its provider short for 76, trough 0.475, D̂ 745); Middlesex's T ×1.3 within 1800 (no
+date above 3%, but 0.19 in prices and 0.29 in quantities over the year; trough 0.78, D̂ 248); and
+`max_step` raised to 5 with coal's rent tripled in 1750 (323 dead ticks in 10 counties, D̂ about
+1,000). So the compiler now bounds, at every county date:
+
+| | bound | the committed history's largest |
+|---|---|---|
+| the move at one date, relative prices and technique | `max_step`, 0.03 | 0.026 (Durham, 1843-07) |
+| the move at one date, quantities (Y, K, N_a) | `max_step`, 0.03 | 0.022 (Gloucestershire, 1848-05) |
+| the move over the trailing year, either | `MAX_YEAR`, 0.1 | 0.039 and 0.051 |
+| `max_step` itself | at most 0.03 (`MAX_STEP_CEILING`) | 0.03 |
+| `step_log` | at most 0.02 (`STEP_LOG_CEILING`, the fallback above) | 0.01 |
+| the dials | the probe's registered C2, exactly (`tables::C2`) | C2 |
+
+`MAX_YEAR` sits at twice the history's largest yearly move and below the 0.19 and 0.29 of the
+second case; nothing between has been run. The dials are held to C2 because C2 is the one point
+where the probe's battery, its kicks and this history's run are all evidence; the probe's GO
+region (REPORT §4) is mapped one dial at a time and at rest, not along a history.
 
 ## 5. What the world shows
 
@@ -359,10 +388,13 @@ A lens is GUI.md §4's `{ measure, unit, scale, domain }` with a reference for d
 scales. One `LensVm` per lens makes the map, the ranked table and the chart, so the map's
 values are the table's (G4's gate). Scales are neutral (colorous' sequential and diverging
 maps, no good or bad colours), and fixed for the run: each domain covers the oracle's range
-over every county and step (§3.3) with a margin for transients. Every value is named with its
-run key and its report tick, as every number in the GUI is (U3), and the lens's name says its
-unit. Each level lens has a change lens, `since.<lens>` = ln(value ÷ the county's genesis
-value), diverging around 0 with the county at genesis as its reference; two are listed.
+over every county and step (§3.3) with a margin for transients. As recorded at D.4, the test
+`lens_domains_hold_the_oracle_range` computes that range through the lenses' own measures at
+every county's oracle point, at genesis and after each of the 25,480 steps, and fails if it
+leaves a domain; the table of ranges and margins is below the lens table. Every value is named
+with its run key and its report tick, as every number in the GUI is (U3), and the lens's name
+says its unit. Each level lens has a change lens, `since.<lens>` = ln(value ÷ the county's
+genesis value), diverging around 0 with the county at genesis as its reference; two are listed.
 
 | lens | measure | unit | scale | reference |
 |---|---|---|---|---|
@@ -379,8 +411,8 @@ value), diverging around 0 with the county at genesis as its reference; two are 
 | `price.mach` | p_m/r | land-service units per machine service | sequential log, [0.4, 1.4] | |
 | `relief.burden` | the provider's due ÷ r·T_c | share of the rent roll | sequential, [0, 1] | 1, the rent roll no longer covers support |
 | `shortfall` | (due − paid)/due | share | sequential, [0, 0.5] | |
-| `rationing` | the county's largest 1 − filled/requested | share | sequential, [0, 0.5] | |
-| `dead` | ticks of the last 52 in which a market did not trade | ticks a year | sequential, [0, 52] | |
+| `rationing` | the county's largest 1 − filled/requested | share | sequential, [0, 0.05] | |
+| `no.trade` | ticks of the last 52 in which a market did not trade | ticks a year | sequential, [0, 52] | |
 | `gap.oracle` | D̂ against the county's own oracle point | multiples of 1e-3 in log | sequential log, [0.1, 100] | 1, the probe's tolerance |
 | `gap.wage` | ln((w/r)/v\*) | log difference | diverging, [−0.06, 0.06] | 0, the oracle |
 | `param.*` | N, T, η, b, λ, χ_max as the run holds them | as registered | sequential (log for N, T) | genesis |
@@ -389,6 +421,36 @@ Here w, r, p_m, p are the posted prices at the county's node, L_c, T_c and Y_c t
 volumes of labour, land and the good, h the county's `space`, and N its `workers` per tick.
 The lenses are ratios of prices and volumes, so the coin's level never shows. `lenses.csv` adds
 each lens's inputs and a note.
+
+**The domains against the oracle** (`lens_domains_hold_the_oracle_range`, D.4): the range of
+each lens over every county at genesis and after every step, and the margin left each side as a
+share of the domain (in log for a log scale).
+
+| lens | oracle's range | margin below, above |
+|---|---|---|
+| `wage.baskets` | 0.947 (West Riding, 1901) to 1.268 (East Riding, 1798) | 0.19, 0.16 |
+| `wage.goods` | 1.299 (Surrey, 1840) to 1.566 (Lanarkshire, 1900) | 0.11, 0.30 |
+| `wage.land` | 0.479 (West Riding, 1901) to 2.042 (Inverness-shire, 1750) | 0.10, 0.09 |
+| `rent.goods` | 0.698 (Inverness-shire, 1750) to 3.242 (Lancashire, 1901) | 0.08, 0.06 |
+| `share.land` | 0.563 (Armagh, 1825) to 0.906 (Lanarkshire, 1901) | 0.13, 0.19 |
+| `share.labour` | 0.094 to 0.437, the same counties | 0.19, 0.13 |
+| `frontier.x` | 0.640 (Surrey, 1840) to 0.919 (Lanarkshire, 1900) | 0.10, 0.20 |
+| `participation` | 0.564 (Inverness-shire, 1901) to 0.870 (East Riding, 1840) | 0.16, 0.08 |
+| `output.per.head` | 1.85 (Caernarfonshire, 1834) to 7.21 (Lancashire, 1900) | 0.13, 0.06 |
+| `price.good` | 0.308 (Lancashire, 1901) to 1.432 (Inverness-shire, 1750) | 0.06, 0.06 |
+| `price.mach` | 0.432 (West Riding, 1901) to 1.230 (Inverness-shire, 1750) | 0.06, 0.10 |
+| `relief.burden` | 0.154 (Lancashire, 1900) to 0.894 (Surrey, 1834) | 0.15, 0.11 |
+| `since.wage.baskets` | −0.191 (Lancashire, 1901) to 0.030 (East Lothian, 1862) | 0.18, 0.45 |
+| `since.output.per.head` | −0.258 (Dunbartonshire, 1900) to 0.887 (Lancashire, 1900) | 0.39, 0.13 |
+| `param.*` | the history's own range: each domain holds every county's value | 0.00 to 0.07 |
+
+`shortfall`, `rationing` and `no.trade` are 0 at every rest point, so the oracle does not set
+their domains. On this history they stay near 0 in the run too: shortfall and ticks without
+trade are 0 in every county at every tick (§8), and rationing reaches 0.032 at most at the first
+tick of each year of the run to 1901 (D.3's verification). Rationing's domain is therefore
+[0, 0.05], narrowed at D.4 from [0, 0.5], on which it showed one colour all run. The other two
+keep their domains and show one colour on this history; they move only under an abrupt edit.
+The param lenses' domains end at the genesis values of η, b and λ, which only fall.
 
 **Where each comes from.** No lens needs an engine accessor that does not exist:
 
@@ -403,7 +465,9 @@ each lens's inputs and a note.
   `crates/observe`'s `oracle_gap` (GUI.md §7.3, Phase 2): unit 1a solved outside the Sim at each
   county's params in force, read through `Sim::param`, never fed back (R13). The probe's
   observables and `Target::of` are the definition to move there; so is the probe's
-  oracle-relative dead tick (O17). Until then `dead` is the oracle-free one.
+  oracle-relative dead tick (O17). Until then `no.trade` counts the oracle-free half of it, a
+  market that did not trade; it was called `dead` until D.4, which renamed it so that it cannot
+  be read as the probe's dead-tick count.
 - **U6**: the GUI computes nothing the engine defines, so the lens measures belong in a function
   the cli also calls (observe's `measure`), not in `vm/`. The map stage either brings
   `crates/observe` forward for the lenses or records the departure.
@@ -462,8 +526,11 @@ that it is exactly what the compiler writes, on WSL and on Windows.
 
 - **The tables.** Each header is exactly the expected columns; every row has the header's width;
   LF line endings. `world.csv`: every setting and dial present once, with its unit (a dial's
-  unit is the one the roles read it in), the name carrying `[illustrative]` while the basis
-  marker says "illustrative", ledger tolerances in (0, 1). `regions.csv` and `counties.csv`:
+  unit is the one the roles read it in), ledger tolerances in (0, 1). From D.4: the basis marker
+  starts with "illustrative" and the name carries `[illustrative]` (until Phase 4's research
+  tables, this compiler writes illustrative worlds only, so the marker cannot be dropped from
+  both cells), `max_step` at most 0.03 and `step_log` at most 0.02, and the dials exactly the
+  probe's registered C2 (§4.4). `regions.csv` and `counties.csv`:
   every region of the atlas has a row and every row is a region; each row's Chapman code, HCS
   code, name and nation are the atlas's; `counties.csv`'s area is the atlas's to 0.05 km²; the
   eleven params in range (N, T, h, η, k, b, χ_max positive, g0, g1, λ at least 0, a in
@@ -478,14 +545,19 @@ that it is exactly what the compiler writes, on WSL and on Windows.
 - **Every county, at every step.** Unit 1a is solved at genesis and after each of the 25,480
   county dates, and each solve must be `Interior`, cross zero once on a 401-point grid, be
   funded, and have participation below 0.999. No date may move the oracle's relative prices
-  and technique (1 − x\*, w/r, p_m/r, p/r) by more than `max_step`, 0.03 in log: the probe's
-  roles take gradual change well and abrupt change badly (O14, §4.4), so an abrupt history does
-  not compile (`the_compiler_refuses_bad_tables` tries coal's mineral rent tripled in a year).
+  and technique (1 − x\*, w/r, p_m/r, p/r), nor (from D.4) its quantities (Y, K, N_a), by more
+  than `max_step`, 0.03 in log, and no trailing year may move either by more than `MAX_YEAR`,
+  0.1: the probe's roles take gradual change well and abrupt change badly (O14, §4.4). So a
+  history abrupt at one date or over a year does not compile, and neither does one whose bounds
+  were loosened (`the_compiler_refuses_bad_tables` tries coal's mineral rent tripled in a year,
+  η halved in a year, N and T doubled in a year, T ×1.3 in a year, `max_step` 5 and `step_log`
+  0.05).
   On the committed tables the extremes are the scratch checker's (§3.3) to the digit: funding
   at least 0.119 (Surrey, 1834-04), participation 0.564 (Inverness-shire, 1901-01) to 0.870
   (the East Riding, 1840-09), x\* 0.640 (Surrey, 1840-02) to 0.919 (Lanarkshire, 1900-07), and
   the largest move at one date 0.0262 in log (Durham, 1843-07), 0.0222 in quantities
-  (Gloucestershire, 1848-05). The compile takes under 2 s.
+  (Gloucestershire, 1848-05), and over a trailing year 0.0393 (Lanarkshire, 1848-10) and 0.0506
+  (Monmouthshire, 1840-03). The compile takes under 2 s.
 
 **The tape.** `name: "demo-gb [illustrative]"`, schema 1, 52 ticks a year from 1750-01-01,
 `Imbalance` with `Saturate`. Nodes `county.<c>` in the atlas's keys
@@ -513,16 +585,19 @@ same key reads, so they are outside `world_id`. Genesis is §1's:
 - **Identity.** `tape_hash` 0x1bd56d66433d3b67, `world_id` 0x9701ae49997ff8f5.
 
 **The run** (`demo_runs_to_1901`, ignored, and run by name in `scripts/gate.sh`). The tape runs
-from genesis to 1901-01-01, tick 7,851. Every tick the test reads each county's eleven params
-through `Sim::param`, solves unit 1a again when they change (25,387 solves), and scores the
-county as the probe does (docs/probe/RULES.md §6): D̂ over its ten observables, a dead tick when
-a market does not trade or clears below half its oracle volume, and a shortfall when the
-provider pays less than it owes.
+from genesis through the first tick of 1901: 7,852 ticks, to state tick 7,852. At D.2 it
+stopped at state tick 7,851, 1901-01-01, one tick before the 372 steps dated 1901-01-01 fire (in
+report tick 7,851), so the gate never ran them; from D.4 the test runs that tick too and checks
+that all 30,078 events fired. Every tick the test reads each county's eleven params through
+`Sim::param`, solves unit 1a again when they change (25,480 solves), and scores the county as
+the probe does (docs/probe/RULES.md §6): D̂ over its ten observables, a dead tick when a market
+does not trade or clears below half its oracle volume, and a shortfall when the provider pays
+less than it owes.
 
 | | result |
 |---|---|
-| final state hash | `0x9c78e47631ea8224`, equal on WSL and Windows, and to `rustyecon run` |
-| the hash stream (FNV-1a 64 over the 7,851 hashes, 8 bytes each, little-endian) | `0xd420b740361846f1`, equal on WSL and Windows |
+| final state hash | `0xfad880fe08d06645` at state tick 7,852 (D.4), equal on WSL and Windows, and to `rustyecon run` and the GUI's run (`gui_equals_cli_demo_gb`); `0x9c78e47631ea8224` at 7,851, D.2's |
+| the hash stream (FNV-1a 64 over the 7,852 hashes, 8 bytes each, little-endian) | `0xdb63cc96f769fb3e`, equal on WSL and Windows (D.2's, over 7,851: `0xd420b740361846f1`) |
 | conservation | every tick's ledger and the run's closed (the engine stops on a breach) |
 | dead ticks, in any county | 0 |
 | ticks with a transfer shortfall | 0 |
@@ -540,12 +615,14 @@ and no lens needs a new accessor (§6).
 
 **Tests** (`crates/worldgen/tests/demo.rs`): `demo_tape_is_its_compilers_output`,
 `atlas_keys_equal_node_keys`, `every_basis_is_illustrative`,
-`the_tables_check_every_county_at_every_step`, `dials_are_the_probes_registered_c2`,
-`genesis_is_the_probes_rule_at_each_county`, `the_compiler_refuses_bad_tables` (fourteen
-refusals: a region missing from either table, a key not in the atlas, a wrong name or area, a
-wrong unit, a name without the marker, a param out of range, a reserved column used, a broken
-path, an abrupt history, a textile start after its ramp, a lens domain that does not fit, CRLF)
-and the long `demo_runs_to_1901`; and in the cli's tests `worldgen_writes_the_committed_demo_tape`
+`the_tables_check_every_county_at_every_step`, `dials_are_the_probes_registered_c2` (and, from
+D.4, the compiler's `tables::C2` equal to the probe's), `genesis_is_the_probes_rule_at_each_county`,
+`the_compiler_refuses_bad_tables` (twenty-one refusals: a region missing from either table, a key
+not in the atlas, a wrong name or area, a wrong unit, a name without the marker, a param out of
+range, a reserved column used, a broken path, a textile start after its ramp, a lens domain that
+does not fit, CRLF; and the abrupt histories and loosened bounds of §4.4, a dial off C2 and the
+marker dropped from both cells), `lens_domains_hold_the_oracle_range` (D.4, §6) and the long
+`demo_runs_to_1901`; and in the cli's tests `worldgen_writes_the_committed_demo_tape`
 (the command writes exactly the committed tape and prints its `tape_hash`; tables that do not
 compile are exit 1, a directory without them exit 3). `scripts/gate.sh` runs `derive.py --check`
 when it finds a Python 3, and the long run by name.
@@ -555,9 +632,12 @@ when it finds a Python 3, and the long run by name.
 - **Timelines.** ENGINE §13 puts population, technology and enclosure timelines in Phase 3, as
   world-level `Ext` deltas. The demo uses what exists now, dated `SetParam` steps; when those
   timelines land, `history.csv` compiles to them instead and its rows stay as they are.
-- **Scoring.** The `[illustrative]` marker should join the GUI-experiment marker in the
-  scorecard's refusal (GUI.md §7.3, Phases 6–7), and the identity chip should show it, as it
-  shows "experiment".
+- **Scoring.** *Done at D.4 for `certify`:* a run of a tape whose name carries `[illustrative]`
+  is UNSCORED whatever its criteria (D.2's verification had certified the demo tape PASS
+  against criteria written for it), and a tape whose bases say illustrative with the marker gone
+  from its name does not certify (`certify_refuses_illustrative_tape`). Left: the marker joins
+  the GUI-experiment marker in the scorecard's refusal (GUI.md U5, §7.3, Phases 6–7; STATE.md
+  O21), and the identity chip should show it, as it shows "experiment".
 - **The GUI's load.** G0's in-memory store would hold about 10,000 series over 7,851 ticks at 16
   bytes a point, roughly 1.3 GB (an estimate: 9 fields × 372 markets, 36 class-line values and
   24 settlement values a county, holdings, and 1,000 params), so the map stage wants the
@@ -599,12 +679,22 @@ says how it is built; this section says what it shows of this world.
 - **Lenses.** The 25 rows of `lenses.csv`, each drawn on its registered domain for the whole
   run, so a county's colour means the same number in 1750 and in 1900. 23 have a value in
   every county at each report tick `map_values_equal_table` samples (0, 51 and 259) of a run
-  from genesis; `gap.oracle` and `gap.wage` wait for `crates/observe`. A change lens reads the county at the record's first tick, so it has no
-  value on a branch resumed after genesis. `dead` counts over the ticks of the trailing year
-  the record holds, fewer than 52 in the first year.
+  from genesis; `gap.oracle` and `gap.wage` wait for `crates/observe`. A change lens reads the
+  county at the record's first tick, so it has no value on a branch resumed after genesis.
+  `no.trade` counts over the ticks of the trailing year the record holds up to the cursor,
+  fewer than 52 in the first year.
 - **The record.** 93 nodes record the lean catalogue: 5,970 series, 8 bytes a point, so a run
   to 1901 holds about 0.37 GB of series. Measured: 46.9 million points, 375 MB of values,
   and the run ends at the cli's final hash, `0x9c78e47631ea8224` (docs/GUI.md, amended at
   D.3, item 11).
 - **What it cannot show.** No trade (there are no channels), so no county's colour reflects
   another's; §5.2's caveats hold on the map as in the tables.
+- **Its data's credit** (D.4). The map paints the atlas's credit in its lower right corner, the
+  Historic County Borders Project and OpenStreetMap under the ODbL 1.0, with the whole
+  attribution on its hover (data/atlas/ATTRIBUTION); `rustyecon licences` and
+  `rustyecon-gui --licences` print the atlas's LICENSE and ATTRIBUTION, which both binaries
+  bundle.
+- **Held to the engine** (D.4). `lens_values_equal_the_engine` checks sixteen lenses for every
+  county at report ticks 0, 51 and 259 against the engine's own numbers, and
+  `rebuilt_mesh_colours_are_the_lens_colours` the colours of a mesh built afresh against the
+  scale and the legend (docs/GUI.md, amended at D.4).

@@ -5,7 +5,8 @@
 //! fails the run, with or without criteria (N12; July's scan read state fields, not what its
 //! certificate rendered, `v2p3: certify/nan.rs:47-57`). A run with no criteria, or with criteria
 //! for another tape, is UNSCORED and never PASS (N4; July certified such a run PASS, `v2p3:
-//! runner.rs:473-478`, `certificate.rs:78`).
+//! runner.rs:473-478`, `certificate.rs:78`). So is a run of an illustrative tape, whose name
+//! carries [`ILLUSTRATIVE`], whatever its criteria (R5; D.4).
 //!
 //! What readback checks (amended at S2.5): that the verdict, the failures and the list of
 //! non-finite numbers are the ones the seal gives for the file's parts, and that the parts agree
@@ -22,6 +23,15 @@ use rustyecon_core::tape::raw::required;
 use rustyecon_core::Date;
 use serde::{Deserialize, Serialize};
 use std::fmt;
+
+/// What an illustrative tape's name carries (docs/demo/WORLD.md; R4, R5): its numbers are
+/// guesses for a demonstration, so no run of it is ever PASS. The seal reads the name; `certify`
+/// also refuses a tape whose bases say illustrative while its name has lost the marker.
+pub const ILLUSTRATIVE: &str = "[illustrative]";
+
+/// The start of the basis text an illustrative tape's numbers carry, as the demo compiler
+/// writes it (`Assumed("illustrative demo, …: …")`).
+pub const ILLUSTRATIVE_BASIS: &str = "illustrative";
 
 /// A run's verdict. FAIL outranks UNSCORED, which outranks PASS (C4).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -403,7 +413,8 @@ fn balance_pins(b: &BatteryResult) -> Vec<String> {
 /// the run stopped before `until` (its error first), a non-finite number anywhere, criteria that
 /// lack a battery C12 requires, any battery that did not pass, a battery marked pass whose
 /// readings do not hold their bars, or more `ScalePrice` firings than the criteria allow
-/// (amended at S2.5). Else UNSCORED: no criteria, or criteria for another tape. Else PASS.
+/// (amended at S2.5). Else UNSCORED: no criteria, criteria for another tape, or a tape whose
+/// name carries [`ILLUSTRATIVE`] (R5). Else PASS.
 pub(crate) fn seal(mut parts: Parts) -> Certificate {
     if let Some(c) = &parts.criteria {
         for id in &c.listed {
@@ -464,6 +475,12 @@ pub(crate) fn seal(mut parts: Parts) -> Certificate {
                 ));
             }
         }
+    }
+    // R5: an illustrative tape is never scored, whatever criteria name it (D.4, 2026-09-27).
+    if parts.tape.contains(ILLUSTRATIVE) {
+        unscored = Some(format!(
+            "unscored: an illustrative tape (its name carries {ILLUSTRATIVE}) is never scored (R5)"
+        ));
     }
     for b in &parts.batteries {
         if !b.pass {
@@ -1218,6 +1235,39 @@ mod tests {
         assert!(!kick.pass);
         assert_eq!(kick.notes, ["did not run"]);
         assert_eq!(c.failures(), ["Runaway failed: did not run"]);
+    }
+
+    #[test]
+    fn an_illustrative_tape_is_never_pass() {
+        // R5 (D.4, 2026-09-27): a run of a tape whose name carries [illustrative] is UNSCORED
+        // even under criteria registered for its own tape_hash, and a PASS edited into its file
+        // is refused on readback. A failure still outranks it.
+        let mut p = pass_parts();
+        p.tape = "demo-gb [illustrative]".to_string();
+        let c = seal(p);
+        assert_eq!(c.verdict(), Verdict::Unscored);
+        assert_eq!(
+            c.failures(),
+            [
+                "unscored: an illustrative tape (its name carries [illustrative]) is never scored \
+              (R5)"
+            ]
+        );
+        let text = c.to_ron();
+        assert_eq!(
+            Certificate::from_ron(&text).map(|b| b.to_ron()),
+            Ok(text.clone())
+        );
+        let edited = text.replacen("verdict: Unscored,", "verdict: Pass,", 1);
+        assert!(matches!(
+            Certificate::from_ron(&edited),
+            Err(CertificateError::EditedVerdict { .. })
+        ));
+        let mut p = pass_parts();
+        p.tape = "demo-gb [illustrative]".to_string();
+        p.batteries[2].pass = false;
+        p.batteries[2].notes = vec!["it failed".to_string()];
+        assert_eq!(seal(p).verdict(), Verdict::Fail);
     }
 
     #[test]

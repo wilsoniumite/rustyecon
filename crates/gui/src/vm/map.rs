@@ -24,7 +24,7 @@ use crate::run::{At, Entity, Measure, Origin, SeriesKey, StateField, Store};
 use rustyecon_core::num;
 use rustyecon_engine::prelude::*;
 use rustyecon_worldgen::atlas::{Atlas, Country};
-use rustyecon_worldgen::lens::{self as wl, CountyKeys, Readings, DEAD_WINDOW, MARKETS};
+use rustyecon_worldgen::lens::{self as wl, CountyKeys, Readings, MARKETS, NO_TRADE_WINDOW};
 use rustyecon_worldgen::tables::{Lens, LensSource, Param, Scale};
 use serde::Serialize;
 
@@ -477,10 +477,10 @@ fn readings_for(store: &Store, node: &str, tick: u64, only: Option<wl::Level>) -
     }
     // Whether all four markets traded, in each report tick of the trailing window the record
     // holds.
-    if wants(wl::Level::Dead) {
+    if wants(wl::Level::NoTrade) {
         let lo = tick
             .saturating_add(1)
-            .saturating_sub(DEAD_WINDOW)
+            .saturating_sub(NO_TRADE_WINDOW)
             .max(store.reports().start);
         let flags: Option<Vec<&crate::run::Series>> = MARKETS
             .iter()

@@ -23,6 +23,29 @@ use std::fmt;
 /// The bundled atlas, `data/atlas/gb.atlas.ron`.
 pub const GB_ATLAS: &str = include_str!("../../../data/atlas/gb.atlas.ron");
 
+/// The atlas's licence, `data/atlas/LICENSE` (ODbL 1.0). Every binary that bundles
+/// [`GB_ATLAS`] carries it and can print it: `rustyecon licences`, `rustyecon-gui --licences`.
+pub const LICENSE: &str = include_str!("../../../data/atlas/LICENSE");
+
+/// The atlas's attribution, `data/atlas/ATTRIBUTION`: the credit every copy and every map drawn
+/// from it carries. Bundled and printed with [`LICENSE`].
+pub const ATTRIBUTION: &str = include_str!("../../../data/atlas/ATTRIBUTION");
+
+/// The credit a map drawn from the atlas shows, in two lines: ATTRIBUTION's two sources, each
+/// with its link. The GUI paints it on the map.
+pub const CREDIT: [&str; 2] = [
+    "Contains data from the Historic County Borders Project (county-borders.co.uk)",
+    "and OpenStreetMap data © OpenStreetMap contributors, ODbL 1.0 (openstreetmap.org/copyright)",
+];
+
+/// What `--licences` prints: the atlas's attribution, then its licence.
+pub fn licences() -> String {
+    format!(
+        "The county atlas bundled in this binary (data/atlas/gb.atlas.ron)\n\n{ATTRIBUTION}\n\
+         {LICENSE}"
+    )
+}
+
 /// FNV-1a 64 (core's [`fnv1a_64`]) of [`GB_ATLAS`]'s bytes, recorded when the atlas was built.
 /// data/atlas/README.md records the file's SHA-256 beside it. [`Atlas::gb`] refuses a file
 /// whose digest differs, so a rebuilt atlas is used only once its digest is recorded here.

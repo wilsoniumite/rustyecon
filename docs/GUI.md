@@ -481,6 +481,60 @@ build decided, and each change is made here:
     frame's p90 under 8 ms on Windows while a run streams, and an E42 run's spill. The map of a
     branch shows the branch; comparing two runs on the map waits for the difference lens.
 
+**Amended at D.4 (2026-09-27), on branch `demo-world`,** after the bounded verification of D.2
+and D.3 (`D:/rustyecon-demo/verify-map-r1/`, `verify-world-r1/`). Each change has a test that
+fails without it; the verifier's mutants were rerun against the new tests
+(`D:/rustyecon-demo/fix-r1/mutations.txt`).
+1. **The atlas's credit** (§6; ruling 7; data/atlas/ATTRIBUTION). D.3's map showed none, though
+   the ODbL attribution asks every map drawn from the atlas to show its two sources. The canvas
+   now paints `rustyecon_worldgen::atlas::CREDIT` in its lower right corner, always, with the
+   whole ATTRIBUTION on its hover, and records it in `MapFrame::credit`; the demo script paints
+   it, and `the_credit_is_painted_clear_of_the_legend` finds it inside the canvas and clear of
+   the legend at four widths (above the legend on a narrow canvas). worldgen bundles `LICENSE`
+   and `ATTRIBUTION` beside the atlas (`include_str!`), and both binaries print them:
+   `rustyecon licences` (`licences_prints_the_atlas_licence_and_attribution`) and
+   `rustyecon-gui --licences`.
+2. **Lens values against the engine** (U3, U6). `map_values_equal_table` compared the frame with
+   the view-model that made it, and the goldens pin tick 0 only, so a value read a tick early, a
+   change lens against the cursor rather than genesis, and a trailing window that read past the
+   cursor all passed. `lens_values_equal_the_engine` checks sixteen lenses for every county at
+   report ticks 0, 51 (behind live) and 259 against each formula applied to the engine's own
+   report, params and actor states from a `Sim` the test steps, both change lenses included, and
+   that `no.trade`'s window is the ticks up to the cursor and no further.
+3. **The mesh built afresh, the palettes and the legend** (U-rules). The harness's first frame
+   had no values, so every coloured frame came through the in-place recolouring, and a mesh built
+   in the wrong colours on a pan passed. `rebuilt_mesh_colours_are_the_lens_colours` checks each
+   region's colour after the first frame, a pan, a switch of lens and another pan, and, for every
+   lens, the legend: `MapFrame::legend` records its 64 segments, its marks and its reference, and
+   each segment must be the scale's colour at its place, each region's colour inside the segment
+   at its value, and each mark where the view-model puts it. `the_scales_are_the_neutral_palettes`
+   pins viridis's ends and middle (#440154, #20908c, #fde725) and purple to orange through near
+   white, so a reversed or a red-to-green scale fails even when the map, the table and the legend
+   move together. The legend's header names the reference only where its mark is drawn (the
+   participation lens's 1 lies off its scale).
+4. **The hit test at every part.** `every_triangle_hits_its_region` (122,126 triangles, each
+   centroid hits its own region) and `hover_and_click_name_every_part` (a hover card at one point
+   of each of 1,181 parts, and a click on each riding and on the 235 detached parts of English
+   counties) hold detached parts, enclaves and the ridings, which the label points did not.
+5. **U4 on the demo tape.** `gui_equals_cli_demo_gb` runs `tapes/demo-gb.ron` through a
+   `ThreadDriver` with the lean catalogue to state tick 7,852 and writes its hashes;
+   `scripts/gui.sh` diffs them with `rustyecon run tapes/demo-gb.ron --until 7852 --hashes`.
+   7,852 is the first tick of 1901, whose steps the run to 7,851 never fired (WORLD.md §8).
+6. **`dead` renamed `no.trade`**, "Ticks without trade" (U6). It counts ticks in which a market
+   did not trade, not the probe's dead tick, which also counts a market clearing below half its
+   oracle volume and waits for observe (O17). The cli still calls no lens measure: that waits for
+   observe's `measure`, as item 3 of D.3's block says.
+7. **Rationing's domain** is [0, 0.05], not [0, 0.5]: on this history it reaches at most 0.032
+   at the first tick of each year, so it showed one colour all run. The domains' derivation is now a test, worldgen's
+   `lens_domains_hold_the_oracle_range`, with WORLD.md §6's table of ranges and margins.
+8. **Scoring** (U5, §7.3). `certify` seals a run of a tape whose name carries `[illustrative]`
+   UNSCORED whatever its criteria (D.2's verification had certified the demo tape PASS against
+   criteria written for it), and refuses a tape whose bases say illustrative once its name has
+   lost the marker (`certify_refuses_illustrative_tape`); the demo compiler writes illustrative
+   worlds only. The scorecard's refusal is still Phase 6's (STATE.md O21).
+9. **Tests.** `scripts/gui.sh` names 55 tests, and diffs the demo tape's hashes as it does the
+   gate's and appb's.
+
 ## 0. Rulings and decisions
 
 **Rulings (2026-09-25),** numbered here 1–4; they are ADDENDUM's rulings 5–8.
@@ -560,9 +614,13 @@ which clashed with the G-stages.
   (A5, D11).
 - **U5 — The GUI shows the oracle and the record; no GUI-edited tape is scored.** *(R5, R13, R15.)*
   - The scorecard scores only tapes whose `tape_hash` the fitting harness registered before the
-    run. It refuses any tape whose name or any basis carries the GUI-experiment marker (D3, §7.3).
+    run. It refuses any tape whose name or any basis carries the GUI-experiment marker (D3, §7.3),
+    or the illustrative marker, `[illustrative]` in the name or a basis beginning
+    "illustrative" (docs/demo/WORLD.md; amended at D.4).
   - From G5 the lineage lists the scored series that were overlaid during an edit.
-  - Until Phase 6 registers the moment table, these guards are procedural.
+  - Until Phase 6 registers the moment table, these guards are procedural. One part is built
+    (D.4): `certify` seals a run of a tape whose name carries `[illustrative]` UNSCORED, never
+    PASS, and refuses a tape whose bases say illustrative once its name has lost the marker.
   - The oracle gap is computed beside the run and never fed to it.
 - **U6 — The GUI computes nothing the engine defines.** *(R4, R10.)* It may difference, divide,
   take logs and decimate for display. Price steps, per-tick values, derived measures and the oracle
@@ -1225,7 +1283,7 @@ nothing in it.
 | Phase 4 | `worldgen::compile(&Tables) -> Result<Compiled, CompileError>`, with `Compiled { tape, atlas }` and `Atlas { schema, crs, nodes (key, parts with holes, label), borders, sites, sources }`. The region keys (D7). Test `atlas_keys_equal_node_keys`. | §6 |
 | Phase 4 | Per-line bases for genesis lines and world-table rows (goods, nodes, channels, classes, an actor's inline numbers), in a schema bump. Test `world_edit_keeps_other_bases`. | R16: a world edit stamps only its own number |
 | Phase 5 | A record `Series { key, unit, source, vintage, points, band }`, readable without arrow. | Overlays |
-| Phases 6–7 | Certify scores only tapes whose `tape_hash` the fitting harness registered before the run. It refuses any tape whose name or any basis carries the GUI-experiment marker (decided now, D3). Test `scorecard_refuses_gui_edited_tape`, whose cases include a saved branch made only of removals. `Deserialize` on `Certificate`, `Criteria`, `Scorecard` and `FitId`. `rustyecon figure build --check`. | U5; the scorecard viewer |
+| Phases 6–7 | Certify scores only tapes whose `tape_hash` the fitting harness registered before the run. It refuses any tape whose name or any basis carries the GUI-experiment marker (decided now, D3), or the illustrative marker (amended at D.4; certify's seal already reads the name's, `certify_refuses_illustrative_tape`). Test `scorecard_refuses_gui_edited_tape`, whose cases include a saved branch made only of removals and the demo world's tape. `Deserialize` on `Certificate`, `Criteria`, `Scorecard` and `FitId`. `rustyecon figure build --check`. | U5; the scorecard viewer |
 | Phases 8, 10 | Credit postings in `TickReport`; `generate(spec, base) -> Result<Tape, GenError>`. | Balance sheets; generator forms |
 
 Dropped: `markets::price_step`. P0.4's public `next_price` and `imbalance` serve the explainer.
@@ -1438,7 +1496,8 @@ England run, becomes roughly 35–50.
     and a certified verdict.
   - **Gate.**
     - The scorecard's view-model equals the committed scorecard.
-    - `scorecard_refuses_gui_edited_tape` passes.
+    - `scorecard_refuses_gui_edited_tape` passes, the illustrative demo tape among its cases
+      (D.4).
     - The figure data bundles (CSV, manifest, tapes, lineage) rebuild byte for byte under
       `rustyecon figure build --check` in CI. Rendered figures are laborformal's own check (PLAN
       §8).

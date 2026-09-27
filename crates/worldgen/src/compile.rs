@@ -12,9 +12,10 @@
 //!
 //! Before it writes a line, the compiler solves every county at genesis and after every step:
 //! each solve must be `Interior` with one crossing of n_D − n_S on a 401-point grid, funded,
-//! and short of saturated participation, and no step date may move the oracle's relative
-//! prices and technique by more than `max_step` in log (O14: the probe's roles take gradual
-//! change well and abrupt change badly).
+//! and short of saturated participation. No step date may move the oracle's relative prices
+//! and technique, nor its quantities, by more than `max_step` in log, and no trailing year may
+//! move either by more than [`MAX_YEAR`] (O14: the probe's roles take gradual change well and
+//! abrupt change badly). `max_step` itself may not pass [`tables::MAX_STEP_CEILING`].
 
 use crate::atlas::Atlas;
 use crate::history::{self, Month, Step};
@@ -51,6 +52,9 @@ pub struct Plan {
     pub point: Eq1a,
     /// Its steps, in (month, param) order.
     pub steps: Vec<Step>,
+    /// Its oracle point after each step date, in month order: the point of the instance in
+    /// force from the first of that month on.
+    pub points: Vec<(Month, Eq1a)>,
 }
 
 impl Plan {
@@ -88,6 +92,11 @@ pub struct Summary {
     pub max_step_prices: (f64, String),
     /// The largest move at one date of its quantities (Y, K, N_a), in log.
     pub max_step_quantities: (f64, String),
+    /// The largest move over a trailing year of the relative prices and technique, in log:
+    /// from the point in force twelve months before a step date to the point after it.
+    pub max_year_prices: (f64, String),
+    /// The same, of the quantities.
+    pub max_year_quantities: (f64, String),
 }
 
 /// The clock the world runs on.
@@ -181,6 +190,17 @@ pub fn solve(at: &str, inst: &Instance, c: &Clock) -> Result<Eq1a, CompileError>
     Ok(e)
 }
 
+/// The most a county's oracle point may move over any trailing year, in log, over its
+/// relative prices and technique and over its quantities alike (O14): each step date's point
+/// is compared with the point in force twelve months before it. A run of steps each under
+/// `max_step` can still be abrupt over a year. The committed history's largest are 0.039 in
+/// prices (Lanarkshire, 1848) and 0.051 in quantities (Monmouthshire, 1840), and it runs with
+/// no dead tick, a lowest cleared volume of 0.945 of its target and a largest D̂ of 56. Middlesex's
+/// land ×1.3 within 1800, every date under 0.03, moves it 0.19 and 0.29 in a year, and its run
+/// falls to 0.78 of its target with D̂ 248 (verify-world-r1, 2026-09-27). The bound sits at
+/// twice the history's largest; between the two, nothing has been run.
+pub const MAX_YEAR: f64 = 0.1;
+
 /// The largest |Δ ln| between two points over the relative prices and technique, and over
 /// the quantities.
 fn distance(a: &Eq1a, b: &Eq1a) -> (f64, f64) {
@@ -225,6 +245,8 @@ pub fn compile(tables: &Tables, atlas: &Atlas) -> Result<Compiled, CompileError>
         max_x: (f64::NEG_INFINITY, String::new()),
         max_step_prices: (0.0, String::new()),
         max_step_quantities: (0.0, String::new()),
+        max_year_prices: (0.0, String::new()),
+        max_year_quantities: (0.0, String::new()),
     };
     let mut plans = Vec::new();
     for county in counties {
@@ -242,6 +264,7 @@ pub fn compile(tables: &Tables, atlas: &Atlas) -> Result<Compiled, CompileError>
             keep(&mut summary.max_x, e.x_star, at, true);
         };
         note(&point, &inst, &at0);
+        let mut points: Vec<(Month, Eq1a)> = Vec::new();
         let mut i = 0;
         while i < steps.len() {
             let m = steps[i].month;
@@ -253,19 +276,48 @@ pub fn compile(tables: &Tables, atlas: &Atlas) -> Result<Compiled, CompileError>
             let e = solve(&at, &inst, &c)?;
             note(&e, &inst, &at);
             let (dp, dq) = distance(&e, &prev);
-            if dp > world.max_step {
-                return Err(CompileError::new(
-                    &at,
-                    format!(
-                        "one date moves the oracle's relative prices and technique by {dp:.4} in \
-                         log, above max_step {}: make the history more gradual (O14)",
-                        world.max_step
-                    ),
-                ));
+            for (what, d) in [
+                (
+                    "relative prices and technique (1 − x*, w/r, p_m/r, p/r)",
+                    dp,
+                ),
+                ("quantities (Y, K, N_a)", dq),
+            ] {
+                if d > world.max_step {
+                    return Err(CompileError::new(
+                        &at,
+                        format!(
+                            "one date moves the oracle's {what} by {d:.4} in log, above \
+                             max_step {}: make the history more gradual (O14)",
+                            world.max_step
+                        ),
+                    ));
+                }
+            }
+            // The point in force twelve months before: the last dated at or before then.
+            let year_ago = points
+                .iter()
+                .rev()
+                .find(|(pm, _)| *pm <= m - 12)
+                .map_or(&point, |(_, e)| e);
+            let (yp, yq) = distance(&e, year_ago);
+            for (what, d) in [("relative prices and technique", yp), ("quantities", yq)] {
+                if d > MAX_YEAR {
+                    return Err(CompileError::new(
+                        &at,
+                        format!(
+                            "the year to this date moves the oracle's {what} by {d:.4} in log, \
+                             above {MAX_YEAR} a year: spread the change over more years (O14)"
+                        ),
+                    ));
+                }
             }
             keep(&mut summary.max_step_prices, dp, &at, true);
             keep(&mut summary.max_step_quantities, dq, &at, true);
+            keep(&mut summary.max_year_prices, yp, &at, true);
+            keep(&mut summary.max_year_quantities, yq, &at, true);
             summary.step_dates += 1;
+            points.push((m, e.clone()));
             prev = e;
         }
         summary.events += steps.len();
@@ -273,6 +325,7 @@ pub fn compile(tables: &Tables, atlas: &Atlas) -> Result<Compiled, CompileError>
             county,
             point,
             steps,
+            points,
         });
     }
     let tape = write(&world, &plans, &ramps, atlas.digest);

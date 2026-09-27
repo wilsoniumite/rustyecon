@@ -1,6 +1,6 @@
 (
-    key: "dead",
-    name: "Dead ticks",
+    key: "no.trade",
+    name: "Ticks without trade",
     measure: "ticks in the trailing 52 in which one of the county\'s four markets did not trade",
     unit: "ticks per year",
     scale: "sequential",
@@ -8,7 +8,7 @@
     centre: None,
     reference: None,
     inputs: "MarketLine::trades (labour; land; mach; good)",
-    note: "oracle-free now; the probe\'s rule (cleared below half the oracle volume) waits for crates/observe (O17)",
+    note: "not the probe\'s dead tick: that also counts a market clearing below half its oracle volume and waits for crates/observe (O17); 0 in every county on this history",
     unavailable: None,
     legend: [
         (value: 0.0, at: 0.0),
