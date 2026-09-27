@@ -177,6 +177,7 @@ fn chips(ui: &mut egui::Ui, vm: &ToolbarVm) {
             Status::Running => "Running",
             Status::Poisoned => "Poisoned",
             Status::Stopped => "Stopped",
+            Status::Ended => "Ended: the run's worker stopped unasked",
         };
         let mut text = status.to_string();
         if let Some(p) = &h.paused {
@@ -193,7 +194,7 @@ fn chips(ui: &mut egui::Ui, vm: &ToolbarVm) {
         if h.ledger_changed {
             text.push_str(" · ledger changed");
         }
-        let alarm = matches!(h.status, Status::Poisoned | Status::Stopped);
+        let alarm = matches!(h.status, Status::Poisoned | Status::Stopped | Status::Ended);
         let rich = if alarm {
             RichText::new(text).color(ui.visuals().error_fg_color)
         } else {
@@ -209,6 +210,9 @@ fn chips(ui: &mut egui::Ui, vm: &ToolbarVm) {
         }
         if let Some(line) = &h.ledger_line {
             ui.colored_label(ui.visuals().error_fg_color, line);
+        }
+        for line in &h.ledger_keys {
+            ui.label(line);
         }
         if let Some(t) = h.last_good_tick {
             ui.label(format!("last good tick {t}"));

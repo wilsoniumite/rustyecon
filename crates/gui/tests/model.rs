@@ -604,3 +604,142 @@ fn rationing_onsets_are_logged_once_a_class_line() {
         .iter()
         .any(|(t, s)| *t == 0 && s.contains("pensioners (buy) at") && s.contains("/bread")));
 }
+
+#[test]
+fn a_log_line_moves_the_cursor_to_the_tick_it_names() {
+    // docs/GUI.md §4: a log line's tick is a report tick, the tick that ran, as the cursor
+    // counts; a line about a state names the tick that left it and says "state tick". A click
+    // on the snapshot line of state tick 5 puts the cursor on report tick 4, which reads that
+    // same snapshot and asks for no other.
+    let mut m = Model::default();
+    let mut h = Sync::new(8);
+    open(&mut h, &mut m, "gate.ron", GATE);
+    h.act(&mut m, Intent::Step(5));
+    h.act(&mut m, Intent::Select(Some(Entity::Actor(key("mill")))));
+    h.act(&mut m, Intent::Step(3));
+    let store = &m.focused().unwrap().store;
+    assert!(store.snapshot(5).is_some() && store.snapshot(8).is_some());
+    let lines: Vec<(Option<u64>, &str)> =
+        m.log().iter().map(|l| (l.tick, l.text.as_str())).collect();
+    let find = |text: &str| {
+        lines
+            .iter()
+            .find(|l| l.1 == text)
+            .unwrap_or_else(|| panic!("no line {text:?} in {lines:#?}"))
+            .0
+    };
+    assert_eq!(
+        find("running from state tick 0"),
+        None,
+        "no tick left state 0"
+    );
+    assert_eq!(find("stepped at state tick 5"), Some(4));
+    assert_eq!(find("snapshot of state tick 5"), Some(4));
+    assert_eq!(find("running from state tick 5"), Some(4));
+    assert_eq!(find("snapshot of state tick 8"), Some(7));
+    // Every line's tick is a tick the record ran, which the cursor takes as it is.
+    for l in m.log() {
+        if let Some(t) = l.tick {
+            assert_eq!(store.report_at(Some(t)), Some(t), "{l:?}");
+        }
+    }
+    // The click: the cursor reads the state the line names, whose snapshot is there.
+    let snap5 = find("snapshot of state tick 5").unwrap();
+    h.sent();
+    h.act(&mut m, Intent::Cursor(Cursor::At(snap5)));
+    assert!(h.sent().is_empty(), "no other snapshot is asked for");
+    assert_eq!(m.focused().unwrap().store.state_at(Some(snap5)), 5);
+}
+
+#[test]
+fn a_run_whose_worker_ended_says_so_and_stops() {
+    // A Runner that panics says nothing; its driver reports the worker's end once, as
+    // Obs::Ended (drive/mod.rs). The run then shows it, logs it, and takes no command.
+    let mut m = Model::default();
+    let mut h = Sync::new(8);
+    open(&mut h, &mut m, "gate.ron", GATE);
+    h.act(&mut m, Intent::Step(3));
+    h.sent();
+    reduce(
+        &mut m,
+        Intent::Observed {
+            run: RunId(0),
+            obs: Obs::Ended,
+        },
+    );
+    assert_eq!(status(&m), RunStatus::Ended);
+    let run = m.focused().unwrap();
+    assert!(!run.store.can_run());
+    let t = rustyecon_gui::vm::toolbar::build(&run.store, run.origin);
+    assert_eq!(t.health.status, rustyecon_gui::vm::toolbar::Status::Ended);
+    assert!(!t.controls.can_run && !t.controls.running);
+    let last = m.log().last().unwrap();
+    assert_eq!(last.level, rustyecon_gui::run::log::Level::Error);
+    assert!(last.text.contains("worker ended"), "{}", last.text);
+    for i in [
+        Intent::RunPause,
+        Intent::Step(1),
+        Intent::StepYear,
+        Intent::Run { until: None },
+    ] {
+        assert!(h.act(&mut m, i).is_empty());
+    }
+    assert!(h.sent().is_empty());
+}
+
+#[test]
+fn a_session_of_another_tape_still_plots_every_price() {
+    // docs/GUI.md §4: a run opens with every price plotted. A session's plots name series by
+    // key; the Appendix B world's name nothing in the gate's, so the gate's prices are added,
+    // and the plots' view-model leaves the other world's keys out of the stack.
+    let mut m = Model::default();
+    let mut h = Sync::new(64);
+    open(&mut h, &mut m, "appb.ron", common::APPB);
+    let appb: Vec<SeriesKey> = m.session.plots.clone();
+    assert_eq!(appb.len(), 4);
+    open(&mut h, &mut m, "gate.ron", GATE);
+    let gate: Vec<SeriesKey> = ["town", "village"]
+        .iter()
+        .flat_map(|n| {
+            ["bread", "fuel", "grain"].map(|g| SeriesKey {
+                measure: Measure::Price,
+                at: At::Market {
+                    node: key(n),
+                    good: key(g),
+                },
+            })
+        })
+        .collect();
+    let mut want = appb.clone();
+    want.extend(gate.iter().cloned());
+    assert_eq!(m.session.plots, want);
+    h.act(&mut m, Intent::Step(3));
+    let store = &m.focused().unwrap().store;
+    let vm = rustyecon_gui::vm::plots::build(store, &m.session.plots, None).unwrap();
+    let units: Vec<&str> = vm.panels.iter().map(|p| p.unit.as_str()).collect();
+    assert_eq!(units, ["coin per bread", "coin per fuel", "coin per grain"]);
+    let drawn: Vec<SeriesKey> = vm
+        .panels
+        .iter()
+        .flat_map(|p| p.lines.iter().map(|l| l.key.clone()))
+        .collect();
+    let mut sorted = gate.clone();
+    sorted.sort();
+    let mut drawn_sorted = drawn.clone();
+    drawn_sorted.sort();
+    assert_eq!(drawn_sorted, sorted);
+    assert!(vm
+        .panels
+        .iter()
+        .flat_map(|p| &p.lines)
+        .all(|l| l.points == 3));
+    assert_eq!(vm.absent, appb);
+    // A session that plots one of this world's series keeps its choice: nothing is added.
+    let mut m2 = Model::with_session(Session {
+        plots: vec![gate[0].clone()],
+        ..Session::default()
+    });
+    let mut h2 = Sync::new(64);
+    open(&mut h2, &mut m2, "gate.ron", GATE);
+    assert_eq!(m2.session.plots, [gate[0].clone()]);
+}

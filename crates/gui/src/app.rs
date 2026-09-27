@@ -193,7 +193,7 @@ impl GuiApp {
         );
         let stuck = matches!(
             status,
-            Some(RunStatus::Poisoned { .. } | RunStatus::Stopped)
+            Some(RunStatus::Poisoned { .. } | RunStatus::Stopped | RunStatus::Ended)
         );
         if let Some(c) = cpu {
             if reached || stuck {

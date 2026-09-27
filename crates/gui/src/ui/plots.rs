@@ -11,13 +11,17 @@
 
 use crate::model::{Cursor, Intent};
 use crate::run::{Decimator, RunId, SeriesKey, Store};
-use crate::vm::plots::{tick_label, PlotsVm};
+use crate::vm::plots::{tick_label, year_marks, PlotsVm};
 use egui::Color32;
-use egui_plot::{HoverPosition, Legend, Line, Plot, PlotPoint, PlotPoints, VLine};
+use egui_plot::{
+    log_grid_spacer, GridInput, GridMark, HoverPosition, Legend, Line, Plot, PlotPoint, PlotPoints,
+    VLine,
+};
 use std::collections::BTreeMap;
 
-/// A neutral palette: each line of a panel takes the next, and no colour means good or bad.
-const PALETTE: [Color32; 8] = [
+/// A neutral palette: each line of a panel takes the next, and no colour means good or bad. A
+/// test tells the plots' lines from other painted paths by it.
+pub const PALETTE: [Color32; 8] = [
     Color32::from_rgb(0x4c, 0x78, 0xa8),
     Color32::from_rgb(0xf5, 0x85, 0x18),
     Color32::from_rgb(0x72, 0xb7, 0xb2),
@@ -49,6 +53,9 @@ pub struct PlotCache {
     /// Each panel's x range, as it was last drawn: (lo, hi) in ticks.
     bounds: BTreeMap<String, (f64, f64)>,
     frame: u64,
+    /// What this frame lent egui, line by line, read from the very points each `Line` was
+    /// made of ([`lend`]).
+    lent: Vec<DrawnLine>,
 }
 
 /// A line as it was lent to egui in the last frame.
@@ -56,8 +63,32 @@ pub struct PlotCache {
 pub struct DrawnLine {
     /// The series.
     pub key: SeriesKey,
-    /// Its segments' vertices, `[x, y]`, as egui received them.
+    /// Its segments' vertices, `[x, y]`, as egui received them: one per `Line` handed to the
+    /// plot, in the order they were handed.
     pub segments: Vec<Vec<[f64; 2]>>,
+}
+
+/// Lend egui one segment of a line and record what it received. The record is read from the
+/// `PlotPoints` the `Line` is made of, after they are made, so what is recorded is what is
+/// lent; the line is handed to the plot before it is recorded.
+fn lend<'a>(
+    pui: &mut egui_plot::PlotUi<'a>,
+    lent: &mut Vec<DrawnLine>,
+    key: &SeriesKey,
+    label: &str,
+    colour: Color32,
+    seg: &'a [PlotPoint],
+) {
+    let points = PlotPoints::Borrowed(seg);
+    let received: Vec<[f64; 2]> = points.points().iter().map(|p| [p.x, p.y]).collect();
+    pui.line(Line::new(label, points).color(colour));
+    match lent.last_mut() {
+        Some(l) if l.key == *key => l.segments.push(received),
+        _ => lent.push(DrawnLine {
+            key: key.clone(),
+            segments: vec![received],
+        }),
+    }
 }
 
 /// Columns of `2^k` ticks, the fewest that keep a span of `span` ticks within `columns`
@@ -73,25 +104,16 @@ fn width_for(span: f64, columns: f64) -> u64 {
 }
 
 impl PlotCache {
-    /// A new frame begins.
+    /// A new frame begins: nothing is lent yet.
     pub fn begin_frame(&mut self) {
         self.frame += 1;
+        self.lent.clear();
     }
 
-    /// The lines the last frame lent egui, in key order.
+    /// The lines the last frame lent egui, in the order it drew them, each as egui received
+    /// it. Not the cache: what the plots handed over.
     pub fn drawn(&self) -> Vec<DrawnLine> {
-        self.lines
-            .iter()
-            .filter(|(_, c)| c.drawn == self.frame)
-            .map(|(k, c)| DrawnLine {
-                key: k.clone(),
-                segments: c
-                    .segments
-                    .iter()
-                    .map(|s| s.iter().map(|p| [p.x, p.y]).collect())
-                    .collect(),
-            })
-            .collect()
+        self.lent.clone()
     }
 
     /// Bring the line of `key` up to date with the store, at columns of `width` ticks.
@@ -150,6 +172,13 @@ pub fn show(
         cache.lines.clear();
         cache.bounds.clear();
     }
+    if !vm.absent.is_empty() {
+        let keys: Vec<String> = vm.absent.iter().map(ToString::to_string).collect();
+        ui.weak(format!(
+            "plotted, but not in this run's world: {}",
+            keys.join(", ")
+        ));
+    }
     if vm.panels.is_empty() {
         ui.weak("nothing plotted: plot a series from the outliner or the inspector");
         return;
@@ -179,13 +208,28 @@ pub fn show(
     let mut bounds = Vec::new();
     let mut clicked = None;
     let lines = &cache.lines;
+    let lent = &mut cache.lent;
     egui::ScrollArea::vertical().show(ui, |ui| {
         for p in &vm.panels {
+            // Gridlines on year starts, labelled by their year; below two years, egui's own
+            // marks, labelled by date.
+            let fallback = log_grid_spacer(10);
+            let spacer = move |input: GridInput| {
+                let (lo, hi) = input.bounds;
+                match year_marks(&clock, lo, hi, input.base_step_size) {
+                    Some(marks) => marks
+                        .into_iter()
+                        .map(|(value, step_size)| GridMark { value, step_size })
+                        .collect(),
+                    None => fallback(input),
+                }
+            };
             let resp = Plot::new(("plot", p.unit.as_str()))
                 .height(height)
                 .link_axis("plots", [true, false])
                 .link_cursor("plots", [true, false])
                 .y_axis_label(p.unit.clone())
+                .x_grid_spacer(spacer)
                 .x_axis_formatter(move |mark, _| tick_label(&clock, mark.value, mark.step_size))
                 .label_formatter({
                     let unit = p.unit.clone();
@@ -219,9 +263,7 @@ pub fn show(
                             continue;
                         };
                         for seg in &c.segments {
-                            pui.line(
-                                Line::new(l.label.clone(), PlotPoints::Borrowed(seg)).color(colour),
-                            );
+                            lend(pui, lent, &l.key, &l.label, colour, seg);
                         }
                     }
                     if let Some(t) = cursor {

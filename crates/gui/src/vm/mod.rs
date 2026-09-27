@@ -42,12 +42,12 @@ pub fn basis(b: &impl Debug) -> String {
     format!("{b:?}")
 }
 
-/// The key of a node's currency.
+/// The key of a node's currency. A node this world lacks has none, and none is made up.
 fn currency(w: &World, node: &Key) -> String {
     w.id_of::<NodeId>(node.as_str())
         .and_then(|n| w.node(n))
         .and_then(|n| w.key_of(n.currency))
-        .map_or_else(|| "currency".to_string(), Key::to_string)
+        .map_or_else(|| format!("(no node {node} in this run)"), Key::to_string)
 }
 
 /// The unit of a series (docs/GUI.md §4: units always shown). Prices are in the node's

@@ -42,6 +42,56 @@ fn path_from(toks: &[Tok], i: usize, roots: &[&str]) -> bool {
     false
 }
 
+/// The roots of a path into this crate.
+const CRATE_ROOTS: [&str; 4] = ["crate", "self", "super", "rustyecon_gui"];
+/// The roots of a path into the standard library.
+const STD_ROOTS: [&str; 3] = ["std", "core", "alloc"];
+
+/// For each token, the first segment of the `use` declaration it sits in, if it sits in one:
+/// in `use crate::{run::Store, ui as _};` every token after `use` up to the `;` has the root
+/// `crate`. A `use<…>` bound is not a declaration.
+fn use_roots(toks: &[Tok]) -> Vec<Option<String>> {
+    let mut roots = vec![None; toks.len()];
+    let mut i = 0;
+    while i < toks.len() {
+        let decl = ident(&toks[i], "use") && !toks.get(i + 1).is_some_and(|t| punct(t, '<'));
+        if !decl {
+            i += 1;
+            continue;
+        }
+        let end = (i + 1..toks.len())
+            .find(|&j| punct(&toks[j], ';'))
+            .unwrap_or(toks.len());
+        let root = toks[i + 1..end].iter().find_map(|t| match t {
+            Tok::Ident(s) => Some(s.clone()),
+            _ => None,
+        });
+        for r in &mut roots[i + 1..end] {
+            r.clone_from(&root);
+        }
+        i = end;
+    }
+    roots
+}
+
+/// Whether `toks[i]`, an identifier, is a path segment reached from one of `from`: a segment of
+/// a `use` tree rooted there, groups and renames included (`use crate::{run::Store, ui as _}`);
+/// the last segment of a path from there (`crate::ui::layout`); or the first segment of a bare
+/// path (`ui::layout::Pane`), which only a glob import or a `use` brings into scope.
+fn reached(toks: &[Tok], roots: &[Option<String>], i: usize, from: &[&str]) -> bool {
+    let in_use = roots[i].as_deref().is_some_and(|r| from.contains(&r));
+    let colons = |j: usize| {
+        toks.get(j).is_some_and(|t| punct(t, ':')) && toks.get(j + 1).is_some_and(|t| punct(t, ':'))
+    };
+    let bare = colons(i + 1) && !(i >= 2 && colons(i - 2));
+    in_use || path_from(toks, i, from) || bare
+}
+
+/// Whether `toks[i]` is the `*` of a glob import from one of `from`: `use crate::*;`.
+fn glob_from(toks: &[Tok], roots: &[Option<String>], i: usize, from: &[&str]) -> bool {
+    punct(&toks[i], '*') && roots[i].as_deref().is_some_and(|r| from.contains(&r))
+}
+
 #[test]
 fn the_scanner_reads_what_it_should() {
     // The copied lexer, checked as the engine checks its own: comments and strings are not
@@ -99,15 +149,21 @@ const DRAWING: [&str; 10] = [
     "winit",
 ];
 
-/// Uses of a drawing crate, and paths into this crate's drawing modules, `ui` and `app`.
+/// Uses of a drawing crate, and reaches into this crate's drawing modules, `ui` and `app`: in a
+/// path, in a `use` tree, groups and renames included, as a bare first segment, or through a
+/// glob import of the crate, which brings them into scope.
 fn drawing_uses(toks: &[Tok]) -> Vec<String> {
+    let roots = use_roots(toks);
     let mut found = Vec::new();
     for (i, t) in toks.iter().enumerate() {
+        if glob_from(toks, &roots, i, &CRATE_ROOTS) {
+            found.push("crate::*".to_string());
+        }
         let Tok::Ident(s) = t else { continue };
         if DRAWING.contains(&s.as_str()) || s.starts_with("egui") || s.starts_with("wgpu") {
             found.push(s.clone());
         }
-        if (s == "ui" || s == "app") && path_from(toks, i, &["crate", "super", "rustyecon_gui"]) {
+        if (s == "ui" || s == "app") && reached(toks, &roots, i, &CRATE_ROOTS) {
             found.push(format!("::{s}"));
         }
     }
@@ -118,13 +174,29 @@ fn drawing_uses(toks: &[Tok]) -> Vec<String> {
 fn model_run_edit_vm_import_no_egui() {
     // U9 and D13: model, run, edit and vm, and the drivers and files beside them, name no egui
     // crate and reach nothing that draws. A panel draws a view-model; nothing else knows egui.
+    // A reach into ui/ or app.rs is refused in every form: a path, a group or a rename in a
+    // `use` tree, a glob import of the crate, and the bare path such a glob allows.
     let fx = fixture(
         "use egui::Ui; use crate::ui::layout::Pane; fn f(c: &eframe::Frame) {} \
-         use super::super::app::GuiApp; use crate::run::Store; let x = egui_plot::Line::new();",
+         use super::super::app::GuiApp; use crate::run::Store; let x = egui_plot::Line::new(); \
+         use crate::{run::Store, ui::layout::Pane}; #[allow(unused_imports)] use crate::{ui as _}; \
+         use crate::*; fn g() -> Option<ui::layout::Pane> { None } use rustyecon_gui::{app}; \
+         use super::{Driver, ThreadDriver}; let ui = 1; let x = ui + app;",
     );
     assert_eq!(
         drawing_uses(&fx),
-        ["egui", "::ui", "eframe", "::app", "egui_plot"]
+        [
+            "egui",
+            "::ui",
+            "eframe",
+            "::app",
+            "egui_plot",
+            "::ui",
+            "::ui",
+            "crate::*",
+            "::ui",
+            "::app"
+        ]
     );
     let mut found = Vec::new();
     for (path, toks) in shipped_tokens(&egui_free_sources()) {
@@ -161,13 +233,20 @@ fn observe_violations(toks: &[Tok]) -> Vec<String> {
         "eprint",
         "dbg",
     ];
+    let roots = use_roots(toks);
     let mut found = Vec::new();
     for (i, t) in toks.iter().enumerate() {
+        if glob_from(toks, &roots, i, &CRATE_ROOTS) {
+            found.push("crate::*".to_string());
+        }
+        if glob_from(toks, &roots, i, &STD_ROOTS) {
+            found.push("std::*".to_string());
+        }
         let Tok::Ident(s) = t else { continue };
-        if OWN.contains(&s.as_str()) && path_from(toks, i, &["crate", "super", "rustyecon_gui"]) {
+        if OWN.contains(&s.as_str()) && reached(toks, &roots, i, &CRATE_ROOTS) {
             found.push(format!("crate::{s}"));
         }
-        if STD.contains(&s.as_str()) && path_from(toks, i, &["std", "core"]) {
+        if STD.contains(&s.as_str()) && reached(toks, &roots, i, &STD_ROOTS) {
             found.push(format!("std::{s}"));
         }
         if NAMES.contains(&s.as_str()) {
@@ -183,9 +262,14 @@ fn run_and_vm_reach_no_model_file_thread_or_clock() {
     // crates/observe, which has no egui, thread, clock, file or std::io (E2's list). So run/
     // and vm/ read the engine, certify and each other, and nothing of the model, the drivers,
     // the files or the drawing.
+    // Every form of a reach is refused: a path, a group or a rename in a `use` tree, a glob
+    // import, and the bare path a glob or a `use` allows.
     let fx = fixture(
         "use crate::model::Model; use std::time::Instant; use super::super::drive::Host; \
-         std::fs::read(p); println!(\"x\"); use crate::run::Store; use std::fmt;",
+         std::fs::read(p); println!(\"x\"); use crate::run::Store; use std::fmt; \
+         use std::{thread as _, fs as _}; use crate::{model as _}; use std::{fmt::Write, io}; \
+         use crate::*; use std::*; let h = thread::spawn(f); let m: model::Model; \
+         use super::{Obs, Refusal}; let fs = 2; let t = time + fs;",
     );
     assert_eq!(
         observe_violations(&fx),
@@ -195,7 +279,15 @@ fn run_and_vm_reach_no_model_file_thread_or_clock() {
             "Instant",
             "crate::drive",
             "std::fs",
-            "println"
+            "println",
+            "std::thread",
+            "std::fs",
+            "crate::model",
+            "std::io",
+            "crate::*",
+            "std::*",
+            "std::thread",
+            "crate::model"
         ]
     );
     let mut files = sources_under(&src().join("run"));

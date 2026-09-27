@@ -189,6 +189,44 @@ pub struct SeriesKey {
     pub at: At,
 }
 
+impl SeriesKey {
+    /// Whether every entity the key names is in `w`, so that a run of `w` can record it. A
+    /// session's plots name series by key, and a key of another tape's world names nothing in
+    /// this one (U7).
+    pub fn in_world(&self, w: &World) -> bool {
+        let node = |k: &Key| w.id_of::<NodeId>(k.as_str()).is_some();
+        let good = |k: &Key| w.id_of::<GoodId>(k.as_str()).is_some();
+        let actor = |k: &Key| w.id_of::<ActorId>(k.as_str()).is_some();
+        match &self.at {
+            At::World => true,
+            At::Market { node: n, good: g } => node(n) && good(g),
+            At::Class {
+                node: n,
+                good: g,
+                class,
+                ..
+            } => node(n) && good(g) && w.id_of::<ClassId>(class.as_str()).is_some(),
+            At::Order {
+                actor: a,
+                node: n,
+                good: g,
+                ..
+            } => actor(a) && node(n) && good(g),
+            At::Holding { holder, good: g } => {
+                good(g)
+                    && match holder {
+                        HolderKey::Actor(a) => actor(a),
+                        HolderKey::Escrow { node: n, good: e } => node(n) && good(e),
+                    }
+            }
+            At::Param(p) => {
+                w.id_of::<ParamId>(p.as_str()).is_some() || w.schedule.param(p.as_str()).is_some()
+            }
+            At::Good(g) | At::Line { good: g, .. } => good(g),
+        }
+    }
+}
+
 impl fmt::Display for SeriesKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let side = |s: &SideTag| match s {

@@ -10,17 +10,24 @@
 //!   its value was copied with; the log and its breakpoint on error.
 //! - The appb script: open, run, pause, step, select (home, good) and see its inspector; the
 //!   registry and the log draw.
+//! - The theft script: a tape whose event burns what its holder lacks paints `Poisoned`, the
+//!   ledger line, the same line by key and the last good tick, and takes no more ticks.
+//! - A session made by another tape still gives this tape's prices a live plot.
 //! - `every_drawn_vertex_is_recorded`: every vertex the plots lend egui is a recorded (tick,
-//!   value) of the store, no gap in the record is bridged, and each line keeps its extremes.
+//!   value) of the store, no gap in the record is bridged, and each line keeps its extremes;
+//!   and every segment lent is painted.
+
+mod common;
 
 use egui_kittest::kittest::Queryable;
 use egui_kittest::Harness;
 use rustyecon_engine::prelude::*;
 use rustyecon_gui::app::{GuiApp, Launch};
 use rustyecon_gui::model::{Intent, Model};
+use rustyecon_gui::platform::Files;
 use rustyecon_gui::run::{At, Entity, Measure, PauseReason, RunStatus, Series, SeriesKey, Store};
 use rustyecon_gui::ui::fmt;
-use rustyecon_gui::ui::plots::DrawnLine;
+use rustyecon_gui::ui::plots::{DrawnLine, PALETTE};
 use std::collections::BTreeSet;
 use std::time::{Duration, Instant};
 
@@ -28,9 +35,13 @@ fn key(s: &str) -> Key {
     Key::new(s).expect("a key")
 }
 
-/// The app on a tape of `tapes/`, in a 1600 × 1000 window, with no session.
-fn harness<'a>(tape: &str) -> Harness<'a, GuiApp> {
-    let path = format!("{}/../../tapes/{tape}.ron", env!("CARGO_MANIFEST_DIR"));
+/// The path of a tape of `tapes/`.
+fn tape_path(tape: &str) -> String {
+    format!("{}/../../tapes/{tape}.ron", env!("CARGO_MANIFEST_DIR"))
+}
+
+/// The app on the tape file `path`, in a 1600 × 1000 window, with its session in `files`.
+fn harness_on<'a>(path: String, files: Option<Files>) -> Harness<'a, GuiApp> {
     Harness::builder()
         .with_size(egui::vec2(1600.0, 1000.0))
         .build_eframe(move |cc| {
@@ -38,11 +49,24 @@ fn harness<'a>(tape: &str) -> Harness<'a, GuiApp> {
                 &cc.egui_ctx,
                 Launch {
                     tape: Some(path),
-                    files: None,
+                    files,
                     smoke: None,
                 },
             )
         })
+}
+
+/// The app on a tape of `tapes/`, in a 1600 × 1000 window, with no session.
+fn harness<'a>(tape: &str) -> Harness<'a, GuiApp> {
+    harness_on(tape_path(tape), None)
+}
+
+/// The six prices of the gate world.
+fn gate_prices() -> BTreeSet<SeriesKey> {
+    ["town", "village"]
+        .iter()
+        .flat_map(|n| ["bread", "fuel", "grain"].map(|g| price(n, g)))
+        .collect()
 }
 
 /// Step frames until `done` holds of the app.
@@ -104,6 +128,35 @@ fn painted(h: &Harness<'_, GuiApp>) -> Vec<String> {
     out
 }
 
+/// The texts the last frame painted turned on their side: the plots' y-axis labels, which
+/// egui_plot paints rotated a quarter turn. The outliner's rows paint the same units level.
+fn axis_labels(h: &Harness<'_, GuiApp>) -> Vec<String> {
+    fn walk(s: &egui::Shape, out: &mut Vec<String>) {
+        match s {
+            egui::Shape::Text(t) if t.angle != 0.0 => out.push(t.galley.text().to_string()),
+            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, out)),
+            _ => {}
+        }
+    }
+    let mut out = Vec::new();
+    for c in &h.output().shapes {
+        walk(&c.shape, &mut out);
+    }
+    out
+}
+
+/// Step until the plots' y axes name exactly `units`, one per panel in stack order, 20 frames
+/// at most.
+fn axes_name(h: &mut Harness<'_, GuiApp>, units: &[&str]) {
+    for _ in 0..20 {
+        if axis_labels(h) == units {
+            return;
+        }
+        h.step();
+    }
+    assert_eq!(axis_labels(h), units, "the y axes' units");
+}
+
 /// Step frames until the frame paints a text that `hit` accepts, 20 frames at most. A panel's
 /// text can take a frame or two: egui lays a new grid out invisibly on its first frame, and a
 /// tab's scrolled rows a frame after the scroll moves. The scripts check what is painted, which
@@ -155,6 +208,175 @@ fn vertices(lines: &[DrawnLine]) -> usize {
     lines.iter().flat_map(|l| &l.segments).map(Vec::len).sum()
 }
 
+/// Every open path the last frame painted, with its stroke's colour. egui_plot paints each
+/// `Line` of two or more points as one such path, and a `VLine` as one of two.
+fn painted_paths(h: &Harness<'_, GuiApp>) -> Vec<(Vec<egui::Pos2>, Option<egui::Color32>)> {
+    fn walk(s: &egui::Shape, out: &mut Vec<(Vec<egui::Pos2>, Option<egui::Color32>)>) {
+        match s {
+            egui::Shape::Path(p) if !p.closed => {
+                let colour = match &p.stroke.color {
+                    egui::epaint::ColorMode::Solid(c) => Some(*c),
+                    egui::epaint::ColorMode::UV(_) => None,
+                };
+                out.push((p.points.clone(), colour));
+            }
+            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, out)),
+            _ => {}
+        }
+    }
+    let mut out = Vec::new();
+    for c in &h.output().shapes {
+        walk(&c.shape, &mut out);
+    }
+    out
+}
+
+/// A path the plots painted: a line, stroked in the plots' palette, or a panel's cursor, a grey
+/// vertical line of two points.
+enum PlotPath {
+    Line(Vec<egui::Pos2>),
+    Cursor(f64),
+}
+
+/// The plots' paths as the last frame painted them, in paint order. egui_plot paints each
+/// `Line` of two or more points as one open path, in the order the lines were handed to it,
+/// and then the panel's cursor, so each panel's paths end with its cursor.
+fn plot_paths(h: &Harness<'_, GuiApp>) -> Vec<PlotPath> {
+    painted_paths(h)
+        .into_iter()
+        .filter_map(|(p, c)| {
+            let c = c?;
+            if PALETTE.contains(&c) {
+                Some(PlotPath::Line(p))
+            } else if c == egui::Color32::GRAY && p.len() == 2 && p[0].x == p[1].x {
+                Some(PlotPath::Cursor(f64::from(p[0].x)))
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+/// The plots' cursor lines the last frame painted, by their x on screen.
+fn cursor_lines(h: &Harness<'_, GuiApp>) -> Vec<f64> {
+    plot_paths(h)
+        .into_iter()
+        .filter_map(|p| match p {
+            PlotPath::Cursor(x) => Some(x),
+            PlotPath::Line(_) => None,
+        })
+        .collect()
+}
+
+/// How far a painted point may sit from where its value puts it, in points: screen positions
+/// are f32.
+const ON_SCREEN: f64 = 0.01;
+
+/// What the last frame lent egui is what it painted. Each segment of two or more vertices is
+/// painted as one path of as many points, in the order it was lent, and nothing else is
+/// painted in the plots' palette. Within a panel every painted point sits at one affine map of
+/// its tick, and the panel's grey cursor line at the same map of the cursor's tick, so a vertex
+/// lent at another tick than the one recorded fails here; within a line, y is one affine map
+/// of the value.
+fn lent_is_painted(h: &Harness<'_, GuiApp>, lines: &[DrawnLine]) {
+    let mut lent = lines.iter().flat_map(|l| {
+        l.segments
+            .iter()
+            .filter(|s| s.len() >= 2)
+            .map(move |s| (&l.key, s))
+    });
+    let store = store(h.state());
+    let cursor = store
+        .report_at(rustyecon_gui::ui::cursor(h.state().model()))
+        .expect("a tick ran") as f64;
+    // Each panel: its lines, then its cursor.
+    let mut panel: Vec<Painted<'_>> = Vec::new();
+    let mut panels = 0;
+    for p in plot_paths(h) {
+        match p {
+            PlotPath::Line(path) => {
+                let (key, seg) = lent.next().expect("a painted line was lent");
+                assert_eq!(path.len(), seg.len(), "{key}: painted as lent");
+                panel.push((key, seg, path));
+            }
+            PlotPath::Cursor(x) => {
+                check_panel(&panel, cursor, x);
+                panel.clear();
+                panels += 1;
+            }
+        }
+    }
+    assert!(panel.is_empty(), "every panel ends with its cursor");
+    assert!(panels > 0, "the plots draw the cursor");
+    let left: Vec<_> = lent.map(|(k, s)| (k.to_string(), s.len())).collect();
+    assert!(left.is_empty(), "lent and not painted: {left:?}");
+}
+
+/// A segment lent, with its series, and the path painted for it.
+type Painted<'a> = (&'a SeriesKey, &'a Vec<[f64; 2]>, Vec<egui::Pos2>);
+
+/// One panel's painted lines against what was lent, and its cursor at `x`.
+fn check_panel(panel: &[Painted<'_>], cursor: f64, x: f64) {
+    let span = |s: &Vec<[f64; 2]>| s[s.len() - 1][0] - s[0][0];
+    let Some((_, seg, path)) = panel.iter().max_by(|a, b| span(a.1).total_cmp(&span(b.1))) else {
+        return;
+    };
+    let (t0, t1) = (seg[0][0], seg[seg.len() - 1][0]);
+    assert!(t1 > t0, "the widest segment spans ticks");
+    let (x0, x1) = (f64::from(path[0].x), f64::from(path[path.len() - 1].x));
+    let b = (x1 - x0) / (t1 - t0);
+    let x_of = |t: f64| x0 + b * (t - t0);
+    for (key, seg, path) in panel {
+        for (v, p) in seg.iter().zip(path) {
+            let off = f64::from(p.x) - x_of(v[0]);
+            assert!(
+                off.abs() < ON_SCREEN,
+                "{key}: tick {} painted {off} off",
+                v[0]
+            );
+        }
+        // y: affine in the value, within the line.
+        let lo = seg
+            .iter()
+            .zip(path)
+            .min_by(|a, b| a.0[1].total_cmp(&b.0[1]));
+        let hi = seg
+            .iter()
+            .zip(path)
+            .max_by(|a, b| a.0[1].total_cmp(&b.0[1]));
+        if let (Some((vl, pl)), Some((vh, ph))) = (lo, hi) {
+            if vh[1] > vl[1] {
+                let c = f64::from(ph.y - pl.y) / (vh[1] - vl[1]);
+                for (v, p) in seg.iter().zip(path.iter()) {
+                    let off = f64::from(p.y) - (f64::from(pl.y) + c * (v[1] - vl[1]));
+                    assert!(
+                        off.abs() < ON_SCREEN,
+                        "{key}: value {} painted {off} off",
+                        v[1]
+                    );
+                }
+            }
+        }
+    }
+    let off = x - x_of(cursor);
+    assert!(
+        off.abs() < ON_SCREEN,
+        "the cursor at tick {cursor} is painted {off} off"
+    );
+}
+
+/// Step until the frame paints `text` at least `n` times, 20 frames at most.
+fn shows_times(h: &mut Harness<'_, GuiApp>, text: &str, n: usize) {
+    for _ in 0..20 {
+        if painted(h).iter().filter(|t| *t == text).count() >= n {
+            return;
+        }
+        h.step();
+    }
+    let got = painted(h).iter().filter(|t| *t == text).count();
+    panic!("the frame paints {text:?} {got} times, not {n}");
+}
+
 #[test]
 fn one_key_press_gives_a_live_price_plot() {
     // docs/GUI.md §4 and §9: `rustyecon-gui tapes/gate.ron` opens paused at tick 0 with every
@@ -165,37 +387,140 @@ fn one_key_press_gives_a_live_price_plot() {
     });
     h.step();
     let plots = h.state().model().session.plots.clone();
-    let markets = ["town", "village"]
-        .iter()
-        .flat_map(|n| ["bread", "fuel", "grain"].map(|g| price(n, g)))
-        .collect::<BTreeSet<_>>();
     assert_eq!(
         plots.iter().cloned().collect::<BTreeSet<_>>(),
-        markets,
+        gate_prices(),
         "every price"
     );
-    let drawn = h.state().drawn();
-    assert_eq!(drawn.len(), 6, "a line for each price");
-    assert_eq!(vertices(&drawn), 0, "no tick has run");
+    // No tick has run, so nothing is lent to egui yet.
+    assert!(h.state().drawn().is_empty(), "no tick has run");
     // Three panels, one per unit, each naming it.
     let vm = rustyecon_gui::vm::plots::build(store(h.state()), &plots, None).unwrap();
     let units: Vec<&str> = vm.panels.iter().map(|p| p.unit.as_str()).collect();
     assert_eq!(units, ["coin per bread", "coin per fuel", "coin per grain"]);
     h.key_press(egui::Key::Space);
-    step_until(&mut h, "every price drawn", |a| {
+    live_prices(&mut h);
+}
+
+/// After Space: a line for each of the gate's prices is lent to egui and painted, and it grows
+/// while the run runs.
+fn live_prices(h: &mut Harness<'_, GuiApp>) {
+    step_until(h, "every price drawn", |a| {
         let d = a.drawn();
         d.len() == 6 && d.iter().all(|l| l.segments.iter().any(|s| s.len() > 20))
     });
+    let drawn = h.state().drawn();
+    let keys: BTreeSet<SeriesKey> = drawn.iter().map(|l| l.key.clone()).collect();
+    assert_eq!(keys, gate_prices(), "a line for each price");
+    lent_is_painted(h, &drawn);
     // Live: it grows while the run runs.
-    let before = vertices(&h.state().drawn());
+    let before = vertices(&drawn);
     let tick = store(h.state()).tick();
-    step_until(&mut h, "the plot grows", |a| {
+    step_until(h, "the plot grows", |a| {
         store(a).tick() > tick + 50 && vertices(&a.drawn()) > before
     });
     assert!(matches!(
         status(h.state().model()),
         Some(RunStatus::Running { .. })
     ));
+}
+
+#[test]
+fn a_second_tapes_session_still_plots_every_price() {
+    // docs/GUI.md §4 and §9 again, for a user whose session.ron another tape wrote: its plots
+    // name the Appendix B world's prices, none of the gate's. The gate opens with its own
+    // prices plotted, and Space gives a live price plot; appb's keys stay out of the stack.
+    let dir = tempfile::tempdir().expect("a temporary directory");
+    {
+        let mut h = harness_on(tape_path("appb"), Some(Files::at(dir.path())));
+        step_until(&mut h, "appb loaded", |a| {
+            status(a.model()) == Some(RunStatus::Paused { tick: 0, why: None })
+        });
+        assert_eq!(h.state().model().session.plots.len(), 4);
+    }
+    let session = std::fs::read_to_string(dir.path().join("session.ron")).expect("saved");
+    assert!(
+        session.contains("\"home\""),
+        "appb's plots are saved: {session}"
+    );
+    let mut h = harness_on(tape_path("gate"), Some(Files::at(dir.path())));
+    step_until(&mut h, "the gate loaded", |a| {
+        status(a.model()) == Some(RunStatus::Paused { tick: 0, why: None })
+            && store(a).world().is_some_and(|w| w.name == "gate")
+    });
+    let plots: BTreeSet<SeriesKey> = h.state().model().session.plots.iter().cloned().collect();
+    assert!(plots.is_superset(&gate_prices()), "{plots:?}");
+    h.key_press(egui::Key::Space);
+    live_prices(&mut h);
+    axes_name(
+        &mut h,
+        &["coin per bread", "coin per fuel", "coin per grain"],
+    );
+    assert!(
+        !painted(&h).iter().any(|t| t.starts_with("currency per")),
+        "no unit is made up for another world's key"
+    );
+    shows_part(
+        &mut h,
+        "plotted, but not in this run's world: price at home/",
+    );
+}
+
+#[test]
+fn the_theft_script_shows_a_failed_run() {
+    // docs/GUI.md §3.3: a failed run shows Poisoned, its ledger line and its last good tick
+    // (E5, R2). The gate with a theft, opened from a file: on 1751-06-01, tick 73, an event
+    // burns 1e9 coin the workers do not hold. Space runs it into the failure; the toolbar
+    // paints the engine's line, the same line by key, and the last good tick; Space and `.`
+    // then take no tick.
+    let dir = tempfile::tempdir().expect("a temporary directory");
+    let path = dir.path().join("theft.ron");
+    std::fs::write(&path, common::gift_then_theft()).expect("the tape is written");
+    let mut h = harness_on(path.display().to_string(), None);
+    step_until(&mut h, "paused at tick 0", |a| {
+        status(a.model()) == Some(RunStatus::Paused { tick: 0, why: None })
+    });
+    h.key_press(egui::Key::Space);
+    step_until(&mut h, "poisoned", |a| {
+        matches!(
+            status(a.model()),
+            Some(RunStatus::Poisoned {
+                tick: 73,
+                phase: Phase::Events
+            })
+        )
+    });
+    let store_now = store(h.state());
+    let line = store_now.failure().expect("the failure").error.to_string();
+    assert!(line.starts_with("tick 73, phase 0 (events): shortfall at tick 73"));
+    let keys =
+        rustyecon_gui::vm::toolbar::build(store_now, h.state().model().focused().unwrap().origin)
+            .health
+            .ledger_keys;
+    assert_eq!(keys.len(), 2, "{keys:?}");
+    paints(&mut h, "Poisoned", |t| t.starts_with("Poisoned · "));
+    shows(&mut h, &line);
+    for k in &keys {
+        shows(&mut h, k);
+    }
+    shows_part(&mut h, "by key: workers was asked for 1e9 coin");
+    shows(&mut h, "last good tick 72");
+    // The log says it too, in the cli's words.
+    click(&mut h, "Log");
+    shows(&mut h, &format!("run 0 [73] run error: {line}"));
+    shows(
+        &mut h,
+        "run 0 [72] the last good tick is 72 (state tick 73)",
+    );
+    // A poisoned run takes no more ticks.
+    h.key_press(egui::Key::Space);
+    h.key_press(egui::Key::Period);
+    for _ in 0..10 {
+        h.step();
+        std::thread::sleep(Duration::from_millis(2));
+    }
+    assert_eq!(store(h.state()).tick(), 73);
+    assert_eq!(store(h.state()).hashes().len(), 73);
 }
 
 #[test]
@@ -255,6 +580,28 @@ fn the_gate_script_runs_pauses_steps_and_inspects() {
         .events()
         .iter()
         .any(|(t, e)| *t == cut && e.key.as_str() == "mine.cut"));
+    // U3: the identity chip names the build (its commit and dirty flag), the world_id and the
+    // tape_hash, as the cli's run line and the certified manifest do.
+    let b = rustyecon_gui::build();
+    let commit: String = b.commit.chars().take(10).collect();
+    let state = if b.dirty { "dirty" } else { "clean" };
+    shows(
+        &mut h,
+        &format!(
+            "gate · run · {commit} {state} · world 0x43628a8e0fd5f695 · tape 0x54066d053474846b"
+        ),
+    );
+    // Units always shown: each of the three panels names its unit on its y axis and the years
+    // on its x axis, and draws the cursor.
+    axes_name(
+        &mut h,
+        &["coin per bread", "coin per fuel", "coin per grain"],
+    );
+    for year in ["1750", "1755", "1760"] {
+        shows_times(&mut h, year, 3);
+    }
+    assert_eq!(cursor_lines(&h).len(), 3, "a cursor line in each panel");
+    lent_is_painted(&h, &h.state().drawn());
     // Select (town, bread) in the outliner and see its inspector: the market's price at the
     // cursor, with its unit.
     click(&mut h, "town/bread");
@@ -272,6 +619,24 @@ fn the_gate_script_runs_pauses_steps_and_inspects() {
         .expect("the price at the cut's tick");
     shows(&mut h, &format!("{} coin per bread", fmt(p)));
     shows(&mut h, &format!("tick {cut} (1760-02-27)"));
+    // Plot from the inspector: the market's supply gets a line, in a panel of its own unit.
+    let supply = SeriesKey {
+        measure: Measure::Supply,
+        at: At::Market {
+            node: key("town"),
+            good: key("bread"),
+        },
+    };
+    plot_by_click(&mut h, "plot supply at town/bread", &supply);
+    axes_name(
+        &mut h,
+        &[
+            "coin per bread",
+            "coin per fuel",
+            "coin per grain",
+            "bread per tick",
+        ],
+    );
     // Select the mill: the model asks the paused run for a snapshot of the state the cursor's
     // tick left, and the inspector reads the mill's lots and state from it.
     click(&mut h, "mill");
@@ -303,11 +668,38 @@ fn the_gate_script_runs_pauses_steps_and_inspects() {
     // The log, with the breakpoint on error: on in a new session, and a click turns it off. The
     // log opens at its latest line.
     click(&mut h, "Log");
-    shows_part(&mut h, &format!("snapshot of tick {}", cut + 1));
+    shows_part(
+        &mut h,
+        &format!("[{cut}] snapshot of state tick {}", cut + 1),
+    );
     click(&mut h, "Break on error");
     step_until(&mut h, "the breakpoint off", |a| {
         a.model().session.breakpoints.is_empty()
     });
+    // Plot from the outliner: the mill's row plots its coin.
+    let coin = SeriesKey {
+        measure: Measure::Held,
+        at: At::Holding {
+            holder: rustyecon_gui::run::HolderKey::Actor(key("mill")),
+            good: key("coin"),
+        },
+    };
+    plot_by_click(&mut h, "plot held of coin by mill", &coin);
+}
+
+/// Click the plot button whose accessible name is `label`, and see `key`'s line lent to egui
+/// and painted.
+fn plot_by_click(h: &mut Harness<'_, GuiApp>, label: &str, key: &SeriesKey) {
+    has(h, label);
+    h.get_by_label(label).click_accesskit();
+    step_until(h, label, |a| {
+        a.model().session.plots.contains(key)
+            && a.drawn()
+                .iter()
+                .any(|l| l.key == *key && l.segments.iter().any(|s| s.len() > 20))
+    });
+    h.step();
+    lent_is_painted(h, &h.state().drawn());
 }
 
 #[test]
@@ -397,7 +789,8 @@ fn every_drawn_vertex_is_recorded() {
     // Every vertex egui receives is a recorded (tick, value), bit for bit; a gap in the record
     // splits the line; and each line keeps its least and greatest values. Checked on the gate
     // run to 2,080 with every price, a param that steps and a series with gaps, at two window
-    // widths, the narrower thinning harder.
+    // widths, the narrower thinning harder. The vertices are read where they are lent, from
+    // the points each `Line` is made of, and each segment lent is painted as one path.
     let mut h = harness("gate");
     step_until(&mut h, "loaded", |a| {
         status(a.model()) == Some(RunStatus::Paused { tick: 0, why: None })
@@ -426,6 +819,7 @@ fn every_drawn_vertex_is_recorded() {
     let keys: BTreeSet<SeriesKey> = drawn.iter().map(|l| l.key.clone()).collect();
     assert_eq!(keys, plotted, "every plotted series is drawn");
     let wide = check_drawn(store(h.state()), &drawn);
+    lent_is_painted(&h, &drawn);
     let gap_line = drawn.iter().find(|l| l.key == with_gaps).unwrap();
     assert!(
         gap_line.segments.len() >= 2,
@@ -437,6 +831,7 @@ fn every_drawn_vertex_is_recorded() {
     h.step();
     let drawn = h.state().drawn();
     let narrow = check_drawn(store(h.state()), &drawn);
+    lent_is_painted(&h, &drawn);
     assert!(
         narrow < wide,
         "{narrow} vertices at 640 wide, {wide} at 1600"

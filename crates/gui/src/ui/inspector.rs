@@ -63,15 +63,7 @@ fn plot_toggle(
         ui.label("");
         return;
     };
-    let on = plots.contains(s);
-    let (text, act) = if on {
-        ("unplot", Intent::Unplot(s.clone()))
-    } else {
-        ("plot", Intent::Plot(s.clone()))
-    };
-    if ui.small_button(text).on_hover_text(s.to_string()).clicked() {
-        out.push(act);
-    }
+    super::plot_button(ui, s, plots.contains(s), out);
 }
 
 fn copied(ui: &mut egui::Ui, c: &Option<CopiedVm>) {

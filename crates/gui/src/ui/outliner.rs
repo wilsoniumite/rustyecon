@@ -45,16 +45,7 @@ fn rows(ui: &mut egui::Ui, section: &str, rows: &[RowVm], out: &mut Vec<Intent>)
                     out.push(act);
                 }
                 match &r.series {
-                    Some(s) => {
-                        let (text, act) = if r.plotted {
-                            ("unplot", Intent::Unplot(s.clone()))
-                        } else {
-                            ("plot", Intent::Plot(s.clone()))
-                        };
-                        if ui.small_button(text).on_hover_text(s.to_string()).clicked() {
-                            out.push(act);
-                        }
-                    }
+                    Some(s) => super::plot_button(ui, s, r.plotted, out),
                     None => {
                         ui.label("");
                     }

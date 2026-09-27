@@ -9,7 +9,7 @@
 //! lines' series, which the inspector shows and plots. A tolerance on a fill is a criterion's
 //! registered bar (certify's `rationed_below`), not the log's.
 
-use super::{At, Measure, Obs, ObsBatch, RunId, SeriesKey};
+use super::{At, Measure, Obs, ObsBatch, PauseReason, RunId, SeriesKey};
 use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -102,7 +102,9 @@ fn onset_text(at: &At, requested: f64, filled: f64) -> String {
 pub struct Entry {
     /// The run it concerns, if one.
     pub run: Option<RunId>,
-    /// The tick it concerns, if one.
+    /// The report tick it concerns, if one: the tick that ran, as the cursor counts (docs/GUI.md
+    /// §4). A line about a state names the tick that left it, state tick − 1, and none for the
+    /// state at tick 0, which no tick left. A click on the line moves the cursor there.
     pub tick: Option<u64>,
     /// How it reads.
     pub level: Level,
@@ -123,7 +125,8 @@ impl Entry {
 }
 
 /// The lines an observation of run `run` adds to the log. Ring checkpoints and batches without
-/// events add none.
+/// events add none. Every line's tick is a report tick ([`Entry::tick`]); a line about a state
+/// says "state tick" in its text.
 pub fn entries(run: RunId, obs: &Obs) -> Vec<Entry> {
     let line = |tick: Option<u64>, level: Level, text: String| Entry {
         run: Some(run),
@@ -131,6 +134,8 @@ pub fn entries(run: RunId, obs: &Obs) -> Vec<Entry> {
         level,
         text,
     };
+    // The report tick that left a state: none for the state at tick 0.
+    let left = |state: u64| state.checked_sub(1);
     match obs {
         Obs::Loaded {
             run: key,
@@ -139,17 +144,17 @@ pub fn entries(run: RunId, obs: &Obs) -> Vec<Entry> {
             hash,
             ..
         } => vec![line(
-            Some(*tick),
+            left(*tick),
             Level::Info,
             format!(
-                "loaded {} at tick {tick}: tape_hash {}, world_id {}, state 0x{hash:016x}",
+                "loaded {} at state tick {tick}: tape_hash {}, world_id {}, state 0x{hash:016x}",
                 world.name, key.tape_hash, key.world_id
             ),
         )],
         Obs::Running { tick } => vec![line(
-            Some(*tick),
+            left(*tick),
             Level::Info,
-            format!("running from tick {tick}"),
+            format!("running from state tick {tick}"),
         )],
         Obs::Batch(b) => b
             .rows
@@ -173,18 +178,21 @@ pub fn entries(run: RunId, obs: &Obs) -> Vec<Entry> {
                 )
             })
             .collect(),
-        Obs::Paused { tick, why } => vec![line(
-            Some(*tick),
-            Level::Info,
-            format!("{why} at tick {tick}"),
-        )],
+        Obs::Paused { tick, why } => {
+            let text = match why {
+                PauseReason::Reached(u) => format!("reached state tick {u}"),
+                _ => format!("{why} at state tick {tick}"),
+            };
+            vec![line(left(*tick), Level::Info, text)]
+        }
         Obs::Checkpointed(_) => Vec::new(),
         Obs::Snapshot(s) => vec![line(
-            Some(s.tick),
+            left(s.tick),
             Level::Info,
-            format!("snapshot of tick {}", s.tick),
+            format!("snapshot of state tick {}", s.tick),
         )],
         Obs::Failed { error, last } => {
+            // The failed tick ran, in part, and left no report; the last good tick did.
             let good = match last {
                 Some(r) => format!(
                     "the last good tick is {} (state tick {})",
@@ -199,9 +207,16 @@ pub fn entries(run: RunId, obs: &Obs) -> Vec<Entry> {
                     Level::Error,
                     format!("run error: {error}"),
                 ),
-                line(Some(error.tick), Level::Error, good),
+                line(last.as_ref().map(|r| r.tick), Level::Error, good),
             ]
         }
         Obs::Refused(r) => vec![line(None, Level::Error, r.to_string())],
+        Obs::Ended => vec![line(
+            None,
+            Level::Error,
+            "the run's worker ended without being told to stop (it panicked); the run can go \
+             no further"
+                .to_string(),
+        )],
     }
 }

@@ -19,6 +19,7 @@ pub mod timeline;
 pub mod toolbar;
 
 use crate::model::{Cursor, Intent, Model};
+use crate::run::SeriesKey;
 use crate::vm;
 use layout::Pane;
 use std::collections::BTreeSet;
@@ -83,6 +84,24 @@ pub fn value_label(ui: &mut egui::Ui, v: Option<f64>, unit: &str) -> egui::Respo
             .label(format!("{} {unit}", fmt(v)))
             .on_hover_text(format!("{v}")),
         None => ui.weak(format!("– {unit}")),
+    }
+}
+
+/// A small "plot" or "unplot" button for a series. It reads "plot"; its accessible name, and
+/// its hover text, name the series, so a screen reader or a script can tell one row's button
+/// from another's.
+pub fn plot_button(ui: &mut egui::Ui, s: &SeriesKey, plotted: bool, out: &mut Vec<Intent>) {
+    let (text, act) = if plotted {
+        ("unplot", Intent::Unplot(s.clone()))
+    } else {
+        ("plot", Intent::Plot(s.clone()))
+    };
+    let r = ui.small_button(text).on_hover_text(s.to_string());
+    r.widget_info(|| {
+        egui::WidgetInfo::labeled(egui::WidgetType::Button, true, format!("{text} {s}"))
+    });
+    if r.clicked() {
+        out.push(act);
     }
 }
 

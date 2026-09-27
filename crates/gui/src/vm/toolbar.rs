@@ -7,7 +7,9 @@
 //! reads a tick or a date ([`parse_until`]).
 
 use crate::run::{Origin, PauseReason, RunStatus, Store};
-use rustyecon_engine::prelude::{Clock, Date};
+use rustyecon_engine::prelude::{
+    Clock, CoreError, Date, Key, Phase, RunError, RunErrorKind, World,
+};
 use serde::Serialize;
 
 /// Who the numbers belong to.
@@ -51,6 +53,8 @@ pub enum Status {
     Poisoned,
     /// Ingestion stopped on a non-finite value (U10).
     Stopped,
+    /// The run's worker ended without being told to (a panic); nothing more will come.
+    Ended,
 }
 
 /// How the run is.
@@ -66,8 +70,12 @@ pub struct HealthVm {
     pub run_margin: Option<f64>,
     /// The state's hash, as `0x%016x`.
     pub hash: Option<String>,
-    /// A failed run's ledger line: the error as the engine prints it.
+    /// A failed run's ledger line: the error as the engine prints it, the cli's stderr, which
+    /// names dense ids.
     pub ledger_line: Option<String>,
+    /// The same failure by key (U7): the ids the line names, resolved against the run's world,
+    /// and for a failure in the events phase the tape events due in that tick, in firing order.
+    pub ledger_keys: Vec<String>,
     /// A failed run's last good tick.
     pub last_good_tick: Option<u64>,
     /// Why ingestion stopped, if it did.
@@ -116,6 +124,61 @@ pub fn parse_until(text: &str, clock: &Clock) -> Result<u64, String> {
         .ok_or_else(|| format!("{text}: past the calendar"))
 }
 
+/// A failed run's error by key (U7). The engine's line names dense ids (`pop#1`, `good#1`), as
+/// the cli prints it; this reads the ids it names against the run's world: a shortfall's holder
+/// and good, a hook's actor. A failure in the events phase also names the tape events due in
+/// that tick, in the order they fire, one of which failed.
+pub fn ledger_keys(w: &World, e: &RunError) -> Vec<String> {
+    let key = |k: Option<&Key>, id: String| k.map_or(id, Key::to_string);
+    let mut out = Vec::new();
+    match &e.kind {
+        RunErrorKind::Core(CoreError::Shortfall(l)) => {
+            let what = match l.prov {
+                Some(_) => "asked for",
+                None => "asked to transfer",
+            };
+            out.push(format!(
+                "by key: {} was {what} {:e} {} and held {:e}",
+                super::holder(w, l.holder),
+                l.requested,
+                key(w.key_of(l.good), l.good.to_string()),
+                l.held
+            ));
+        }
+        RunErrorKind::Agent { actor, .. }
+        | RunErrorKind::ForeignWrite { actor, .. }
+        | RunErrorKind::ForeignOrder { actor, .. } => {
+            out.push(format!(
+                "by key: {actor} is {}",
+                key(w.key_of(*actor), actor.to_string())
+            ));
+        }
+        _ => {}
+    }
+    if e.phase == Phase::Events {
+        let due: Vec<String> = w
+            .schedule
+            .fire(e.tick)
+            .iter()
+            .map(|f| {
+                format!(
+                    "{} ({})",
+                    key(w.key_of(f.event), f.event.to_string()),
+                    super::describe(w, &f.action)
+                )
+            })
+            .collect();
+        if !due.is_empty() {
+            out.push(format!(
+                "tick {}'s events, in firing order: {}",
+                e.tick,
+                due.join(", ")
+            ));
+        }
+    }
+    out
+}
+
 /// The toolbar of a run: its record and its origin.
 pub fn build(store: &Store, origin: Origin) -> ToolbarVm {
     let identity = store.run().zip(store.world()).map(|(k, w)| IdentityVm {
@@ -140,6 +203,7 @@ pub fn build(store: &Store, origin: Origin) -> ToolbarVm {
         RunStatus::Running { .. } => Status::Running,
         RunStatus::Poisoned { .. } => Status::Poisoned,
         RunStatus::Stopped => Status::Stopped,
+        RunStatus::Ended => Status::Ended,
     };
     let paused = store.paused().map(|(t, why)| match why {
         PauseReason::Reached(_) => format!("{why}"),
@@ -154,6 +218,9 @@ pub fn build(store: &Store, origin: Origin) -> ToolbarVm {
         run_margin: last.map(|r| r.run.max_margin),
         hash: store.run().map(|_| certify::Hex(store.hash()).to_string()),
         ledger_line: failure.map(|f| f.error.to_string()),
+        ledger_keys: failure
+            .zip(store.world())
+            .map_or_else(Vec::new, |(f, w)| ledger_keys(w, &f.error)),
         last_good_tick: failure.and_then(|f| f.last_good_tick()),
         stopped: store.stopped().map(|e| e.to_string()),
         ledger_changed: false,

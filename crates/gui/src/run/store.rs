@@ -178,6 +178,8 @@ pub enum RunStatus {
     },
     /// Ingestion stopped (U10).
     Stopped,
+    /// The run's worker ended without being told to (a panic): nothing more will come.
+    Ended,
 }
 
 /// Everything one run has reported.
@@ -204,6 +206,7 @@ pub struct Store {
     refusals: Vec<Refusal>,
     last: Option<Box<TickReport>>,
     stopped: Option<IngestError>,
+    ended: bool,
 }
 
 impl Default for Store {
@@ -230,6 +233,7 @@ impl Default for Store {
             refusals: Vec::new(),
             last: None,
             stopped: None,
+            ended: false,
         }
     }
 }
@@ -355,6 +359,10 @@ impl Store {
                 };
                 self.failure = Some(Failure { error, last });
             }
+            Obs::Ended => {
+                self.ended = true;
+                self.status = RunStatus::Ended;
+            }
             Obs::Refused(r) => {
                 if matches!(r, Refusal::Load(_)) {
                     self.status = RunStatus::Empty;
@@ -373,9 +381,10 @@ impl Store {
         self.failure.is_some()
     }
 
-    /// Whether the run can be stepped: loaded, not poisoned, and still recorded.
+    /// Whether the run can be stepped: loaded, not poisoned, still recorded, and its worker
+    /// alive.
     pub fn can_run(&self) -> bool {
-        self.run.is_some() && self.failure.is_none() && self.stopped.is_none()
+        self.run.is_some() && self.failure.is_none() && self.stopped.is_none() && !self.ended
     }
 
     /// The run's key, once loaded.

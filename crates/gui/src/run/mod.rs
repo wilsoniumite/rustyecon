@@ -314,4 +314,8 @@ pub enum Obs {
     },
     /// A load was refused, in whole or in part.
     Refused(Refusal),
+    /// The run's worker ended without being told to stop: its Runner panicked, and a Runner
+    /// that panicked says nothing more. A driver reports it once; a Runner never does. The run
+    /// can go no further.
+    Ended,
 }

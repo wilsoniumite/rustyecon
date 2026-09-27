@@ -39,7 +39,8 @@ step() { printf '\n== gui: %s\n' "$*"; }
 
 # The tests G0's gate names (docs/GUI.md §9), as each part of G0 lands. G0.1's second part
 # adds every_drawn_vertex_is_recorded, the view-model goldens, G0's kittest scripts, and the scan
-# that holds the GUI's use of core to `num`.
+# that holds the GUI's use of core to `num`. The fixes after its verification add the theft
+# script and the script whose session another tape wrote.
 named=(
     gui_equals_cli
     failed_run_shows_its_ledger_line
@@ -56,6 +57,8 @@ named=(
     the_gate_script_runs_pauses_steps_and_inspects
     the_appb_script_runs_pauses_steps_and_inspects
     the_gui_names_core_for_num_alone
+    the_theft_script_shows_a_failed_run
+    a_second_tapes_session_still_plots_every_price
 )
 
 step "toolchain (rust-toolchain.toml)"

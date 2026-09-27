@@ -38,6 +38,10 @@ pub struct ThreadDriver {
     tx: Option<Sender<Cmd>>,
     rx: Receiver<Obs>,
     worker: Option<JoinHandle<()>>,
+    /// Whether the worker was told to stop.
+    stopped: bool,
+    /// Whether the worker's end has been reported.
+    ended: bool,
 }
 
 impl ThreadDriver {
@@ -54,6 +58,8 @@ impl ThreadDriver {
             tx: Some(tx),
             rx,
             worker: Some(worker),
+            stopped: false,
+            ended: false,
         }
     }
 }
@@ -61,14 +67,28 @@ impl ThreadDriver {
 impl Driver for ThreadDriver {
     fn send(&mut self, c: Cmd) {
         if let Some(tx) = &self.tx {
+            self.stopped |= matches!(c, Cmd::Stop);
             // A worker that has ended takes no more commands; its run is over.
             let _ = tx.send(c);
         }
     }
 
+    /// Every observation that has arrived, and once, after the last, [`Obs::Ended`] if the
+    /// worker ended without being told to stop: a Runner that panicked says nothing, and its
+    /// run would otherwise look as if it ran on.
     fn poll(&mut self, out: &mut Vec<Obs>) {
-        while let Ok(o) = self.rx.try_recv() {
-            out.push(o);
+        loop {
+            match self.rx.try_recv() {
+                Ok(o) => out.push(o),
+                Err(TryRecvError::Empty) => return,
+                Err(TryRecvError::Disconnected) => {
+                    if !self.stopped && !self.ended {
+                        out.push(Obs::Ended);
+                    }
+                    self.ended = true;
+                    return;
+                }
+            }
         }
     }
 }
@@ -79,7 +99,7 @@ impl Drop for ThreadDriver {
             let _ = tx.send(Cmd::Stop);
         }
         if let Some(w) = self.worker.take() {
-            // A worker that panicked has nothing left to say.
+            // A worker that panicked has said so through `poll`, as `Obs::Ended`.
             let _ = w.join();
         }
     }
@@ -146,5 +166,62 @@ fn work(
         let p = runner.advance(budget);
         pace.record(p.ran, t0.elapsed());
         busy = p.busy;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::{Duration, Instant};
+
+    /// Poll until `d` has reported `n` observations, a few seconds at most.
+    fn poll_for(d: &mut ThreadDriver, n: usize) -> Vec<Obs> {
+        let t0 = Instant::now();
+        let mut out = Vec::new();
+        while out.len() < n && t0.elapsed() < Duration::from_secs(10) {
+            d.poll(&mut out);
+            std::thread::sleep(Duration::from_millis(1));
+        }
+        out
+    }
+
+    #[test]
+    fn a_worker_that_ends_unasked_is_reported_once() {
+        // A worker that ends with no Stop, as a Runner that panics does, drops its sink and
+        // says nothing. The driver reports its end once, after what it had said.
+        let (tx, _commands) = channel::<Cmd>();
+        let (sink, rx) = channel::<Obs>();
+        let worker = std::thread::spawn(move || {
+            let _ = sink.send(Obs::Running { tick: 0 });
+        });
+        let mut d = ThreadDriver {
+            tx: Some(tx),
+            rx,
+            worker: Some(worker),
+            stopped: false,
+            ended: false,
+        };
+        let seen = poll_for(&mut d, 2);
+        assert!(
+            matches!(seen[..], [Obs::Running { tick: 0 }, Obs::Ended]),
+            "{seen:?}"
+        );
+        let mut again = Vec::new();
+        d.poll(&mut again);
+        assert!(again.is_empty(), "reported once: {again:?}");
+    }
+
+    #[test]
+    fn a_worker_told_to_stop_ends_in_silence() {
+        let mut d = ThreadDriver::spawn(crate::build(), Arc::new(|| {}));
+        d.send(Cmd::Stop);
+        d.worker
+            .take()
+            .expect("the worker")
+            .join()
+            .expect("it stops");
+        let mut seen = Vec::new();
+        d.poll(&mut seen);
+        assert!(seen.is_empty(), "{seen:?}");
     }
 }

@@ -23,6 +23,7 @@
         run_margin: Some(0.000001868804361270114),
         hash: Some("0x234cf3834f6ffc8a"),
         ledger_line: None,
+        ledger_keys: [],
         last_good_tick: None,
         stopped: None,
         ledger_changed: false,

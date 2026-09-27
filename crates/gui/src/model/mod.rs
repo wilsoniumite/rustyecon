@@ -480,8 +480,10 @@ fn observed(m: &mut Model, id: RunId, obs: Obs) -> Vec<Effect> {
     m.log.extend(log::entries(id, &obs));
     let mut out = Vec::new();
     if let Obs::Loaded { world, .. } = &obs {
-        // A new session plots every price (docs/GUI.md §4).
-        if m.session.plots.is_empty() {
+        // A run opens with every price plotted (docs/GUI.md §4): in a new session, and in a
+        // session whose plots name nothing of this run's world, as another tape's do. Plots
+        // are keys, kept across tapes, so a tape that shares keys keeps the user's choice.
+        if !m.session.plots.iter().any(|k| k.in_world(world)) {
             for (n, g) in world.markets() {
                 if let (Some(node), Some(good)) = (world.key_of(n), world.key_of(g)) {
                     m.session.plots.push(SeriesKey {

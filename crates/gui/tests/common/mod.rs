@@ -46,6 +46,20 @@ pub fn theft() -> String {
     )
 }
 
+/// The theft, with a gift of 1,000 coin to the workers on the same date, which fires first:
+/// tick 73's events apply the gift and then fail on the burn, so the state the failure leaves
+/// differs from every state a tick of the tape left.
+pub fn gift_then_theft() -> String {
+    edit(
+        GATE,
+        "    events: [\n",
+        "    events: [\n        (key: \"a.gift\", at: \"1751-06-01\", basis: Assumed(\"test\"), \
+         act: Mint(holder: \"workers\", good: \"coin\", qty: 1000.0)),\n        \
+         (key: \"theft\", at: \"1751-06-01\", basis: Assumed(\"test\"), \
+         act: Burn(holder: \"workers\", good: \"coin\", amount: Qty(1e9))),\n",
+    )
+}
+
 /// A build for tests: this binary's stamp.
 pub fn build() -> Build {
     rustyecon_gui::build()

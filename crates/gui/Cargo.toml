@@ -22,7 +22,9 @@ path = "src/main.rs"
 # model/, run/, vm/ and edit/ use no egui (tests/scans.rs); only ui/ and app.rs draw.
 # Core is named for `core::num` alone, the libm-backed logs the display takes (U6, U9); the
 # engine re-exports no `num`, and a scan holds every other path into core out (tests/scans.rs,
-# the_gui_names_core_for_num_alone), so core's writer stays out of reach (U1, E1).
+# the_gui_names_core_for_num_alone). With this edge core's writer compiles here, so U1's guard
+# (E1) for the GUI is that scan, not the type system, until the engine re-exports `num` and the
+# edge goes (docs/GUI.md §3.2).
 [dependencies]
 rustyecon-engine.workspace = true
 rustyecon-certify.workspace = true

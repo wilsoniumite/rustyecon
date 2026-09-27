@@ -166,17 +166,37 @@ fn gate_obs(ticks: u64, slice: u32) -> Vec<Obs> {
 fn nonfinite_ingest_stops_with_the_series_named() {
     // U10: a non-finite value at ingest stops ingestion and names the series and tick. The row
     // that holds it is dropped whole, so every series ends at the last good tick, and every
-    // later observation is refused with the same error.
-    let mut obs = gate_obs(12, 5);
-    // The price of bread in the village: a series well inside the catalogue, so that naming
-    // any other one fails.
-    let bread = SeriesKey {
+    // later observation is refused with the same error. NaN, +inf and -inf, each in its own run.
+    for poison in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+        refused(poison);
+    }
+    // A clean run of the same ticks records all twelve.
+    let bread = village_bread();
+    let mut clean = Store::default();
+    for o in gate_obs(12, 5) {
+        clean.ingest(o).expect("finite values ingest");
+    }
+    assert_eq!(clean.hashes().len(), 12);
+    assert_eq!(clean.series(&bread).unwrap().len(), 12);
+}
+
+/// The price of bread in the village: a series well inside the catalogue, so that naming any
+/// other one fails.
+fn village_bread() -> SeriesKey {
+    SeriesKey {
         measure: Measure::Price,
         at: At::Market {
             node: key("village"),
             good: key("bread"),
         },
-    };
+    }
+}
+
+/// The gate's first twelve ticks with `poison` for the village's price of bread at tick 7:
+/// ingestion stops there, naming the series, the tick and the value.
+fn refused(poison: f64) {
+    let mut obs = gate_obs(12, 5);
+    let bread = village_bread();
     let mut catalogue = Vec::new();
     let mut poisoned = false;
     for o in &mut obs {
@@ -188,13 +208,13 @@ fn nonfinite_ingest_stops_with_the_series_named() {
                 .expect("the price") as u32;
             for row in b.rows.iter_mut().filter(|r| r.tick == 7) {
                 for cell in row.cells.iter_mut().filter(|c| c.0 == i) {
-                    cell.1 = f64::NAN;
+                    cell.1 = poison;
                     poisoned = true;
                 }
             }
         }
     }
-    assert!(poisoned, "tick 7 has a price of bread in town");
+    assert!(poisoned, "tick 7 has a price of bread in the village");
     let later = obs.len()
         - obs
             .iter()
@@ -211,7 +231,7 @@ fn nonfinite_ingest_stops_with_the_series_named() {
     assert_eq!(
         errors.len(),
         1 + later,
-        "every later observation is refused"
+        "{poison}: every later observation is refused"
     );
     assert!(errors
         .windows(2)
@@ -224,15 +244,16 @@ fn nonfinite_ingest_stops_with_the_series_named() {
         } => {
             assert_eq!(series, &bread);
             assert_eq!(*tick, 7);
-            assert!(value.is_nan());
+            assert_eq!(value.to_bits(), poison.to_bits());
         }
-        other => panic!("{other:?}"),
+        other => panic!("{poison}: {other:?}"),
     }
     let text = errors[0].to_string();
     assert!(
         text.contains("price at village/bread") && text.contains("tick 7"),
         "{text}"
     );
+    assert!(text.contains(&format!("({poison})")), "{text}");
     // Ticks 0 to 6 are recorded, whole; nothing of tick 7 or after.
     assert_eq!(store.hashes().len(), 7);
     assert_eq!(store.tick(), 7);
@@ -241,6 +262,7 @@ fn nonfinite_ingest_stops_with_the_series_named() {
     for k in store.catalogue() {
         let s = store.series(k).expect("a catalogued series");
         assert!(s.last().is_none_or(|(t, _)| t <= 6), "{k} runs past tick 6");
+        assert!(s.values().iter().all(|v| v.is_finite()), "{k}");
     }
     assert_eq!(store.series(&bread).unwrap().len(), 7);
     assert!(store.catalogue().iter().position(|k| *k == bread) > Some(0));
@@ -248,13 +270,6 @@ fn nonfinite_ingest_stops_with_the_series_named() {
     let health = vm::toolbar::build(&store, Origin::Run).health;
     assert_eq!(health.status, vm::toolbar::Status::Stopped);
     assert_eq!(health.stopped.as_deref(), Some(text.as_str()));
-    // A clean run of the same ticks records all twelve.
-    let mut clean = Store::default();
-    for o in gate_obs(12, 5) {
-        clean.ingest(o).expect("finite values ingest");
-    }
-    assert_eq!(clean.hashes().len(), 12);
-    assert_eq!(clean.series(&bread).unwrap().len(), 12);
 }
 
 #[test]

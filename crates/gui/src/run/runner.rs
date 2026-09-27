@@ -322,13 +322,23 @@ impl Live {
     /// A snapshot of tick `t`: now, when the run reaches it, or from a scratch `Sim` resumed at
     /// the latest ring checkpoint at or before it, else from genesis. The scratch run never
     /// touches this run's `Sim`.
+    ///
+    /// A failed step leaves the `Sim` poisoned at the tick it began, holding what the failure
+    /// left: the deltas of the tick that applied before it failed. No tick of the tape left that
+    /// state, so a poisoned run's own state is never read (U3). Its current tick is rebuilt on a
+    /// scratch `Sim` like any earlier one, and a later tick, which it will never reach, is not
+    /// asked for.
     fn snapshot(&mut self, t: u64, out: &mut Vec<Obs>) {
         let tick = self.sim.tick();
-        if t == tick {
+        let ready = matches!(self.sim.status(), Status::Ready);
+        if t == tick && ready {
             out.push(Obs::Snapshot(Box::new(snapshot_of(&self.sim))));
             return;
         }
         if t > tick {
+            if !ready {
+                return;
+            }
             if let Err(i) = self.snapshots.binary_search(&t) {
                 self.snapshots.insert(i, t);
             }
