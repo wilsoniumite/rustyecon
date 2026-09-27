@@ -862,7 +862,7 @@ fn lens_values_equal_the_engine() {
         260,
         "the record runs past every cursor but the last"
     );
-    let ln = rustyecon_core::num::ln;
+    let ln = rustyecon_engine::num::ln;
     let wb = |x: &Truth| x.prices[0] / (x.prices[3] + x.space * x.prices[1]);
     let oph = |x: &Truth| x.cleared[3] / x.n_tick;
     let window = |x: &Truth, t: u64| {

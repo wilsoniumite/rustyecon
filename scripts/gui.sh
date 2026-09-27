@@ -72,7 +72,7 @@ named=(
     one_key_press_gives_a_live_price_plot
     the_gate_script_runs_pauses_steps_and_inspects
     the_appb_script_runs_pauses_steps_and_inspects
-    the_gui_names_core_for_num_alone
+    the_gui_reaches_core_through_the_engine_alone
     the_theft_script_shows_a_failed_run
     a_second_tapes_session_still_plots_every_price
     branch_resume_equals_rerun

@@ -20,7 +20,7 @@ use super::{
     unit_of,
 };
 use crate::run::{At, Entity, HolderKey, Measure, SeriesKey, Store};
-use rustyecon_core::num;
+use rustyecon_engine::num;
 use rustyecon_engine::prelude::*;
 use rustyecon_engine::rustyecon_agents::Spec;
 use rustyecon_engine::Entry;

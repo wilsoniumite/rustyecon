@@ -3114,7 +3114,6 @@ dependencies = [
  "rfd",
  "ron",
  "rustyecon-certify",
- "rustyecon-core",
  "rustyecon-engine",
  "rustyecon-worldgen",
  "serde",

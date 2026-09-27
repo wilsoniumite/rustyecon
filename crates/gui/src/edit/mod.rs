@@ -16,11 +16,11 @@
 //! - [`export`] makes the CSV, the manifest envelope, the tapes and the lineage as text.
 //! - [`form`] reads the editor's text fields into a `TapeEdit`; [`keys`] checks and mints keys.
 //!
-//! This module names three things of core besides `num`: the tape's raw schema
-//! (`tape::raw`), `Basis` and `Unit`, the plain data an entry is written in. The engine
-//! re-exports none of them, and none writes a state. A scan holds core's other paths out of
-//! the crate, and these three out of every module but this one
-//! (`the_gui_names_core_for_num_alone`).
+//! An entry is written in the tape's raw schema, with its `Basis` and `Unit`: plain data, none
+//! of which writes a state. The engine re-exports them (`rustyecon_engine::raw`, and `Basis`
+//! and `Unit` in its prelude; amended at G1.1), so the GUI has no edge to core. A scan holds
+//! the raw schema out of every module but this one, and core out of the crate
+//! (`the_gui_reaches_core_through_the_engine_alone`).
 
 pub mod export;
 pub mod form;
@@ -31,9 +31,8 @@ pub mod plan;
 pub use form::{Form, FormError, OpKind};
 pub use lineage::{lineage_path, Ancestor, Lineage, LINEAGE_FORMAT};
 pub use plan::{plan, Plan};
-pub use rustyecon_core::tape::raw::{RawAct, RawEvent, RawParam, RawRecurring};
-pub use rustyecon_core::Basis;
-pub use rustyecon_core::Unit;
+pub use rustyecon_engine::prelude::{Basis, Unit};
+pub use rustyecon_engine::raw::{RawAct, RawEvent, RawParam, RawRecurring};
 
 use crate::run::EXPERIMENT_MARKER;
 use rustyecon_engine::prelude::*;

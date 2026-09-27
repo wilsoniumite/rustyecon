@@ -321,11 +321,13 @@ pub fn int_float_violations(toks: &[Tok], allowed: &[&str]) -> Vec<String> {
 
 /// Core's read-only items, the ones the engine's prelude re-exports. A `pub use` of anything
 /// else from core is flagged, so the list is an allow-list: a new type joins the prelude only
-/// by joining it too (E1; amended at P0.9, O11). `ClockMethod` and `Site` joined at S2.2.
-pub const CORE_READ_ONLY: [&str; 31] = [
+/// by joining it too (E1; amended at P0.9, O11). `ClockMethod` and `Site` joined at S2.2;
+/// `Basis` and `Unit`, plain data a tape entry is written in, at G1.1.
+pub const CORE_READ_ONLY: [&str; 33] = [
     "ActorId",
     "ActorKind",
     "Amount",
+    "Basis",
     "Breach",
     "CheckpointError",
     "ClassId",
@@ -354,7 +356,14 @@ pub const CORE_READ_ONLY: [&str; 31] = [
     "Site",
     "StateDelta",
     "TickAudit",
+    "Unit",
 ];
+
+/// Core's modules the engine re-exports whole (amended at G1.1): `num`, pure libm-backed
+/// functions, and the tape's raw schema, plain data. Each is allowed only as itself, by its own
+/// name: `pub use rustyecon_core::num;` and `pub use rustyecon_core::tape::raw;`. A rename, a
+/// glob, a group, the parent `tape` module or any item inside is still flagged.
+pub const CORE_MODULES: [&str; 2] = ["num", "tape::raw"];
 
 /// The public re-exports in `code` (shipped source) that would hand a frontend core's writer
 /// (E1): core itself, whole, by glob, by `self` in a group, or under any name; `pub extern
@@ -416,6 +425,9 @@ pub fn writer_reexports(code: &str, seen: &mut usize) -> Vec<String> {
         }
         let at = body.find(first.as_str()).unwrap_or(0);
         let tail = &body[at + first.len()..];
+        if CORE_MODULES.iter().any(|m| tail.trim() == format!("::{m}")) {
+            continue;
+        }
         let tail_words = words(tail);
         // Words right after `as` name the re-export; they are not items of core.
         let named: Vec<&String> = tail_words

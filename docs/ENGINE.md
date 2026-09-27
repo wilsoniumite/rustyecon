@@ -708,6 +708,27 @@ appb's `0xe1fa082b26995867`.
    trading at their home node, 30,078 dated `SetParam` events and 31,116 params, loads, resolves
    and runs as the engine is (docs/demo/WORLD.md §8), and every lens reads accessors that exist.
 
+**Amended at G1.1** (2026-09-27, branch `g1`: the engine step G0's close asked for; docs/GUI.md,
+amended at G1), the same way. No state, delta, rule or hash changed: the gate world ends at
+`0x61f9c8529131ff17`, appb at `0xe1fa082b26995867` and the demo tape at `0xfad880fe08d06645`
+as before, and no `world_id` or `prefix_id` moved.
+
+1. §7 and E1: the engine re-exports two of core's modules, each whole and by its own name:
+   `rustyecon_engine::num`, the libm-backed maths (pure functions, the same on every platform),
+   and `rustyecon_engine::raw`, the tape's raw schema (`RawAct`, `RawParam`, `RawEvent`, …:
+   plain data a tape edit is written in). The prelude gains `Basis` and `Unit`. None of these
+   writes a state, so a frontend needs no edge to core and core's writer stays out of its
+   reach by type.
+2. §11: the frontend guard's allow-list (`no_reexport_hands_out_core_writer`) gains `Basis`
+   and `Unit`, which the prelude's list must still equal, and `CORE_MODULES`: `num` and
+   `tape::raw`, each allowed only as itself. The parent `tape` module, an item of it, a glob,
+   a rename and a group are still flagged, and five new fixtures say so. A doc test of lib.rs
+   writes a `RawParam` and takes a log through the engine alone.
+3. §1: the GUI's edge to core is gone. It depends on the engine, certify and worldgen, and a
+   scan of the GUI
+   (`the_gui_reaches_core_through_the_engine_alone`) holds that no source names core and that
+   the raw schema is named in `edit/` alone. The lockfile's only change is the GUI's own entry.
+
 ## 0. Engine invariants
 
 Numbered so tests and reviews can cite them. Each has at least one test in §11.
@@ -776,9 +797,9 @@ crates/probe    rustyecon-probe    the Phase 2 probe's harness (P2.0.1); lib `pr
                                    oracle-free measures, Parquet-free (S2.5); the markets probe's
                                    harness (P2.1.1); nothing depends on it
 crates/gui      rustyecon-gui      the interactive frontend, egui (docs/GUI.md; G0.1); depends on the
-                                   engine, on certify without `parquet`, and on core for `num`
-                                   alone; nothing depends on it, and the workspace's
-                                   `default-members` leave it out (D1)
+                                   engine, on certify without `parquet` and on worldgen, with no
+                                   edge to core since G1.1; nothing depends on it, and the
+                                   workspace's `default-members` leave it out (D1)
 tapes/appb.ron                     the probe's Appendix B world, generated (docs/probe/RULES.md §4)
 tapes/demo-gb.ron                  the illustrative demo world, compiled from worlds/demo-gb
                                    (docs/demo/WORLD.md; D.2)
@@ -792,7 +813,9 @@ nothing on the engine path depends on it (R13). The engine re-exports markets an
 `prelude` of the types a frontend names (ids, keys, `Holder`, `Date`, `Tape`, `World`,
 `Checkpoint`, the `SimState` a checkpoint holds, `TickReport` and its lines, the errors), so a
 frontend depends on the engine alone. It does not re-export core: core's writer (`apply`,
-`resolve`, the ledgers) stays out of a frontend's reach (E1; amended at P0.7). P0.2 points the
+`resolve`, the ledgers) stays out of a frontend's reach (E1; amended at P0.7). Of core's modules
+it re-exports `num` and the tape's raw schema as `raw`, with `Basis` and `Unit` in the prelude:
+pure functions and plain data (amended at G1.1). P0.2 points the
 cli's `Cargo.toml` at the engine only.
 
 External crates, all cached on both machines: `serde 1.0.228` (derive), `ron 0.8.1`, `bincode

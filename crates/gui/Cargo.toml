@@ -20,18 +20,17 @@ path = "src/main.rs"
 # leave it out, so the GUI never gates engine work. It depends on the engine alone for the run
 # and on certify, without its `parquet` feature, for the run key and the manifest (§3.2).
 # model/, run/, vm/ and edit/ use no egui (tests/scans.rs); only ui/ and app.rs draw.
-# Core is named for `core::num` alone, the libm-backed logs the display takes (U6, U9); the
-# engine re-exports no `num`, and a scan holds every other path into core out (tests/scans.rs,
-# the_gui_names_core_for_num_alone). With this edge core's writer compiles here, so U1's guard
-# (E1) for the GUI is that scan, not the type system, until the engine re-exports `num` and the
-# edge goes (docs/GUI.md §3.2).
+# There is no edge to core (G1.1): the engine re-exports `num`, the libm-backed maths the
+# display takes (U6, U9), and the tape's raw schema with `Basis` and `Unit`, which edit/ writes
+# entries in, so core's writer is out of the GUI's reach by type again (E1, U1), and a scan
+# holds that no source names core (tests/scans.rs,
+# the_gui_reaches_core_through_the_engine_alone).
 # The map (D.3) reads the county atlas and the demo world's lenses from rustyecon-worldgen,
 # which has no egui, file, thread or clock, triangulates with earcut and colours with colorous
 # (docs/GUI.md §3.1, §6).
 [dependencies]
 rustyecon-engine.workspace = true
 rustyecon-certify.workspace = true
-rustyecon-core.workspace = true
 rustyecon-worldgen.workspace = true
 serde.workspace = true
 ron.workspace = true

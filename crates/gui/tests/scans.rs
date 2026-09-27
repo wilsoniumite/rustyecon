@@ -505,92 +505,106 @@ fn no_hashed_collections() {
     assert!(found.is_empty(), "hashed collections: {found:#?}");
 }
 
-/// What every module may name of core: `num`, the libm-backed logs a display takes.
-const CORE_EVERYWHERE: [&[&str]; 1] = [&["num"]];
-/// What edit/ may name besides: the tape's raw schema, `Basis` and `Unit`, the plain data a
-/// tape entry is written in. None of it writes a state, and the engine re-exports none of it.
-const CORE_IN_EDIT: [&[&str]; 4] = [&["num"], &["tape", "raw"], &["Basis"], &["Unit"]];
-
-/// Whether `rustyecon_core` at `toks[i]` goes on as `::a::b…` for the segments of `path`.
-fn core_path_is(toks: &[Tok], i: usize, path: &[&str]) -> bool {
-    path.iter().enumerate().all(|(k, seg)| {
-        let j = i + 1 + 3 * k;
-        toks.get(j).is_some_and(|n| punct(n, ':'))
-            && toks.get(j + 1).is_some_and(|n| punct(n, ':'))
-            && toks.get(j + 2).is_some_and(|n| ident(n, seg))
-    })
+/// Every reach into the engine's `raw`, the tape's raw schema (G1.1): a path
+/// `rustyecon_engine::raw…`, or `raw` in a `use` tree rooted at the engine, groups included.
+fn raw_reaches(toks: &[Tok]) -> Vec<usize> {
+    let roots = use_roots(toks);
+    (0..toks.len())
+        .filter(|&i| {
+            ident(&toks[i], "raw")
+                && (roots[i].as_deref() == Some("rustyecon_engine")
+                    || path_from(toks, i, &["rustyecon_engine"]))
+        })
+        .collect()
 }
 
-/// Every path into core that is not one of `allowed`: core's writer (`apply`, `resolve`, the
-/// ledgers), a group or a rename at core's root, and everything else a frontend reaches
-/// through the engine.
-fn core_paths(toks: &[Tok], allowed: &[&[&str]]) -> Vec<String> {
-    let mut found = Vec::new();
-    for (i, t) in toks.iter().enumerate() {
-        if !ident(t, "rustyecon_core") {
-            continue;
-        }
-        if !allowed.iter().any(|p| core_path_is(toks, i, p)) {
-            let next: Vec<String> = toks[i + 1..(i + 4).min(toks.len())]
-                .iter()
-                .map(|t| format!("{t:?}"))
-                .collect();
-            found.push(format!("rustyecon_core {}", next.join(" ")));
-        }
+/// Every path into core, and every reach into the engine's `raw` when `raw_allowed` is false:
+/// core's writer (`apply`, `resolve`, the ledgers) and everything else of core is reached
+/// through the engine, whose API holds no writer, and the raw schema is edit/'s alone.
+fn core_paths(toks: &[Tok], raw_allowed: bool) -> Vec<String> {
+    let show = |i: usize| {
+        let next: Vec<String> = toks[i + 1..(i + 4).min(toks.len())]
+            .iter()
+            .map(|t| format!("{t:?}"))
+            .collect();
+        format!("{:?} {}", toks[i], next.join(" "))
+    };
+    let mut found: Vec<String> = (0..toks.len())
+        .filter(|&i| ident(&toks[i], "rustyecon_core"))
+        .map(show)
+        .collect();
+    if !raw_allowed {
+        found.extend(raw_reaches(toks).into_iter().map(show));
     }
     found
 }
 
 #[test]
-fn the_gui_names_core_for_num_alone() {
+fn the_gui_reaches_core_through_the_engine_alone() {
     // U1, U9, E1: the GUI reaches the run through the engine, whose API holds no writer of the
-    // state. It names core for `core::num`, the libm-backed logs a display takes (U6), since
-    // the engine re-exports no `num`; and in edit/ alone, for the tape's raw schema, `Basis`
-    // and `Unit`, the data a new entry is written in (G0.2). Any other path into core, a group
-    // or a rename at its root included, would put core's writer in its reach. Every source
-    // file of the crate is read.
+    // state. Since G1.1 the engine re-exports `num`, the libm-backed maths a display takes
+    // (U6), and the tape's raw schema with `Basis` and `Unit` in its prelude, so the GUI has no
+    // edge to core: core's writer is out of its reach by type (the manifest names no core, and
+    // cargo refuses a path into a crate that is not a dependency), and this scan says so of
+    // every source file, a group or a rename at core's root included. The raw schema, the
+    // plain data a new entry is written in, is named in edit/ alone (G0.2). Every source file
+    // of the crate is read.
     let fx = fixture(
         "use rustyecon_core::num; let v = rustyecon_core::num::ln(x); use rustyecon_core::apply; \
          use rustyecon_core::{num, Ledger}; use rustyecon_core as core; \
-         use rustyecon_core::tape::raw::RawEvent; use rustyecon_core::Basis; \
-         use rustyecon_core::Unit; use rustyecon_core::tape::resolve; \
-         use rustyecon_core::UnitKind; use rustyecon_core::{Basis, Unit};",
+         use rustyecon_engine::raw::RawEvent; use rustyecon_engine::num; \
+         use rustyecon_engine::prelude::{Basis, Unit}; let r = rustyecon_engine::raw::RawAct; \
+         use rustyecon_engine::rawness; use rustyecon_engine::{num, raw::RawParam}; \
+         let raw = 1; use crate::run::raw;",
     );
-    assert_eq!(
-        core_paths(&fx, &CORE_EVERYWHERE).len(),
-        9,
-        "{:?}",
-        core_paths(&fx, &CORE_EVERYWHERE)
-    );
-    assert_eq!(
-        core_paths(&fx, &CORE_IN_EDIT).len(),
-        6,
-        "{:?}",
-        core_paths(&fx, &CORE_IN_EDIT)
-    );
+    let anywhere = core_paths(&fx, true);
+    assert_eq!(anywhere.len(), 5, "{anywhere:?}");
+    let outside_edit = core_paths(&fx, false);
+    assert_eq!(outside_edit.len(), 8, "{outside_edit:?}");
     let mut found = Vec::new();
-    let mut named = 0;
-    let mut in_edit = 0;
+    let mut raw_in_edit = 0;
+    let mut num_named = 0;
     for (path, toks) in shipped_tokens(&all_sources()) {
-        let n = toks.iter().filter(|t| ident(t, "rustyecon_core")).count();
-        named += n;
-        let allowed: &[&[&str]] = if path.starts_with("edit/") {
-            in_edit += n;
-            &CORE_IN_EDIT
-        } else {
-            &CORE_EVERYWHERE
-        };
-        for p in core_paths(&toks, allowed) {
+        let in_edit = path.starts_with("edit/");
+        if in_edit {
+            raw_in_edit += raw_reaches(&toks).len();
+        }
+        num_named += toks
+            .windows(4)
+            .filter(|w| {
+                ident(&w[0], "rustyecon_engine")
+                    && punct(&w[1], ':')
+                    && punct(&w[2], ':')
+                    && ident(&w[3], "num")
+            })
+            .count();
+        for p in core_paths(&toks, in_edit) {
             found.push(format!("{path}: {p}"));
         }
     }
-    assert!(found.is_empty(), "paths into core beyond num: {found:#?}");
-    assert!(named > in_edit, "the inspector's ln(p′/p) names core::num");
-    assert!(in_edit >= 3, "edit/ names the raw schema, Basis and Unit");
+    assert!(
+        found.is_empty(),
+        "paths into core, or raw outside edit/: {found:#?}"
+    );
+    assert!(
+        num_named >= 2,
+        "the inspector's ln(p′/p) names the engine's num"
+    );
+    assert!(raw_in_edit >= 1, "edit/ names the engine's raw schema");
     let manifest = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml"))
         .expect("the manifest");
+    let deps: Vec<&str> = manifest
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.starts_with('#'))
+        .collect();
     assert!(
-        manifest.contains("rustyecon-core.workspace = true"),
-        "the manifest names core as the scan assumes"
+        !deps.iter().any(|l| l.starts_with("rustyecon-core")),
+        "the manifest names core"
+    );
+    assert!(
+        deps.iter()
+            .any(|l| l.starts_with("rustyecon-engine.workspace = true")),
+        "the manifest is read"
     );
 }
