@@ -33,9 +33,10 @@ at the paper's margins reach the oracle's equilibrium of the SSRN Appendix B eco
 1a to 1f have landed, among them 1d (worker types and the wall), 1e (parcels, the idle margin
 and the priced exit s(q)) and 1f (households and government), and PLAN Phase 1's gate is met
 item by item ([crates/oracle/README.md](crates/oracle/README.md)). On branch `oracle-goods`
-(2026-09-27, P1g.1–P1g.5) the oracle gained unit 1g, machines as goods: durable goods built from
+(2026-09-27, P1g.1–P1g.7) the oracle gained unit 1g, machines as goods: durable goods built from
 and run on goods, productivity checked per period (D-G10), a chain of goods mapped to unit 1c,
-and plants as machine types ([crates/oracle/docs/unit-1g.md](crates/oracle/docs/unit-1g.md)).
+and plants as machine types ([crates/oracle/docs/unit-1g.md](crates/oracle/docs/unit-1g.md)),
+verified with one fix round (P1g.6).
 The GUI is designed ([docs/GUI.md](docs/GUI.md)), and its shell, G0, is closed: G0.1, the viewer, and G0.2, the
 editor (see "Running the GUI" below); G1, the oracle lab, may follow, since G0 and Phase 1's
 gate are both met. On branch `demo-world` (2026-09-27, D.1–D.5), the GUI's county map and its

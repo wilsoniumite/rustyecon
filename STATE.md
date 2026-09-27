@@ -12,12 +12,14 @@ Claude; checks gate absolutely; direct critique over validation. The numbered de
 are a veto window for your one-word calls.
 **Branch `oracle-goods`, track 1g** (2026-09-27): unit 1g, the oracle's addendum for machines
 built from goods (next step 5), is built on branch `oracle-goods` from `reboot` at `16eb728`,
-P1g.1-P1g.5, not merged and not pushed. It is D-G10 (productivity and the chain to land checked on
+P1g.1-P1g.7, not merged and not pushed. It is D-G10 (productivity and the chain to land checked on
 the per-period recipes, which accepts every economy 1c accepted with every result bit for bit),
 the mapping of a chain of goods to unit 1c, plants as machine types (the capacity damper's long
-run), 210 goldens at 70 digits, and tests for some of O28's mutants. Its record is the first block
-of "Where things stand"; its proposed decisions are 179-190 and its open items O31-O35 (track G1,
-on its own branch, numbers 200-219 and O36-O40, so the two do not collide).
+run), 210 goldens at 70 digits, and tests for some of O28's mutants. Its bounded verification
+found no wrong result and five surviving mutants, each killed by a test at P1g.6; the re-check of
+the fixed items is still to come (O35). Its record is the first block of "Where things stand"; its
+proposed decisions are 179-190 and its open items O31-O35 (track G1, on its own branch, numbers
+200-219 and O36-O40, so the two do not collide).
 **State as of:** 2026-09-27, on `reboot`'s line. **`phase1` is merged** into it by this
 commit, on branch `merge-p1` from `reboot` at `2398b6a`, not pushed: while `reboot` stays at
 `2398b6a`, taking the merge is a fast-forward, on your word. Two lines of work that both started
@@ -73,9 +75,10 @@ it; the demo's second pass, with goods, machine types and carriers, on the many-
 on 2026-09-27 that goods use other goods rather than abstract machine services; GOODS-CHAIN §2 made
 the oracle's part an addendum to unit 1c, and D-G1 rewords decision 67: machines are durable goods
 built from and run on goods, never from a category (E1). The unit was built as Phase 1's were but
-for the adversarial pass (O35): a spec checked against the generator's draft at 70 digits, then a
-build whose goldens come from the committed generator, with the build's own mutation check. Only
-`crates/oracle` changed, besides this file and the root README.
+for the re-check (O35): a spec checked against the generator's draft at 70 digits, then a build
+whose goldens come from the committed generator, with the build's own mutation check, then the
+bounded verification (1g-r1) and one fix round (P1g.6). Only `crates/oracle` changed, besides this
+file and the root README.
 
 | Commit | What landed |
 |---|---|
@@ -83,7 +86,9 @@ build whose goldens come from the committed generator, with the build's own muta
 | `af68f3c` P1g.2 | D-G10 in `machine_block.rs`; `src/goods.rs`, the mapping; `src/plants.rs`, plants as machine types; `generate_1g.py` and `goldens_1g.txt`; the gate groups h1-h7 and h9; `m7::validation`'s two rows on A^op + A^I amended, and a note in unit-1c.md |
 | `f054556` P1g.3 | O28: eight tests for mutants the re-checks of 1d-1f left (h8) |
 | `8cce6b1` P1g.4 | h8's worker-type test asserts its reason, after the build's mutation check found its mutant alive |
-| P1g.5 | the spec's §12, the oracle's README, this file, the root README's status line |
+| `85453d8` P1g.5 | the spec's §12, the oracle's README, this file, the root README's status line |
+| `623d1a8` P1g.6 | the verification's fixes: a test for each of its five surviving mutants (h1 1, h2 1, h6 2 and P2's steps), the goods made worded as the good's gross output in the spec and the goldens' notes; no source file changed |
+| P1g.7 | this file's record of the round, the root README's status line |
 
 - **D-G10** (decision 180, amending 71). 1c asked that I − (A^op + A^I) be a nonsingular M-matrix:
   a machine buildable from one period of its own chain's services. At weekly ticks that refuses
@@ -119,13 +124,41 @@ build whose goldens come from the committed generator, with the build's own muta
   P1R, P2). Through 1d's, 1e's and 1f's forms every 1g economy is 1c's bit for bit (h7).
 - **Largest errors**: every golden within 4.5e-16 relative, but S1Z's 1 − x* against M3z's golden
   (2.9e-15) and P2, the fixed point, within 9.1e-14 (its ratio).
-- **Tests**: 46 (4 unit, 42 gate in h1-h9, h8's 8 for O28); the oracle has 484 (88 unit, 395
-  gate, 1 doc) and the workspace 841 (3 ignored and run by name).
+- **Tests**: 50 (4 unit, 46 gate in h1-h9, h8's 8 for O28; 46 and 42 before P1g.6); the oracle
+  has 488 (88 unit, 399 gate, 1 doc) and the workspace 845 (3 ignored and run by name).
 - **The mutation check** (the build's own, `D:/rustyecon-og/mut/`): 37 mutants of D-G10 (8), the
   mapping (13) and the plants (16), each applied alone with the package's tests run in release: 36
   killed. The survivor adds an input's coefficient where the mapping sets it, equivalent since an
   input named twice is refused before. The damping of the fixed point is guarded by a test that each
   step halves the move, and its tolerance by P2's goldens (docs/unit-1g.md §12 item 7).
+- **The verification** (1g-r1, `D:/rustyecon-verify/1g-r1-derive/`; P1g.6, docs/unit-1g.md §12
+  item 11). Its derivation, a chain solver of its own that does not read the crate, agreed with
+  the oracle on 444 interior random chains within 1.1e-13 relative (N_a; x* within 3.9e-15, the
+  goods made within 1.5e-14) and on 1,258 boundary regimes, and found no wrong result. Of its 49
+  mutants 44 were killed. The five survivors were four majors, each now killed by a test:
+  - either half of D-G10's productivity check dropped (D1, D10): at the edge of productivity the
+    row-order factorisation of I − A^q and its transpose round differently.
+    `h1::both_factorisations_guard_productivity` takes two blocks from the verification's float
+    search, each passing one factorisation and not the other, and both must be "not productive";
+  - the goods made read as δX/κ (G15), the same unless another recipe uses the good, which no
+    instance did. `h2::a_machine_good_used_by_another_recipe` builds an engine into a mill
+    (ORACLE-GOODS §3.2(c)): the engines made are 1.14641 a period, their own δX/κ 1.04672 and
+    the mills' use 8.7%, the identity within 1.9e-16;
+  - a plant's J dropped in the long run (P21): every plant test had J 1.
+    `h6::a_plant_with_a_build_lag` takes P1R's plants at J 2 and checks the long run's J,
+    u = (ρ + δ)(1 + ρ), ω = (1 + ρ) + δ, O = θp and uV = (1 − θ)p; the mutant's capital share
+    was 0.19985;
+  - the fixed point started from ratios of 1 (P15), which took P2 47 steps, not 42, within the
+    tolerance. `h6::the_fixed_point_starts_at_the_unplanted_prices` replays step 1 from the
+    unplanted equilibrium and matches `solve_within(1)`'s gap bit for bit, and P2's 42 steps are
+    asserted.
+  The two minors: the spec and the goldens' notes said the goods made are δX/κ without the
+  condition; they now say the good's gross output, δX/κ when nothing else uses it (the generator
+  asserts it where it says so, and no value changed); and this file's map listed P1g.1-P1g.3.
+  The five mutants, each run again alone against P1g.6's tests (the package's tests in release),
+  are killed, and so is a sixth, the fixed point started 1% off in ln r
+  (`D:/rustyecon-og/mut/mutate_fix.py`, `mutate_fix.out`). No decision is new; the re-check of
+  these items is O35.
 - **O28** (h8): eight tests: the 1d re-check's four probe tests with the assertions its probes
   printed; 1e's wall's-end frame with space's land at 2 and 0.5; a CES economy with an intermediate
   input and required hours (1f); and two of 1d's first-pass survivors, an economy with no worker
@@ -133,23 +166,26 @@ build whose goldens come from the committed generator, with the build's own muta
   refused, by the next check, with the wrong reason) and the jump schedule refused as
   `LaborNotCleared`. Of the ten O28 mutants run on this tree nine are killed, and Lemma B.1's flag
   without its shortage check survives, equivalent (a short point's P_s is NaN). What is left is O33.
-- **The gates on `8cce6b1`**, with a clean build stamp (logs in `D:/rustyecon-og/gate/final/`):
-  `scripts/gate.sh` is green in WSL (`CARGO_TARGET_DIR=/root/scratch/target-og`, 92 s, warm) and on
-  Windows under Git Bash (`D:/rustyecon-targets/og-gate`, 94 s, warm; 208 s and 223 s on `f054556`
-  before it): 841 tests pass in the workspace on each machine, 3 ignored and run by name, which is
-  the `phase1` merge's 795 and 1g's 46; certify alone, Parquet-free, passes 67 with 1 ignored; zero
-  warnings. The gate hash is `0x61f9c8529131ff17`, the stamp names `8cce6b1`, clean, on both; both
-  certificates PASS and recompute byte-equal, the probe's pins hold, `derive.py --check` passes,
-  `demo_runs_to_1901` passes, and telemetry is identical from two processes. The GUI's non-blocking
-  check and the wasm32 checks of the engine and certify pass in WSL (skipped on Windows).
-  `scripts/gui.sh` is green in WSL (84 s) and on Windows (96 s): 84 tests pass with 2 ignored, and
-  the five hash diffs are equal on both machines: gate (2,080 ticks, `0x61f9c8529131ff17`), appb
-  (20,000, `0xe1fa082b26995867`), demo-gb (7,852, `0xfad880fe08d06645`), `branch`
-  (`0x9fc2f964a8510756`) and `removal` (`0xd057e3ea708da495`). No file outside `crates/oracle`
-  changed but this file and the root README.
+- **The gates on `623d1a8`** (P1g.6), with a clean build stamp (logs in
+  `D:/rustyecon-og/gate/fix/`; `8cce6b1`'s in `gate/final/`): `scripts/gate.sh` is green in WSL
+  (`CARGO_TARGET_DIR=/root/scratch/target-og`, 91 s, warm) and on Windows under Git Bash
+  (`D:/rustyecon-targets/og-gate`, 92 s, warm): 845 tests pass in the workspace on each machine, 3
+  ignored and run by name, which is the `phase1` merge's 795 and 1g's 50; certify alone,
+  Parquet-free, passes 67 with 1 ignored; zero warnings. The gate hash is `0x61f9c8529131ff17`,
+  the stamp names `623d1a8`, clean, on both; both certificates PASS and recompute byte-equal, the
+  probe's pins hold, `derive.py --check` passes, `demo_runs_to_1901` passes, and telemetry is
+  identical from two processes. The GUI's non-blocking check and the wasm32 checks of the engine
+  and certify pass in WSL (skipped on Windows). `scripts/gui.sh` is green in WSL (82 s) and on
+  Windows (87 s): 84 tests pass with 2 ignored, and the five hash diffs are equal on both
+  machines: gate (2,080 ticks, `0x61f9c8529131ff17`), appb (20,000, `0xe1fa082b26995867`),
+  demo-gb (7,852, `0xfad880fe08d06645`), `branch` (`0x9fc2f964a8510756`) and `removal`
+  (`0xd057e3ea708da495`). The same held on `8cce6b1` with 841 tests. No file outside
+  `crates/oracle` changed but this file and the root README.
 - **The generators**: all seven pass `--check` under laborformal's venv on Windows
   (`generate.py` 1 s, `generate_1b.py` 2 s, `generate_1c.py` 12 s, `generate_1d.py` 14 s,
-  `generate_1e.py` 41 s, `generate_1f.py` 23 s, `generate_1g.py` 24 s).
+  `generate_1e.py` 41 s, `generate_1f.py` 23 s, `generate_1g.py` 24 s); after P1g.6, whose
+  change to `generate_1g.py` is its notes on the goods made and an assertion, `generate_1g.py
+  --check` passes again (25 s), and it imports nothing that changed.
 
 **`phase1` is merged** (2026-09-27, this commit). Phase 1's units 1d–1f and its close
 (P1.8–P1.14, `a2a9b93` to `78d6edc`, on `phase1`) and `reboot`'s line since `503897e` (the `g0`
@@ -2447,11 +2483,13 @@ when its fix is reverted, checked by mutation (the review's own mutants among th
   contraction on every instance tried (P2's moves halve each step, as the damping sets them).
   CAPACITY's recommendation, the bundle plant at s1, needs no fixed point. A plant built from the
   chain's own machine goods, CAPACITY's "different 1c economy", is a fixed recipe over machine
-  services and is covered, not tried on a chain.
-- **O35. 1g's verification.** The bounded verification of Phase 1 (an independent derivation that
+  services and is covered, not tried on a chain. Since the start could decide which fixed point is
+  found, it is pinned by test: the unplanted economy's ratios (P1g.6).
+- **O35. 1g's re-check.** Of the bounded verification of Phase 1 (an independent derivation that
   does not read the crate, mutation testing by another hand, one fix round, a re-check of the
-  fixed items) is not done for 1g; the build's own mutation check is recorded above. It should
-  come before Phase 2 compares agents against the goods chain.
+  fixed items), 1g has had the first three (1g-r1 and P1g.6, recorded above). The re-check of
+  exactly the fixed items (the four new tests, P2's steps and the reworded notes) is not done. It
+  should come before Phase 2 compares agents against the goods chain.
 
 ## Corrections logged (A3; ADDENDUM §1.4)
 
@@ -2502,12 +2540,12 @@ needs your rulings first.
    writer is out of its reach by type again. `scripts/gate.sh`'s check of the GUI then says
    whether the GUI still builds; a break is fixed at G1 at the latest (D1).
 5. **The oracle's addendum for machines built from goods** (GOODS-CHAIN §2): **built** as unit
-   1g on branch `oracle-goods` (P1g.1-P1g.4, "Where things stand"), not merged. What is left:
-   your rulings on decisions 179 (67 reworded, D-G1) and 180 (D-G10), and on 181-190; the merge
-   into `reboot`, whose only other change to `crates/oracle` would be track G1's, if any; 1g's
-   bounded verification (O35); the mapping's call where tapes are built (O32); and the rest of
-   the addendum when its instances need it (O31). Machine recipes stay on pool labour (decision
-   140).
+   1g on branch `oracle-goods` (P1g.1-P1g.7, "Where things stand"), verified with one fix round
+   (P1g.6), not merged. What is left: your rulings on decisions 179 (67 reworded, D-G1) and 180
+   (D-G10), and on 181-190; the re-check of the fixed items (O35); the merge into `reboot`, whose
+   only other change to `crates/oracle` would be track G1's, if any; the mapping's call where
+   tapes are built (O32); and the rest of the addendum when its instances need it (O31). Machine
+   recipes stay on pool labour (decision 140).
 6. **The goods chain, with a plant stock as its loop damper** (GOODS-CHAIN §3–§6; CAPACITY.md,
    in place of LOOPS.md's diminishing returns, which stay the registered alternative). First
    the mirror's own next step, in Python: a material market, the fodder–horse-days loop with
@@ -2581,7 +2619,7 @@ crates/engine            Sim, the tick, reports, resume, the replay audit, the r
 crates/cli               the rustyecon binary: run, resume, replay, registry, certify, worldgen,
                          licences
 crates/oracle            the equilibrium solver, units 1a (P1.1) and 1b–1f (P1.2–P1.13),
-                         Phase 1 closed at P1.14; unit 1g, machines as goods (P1g.1–P1g.3,
+                         Phase 1 closed at P1.14; unit 1g, machines as goods (P1g.1–P1g.7,
                          branch oracle-goods); its README, docs/unit-1{a,…,g}.md and
                          goldens/generate{,_1b,…,_1g}.py; tests/gate/p1_gate.rs, the gate
 crates/certify           criteria, batteries, the kick, the sealed certificate, the manifest;
@@ -2672,8 +2710,10 @@ scripts/gui.sh           the GUI's gate, run at each G-stage (G0.1); diffs the e
   `SHA256SUMS` of the unedited files they copied.
 - Unit 1g ran from a worktree, `D:/rustyecon-wt/og` (`/mnt/d/rustyecon-wt/og` in WSL), on
   branch `oracle-goods`, with targets `/root/scratch/target-og` and `D:/rustyecon-targets/og-*`,
-  and scratch in `D:/rustyecon-og/` (the mutation runs in `mut/`, the gates' logs in `gate/`, the
-  error log of the golden comparisons in `errors-h.tsv`). Its design sources are
+  and scratch in `D:/rustyecon-og/` (the mutation runs in `mut/`, the fix round's in
+  `mut/mutate_fix.py` on a copy in `/root/scratch/og-fixmut/`, the gates' logs in `gate/`, P1g.6's
+  in `gate/fix/`, the error log of the golden comparisons in `errors-h.tsv`); the verification's
+  derivation and mutants are in `D:/rustyecon-verify/1g-r1-derive/`. Its design sources are
   `D:/rustyecon-goods/` and `D:/rustyecon-loops/capacity/`, read-only.
 - The markets probe ran from a worktree, `D:/rustyecon-wt/p2m` (`/mnt/d/rustyecon-wt/p2m` in
   WSL), on branch `phase2-markets`, with targets `/root/scratch/target-p2m-<label>` and
