@@ -1,5 +1,5 @@
-//! The oracle's gate: every golden of docs/unit-1a.md §6, docs/unit-1b.md §7 and
-//! docs/unit-1c.md §7, and the dump interface.
+//! The oracle's gate: every golden of docs/unit-1a.md §6, docs/unit-1b.md §7,
+//! docs/unit-1c.md §7 and docs/unit-1d.md §7, and the dump interface.
 //!
 //! One test crate, so the goldens and fixtures compile once and every golden constant
 //! must be used by some test.
@@ -7,9 +7,11 @@
 mod goldens;
 mod goldens_1b;
 mod goldens_1c;
+mod goldens_1d;
 mod support;
 mod support_1b;
 mod support_1c;
+mod support_1d;
 
 mod dump_line;
 mod g1_appendix_b;
@@ -40,3 +42,13 @@ mod m5_interest;
 mod m6_random_leontief;
 mod m7_regimes_and_validation;
 mod m8_goldens_file;
+
+mod d1_nesting;
+mod d2_one_type_corners;
+mod d3_human_required;
+mod d4_worker_types;
+mod d5_full_economy;
+mod d6_wall_switches;
+mod d7_random_workers;
+mod d8_regimes_and_validation;
+mod d9_goldens_file;

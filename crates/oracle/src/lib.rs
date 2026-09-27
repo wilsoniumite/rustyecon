@@ -20,6 +20,17 @@
 //! equilibrium is refused. One type with no operating recipe solves to 1b's equilibrium bit
 //! for bit. The machine block alone, at any margin, is [`MachineBlock`].
 //!
+//! Unit 1d (docs/unit-1d.md) adds worker types and the tasks closed to machines:
+//! [`WorkerEconomy`]. The paper's human-required set H is hours any pooled worker can do, and
+//! reserved tasks are hours only one type can do. Types share the line's shape, each with an
+//! efficiency; those selling on the line form a pool with one wage per efficiency hour, and a
+//! type whose reserved work takes all its hours is paid a scarcity price at its own wall. The
+//! boundary regimes of units 1a-1c are solved: the wall (x* = 1, the wage set by labour
+//! clearing above labour's replacement value at the top task), the all-human corner and roots
+//! below 10^-12; an economy with no wage that clears labour with land fully rented is
+//! [`SolveError::LaborShort`]. One type with no human-required or reserved hours is unit 1c's
+//! equilibrium bit for bit ([`Eq1d`]).
+//!
 //! Every price is in units of the land rent r = 1, so v = w/r.
 //!
 //! The oracle shares types but not logic with the agents. No agent may read it
@@ -55,6 +66,7 @@ mod machines;
 mod params;
 mod schedule;
 mod solve;
+mod workers;
 
 pub use categories::{
     Category, CategoryEconomy, CategoryEq, CategoryParams, CategoryPoint, Eq1b, Output1b,
@@ -76,6 +88,10 @@ pub use schedule::{PowerSchedule, Schedule, CURVATURE_CEIL, VALIDATION_SAMPLES};
 pub use solve::{
     CostSystem, Eq1a, Output, Point, Regime, Residuals, SolveError, BRACKET_HI, BRACKET_LO,
     LABOR_RESIDUAL_NET, MAX_BISECTION_STEPS,
+};
+pub use workers::{
+    CategoryEq1d, Eq1d, Margin, Residuals1d, Shortage, WallEnd, WallSwitch, WorkerEconomy,
+    WorkerEq, WorkerParams, WorkerPoint, WorkerType,
 };
 
 /// 2^n exactly, for the unit tests' dyadic inputs (`powi` is denied: clippy.toml, A5). The

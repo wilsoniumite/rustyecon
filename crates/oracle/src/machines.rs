@@ -115,11 +115,31 @@ pub struct MachineEconomy<S = PowerSchedule> {
 }
 
 /// The error for a parameter of category `index`.
-fn in_category(index: usize) -> impl Fn(ParamError) -> ParamError {
+pub(crate) fn in_category(index: usize) -> impl Fn(ParamError) -> ParamError {
     move |error| ParamError::Item {
         kind: "category",
         index,
         error: Box::new(error),
+    }
+}
+
+/// The error for category `index` when it has neither work nor land, directly or through the
+/// chain, and so no positive price (docs/unit-1c.md §3.2; unit-1d.md §3.2 with its own hours).
+pub(crate) fn unpriced_category(index: usize) -> ParamError {
+    in_category(index)(ParamError::Invalid {
+        name: "category",
+        reason: "a category needs tasks or land, directly or through its \
+                 intermediate inputs, so that its price is positive",
+    })
+}
+
+/// The error when the basket needs no work by hand (docs/unit-1c.md §3.2; unit-1d.md §3.2
+/// counts the common human-required hours too).
+pub(crate) fn no_basket_work() -> ParamError {
+    ParamError::Invalid {
+        name: "basket",
+        reason: "the basket must need work: the sum over categories of gross output per \
+                 basket times all-human hours must be positive",
     }
 }
 
@@ -138,11 +158,36 @@ impl<S: Schedule> MachineEconomy<S> {
     /// Price-side viability is not checked: an economy with no viable technique at x = 1
     /// solves to [`Regime::NotViable`], and so does one with a type whose price recursion
     /// diverges, even a type no technique would use (docs/unit-1c.md §12 item 15).
-    pub fn new(mut params: MachineParams<S>) -> Result<Self, ParamError> {
-        params::scale("workers", params.workers)?;
+    pub fn new(params: MachineParams<S>) -> Result<Self, ParamError> {
+        let economy = Self::assemble(params, true)?;
+        for index in 0..economy.params.categories.len() {
+            if !(economy.all_human[index] > 0.0 || economy.chain_land[index] > 0.0) {
+                return Err(unpriced_category(index));
+            }
+        }
+        economy.check_basket_land()?;
+        if economy.basket_all_human <= 0.0 {
+            return Err(no_basket_work());
+        }
+        Ok(economy)
+    }
+
+    /// [`MachineEconomy::new`]'s checks and x-free quantities without its last three checks
+    /// (each category priced, the basket's land and its work), which unit 1d states with its
+    /// own hours (docs/unit-1d.md §3.2). With `check_workers` false, N and χ_max are not
+    /// checked either: unit 1d's worker types carry them, and the placeholders are unused.
+    pub(crate) fn assemble(
+        mut params: MachineParams<S>,
+        check_workers: bool,
+    ) -> Result<Self, ParamError> {
+        if check_workers {
+            params::scale("workers", params.workers)?;
+        }
         params::scale("land", params.land)?;
         params.schedule.validate()?;
-        params::scale("chi_max", params.work_cost.chi_max)?;
+        if check_workers {
+            params::scale("chi_max", params.work_cost.chi_max)?;
+        }
         params.rho = params::nonnegative("rho", params.rho)?;
         let block = MachineBlock::new(params.machine_types.clone(), params.rho)?;
         params.machine_types = block.types().to_vec();
@@ -193,33 +238,10 @@ impl<S: Schedule> MachineEconomy<S> {
         let direct_land: Vec<f64> = params.categories.iter().map(|c| c.direct_land).collect();
         let all_human = cc.solve(&direct_hours);
         let chain_land = cc.solve(&direct_land);
-        for index in 0..count {
-            if !(all_human[index] > 0.0 || chain_land[index] > 0.0) {
-                return Err(in_category(index)(ParamError::Invalid {
-                    name: "category",
-                    reason: "a category needs tasks or land, directly or through its \
-                             intermediate inputs, so that its price is positive",
-                }));
-            }
-        }
         let (mut basket_land, mut basket_all_human) = (0.0, 0.0);
         for index in 0..count {
             basket_land += basket_outputs[index] * params.categories[index].direct_land;
             basket_all_human += basket_outputs[index] * direct_hours[index];
-        }
-        if basket_land <= 0.0 {
-            return Err(ParamError::Invalid {
-                name: "basket",
-                reason: "the basket must use land directly: the sum over categories of gross \
-                         output per basket times direct_land must be positive",
-            });
-        }
-        if basket_all_human <= 0.0 {
-            return Err(ParamError::Invalid {
-                name: "basket",
-                reason: "the basket must need work: the sum over categories of gross output per \
-                         basket times all-human hours must be positive",
-            });
         }
         let envelope = block.envelope(
             params.schedule.gamma(BRACKET_LO),
@@ -279,6 +301,33 @@ impl<S: Schedule> MachineEconomy<S> {
     /// Σ ŷ_j·L̄^dir_j, the basket's chain hours by hand.
     pub fn basket_all_human_hours(&self) -> f64 {
         self.basket_all_human
+    }
+
+    /// The basket's land check of [`MachineEconomy::new`]: B_ŷ = Σ ŷ_j·b_j > 0.
+    pub(crate) fn check_basket_land(&self) -> Result<(), ParamError> {
+        if self.basket_land <= 0.0 {
+            return Err(ParamError::Invalid {
+                name: "basket",
+                reason: "the basket must use land directly: the sum over categories of gross \
+                         output per basket times direct_land must be positive",
+            });
+        }
+        Ok(())
+    }
+
+    /// The factors of I − A_cc.
+    pub(crate) fn chain(&self) -> &Factors {
+        &self.cc
+    }
+
+    /// J at every edge of the task line.
+    pub(crate) fn integral_at_edges(&self) -> &[f64] {
+        &self.integral_at_edges
+    }
+
+    /// L̄^dir_j, each category's own all-human hours.
+    pub(crate) fn direct_hours(&self) -> &[f64] {
+        &self.direct_hours
     }
 
     /// The technique the envelope gives at x: τ_i for γ_i ≤ γ(x) < γ_{i+1}.
@@ -370,7 +419,7 @@ impl<S: Schedule> MachineEconomy<S> {
 
     /// §5.1 step 4 from the task services per basket t: forward substitution, back
     /// substitution with the division deferred, land clearing, services and machine hours.
-    fn clear(&self, task: &[f64]) -> Cleared {
+    pub(crate) fn clear(&self, task: &[f64]) -> Cleared {
         let (numerators, pivots) = self.block.clearing_numerators(task);
         let land_q = self.block.land_q();
         let lambda_q = self.block.lambda_q();
@@ -1004,15 +1053,15 @@ struct ResidualInputs<'a> {
 }
 
 /// §5.1 step 4's quantities.
-struct Cleared {
-    y: f64,
-    services: Vec<f64>,
-    machine_hours: f64,
+pub(crate) struct Cleared {
+    pub(crate) y: f64,
+    pub(crate) services: Vec<f64>,
+    pub(crate) machine_hours: f64,
 }
 
 /// The larger of two residuals, NaN if either is, so that a NaN residual is not lost in a
 /// maximum.
-fn worse(so_far: f64, next: f64) -> f64 {
+pub(crate) fn worse(so_far: f64, next: f64) -> f64 {
     if next.is_nan() || next > so_far {
         next
     } else {
@@ -1328,10 +1377,14 @@ pub enum Item {
     Type(usize),
     /// A category, by index.
     Category(usize),
+    /// A worker type, by index (unit 1d).
+    Worker(usize),
+    /// A switch of the technique on the wall, by position (unit 1d).
+    WallSwitch(usize),
 }
 
 /// The key of a unit-1c output, printed `name`, `switch<i>.name`, `type<k>.name` or
-/// `cat<j>.name`.
+/// `cat<j>.name`; unit 1d adds `worker<i>.name` and `wall_switch<s>.name`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct OutputKey1c {
     /// What the output belongs to.
@@ -1347,6 +1400,8 @@ impl fmt::Display for OutputKey1c {
             Item::Switch(i) => write!(f, "switch{i}.{}", self.name),
             Item::Type(k) => write!(f, "type{k}.{}", self.name),
             Item::Category(j) => write!(f, "cat{j}.{}", self.name),
+            Item::Worker(i) => write!(f, "worker{i}.{}", self.name),
+            Item::WallSwitch(s) => write!(f, "wall_switch{s}.{}", self.name),
         }
     }
 }
@@ -1496,7 +1551,13 @@ fn first_non_finite(eq: &Eq1c) -> Option<SolveError> {
         .find_map(|(key, output)| match output {
             Output1b::Float(v) | Output1b::Optional(Some(v)) if !v.is_finite() => {
                 Some(match key.item {
-                    Item::Economy | Item::Switch(_) => SolveError::NonFinite { what: key.name },
+                    Item::Economy | Item::Switch(_) | Item::WallSwitch(_) => {
+                        SolveError::NonFinite { what: key.name }
+                    }
+                    Item::Worker(worker) => SolveError::NonFiniteInWorker {
+                        worker,
+                        what: key.name,
+                    },
                     Item::Type(machine_type) => SolveError::NonFiniteInType {
                         machine_type,
                         what: key.name,
@@ -1722,7 +1783,13 @@ mod tests {
         let keys: Vec<OutputKey1c> = numbers(&numbered(0)).iter().map(|(k, _)| *k).collect();
         for (i, key) in keys.iter().enumerate() {
             let want = match key.item {
-                Item::Economy | Item::Switch(_) => SolveError::NonFinite { what: key.name },
+                Item::Economy | Item::Switch(_) | Item::WallSwitch(_) => {
+                    SolveError::NonFinite { what: key.name }
+                }
+                Item::Worker(worker) => SolveError::NonFiniteInWorker {
+                    worker,
+                    what: key.name,
+                },
                 Item::Type(machine_type) => SolveError::NonFiniteInType {
                     machine_type,
                     what: key.name,

@@ -343,7 +343,8 @@ impl Eq1a {
 
 /// The outcome of a solve (spec §5), for unit 1a's [`Eq1a`] by default and for unit 1b's
 /// [`Eq1b`](crate::Eq1b) as `Regime<Eq1b>`. Both units decide it the same way, on the same
-/// bracket.
+/// bracket. Units 1c and 1d use it too; unit 1d returns only `Interior` and `NotViable`
+/// (docs/unit-1d.md §2.5).
 ///
 /// The regime is decided on the f64 evaluation of D(1), f(1) and f([`BRACKET_LO`]), with
 /// the spec's convention at exact equality: D(1) = 0 is `NotViable`, f(1) = 0 is
@@ -355,9 +356,13 @@ impl Eq1a {
 pub enum Regime<E = Eq1a> {
     /// A unique interior threshold with n_D = n_S. In exact arithmetic x* ∈ (0, 1); the
     /// reported double can round to 1.0 (see [`Eq1a::x_star`]).
+    ///
+    /// In unit 1d it holds any equilibrium of the path, on the line, at the wall or at the
+    /// all-human corner, and [`Eq1d::margin`](crate::Eq1d::margin) says which.
     Interior(Box<E>),
     /// f(1) ≥ 0: labour holds no machine-contestable task, x* would be 1 and workers
-    /// would only build machines. SSRN §3.1's boundary case, which unit 1d solves.
+    /// would only build machines. SSRN §3.1's boundary case, which unit 1d solves: at the
+    /// wall, or [`SolveError::LaborShort`] (docs/unit-1d.md §4.5).
     ///
     /// In unit 1c with a switch of technique, also no change of side of the excess demand
     /// inside the bracket; with one, the boundary is one of several equilibria and the solve
@@ -376,7 +381,8 @@ pub enum Regime<E = Eq1a> {
         d_at_1: f64,
     },
     /// f(lo) ≤ 0 at lo = [`BRACKET_LO`]: labour supply already meets demand at the
-    /// bracket's left end.
+    /// bracket's left end. Unit 1d solves it: a root in [0, lo], or the all-human corner
+    /// (docs/unit-1d.md §4.5 and §5.3).
     ///
     /// This does not say that no root exists. One can lie in (0, lo), where the solve does
     /// not look, as in the reference implementation (macro.py:102). At x = 0 the case
@@ -454,6 +460,32 @@ pub enum SolveError {
         /// The switch points x_i, the largest double below each switch.
         switches: Vec<f64>,
     },
+    /// Unit 1d: no wage clears labour with land fully rented (docs/unit-1d.md §2.4 and §5.3).
+    /// Either the excess demand is positive along the whole path from the all-human corner to
+    /// the end of the wall: demand at the wall exceeds what the pool's supply can reach (its
+    /// workers, or the real-wage ceiling that the basket's embodied labour sets), or a worker
+    /// type's reserved demand exceeds its workers. Or the path's one change of side is a jump
+    /// from a short point (+∞) to excess supply, at the edge of a reserved shortage or of the
+    /// walk's ceiling, so that no point clears the pool and every reserved market at once
+    /// (docs/unit-1d.md §12). Unit 1e's idle land resolves these economies.
+    LaborShort {
+        /// f_∞, the excess demand at the end of the wall (+∞ where a point is short); +∞ at a
+        /// jump.
+        excess: f64,
+        /// The first worker type whose reserved demand exceeds its workers: at the end of the
+        /// path, or on the short side of a jump; `None` when the shortage is the pool's or the
+        /// walk's ceiling.
+        reserved: Option<usize>,
+    },
+    /// A per-worker-type output of a unit-1d solve overflowed or became NaN.
+    NonFiniteInWorker {
+        /// The type's position in
+        /// [`WorkerParams::worker_types`](crate::WorkerParams::worker_types).
+        worker: usize,
+        /// The output's key within the type, as [`Eq1d::outputs`](crate::Eq1d::outputs)
+        /// names it.
+        what: &'static str,
+    },
     /// Bisection hit [`MAX_BISECTION_STEPS`].
     NoConvergence {
         /// The steps taken.
@@ -491,6 +523,23 @@ impl fmt::Display for SolveError {
                  boundary regime's corner counted as one, across the technique switches at \
                  x = {switches:?}: more than one equilibrium"
             ),
+            SolveError::LaborShort { excess, reserved } => {
+                write!(
+                    f,
+                    "no wage clears labour with land fully rented: the excess demand at the end \
+                     of the wall is {excess:?}"
+                )?;
+                match reserved {
+                    Some(i) => write!(
+                        f,
+                        ", and worker type {i}'s reserved demand exceeds its workers"
+                    ),
+                    None => Ok(()),
+                }
+            }
+            SolveError::NonFiniteInWorker { worker, what } => {
+                write!(f, "{what} of worker type {worker} is not finite")
+            }
             SolveError::NoConvergence { steps } => {
                 write!(f, "bisection did not converge in {steps} steps")
             }
@@ -742,13 +791,17 @@ pub(crate) struct Root {
     pub(crate) one_minus_x: f64,
     /// Bisection steps taken.
     pub(crate) steps: u32,
+    /// Whether the bracket closed on a jump to +∞ at its positive end: unit 1d's short points
+    /// (docs/unit-1d.md §5.3), where the sign change is not a root. Always false in units 1a-1c,
+    /// whose excess demand is finite wherever the solve bisects.
+    pub(crate) jump: bool,
 }
 
 impl Root {
     /// The root between adjacent doubles lo < hi with f(lo) > 0 > f(hi): x is the end
     /// with the smaller |f| (lo on a tie), and 1 − x* comes from the straight line
     /// through the two ends.
-    fn between((lo, f_lo): (f64, f64), (hi, f_hi): (f64, f64), steps: u32) -> Root {
+    pub(crate) fn between((lo, f_lo): (f64, f64), (hi, f_hi): (f64, f64), steps: u32) -> Root {
         let x = if f_hi.abs() < f_lo.abs() { hi } else { lo };
         // f_lo > 0 > f_hi, so the denominator has no cancellation and θ ∈ [0, 1]. An
         // overflowing denominator gives θ = 0, that is 1 − hi.
@@ -757,6 +810,7 @@ impl Root {
             x,
             one_minus_x: (1.0 - hi) + theta * (hi - lo),
             steps,
+            jump: f_lo == f64::INFINITY,
         }
     }
 
@@ -766,6 +820,7 @@ impl Root {
             x,
             one_minus_x: 1.0 - x,
             steps,
+            jump: false,
         }
     }
 }
@@ -785,6 +840,46 @@ pub(crate) fn bisect(
         if mid <= lo || mid >= hi {
             return Ok(Root::between((lo, f_lo), (hi, f_hi), step));
         }
+        let f_mid = f(mid);
+        if f_mid > 0.0 {
+            (lo, f_lo) = (mid, f_mid);
+        } else if f_mid < 0.0 {
+            (hi, f_hi) = (mid, f_mid);
+        } else if f_mid == 0.0 {
+            return Ok(Root::exact(mid, step + 1));
+        } else {
+            return Err(SolveError::NonFinite {
+                what: "n_D - n_S inside the bracket",
+            });
+        }
+    }
+    Err(SolveError::NoConvergence {
+        steps: MAX_BISECTION_STEPS,
+    })
+}
+
+/// Bisection on the bit patterns of nonnegative doubles (docs/unit-1d.md §5.3), for a
+/// decreasing f with f(lo) > 0 > f(hi) and 0 ≤ lo < hi ≤ +∞.
+///
+/// The bits of nonnegative doubles, +∞'s included, are ordered as their values, so the
+/// double whose bits are the integer midpoint of lo's and hi's lies strictly between them
+/// while they are not adjacent, and each step halves the count of doubles in the bracket: at
+/// most 64 steps from any bracket in [0, +∞], where 1a's arithmetic midpoint would need about
+/// 1100 to reach the subnormals below [`BRACKET_LO`]. It stops, and chooses its end, as
+/// [`bisect`] does; an exact zero at a midpoint is returned at once.
+pub(crate) fn bisect_bits(
+    f: impl Fn(f64) -> f64,
+    (mut lo, mut f_lo): (f64, f64),
+    (mut hi, mut f_hi): (f64, f64),
+) -> Result<Root, SolveError> {
+    // +0.0 for −0.0, so that the bits of the left end are the least.
+    lo += 0.0;
+    for step in 0..MAX_BISECTION_STEPS {
+        let (a, b) = (lo.to_bits(), hi.to_bits());
+        if b <= a + 1 {
+            return Ok(Root::between((lo, f_lo), (hi, f_hi), step));
+        }
+        let mid = f64::from_bits(a + (b - a) / 2);
         let f_mid = f(mid);
         if f_mid > 0.0 {
             (lo, f_lo) = (mid, f_mid);
@@ -1056,5 +1151,77 @@ mod tests {
         for _ in 0..3 {
             assert_eq!(run(f).unwrap(), first);
         }
+    }
+
+    fn run_bits(f: impl Fn(f64) -> f64, lo: f64, hi: f64) -> Result<Root, SolveError> {
+        bisect_bits(&f, (lo, f(lo)), (hi, f(hi)))
+    }
+
+    #[test]
+    fn bit_bisection_lands_on_adjacent_doubles() {
+        // From [0, lo] down to a root at 3.6e-15, and into the subnormals, where 1a's arithmetic
+        // midpoint would need about 1100 halvings: at most 64 steps, and the root lies between
+        // x and a neighbour.
+        for root in [4.5e-13, 3.6e-15, 1e-300, 5e-320, f64::from_bits(3)] {
+            let r = run_bits(|x| root - x, 0.0, BRACKET_LO).unwrap();
+            assert!(r.steps <= 64, "{root:e}: {} steps", r.steps);
+            let (below, above) = (r.x.next_down(), r.x.next_up());
+            assert!(
+                below <= root && root <= above,
+                "root {root:e}, got {:e}",
+                r.x
+            );
+            assert!(!r.jump);
+        }
+        // From [1, +∞]: a root at 1e300 and one at 2.5.
+        for root in [1e300, 2.5, 1.0000001] {
+            let r = run_bits(|x| root - x, 1.0, f64::INFINITY).unwrap();
+            assert!(r.steps <= 64, "{root:e}: {} steps", r.steps);
+            assert!(r.x.next_down() <= root && root <= r.x.next_up());
+        }
+        // Between two subnormals.
+        let (a, b) = (f64::from_bits(10), f64::from_bits(1000));
+        let root = f64::from_bits(517);
+        let r = run_bits(|x| root - x, a, b).unwrap();
+        assert!(r.x == root || r.x.to_bits().abs_diff(root.to_bits()) <= 1);
+    }
+
+    #[test]
+    fn bit_bisection_returns_an_exact_zero_and_the_better_end() {
+        // The first midpoint of [0, 1] is the double whose bits are half 1.0's.
+        let first = f64::from_bits(1.0f64.to_bits() / 2);
+        let r = run_bits(|x| first - x, 0.0, 1.0).unwrap();
+        assert_eq!(r, Root::exact(first, 1));
+        // A root a third of the way between two doubles: the nearer end is chosen.
+        let x0 = 0.3f64;
+        let spacing = x0.next_up() - x0;
+        let r = run_bits(|x| (x0 + spacing / 3.0) - x, 0.0, 1.0).unwrap();
+        assert_eq!(r.x, x0);
+        let r = run_bits(|x| (x0 + 2.0 * spacing / 3.0) - x, 0.0, 1.0).unwrap();
+        assert_eq!(r.x, x0.next_up());
+        // A jump to +∞ at the positive end is recorded, and the finite end chosen.
+        let edge = 0.25f64;
+        let r = run_bits(|x| if x < edge { f64::INFINITY } else { -1.0 }, 0.0, 1.0).unwrap();
+        assert!(r.jump);
+        assert_eq!(r.x, edge);
+        // −0.0 as the left end is +0.0.
+        let r = run_bits(|x| 1e-310 - x, -0.0, 1.0).unwrap();
+        assert!(r.x.next_down() <= 1e-310 && 1e-310 <= r.x.next_up());
+        // NaN inside is an error.
+        let err = run_bits(
+            |x| {
+                if x == 0.0 {
+                    1.0
+                } else if x == 1.0 {
+                    -1.0
+                } else {
+                    f64::NAN
+                }
+            },
+            0.0,
+            1.0,
+        )
+        .unwrap_err();
+        assert!(matches!(err, SolveError::NonFinite { .. }));
     }
 }

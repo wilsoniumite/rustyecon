@@ -236,7 +236,7 @@ fn multiple_equilibria_are_refused() {
 /// (λ 0.3, land 1), δ 1, J 1; and a type run on labour (operating λ 0.25) and built from land
 /// (9), δ 0.01, J 3, whose u is far above its δ. Cheap above the switch on the price side, it
 /// uses little land per period, so labour demand jumps up there.
-fn hidden(chi_max: f64) -> MachineParams {
+pub(crate) fn hidden(chi_max: f64) -> MachineParams {
     let flow = machine_type(1.0, recipe(&[0.0, 0.0], 0.3, 1.0), Recipe::zero(2), 1.0, 1);
     let durable = machine_type(
         1.0,
