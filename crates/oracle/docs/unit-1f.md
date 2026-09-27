@@ -652,9 +652,12 @@ At (x, τ) on the line, a corner's (x, v, τ) or ω, or the idle stretch's (T_m,
 1. **Producer side**: 1e §5.1 step 1 (1d §5.1 steps 1-4) at the point.
 2. **Basket**: fixed, c = z (no new operation); CES, §4.2 in logs, the prices scaled by the
    largest when σ < 1 and by the smallest when σ > 1, so that every exponent
-   (1 − σ)·(ln p_j − ln p_scale) is ≤ 0: ln M = ln p_scale + ln1p(Σ_j s̄_j·expm1((1 − σ)·(ln p_j −
-   ln p_scale)))/(1 − σ) (σ ≠ 1; the ln1p/expm1 form keeps its precision as σ → 1) and
-   Σ_j s̄_j·ln p_j (σ = 1); then c_j, ŷ = chain(c) and the totals, as 1b-1e from z.
+   x_j = (1 − σ)·(ln p_j − ln p_scale) is ≤ 0 and S = Σ_j s̄_j·expm1(x_j) lies in (−1, 0]:
+   ln M = ln p_scale + ln1p(S)/(1 − σ) where S ≥ −1/2 (σ ≠ 1; the ln1p/expm1 form keeps its
+   precision as σ → 1, where S → 0), and ln p_scale + ln(Σ_j s̄_j·exp(x_j))/(1 − σ) below, where
+   1 + S would cancel down to the weights of the categories near p_scale and the sum of positive
+   terms does not (§14 item 18); Σ_j s̄_j·ln p_j (σ = 1); then c_j, ŷ = chain(c) and the totals,
+   as 1b-1e from z.
 3. **Consumer side**: P^c = (1 + t_c)·P; under RentRate d = d̂·P^c; m_w = μ_w·P^c, m_e = μ_e·P^c.
 4. **Dividend closure only**: quantities first (Y = T_m/B_s, n_D; T_m = T at r = 1, since there
    are no plots), then W, R, C and d (§4.3).
@@ -689,9 +692,13 @@ category has labour total 0 under the wall's last technique (§2.12); the scan f
 1. **The start.** f_0 = n_D(x = 0) − S(v = 0) at the all-human corner's start, positive when
    > 0, negative otherwise (§2.9). Without an in-work benefit it is n_D(0) > 0, 1e's assumption.
 2. **The corners.** A fixed-basket economy without exit values bisects on ω with the corner form
-   (1d); any other economy evaluates whole points at each ω, v = ω·Bᶻ_s/(1 − ω·Lᶻ_s) with the
-   reference basket z's price-side totals (1e §12 item 7), so CES corners are bisected in the
-   same parameter.
+   (1d); any other economy evaluates whole points, a fixed-basket one at each ω, v =
+   ω·Bᶻ_s/(1 − ω·Lᶻ_s) with the reference basket z's price-side totals (1e §12 item 7). A CES
+   economy bisects its corners on the bit patterns of v itself: its P is not v·Lᶻ_s + Bᶻ_s, so v
+   is well conditioned there, while ω near 1/Lᶻ_s resolves v only to about 2^-52·v·Lᶻ_s/Bᶻ_s
+   (§14 item 17). A CES point whose Y = T_m/B_s or n_D overflows, at the all-human corner as
+   v → 0 where a weighted category free at v = 0 crowds space out of the composite, has labour
+   demand beyond every double and is read +∞ (§14 item 16).
 3. **The wall's end and the idle stretch.** Under CES with a free weighted category, f_∞ = −S_∞
    (the limit of n_D is 0) and the idle stretch is empty (§2.12); S_∞ is the supply at the limit
    of ω on the last piece, 1/(Z·M(λ̃ᵖ)) for σ < 1 and +∞ (saturated) for σ ≥ 1, M(λ̃ᵖ) the power
@@ -759,9 +766,19 @@ supplementing transfer (equal), and Lemma F1's consequence on C1-C3 and AP.
 - **The levy's rate** τ_R = L_R/R: L_R is a difference of transfers and revenues and cancels when
   they are close; τ_R is reported with the absolute error of its terms, and its residual is
   relative to C, not to L_R.
-- **CES in logs**: each c_j carries about (1 + σ·|ln p_j − ln M|)·2^-53 relative; the ln1p/expm1
-  form of ln M loses nothing as σ → 1, where the power mean's 1/(1 − σ) would amplify the
-  rounding of the sum.
+- **CES in logs**: both forms of ln M (§5.1 step 2) give ln M − ln p_scale to about
+  2(n + 2)·2^-53 relative, n the weighted categories: where S ≥ −1/2, 1 + S ≥ 1/2 carries S's
+  rounding at most doubled and ln1p loses nothing as σ → 1, where the power mean's 1/(1 − σ)
+  would amplify the rounding of the sum; below, the sum of positive terms carries a few ulps and
+  its logarithm is at least ln 2 in size. So each c_j carries about (2 + σ·(|ln p_j| + |ln M| +
+  2(n + 2)·|ln M − ln p_scale|))·2^-53 relative, the logarithms' own rounding included. The draft
+  had ln1p alone, which at σ = 20 with eq 26's weights (space's 0.3^20) cancels 1 + S down to
+  1.5e-7 and lost 2.6e-11 in P and 5.2e-10 in the content (CS; §14 item 18).
+- **The CES corners**: bisected in v (§5.3 step 2), a corner's root is the adjacent pair of doubles
+  of v, so the far wall keeps full precision: with C1's basket on W3 and N 0.001, v 4.3e8, the
+  oracle's v is within 1.6e-15 of the generator's and P, whose logarithm is 18, within 3.7e-15
+  (CF3). In ω it had lost digits in proportion to v·Lᶻ_s/Bᶻ_s, 3.8e-11 at v 4.3e6, and at 4.3e8
+  the pool's residual exceeded the labour net (§14 item 17).
 - **Walled wages** carry 1/(1 − τ_w): at τ_w near 1 they amplify their inputs' rounding.
 - **The equivalence of (f)** is exact in real numbers; in f64, 1 − t/(1 + t) and 1/(1 + t) differ
   by an ulp, so the two allocations agree to the supply's sensitivity (tested at 1e-12).
@@ -824,7 +841,8 @@ digests of `generate_1f.py`, `generate_1e.py`, `generate_1d.py`, `generate_1c.py
 `generate_1b.py`, `generate.py` and its own body; the Rust constants in `tests/gate/goldens_1f.rs`
 carry 20 digits (f11). Key prefixes: `TX_`, `TX1_` to `TX3_`, `TXD_`, `GA_` to `GU_`, `INC_`,
 `W1_`, `WI_`, `AP_`, `KR_`, `KT_`, `ER_`, `C1_` to `C3_`, `CP_`, `CW_`, `CI_`, `AJ1_`, `AJW_`, and
-`X_` for the wrong units of §3.3.
+`X_` for the wrong units of §3.3; the verification added `CA_`, `CF2_`, `CF3_` and `CS_` (§14
+items 16-18).
 
 The generator asserts as it goes:
 - H0 form of every 1e golden instance equals `generate_1e.py`'s solve to 1e-65;
@@ -1034,6 +1052,11 @@ bound, and pins every price, P, P^c, d, each A_i and each supply to `at_with`, `
 - `f8::an_idle_stretch_without_one`: CI on idle land, the basket at the idle prices. [§2.12]
 - `f8::composition_lowers_labour_demand`: Lemma F1 against finite differences at grid points of
   C1-C3 on the line and the wall. [§5.4]
+- From the verification (§14 items 16-19): `f8::the_start_under_ces` (the evaluated start, and
+  `SurplusLabour` under CES), `f8::the_good_free_at_the_all_human_corner` (CA),
+  `f8::the_wall_far_out` (CF2, CF3), `f8::a_steep_basket_with_a_small_weight` (CS),
+  `f8::the_free_end_with_transfers_and_types` (S_∞ under Dividend with a program, and with two
+  efficiencies).
 
 **f9, random economies.** SplitMix64 seeded 951 to 957 (1e's were 941-948), 60 equilibria per set,
 the economies from 1e's e8 and 1d's d7 tables:
@@ -1220,7 +1243,7 @@ PLAN Phase 1's gate, with the tests that cover each (module paths under `tests/g
 | the fork identity and the category bounds on random instances | `c5_random_categories::fork_identity_and_category_bounds`, `c6_price_block::cost_and_accounting`, `c6_price_block::exact_interior_prices` (1b; check_interior's batteries); `m6_random_leontief::fork_and_bounds` (1c); at every equilibrium of 1d-1f through `d7_random_workers::identities`, `e8_random_parcels::identities` and `f9::identities` |
 | the income identity to 1e-12 | `g5_random_economies::flow_benchmark`, `durability_and_interest`, `build_lags` (1a, with interest); `c5_random_categories::identities` (1b); `m6_random_leontief::identities`, `m3_two_recipe::income_with_interest` (1c); `d7_random_workers::identities` (1d); `e8_random_parcels::identities` (1e, the market's land); `f9::identities` and every f-golden through `check_identities_1f` (1f, with government: (I1)-(I4)) |
 | three-taxes' resolution ledger, (φ_w, φ_r) = (0.6, 0.4) on its worked instance | `g7_three_taxes::shares_on_the_worked_instance`, `g7_three_taxes::lambda_zero_corner` (1a, price block); `m2_machine_block::ledger` (1c); `f2::the_worked_instance_inside_the_closure`, `f2::every_tax_leaves_the_worked_instance`, `f2::the_legs_of_a_consumption_tax`, `f2::the_corner`, `f2::the_circular_flow` (1f, inside the full closure, with T6 and T5) |
-| constructed wall and interior cases recognised correctly | `g8_regimes::*` (1a: `base_is_interior`, `few_workers_hold_no_contestable_task`, `labour_heavy_machines_hold_no_contestable_task`, `no_interior_at_zero`, `not_viable`, the exact-zero rows); `c7_gaps_and_regimes::regimes` (1b); `m7_regimes_and_validation::regimes` (1c); `d2_one_type_corners::wall_goldens`, `closed_form_at_the_wall`, `all_human_goldens`, `labor_short`, `roots_below_the_bracket`, `d3_human_required::the_tail_decides_the_regime`, `d4_worker_types::the_wall_with_types`, `trained_at_its_wall`, `d6_wall_switches::tie_at_a_wall_switch`, `d8_regimes_and_validation::exact_zeros_at_the_junctions` (1d, solved); `e5_idle_land::idle_goldens`, `the_wall_at_zero_rent`, `e9_regimes_and_validation::exact_zeros` (1e); `f5::borne_by_employers_at_the_wall`, `f5::onto_idle_land`, `f8::no_idle_stretch_with_a_free_category` (1f) |
+| constructed wall and interior cases recognised correctly | `g8_regimes::*` (1a: `base_is_interior`, `few_workers_hold_no_contestable_task`, `labour_heavy_machines_hold_no_contestable_task`, `no_interior_at_zero`, `not_viable`, the exact-zero rows); `c7_gaps_and_regimes::regimes` (1b); `m7_regimes_and_validation::regimes` (1c); `d2_one_type_corners::wall_goldens`, `closed_form_at_the_wall`, `all_human_goldens`, `labor_short`, `roots_below_the_bracket`, `d3_human_required::the_tail_decides_the_regime`, `d4_worker_types::the_wall_with_types`, `trained_at_its_wall`, `d6_wall_switches::tie_at_a_wall_switch`, `d8_regimes_and_validation::exact_zeros_at_the_junctions` (1d, solved); `e5_idle_land::idle_goldens`, `the_wall_at_zero_rent`, `e9_regimes_and_validation::exact_zeros` (1e); `f5::borne_by_employers_at_the_wall`, `f5::onto_idle_land`, `f8::no_idle_stretch_with_a_free_category`, `f8::the_good_free_at_the_all_human_corner`, `f8::the_wall_far_out` (1f) |
 | each exit form on its own gate: the dependence form in 1a, s(q) in 1e; the 1d and 1e gates constructed (ADDENDUM §5 item 4) | the dependence form: `g1_appendix_b::*`, `g2_figure_3::*`, `g3_automation_path::the_papers_claims_along_the_path` (1a), with 1d's constructed gate `d2`-`d8` and `d9_goldens_file::*`; s(q): `e2_exit_value::p3_floor`, `e2_exit_value::race_closed_forms`, `e3_race::race_goldens`, `e3_race::the_tie_is_enclosure_by_price`, `e4_commons::commons_goldens`, `e5_idle_land::*`, `e10_goldens_file::*` (1e, constructed); both forms nest through `e1_nesting::exit_option_off` and `f1::*`, and keep their gates under a government through `f6::the_wage_leg_is_a_wage_tax` (KT, priced) and `f4`, `f5` (dependence) |
 
 Every test in the table runs in `scripts/gate.sh` on WSL and on Windows. When 1f's build and
@@ -1370,3 +1393,90 @@ its open questions, so they are here, in the §14 the draft reserved.
     household form with γ(1) 10^-29 below A-joint's (A-joint itself is `NotViable` in both, D(1)
     = 0), whose x* and w/p agree with the equations' to 1e-20. No AJ golden is written; AJ1 and
     AJW are.
+
+### Changes from the verification (P1.13), 2026-09-27
+
+The verification's derivation agreed with the oracle on 566 equilibria (67 of this document's
+instances and 499 random draws) within 1.8e-13 relative, and on every golden of goldens_1f.txt
+in Appendix B's family, ER, KT and KR to 1e-25; it found two blockers and one major error, below.
+Its mutation pass left nine of 30 mutants alive, two of them equivalent.
+
+16. **The all-human corner as v → 0 under CES** (blocker). The priced path bisects a corner on bit
+    patterns, whose first midpoint lies near 2^-511 ≈ 1e-154 when the bracket starts at 0. A
+    weighted category made of labour alone at x = 0 (Appendix B's good) is almost free there, and
+    at σ ≥ 2 space's content underflows against it: B_s < 1e-308, Y = T_m/B_s = +∞, and n_D came
+    out NaN through a task service Y·0. The solve returned `NonFinite` for economies with one
+    equilibrium at the all-human corner: CA (N 40, T 3, γ = 1.5 + x, χ_max 0.02, C3's basket;
+    v 0.63900965042269), and the verification's draws R7102_41 (σ 3.0), R7103_54 (σ 2.59) and
+    corner7201_25. A variant of R7102_41 at σ 2 under Dividend showed the same with Y finite:
+    n_D = Y·L_s overflowed, and the transfer read from W = v·n_D with τ_w = 0 was 0·∞, NaN.
+    Where a CES basket's Y or n_D is +∞ the true labour demand is beyond every double (the
+    category that sets the power mean keeps content of the order of its weight, so L_s is not
+    tiny), and `WorkerPoint::excess_demand` now reads the point +∞ (`beyond_every_double`,
+    always false for the fixed basket, whose B_s does not move).
+    `f8::the_good_free_at_the_all_human_corner` has CA's goldens, the point at v = 1e-154, σ
+    from 2 to 8 under four governments, and R7102_41's variant with its point at v = 2^-511.
+17. **The CES corners in v** (blocker). §5.3 step 2 had a CES corner bisected in 1e's ω = v/P_z,
+    v = ω·Bᶻ_s/(1 − ω·Lᶻ_s). Near ω = 1/Lᶻ_s that resolves v only to about 2^-52·v·Lᶻ_s/Bᶻ_s.
+    For the fixed basket this is the wall's own conditioning (its P is v·L_s + B_s); under CES
+    it is a loss, while dv/v per ulp of the data is about 2. C1's basket on W3 lost 1.5e-12 at
+    N 0.1 (v 4.3e4) and 3.8e-11 at N 0.01 (v 4.3e6), and at N 0.001 (v 4.3e8) the pool's
+    residual exceeded the labour net (`LaborNotCleared`); the draws idle7202_18 (v 5.0e7) and
+    idle7203_38 lost 5.6e-10 and 1.2e-10, and idle7202_43 (v 1.2e11) was refused. A CES economy
+    now bisects each corner piece on the bit patterns of v, from its v_lo to its v_hi (+∞ on the
+    wall's last piece), with the piece's technique; f moves with v as with ω, and the scan keeps
+    ω. The fixed basket keeps ω, so 1e's priced path is unchanged bit for bit. The generator
+    bisects a CES corner in v too (400 halvings); in ω its own pool residual reached 1.1e-65 at
+    N 0.01. `f8::the_wall_far_out` has CF2's and CF3's goldens (N 0.01 and 0.001): v within
+    1.6e-15 and P within 3.7e-15 at v 4.3e8. CW's wage, 1.8e-15 from its golden before, is now
+    within 2.5e-16.
+18. **The power mean's direct sum** (major). §5.1 step 2 had ln M = ln p_scale + ln1p(S)/(1 − σ),
+    S = Σ_j s̄_j·expm1(x_j), everywhere. Since 1 + S = Σ_j s̄_j·exp(x_j) ≥ the weight at
+    p_scale, it cancels when that weight is small: W1 under σ 20 with eq 26's weights (space's
+    0.3^20, 4.4e-8 of Z) has 1 + S = 1.5e-7 at its equilibrium, and P was off by 2.6e-11, the
+    content, Y and the shares by 5.2e-10, which §5.5's claim did not allow. ln M now takes the
+    ln1p form where S ≥ −1/2 (`households::LN1P_FLOOR`) and ln of the sum of positive terms
+    below; §5.5 states the bound of both. `f8::a_steep_basket_with_a_small_weight` has CS's
+    goldens (W1 at σ 20); every value is within 1.8e-15 of the generator's. Where S < −1/2
+    without a small weight the two forms differ by a few ulps, and every earlier golden holds as
+    it did.
+19. **Tests for the mutation pass's survivors.** V13 (the all-human bisection's f_lo, which matters
+    only for a root next to ω = 0) and V28 (the exit sub-problem's d, which only plot takers
+    read, and the Dividend closure has none) are equivalent. Each other survivor has a test that
+    fails with it:
+    - V15, the CES required hours with z: `check_identities_1f` recomputes each category's final
+      output Y·c_j and the common human-required hours Y·Σ_j ŷ_j(c)·L^H_j from the gross outputs
+      at every equilibrium (unit 1d's report check, which pins them with z, lapses under a rule;
+      the rest of it is not rerun under the rule, whose supply, walled wages and content it
+      would need).
+    - V23, a CES start through the fixed basket's corner form: `f8::eq_26_at_the_equilibrium`
+      asserts C1-C3's start absent (+∞), and `f8::the_start_under_ces` pins the start of a CES
+      economy whose good has land to the point at v = 0 bit for bit, and returns `SurplusLabour`
+      with that value under an in-work benefit that draws all 100 workers in.
+    - V26, a priced start of exactly 0 read positive: `f10::exact_zeros` adds the priced path's
+      f_0 = 0 (W4's economy with N 10 and a floor without a plot, s̲ 0.5, worth nothing at v = 0
+      where the good is free), `SurplusLabour { f_start: 0 }`, against a benefit of 0.01.
+    - V24 and V29, S_∞ without −μ or without the efficiency:
+      `f8::the_free_end_with_transfers_and_types`, CW's f_∞ under Dividend with and without a
+      uniform program, and f_∞ of two types of efficiency 1 and 2 under RentRate with every
+      instrument against S_∞ written from §5.3 step 3.
+    - V21, V22 and V30, the exit-free scan: `f10::the_scan_where_monotonicity_is_not_proved`
+      asserts `scan_points` = `EXIT_SCAN` × the scanned pieces (the corner, each region of the
+      line, each piece of the wall); the exit-free count is a function (`count_changes`), and a
+      unit test feeds it a gap with an extra pair of changes (three, `MultipleEquilibria`).
+    - V27, `net_factor` inverted: `check_identities_1f` pins κ_w bit for bit, and f5 and f6
+      assert 0.9 at GP and 0.8 at GT.
+    - The minors: `p1_gate::wall_and_interior_cases` names its NoMarket instance I4 with exit
+      (2, 0, 0.5); `f3::eq_17_at_full_automation` computes κ·N·Bᵖ_s/T from AP's equilibria.
+
+    The nine mutants, rerun on the fixed code, are each killed, and so are seven mutants of the
+    fixes (the +∞ reading off, and with Y alone; the corners in ω; the ln1p form everywhere; the
+    direct sum everywhere, which `households::tests::the_ces_basket` kills near σ = 1; the CES
+    all-human corner at x = 1). The derivation's 69 instances and 510 draws, run again through
+    its own harness and solver on the fixed code, all agree, within 1.8e-13 (a levy, a
+    difference), with no refusal left.
+20. **Counts.** `goldens_1f.txt` has 235 goldens (CA, CF2, CF3 and CS added). The package has
+    438 tests: 84 unit, 353 gate, 1 doc; 1f's are 7 unit, 62 gate and `p1_gate`'s 8. Proposed
+    decision 119: a CES basket's evaluation keeps these numerics (the direct sum below
+    S = −1/2, the corners bisected in v, a point beyond every double read +∞); it changes no
+    fixed-basket result.

@@ -328,6 +328,13 @@ pub fn check_identities_1f(economy: &HouseholdEconomy, eq: &Eq1f) {
     } else {
         check_identities_1e_under(economy.parcels(), &eq.base, Some(&rule));
     }
+    // κ_w = (1 − τ_w)/(1 + t_c) (§2.3), the factor of every supply's net wage.
+    assert_eq!(
+        economy.net_factor().to_bits(),
+        ((1.0 - g.payroll) / (1.0 + g.consumption)).to_bits(),
+        "{}",
+        at("kappa_w")
+    );
     // The point, bit for bit.
     let q = point_of_1f(economy, eq);
     let edge_on_scarce_land = eq.base.land_market == LandMarket::Scarce && edge_of(b).is_some();
@@ -608,6 +615,25 @@ pub fn check_identities_1f(economy: &HouseholdEconomy, eq: &Eq1f) {
     for (j, cat) in b.categories.iter().enumerate() {
         assert_eq!(eq.basket.shares[j].to_bits(), cat.share.to_bits());
     }
+    // The basket's quantities with the point's content c (unit 1d's check pins them with z and
+    // lapses under a rule): each category's final output Y·c_j and the common human-required
+    // hours Y·Σ_j ŷ_j(c)·L^H_j, from the gross outputs Y·ŷ_j.
+    let mut required = 0.0;
+    for (j, cat) in b.categories.iter().enumerate() {
+        near(
+            &at("final output Y c_j"),
+            cat.output,
+            b.y * eq.basket.content[j],
+            FULL * cat.output.abs().max(1e-300),
+        );
+        required += cat.gross_output * p.human_required[j];
+    }
+    near(
+        &at("required hours Y sum yhat_j L^H_j"),
+        b.required_hours,
+        required,
+        FULL * required.max(1e-300),
+    );
     if let Basket::Ces { sigma } = params.basket {
         let z: Vec<f64> = p.categories.iter().map(|c| c.weight).collect();
         let mut den = 0.0;

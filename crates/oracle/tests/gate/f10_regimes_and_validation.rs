@@ -2,7 +2,7 @@
 
 use oracle::{
     Basket, Budget, Government, HouseholdEconomy, HouseholdParams, ParamError, ParcelParams,
-    Program, Regime, Requirement, SolveError, TransferMode, SIGMA_CEIL,
+    Program, Regime, Requirement, SolveError, TransferMode, EXIT_SCAN, SIGMA_CEIL,
 };
 
 use crate::support::*;
@@ -190,6 +190,16 @@ fn exact_zeros() {
     let e = economy_1f(household(g1_parcels(10.0, 0.05, 0.05), program(0.01, 0.0)));
     assert!(e.start().unwrap() > 0.0);
     assert!(matches!(e.solve(), Ok(Regime::Interior(_))));
+    // The same on the priced path (§14 item 8), which evaluates its start as a point: a floor
+    // without a plot (s₀ 0, s̲ 0.5, h 0.1) is worth nothing at v = 0, where the good is free.
+    let mut p = g1_parcels(10.0, 0.05, 0.05);
+    p.exits = vec![priced(0.0, 0.5, 0.1)];
+    let e = economy_1f(household(p.clone(), program(0.1, 0.0)));
+    assert_eq!(e.start().unwrap(), 0.0);
+    assert_eq!(e.solve(), Err(SolveError::SurplusLabour { f_start: 0.0 }));
+    let e = economy_1f(household(p, program(0.01, 0.0)));
+    assert!(e.start().unwrap() > 0.0);
+    assert!(matches!(e.solve(), Ok(Regime::Interior(_))));
 }
 
 #[test]
@@ -315,17 +325,32 @@ fn the_scan_where_monotonicity_is_not_proved() {
         assert_eq!(b.base.scan_points, 0);
         a.base.scan_points
     };
-    assert!(scan(ces(rho(0.05), 0.5)) > 0);
-    assert!(scan(household(rho(0.05), dividend(0.5))) > 0);
-    assert!(
-        scan(household(
+    // Every piece is scanned (§14 items 4 and 19): the all-human corner, each region of the line
+    // on [lo, 1] and each piece of the wall to its end, `EXIT_SCAN` points each.
+    let pieces = |p: &HouseholdParams| {
+        let e = economy_1f(p.clone());
+        let w = e.parcels().workers();
+        1 + (w.switch_points().unwrap().len() + 1) + (w.wall_switches().len() + 1)
+    };
+    for p in [
+        ces(rho(0.05), 0.5),
+        household(rho(0.05), dividend(0.5)),
+        household(
             rho(0.05),
             government(|g| {
                 g.budget = Budget::Dividend { rent_tax: 0.0 };
                 g.payroll = 0.1;
-            })
-        )) > 0
-    );
+            }),
+        ),
+    ] {
+        let want = EXIT_SCAN * pieces(&p);
+        assert_eq!(
+            want,
+            3 * EXIT_SCAN,
+            "Appendix B's path has three scanned pieces"
+        );
+        assert_eq!(scan(p) as usize, want);
+    }
     assert_eq!(scan(ces(rho(0.0), 0.5)), 0);
     assert_eq!(scan(household(rho(0.0), dividend(0.5))), 0);
     assert_eq!(scan(household(rho(0.05), dividend(0.0))), 0);

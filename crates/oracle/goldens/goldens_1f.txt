@@ -6,13 +6,13 @@
 # f nonincreasing at 96 grid points; Lemma F1 at 14 points against a derivative.
 # A-joint's root (check_pinning.py:225-267) within 5.12e-16 of its printed values, and the
 # household form's with gamma(1) 1e-29 below A-joint's within 1e-20 of it.
-# fnv1a64 generate_1f.py = 157f825eee24da6d
+# fnv1a64 generate_1f.py = a3cbf2dc18013df8
 # fnv1a64 generate_1e.py = 04760f5301d9cba1
 # fnv1a64 generate_1d.py = d686b5e68d108fe9
 # fnv1a64 generate_1c.py = c40f0a2b406dd67e
 # fnv1a64 generate_1b.py = 909520ffb1f41ee9
 # fnv1a64 generate.py = cf9d71a6ac25699d
-# fnv1a64 body = 29695146a3a9ab0f
+# fnv1a64 body = c537c1345ed01dd8
 
 # H0: unit 1e's instances in household form equal generate_1e.py's solve (docs/unit-1f.md section 9)
 
@@ -236,6 +236,32 @@ CI_N_A = 0.95773784128167540424072593984  # N_a
 CI_P = 0.951519532384452568936397859043  # P in pool wages
 CI_IDLE = 9.20915577512742169542182190416  # T_idle
 CI_SPACE_SHARE = 0.477225575051661134569697828008  # space's share at the idle prices
+
+# CA: C3's basket at the all-human corner, the good free as v -> 0 (docs/unit-1f.md section 5.3 step 2)
+CA_V = 0.639009650422693799033131413268  # v, at the all-human corner
+CA_P = 0.392618409523423060516803740141  # P
+CA_N_A = 40.0  # N_a
+CA_SPACE_SHARE = 0.105040597078204742706635959015  # space's share = eq 26's alpha(q)
+
+# CF: C1's basket on W3 with few workers, the wall far out (docs/unit-1f.md section 5.5)
+CF2_V = 4337700.46541409803260754597818  # v, on the wall with land scarce, N 0.01
+CF2_P = 1128980.98072833476390120611272  # P
+CF2_N_A = 0.00525785436939112221597221212588  # N_a
+CF2_Y = 0.0202102583964413518956199488026  # Y
+CF3_V = 433699594.498736986273982175296  # v, on the wall with land scarce, N 0.001
+CF3_P = 112790744.585956814378746827776  # P
+CF3_N_A = 0.000525994115170036312229471977845  # N_a
+CF3_Y = 0.00202262548487840033732127350907  # Y
+
+# CS: W1 under a steep CES (sigma 20) with eq 26's weights, space's weight 0.3^20 (docs/unit-1f.md section 5.5)
+CS_X_STAR = 0.993491277354042203622486532132  # x*
+CS_V = 3.85862154001450486669185460629  # v, the pool's wage
+CS_P = 0.0018238205950235484235810466363  # P, the composite's producer price
+CS_N_A = 4.0  # N_a, hours worked
+CS_Y = 13945.7171552170238608665888251  # Y
+CS_SPACE_SHARE = 0.289646913340494532183914003081  # space's share
+CS_GOOD_CONTENT = 0.000556695804894933600751733744615  # c_good, units of the good per composite
+CS_SPACE_CONTENT = 0.000528264005835394903486197359512  # c_space, units of space per composite
 
 # AJ: check_pinning's A-joint household, Ces { sigma: 1 } over (good, space) (check_pinning.py:225-267)
 AJ1_X_STAR = 0.896310619661782568855592865241  # AJ1 (gamma = 1 + 3.9x): x*

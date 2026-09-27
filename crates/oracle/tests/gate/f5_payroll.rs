@@ -35,8 +35,9 @@ fn incidence_on_the_line() {
 
 #[test]
 fn payroll_goldens() {
-    // GP: τ_w 0.1 on the line; supply reads the net wage.
-    let (_, eq) = checked_1f(g1_with(payroll(0.1)));
+    // GP: τ_w 0.1 on the line; supply reads the net wage, κ_w·v = 0.9·v.
+    let (e, eq) = checked_1f(g1_with(payroll(0.1)));
+    assert_eq!(e.net_factor(), 0.9);
     let b = &eq.base.base;
     for (name, got, want) in [
         ("x*", b.x_star, GP_X_STAR),

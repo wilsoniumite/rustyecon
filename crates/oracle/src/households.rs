@@ -275,8 +275,10 @@ impl Ces {
 
     /// ln M at the prices p (§5.1 step 2): Σ_j s̄_j·ln p_j at σ = 1; otherwise, with the prices
     /// scaled by the largest weighted one when σ < 1 and by the smallest when σ > 1, so that
-    /// every exponent (1 − σ)·(ln p_j − ln p_scale) is ≤ 0, ln p_scale + ln1p(Σ_j s̄_j·expm1((1 −
-    /// σ)·(ln p_j − ln p_scale)))/(1 − σ). Sums run over the weighted categories in index order.
+    /// every exponent x_j = (1 − σ)·(ln p_j − ln p_scale) is ≤ 0, the sum S = Σ_j s̄_j·expm1(x_j)
+    /// in (−1, 0], and ln M = ln p_scale + ln1p(S)/(1 − σ) where S ≥ [`LN1P_FLOOR`], else
+    /// ln p_scale + ln(Σ_j s̄_j·exp(x_j))/(1 − σ). Sums run over the weighted categories in index
+    /// order.
     pub(crate) fn log_mean(&self, logs: &[f64]) -> f64 {
         let weighted = || {
             logs.iter()
@@ -306,7 +308,15 @@ impl Ces {
         for (l, s) in weighted() {
             sum += s * num::expm1(one_minus * (l - scale));
         }
-        scale + num::ln1p(sum) / one_minus
+        if sum >= LN1P_FLOOR {
+            return scale + num::ln1p(sum) / one_minus;
+        }
+        // 1 + S is small: the sum of positive terms, which does not cancel.
+        let mut total = 0.0;
+        for (l, s) in weighted() {
+            total += s * num::exp(one_minus * (l - scale));
+        }
+        scale + num::ln(total) / one_minus
     }
 
     /// The composite's producer price P = Z·M and its content c_j = z_j·exp(−σ·(ln p_j − ln M))
@@ -342,6 +352,18 @@ impl Ces {
         Some(self.total * num::exp(self.log_mean(&logs)))
     }
 }
+
+/// The least S = Σ_j s̄_j·expm1(x_j) at which [`Ces::log_mean`] takes ln1p(S) (docs/unit-1f.md
+/// §5.1 step 2, §5.5).
+///
+/// Every x_j ≤ 0, so S ∈ (−1, 0] and 1 + S is the sum of the positive terms s̄_j·exp(x_j).
+/// Where S ≥ −1/2, 1 + S ≥ 1/2 carries S's rounding with no more than twice its relative size,
+/// and ln1p keeps ln M's precision as σ → 1, where S → 0. Below, 1 + S cancels down to the
+/// weights of the categories near p_scale (W1 at σ = 20 with eq 26's weights: space's weight
+/// 4.4e-8, 1 + S = 1.5e-7, and ln M would lose about 2^-53/(1.5e-7·19) ≈ 4e-11), while the
+/// direct sum of positive terms carries a few ulps and its logarithm, at least ln 2 in size, a
+/// few ulps of itself.
+const LN1P_FLOOR: f64 = -0.5;
 
 /// The largest elasticity of substitution a CES basket accepts (docs/unit-1f.md §3.2).
 ///

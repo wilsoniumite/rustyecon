@@ -10,7 +10,7 @@
 //! | the fork identity and the category bounds on random instances | `fork_identity_and_category_bounds` | `c5_random_categories::*`, `c6_price_block::*` (1b); `m6_random_leontief::fork_and_bounds` (1c); `d7_random_workers::identities`, `e8_random_parcels::identities`, `f9_random_households::identities` (1d-1f) |
 //! | the income identity to 1e-12 | `income_identity` | `g5_random_economies::*` (1a); `c5_random_categories::identities` (1b); `m6_random_leontief::identities`, `m3_two_recipe::income_with_interest` (1c); `d7_random_workers::identities` (1d); `e8_random_parcels::identities` (1e); `f9_random_households::identities` and every f-golden (1f, with government: (I1)-(I4)) |
 //! | three-taxes' resolution ledger, (φ_w, φ_r) = (0.6, 0.4) on its worked instance | `three_taxes_ledger` | `g7_three_taxes::*` (1a); `m2_machine_block::ledger` (1c); `f2_three_taxes::*` (1f, with T6 and T5) |
-//! | constructed wall and interior cases recognised correctly | `wall_and_interior_cases` | `g8_regimes::*` (1a); `c7_gaps_and_regimes::regimes` (1b); `m7_regimes_and_validation::regimes` (1c); `d2`-`d8` (1d); `e5_idle_land::*`, `e9_regimes_and_validation::exact_zeros` (1e); `f5_payroll::borne_by_employers_at_the_wall`, `f5_payroll::onto_idle_land`, `f8_ces::no_idle_stretch_with_a_free_category`, `f7_conditionality::surplus_labour` (1f) |
+//! | constructed wall and interior cases recognised correctly | `wall_and_interior_cases` | `g8_regimes::*` (1a); `c7_gaps_and_regimes::regimes` (1b); `m7_regimes_and_validation::regimes` (1c); `d2`-`d8` (1d); `e5_idle_land::*`, `e9_regimes_and_validation::exact_zeros` (1e); `f5_payroll::borne_by_employers_at_the_wall`, `f5_payroll::onto_idle_land`, `f8_ces::no_idle_stretch_with_a_free_category`, `f8_ces::the_good_free_at_the_all_human_corner`, `f8_ces::the_wall_far_out`, `f7_conditionality::surplus_labour` (1f) |
 //! | each exit form on its own gate: the dependence form in 1a, s(q) in 1e; the 1d and 1e gates constructed | `each_exit_form_on_its_gate` | the dependence form: `g1_appendix_b::*`, `g2_figure_3::*`, `g3_automation_path::*` (1a) and `d2`-`d9` (1d); s(q): `e2_exit_value::*`, `e3_race::*`, `e4_commons::*`, `e5_idle_land::*`, `e10_goldens_file::*` (1e); both nest through `e1_nesting::exit_option_off` and `f1_nesting::*`, and keep their gates under a government through `f6_consumption_tax::the_wage_leg_is_a_wage_tax` (priced) and `f4_transfers`, `f5_payroll` (dependence) |
 
 use oracle::{
@@ -165,7 +165,8 @@ fn three_taxes_ledger() {
 fn wall_and_interior_cases() {
     // Constructed cases, each recognised: the line (G1), the wall (W1), the all-human corner (W4),
     // idle land (W2 and WI), a wall with land scarce under CES (CW), an enclosure tie (Q2),
-    // NotViable, MultipleEquilibria (M), NoMarket (I5) and SurplusLabour (SL).
+    // NotViable, MultipleEquilibria (M), NoMarket (I4 with exit (2, 0, 0.5)) and SurplusLabour
+    // (SL).
     let margin = |p: HouseholdParams| {
         let eq = solved_1f(p);
         (eq.base.base.margin, eq.base.land_market)

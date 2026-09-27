@@ -538,10 +538,29 @@ class Economy(g1e.Economy):
         if self.name(after) == "End" and f_after == 0 and f_before != 0:
             return self.idle(path, junction=True)
         f = lambda s: self.at_span(span, s)["f"]  # noqa: E731
+        w = None
         if f_before == 0:
             s = lo
         elif f_after == 0:
             s = hi
+        elif self.sigma is not None and span[0] in ("AllHuman", "Wall"):
+            # A CES basket's corner in the pool's wage itself (section 5.3 step 2): near
+            # omega_z = 1/L_z, omega_z resolves v only to v L_z/B_z of the working precision.
+            x = 0 if span[0] == "AllHuman" else 1
+            g = lambda v: self.ev(x, span[1], w=v)["f"]  # noqa: E731
+            a = self.corner_wage(span, lo)
+            b = INF if hi * span[2] >= 1 else self.corner_wage(span, hi)
+            if b == INF:
+                b = max(a, 1) * 2
+                while g(b) > 0:
+                    b *= 2
+            for _ in range(HALVINGS):
+                mid = (a + b) / 2
+                if g(mid) > 0:
+                    a = mid
+                else:
+                    b = mid
+            w = (a + b) / 2
         else:
             n = BISECTIONS if span[0] == "Line" else HALVINGS
             a, b = lo, hi
@@ -558,7 +577,8 @@ class Economy(g1e.Economy):
             s = (a + b) / 2
         if span[0] in ("Line", "Bottom"):
             return "Contestable", self.report_1f(path, s, span[1], margin="Contestable")
-        w = self.corner_wage(span, s)
+        if w is None:
+            w = self.corner_wage(span, s)
         if span[0] == "Wall":
             return "Wall", self.report_1f(path, 1, span[1], w=w, margin="Wall")
         return "AllHuman", self.report_1f(path, 0, self.cheapest(w), w=w, margin="AllHuman")
@@ -1108,6 +1128,27 @@ def build():
     put_all("CI", r, (("T_M", "T_m", "the market's land in use"), ("Y", "Y", "Y"), ("N_A", "n_a", "N_a"),
                       ("P", "Ps", "P in pool wages"), ("IDLE", "idle", "T_idle")))
     put("CI_SPACE_SHARE", r["shares"][1], "space's share at the idle prices")
+    section("CA: C3's basket at the all-human corner, the good free as v -> 0 (docs/unit-1f.md section 5.3 step 2)")
+    # N 40, T 3, gamma = 1.5 + x, chi_max 0.02: space's content vanishes as v -> 0 (sigma 2),
+    # so Y = T/B_s grows without bound there and f_0 = +inf
+    e = econ(N="40", T="3", g0="1.5", g1="1", chi="0.02", z=ces_z("0.3", "2"), basket="2")
+    assert e.start_value() == INF
+    r = solved(e, "AllHuman")
+    put_all("CA", r, (("V", "w", "v, at the all-human corner"), ("P", "Ps", "P"), ("N_A", "n_a", "N_a"),
+                      ("SPACE_SHARE", lambda rr: rr["shares"][1], "space's share = eq 26's alpha(q)")))
+    section("CF: C1's basket on W3 with few workers, the wall far out (docs/unit-1f.md section 5.5)")
+    for tag, n in (("CF2", "0.01"), ("CF3", "0.001")):
+        e = econ(N=n, lam="0.6", chi="3", z=ces_z("0.3", "0.5"), basket="0.5")
+        r = solved(e, "Wall")
+        assert e.path()["free_end"]
+        put_all(tag, r, (("V", "w", f"v, on the wall with land scarce, N {n}"), ("P", "Ps", "P"),
+                         ("N_A", "n_a", "N_a"), ("Y", "Y", "Y")))
+    section("CS: W1 under a steep CES (sigma 20) with eq 26's weights, space's weight 0.3^20 (docs/unit-1f.md section 5.5)")
+    e = econ(lam="0.6", z=ces_z("0.3", "20"), basket="20")
+    r = solved(e, "Contestable")
+    put_all("CS", r, ALLOC + (("Y", "Y", "Y"), ("SPACE_SHARE", lambda rr: rr["shares"][1], "space's share"),
+                              ("GOOD_CONTENT", lambda rr: rr["content"][0], "c_good, units of the good per composite"),
+                              ("SPACE_CONTENT", lambda rr: rr["content"][1], "c_space, units of space per composite")))
 
     # ------------------------------------------------------------------ AJ
     section("AJ: check_pinning's A-joint household, Ces { sigma: 1 } over (good, space) (check_pinning.py:225-267)")

@@ -2565,13 +2565,26 @@ pub struct WorkerPoint {
 }
 
 impl WorkerPoint {
-    /// f = n_D − S, or +∞ where the point is short.
+    /// f = n_D − S, or +∞ where the point is short, or where a CES basket's labour demand is
+    /// beyond every double, Y or n_D overflowing (docs/unit-1f.md §5.3 step 2).
     pub fn excess_demand(&self) -> f64 {
-        if self.short.is_some() {
+        if self.short.is_some() || self.beyond_every_double() {
             f64::INFINITY
         } else {
             self.n_d - self.n_s
         }
+    }
+
+    /// Whether a CES basket's labour demand is beyond every double (docs/unit-1f.md §5.3 step
+    /// 2): Y = T_m/B_s or n_D = Y·L_s is +∞. At the all-human corner as v → 0 a weighted
+    /// category made of labour alone becomes free relative to space, whose content underflows
+    /// against it (at σ = 2 near v = 1e-154), so that B_s is tiny. The category that sets the
+    /// power mean has content at least of the order of its weight, so L_s is not tiny and the
+    /// true n_D exceeds every double, while the evaluation's n_D is +∞ or, through a task
+    /// service Y·0, NaN, and a Dividend transfer read from W = v·n_D can be NaN (0·∞) with the
+    /// supply. Always false for the fixed basket, whose B_s does not move.
+    pub(crate) fn beyond_every_double(&self) -> bool {
+        self.basket.is_some() && (self.y == f64::INFINITY || self.n_d == f64::INFINITY)
     }
 }
 

@@ -1177,42 +1177,34 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
             (vec![Vec::new(); path.sequence.len()], 0)
         };
         let mut sides = Vec::with_capacity(path.sequence.len() + 2);
-        let mut counted = vec![start];
         sides.push(start);
-        for (&(kind, f), gap) in path.sequence.iter().zip(&gaps) {
-            let side = match kind {
+        for &(kind, f) in &path.sequence {
+            sides.push(match kind {
                 Kind::One => f >= 0.0,
                 _ => f > 0.0,
-            };
-            counted.extend(gap);
-            counted.push(side);
-            sides.push(side);
+            });
         }
         sides.push(f_rest >= 0.0);
-        counted.push(f_rest >= 0.0);
-        let changes: Vec<usize> = (0..sides.len() - 1)
-            .filter(|&i| sides[i] != sides[i + 1])
-            .collect();
-        let counted_changes = (0..counted.len() - 1)
-            .filter(|&i| counted[i] != counted[i + 1])
-            .count();
-        if counted_changes == 0 {
-            if !start {
+        let c = match count_changes(&sides, &gaps) {
+            Ok(c) => c,
+            Err(0) if !start => {
                 return Err(SolveError::SurplusLabour {
                     f_start: path.f_start,
-                });
+                })
             }
-            return Err(SolveError::NoMarket {
-                f_end: path.end.excess,
-            });
-        }
-        if counted_changes > 1 {
-            return Err(SolveError::MultipleEquilibria {
-                sign_changes: counted_changes,
-                switches: path.points,
-            });
-        }
-        let (c, n) = (changes[0], path.sequence.len());
+            Err(0) => {
+                return Err(SolveError::NoMarket {
+                    f_end: path.end.excess,
+                })
+            }
+            Err(counted) => {
+                return Err(SolveError::MultipleEquilibria {
+                    sign_changes: counted,
+                    switches: path.points,
+                })
+            }
+        };
+        let n = path.sequence.len();
         let f_end = path.end.excess;
         let junction = c + 1 == n && f_end == 0.0 && path.last_start != 0.0;
         if c < n && !junction {
@@ -1806,6 +1798,18 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
                     return self.idle_equilibrium(technique, start, true);
                 } else if f_after == 0.0 {
                     (piece.v_hi, 0)
+                } else if w.ces().is_some() {
+                    // A CES basket's corners are bisected on the bit patterns of the pool's wage
+                    // itself (docs/unit-1f.md §5.3 step 2): its P is not v·L_z + B_z, so v is
+                    // well conditioned, while ω_z resolves v only to about 2^-52·v·L_z/B_z near
+                    // ω_z = 1/L_z. f moves with v as with ω_z, which rises with v.
+                    let x = if wall { BRACKET_HI } else { 0.0 };
+                    let root = bisect_bits(
+                        |v| self.at_wage(x, v, technique).excess_demand(),
+                        (piece.v_lo, f_lo),
+                        (piece.v_hi, f_after),
+                    )?;
+                    (root.x, root.steps)
                 } else {
                     let root = bisect_bits(
                         |omega| self.at_span(piece.span, omega).excess_demand(),
@@ -2103,6 +2107,32 @@ fn scan_grid(lo: f64, hi: f64, scan: usize) -> Vec<f64> {
             .map(|k| f64::from_bits(a + (span * (k as f64 / cells)) as u64))
             .collect()
     }
+}
+
+/// The count of an exit-free economy's path (docs/unit-1f.md §5.3 steps 3-4): `sides` holds the
+/// side of the start, of each value of 1d's sequence and of the idle stretch's end, and
+/// `gaps[k]` the scanned sides between `sides[k]` and `sides[k + 1]` (none after the last value
+/// of the sequence). `Ok(c)` where the whole counted sequence, the scan's sides among it,
+/// changes side once, between `sides[c]` and `sides[c + 1]`; else `Err` with its number of
+/// changes, 0 or more than one. The scan only adds points inside the gaps, so a single change
+/// of the counted sequence is a single change of `sides`.
+fn count_changes(sides: &[bool], gaps: &[Vec<bool>]) -> Result<usize, usize> {
+    let mut counted = vec![sides[0]];
+    for (k, &side) in sides.iter().enumerate().skip(1) {
+        if let Some(gap) = gaps.get(k - 1) {
+            counted.extend(gap);
+        }
+        counted.push(side);
+    }
+    let changes = (0..counted.len() - 1)
+        .filter(|&i| counted[i] != counted[i + 1])
+        .count();
+    if changes != 1 {
+        return Err(changes);
+    }
+    Ok((0..sides.len() - 1)
+        .find(|&i| sides[i] != sides[i + 1])
+        .expect("the counted sequence's one change is one of the sides'"))
 }
 
 /// The land and exit side of an equilibrium, as [`ParcelEconomy::extend`] reads it.
@@ -2822,6 +2852,30 @@ mod tests {
             .map(|w| w[1].to_bits() - w[0].to_bits())
             .collect();
         assert!(steps.iter().all(|&d| d.abs_diff(steps[0]) <= 1));
+    }
+
+    #[test]
+    fn the_exit_free_count_reads_the_scan() {
+        // docs/unit-1f.md §5.3 step 4, §14 item 19: the sequence alone changes side once, from
+        // the start's value to the next; a scanned pair of changes inside that gap makes three,
+        // which are MultipleEquilibria, not the sequence's one.
+        let sides = [true, true, false];
+        assert_eq!(count_changes(&sides, &[vec![]]), Ok(1));
+        assert_eq!(count_changes(&sides, &[vec![true, true]]), Ok(1));
+        assert_eq!(count_changes(&sides, &[vec![false, true]]), Err(3));
+        // the change between the start and the first value, and a gap before it
+        assert_eq!(count_changes(&[true, false, false], &[vec![true]]), Ok(0));
+        // no change, and a pair where the sequence has none
+        assert_eq!(
+            count_changes(&[false, false, false], &[vec![false]]),
+            Err(0)
+        );
+        assert_eq!(count_changes(&[true, true, true], &[vec![false]]), Err(2));
+        // the change after the last value of the sequence, which has no gap
+        assert_eq!(
+            count_changes(&[true, true, true, false], &[vec![], vec![true]]),
+            Ok(2)
+        );
     }
 
     /// An `Eq1e` whose own numbers are 1, 2, 3, … in output order after unit 1d's, with the

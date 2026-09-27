@@ -444,6 +444,52 @@ goldens! {
     /// goldens/generate_1f.py: space's share at the idle prices.
     CI_SPACE_SHARE: f64 = 0.47722557505166113457;
 
+    // CA: C3's basket at the all-human corner, the good free as v -> 0 (docs/unit-1f.md section 5.3 step 2)
+    /// goldens/generate_1f.py: v, at the all-human corner.
+    CA_V: f64 = 0.63900965042269379903;
+    /// goldens/generate_1f.py: P.
+    CA_P: f64 = 0.39261840952342306052;
+    /// goldens/generate_1f.py: N_a.
+    CA_N_A: f64 = 40.0;
+    /// goldens/generate_1f.py: space's share = eq 26's alpha(q).
+    CA_SPACE_SHARE: f64 = 0.10504059707820474271;
+
+    // CF: C1's basket on W3 with few workers, the wall far out (docs/unit-1f.md section 5.5)
+    /// goldens/generate_1f.py: v, on the wall with land scarce, N 0.01.
+    CF2_V: f64 = 4337700.4654140980326;
+    /// goldens/generate_1f.py: P.
+    CF2_P: f64 = 1128980.9807283347639;
+    /// goldens/generate_1f.py: N_a.
+    CF2_N_A: f64 = 0.005257854369391122216;
+    /// goldens/generate_1f.py: Y.
+    CF2_Y: f64 = 0.020210258396441351896;
+    /// goldens/generate_1f.py: v, on the wall with land scarce, N 0.001.
+    CF3_V: f64 = 433699594.49873698627;
+    /// goldens/generate_1f.py: P.
+    CF3_P: f64 = 112790744.58595681438;
+    /// goldens/generate_1f.py: N_a.
+    CF3_N_A: f64 = 0.00052599411517003631223;
+    /// goldens/generate_1f.py: Y.
+    CF3_Y: f64 = 0.0020226254848784003373;
+
+    // CS: W1 under a steep CES (sigma 20) with eq 26's weights, space's weight 0.3^20 (docs/unit-1f.md section 5.5)
+    /// goldens/generate_1f.py: x*.
+    CS_X_STAR: f64 = 0.99349127735404220362;
+    /// goldens/generate_1f.py: v, the pool's wage.
+    CS_V: f64 = 3.8586215400145048667;
+    /// goldens/generate_1f.py: P, the composite's producer price.
+    CS_P: f64 = 0.0018238205950235484236;
+    /// goldens/generate_1f.py: N_a, hours worked.
+    CS_N_A: f64 = 4.0;
+    /// goldens/generate_1f.py: Y.
+    CS_Y: f64 = 13945.717155217023861;
+    /// goldens/generate_1f.py: space's share.
+    CS_SPACE_SHARE: f64 = 0.28964691334049453218;
+    /// goldens/generate_1f.py: c_good, units of the good per composite.
+    CS_GOOD_CONTENT: f64 = 0.00055669580489493360075;
+    /// goldens/generate_1f.py: c_space, units of space per composite.
+    CS_SPACE_CONTENT: f64 = 0.00052826400583539490349;
+
     // AJ: check_pinning's A-joint household, Ces { sigma: 1 } over (good, space) (check_pinning.py:225-267)
     /// goldens/generate_1f.py: AJ1 (gamma = 1 + 3.9x): x*.
     AJ1_X_STAR: f64 = 0.89631061966178256886;

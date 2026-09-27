@@ -3,8 +3,8 @@
 Dated 2026-09-25; joined the workspace on 2026-09-26 (P1.1). Units 1b and 1c were added on
 2026-09-27, on branch `phase1`: 1b at P1.2, verified at P1.3; 1c at P1.4, verified at P1.5
 and P1.6. Both were closed at P1.7, the same day. Unit 1d was added at P1.8 and verified at
-P1.9, unit 1e at P1.10, verified at P1.11, and unit 1f at P1.12, the same day. Unit 1f completes
-Phase 1's oracle; its verification follows.
+P1.9, unit 1e at P1.10, verified at P1.11, and unit 1f at P1.12, verified at P1.13, the same
+day. Unit 1f completes Phase 1's oracle.
 
 The oracle is a static equilibrium solver for the pinning paper's economy (PLAN §3.4).
 It shares types but not logic with the agents, and no agent may read it (PLAN R13).
@@ -111,7 +111,8 @@ supplement or replace, the Dividend closure only where the budget does not depen
 walled types without in-work benefits, the evaluated start and `SurplusLabour`, the CES basket
 and its limits, the land-share household and decision 75, a basket per worker type deferred,
 the rent base, 1e's accounts kept in `Eq1f::base`, the random draws, no government purchases or
-debt). The
+debt; and from its verification, 119: a CES basket's numerics, the direct sum of the power mean
+where ln1p would cancel, the corners bisected in v, a point beyond every double read +∞). The
 build takes the draft's choice on each, and the repository's STATE.md lists them as decisions
 open to veto.
 Each spec's §12 records where its build and its verification departed from the draft.
@@ -290,13 +291,17 @@ Phase 1's:
 - **f8**, the CES household: eq 26 at C1-C3 and along the path (CP), A-joint's land-share
   household (AJ1, AJW) and A-joint itself `NotViable`, a free category on the wall (CW), the
   idle stretch without one (CI), Lemma F1 against a finite difference, the frozen composite;
+  from the verification, the start at v = 0 and `SurplusLabour` under CES, the all-human corner
+  as v → 0 (CA), the wall far out (CF2, CF3), a steep basket with a small weight (CS), and S_∞
+  with transfers and two efficiencies;
 - **f9**, 341 random draws in five sets (RentRate, Dividend, CES, reserved hours, in-work
   benefits), seeds 951-955: every identity, the residuals, the consumption tax as a wage tax
   on every (a) and (d) equilibrium, a replacing rent tax's neutrality, the count against a scan
   16 times finer, the regimes and their tallies;
-- **f10**, every validation rule, exact zeros (L_R = 0, the Replace kink, f_0 = 0), units,
-  permutation, the certification under a government, and the scan where Proposition F does not
-  reach (ρ > 0 under a CES basket or a moving Dividend transfer);
+- **f10**, every validation rule, exact zeros (L_R = 0, the Replace kink, f_0 = 0 on 1d's path
+  and on the priced one), units, permutation, the certification under a government, and the
+  scan where Proposition F does not reach (ρ > 0 under a CES basket or a moving Dividend
+  transfer), every piece of the path counted;
 - **f11**, `goldens_1f.txt`'s seven digests and the Rust constants;
 - **p1_gate**, Phase 1's gate item by item, and a check that every test its table names exists.
 
@@ -352,6 +357,16 @@ that fails without it. Where the pass found nothing wrong in the code, the fix i
   good's plots are now decided at the wall's end (L1, L2). It also found free plots on idle
   land labelled `Enclosed`; they are `Idle`. Thirteen of the pass's 30 mutants survived; each
   now has a test, and six mutants of the fixes are killed (docs/unit-1e.md §12 items 16-19).
+- **1f** (P1.13): the derivation agreed on 566 equilibria within 1.8e-13 and found two
+  blockers under a CES basket. At the all-human corner a bisection midpoint near v = 1e-154
+  overflowed Y = T/B_s (σ ≥ 2), and the solve refused economies with one equilibrium; such a
+  point's labour demand is beyond every double and now reads +∞. On the wall far out, the
+  corners' parameter ω = v/P_z resolved v only to 2^-52·v·L_z/B_z, which lost 3.8e-11 at v 4e6
+  and was refused at 4e8; a CES economy now bisects its corners in v. A major error: the power
+  mean's ln1p form cancelled with a small weight at large σ (2.6e-11 in P at σ 20); it takes the
+  direct sum where 1 + S < 1/2. Nine of the mutation pass's 30 mutants survived, two
+  equivalent; the other seven each have a test, and seven mutants of the fixes are killed
+  (docs/unit-1f.md §14 items 16-20).
 
 Each spec's §12 has the details.
 
@@ -386,7 +401,7 @@ Each spec's §12 has the details.
 | `goldens/generate_1e.py` | unit 1e's goldens, at 70 digits; builds on `generate_1d.py` (and so the other three), and asserts the nesting |
 | `goldens/goldens_1e.txt` | its output, 223 goldens |
 | `goldens/generate_1f.py` | unit 1f's goldens, at 70 digits; builds on `generate_1e.py` (and so the other four), and asserts the nesting |
-| `goldens/goldens_1f.txt` | its output, 215 goldens |
+| `goldens/goldens_1f.txt` | its output, 235 goldens |
 
 ## Running the tests
 
@@ -423,9 +438,10 @@ The counts, the same on WSL and on Windows at each step:
 | P1.10, unit 1e | 2026-09-27 | 76 | 276 | 1 | 353 |
 | P1.11, 1e's verification | 2026-09-27 | 77 | 283 | 1 | 361 |
 | P1.12, unit 1f | 2026-09-27 | 83 | 348 | 1 | 432 |
+| P1.13, 1f's verification | 2026-09-27 | 84 | 353 | 1 | 438 |
 
-Of the 432, 1a has 114, 1b 59 (5 unit, 54 gate), 1c 69 (10 unit, 59 gate), 1d 56 (10 unit,
-46 gate), 1e 63 (10 unit, 53 gate) and 1f 71 (6 unit, 57 gate, and `p1_gate`'s 8).
+Of the 438, 1a has 114, 1b 59 (5 unit, 54 gate), 1c 69 (10 unit, 59 gate), 1d 56 (10 unit,
+46 gate), 1e 63 (10 unit, 53 gate) and 1f 77 (7 unit, 62 gate, and `p1_gate`'s 8).
 
 ## The dump example
 
@@ -583,7 +599,8 @@ f nonincreasing at 96 grid points. On 2026-09-27 the oracle's f64 values matched
 comparisons of `f1`-`f11` and `p1_gate` within 1.9e-15 relative (CW's wage near the wall's
 real-wage ceiling), all but three within 1.0e-15; the three made by finite differences are
 within their 1e-8: the incidence share by a three-point difference in τ_w (6.7e-10), ε_D
-(1.9e-10) and ε_S (2.2e-11).
+(1.9e-10) and ε_S (2.2e-11). After the verification (P1.13) CW's wage is within 2.5e-16, and
+the new goldens within 3.7e-15 (CF3's P at v 4.3e8).
 
 At the close (P1.7) all three `--check` passed, and the gate's golden comparisons were logged
 again on WSL: the largest errors are as above, 1.0e-15 on 1b's goldens away from an edge (the
@@ -698,10 +715,13 @@ tie share and 2.8e-14 on the switch points.
   = ν·ζ), and the start's f_0 = n_D(0) − 0.0 is the value 1e assumed positive. A CES basket is
   evaluated in logs, the prices scaled by the largest (σ < 1) or the smallest (σ > 1) so that no
   exponent is positive, with ln1p and expm1 near σ = 1; a category's content stays finite for price
-  ratios up to about 2^16 at `SIGMA_CEIL` = 64. Its corners are parametrized by ω = v/P_z with the
-  fixed basket's P_z, and a weighted category that embodies no labour at the wall's end (or no
-  land at the all-human corner's start) is free there: the wall's end is then −S_∞ and the start
-  +∞, limits, not evaluations. The consumption-tax equivalence is exact in real numbers and came
+  ratios up to about 2^16 at `SIGMA_CEIL` = 64. Where 1 + S = Σ_j s̄_j·exp(x_j) is below 1/2 the
+  power mean is the logarithm of that sum of positive terms, since ln1p(S) would cancel down to
+  the weight at p_scale. Its corners are bisected on the bit patterns of v, which keeps every
+  digit on a wall far out, where ω = v/P_z would not; a point whose Y or n_D overflows (the
+  all-human corner near v = 1e-154) is +∞. A weighted category that embodies no labour at the
+  wall's end (or no land at the all-human corner's start) is free there: the wall's end is then
+  −S_∞ and the start +∞, limits, not evaluations. The consumption-tax equivalence is exact in real numbers and came
   out bit for bit at GT and ER; in general the two allocations agree to the supply's sensitivity.
 - The power x^k, ln(1 + z) and the fused multiply-add come from `core::num`, that is from
   the `libm` crate, so the outputs do not depend on the platform (docs/unit-1a.md §8).

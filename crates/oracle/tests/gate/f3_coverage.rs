@@ -148,14 +148,20 @@ fn eq_17_at_full_automation() {
         let t = e.parcels().enclosed_land();
         close("P Y = r T", q.price * q.point.point.y, t);
     }
-    // along AP, κ·N·B_s/T → 1
+    // along AP's equilibria (τ_w 1/2), κ·N·Bᵖ_s/T → 1, as the goldens' κ/(T/(N·B_s)) does
     for (k, kappa, tnb) in [
         (0, AP0_KAPPA, AP0_T_NB),
         (8, AP8_KAPPA, AP8_T_NB),
         (16, AP16_KAPPA, AP16_T_NB),
         (20, AP20_KAPPA, AP20_T_NB),
     ] {
-        let ratio = kappa / tnb;
+        let eta = 1.0 / f64::from(1_u32 << k);
+        let (e, eq) = checked_1f(household(ap_parcels(eta), payroll(0.5)));
+        let t = e.parcels().enclosed_land();
+        let ratio = eq.base.coverage * 4.0 * eq.base.base.b_s / t;
+        // made of prices that carry 1 − x* near x = 1 (1a §4), as in the_corollary
+        let tol = 1e-12_f64.max(4.0 * f64::EPSILON / eq.base.base.one_minus_x_star);
+        close_to(&format!("AP{k}: κ N B_s/T"), ratio, kappa / tnb, tol);
         assert!(ratio <= 1.0 + 1e-15, "{k}");
         if k >= 16 {
             assert!(1.0 - ratio < 1e-9, "{k}: {ratio}");

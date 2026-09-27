@@ -1,14 +1,37 @@
 //! f8: the CES household (docs/unit-1f.md §2.10-2.13, §4.2, §5.4; SSRN eq 26 p.31;
 //! main.tex:807-810): the composite's content at the equilibrium's prices, space's share eq 26's
 //! α(q) along the path, the land-share household of check_pinning's A-joint, a free category that
-//! empties the idle stretch, and Lemma F1's composition effect.
+//! empties the idle stretch, and Lemma F1's composition effect; and from the verification
+//! (§14 items 16-19): the start, the all-human corner as v → 0, the wall far out, a steep
+//! basket with a small weight, and S_∞ with transfers and types.
 
-use oracle::{ces_share, Basket, HouseholdParams, LandMarket, Margin, Regime};
+use oracle::{
+    ces_share, Basket, Budget, Government, HouseholdParams, LandMarket, Margin, ParcelParams,
+    PowerSchedule, Program, Regime, SolveError, UniformWorkCost,
+};
 use rustyecon_core::num;
 
 use crate::goldens_1f::*;
 use crate::support::*;
+use crate::support_1d::*;
+use crate::support_1e::*;
 use crate::support_1f::*;
+
+/// CA's economy (docs/unit-1f.md §7): Appendix B's with N 40, T 3, γ = 1.5 + x and χ_max 0.02.
+fn ca_parcels() -> ParcelParams {
+    from_1a_1e(oracle::Params {
+        workers: 40.0,
+        land: 3.0,
+        schedule: PowerSchedule {
+            eta: 1.0,
+            g0: 1.5,
+            g1: 1.0,
+            k: 1.0,
+        },
+        work_cost: UniformWorkCost { chi_max: 0.02 },
+        ..appendix_b()
+    })
+}
 
 /// P = Z·M(p) of a CES over the categories with weights z, written here from §4.2.
 fn ces_price(z: &[f64], sigma: f64, p: &[f64]) -> f64 {
@@ -54,6 +77,8 @@ fn eq_26_at_the_equilibrium() {
         ),
     ] {
         let (_, eq) = checked_1f(ces(g1_parcels(4.0, 0.05, 1.0), sigma));
+        // the good has no land at x = 0, so it is free at v = 0 and the start is +∞ (§14 item 5)
+        assert_eq!(eq.f_start, None, "{tag}: the start");
         let b = &eq.base.base;
         let got = [
             b.x_star,
@@ -316,4 +341,247 @@ fn the_frozen_composite_is_another_economy() {
         close("its space share", frozen.basket.shares[1], share);
         assert!((x - ces_x).abs() > 1e-3 && (share - ces_share).abs() > 1e-2);
     }
+}
+
+#[test]
+fn the_start_under_ces() {
+    // §2.9, §5.3 step 1, §14 item 5: a CES economy's start is its evaluation at v = 0 on the
+    // all-human corner, with the basket at the prices there, wherever every weighted category
+    // carries land through the chain at x = 0 (here the good is given 0.2 of direct land); not
+    // 1d's corner form, which reads z. C1-C3's, where the good is free at v = 0, is +∞ (None).
+    let with_land = |workers: f64, chi_max: f64| {
+        let mut p = g1_parcels(workers, 0.05, chi_max);
+        p.categories[0].direct_land = 0.2;
+        p
+    };
+    let (e, eq) = checked_1f(ces(with_land(4.0, 1.0), 0.5));
+    let at_zero = e.at_wage(0.0, 0.0, 0).point.excess_demand();
+    assert!(at_zero.is_finite() && at_zero > 0.0);
+    assert_eq!(eq.f_start.map(f64::to_bits), Some(at_zero.to_bits()));
+    // An in-work benefit that draws all 100 into work at a zero wage, against the labour the
+    // basket needs there: a negative start with no change of side after it.
+    let mut params = ces(with_land(100.0, 0.05), 0.5);
+    params.government = program(0.2, 0.0);
+    let e = economy_1f(params);
+    let at_zero = e.at_wage(0.0, 0.0, 0).point.excess_demand();
+    assert!(at_zero < 0.0);
+    assert_eq!(e.start().unwrap().to_bits(), at_zero.to_bits());
+    assert_eq!(
+        e.solve(),
+        Err(SolveError::SurplusLabour { f_start: at_zero })
+    );
+}
+
+#[test]
+fn the_good_free_at_the_all_human_corner() {
+    // §5.3 step 2, §14 item 16: CA, C3's basket where the equilibrium is at the all-human corner.
+    // The good has no land at x = 0, so as v → 0 space's content vanishes against it (σ = 2) and
+    // Y = T/B_s overflows near v = 1e-154, where bisection on bit patterns makes its first
+    // midpoints: labour demand there is beyond every double, f = +∞, not a NaN.
+    let (e, eq) = checked_1f(ces(ca_parcels(), 2.0));
+    let b = &eq.base.base;
+    assert_eq!(b.margin, Margin::AllHuman);
+    assert_eq!(eq.f_start, None);
+    for (name, got, want) in [
+        ("v", b.v, CA_V),
+        ("P", eq.basket.price, CA_P),
+        ("N_a", b.n_a, CA_N_A),
+        ("space's share", eq.basket.shares[1], CA_SPACE_SHARE),
+    ] {
+        close(&format!("CA {name}"), got, want);
+    }
+    let tiny = e.at_wage(0.0, 1e-154, 0);
+    assert_eq!(tiny.point.point.y, f64::INFINITY);
+    assert_eq!(tiny.point.excess_demand(), f64::INFINITY);
+    // every σ ≥ 2 on CA's economy, with and without a government, has its equilibrium
+    for sigma in [2.0, 2.5, 3.0, 4.0, 8.0] {
+        for g in [
+            Government::none(),
+            payroll(0.1),
+            rent_rate(0.5),
+            dividend(0.5),
+        ] {
+            let mut params = ces(ca_parcels(), sigma);
+            params.government = g;
+            checked_1f(params);
+        }
+    }
+    // The verification's draw R7102_41 at σ = 2 under Dividend (t_c 0.15, τ_R 0.64, a uniform
+    // program 0.16): at v = 2^-511 Y is finite but n_D = Y·L_s overflows, and the transfer, read
+    // from W = v·n_D with τ_w = 0, is 0·∞ = NaN with the supply; that point is +∞ too.
+    let e = economy_1f(r7102_41());
+    let q = e.at_wage(0.0, f64::from_bits((1023 - 511) << 52), 0);
+    assert!(q.point.point.y.is_finite());
+    assert_eq!(q.point.point.n_d, f64::INFINITY);
+    assert!(q.point.point.n_s.is_nan());
+    assert_eq!(q.point.excess_demand(), f64::INFINITY);
+    let (_, eq) = checked_1f(r7102_41());
+    assert_eq!(eq.base.base.margin, Margin::AllHuman);
+}
+
+/// The verification's random draw R7102_41 (docs/unit-1f.md §14 item 16) at σ = 2 in place of its
+/// 3.0096: Appendix B's form with the good given human-required hours and a Dividend closure.
+fn r7102_41() -> HouseholdParams {
+    let mut p = from_1a_1e(oracle::Params {
+        workers: 13.835700083128295,
+        land: 2.9198283496067368,
+        a: 0.04346133664919507,
+        lam: 0.07609959466923066,
+        b: 0.6892880919296143,
+        schedule: PowerSchedule {
+            eta: 2.4951548902830303,
+            g0: 0.6382528870794157,
+            g1: 1.391007360728151,
+            k: 1.0,
+        },
+        work_cost: UniformWorkCost {
+            chi_max: 0.017079399059127517,
+        },
+        ..appendix_b()
+    });
+    p.categories[0].weight = 1.4244891686524364;
+    p.categories[1].weight = 0.6824857875628916;
+    p.human_required = vec![0.28103456621585265, 0.0];
+    p.worker_types[0].support = 0.8483304539554257;
+    HouseholdParams {
+        economy: p,
+        basket: Basket::Ces { sigma: 2.0 },
+        government: government(|g| {
+            g.consumption = 0.14981435914188668;
+            g.budget = Budget::Dividend {
+                rent_tax: 0.6386713829836139,
+            };
+            g.program = Program {
+                work: 0.1602482564766707,
+                exit: 0.1602482564766707,
+            };
+        }),
+    }
+}
+
+#[test]
+fn the_wall_far_out() {
+    // §5.3 step 2, §5.5, §14 item 17: C1's basket on W3 with N 0.01 and 0.001 puts the wall's
+    // equilibrium at v/r 4.3e6 and 4.3e8. A CES corner is bisected in v itself, which keeps its
+    // digits there; in ω_z = v/P_z it would resolve v only to 2^-52·v·L_z/B_z.
+    for (n, v, p, n_a, y) in [
+        (0.01, CF2_V, CF2_P, CF2_N_A, CF2_Y),
+        (0.001, CF3_V, CF3_P, CF3_N_A, CF3_Y),
+    ] {
+        let (_, eq) = checked_1f(ces(g1_parcels(n, 0.6, 3.0), 0.5));
+        let b = &eq.base.base;
+        assert_eq!(b.margin, Margin::Wall);
+        assert_eq!(eq.base.land_market, LandMarket::Scarce);
+        for (name, got, want) in [
+            ("v", b.v, v),
+            ("P", eq.basket.price, p),
+            ("N_a", b.n_a, n_a),
+            ("Y", b.y, y),
+        ] {
+            close(&format!("N {n}: {name}"), got, want);
+        }
+    }
+}
+
+#[test]
+fn a_steep_basket_with_a_small_weight() {
+    // §5.1 step 2, §5.5, §14 item 18: W1 under Ces { sigma: 20 } with eq 26's weights, space's
+    // 0.3^20 = 3.5e-11 against the good's 0.7^20 = 8.0e-4. At the equilibrium's prices 1 + S =
+    // Σ_j s̄_j·exp(x_j) is 1.5e-7, which the ln1p form reaches by cancellation; the direct sum
+    // keeps the digits of P, the content and the shares.
+    let (_, eq) = checked_1f(ces(g1_parcels(4.0, 0.6, 1.0), 20.0));
+    let b = &eq.base.base;
+    assert_eq!(b.margin, Margin::Contestable);
+    for (name, got, want) in [
+        ("x*", b.x_star, CS_X_STAR),
+        ("v", b.v, CS_V),
+        ("P", eq.basket.price, CS_P),
+        ("N_a", b.n_a, CS_N_A),
+        ("Y", b.y, CS_Y),
+        ("space's share", eq.basket.shares[1], CS_SPACE_SHARE),
+        ("c_good", eq.basket.content[0], CS_GOOD_CONTENT),
+        ("c_space", eq.basket.content[1], CS_SPACE_CONTENT),
+    ] {
+        close(&format!("CS {name}"), got, want);
+    }
+}
+
+#[test]
+fn the_free_end_with_transfers_and_types() {
+    // §2.12, §5.3 step 3, §14 item 5: f_∞ = −S_∞ at a free category's end, S_∞ the supply at
+    // ω_∞ = 1/(Z·M(λ̃)) (σ < 1) with the transfer's limit. Under Dividend W, R and C over P vanish
+    // there and d/P^c → −μ, so a uniform program cancels against d: CW's f_∞ with and without one.
+    for g in [
+        dividend(0.5),
+        government(|g| {
+            g.budget = Budget::Dividend { rent_tax: 0.5 };
+            g.program = Program {
+                work: 0.2,
+                exit: 0.2,
+            };
+        }),
+    ] {
+        let mut params = ces(g1_parcels(4.0, 0.6, 3.0), 0.5);
+        params.government = g;
+        let (_, eq) = checked_1f(params);
+        assert_eq!(eq.base.base.margin, Margin::Wall);
+        close(
+            "CW's f_∞ under Dividend",
+            eq.base.f_end.unwrap(),
+            CW05_F_END,
+        );
+    }
+    // Two types of efficiency 1 and 2 under RentRate with every instrument: S_∞ = Σ_i ε_i·N_i·
+    // F_i(ln1p(ratio_i(ω_∞))), ratio_i = ((μ_w − μ_e) + (1 − τ_w)·ε_i·ω_∞/(1 + t_c))/(ν_i + d̂ +
+    // μ_e), with M(λ̃) the power mean of the end technique's labour totals, written here.
+    let mut p = g1_parcels(4.0, 0.6, 3.0);
+    p.worker_types = vec![worker(2.0, 3.0, 1.0, 1.0), worker(2.0, 3.0, 2.0, 1.0)];
+    p.reserved = vec![vec![0.0, 0.0]; 2];
+    p.exits = vec![oracle::ExitForm::Dependence; 2];
+    let sigma = 0.5;
+    let mut params = ces(p, sigma);
+    params.government = government(|g| {
+        g.payroll = 0.1;
+        g.consumption = 0.2;
+        g.budget = Budget::RentRate { dividend: 0.3 };
+        g.program = Program {
+            work: 0.05,
+            exit: 0.1,
+        };
+    });
+    let g = params.government;
+    let (_, eq) = checked_1f(params.clone());
+    let b = &eq.base.base;
+    assert_eq!(b.margin, Margin::Wall);
+    let z: Vec<f64> = params.economy.categories.iter().map(|c| c.weight).collect();
+    let total: f64 = z.iter().sum();
+    let mut sum = 0.0;
+    for (j, cat) in b.categories.iter().enumerate() {
+        if z[j] > 0.0 && cat.lambda_tilde > 0.0 {
+            sum += (z[j] / total) * num::pow(cat.lambda_tilde, 1.0 - sigma);
+        }
+    }
+    assert_eq!(
+        b.categories[1].lambda_tilde, 0.0,
+        "space is free at the end"
+    );
+    let omega = 1.0 / (total * num::pow(sum, 1.0 / (1.0 - sigma)));
+    let dividend = match g.budget {
+        Budget::RentRate { dividend } => dividend,
+        Budget::Dividend { .. } => unreachable!(),
+    };
+    let (mut s, mut unweighted) = (0.0, 0.0);
+    for t in &params.economy.worker_types {
+        let ratio = ((g.program.work - g.program.exit)
+            + (1.0 - g.payroll) * t.efficiency * omega / (1.0 + g.consumption))
+            / ((t.support + dividend) + g.program.exit);
+        let n = t.workers * t.work_cost.cdf(num::ln1p(ratio));
+        s += t.efficiency * n;
+        unweighted += n;
+    }
+    close("f_∞ = −S_∞ with two types", eq.base.f_end.unwrap(), -s);
+    assert!(
+        (s - unweighted).abs() > 1e-3 * s,
+        "the efficiency weighs S_∞"
+    );
 }

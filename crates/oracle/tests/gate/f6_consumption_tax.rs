@@ -65,7 +65,9 @@ fn the_wage_leg_is_a_wage_tax() {
 fn support_at_consumer_prices() {
     // §2.1, §2.3: the provider buys the support at P^c, so a consumption tax moves the
     // equilibrium (GT: x* 0.89016, not G1's 0.86315) as its payroll equivalent does.
-    let (_, gt) = checked_1f(g1_with(consumption(0.25)));
+    let (e, gt) = checked_1f(g1_with(consumption(0.25)));
+    // κ_w = 1/(1 + t_c) = 0.8: the net wage against producer-priced composites
+    assert_eq!(e.net_factor(), 0.8);
     let b = &gt.base.base;
     for (name, got, want) in [
         ("x*", b.x_star, GT_X_STAR),
