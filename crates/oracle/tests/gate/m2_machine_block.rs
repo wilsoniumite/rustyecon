@@ -656,4 +656,63 @@ fn envelope() {
         assert_eq!(block.closure_wage(0.7, 0), block.closure_wage(0.7, 1));
         assert_eq!(block.envelope(0.5, 1.5).first, want);
     }
+    // Two switches in sequence (§5.2 step 3 repeated): X (λ 0.6, b 0.05), A (0.3, 0.2) and B
+    // (0.05, 0.6), listed B, X, A so that the order of visits is not the order of indices. X
+    // gives way to A at γ = 0.15/0.105, A to B at 0.4/0.17; X and B cross at 0.55/0.3575, after
+    // X has left. Each switch is the closed form from the type below it, and no type repeats.
+    let (b, x, a) = (flow(3, 0.05, 0.6), flow(3, 0.6, 0.05), flow(3, 0.3, 0.2));
+    let block = MachineBlock::new(vec![b, x, a], 0.0).unwrap();
+    let env = block.envelope(1.0, 3.0);
+    assert_eq!(env.first, 1);
+    let pairs: Vec<(usize, usize)> = env.switches.iter().map(|s| (s.below, s.above)).collect();
+    assert_eq!(pairs, [(1, 2), (2, 0)]);
+    let crossing = |lo: (f64, f64), hi: (f64, f64)| (hi.1 - lo.1) / (hi.1 * lo.0 - lo.1 * hi.0);
+    let gammas: Vec<f64> = env.switches.iter().map(|s| s.gamma).collect();
+    assert_eq!(
+        gammas,
+        [
+            crossing((0.6, 0.05), (0.3, 0.2)),
+            crossing((0.3, 0.2), (0.05, 0.6))
+        ]
+    );
+    let mut seen = vec![env.first];
+    seen.extend(env.switches.iter().map(|s| s.above));
+    seen.sort_unstable();
+    seen.dedup();
+    assert_eq!(seen.len(), 1 + env.switches.len());
+    for s in &env.switches {
+        assert_eq!(env.technique_at(s.gamma), s.above);
+        assert_eq!(env.technique_at(s.gamma.next_down()), s.below);
+    }
+    assert_eq!(env.last(), 0);
+    // A range that ends between the two switches has the first only.
+    assert_eq!(block.envelope(1.0, 2.0).switches.len(), 1);
+}
+
+#[test]
+fn gross_services_many_types() {
+    // §4.9: X = (I − A^qᵀ_m)⁻¹t, checked by multiplication on M4's three types, where power
+    // serves the loom and the engine, and the engine builds itself.
+    let block = MachineBlock::new(m4_types(), 0.04).unwrap();
+    let t = [0.25, 1.7, 0.0];
+    let x = block.gross_services(&t);
+    assert!(x.iter().all(|&v| v > 0.0), "{x:?}");
+    for k in 0..3 {
+        let mut used = 0.0;
+        for (l, x_l) in x.iter().enumerate() {
+            used += block.a_q(l, k) * x_l;
+        }
+        near(
+            &format!("(I - A^q')X = t, type {k}"),
+            x[k] - used,
+            t[k],
+            FULL * x[k],
+        );
+    }
+    // Power's services are what the loom and the engine use of it, per period.
+    close(
+        "power",
+        x[2],
+        block.a_q(0, 2) * x[0] + block.a_q(1, 2) * x[1],
+    );
 }

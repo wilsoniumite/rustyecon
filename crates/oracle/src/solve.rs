@@ -358,11 +358,19 @@ pub enum Regime<E = Eq1a> {
     Interior(Box<E>),
     /// f(1) ≥ 0: labour holds no machine-contestable task, x* would be 1 and workers
     /// would only build machines. SSRN §3.1's boundary case, which unit 1d solves.
+    ///
+    /// In unit 1c with a switch of technique, also no change of side of the excess demand
+    /// inside the bracket; with one, the boundary is one of several equilibria and the solve
+    /// returns [`SolveError::MultipleEquilibria`] (docs/unit-1c.md §5.3).
     BoundaryNoMargin {
         /// f(1) = n_D(1) − n_S(1).
         f_at_1: f64,
     },
     /// D(1) ≤ 0: the machine-service price is undefined at x = 1.
+    ///
+    /// In unit 1c, `d_at_1` is the least pivot of the (O, V) system of the envelope's last
+    /// technique, over every machine type: a type whose price is undefined, even one no
+    /// technique would use, makes the economy `NotViable` (docs/unit-1c.md §12 item 15).
     NotViable {
         /// D(1) = 1 − u(a + λγ(1)).
         d_at_1: f64,
@@ -376,6 +384,10 @@ pub enum Regime<E = Eq1a> {
     /// order in lo, n_D(0) − n_D(lo) = (T/h)·lo·[1 + δγ(0)(b/h − λ)/(1 − aδ)], which grows
     /// without bound as aδ → 1. G8 has a case with T/h − N = 5e-12, and one at
     /// a = 1 − 2^-53 where n_D(lo) is 0.014 against T/h = 10.
+    ///
+    /// In unit 1c with a switch of technique, the excess demand at the switches is read too,
+    /// and a change of side there is [`SolveError::MultipleEquilibria`] (docs/unit-1c.md
+    /// §5.3; exact arithmetic excludes it, §5.5).
     NoInteriorAtZero {
         /// f at x = [`BRACKET_LO`].
         f_at_0: f64,
@@ -431,9 +443,13 @@ pub enum SolveError {
     },
     /// Unit 1c: the excess demand changes sign more than once along the bracket, across the
     /// switches of the cheapest machine type, so there is more than one equilibrium
-    /// (docs/unit-1c.md §2.5 and §5.3). The oracle refuses rather than choose.
+    /// (docs/unit-1c.md §2.5 and §5.3). The oracle refuses rather than choose. A boundary
+    /// regime's corner is one of them: f(1) ≥ 0 with a root or a tie inside the bracket is
+    /// refused here, not reported as [`Regime::BoundaryNoMargin`].
     MultipleEquilibria {
-        /// The changes of side in the sequence of docs/unit-1c.md §5.3 step 3: odd, at least 3.
+        /// The changes of side in the sequence of docs/unit-1c.md §5.3 step 3, with f(1) ≥ 0
+        /// and f(lo) ≤ 0 each counted as one more, at its corner: the number of equilibria,
+        /// odd, at least 3.
         sign_changes: usize,
         /// The switch points x_i, the largest double below each switch.
         switches: Vec<f64>,
@@ -471,7 +487,9 @@ impl fmt::Display for SolveError {
                 switches,
             } => write!(
                 f,
-                "the excess demand changes sign {sign_changes} times across the technique                  switches at x = {switches:?}: more than one equilibrium"
+                "the excess demand changes sign {sign_changes} times along the bracket, a \
+                 boundary regime's corner counted as one, across the technique switches at \
+                 x = {switches:?}: more than one equilibrium"
             ),
             SolveError::NoConvergence { steps } => {
                 write!(f, "bisection did not converge in {steps} steps")
@@ -487,7 +505,8 @@ impl fmt::Display for SolveError {
 
 impl std::error::Error for SolveError {}
 
-fn finite(what: &'static str, value: f64) -> Result<f64, SolveError> {
+/// `value`, or [`SolveError::NonFinite`] naming `what` when it is NaN or infinite.
+pub(crate) fn finite(what: &'static str, value: f64) -> Result<f64, SolveError> {
     if value.is_finite() {
         Ok(value)
     } else {

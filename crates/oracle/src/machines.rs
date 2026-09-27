@@ -28,7 +28,7 @@ use crate::machine_block::{Envelope, MachineBlock, MachineType, Recipe};
 use crate::params::{self, ParamError, UniformWorkCost};
 use crate::schedule::{PowerSchedule, Schedule};
 use crate::solve::{
-    bisect, labor_net, regime_tests, Regime, Root, SolveError, BRACKET_HI, BRACKET_LO,
+    bisect, finite, labor_net, regime_tests, Regime, Root, SolveError, BRACKET_HI, BRACKET_LO,
     MAX_BISECTION_STEPS,
 };
 
@@ -136,7 +136,8 @@ impl<S: Schedule> MachineEconomy<S> {
     /// and chain hours Σ ŷ_j·L̄^dir_j > 0. −0.0 is stored as +0.0.
     ///
     /// Price-side viability is not checked: an economy with no viable technique at x = 1
-    /// solves to [`Regime::NotViable`].
+    /// solves to [`Regime::NotViable`], and so does one with a type whose price recursion
+    /// diverges, even a type no technique would use (docs/unit-1c.md §12 item 15).
     pub fn new(mut params: MachineParams<S>) -> Result<Self, ParamError> {
         params::scale("workers", params.workers)?;
         params::scale("land", params.land)?;
@@ -426,12 +427,16 @@ impl<S: Schedule> MachineEconomy<S> {
     /// Classifies the economy and, when interior, solves it (docs/unit-1c.md §5.3).
     ///
     /// The regime tests are unit 1a's, with the envelope's last technique at x = 1 (its least
-    /// pivot is `d_at_1`) and its first at [`BRACKET_LO`]. Then the sign of the excess demand
-    /// is read at both ends of each technique's region; one change of side gives either a
-    /// root inside a region, found by 1a's bisection with 1 − x* carried, or a tie at a
-    /// switch, where labour clears by the share of machine tasks each type takes (§4.7).
-    /// More than one change is [`SolveError::MultipleEquilibria`]. For one type there is
-    /// one region and this is unit 1b's solve, step for step.
+    /// pivot is `d_at_1`) and its first at [`BRACKET_LO`]. Without a switch they decide the
+    /// regime, and this is unit 1b's solve, step for step. With switches, `NotViable` stands,
+    /// and the sign of the excess demand is read at both ends of each technique's region:
+    /// f(1) ≥ 0 is the boundary's corner and f(lo) ≤ 0 the corner at lo, each one
+    /// equilibrium; a change of side inside the bracket is a root inside a region, found by
+    /// 1a's bisection with 1 − x* carried, or a tie at a switch, where labour clears by the
+    /// share of machine tasks each type takes (§4.7). One equilibrium in all is the solve's
+    /// answer; more is [`SolveError::MultipleEquilibria`], so that a boundary regime is
+    /// returned only when no equilibrium hides inside the bracket (an upward jump of labour
+    /// demand at a switch can put one there, with interest).
     ///
     /// Returns [`SolveError::NonFinite`], [`SolveError::NonFiniteInType`] or
     /// [`SolveError::NonFiniteInCategory`] if a value the solve decides on, or any reported
@@ -441,10 +446,16 @@ impl<S: Schedule> MachineEconomy<S> {
     pub fn solve(&self) -> Result<Regime<Eq1c>, SolveError> {
         let envelope = &self.envelope;
         let at_hi = self.at_with(BRACKET_HI, envelope.last());
-        let (f_lo, f_hi) = match regime_tests(at_hi.d, at_hi.excess_demand(), || {
-            self.at_with(BRACKET_LO, envelope.first).excess_demand()
-        })? {
+        let f_at_lo = || self.at_with(BRACKET_LO, envelope.first).excess_demand();
+        // Step 1: 1a's regime tests. With a switch a boundary regime is only a candidate:
+        // step 3's count decides, with the other end evaluated too.
+        let (f_lo, f_hi) = match regime_tests(at_hi.d, at_hi.excess_demand(), f_at_lo)? {
             Ok(ends) => ends,
+            Err(regime) if envelope.switches.is_empty() => return Ok(regime),
+            Err(Regime::BoundaryNoMargin { f_at_1 }) => {
+                (finite("n_D - n_S at BRACKET_LO", f_at_lo())?, f_at_1)
+            }
+            Err(Regime::NoInteriorAtZero { f_at_0 }) => (f_at_0, at_hi.excess_demand()),
             Err(regime) => return Ok(regime),
         };
         let points = self.switch_points()?;
@@ -480,8 +491,19 @@ impl<S: Schedule> MachineEconomy<S> {
                 at_switch(bounds[i + 1], technique)?
             });
         }
-        let changes: Vec<usize> = (0..sequence.len() - 1)
-            .filter(|&i| (sequence[i] > 0.0) != (sequence[i + 1] > 0.0))
+        // The sides: a value is on the positive side when > 0, except f(1), which is when ≥ 0
+        // (1a's BoundaryNoMargin at f(1) = 0). A positive side before f(lo) and a nonpositive
+        // one after f(1) stand for the corners: a change of side there is NoInteriorAtZero or
+        // BoundaryNoMargin, so every equilibrium is one change and their number is odd.
+        let top = sequence.len() - 1;
+        let mut sides = Vec::with_capacity(sequence.len() + 2);
+        sides.push(true);
+        for (i, &f) in sequence.iter().enumerate() {
+            sides.push(if i == top { f >= 0.0 } else { f > 0.0 });
+        }
+        sides.push(false);
+        let changes: Vec<usize> = (0..sides.len() - 1)
+            .filter(|&i| sides[i] != sides[i + 1])
             .collect();
         if changes.len() != 1 {
             return Err(SolveError::MultipleEquilibria {
@@ -489,7 +511,12 @@ impl<S: Schedule> MachineEconomy<S> {
                 switches: points,
             });
         }
-        let at = changes[0];
+        // The change between sides i and i + 1 is between sequence[i − 1] and sequence[i].
+        let at = match changes[0] {
+            0 => return Ok(Regime::NoInteriorAtZero { f_at_0: f_lo }),
+            i if i == sequence.len() => return Ok(Regime::BoundaryNoMargin { f_at_1: f_hi }),
+            i => i - 1,
+        };
         let region = at / 2;
         let eq = if at.is_multiple_of(2) {
             // Inside region i: 1a's bisection, or an exact zero at its upper end.

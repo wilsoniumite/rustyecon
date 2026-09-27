@@ -964,7 +964,10 @@ pub fn regions(economy: &MachineEconomy) -> Vec<(f64, f64, usize)> {
 }
 
 /// Within each region f is nonincreasing on a grid, n_D nonincreasing and n_S nondecreasing
-/// (Lemma 2); returns the sign sequence's number of changes of side (§5.3 step 3).
+/// (Lemma 2); returns the number of equilibria the sign sequence shows (§5.3 step 3): its
+/// changes of side between a positive value before f(lo) and a nonpositive one after f(1),
+/// with f(1) on the positive side when ≥ 0 (1a's BoundaryNoMargin). A change at the first is
+/// the corner at lo (NoInteriorAtZero), at the last the corner at 1 (BoundaryNoMargin).
 pub fn check_regions(economy: &MachineEconomy) -> usize {
     const GRID: usize = 40;
     let mut sequence = Vec::new();
@@ -988,10 +991,13 @@ pub fn check_regions(economy: &MachineEconomy) -> usize {
         sequence.push(points[0].excess_demand());
         sequence.push(points[GRID].excess_demand());
     }
-    sequence
-        .windows(2)
-        .filter(|w| (w[0] > 0.0) != (w[1] > 0.0))
-        .count()
+    let last = sequence.len() - 1;
+    let mut sides = vec![true];
+    for (i, f) in sequence.into_iter().enumerate() {
+        sides.push(if i == last { f >= 0.0 } else { f > 0.0 });
+    }
+    sides.push(false);
+    sides.windows(2).filter(|w| w[0] != w[1]).count()
 }
 
 /// x is where f under technique t changes sign, to one double, and the better end.

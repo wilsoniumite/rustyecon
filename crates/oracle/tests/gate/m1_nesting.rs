@@ -197,16 +197,28 @@ fn appendix_b_is_bit_identical() {
 
 #[test]
 fn every_1b_golden_instance_is_bit_identical() {
-    // 1b's c1 set: 1a's 27 golden instances.
+    // 1b's c1 set: 1a's 27 golden instances, and 1c's identities on each. G4's instances at
+    // u = 1 with δ < 1 and ρ > 0 check each type's φ_w on the price side, where λ̃ ≠ λ̃^q.
     let instances = crate::c1_nesting::golden_instances();
     assert_eq!(instances.len(), 27);
+    let mut price_side_phi = 0;
     for (what, params) in instances {
         assert_eq!(
-            assert_nests_1a(&what, params),
+            assert_nests_1a(&what, params.clone()),
             Outcome1c::Interior,
             "{what}"
         );
+        let typed = one_type(CategoryParams::from_one_category(params));
+        let e = economy_1c(typed.clone());
+        let eq = interior_1c(typed);
+        check_identities_1c(&e, &eq);
+        check_fork_and_bounds_1c(&e, &eq);
+        let t = &eq.types[0];
+        if t.phi_w.is_some() && t.lambda_tilde != t.lambda_tilde_q {
+            price_side_phi += 1;
+        }
     }
+    assert!(price_side_phi > 0);
     // Near full automation: x* rounds to 1.0 and 1 - x* = 4.6e-21 is carried.
     let deepest = CategoryParams::from_one_category(Params {
         lam: 0.0,

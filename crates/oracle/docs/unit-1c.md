@@ -160,8 +160,10 @@ the switch with both types in use. 1c solves this in closed form (§4.7): the pr
 it in 2 of 300 random draws and in 15 of 200 draws built to have a switch mid-line, so it
 is not rare. With interest the jump can be upward, and then there can be three equilibria
 (one each side of the switch and one at it; §3.3's M5m). 1c counts them and returns
-`SolveError::MultipleEquilibria` rather than choose (open question 4). At ρ = 0 this
-cannot happen (Proposition, §5.5).
+`SolveError::MultipleEquilibria` rather than choose (open question 4). A boundary regime's
+corner is one of them: an economy with f(1) ≥ 0 and a root or a tie inside the bracket
+(§3.3's M5b) is refused, not `BoundaryNoMargin` (§5.3; amended after the second
+verification, §12 item 14). At ρ = 0 none of this can happen (Proposition, §5.5).
 
 ### 2.6 Bitwise nesting through a normative evaluation order
 
@@ -223,7 +225,9 @@ Derived per type (x-free, computed at construction):
   Σ ŷ_j L̄^dir_j > 0 (1b's B_d > 0 and L̄_s > 0).
 
 Price-side viability, ρ(Â + (γ/θ_τ)λ̂e_τᵀ) < 1 at x = 1, is not validated: an economy that
-fails it solves to `NotViable` (§5.3), as in 1a.
+fails it solves to `NotViable` (§5.3), as in 1a. It is over every type: a type whose price
+recursion diverges (I − Â not a nonsingular M-matrix) makes the economy `NotViable` even when
+no technique would use it, where SSRN A.1 would leave it unused (§12 item 15, open question 9).
 
 ### 3.3 Instances
 
@@ -275,6 +279,15 @@ J = 10. The flow type does not see ρ; the durable type's u rises steeply with i
 path**: ρ ∈ {0, 0.05, 0.1, 0.15, 0.3} at N 4, h 1. **M5m**: ρ = 0.1, N = 60, h = 0.2,
 where the switch raises labour demand and there are three equilibria.
 
+**M5b, an equilibrium behind the boundary** (the second verification's H1 and H4,
+2026-09-27). The good and space (h 0.05) on γ = 3(0.2 + 0.8x), N 15, ρ 0.1, χ_max 1 (H4) or
+0.01 (H1), and two task types (θ = 1 each): a flow type, operating (0, 0; 0.3; 1), δ 1, J 1;
+and a type run on labour and built from land, operating (0, 0; 0.25; 0) and build
+(0, 0; 0; 9), δ 0.01, J 3, whose u (0.1331) is far above its δ. Above the switch it is the
+cheaper on the price side and uses little land per period, so labour demand jumps up: f is
++, −, +, + at lo, the switch (both types) and 1. A root below the switch (x* 0.4713 at H4), a
+tie on the jump and the boundary: three equilibria, with f(1) > 0.
+
 **M6, random economies** (§8).
 
 ## 4. Equations
@@ -315,7 +328,9 @@ Eliminating O and V: p = Âp + λ̂v + b̂ over the machine rows, with Â = A^op
 Technique τ is **viable** at x when Â + (γ/θ_τ)λ̂e_τᵀ has spectral radius below 1: I − Â is
 a nonsingular M-matrix and θ_τ − γλ̃_τ > 0 (the rank-one M-matrix argument; SSRN Prop 2's
 1 − γλ̃_m > 0; main.tex:690's "finite iff"). Since γ is increasing, a technique viable at
-x = 1 is viable on [0, 1] (1a's convention).
+x = 1 is viable on [0, 1] (1a's convention). The condition is on the whole of Â, every type
+priced, as main.tex:688's "provided the spectral radius of A is below one" reads; SSRN A.1
+asks it only of the selected recipes (§12 item 15, open question 9).
 
 As γλ̃_τ/θ_τ → 0, (p_τ/θ_τ)/b̃_τ → 1 (SSRN eq 6).
 
@@ -572,7 +587,8 @@ I − Â with diagonal fma(−u_k, a^I_kk, 1.0 − a^op_kk) and, if every pivot 
 and b̃_m (for 1a: (u·λ)/fma(−u, a, 1.0), 1b's λ̃_m); and the envelope:
 
 1. Task types are those with θ_t > 0. If I − Â has a nonpositive pivot, the envelope is
-   the lowest task type alone (the solve will find `NotViable`).
+   the lowest task type alone (the solve will find `NotViable`), even when the type that
+   fails is one no technique would use (§12 item 15).
 2. At γ_c = γ(`BRACKET_LO`), the candidates are the task types with θ_t − γ_c·λ̃_t > 0.
    τ_0 = the least v_t(γ_c); ties go to the smaller λ̃_t/θ_t, compared as λ̃_t·θ_s <
    λ̃_s·θ_t (the one cheaper just above), then the lower index. No candidate: the lowest
@@ -590,15 +606,25 @@ For one type the envelope is (τ_0 = 0), no switches.
 1. **Regime tests** (1a's order and conventions): with τ_m the envelope's last piece,
    evaluate x = 1 under τ_m: d(1) ≤ 0 is `NotViable { d_at_1 }` (1a's D(1) for one type);
    f(1) ≥ 0 is `BoundaryNoMargin`. Evaluate x = `BRACKET_LO` under τ_0: f ≤ 0 is
-   `NoInteriorAtZero`. `solve::classify` is split into these tests and `bisect`; 1a and 1b
-   call both, unchanged.
+   `NoInteriorAtZero`. With no switch these decide the regime, as in 1a and 1b. With a
+   switch `NotViable` stands, but a boundary regime is only a candidate: step 3's count
+   decides, and after f(1) ≥ 0 f(lo) is evaluated too (a non-finite f(lo) is then
+   `NonFinite`, where one region stops at the boundary). `solve::classify` is split into
+   these tests and `bisect`; 1a and 1b call both, unchanged. (Amended after the second
+   verification, §12 item 14: the build returned a boundary regime from this step alone.)
 2. **Switch points.** For each switch γ_i, x_i is the largest double with γ(x) < γ_i,
    found by bisection on [x_{i−1}, 1] for the predicate γ(x) ≥ γ_i until the two ends are
    adjacent doubles (x_0 = `BRACKET_LO`). No tolerance, as 1a's bisection.
 3. **Sign changes.** With f_i(x) the excess demand under τ_i and x_{m+1} = 1, the sequence
-   f_0(x_0), f_0(x_1), f_1(x_1), f_1(x_2), …, f_m(x_m), f_m(x_{m+1}) starts > 0 and ends
-   < 0. A value is on the positive side when > 0. With more than one change of side:
-   `SolveError::MultipleEquilibria { sign_changes, switches }`. With one:
+   f_0(x_0), f_0(x_1), f_1(x_1), f_1(x_2), …, f_m(x_m), f_m(x_{m+1}). A value is on the
+   positive side when > 0, except f(1) = f_m(1), which is when ≥ 0 (1a's `BoundaryNoMargin`
+   at f(1) = 0). Put a positive side before the sequence and a nonpositive one after it: a
+   change of side at the first is the corner at lo (`NoInteriorAtZero`), at the last the
+   corner at 1 (`BoundaryNoMargin`), and any other is a root or a tie inside the bracket.
+   Each change is one equilibrium, and their number is odd. With more than one:
+   `SolveError::MultipleEquilibria { sign_changes, switches }`, `sign_changes` the number of
+   changes, corners included. With one:
+   - at a corner: that boundary regime, with 1a's diagnostic f(lo) or f(1);
    - between f_i(x_i) and f_i(x_{i+1}): 1a's `bisect` of f_i on [x_i, x_{i+1}] (an exact
      zero at x_{i+1} is a root there, 1a's `Root::exact`); the root carries 1 − x* from the
      line through its two doubles (1a);
@@ -611,8 +637,9 @@ For one type the envelope is (τ_0 = 0), no switches.
    { machine_type, what }`), and 1a's labour net (`LaborNotCleared` above
    `LABOR_RESIDUAL_NET`·N_a).
 
-For one type there are no switches, the sequence is f(lo), f(1), and step 3 is 1a's
-bisection on [`BRACKET_LO`, 1]: the same calls, the same steps. No constant changes:
+For one type there are no switches, step 1 decides every boundary regime, the sequence is
+f(lo) > 0, f(1) < 0, and step 3 is 1a's bisection on [`BRACKET_LO`, 1]: the same calls, the
+same steps. No constant changes:
 `BRACKET_LO`, `MAX_BISECTION_STEPS` and `LABOR_RESIDUAL_NET` are 1a's, and each switch
 search is a bisection on a sub-interval of the bracket, so it takes at most
 `MAX_BISECTION_STEPS` too.
@@ -654,6 +681,18 @@ build) but cheap in land and labour per period, and n_D can jump up: 14 of 100 s
 ρ ∈ [0.02, 0.12] in the prototype's switch set, and M5m, which has three equilibria. The
 count of step 3 decides; a flat zero stretch of f (1b §5.3) is not constructed.
 
+**The corners.** Under a technique τ viable at x, a machine task at s ≤ x uses fewer hours
+than a person there (γ(s)λ̃^q_τ ≤ γ(x)λ̃_τ < θ_τ, with λ̃^q ≤ λ̃) and some land, so
+n_D(x) < n_D(0) for every x > 0, whatever the techniques between; and n_S is nondecreasing
+on the whole bracket (Lemma 2 within a technique, v and P_s continuous across a switch).
+So f(lo) ≤ 0 is followed by no positive value, and f(lo) ≤ 0 with f(1) ≥ 0 is excluded, up
+to the change of type of the tasks below lo, of relative order `BRACKET_LO`: the corner at
+lo is alone. The corner at 1 is not. With f(lo) > 0 and f(1) ≥ 0 an upward jump can take f
+below 0 and back (M5b: +, −, +, +; a root, a tie on the jump, and the boundary), so step 3
+reads the whole sequence before it returns `BoundaryNoMargin` (amended after the second
+verification, §12 item 14). At ρ = 0 every jump is downward (Proposition), f is
+nonincreasing on the whole bracket, and each corner is the only equilibrium when it holds.
+
 **Existence** is the regime tests' sign change, as in 1a.
 
 ### 5.6 Precision
@@ -668,9 +707,30 @@ thin segments, interior edges, gaps). New:
   V = p/u − O/u would lose 2^-53·p/(uV) relative.
 - **Switch points.** γ_i carries the rounding of the totals, amplified by (|b̃_lθ_τ| +
   |b̃_τθ_l|)/|b̃_lθ_τ − b̃_τθ_l|; for nearly equivalent types the switch is ill-located but
-  their costs are then nearly equal. A tie's x* is the double below the computed γ_i.
+  their costs are then nearly equal. A tie's x* is the double below the computed γ_i. x_i is
+  good in absolute terms, about γ_i's error over γ'(x_i), so near x = 0 its relative error
+  grows: 1.6e-12 at x_i = 0.0042 (7e-15 absolute) on the second verification's draws.
+- **Ties** (added after the second verification, §12 item 16). Every output of a tie is
+  evaluated at x_i, so it carries γ_i's error through γ*: at most 2.2e-13 relative on x*,
+  γ* and v on the second verification's 432 ties, and 7.5e-13 on v, P_s and the prices at
+  one near the viability edge. σ, and with it the split between the two types, carry it
+  amplified by |f'|·x*/|jump| (f' the slope of f in x, the jump n_D's across the switch): up
+  to 1.7e-10 relative on σ and each type's services, builds, hours, land and wealth, and
+  6.1e-11 on each type's interest, at a tie with f' = −21 and a jump of 7e-4; the economy's
+  sums over the two types less, 3.6e-11 on machine hours and 2.9e-11 on interest and the
+  capital share. Even the double nearest the exact switch would leave about 5e-12 on σ there,
+  so part of this is the grid of doubles, not the closed form. A tie near x = 1 sets
+  1 − x* = 1.0 − x_i, without a root's interpolation (step 3): 1 − x* and every output
+  proportional to it (final hours, H_ŷ, each category's human tasks and final hours) are good
+  to about 2^-53/(1 − x*) plus γ_i's error over γ'·(1 − x*), relative: 1.1e-10, 3.2e-7,
+  4.8e-5 and 1.7e-3 at ties 1e-6, 1e-9, 1e-11 and 1e-13 below 1, while N_a, v, Y and σ stay
+  within 5e-15. 1a's and 1b's full relative precision of 1 − x* near 1 holds for roots, not
+  for ties.
 - **Decidability.** A value of the sign sequence within rounding of 0 (relative to n_D)
-  makes the count, and so the regime, not decidable in f64, as 1a's regime tests.
+  makes the count, and so the regime, not decidable in f64, as 1a's regime tests. So does
+  f(lo) ≤ 0 with f(1) ≥ 0, which §5.5 excludes up to terms of order `BRACKET_LO`: with a
+  switch the count then gives `MultipleEquilibria` (both corners and a change between them),
+  where one region keeps 1a's `BoundaryNoMargin`.
 - **Nesting.** For the one-type case the evaluation is 1a's and 1b's (§5.1), so every 1a
   and 1b precision statement holds unchanged, G3's 1 − x* = 4.6e-21 included.
 - **To be measured** by the build: the f64 values against every golden, away from the
@@ -704,7 +764,8 @@ Proposed; the build may rename, and records any departure in a §12.
 - `Eq1c::outputs()`: economy keys in 1b's order, then 1c's, then `type<k>.<field>`, then
   `cat<j>.<field>`, as `(OutputKey1c, Output1b)` (§12, item 3).
 - `SolveError` gains `NonFiniteInType { machine_type, what }` and `MultipleEquilibria
-  { sign_changes, switches: Vec<f64> }`. `ParamError::Item` gains the kind "machine type"
+  { sign_changes, switches: Vec<f64> }`, `sign_changes` the equilibria of §5.3 step 3's
+  count, a boundary regime's corner included. `ParamError::Item` gains the kind "machine type"
   (with names such as "operating.labor") and `ParamError::Invalid` covers "intermediate
   inputs are not productive", "machine recipes are not productive" and "machine type k's
   recipes use no land".
@@ -880,6 +941,9 @@ also pins every p_k, p_j, P_s and v to `at_with(x*, technique)` bit for bit.
   bit for bit on every shared output except u, φ (reported only when u = 1) and V_m, which
   is the flow type's operating cost O (its V is 0.0); interest and W are 0. [check_dynamics
   R4; SSRN App B]
+- `m1::every_1b_golden_instance_is_bit_identical` also runs `check_identities_1c` and
+  `check_fork_and_bounds_1c` on the one-type form of 1a's 27 instances: G4's at u = 1 with
+  δ < 1 and ρ > 0 check each type's φ_w on the price side, where λ̃ ≠ λ̃^q (§12 item 17).
 
 **m2, the machine block alone.**
 - `m2::dynamics_sloped_target`: M2 sloped goldens at 1e-12 (u, γ*, p_m, v, V, O, p_good,
@@ -910,7 +974,11 @@ also pins every p_k, p_j, P_s and v to `at_with(x*, technique)` bit for bit.
   below 1 (away from 1 by 1e-6); on the identity and on diagonal matrices the solve is
   exact. [SSRN eq 3-4, A.1]
 - `m2::envelope`: the switch γ's equal the closed form; a γ exactly at a switch takes the
-  piece above; no type repeats; the tie-breaks of §5.2. [§4.3, Lemma 1]
+  piece above; no type repeats; the tie-breaks of §5.2; two switches in sequence, visited in
+  an order that is not the types' index order, each γ the closed form from the type below
+  it. [§4.3, §5.2 step 3, Lemma 1]
+- `m2::gross_services_many_types`: on M4's three types, (I − A^qᵀ)X = t by multiplication
+  at 1e-12. [§4.9]
 
 **m3, the two-recipe economy (M3).**
 - `m3::goldens`: M3 and M3z. [§4]
@@ -949,6 +1017,9 @@ also pins every p_k, p_j, P_s and v to `at_with(x*, technique)` bit for bit.
   n_D. [Proposition, §5.5]
 - `m5::multiple_equilibria_are_refused`: M5m gives `MultipleEquilibria` with three sign
   changes and its switch; the four f values are the goldens. [§5.3]
+- `m5::an_equilibrium_behind_the_boundary_is_refused`: M5b (H4 and H1) has f(1) > 0 and
+  f +, −, +, +; it gives `MultipleEquilibria` with three, the boundary's corner counted, and
+  the root below the switch clears labour. [§5.3, §5.5 the corners]
 
 **m6, random economies.** SplitMix64 seeded 926 to 929 (1b's were 923-925); 1b's C5 table
 for the scalars, segments and categories, and:
@@ -984,7 +1055,8 @@ narrow the land ranges to raise the interior share, and records the tallies. For
 - `m6::residuals_recompute`: each residual equals its recomputation bit for bit, and each
   is nonzero somewhere. [§6]
 - `m6::root_and_regions`: x* is the double where f_τ changes sign, or the tie's; f is
-  nonincreasing on a grid in each region; the sign-change count equals the regime.
+  nonincreasing on a grid in each region; the count of §5.3 step 3, corners included, equals
+  the regime: 1 for every interior and boundary regime, those with a switch included.
   [§5.3, §5.5]
 - `m6::ties_and_multiplicity`: in the switch set, every tie's identities hold; at ρ = 0 no
   `MultipleEquilibria` and every jump downward; at ρ > 0 each `MultipleEquilibria` has an
@@ -995,9 +1067,18 @@ narrow the land ranges to raise the interior share, and records the tallies. For
 **m7, regimes, validation and reductions.**
 - `m7::regimes`: M4's regime rows and their diagnostics; `NotViable` decided by the least
   pivot of the envelope's last technique. [§5.3]
-- `m7::validation`: every rule of §3.2 is an error, and −0.0 is stored as +0.0.
+- `m7::exact_zeros_at_the_ends_of_a_region`: M4 with χ_max 0.01, so that n_S = N exactly and
+  N = n_D at a point puts an exact 0.0 there, at ρ 0 and 0.04: f_0(x_1) = 0 is a root at x_1
+  (`Root::exact`), not a tie; f_1(x_1) = 0 is a tie with σ = 1; f(1) = 0 with a switch below
+  is `BoundaryNoMargin`; f(lo) = 0 with a switch above is `NoInteriorAtZero`. [§5.3 step 3]
+- `m7::validation`: every rule of §3.2 is an error, and −0.0 is stored as +0.0; the
+  productivity rule is on the sum A^op + A^I (0.6 + 0.6 of the loom's own service).
 - `m7::unused_type_changes_nothing`: adding a θ = 0 type that nobody uses, last, leaves
-  every other output bit for bit, except the residuals that are maxima over types. [R1]
+  every other output bit for bit, except the residuals that are maxima over types; for an
+  addition that keeps I − Â a nonsingular M-matrix. [R1]
+- `m7::an_unused_type_that_cannot_be_priced_is_not_viable`: M3 plus a type whose price
+  recursion diverges (u·a^I = 1.30), as a power type and as a task type, is `NotViable`,
+  though M3 is interior. [§12 item 15, a recorded departure]
 - `m7::duplicate_task_type`: a copy of the technique's type at a higher index is never
   chosen, and every aggregate is bit-equal, except the residuals that are maxima over
   types. [§5.2 tie-break]
@@ -1009,6 +1090,14 @@ narrow the land ranges to raise the interior share, and records the tallies. For
   within 1e-12.
 - `m7::envelope_edge_cases`: a switch exactly at γ(1), two crossings at one γ, a type
   viable only low on the line.
+- `m7::two_switches_and_a_tie_at_the_second`: three flow task types that switch in sequence
+  on γ = 1 + 2x; the envelope, both switch points against the closed form, a tie at the
+  second switch (technique 1, above 2, γ of switch 2) and a root above it, each with
+  `check_identities_1c`. [§4.3, §4.7, §5.3 steps 2-3]
+- `m7::phi_when_the_technique_is_not_type_0`: every u = 1, the technique type 1, and type 0
+  with a pivot of 0.8: φ_w = γλ̃_1/θ_1. [§4.8]
+- `m7::type_phi_with_interest`: u = 1 at ρ = δ = 0.5, J = 1: each type's φ_w is vλ̃_k/p_k
+  on the price side. [§4.8]
 
 **m8, the goldens file.** `goldens_1c.txt`'s four digests recompute, and the Rust
 constants match it to 20 digits.
@@ -1078,6 +1167,15 @@ pivots of I − A are positive exactly when ρ(A) < 1 on constructed matrices.
    bisection, and `SolveError` gains `NonFiniteInType` and `MultipleEquilibria`.
 8. **The random draws** (§8, m6) are constructed and the interior share is low with the
    prototype's ranges; the build tunes and records them. Acceptable, or fix the ranges now?
+9. **Every type priced** (added after the second verification, §12 item 15). Price-side
+   viability is over the whole of Â (§4.2, main.tex:688's "provided the spectral radius of A
+   is below one"), so a type whose price recursion diverges makes the economy `NotViable`
+   even when no technique would use it. SSRN A.1 asks productivity only of the selected
+   recipes and leaves unused methods at a unit cost at least the price, and would keep the
+   equilibrium without the type. The alternative restricts viability, the prices and the
+   totals to the input closure of each candidate technique and reports the other types as
+   unpriced, which changes `TypeEq`'s prices to optional values and the generator with them.
+   Keep every type priced, or restrict to the technique's closure?
 
 ## 12. Changes during the build (P1.4, 2026-09-27)
 
@@ -1177,13 +1275,20 @@ pivots of I − A are positive exactly when ρ(A) < 1 on constructed matrices.
     changes, and a tie's σ by root-finding. It agreed on every regime, technique, tie and
     switch count, and on the values within 5.6e-14 relative: x*, v, P_s, Y and every price
     within 2.4e-15, 1 − x* within 9.7e-15, N_a 1.5e-14, the switch points 2.3e-14, the tie's
-    services 4.3e-14 and a boundary diagnostic 5.6e-14.
+    services 4.3e-14 and a boundary diagnostic 5.6e-14. These held on that derivation's
+    draws, whose ties were well conditioned; the second derivation's ties reach 1.7e-10 on
+    the split and 2.2e-13 on x* and v (item 16, §5.6).
 12. **Mutation testing**: 65 mutants of `leontief.rs`, `machine_block.rs`, `machines.rs` and
     the goldens; six survived, and five are now killed by the tests below. The sixth, a
     crossing at exactly γ_c counting (`gamma_c <= crossing`), is equivalent in exact
     arithmetic: a type crossing the technique exactly at γ_c and cheaper above it would have
     won that point's tie-break (§5.2), so the two differ only where rounding separates a
-    crossing from its tie.
+    crossing from its tie. The second round found a second equivalent mutant beside it:
+    `gamma_c` not advanced to each switch (`gamma_c = crossing` dropped), so that later
+    crossings count from γ_lo. A crossing γ_lm below the current switch γ_τl, with m cheaper
+    above it and viable there, would make m cheaper than τ at γ_τl, and m would have crossed
+    τ first; so the two differ only where rounding puts a crossing below the previous one.
+    Both survive the gate, `m7::two_switches_and_a_tie_at_the_second` included.
 13. **Tests added**, each killing its mutant: `m7::envelope_edge_cases` now has a crossing
     beyond both types' viability, which must not count (the viability check on a crossing);
     `m7::unit_rescaling` has a flow economy (u = 1) whose type is measured in units of 4, so φ_w =
@@ -1195,3 +1300,69 @@ pivots of I − A are positive exactly when ρ(A) < 1 on constructed matrices.
     (σ = 1 when f_b ≥ 0). `check_identities_1c` now checks φ wherever it is reported:
     γλ̃_τ/θ_τ = vλ̃_τ/p_τ, φ_r = 1 − φ_w, and each type's vλ̃_k/p_k. The code is unchanged.
     The package has 235 tests: 57 unit, 177 gate and 1 doc.
+
+### Second verification (2026-09-27)
+
+14. **A boundary regime hid equilibria** (a blocker). The second derivation, which does not
+    read the crate, built economies whose labour demand jumps up at the switch with f(1) > 0
+    (§3.3's M5b, its H1 and H4): f is +, −, +, + at lo, the switch (both types) and 1, so
+    there is a root below the switch (x* 0.4713 at H4, where every identity holds), a tie on
+    the jump, and the boundary. The build returned `BoundaryNoMargin` from f(1) ≥ 0 before it
+    read the sequence, against §2.5. §5.3 steps 1 and 3 now read the whole sequence whenever
+    there is a switch, with each corner one equilibrium: M5b is `MultipleEquilibria` with
+    three. The mirror case, `NoInteriorAtZero` hiding an equilibrium, is excluded (§5.5, the
+    corners), and at ρ = 0 neither can happen. Without a switch step 1 decides as before, so
+    1a and 1b nest unchanged. m6's draws and tallies (item 6) are unchanged; 20 of their
+    boundary regimes have a switch, and each is re-read with no change of side inside.
+    `SolveError::MultipleEquilibria`'s message lost a run of spaces that a lost line
+    continuation had left in it.
+15. **An unused type that cannot be priced makes the economy `NotViable`** (a departure from
+    SSRN A.1, recorded, not changed). M3 at ρ 0.05 is interior; add a type built from 0.3 of
+    its own service with δ 1 and J 30, so that u = 4.32 and u·a^I = 1.30, as a power type or
+    as a task type that is never the cheapest, and the build returns `NotViable` with
+    d(1) = −0.297, though the physical recipes are productive (ρ(A^op + A^I) = 0.5) and M3's
+    equilibrium stands with the type unproduced. §3.2, §4.2 and §5.2 require every type
+    priced, as main.tex:688 reads; SSRN A.1 asks it of the selected recipes only. The rule
+    is kept, `Regime::NotViable`'s doc says that in 1c it covers every type, and
+    `m7::an_unused_type_that_cannot_be_priced_is_not_viable` pins it; open question 9 asks
+    whether to restrict viability to each technique's input closure.
+    `m7::unused_type_changes_nothing` holds for an addition that keeps I − Â a nonsingular
+    M-matrix, and its doc says so.
+16. **Precision at ties.** On 2548 valid random economies (1721 interior, 432 of them ties)
+    the second derivation, at 50 digits, found the ties' outputs off by up to 1.7e-10 relative
+    on σ and the split, 2.2e-13 on x*, γ* and v, and 7.5e-13 on v, P_s and the prices near
+    the viability edge; switch points near x = 0 are good in absolute terms only; and a tie
+    near x = 1 loses 1 − x*'s relative precision (§5.6, where each is now stated, and the
+    README). Item 11's figures held on the first derivation's draws. No code changed:
+    interpolating a tie's 1 − x*, as a root's is, would still leave γ_i's error, of the same
+    order.
+17. **Mutation testing**: of the second round's mutants, nine survived the gate as it was, and
+    each is now killed: forward substitution dropped from `gross_services` by
+    `m2::gross_services_many_types` (K = 1 never exercised it); φ_w through type 0's pivot
+    by `m7::phi_when_the_technique_is_not_type_0`; a type's φ_w through the clearing totals
+    by `m7::type_phi_with_interest` and by `m1::every_1b_golden_instance_is_bit_identical`,
+    which now runs `check_identities_1c` on 1a's 27 instances (G4's at u = 1 with ρ > 0);
+    the tie's γ and techniques from the first switch, and each switch's `below` from the first
+    technique, by `m7::two_switches_and_a_tie_at_the_second` (no test had two switches; 1829
+    of the gate's solves had none and 677 one) and the three-type envelope in `m2::envelope`;
+    the productivity rule on A^I alone by `m7::validation`'s 0.6 + 0.6; and an exact zero at a
+    switch point taken as the lower end or as positive by
+    `m7::exact_zeros_at_the_ends_of_a_region`. The equivalent mutant is item 12's. Eight
+    mutants of the fix's count: six are killed (the boundary from f(1) alone, by
+    `m5::an_equilibrium_behind_the_boundary_is_refused`; f(1) = 0 on the negative side, either
+    corner dropped, the corners swapped, the change's index unshifted), and two survive,
+    each equivalent on every economy the gate can build: `NoInteriorAtZero` returned without
+    the count, which differs only where a positive value follows f(lo) ≤ 0, excluded by §5.5
+    up to terms of order `BRACKET_LO`; and the count run without a switch, which differs from
+    1a's order only where f(lo) ≤ 0 ≤ f(1), excluded likewise, or where f(lo) is not finite
+    after f(1) ≥ 0.
+18. **Tests added**: `m2::gross_services_many_types`,
+    `m5::an_equilibrium_behind_the_boundary_is_refused`,
+    `m7::exact_zeros_at_the_ends_of_a_region`,
+    `m7::an_unused_type_that_cannot_be_priced_is_not_viable`,
+    `m7::two_switches_and_a_tie_at_the_second`, `m7::phi_when_the_technique_is_not_type_0` and
+    `m7::type_phi_with_interest`; and within tests that were there, the two-switch envelope in
+    `m2::envelope`, the sum rule in `m7::validation`, the identities on 1a's 27 instances in
+    `m1`, and in `m6::root_and_regions` the count with corners (`support_1c::check_regions`
+    now counts them, so every regime but `MultipleEquilibria` shows exactly one). The package
+    has 242 tests: 57 unit, 184 gate and 1 doc.

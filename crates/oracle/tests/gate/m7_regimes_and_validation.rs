@@ -54,6 +54,88 @@ fn regimes() {
     assert!(matches!(e.solve(), Ok(Regime::NotViable { d_at_1 }) if d_at_1 <= 0.0));
 }
 
+#[test]
+fn exact_zeros_at_the_ends_of_a_region() {
+    // docs/unit-1c.md §5.3 step 3 with a switch, at exact f64 zeros. M4 with χ_max 0.01, so
+    // that F = 1 wherever the real wage is above 1%: n_S = N·1.0 = N exactly, and N = n_D at a
+    // point makes f exactly 0.0 there. The switch lowers labour demand at both ρ.
+    for rho in [0.0, 0.04] {
+        let base = MachineParams {
+            rho,
+            work_cost: oracle::UniformWorkCost { chi_max: 0.01 },
+            ..m4(1.0)
+        };
+        let e = economy_1c(base.clone());
+        let x1 = e.switch_points().unwrap()[0];
+        let s = e.envelope().switches[0];
+        assert_eq!((s.below, s.above), (0, 1));
+        let (lo, loom, engine, one) = (
+            e.at_with(oracle::BRACKET_LO, 0),
+            e.at_with(x1, 0),
+            e.at_with(x1, 1),
+            e.at_with(1.0, 1),
+        );
+        for q in [&lo, &loom, &engine, &one] {
+            assert_eq!(q.n_s, base.workers, "F = 1 at x = {}", q.x);
+        }
+        assert!(lo.n_d > loom.n_d && loom.n_d > engine.n_d && engine.n_d > one.n_d);
+        let with = |workers: f64| {
+            economy_1c(MachineParams {
+                workers,
+                ..base.clone()
+            })
+        };
+        // f_0(x_1) = 0: the loom's root is the switch point itself (1a's Root::exact), not a
+        // tie: a value is on the positive side when > 0.
+        let e = with(loom.n_d);
+        match e.solve() {
+            Ok(Regime::Interior(eq)) => {
+                assert_eq!(
+                    (eq.x_star, eq.technique, eq.tie),
+                    (x1, 0, None),
+                    "rho {rho}"
+                );
+                assert_eq!(eq.bisection_steps, 0);
+                assert_eq!(eq.one_minus_x_star, 1.0 - x1);
+                check_identities_1c(&e, &eq);
+            }
+            other => panic!("rho {rho}: expected a root at x_1, got {other:?}"),
+        }
+        // f_1(x_1) = 0: the change of side is across the switch, a tie, and the engine clears
+        // labour alone there: σ = 1.
+        let e = with(engine.n_d);
+        match e.solve() {
+            Ok(Regime::Interior(eq)) => {
+                assert_eq!((eq.x_star, eq.technique), (x1, 0), "rho {rho}");
+                let tie = eq.tie.expect("a tie");
+                assert_eq!((tie.above, tie.share, tie.gamma), (1, 1.0, s.gamma));
+                check_identities_1c(&e, &eq);
+            }
+            other => panic!("rho {rho}: expected a tie at x_1, got {other:?}"),
+        }
+        // f(1) = 0 with a switch below: BoundaryNoMargin, as 1a's f(1) = 0 is; every other
+        // value of the sequence is positive.
+        let e = with(one.n_d);
+        assert_eq!(
+            e.solve(),
+            Ok(Regime::BoundaryNoMargin { f_at_1: 0.0 }),
+            "rho {rho}"
+        );
+        assert_eq!(check_regions(&e), 1);
+        // f(lo) = 0 with a switch above: NoInteriorAtZero; every other value is negative.
+        let e = with(lo.n_d);
+        assert_eq!(
+            e.solve(),
+            Ok(Regime::NoInteriorAtZero { f_at_0: 0.0 }),
+            "rho {rho}"
+        );
+        assert_eq!(check_regions(&e), 1);
+        // A boundary economy with a switch and no change of side inside: BoundaryNoMargin.
+        let e = with(0.5 * one.n_d);
+        assert!(matches!(e.solve(), Ok(Regime::BoundaryNoMargin { f_at_1 }) if f_at_1 > 0.0));
+    }
+}
+
 /// Asserts that `params` is rejected with an error whose innermost name is `name`, inside the
 /// item `item` (kind and index) when given.
 fn rejected(what: &str, params: MachineParams, item: Option<(&str, usize)>, name: &str) {
@@ -184,6 +266,17 @@ fn validation() {
         None,
         "machine types",
     );
+    // The rule is on the sum A^op + A^I: 0.6 of the loom's own service to operate and 0.6 to
+    // build is 1.2, though each recipe alone is productive, and so is A^q = 0.6 + 0.1·0.6.
+    rejected(
+        "not productive as a sum",
+        with_type(0, &|t| {
+            t.operating.machines[0] = 0.6;
+            t.build.machines[0] = 0.6;
+        }),
+        None,
+        "machine types",
+    );
     // The chain to land: a type with no land that uses only another landless type.
     let landless = |uses: usize| {
         let mut row = vec![0.0; 3];
@@ -296,7 +389,9 @@ fn append(mut params: MachineParams, t: MachineType) -> MachineParams {
 
 #[test]
 fn unused_type_changes_nothing() {
-    // A θ = 0 type that nobody uses, added last, leaves every other output bit for bit.
+    // A θ = 0 type that nobody uses, added last, leaves every other output bit for bit, when
+    // the addition keeps I − Â a nonsingular M-matrix; one whose price recursion diverges makes
+    // the economy NotViable (an_unused_type_that_cannot_be_priced_is_not_viable).
     for (what, params) in [
         ("M4", m4(1.0)),
         (
@@ -659,4 +754,188 @@ fn envelope_edge_cases() {
         economy_1c(single).solve(),
         Ok(Regime::NotViable { .. })
     ));
+}
+
+#[test]
+fn an_unused_type_that_cannot_be_priced_is_not_viable() {
+    // A recorded departure from SSRN A.1 (docs/unit-1c.md §11 question 9, §12 item 15). M3 at
+    // ρ 0.05 is interior. Add a type built from 0.3 of its own service with δ 1 and J 30: its u
+    // is 1.05^30 = 4.32, so u·a^I = 1.30 and its price recursion diverges, though the
+    // physical recipes are productive (ρ(A^op + A^I) = 0.5). Nobody needs it: SSRN A.1 would
+    // leave it unused, its unit cost above any price, and M3's equilibrium would stand. 1c
+    // requires every type priced, I − Â a nonsingular M-matrix, and returns NotViable, as a
+    // power type and as a task type.
+    let base = m3(0.05);
+    let eq = interior_1c(base.clone());
+    let divergent = |theta: f64| {
+        machine_type(
+            theta,
+            Recipe::zero(2),
+            recipe(&[0.0, 0.3], 0.1, 0.5),
+            1.0,
+            30,
+        )
+    };
+    for theta in [0.0, 1.0] {
+        let params = append(base.clone(), divergent(theta));
+        let e = economy_1c(params);
+        let u = e.block().user_costs()[1];
+        assert!(u * 0.3 > 1.0, "{u}");
+        assert!(e.block().totals().lambda_tilde.is_none());
+        // M3's type is viable on its own at x = 1 and at M3's x*.
+        let alone = economy_1c(base.clone());
+        assert!(alone.at_with(1.0, 0).d > 0.0 && alone.at_with(eq.x_star, 0).d > 0.0);
+        match e.solve() {
+            Ok(Regime::NotViable { d_at_1 }) => {
+                assert!(d_at_1 < 0.0, "theta {theta}: {d_at_1}");
+                assert_eq!(d_at_1.to_bits(), e.at_with(1.0, 0).d.to_bits());
+            }
+            other => panic!("theta {theta}: expected NotViable, got {other:?}"),
+        }
+    }
+}
+
+/// A flow task type over K types, θ 1, with machine inputs to operate.
+fn flow_using(machines: &[f64], labor: f64, land: f64) -> MachineType {
+    machine_type(
+        1.0,
+        recipe(machines, labor, land),
+        Recipe::zero(machines.len()),
+        1.0,
+        1,
+    )
+}
+
+#[test]
+fn two_switches_and_a_tie_at_the_second() {
+    // Three flow task types at ρ = 0 (λ̃ = λ and b̃ = b exactly) whose closure wages cross in
+    // sequence on γ = 1 + 2x: X (λ 0.6, b 0.05) to A (0.3, 0.2) at γ = 0.15/0.105 = 1.43, then A
+    // to B (0.05, 0.6) at 0.4/0.17 = 2.35 (X and B cross at 1.54, after X has left). The
+    // envelope, the switch points, a tie at the second switch and a root above it
+    // (docs/unit-1c.md §4.3, §5.2 step 3 repeated, §5.3 step 2 on [x_1, 1], §4.7 at switch 2).
+    let types = vec![flow(3, 0.6, 0.05), flow(3, 0.3, 0.2), flow(3, 0.05, 0.6)];
+    let base = appendix_b_household(linear(1.0, 1.0, 2.0), 0.0, 1.0, types);
+    let e = economy_1c(base.clone());
+    let env = e.envelope().clone();
+    assert_eq!(env.first, 0);
+    assert_eq!(env.switches.len(), 2, "{env:?}");
+    assert_eq!((env.switches[0].below, env.switches[0].above), (0, 1));
+    assert_eq!((env.switches[1].below, env.switches[1].above), (1, 2));
+    let crossing = |a: (f64, f64), b: (f64, f64)| (b.1 - a.1) / (b.1 * a.0 - a.1 * b.0);
+    let (x, a, b) = ((0.6, 0.05), (0.3, 0.2), (0.05, 0.6));
+    assert_eq!(env.switches[0].gamma.to_bits(), crossing(x, a).to_bits());
+    assert_eq!(env.switches[1].gamma.to_bits(), crossing(a, b).to_bits());
+    assert!(crossing(x, b) > env.switches[0].gamma && crossing(x, b) < env.switches[1].gamma);
+    // Each switch point is the largest double below its γ_i, and near the closed form's x.
+    let points = e.switch_points().unwrap();
+    for (i, s) in env.switches.iter().enumerate() {
+        let gamma = |x: f64| oracle::Schedule::gamma(&base.schedule, x);
+        assert!(gamma(points[i]) < s.gamma && gamma(points[i].next_up()) >= s.gamma);
+        near("x_i", points[i], (s.gamma - 1.0) / 2.0, 4.0 * f64::EPSILON);
+    }
+    for w in points.windows(2) {
+        assert!(w[0] < w[1]);
+    }
+    let x2 = points[1];
+    assert_eq!(e.technique_at(x2), 1);
+    assert_eq!(e.technique_at(x2.next_up()), 2);
+    let (under_a, under_b) = (e.at_with(x2, 1), e.at_with(x2, 2));
+    assert!(
+        under_b.n_d < under_a.n_d,
+        "the switch lowers labour demand at ρ = 0"
+    );
+    let per_worker = under_a.n_s / base.workers;
+    // The tie: n_S at x_2 midway between the two one-sided n_D.
+    let tie_params = MachineParams {
+        workers: 0.5 * (under_a.n_d + under_b.n_d) / per_worker,
+        ..base.clone()
+    };
+    let et = economy_1c(tie_params.clone());
+    let eq = interior_1c(tie_params);
+    let tie = eq.tie.expect("a tie at the second switch");
+    assert_eq!((eq.technique, tie.above), (1, 2));
+    assert_eq!(tie.gamma, env.switches[1].gamma);
+    assert!(tie.share > 0.0 && tie.share < 1.0);
+    assert_eq!(eq.x_star, x2);
+    assert_eq!(eq.switches.len(), 2);
+    for (i, w) in eq.switches.iter().enumerate() {
+        let s = env.switches[i];
+        assert_eq!(
+            (w.gamma, w.x, w.below, w.above),
+            (s.gamma, points[i], s.below, s.above)
+        );
+    }
+    assert_eq!(eq.types[0].services, 0.0);
+    assert!(eq.types[1].task_services > 0.0 && eq.types[2].task_services > 0.0);
+    check_identities_1c(&et, &eq);
+    check_fork_and_bounds_1c(&et, &eq);
+    // A root in region 2, with fewer workers.
+    let root_params = MachineParams {
+        workers: 0.9 * under_b.n_d / per_worker,
+        ..base
+    };
+    let er = economy_1c(root_params.clone());
+    let eq = interior_1c(root_params);
+    assert_eq!((eq.technique, eq.tie), (2, None));
+    assert!(eq.x_star > x2);
+    assert_root_1c(&er, eq.x_star, 2);
+    assert_eq!(check_regions(&er), 1);
+    check_identities_1c(&er, &eq);
+}
+
+#[test]
+fn phi_when_the_technique_is_not_type_0() {
+    // docs/unit-1c.md §4.8: φ_w = γλ̃_τ/θ_τ, from the numerator and pivot of λ̃_τ's back
+    // substitution. Two flow types at ρ = 0 (every u = 1); type 0 uses 0.2 of its own service,
+    // so its pivot is 0.8 and type 1's is 1: the technique at x* is type 1.
+    let params = MachineParams {
+        workers: PHI_TECHNIQUE_1_WORKERS,
+        ..appendix_b_household(
+            linear(1.0, 1.0, 2.0),
+            0.0,
+            1.0,
+            vec![
+                flow_using(&[0.2, 0.0], 0.4, 0.1),
+                flow_using(&[0.0, 0.0], 0.05, 0.5),
+            ],
+        )
+    };
+    let e = economy_1c(params.clone());
+    let eq = interior_1c(params);
+    assert_eq!((eq.technique, eq.tie), (1, None));
+    let phi = eq.phi_w.expect("every u = 1");
+    close("phi_w", phi, eq.gamma_star * eq.types[1].lambda_tilde);
+    assert!((phi - eq.gamma_star * eq.types[0].lambda_tilde).abs() > 1e-3);
+    check_identities_1c(&e, &eq);
+}
+
+/// N for `phi_when_the_technique_is_not_type_0`: its equilibrium lies above the switch.
+const PHI_TECHNIQUE_1_WORKERS: f64 = 2.0;
+
+#[test]
+fn type_phi_with_interest() {
+    // Each type's φ_w = vλ̃_k/p_k, on the price side, where u_k = 1. With ρ = δ = 0.5 and J = 1,
+    // u = (ρ + δ)(1 + ρ)^0 = 1 exactly while δ = 0.5: the price and clearing totals differ.
+    // M2's recipes on γ = 0.2 + 0.8x.
+    let m = machine_type(
+        1.0,
+        recipe(&[0.5], 0.1, 0.2),
+        recipe(&[0.1], 0.2, 0.02),
+        0.5,
+        1,
+    );
+    let params = appendix_b_household(linear(1.0, 0.2, 0.8), 0.5, 1.0, vec![m]);
+    let e = economy_1c(params.clone());
+    assert_eq!(e.block().user_costs()[0], 1.0);
+    let eq = interior_1c(params);
+    let t = &eq.types[0];
+    assert!(t.lambda_tilde > 1.01 * t.lambda_tilde_q);
+    close(
+        "type phi_w",
+        t.phi_w.expect("u = 1"),
+        eq.v * t.lambda_tilde / t.price,
+    );
+    assert!(eq.interest > 0.0);
+    check_identities_1c(&e, &eq);
+    check_fork_and_bounds_1c(&e, &eq);
 }

@@ -461,7 +461,9 @@ fn residuals_recompute() {
 #[test]
 fn root_and_regions() {
     // x* is the double where f under the technique changes sign, or the tie's switch point;
-    // f is nonincreasing in each region; the sign-change count is the regime (§5.3, §5.5).
+    // f is nonincreasing in each region; the sign-change count is the regime (§5.3, §5.5),
+    // for boundary regimes with a switch too.
+    let mut boundaries_with_switches = 0;
     for (samples, _) in all_sets() {
         for s in &samples {
             // Beyond the viability edge the regions' prices mean nothing (1a's convention).
@@ -481,11 +483,20 @@ fn root_and_regions() {
                     assert_eq!(changes, *sign_changes);
                     assert!(changes >= 3 && changes % 2 == 1);
                 }
-                Ok(_) => assert_eq!(changes, 0),
+                // A boundary regime's one equilibrium is its corner: no change of side inside
+                // the bracket (docs/unit-1c.md §5.3 step 3).
+                Ok(_) => {
+                    assert_eq!(changes, 1, "{:?}", s.economy.params());
+                    if !s.economy.envelope().switches.is_empty() {
+                        boundaries_with_switches += 1;
+                    }
+                }
                 Err(e) => panic!("{e}"),
             }
         }
     }
+    assert!(boundaries_with_switches > 0);
+    eprintln!("boundary regimes with a switch: {boundaries_with_switches}");
 }
 
 #[test]

@@ -2,7 +2,7 @@
 //! see ρ against a durable type whose user cost rises steeply with it; uniqueness at ρ = 0;
 //! and the refusal of multiple equilibria (M5m).
 
-use oracle::{MachineParams, SolveError};
+use oracle::{MachineParams, Recipe, SolveError, UniformWorkCost};
 
 use crate::goldens_1c::*;
 use crate::support::*;
@@ -150,11 +150,10 @@ fn rho_zero_is_unique() {
             assert!(above.n_d < below.n_d, "{params:?}");
             switches += 1;
         }
-        // One change of side, or none when the economy is on a boundary.
+        // One equilibrium: a root, a tie or a boundary regime's corner.
         let changes = check_regions(&e);
         match e.solve() {
-            Ok(oracle::Regime::Interior(_)) => assert_eq!(changes, 1, "{params:?}"),
-            Ok(_) => assert_eq!(changes, 0, "{params:?}"),
+            Ok(_) => assert_eq!(changes, 1, "{params:?}"),
             Err(error) => panic!("{params:?}: {error}"),
         }
     }
@@ -229,4 +228,76 @@ fn multiple_equilibria_are_refused() {
         text.contains("3 times") && text.contains("more than one equilibrium"),
         "{text}"
     );
+    assert!(!text.contains("  "), "{text}");
+}
+
+/// H1 and H4 of the second verification (2026-09-27; docs/unit-1c.md §12 item 14): the good and
+/// space (h 0.05) on γ = 3(0.2 + 0.8x), N 15, ρ 0.1, and two task types: a flow type, operating
+/// (λ 0.3, land 1), δ 1, J 1; and a type run on labour (operating λ 0.25) and built from land
+/// (9), δ 0.01, J 3, whose u is far above its δ. Cheap above the switch on the price side, it
+/// uses little land per period, so labour demand jumps up there.
+fn hidden(chi_max: f64) -> MachineParams {
+    let flow = machine_type(1.0, recipe(&[0.0, 0.0], 0.3, 1.0), Recipe::zero(2), 1.0, 1);
+    let durable = machine_type(
+        1.0,
+        recipe(&[0.0, 0.0], 0.25, 0.0),
+        recipe(&[0.0, 0.0], 0.0, 9.0),
+        0.01,
+        3,
+    );
+    MachineParams {
+        workers: 15.0,
+        work_cost: UniformWorkCost { chi_max },
+        ..appendix_b_household(linear(3.0, 0.2, 0.8), 0.1, 0.05, vec![flow, durable])
+    }
+}
+
+#[test]
+fn an_equilibrium_behind_the_boundary_is_refused() {
+    // docs/unit-1c.md §5.3: f(1) ≥ 0 is BoundaryNoMargin only when the sign sequence has no
+    // change of side inside the bracket. Here f is +, −, +, + (f(lo), the flow type's f at the
+    // switch, the durable type's there, f(1)): a root below the switch, a tie on the upward
+    // jump, and the boundary. Three equilibria, refused; before 2026-09-27 the solve returned
+    // BoundaryNoMargin from f(1) alone.
+    for chi_max in [1.0, 0.01] {
+        let e = economy_1c(hidden(chi_max));
+        let env = e.envelope();
+        assert_eq!((env.first, env.switches.len(), env.last()), (0, 1, 1));
+        let x_sw = e.switch_points().unwrap()[0];
+        let f = |x: f64, t: usize| e.at_with(x, t).excess_demand();
+        let (lo, flow_at, durable_at, one) =
+            (f(oracle::BRACKET_LO, 0), f(x_sw, 0), f(x_sw, 1), f(1.0, 1));
+        assert!(
+            lo > 0.0 && flow_at < 0.0 && durable_at > 0.0 && one > 0.0,
+            "chi_max {chi_max}: {lo} {flow_at} {durable_at} {one}"
+        );
+        match e.solve() {
+            Err(SolveError::MultipleEquilibria {
+                sign_changes,
+                switches,
+            }) => {
+                assert_eq!(sign_changes, 3, "chi_max {chi_max}");
+                assert_eq!(switches, vec![x_sw]);
+            }
+            other => panic!("chi_max {chi_max}: expected MultipleEquilibria, got {other:?}"),
+        }
+        assert_eq!(check_regions(&e), 3);
+        // The root below the switch is an equilibrium: labour clears there to rounding.
+        let (mut a, mut b) = (oracle::BRACKET_LO, x_sw);
+        while a.next_up() < b {
+            let mid = 0.5 * (a + b);
+            if f(mid, 0) > 0.0 {
+                a = mid;
+            } else {
+                b = mid;
+            }
+        }
+        let q = e.at_with(a, 0);
+        assert!((q.n_d - q.n_s).abs() <= 1e-12 * q.n_d, "chi_max {chi_max}");
+        assert!(a > 0.3 && a < x_sw, "chi_max {chi_max}: {a}");
+    }
+    // At chi_max 1 the verification's 50-digit solve put the root at 0.471287190181555.
+    let e = economy_1c(hidden(1.0));
+    assert!(e.at_with(0.47128719018155, 0).excess_demand() > 0.0);
+    assert!(e.at_with(0.47128719018156, 0).excess_demand() < 0.0);
 }

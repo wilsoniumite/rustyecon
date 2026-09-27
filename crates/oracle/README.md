@@ -1,7 +1,7 @@
 # rustyecon-oracle
 
 Dated 2026-09-25; joined the workspace on 2026-09-26 (P1.1); unit 1b added on 2026-09-27
-(P1.2), and unit 1c the same day (P1.4).
+(P1.2), and unit 1c the same day (P1.4, verified in P1.5 and P1.6).
 
 The oracle is a static equilibrium solver for the pinning paper's economy (PLAN §3.4).
 It shares types but not logic with the agents, and no agent may read it (PLAN R13).
@@ -107,17 +107,22 @@ instances satisfying the Leontief identities":
   flow-only type is 1a's flow economy bit for bit at any (ρ, δ, J);
 - **m2**, the machine block alone: check_dynamics' sloped and flat targets (the price block
   and the quantities per unit of the good; the JSON's doubles within 2e-15), U1-U6, R1-R6,
-  S1-S6 and L1-L4, the closure per type, the Leontief totals and the envelope;
+  S1-S6 and L1-L4, the closure per type, the Leontief totals, the envelope (with two
+  switches in sequence) and the gross services of three types;
 - **m3**, check_dynamics' machine in Appendix B's closure, with and without interest: goldens,
   the income identity with interest, and its corners as 1a economies;
 - **m4**, three types (loom, engine, power) on 1b's fork economy with intermediate inputs:
   goldens, the automation path, the Leontief identities by multiplication, the fork through
   the chain, and the tie at the switch as N moves across it;
-- **m5**, interest selecting the technique, uniqueness at ρ = 0, and three equilibria refused;
+- **m5**, interest selecting the technique, uniqueness at ρ = 0, and three equilibria refused,
+  among them an economy with f(1) > 0 whose boundary hides a root and a tie;
 - **m6**, 240 random interior economies in four sets (ρ = 0, ρ > 0, with intermediate inputs,
   and a set built to switch mid-line, with ties and multiple equilibria);
-- **m7**, M4's regime rows, every validation rule, an unused type, a duplicate type,
-  permutation, unit rescaling (bit for bit at c = 4), and the envelope's edge cases;
+- **m7**, M4's regime rows and exact zeros at each end of a technique's region, every
+  validation rule, an unused type (and one that cannot be priced, which is `NotViable`), a
+  duplicate type, permutation, unit rescaling (bit for bit at c = 4), the envelope's edge
+  cases, two switches with a tie at the second, and φ where the technique is not type 0 and
+  where u = 1 with interest;
 - **m8**, `goldens_1c.txt`'s four digests and the Rust constants.
 
 The goldens are pinned to laborformal `31b3482`.
@@ -169,7 +174,8 @@ both. With unit 1b (P1.2, 2026-09-27) there are 169: 46 unit tests (42 + 4), 122
 tests (71 + 51) and 1 doc test; after its verification the same day, 173: 47 unit tests
 (42 + 5), 125 gate tests (71 + 54) and 1 doc test. With unit 1c (P1.4, 2026-09-27) there are
 232: 56 unit tests (47 + 9), 175 gate tests (125 + 50) and 1 doc test; after its verification
-the same day, 235: 57 unit tests, 177 gate tests and 1 doc test.
+the same day, 235: 57 unit tests, 177 gate tests and 1 doc test; after its second
+verification the same day, 242: 57 unit tests, 184 gate tests and 1 doc test.
 
 ## The dump example
 
@@ -304,7 +310,8 @@ steep (4.8e-13).
   ulp of 1. 1 − x* is carried separately, as `one_minus_x_star`, interpolated between
   the two doubles that bracket the root, and every output proportional to 1 − x*
   (final hours, N_a, participation, the labour share) uses it, so they keep full relative
-  precision however close x* is to 1.
+  precision however close x* is to 1. In unit 1c this holds for a root, not for a tie at a
+  switch near 1 (below).
 - In unit 1b only the top segment carries its offset. Within a distance d of an interior
   edge of the task line, an output made mostly of the sliver between x* and the edge is
   good to about 2^-53·x*/d relative (hours) or 2^-53·(x* + 2J(x*)/γ(x*))/d (machine
@@ -325,6 +332,20 @@ steep (4.8e-13).
 - A switch of the cheapest type is a closed-form γ_i; its point on the line is the largest
   double with γ(x) < γ_i, found by bisection, so γ is never inverted. γ_i carries the totals'
   rounding amplified by the cancellation in its numerator, up to 2.8e-14 on M5's switch.
+  x_i is good in absolute terms: near x = 0 its relative error grows (1.6e-12 at 0.0042).
+- A tie is evaluated at x_i, so every output carries γ_i's error through γ*: up to about
+  2e-13 relative on x*, v and the prices on the second verification's 432 ties (7.5e-13
+  near the viability edge). The split σ, and each type's services, builds, hours, land and
+  wealth, carry it amplified by |f'|·x*/|jump| (the excess demand's slope over the jump of
+  labour demand at the switch): up to 1.7e-10 there. A tie near x = 1 sets 1 − x* = 1.0 − x_i
+  without interpolation, so 1 − x* and the outputs proportional to it are good only to about
+  2^-53/(1 − x*) relative plus γ_i's error over γ'·(1 − x*): 3.2e-7 at a tie 1e-9 below 1
+  (docs/unit-1c.md §5.6).
+- With a switch of technique, a boundary regime is returned only when the excess demand
+  changes side nowhere inside the bracket: f(1) ≥ 0 with a root or a tie below is
+  `SolveError::MultipleEquilibria`, the boundary counted as one of them (docs/unit-1c.md
+  §5.3). In unit 1c `NotViable` also covers a type no technique would use whose price
+  recursion diverges (docs/unit-1c.md §12 item 15).
 - The power x^k, ln(1 + z) and the fused multiply-add come from `core::num`, that is from
   the `libm` crate, so the outputs do not depend on the platform (docs/unit-1a.md §8).
   On 2026-09-26, 5000 random economies (every regime, J_b up to 12) gave byte-identical
