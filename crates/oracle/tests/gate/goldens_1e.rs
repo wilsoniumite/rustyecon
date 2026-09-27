@@ -173,6 +173,24 @@ goldens! {
     Q3_F_BELOW: f64 = 3.2872279825595645849;
     /// goldens/generate_1e.py: f at the enclosure point, the type renting.
     Q3_F_ABOVE: f64 = -13.708372957346644944;
+    /// goldens/generate_1e.py: v, on the wall at the enclosure point.
+    Q6_V: f64 = 2.3703703703703703704;
+    /// goldens/generate_1e.py: P_s.
+    Q6_P_S: f64 = 1.6666666666666666667;
+    /// goldens/generate_1e.py: Y = T_m/B^q.
+    Q6_Y: f64 = 64.221606267381293639;
+    /// goldens/generate_1e.py: N_a, hours worked.
+    Q6_N_A: f64 = 4.1285318314745117339;
+    /// goldens/generate_1e.py: coverage kappa = q T/(N (1 + q)).
+    Q6_KAPPA: f64 = 4.2857142857142857143;
+    /// goldens/generate_1e.py: enclosed land in rented plots.
+    Q6_T_P: f64 = 2.7501390808226124895;
+    /// goldens/generate_1e.py: psi, the renting share of exiters at the enclosure tie on the wall.
+    Q6_SHARE: f64 = 0.27859473726423449519;
+    /// goldens/generate_1e.py: f at the wall's enclosure point, the type on its floor.
+    Q6_F_BELOW: f64 = 0.11675118739341279437;
+    /// goldens/generate_1e.py: f at the wall's enclosure point, the type renting.
+    Q6_F_ABOVE: f64 = -0.30232057447795227353;
 
     // K: the commons, G1's economy with exit (0.5, 0, 0.1) (docs/unit-1e.md section 3.3)
     /// goldens/generate_1e.py: x*.
@@ -357,6 +375,20 @@ goldens! {
     I4_EXIT_VALUE: f64 = 0.25714285714285714286;
     /// goldens/generate_1e.py: NoMarket: I4 with exit (2, 0, 0.5), f at the end of the wall.
     I5_F_END: f64 = 3.0638297872340425532;
+
+    // L: an exit good made of land alone, free at r = 0 (docs/unit-1e.md section 12 item 16)
+    /// goldens/generate_1e.py: v, on the wall.
+    L1_V: f64 = 10.086350438305713002;
+    /// goldens/generate_1e.py: P_s.
+    L1_P_S: f64 = 6.5301230825572238297;
+    /// goldens/generate_1e.py: Y.
+    L1_Y: f64 = 2.3972602739726027397;
+    /// goldens/generate_1e.py: N_a.
+    L1_N_A: f64 = 1.2328767123287671233;
+    /// goldens/generate_1e.py: enclosed land in rented plots.
+    L1_T_P: f64 = 6.7808219178082191781;
+    /// goldens/generate_1e.py: f_inf with the plots on idle land: the wall's limit.
+    L1_F_END: f64 = -0.17612887491407710185;
 
     // T: two priced types share a commons (docs/unit-1e.md section 3.3)
     /// goldens/generate_1e.py: x*.

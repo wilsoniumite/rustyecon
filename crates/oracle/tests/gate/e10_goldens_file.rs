@@ -74,7 +74,7 @@ fn constants_match_goldens_1e_txt() {
             "{name} is in goldens_1e.txt but not in goldens_1e.rs"
         );
     }
-    assert_eq!(TABLE_1E.len(), 208);
+    assert_eq!(TABLE_1E.len(), 223);
 }
 
 #[test]

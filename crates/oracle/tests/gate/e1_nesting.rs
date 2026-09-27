@@ -285,12 +285,20 @@ fn random_economies_are_bit_identical() {
             count(&n);
         }
     }
-    // The kinds the draws hold; the tallies of 2026-09-27 are in docs/unit-1e.md §12.
-    for key in ["Same", "Idle", "NotViable", "Multiple"] {
-        assert!(tally.contains_key(key), "no {key}: {tally:?}");
-    }
-    assert!(tally.get("Ceiling").copied().unwrap_or(0) <= 1, "{tally:?}");
+    // The tallies of docs/unit-1e.md §12 item 11, exactly: the draws are fixed by their seeds.
     println!("e1 random tallies: {tally:?}");
+    let want = [
+        ("Ceiling", 1),
+        ("Idle", 222),
+        ("Multiple", 7),
+        ("NotViable", 21),
+        ("Same", 1172),
+    ];
+    assert_eq!(
+        tally,
+        want.into_iter().map(|(k, n)| (k.to_string(), n)).collect(),
+        "the tallies of §12 item 11"
+    );
 }
 
 #[test]
@@ -458,4 +466,81 @@ fn a_dead_exit_is_dependence() {
     p.exits = vec![priced(1.0, 0.1, 1.0)];
     let other = solved_1e(p);
     assert!(other.base.n_a < d.base.n_a);
+}
+
+#[test]
+fn a_floor_without_a_plot_is_priced() {
+    // An exit (0, 0.5, 0.1) takes no plot (s₀ < s̲), but it is not the exit option switched off
+    // (s₀ = s̲ = 0): every exiter has e = p_g·s̲. In G1 that is K1's exit value, 0.5 goods on a
+    // free commons plot, so the equilibrium is K1's and not G1's.
+    let mut p = goodspace_1e(4.0, 10.0, 1.0, 0.05, 1.0);
+    p.exits = vec![priced(0.0, 0.5, 0.1)];
+    let (e, eq) = checked_1e(p);
+    assert!(e.plot_takers().is_empty());
+    let w = &eq.workers[0];
+    assert_eq!(
+        (w.branch, w.exit_goods, w.plot_land),
+        (Branch::Floor, 0.5, 0.0)
+    );
+    assert_eq!(w.exit_value.to_bits(), (eq.exit_good_price * 0.5).to_bits());
+    assert!(w.exit_value > 0.0);
+    let b = &eq.base;
+    for (name, got, want) in [
+        ("x*", b.x_star, K1_X_STAR),
+        ("v", b.v, K1_V),
+        ("P_s", b.p_s, K1_P_S),
+        ("participation", b.participation, K1_PARTICIPATION),
+    ] {
+        close_to(&format!("K1's {name}"), got, want, 1e-14);
+    }
+    let g1 = solved_1e(e0(goodspace(4.0, 0.05, 1.0)));
+    assert!(b.x_star > g1.base.x_star && b.participation < g1.base.participation);
+}
+
+#[test]
+fn the_exit_good_is_any_category() {
+    // In an economy without exit values the exit good changes nothing but p_g and q, which are
+    // its price and r over it (at r = 0 the limit at the wall's end: space is free there, and
+    // q = 1/b̃_space = 1 at W2's idle equilibrium); check_identities_1e pins both.
+    let mut n = 0;
+    for (what, params) in [
+        ("G1", goodspace(4.0, 0.05, 1.0)),
+        ("W2", goodspace(0.25, 0.05, 1.0)),
+        ("B1", baumol_one(1.0, 8.0, 0.25)),
+    ] {
+        let base = solved_1e(e0(params.clone()));
+        for good in 1..params.categories.len() {
+            for exit in [None, Some(priced(0.0, 0.0, 1.0))] {
+                let mut p = e0(params.clone());
+                p.exit_good = good;
+                if let Some(x) = exit {
+                    p.exits = vec![x; p.worker_types.len()];
+                }
+                let (_, eq) = checked_1e(p);
+                assert_eq!(
+                    eq.exit_good_price.to_bits(),
+                    eq.base.categories[good].price.to_bits(),
+                    "{what} {good}"
+                );
+                let (a, b) = (bits_1e(&base), bits_1e(&eq));
+                for (key, bits) in &a {
+                    if !matches!(key.as_str(), "exit_good_price" | "q") && !key.ends_with(".branch")
+                    {
+                        assert_eq!(Some(bits), b.get(key), "{what} {good}: {key}");
+                    }
+                }
+                n += 1;
+            }
+        }
+    }
+    assert_eq!(n, 2 * (1 + 1 + 2));
+    let w2 = {
+        let mut p = e0(goodspace(0.25, 0.05, 1.0));
+        p.exit_good = 1;
+        solved_1e(p)
+    };
+    assert_eq!(
+        (w2.land_market, w2.exit_good_price, w2.q),
+        (LandMarket::Idle, 0.0, 1.0)
+    );
 }

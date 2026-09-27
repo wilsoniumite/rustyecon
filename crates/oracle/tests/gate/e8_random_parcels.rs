@@ -1,6 +1,6 @@
 //! e8: random economies (docs/unit-1e.md §8): §4.8's identities, the residuals, the count
-//! against a scan 16 times finer, Lemma 5's sign, and the regimes, on six sets drawn with
-//! SplitMix64 from seeds 941 to 946 (1d's were 931-935).
+//! against a scan 16 times finer, Lemma 5's sign, and the regimes, on eight sets drawn with
+//! SplitMix64 from seeds 941 to 948 (1d's were 931-935).
 
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
@@ -33,9 +33,26 @@ enum Set {
     Certified,
     /// (f) enclosure ties: N set so that the equilibrium lies in an enclosure point's jump.
     Ties,
+    /// (g) as (a), with the exit good drawn among the categories, the land-only site included
+    /// (docs/unit-1e.md §12 item 12).
+    Goods,
+    /// (h) as (f), on (g)'s draws.
+    GoodTies,
 }
 
-/// The first seed; the sets take 941 to 946.
+/// Every set, in seed order.
+const SETS: [Set; 8] = [
+    Set::One,
+    Set::Types,
+    Set::Interest,
+    Set::Reserved,
+    Set::Certified,
+    Set::Ties,
+    Set::Goods,
+    Set::GoodTies,
+];
+
+/// The first seed; the sets take 941 to 948.
 const SEED_1E: u64 = 941;
 
 /// Equilibria wanted per set.
@@ -211,6 +228,11 @@ fn draw(rng: &mut SplitMix64, set: Set) -> ParcelParams {
             categories[0].direct_land = rng.uniform(1.0, 2.0) * x.plot / x.gross;
         }
     }
+    let exit_good = if set == Set::Goods {
+        (rng.next_u64() % c as u64) as usize
+    } else {
+        0
+    };
     // The parcels.
     let mut parcels = vec![enclosed(rng.uniform(2.0, 12.0), 1.0)];
     if chance(rng, 0.5) {
@@ -231,14 +253,15 @@ fn draw(rng: &mut SplitMix64, set: Set) -> ParcelParams {
         reserved: vec![vec![0.0; kinds]; c],
         worker_types,
         exits,
-        exit_good: 0,
+        exit_good,
     }
 }
 
-/// Set (f): a set (a) draw with N set between the two values of its first enclosure point's
-/// zero crossings, so that the equilibrium lies in the jump; `None` when it has no point.
-fn draw_tie(rng: &mut SplitMix64) -> Option<ParcelParams> {
-    let params = draw(rng, Set::One);
+/// Sets (f) and (h): a set (a) or (g) draw with N set between the two values of its first
+/// enclosure point's zero crossings, so that the equilibrium lies in the jump; `None` when it
+/// has no point.
+fn draw_tie(rng: &mut SplitMix64, set: Set) -> Option<ParcelParams> {
+    let params = draw(rng, set);
     let economy = ParcelEconomy::new(params.clone()).ok()?;
     let point = *economy.enclosure_points().ok()?.first()?;
     let (land, commons) = (economy.enclosed_land(), economy.commons());
@@ -302,7 +325,7 @@ fn label(result: &Result<Regime<Eq1e>, SolveError>) -> Vec<String> {
             let mut out = vec![
                 format!("{:?}", eq.base.margin),
                 format!("{:?}", eq.land_market),
-                format!("{:?}", eq.exit_land),
+                format!("exit {:?}", eq.exit_land),
             ];
             if eq.enclosure.is_some() {
                 out.push(format!("tie {:?}", eq.base.margin));
@@ -347,7 +370,14 @@ fn sample(set: Set, seed: u64) -> (Vec<Sample>, Tally) {
                 Some(s) => e0(s.economy.params().clone()),
                 None => break,
             },
-            Set::Ties => match draw_tie(&mut rng) {
+            Set::Ties | Set::GoodTies => match draw_tie(
+                &mut rng,
+                if set == Set::Ties {
+                    Set::One
+                } else {
+                    Set::Goods
+                },
+            ) {
                 Some(p) => p,
                 None => {
                     *tally.entry("no tie".to_string()).or_default() += 1;
@@ -390,20 +420,12 @@ fn sample(set: Set, seed: u64) -> (Vec<Sample>, Tally) {
 
 /// The six sets, drawn once for every test of this module.
 fn all_sets() -> &'static [(Vec<Sample>, Tally)] {
-    static SETS: OnceLock<Vec<(Vec<Sample>, Tally)>> = OnceLock::new();
-    SETS.get_or_init(|| {
-        [
-            Set::One,
-            Set::Types,
-            Set::Interest,
-            Set::Reserved,
-            Set::Certified,
-            Set::Ties,
-        ]
-        .into_iter()
-        .zip(SEED_1E..)
-        .map(|(set, seed)| sample(set, seed))
-        .collect()
+    static SAMPLES: OnceLock<Vec<(Vec<Sample>, Tally)>> = OnceLock::new();
+    SAMPLES.get_or_init(|| {
+        SETS.into_iter()
+            .zip(SEED_1E..)
+            .map(|(set, seed)| sample(set, seed))
+            .collect()
     })
 }
 
@@ -440,8 +462,8 @@ fn residuals_recompute() {
 #[test]
 fn count_against_a_fine_scan() {
     // §5.4-5.5: the count equals a scan 16 times finer, or the miss is recorded (none on these
-    // draws); in set (e) f is nonincreasing on the scan and the equilibrium unique.
-    let mut compared = 0;
+    // draws); in set (e) f is nonincreasing along the path and the equilibrium unique.
+    let (mut compared, mut monotone) = (0, 0);
     for (samples, _) in all_sets() {
         for s in samples.iter().take(30) {
             if s.economy.plot_takers().is_empty() {
@@ -463,11 +485,76 @@ fn count_against_a_fine_scan() {
                     s.result,
                     Err(SolveError::MultipleEquilibria { .. })
                 ));
+                // a viable economy's f is nonincreasing along the whole path (§5.4)
+                let f = match s.result {
+                    Ok(Regime::NotViable { .. }) => Vec::new(),
+                    _ => path_values(&s.economy, 64),
+                };
+                for (k, w) in f.windows(2).enumerate() {
+                    assert!(
+                        w[1] <= w[0] + 1e-12 * w[0].abs().max(1.0),
+                        "set (e): f rises at {k} of the path: {w:?}"
+                    );
+                }
+                monotone += usize::from(!f.is_empty());
             }
             compared += 1;
         }
     }
-    assert!(compared >= 100, "{compared}");
+    assert!(compared >= 100 && monotone >= 25, "{compared} {monotone}");
+}
+
+/// f along the whole path of a priced economy in path order (docs/unit-1e.md §5.3 step 2), `n`
+/// points per piece: the all-human corner in v, each region of the line in x (both values at a
+/// switch), each piece of the wall in v under its technique (both values at a wall switch),
+/// the last piece to a million times its start, and the idle stretch in T_m from its start to
+/// 0. Where Proposition 5 certifies the economy f is nonincreasing along all of it (§5.4).
+fn path_values(e: &ParcelEconomy, n: usize) -> Vec<f64> {
+    let w = e.workers();
+    let env = w.machines().envelope();
+    let mut f = Vec::new();
+    let v0 = e.at_with(0.0, env.first).point.v;
+    for k in 1..=n {
+        let v = v0 * (k as f64 / n as f64);
+        f.push(e.at_wage(0.0, v, env.first).excess_demand());
+    }
+    let points = w.switch_points().unwrap();
+    let techniques: Vec<usize> = std::iter::once(env.first)
+        .chain(env.switches.iter().map(|s| s.above))
+        .collect();
+    let bounds: Vec<f64> = std::iter::once(0.0)
+        .chain(points.iter().copied())
+        .chain(std::iter::once(1.0))
+        .collect();
+    for (r, &t) in techniques.iter().enumerate() {
+        let (a, b) = (bounds[r], bounds[r + 1]);
+        for k in 0..=n {
+            f.push(
+                e.at_with(a + (b - a) * (k as f64 / n as f64), t)
+                    .excess_demand(),
+            );
+        }
+    }
+    let mut v_lo = e.at_with(1.0, env.last()).point.v;
+    let mut technique = env.last();
+    for sw in w.wall_switches() {
+        for k in 0..=n {
+            let v = v_lo + (sw.wage - v_lo) * (k as f64 / n as f64);
+            f.push(e.at_wage(1.0, v, technique).excess_demand());
+        }
+        technique = sw.above;
+        v_lo = sw.wage;
+    }
+    for k in 0..=n {
+        let v = v_lo * num::pow(1e6, k as f64 / n as f64);
+        f.push(e.at_wage(1.0, v, technique).excess_demand());
+    }
+    let start = e.enclosed_land() - e.at_idle(e.enclosed_land(), technique).rented_plots;
+    for k in 0..=n {
+        let t_m = start * (1.0 - k as f64 / n as f64);
+        f.push(e.at_idle(t_m, technique).excess_demand());
+    }
+    f
 }
 
 #[test]
@@ -525,36 +612,33 @@ fn supply_slope() {
 
 #[test]
 fn the_draws_cover_the_regimes() {
-    // Every exit-land regime, both land markets, every margin, enclosure ties, NoMarket and
-    // MultipleEquilibria (or recorded as absent in docs/unit-1e.md §12).
+    // Every exit-land regime (plots free on idle land among them), both land markets, every
+    // margin, enclosure ties on the line, the wall and the all-human corner, NoMarket and
+    // MultipleEquilibria; and in sets (g) and (h) exit goods other than category 0 on the wall,
+    // at enclosure ties, and free at r = 0 (docs/unit-1e.md §12 items 12 and 16).
     let mut all = Tally::new();
-    for (set, (_, tally)) in [
-        Set::One,
-        Set::Types,
-        Set::Interest,
-        Set::Reserved,
-        Set::Certified,
-        Set::Ties,
-    ]
-    .iter()
-    .zip(all_sets())
-    {
+    for (set, (_, tally)) in SETS.iter().zip(all_sets()) {
         println!("e8 {set:?}: {tally:?}");
         for (k, v) in tally {
             *all.entry(k.clone()).or_default() += v;
         }
     }
     for key in [
-        "Commons",
-        "Crowded",
-        "Enclosed",
-        "Unused",
+        "exit Unused",
+        "exit Commons",
+        "exit Crowded",
+        "exit Enclosed",
+        "exit Idle",
         "Scarce",
         "Idle",
         "Contestable",
         "Wall",
         "AllHuman",
         "tie Contestable",
+        "tie Wall",
+        "tie AllHuman",
+        "NoMarket",
+        "MultipleEquilibria",
     ] {
         assert!(all.contains_key(key), "no {key}: {all:?}");
     }
@@ -564,5 +648,25 @@ fn the_draws_cover_the_regimes() {
         .filter(|s| s.equilibrium().is_some_and(|eq| eq.enclosure.is_some()))
         .count();
     assert!(ties >= 40, "{ties}");
-    let _ = (ExitLand::Unused, LandMarket::Idle);
+    // the exit good elsewhere than category 0
+    let other = |set: usize, want: &dyn Fn(&Eq1e) -> bool| {
+        all_sets()[set]
+            .0
+            .iter()
+            .filter(|s| s.economy.params().exit_good != 0)
+            .filter(|s| s.equilibrium().is_some_and(want))
+            .count()
+    };
+    let on_the_wall = other(6, &|eq| eq.base.margin == Margin::Wall);
+    let at_ties = other(7, &|eq| eq.enclosure.is_some());
+    let wall_ties = other(7, &|eq| {
+        eq.enclosure.is_some() && eq.base.margin == Margin::Wall
+    });
+    let free = other(6, &|eq| {
+        eq.land_market == LandMarket::Idle && eq.exit_good_price == 0.0
+    });
+    println!("e8 other exit goods: {on_the_wall} on the wall, {at_ties} ties");
+    println!("e8 other exit goods: {wall_ties} ties on the wall, {free} free on idle land");
+    assert!(on_the_wall >= 5 && at_ties >= 20 && wall_ties >= 5 && free >= 1);
+    let _ = ExitLand::Unused;
 }

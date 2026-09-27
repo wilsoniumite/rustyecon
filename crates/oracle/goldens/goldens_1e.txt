@@ -4,12 +4,12 @@
 # Equations: docs/unit-1e.md section 4. laborformal references are at 31b3482.
 # The parcel form nests generate_1d.py's solves within 1.57e-71 (1e-65 asserted).
 # Lemma 5's sign checked at 292 points against a finite difference, 5 of them negative.
-# fnv1a64 generate_1e.py = a22033912d13267f
+# fnv1a64 generate_1e.py = 04760f5301d9cba1
 # fnv1a64 generate_1d.py = d686b5e68d108fe9
 # fnv1a64 generate_1c.py = c40f0a2b406dd67e
 # fnv1a64 generate_1b.py = 909520ffb1f41ee9
 # fnv1a64 generate.py = cf9d71a6ac25699d
-# fnv1a64 body = da10fc26de351b6b
+# fnv1a64 body = 0454cd8965ee888b
 
 # P: the exit value alone, check_pinning P3 and check_enclosure N-ii, N-iii, N-vi (docs/unit-1e.md section 4.2)
 P3_Q_ENC = 1.0  # check_pinning P3 (10, 4, 6): q_enc = (s0 - s_)/h = 1
@@ -88,6 +88,15 @@ Q2_F_ABOVE = -1.34156817452698594193597492416  # f at the enclosure point, the t
 Q3_SHARE = 0.193416401937341863726817939049  # psi, the renting share of exiters at the enclosure tie
 Q3_F_BELOW = 3.28722798255956458487583942876  # f at the enclosure point, the type on its floor
 Q3_F_ABOVE = -13.7083729573466449444127046966  # f at the enclosure point, the type renting
+Q6_V = 2.37037037037037037037037037037  # v, on the wall at the enclosure point
+Q6_P_S = 1.66666666666666666666666666667  # P_s
+Q6_Y = 64.2216062673812936389885416471  # Y = T_m/B^q
+Q6_N_A = 4.12853183147451173393497767731  # N_a, hours worked
+Q6_KAPPA = 4.28571428571428571428571428571  # coverage kappa = q T/(N (1 + q))
+Q6_T_P = 2.75013908082261248953163693446  # enclosed land in rented plots
+Q6_SHARE = 0.278594737264234495185560921404  # psi, the renting share of exiters at the enclosure tie on the wall
+Q6_F_BELOW = 0.116751187393412794366909115142  # f at the wall's enclosure point, the type on its floor
+Q6_F_ABOVE = -0.302320574477952273532077681576  # f at the wall's enclosure point, the type renting
 
 # K: the commons, G1's economy with exit (0.5, 0, 0.1) (docs/unit-1e.md section 3.3)
 K1_X_STAR = 0.920538442693758831900579930032  # x*
@@ -183,6 +192,14 @@ I4_PARTICIPATION = 0.224818349182597586652911142754  # participation
 I4_FIELDS_USED = 0.519795474635220986453648101471  # FIELDS' share of its 7.5 services used; HEATH idles
 I4_EXIT_VALUE = 0.257142857142857142857142857143  # e = p_g s0 in pool wages, the plot free
 I5_F_END = 3.0638297872340425531914893617  # NoMarket: I4 with exit (2, 0, 0.5), f at the end of the wall
+
+# L: an exit good made of land alone, free at r = 0 (docs/unit-1e.md section 12 item 16)
+L1_V = 10.0863504383057130022449342698  # v, on the wall
+L1_P_S = 6.53012308255722382972596619592  # P_s
+L1_Y = 2.39726027397260273972602739726  # Y
+L1_N_A = 1.23287671232876712328767123288  # N_a
+L1_T_P = 6.78082191780821917808219178082  # enclosed land in rented plots
+L1_F_END = -0.176128874914077101853776579376  # f_inf with the plots on idle land: the wall's limit
 
 # T: two priced types share a commons (docs/unit-1e.md section 3.3)
 T_X_STAR = 0.86506676292016438128241872887  # x*

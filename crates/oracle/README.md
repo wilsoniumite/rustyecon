@@ -3,7 +3,7 @@
 Dated 2026-09-25; joined the workspace on 2026-09-26 (P1.1). Units 1b and 1c were added on
 2026-09-27, on branch `phase1`: 1b at P1.2, verified at P1.3; 1c at P1.4, verified at P1.5
 and P1.6. Both were closed at P1.7, the same day. Unit 1d was added at P1.8 and verified at
-P1.9, and unit 1e at P1.10, the same day.
+P1.9, and unit 1e at P1.10, verified at P1.11, the same day.
 
 The oracle is a static equilibrium solver for the pinning paper's economy (PLAN §3.4).
 It shares types but not logic with the agents, and no agent may read it (PLAN R13).
@@ -43,20 +43,21 @@ It is built outward in units 1a-1f. This package holds five:
   type without human-required or reserved hours is 1c's equilibrium bit for bit.
 - **Unit 1e**: parcels, the idle margin and the priced exit. Land is cut into parcels of an
   acreage, a quality (land service per acre) and an access: enclosed parcels are rented on the
-  market, open ones are a commons, free to exit plots and closed to production. Each worker
-  type names its exit form: SSRN's dependence form (units 1a-1d), or main.tex's priced form
-  s(q) = max(s₀ − q·h, s̲) in units of one exit good, the default of the historical runs
-  (ADDENDUM ruling 3), both under SSRN eq 8 with the exit life's value. An exit plot takes h of
-  land service: on the commons while it has room, at a shadow rent when it is full, and rented
-  on enclosed land, which it takes from production. Idle enclosed land earns zero rent: the
-  path continues past the wall's end onto an idle stretch with the pool's wage as numeraire,
-  where 1d's `LaborShort` economies have their equilibria; no one working at any wage is
-  `SolveError::NoMarket`. Where q crosses a type's q_enc the economy can sit at the threshold
-  with a share of the exiters renting (an enclosure tie). Coverage κ, q* and N_crit are
-  reported, and check_enclosure's race plays out inside equilibria. The priced form can make
-  labour supply fall along the path, so the count also scans every piece (`EXIT_SCAN`). The
-  dependence form in parcel form (one enclosed parcel of quality 1) is 1d's equilibrium bit for
-  bit, and so is a priced form with its exit option switched off.
+  market, open ones are a commons, free to exit plots and closed to production. Each worker type
+  names its exit form: SSRN's dependence form (units 1a-1d), or main.tex's priced form s(q) =
+  max(s₀ − q·h, s̲) in units of one exit good, the default of the historical runs (ADDENDUM ruling
+  3), both under SSRN eq 8 with the exit life's value. An exit plot takes h of land service: on
+  the commons while it has room, at a shadow rent when it is full, and rented on enclosed land,
+  which it takes from production. Idle enclosed land earns zero rent: the path continues past the
+  wall's end onto an idle stretch with the pool's wage as numeraire, where 1d's `LaborShort`
+  economies have their equilibria, exit plots there stand free on idle land (`ExitLand::Idle`),
+  and an exit good made of land alone, free at r = 0, has its plots decided as at the wall's end;
+  no one working at any wage is `SolveError::NoMarket`. Where q crosses a type's q_enc the economy
+  can sit at the threshold with a share of the exiters renting (an enclosure tie). Coverage κ, q*
+  and N_crit are reported, and check_enclosure's race plays out inside equilibria. The priced form
+  can make labour supply fall along the path, so the count also scans every piece (`EXIT_SCAN`).
+  The dependence form in parcel form (one enclosed parcel of quality 1) is 1d's equilibrium bit
+  for bit, and so is a priced form with its exit option switched off.
 
 Still to come (PLAN Phase 1): 1f, households and government.
 
@@ -82,7 +83,9 @@ the random draws), nor unit 1e's (its §11, proposed as decisions 88-100: parcel
 efficiency units, the commons for exit only, one participation rule for both forms, support
 kept positive, one exit good, rented plots leaving production, idle land with the wage as
 numeraire and `NoMarket`, no reserved tasks with the priced form, the scan, the commons'
-shadow rent, the enclosure tie inside `Interior`, one land service, the random draws). The
+shadow rent, the enclosure tie inside `Interior`, one land service, the random draws; and from
+its verification, 101-102: a free exit good at r = 0 decided at the wall's end, free plots on
+idle land labelled `Idle`). The
 build takes the draft's choice on each, and the repository's STATE.md lists them as decisions
 open to veto.
 Each spec's §12 records where its build and its verification departed from the draft.
@@ -209,22 +212,27 @@ instance reproduced" and "both exit forms nest, with the exit option switched of
 - **e1**, nesting: 1a's 27 golden instances, 1b's and 1c's, and 1d's W, B, E, F, X and J
   instances through `ParcelParams::from_workers`, bit for bit, with W2, W3 and E6 (1d's
   `LaborShort`) on idle land with f_∞ 1d's excess; 1a's G5, 1b's C5, 1c's m6 and 1d's d7 draws;
-  the refusals and rejected rows; `at(x)` on a grid; every type priced with s₀ = s̲ = 0; and D,
-  an exit priced out of use, which is G1 bit for bit;
+  the refusals and rejected rows; `at(x)` on a grid; every type priced with s₀ = s̲ = 0; D,
+  an exit priced out of use, which is G1 bit for bit; a floor without a plot, which is K1; and
+  every exit good in economies without exit values;
 - **e2**, the exit value alone: check_pinning P3, check_enclosure N-ii, N-iii and N-vi, SSRN
   D.3's coverage, the identical-workers limit where the support cancels, bad arguments;
-- **e3**, the race (Q1-Q5): plots rented with κ ≥ 1, the enclosure ties at q = q_enc = 1.5 with
-  κ = 1 at N_crit = 60 and 0.75 at N 80, the floor inside the gap and past q*;
+- **e3**, the race (Q1-Q6): plots rented with κ ≥ 1, the enclosure ties at q = q_enc = 1.5 with
+  κ = 1 at N_crit = 60 and 0.75 at N 80, the floor inside the gap and past q*, an enclosure tie
+  on the wall (Q6), and two enclosure points in one piece;
 - **e4**, the commons (K1-K5): with room, crowded, enclosed by price and by law, quality as
   efficiency, rented plots leaving production;
-- **e5**, idle land (I1-I4): 1d's W2, W3 and E6 solved at zero rent, the wall at r = 0, the
-  worst parcels idling first, the edge of a reserved shortage on the idle stretch, `NoMarket`;
-- **e6**, two priced types sharing a commons, and 1c's fork economy with a priced exit in food;
+- **e5**, idle land (I1-I4, L1-L2): 1d's W2, W3 and E6 solved at zero rent, the wall at r = 0,
+  free plots on idle land, the worst parcels idling first, the edge of a reserved shortage on
+  the idle stretch, `NoMarket`, and an exit good made of land alone, decided at the wall's end;
+- **e6**, two priced types sharing a commons, 1c's fork economy with a priced exit in food,
+  both conditions of the certification, and the all-human corner under the cheapest type;
 - **e7**, M's three equilibria (one when the scan is off), Lemma 5's σ against a finite
   difference with both signs, and the root independent of the scan;
-- **e8**, 360 random equilibria in six sets, among them certified draws and enclosure ties on the
-  line, the wall and the all-human corner: every identity, the residuals, the count against a
-  scan 16 times finer, Lemma 5 at the equilibrium, the regimes;
+- **e8**, 480 random equilibria in eight sets, among them certified draws, enclosure ties on the
+  line, the wall and the all-human corner, and exit goods drawn among the categories: every
+  identity with 1d's residuals bounded, the count against a scan 16 times finer, f monotone
+  along a certified path, Lemma 5 at the equilibrium, every regime asserted;
 - **e9**, the regimes at exact equality, 1d's saturated knife edge and a priced one, Lemma B.1's
   flag on the market's land, every validation rule, permutation, land service in other units
   (bit for bit at c = 4), enclosure by law;
@@ -270,6 +278,12 @@ that fails without it. Where the pass found nothing wrong in the code, the fix i
   of which the first run left nine; seven now have a test, and two are equivalent (the idle
   end's side where S_∞ cannot be 0, and a technique tie's closed form scaled by T/T_m)
   (docs/unit-1e.md §12 item 14).
+- **1e** (P1.11): the derivation found that an exit good made of land alone, free at r = 0,
+  put its plot-takers on the floor there while they rented on the wall, so the idle stretch
+  did not start where the wall ends and an economy with one equilibrium was refused; such a
+  good's plots are now decided at the wall's end (L1, L2). It also found free plots on idle
+  land labelled `Enclosed`; they are `Idle`. Thirteen of the pass's 30 mutants survived; each
+  now has a test, and six mutants of the fixes are killed (docs/unit-1e.md §12 items 16-19).
 
 Each spec's §12 has the details.
 
@@ -301,7 +315,7 @@ Each spec's §12 has the details.
 | `goldens/generate_1d.py` | unit 1d's goldens, at 70 digits; builds on `generate_1c.py` (and so the other two), and asserts the nesting |
 | `goldens/goldens_1d.txt` | its output, 269 goldens |
 | `goldens/generate_1e.py` | unit 1e's goldens, at 70 digits; builds on `generate_1d.py` (and so the other three), and asserts the nesting |
-| `goldens/goldens_1e.txt` | its output, 208 goldens |
+| `goldens/goldens_1e.txt` | its output, 223 goldens |
 
 ## Running the tests
 
@@ -336,9 +350,10 @@ The counts, the same on WSL and on Windows at each step:
 | P1.8, unit 1d | 2026-09-27 | 66 | 227 | 1 | 294 |
 | P1.9, 1d's verification | 2026-09-27 | 67 | 230 | 1 | 298 |
 | P1.10, unit 1e | 2026-09-27 | 76 | 276 | 1 | 353 |
+| P1.11, 1e's verification | 2026-09-27 | 77 | 283 | 1 | 361 |
 
-Of the 353, 1a has 114, 1b 59 (5 unit, 54 gate), 1c 69 (10 unit, 59 gate), 1d 56 (10 unit,
-46 gate) and 1e 55 (9 unit, 46 gate).
+Of the 361, 1a has 114, 1b 59 (5 unit, 54 gate), 1c 69 (10 unit, 59 gate), 1d 56 (10 unit,
+46 gate) and 1e 63 (10 unit, 53 gate).
 
 ## The dump example
 
@@ -466,7 +481,8 @@ Its `Economy` extends `generate_1d.py`'s (docs/unit-1e.md §12 item 1); an econo
 values is solved by `generate_1d.py`'s own solve with the idle stretch after it. It asserts as
 it goes that the parcel form of fifteen of 1d's instances equals `generate_1d.py`'s solve
 (within 1.6e-71) and 1d's `LaborShort` rows are idle-land equilibria with 1d's f_∞, the exit
-option switched off is the dependence form, D is G1, every identity of docs/unit-1e.md §4.8 at
+option switched off is the dependence form, D is G1, L1's f_∞ is the wall's limit and L2 is
+W3, every identity of docs/unit-1e.md §4.8 at
 1e-65, κ = qT/(N(1 + q)) at the Q instances, each enclosure tie against its linear root and each
 idle closed form against bisection, Lemma 5's sign at 292 points against a finite difference,
 and the count on a scan of 1024 points per piece. On 2026-09-27 the oracle's f64 values matched

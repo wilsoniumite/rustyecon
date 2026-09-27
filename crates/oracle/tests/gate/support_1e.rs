@@ -14,6 +14,7 @@ use oracle::{
 use rustyecon_core::num;
 
 use crate::support::*;
+use crate::support_1b::at_most;
 use crate::support_1c::*;
 use crate::support_1d::*;
 
@@ -324,6 +325,11 @@ pub fn check_identities_1e(economy: &ParcelEconomy, eq: &Eq1e) {
     }
     // The land (§4.1, §4.8): the numeraire, the partition, T_m = Y·B^q.
     let rent = eq.rent;
+    // At r = 0 an exit good that embodies no labour is free, and q = r/p_g takes its limit at
+    // the wall's end, 1/p_wall with p_wall = b̃_g, its price there per unit of rent (§12 item
+    // 16): the price at x = 1 with v = 0 and r = 1.
+    let wall_price = (rent == 0.0 && eq.exit_good_price == 0.0)
+        .then(|| economy.at_wage(1.0, 0.0, b.technique).exit_good_price);
     match eq.land_market {
         LandMarket::Scarce => {
             assert_eq!(rent, 1.0);
@@ -335,7 +341,8 @@ pub fn check_identities_1e(economy: &ParcelEconomy, eq: &Eq1e) {
             assert!(eq.land.idle >= -1e-12 * t, "{}", at("T_idle"));
             assert_eq!(b.margin, Margin::Wall);
             assert_eq!(eq.coverage, 0.0);
-            assert_eq!(eq.q, 0.0);
+            let q_end = wall_price.map_or(0.0, |p_wall| 1.0 / p_wall);
+            assert_eq!(eq.q.to_bits(), q_end.to_bits(), "{}", at("q at r = 0"));
             // At r = 0 every delivered machine cost is below labour's at every task (§2.8).
             assert!(b.replacement_top < b.v, "{}", at("the wall at r = 0"));
         }
@@ -393,10 +400,29 @@ pub fn check_identities_1e(economy: &ParcelEconomy, eq: &Eq1e) {
                 output += p_g * x.gross * w.plot_households;
                 floor += p_g * x.floor * (w.exiters - w.plot_households);
                 close_to("plot land", w.plot_land, x.plot * w.plot_households, 1e-12);
-                if eq.enclosure.is_none() && eq.exit_land != ExitLand::Crowded && x.plot > 0.0 {
-                    // the branch follows q_o against q_enc (§4.3)
-                    let plot = eq.plot_rent * x.plot < p_g * (x.gross - x.floor);
-                    assert_eq!(plot, w.branch == Branch::Plot, "{}", at("branch"));
+                // The branch follows q_o against q_enc (§4.3), and s_i = s(q_o): at the plot
+                // rent and p_g, or at r = 0 with a free exit good at the wall's end, where the
+                // good costs p_wall per unit of rent and a plot past the commons pays 1 (§12
+                // item 16). A crowded commons' own rent is not reported there.
+                let decided = match wall_price {
+                    None => Some((eq.plot_rent, p_g)),
+                    Some(p_wall) => match eq.exit_land {
+                        ExitLand::Idle => Some((1.0, p_wall)),
+                        ExitLand::Crowded => None,
+                        _ => Some((0.0, p_wall)),
+                    },
+                };
+                if let Some((r_o, price)) = decided {
+                    if eq.enclosure.is_none() && eq.exit_land != ExitLand::Crowded {
+                        let plot = r_o * x.plot < price * (x.gross - x.floor);
+                        assert_eq!(plot, w.branch == Branch::Plot, "{}", at("branch"));
+                    }
+                    let goods = match w.branch {
+                        Branch::Plot if r_o == 0.0 => x.gross,
+                        Branch::Plot => num::fma(-(r_o / price), x.plot, x.gross),
+                        _ => x.floor,
+                    };
+                    assert_eq!(w.exit_goods.to_bits(), goods.to_bits(), "{}", at("s_i"));
                 }
             }
         }
@@ -433,14 +459,29 @@ pub fn check_identities_1e(economy: &ParcelEconomy, eq: &Eq1e) {
             assert_eq!(eq.land.rented_plots, 0.0);
         }
         ExitLand::Crowded => {
-            assert!(eq.plot_rent > 0.0 && eq.plot_rent < rent, "{}", at("r_o"));
+            if rent == 1.0 {
+                assert!(eq.plot_rent > 0.0 && eq.plot_rent < rent, "{}", at("r_o"));
+            } else {
+                // at r = 0 only a free exit good can crowd the commons, rationed at the wall's
+                // end's rent while every rent in money is 0 (§12 item 16)
+                assert!(wall_price.is_some(), "{}", at("crowded at r = 0"));
+                assert_eq!(eq.plot_rent, 0.0);
+            }
             assert_eq!(eq.land.commons_occupied, t_o);
             assert_eq!(eq.land.rented_plots, 0.0);
             let residual = (plots - t_o).abs() / t_o;
             assert_eq!(eq.residuals.commons.to_bits(), residual.to_bits());
             assert!(residual <= 1e-9, "{}", at("the commons clears"));
         }
-        ExitLand::Enclosed => {
+        ExitLand::Enclosed | ExitLand::Idle => {
+            // Enclosed pays the ruling rent while land is scarce; at r = 0 the spill stands
+            // free on idle enclosed land, which is not enclosure (§0.2)
+            let want = if rent == 1.0 {
+                ExitLand::Enclosed
+            } else {
+                ExitLand::Idle
+            };
+            assert_eq!(eq.exit_land, want, "{}", at("enclosed or idle"));
             assert_eq!(eq.plot_rent, rent);
             if t_o > 0.0 && plots > 0.0 {
                 assert_eq!(eq.land.commons_occupied, plots.min(t_o));
@@ -511,9 +552,43 @@ pub fn check_identities_1e(economy: &ParcelEconomy, eq: &Eq1e) {
     } else {
         assert_eq!(rented, 0.0, "{}", at("no plot rented"));
     }
-    // 1d's residuals on the market's land, and each category's wage ceiling v/(r·b̃_j + R_j)
-    // with the land priced at the rent.
-    assert!(b.residuals.land <= 1e-12, "{}", at("res_land"));
+    // 1d's residuals, every one, on the market's land with the land priced at the rent (§4.8):
+    // the cost system, the quantities, the income, the corner and the cheapest task type.
+    let r = &b.residuals;
+    for (name, value) in [
+        ("income", r.income),
+        ("land", r.land),
+        ("services", r.services),
+        ("user cost", r.user_cost),
+        ("fork", r.fork),
+        ("totals", r.totals),
+        ("expenditure", r.expenditure),
+        ("leontief price", r.leontief_price),
+        ("leontief quantity", r.leontief_quantity),
+        ("closure", r.closure),
+        ("cheapest", r.cheapest),
+        ("corner", r.corner),
+        ("reserved", r.reserved),
+        ("basket", r.basket),
+    ] {
+        assert!(value <= FULL, "{name} residual {value:e} {}", at(""));
+    }
+    // No task type is cheaper than the technique's (SSRN A.1), at every margin: on the
+    // all-human corner the technique is the cheapest at the wage.
+    let types = &p.machine_types;
+    let task_price = b.types[b.technique].price / types[b.technique].task_efficiency;
+    for (k, mt) in types.iter().enumerate() {
+        if mt.task_efficiency > 0.0 {
+            at_most(
+                &at("no task type is cheaper"),
+                task_price,
+                b.types[k].price / mt.task_efficiency,
+            );
+        }
+    }
+    // Each category's wage ceiling v/(r·b̃_j + R_j), wage floor 1/(L̄_j + (r·b̄_j + R_j)/v) and
+    // shares φ_w = (v·λ̃_j + R_j)/p_j and φ_r = r·b̃_j/p_j, with the land priced at the rent
+    // (a category free at r = 0 reports the last three absent, §12 item 4).
     for c in &b.categories {
         let fixed = rent * c.b_tilde + c.reserved_cost;
         let want = (fixed > 0.0).then(|| b.v / fixed);
@@ -523,6 +598,25 @@ pub fn check_identities_1e(economy: &ParcelEconomy, eq: &Eq1e) {
             "{}",
             at("wage ceiling")
         );
+        if c.price > 0.0 {
+            let floor = 1.0 / (c.l_bar + (rent * c.chain_land + c.reserved_cost) / b.v);
+            assert_eq!(
+                c.wage_floor.to_bits(),
+                floor.to_bits(),
+                "{}",
+                at("wage floor")
+            );
+            at_most(&at("floor <= v/p"), c.wage_floor, c.real_wage);
+        }
+        if let (Some(w), Some(r)) = (c.phi_w, c.phi_r) {
+            let want_w = (b.v * c.lambda_tilde + c.reserved_cost) / c.price;
+            let want_r = (rent * c.b_tilde) / c.price;
+            assert_eq!(w.to_bits(), want_w.to_bits(), "{}", at("phi_w"));
+            assert_eq!(r.to_bits(), want_r.to_bits(), "{}", at("phi_r"));
+            if c.price > 0.0 {
+                close(&at("phi_w + phi_r"), w + r, 1.0);
+            }
+        }
     }
     // Lemma B.1's flag with the market's land at x = 1 (§4.8).
     let env = economy.workers().machines().envelope();
@@ -551,4 +645,15 @@ pub fn check_identities_1e(economy: &ParcelEconomy, eq: &Eq1e) {
         bits.get("market_land"),
         Some(&Some(eq.land.market.to_bits()))
     );
+}
+
+/// L (docs/unit-1e.md §12 item 16): W3's economy (λ 0.6, χ_max 3) with N workers on
+/// (LAND, 10, 1, enclosed) and exit (1.5·h + 0.5, 0, h) in Appendix B's space, a good made of
+/// land alone, which is free at r = 0.
+pub fn land_good(workers: f64, plot: f64) -> ParcelParams {
+    ParcelParams {
+        exits: vec![priced(1.5 * plot + 0.5, 0.0, plot)],
+        exit_good: 1,
+        ..goodspace_1e(workers, 10.0, 1.0, 0.6, 3.0)
+    }
 }

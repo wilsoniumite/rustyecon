@@ -1,9 +1,11 @@
 //! e5: idle land at zero rent (docs/unit-1e.md §2.8 and §4.6): 1d's `LaborShort` economies W2,
 //! W3 and E6 have their equilibria on the idle stretch, with the pool's wage the numeraire; I4
-//! holds free plots on idle land. SSRN A.1 ("unused fixed inputs have zero rent"), App. C;
-//! check_enclosure N-i.
+//! holds free plots on idle land, and L an exit good made of land alone, free at r = 0. SSRN
+//! A.1 ("unused fixed inputs have zero rent"), App. C; check_enclosure N-i.
 
-use oracle::{Eq1e, LandMarket, Margin, ParcelEconomy, Regime, SolveError};
+use oracle::{
+    Branch, Eq1e, ExitLand, LandMarket, Margin, ParcelEconomy, ParcelParams, Regime, SolveError,
+};
 
 use rustyecon_core::num;
 
@@ -31,6 +33,14 @@ fn idle_goldens() {
         assert_eq!(eq.land_market, LandMarket::Idle, "{tag}");
         assert_eq!((eq.rent, b.v, b.x_star), (0.0, 1.0, 1.0), "{tag}");
         assert!(eq.land.idle > 0.0, "{tag}");
+        // I4's plots stand free on idle enclosed land: Prop exit (i)'s commons in all but
+        // access, not enclosure, which means no suitable land idles (§0.2)
+        let exit_land = if tag == "I4" {
+            ExitLand::Idle
+        } else {
+            ExitLand::Unused
+        };
+        assert_eq!(eq.exit_land, exit_land, "{tag}");
         // rent income is 0: I = v·N_a + interest (SSRN App. C)
         close(&format!("{tag} I"), b.income, b.wage_bill + b.interest);
         // v/P_s is 1d's ceiling ω_∞
@@ -183,4 +193,68 @@ fn no_market() {
         economy_1e(i4(1.9)).solve(),
         Ok(Regime::Interior(_))
     ));
+}
+
+#[test]
+fn a_free_exit_good_is_decided_at_the_wall() {
+    // §12 item 16. L1: W3 with N 5 and exit (3.2, 0, 1.8) in Appendix B's space, a good made
+    // of land alone. On the wall q = r/p_space = 1 < q_enc = 16/9 and the type rents its plots;
+    // at r = 0 space is free and q = 0/0, and the plots are decided as at the wall's end, where
+    // q = 1/b̃_space = 1: the exiters keep their plots, now free on idle land, and the idle
+    // stretch starts where the wall ends. The excess demand changes side once, on the wall
+    // (deciding at q = 0/0 as if the plot did not pay put every exiter on the floor at r = 0,
+    // raised f_∞ to +2.03 and counted three changes).
+    let (e, eq) = checked_1e(land_good(5.0, 1.8));
+    let b = &eq.base;
+    assert_eq!(
+        (b.margin, eq.land_market, eq.exit_land),
+        (Margin::Wall, LandMarket::Scarce, ExitLand::Enclosed)
+    );
+    assert_eq!((eq.workers[0].branch, eq.q), (Branch::Plot, 1.0));
+    for (name, got, want) in [
+        ("v", b.v, L1_V),
+        ("P_s", b.p_s, L1_P_S),
+        ("Y", b.y, L1_Y),
+        ("N_a", b.n_a, L1_N_A),
+        ("T_p", eq.land.rented_plots, L1_T_P),
+        ("f_∞", eq.f_end.unwrap(), L1_F_END),
+    ] {
+        close_to(&format!("L1 {name}"), got, want, 1e-12);
+    }
+    // f_∞ is the wall's limit: far up the wall's last piece f is within e/v of it, with the
+    // same plots rented; and the idle stretch starts with them free on idle land, q = 1
+    let tau = e.workers().wall_end().technique;
+    let far = e.at_wage(1.0, 1e10 * b.v, tau);
+    assert_eq!(far.exit_land, ExitLand::Enclosed);
+    close_to("f far up the wall", far.excess_demand(), L1_F_END, 1e-8);
+    let start = e.enclosed_land() - e.at_idle(e.enclosed_land(), tau).rented_plots;
+    let first = e.at_idle(start, tau);
+    assert_eq!((first.exit_land, first.q), (ExitLand::Idle, 1.0));
+    assert_eq!(
+        (first.branches[0], first.exit_values[0]),
+        (Branch::Plot, 0.0)
+    );
+    close_to("the same plots", first.rented_plots, far.rented_plots, 1e-8);
+    assert_eq!(first.excess_demand().to_bits(), eq.f_end.unwrap().to_bits());
+    // L2: W3 with exit (0.5, 0, 1) in space: q = 1 > q_enc = 0.5 on the wall and at its end,
+    // so every exiter stays on the floor s̲ = 0 on the idle stretch too, and the economy is
+    // W3's (I2) bit for bit, with no plot on idle land.
+    let i2 = solved_1e(e0(goodspace(4.0, 0.6, 3.0)));
+    let dead = ParcelParams {
+        exits: vec![priced(0.5, 0.0, 1.0)],
+        ..land_good(4.0, 1.0)
+    };
+    let (_, dead) = checked_1e(dead);
+    let (i2_bits, d_bits) = (bits_1e(&i2), bits_1e(&dead));
+    for key in bits_1d(&i2.base).keys() {
+        assert_eq!(i2_bits.get(key), d_bits.get(key), "L2 {key}");
+    }
+    assert_eq!(dead.land_market, LandMarket::Idle);
+    assert_eq!((dead.workers[0].branch, dead.q), (Branch::Floor, 1.0));
+    assert_eq!((dead.land.rented_plots, dead.home.output), (0.0, 0.0));
+    assert_eq!(
+        dead.f_end.map(f64::to_bits),
+        i2.f_end.map(f64::to_bits),
+        "f_∞ is 1d's excess"
+    );
 }

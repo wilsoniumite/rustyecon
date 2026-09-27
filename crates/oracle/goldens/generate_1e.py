@@ -138,10 +138,14 @@ class Economy(g1d.Economy):
         return w, p, p[t] / self.theta[t], O, V
 
     # ---------------------------------------------------------------- the exit sub-problem
-    def trial(self, rc, v, P, pg, force, pin=None):
+    def trial(self, rc, v, P, pg, force, pin=None, wall=None):
         """Section 5.1 step 2 at the plot rent rc: each type's branch, exit value and supply,
         and G, the plot land asked for. pin = (i, "P" or "F") fixes type i's branch, for G's
-        two limits at the rent where type i's plot demand drops."""
+        two limits at the rent where type i's plot demand drops. wall is the exit good's price
+        per unit of rent at the wall's end when it is free at r = 0 (section 12 item 16): the
+        branch and the exit goods are then decided there, rc a rent in [0, 1] of the wall's
+        units, and the exit value in money is p_g s = 0."""
+        price, money = (pg, rc) if wall is None else (wall, 0)
         out = dict(G=mp.mpf(0), branch=[], m=[], s=[], nS=[], hh=[], plots=[])
         for i in range(self.I):
             e = self.ex[i]
@@ -155,9 +159,11 @@ class Economy(g1d.Economy):
                 if pin is not None and pin[0] == i:
                     plot = pin[1] == "P"
                 else:
-                    plot = (force is not None and force[0] == "above" and force[1] == i) or                         rc * e["h"] < pg * (e["s0"] - e["sf"])
+                    plot = (force is not None and force[0] == "above" and force[1] == i) or \
+                        rc * e["h"] < price * (e["s0"] - e["sf"])
                 if plot:
-                    br, m, s, share = "P", pg * e["s0"] - rc * e["h"], e["s0"] - (rc / pg) * e["h"] if rc else e["s0"], 1
+                    br, m, s, share = "P", pg * e["s0"] - money * e["h"], \
+                        e["s0"] - (rc / price) * e["h"] if rc else e["s0"], 1
                 else:
                     br, m, s = "F", pg * e["sf"], e["sf"]
             n = self.Nw[i] * F(mp.log1p((wage - m) / (self.sig[i] * P + m)), self.chi[i])
@@ -168,37 +174,50 @@ class Economy(g1d.Economy):
                 out[key].append(val)
         return out
 
-    def exit_state(self, v, P, pg, r, force, halv):
-        """Section 4.4: the regime and the plot rent at the point's prices, at the rent r."""
+    def exit_state(self, v, P, pg, r, force, halv, wall=None):
+        """Section 4.4: the regime and the plot rent at the point's prices, at the rent r. At
+        r = 0 the plots past the commons stand free on idle enclosed land (Idle, not
+        Enclosed). With a free exit good at r = 0 (wall given, section 12 item 16) the regime
+        is decided in the wall's end's units, rents in [0, 1], and every rent in money is 0."""
         To = self.To
+        top = M(r) if wall is None else M(1)
+        price = pg if wall is None else wall
+
+        def money(x):
+            return x if wall is None else mp.mpf(0)
+
+        def trial(rc, pin=None):
+            return self.trial(rc, v, P, pg, force, pin=pin, wall=wall)
+
         if force is not None and force[0] == "share":
-            t = self.trial(r, v, P, pg, force)
-            return dict(t, regime="Enclosed", rc=M(r), Toc=min(t["G"], To), spill=max(t["G"] - To, 0))
+            t = trial(top)
+            return dict(t, regime="Enclosed", rc=money(M(r)), Toc=min(t["G"], To), spill=max(t["G"] - To, 0))
         if self.alt == "commons_rent":
-            t = self.trial(r, v, P, pg, force)
-            return dict(t, regime="Charged", rc=M(r), Toc=min(t["G"], To), spill=max(t["G"] - To, 0))
-        t0 = self.trial(0, v, P, pg, force)
+            t = trial(top)
+            return dict(t, regime="Charged", rc=money(M(r)), Toc=min(t["G"], To), spill=max(t["G"] - To, 0))
+        t0 = trial(0)
         if t0["G"] == 0:
             return dict(t0, regime="Unused", rc=mp.mpf(0), Toc=mp.mpf(0), spill=mp.mpf(0))
         if t0["G"] <= To:
             return dict(t0, regime="Commons", rc=mp.mpf(0), Toc=t0["G"], spill=mp.mpf(0))
-        t1 = self.trial(r, v, P, pg, force)
+        t1 = trial(top)
         if t1["G"] >= To:
-            return dict(t1, regime="Enclosed", rc=M(r), Toc=To, spill=t1["G"] - To)
+            regime = "Enclosed" if r != 0 else "Idle"
+            return dict(t1, regime=regime, rc=money(M(r)), Toc=To, spill=t1["G"] - To)
         # Crowded: the least rc in [0, r] with G(rc) <= T_o. G falls continuously between the
         # rents where a type's plot demand drops (r_o = p_g (s0 - s_)/h, its q_enc), and jumps
         # down at each: find the piece, or the drop, where it crosses T_o.
-        drops = sorted((pg * (self.ex[i]["s0"] - self.ex[i]["sf"]) / self.ex[i]["h"], i) for i in self.takers
+        drops = sorted((price * (self.ex[i]["s0"] - self.ex[i]["sf"]) / self.ex[i]["h"], i) for i in self.takers
                        if not (force is not None and force[1] == i))
-        lo, g_lo, hi, g_hi = mp.mpf(0), t0["G"] - To, M(r), t1["G"] - To
+        lo, g_lo, hi, g_hi = mp.mpf(0), t0["G"] - To, top, t1["G"] - To
         for d, i in drops:
-            if not 0 < d < r:
+            if not 0 < d < top:
                 continue
-            left = self.trial(d, v, P, pg, force, pin=(i, "P"))
+            left = trial(d, pin=(i, "P"))
             if left["G"] - To <= 0:
                 hi, g_hi = d, left["G"] - To
                 break
-            right = self.trial(d, v, P, pg, force, pin=(i, "F"))
+            right = trial(d, pin=(i, "F"))
             if right["G"] - To <= 0:
                 # the crossing is the drop: type i splits between commons plots and its floor,
                 # with the same supply either way (section 4.4)
@@ -206,12 +225,12 @@ class Economy(g1d.Economy):
                 right["plots"][i] = land
                 right["hh"][i] = land / self.ex[i]["h"]
                 right["G"] += land
-                return dict(right, regime="Crowded", rc=d, Toc=To, spill=mp.mpf(0), split=[i])
+                return dict(right, regime="Crowded", rc=money(d), Toc=To, spill=mp.mpf(0), split=[i])
             lo, g_lo = d, right["G"] - To
         # On the piece (lo, hi) G is continuous: the Illinois variant of regula falsi, to G's
         # working precision or 2^-halv of r.
         side = 0
-        width = max(M(r) * mp.mpf(2) ** -halv, 8 * mp.eps * M(r))
+        width = max(top * mp.mpf(2) ** -halv, 8 * mp.eps * top)
         mid = lo
         for _ in range(3 * halv):
             if hi - lo <= width:
@@ -220,7 +239,7 @@ class Economy(g1d.Economy):
             mid = (lo * g_hi - hi * g_lo) / (g_hi - g_lo)
             if not lo < mid < hi:
                 mid = (lo + hi) / 2
-            g_mid = self.trial(mid, v, P, pg, force)["G"] - To
+            g_mid = trial(mid)["G"] - To
             if abs(g_mid) <= 16 * mp.eps * To:
                 break
             if g_mid > 0:
@@ -233,8 +252,17 @@ class Economy(g1d.Economy):
                 if side == -1:
                     g_lo /= 2
                 side = -1
-        th = self.trial(mid, v, P, pg, force)
-        return dict(th, regime="Crowded", rc=mid, Toc=To, spill=mp.mpf(0), split=[])
+        th = trial(mid)
+        return dict(th, regime="Crowded", rc=money(mid), Toc=To, spill=mp.mpf(0), split=[])
+
+    def wall_price(self, t):
+        """The exit good's price per unit of rent at the wall's end under t where it embodies no
+        labour: its price at x = 1 with w = 0 and r = 1, its land total (section 12 item 16)."""
+        w, p, pi, O, V = self.prices_at(M(1), t, mp.mpf(0), 1)
+        HM = [self.tasks(j, M(1)) for j in range(self.C)]
+        H = [h + lh for (h, _), lh in zip(HM, self.LH)]
+        pb = leontief(self.Acc, [w * H[j] + pi * HM[j][1] + self.bc[j] for j in range(self.C)])
+        return pb[self.g]
 
     # ---------------------------------------------------------------- one evaluation
     def ev(self, x, t, w=None, r=1, land=None, force=None, split=None, edge=None, halv=HALVINGS):
@@ -264,7 +292,9 @@ class Economy(g1d.Economy):
                        s=[mp.mpf(0)] * I, hh=[mp.mpf(0)] * I, plots=[mp.mpf(0)] * I)
         else:
             pg = Pbase if self.alt == "basket_q" else pbase[self.g]
-            sub = self.exit_state(w, Pbase, pg, r, force, halv)
+            wall = self.wall_price(t) if r == 0 and pg == 0 else None
+            sub = self.exit_state(w, Pbase, pg, r, force, halv, wall=wall)
+            out.update(wall=wall)
         spill = sub["spill"] if self.alt != "no_spill" else mp.mpf(0)
         Tland = (self.T - spill) if land is None else M(land)
         Y = Tland / qty["land"]
@@ -355,7 +385,9 @@ class Economy(g1d.Economy):
                             a = mid
                         else:
                             b = mid
-                    found.append(((a + b) / 2, i))
+                    # the last parameter at which the type is on its floor, as the oracle's
+                    # largest such double: Below is then the floor's value (section 12 item 18)
+                    found.append((a, i))
         found.sort(key=lambda z: (z[0], z[1]))
         frm = lo
         for s, i in found:
@@ -658,7 +690,7 @@ class Economy(g1d.Economy):
         out = dict(margin=margin, x=q["x"], t=t, w=w, r=r, Ps=Ps, pg=pg, Y=Y, n_pool=q["nD"], n_a=sum(hours),
                    participation=sum(hours) / Ntot, income=income, interest=interest, wage_bill=wage_bill,
                    provider=provider, funded=provider > 0, real_wage=w / Ps, T_m=Tm, T_p=spill, idle=idle,
-                   q=(r / pg if r else mp.mpf(0)), kappa=r * self.T / (Ntot * Ps), regime=sub["regime"],
+                   q=self.q_of(r, pg, t), kappa=r * self.T / (Ntot * Ps), regime=sub["regime"],
                    rc=sub["rc"], Toc=sub["Toc"], G=sub["G"], branch=sub["branch"], m=sub["m"], s=sub["s"],
                    hh=sub["hh"], plots=sub["plots"], E=E, hours=hours, wages=q["wages"], nS=q["nS"],
                    home_output=home_output, home_floor=home_floor, rent_in_kind=r * spill,
@@ -668,6 +700,13 @@ class Economy(g1d.Economy):
         out["parcels"] = self.parcel_report(out)
         self.assert_identities_1e(out, q, split)
         return out
+
+    def q_of(self, r, pg, t):
+        """q = r/p_g; at r = 0 its limit at the wall's end under t: 0, or one over the exit
+        good's price per unit of rent there when it embodies no labour (section 12 item 16)."""
+        if r != 0:
+            return r / pg
+        return 1 / self.wall_price(t) if pg == 0 else mp.mpf(0)
 
     def parcel_report(self, r):
         """Section 4.1: each parcel's share of its services in use, best first, and its rent
@@ -745,6 +784,8 @@ class Economy(g1d.Economy):
             assert w <= self.gamma(M(0)) * q["pi"] * (1 + TOL)
         if rr == 0:
             assert w == 1 and r["idle"] >= -TOL
+            # at r = 0 plots past the commons stand free on idle land: never Enclosed
+            assert sub["regime"] != "Enclosed" and sub["rc"] == 0
         bad = {k: v for k, v in ch.items() if v > TOL}
         assert not bad, f"identities fail at {DPS} digits: {bad}"
 
@@ -812,12 +853,12 @@ class Economy(g1d.Economy):
 
 # ------------------------------------------------------------------------------ instances
 def goodspace(N="4", T="10", h="1", exits=(None,), parcels=None, supports=None, chi="1", eta="1", lam="0.05",
-              a="0.3", b="0.4", g0="0.2", g1="0.8", rho="0", alt=None):
-    """1a's G1 in parcel form (section 3.3): the good (the exit good) and space (h), one flow
-    machine, one type (N, chi, 1, support)."""
+              a="0.3", b="0.4", g0="0.2", g1="0.8", rho="0", alt=None, exit_good=0):
+    """1a's G1 in parcel form (section 3.3): the good (the exit good, unless exit_good is 1,
+    space) and space (h), one flow machine, one type (N, chi, 1, support)."""
     sig = supports[0] if supports else "1"
     parcels = parcels or (("LAND", T, "1", "E"),)
-    return Economy(parcels=parcels, exits=exits, exit_good=0, alt=alt,
+    return Economy(parcels=parcels, exits=exits, exit_good=exit_good, alt=alt,
                    workers=(worker("WORKER", N, chi, sig=sig),), eta=eta, g0=g0, g1=g1, k="1", rho=rho,
                    edges=("0", "1"), categories=(("GOOD", "1", "0", ("1",)), ("SPACE", h, "1", ("0",))),
                    intermediate=(("0", "0"), ("0", "0")),
@@ -989,6 +1030,20 @@ def build():
     assert rel(qres["Q2"]["x"], qres["Q3"]["x"]) < TOL and rel(qres["Q2"]["Ps"], mp.mpf(5) / 3) < TOL
     assert all(b == "P" for b in qres["Q1"]["branch"]) and qres["Q4"]["branch"] == ["F"] == qres["Q5"]["branch"]
     assert not any(qres[t]["funded"] for t in ("Q1", "Q2", "Q3", "Q4")) and qres["Q5"]["funded"]
+    # Q6: the race with chi_max 3 at eta 1.5 and N 14. The enclosure point lies on the wall, and
+    # the economy sits at it: an enclosure tie on the wall, q = q_enc = 1.5 (section 12 item 18).
+    econ = goodspace(N="14", T="100", exits=EXQ, eta="1.5", chi="3")
+    r = solved(econ, "Wall")
+    enc = r["enclosure"]
+    assert enc is not None and rel(r["q"], M("1.5")) < TOL and r["branch"] == ["F"]
+    assert rel(r["kappa"], r["q"] * 100 / (14 * (1 + r["q"]))) < TOL
+    put_all("Q6", r, (("V", "w", "v, on the wall at the enclosure point"), ("P_S", "Ps", "P_s"),
+                      ("Y", "Y", "Y = T_m/B^q"), ("N_A", "n_a", "N_a, hours worked"),
+                      ("KAPPA", "kappa", "coverage kappa = q T/(N (1 + q))"),
+                      ("T_P", "T_p", "enclosed land in rented plots")))
+    put("Q6_SHARE", enc["psi"], "psi, the renting share of exiters at the enclosure tie on the wall")
+    put("Q6_F_BELOW", enc["f_below"], "f at the wall's enclosure point, the type on its floor")
+    put("Q6_F_ABOVE", enc["f_above"], "f at the wall's enclosure point, the type renting")
 
     # ------------------------------------------------------------------ K
     section("K: the commons, G1's economy with exit (0.5, 0, 0.1) (docs/unit-1e.md section 3.3)")
@@ -1061,6 +1116,34 @@ def build():
                          parcels=(("FIELDS", "5", "1.5", "E"), ("HEATH", "5", "0.5", "E"))).solve()
     assert reg == "NoMarket"
     put("I5_F_END", res["f_end"], "NoMarket: I4 with exit (2, 0, 0.5), f at the end of the wall")
+
+    # ------------------------------------------------------------------ L
+    section("L: an exit good made of land alone, free at r = 0 (docs/unit-1e.md section 12 item 16)")
+    # L1: W3 with N 5 and exit (3.2, 0, 1.8) in space. On the wall q = 1/b_space = 1 < q_enc = 16/9 and
+    # the type rents; at r = 0 space is free, and the plots are decided at the wall's end, so the
+    # idle stretch starts where the wall ends: f_inf is the wall's limit, and the one change of
+    # side is on the wall.
+    econ = goodspace(N="5", lam="0.6", chi="3", exits=(priced("3.2", "0", "1.8"),), exit_good=1)
+    r = solved(econ, "Wall")
+    assert r["regime"] == "Enclosed" and r["branch"] == ["P"] and r["q"] == 1
+    path = econ.path()
+    last = next(pc for pc in reversed(path["pieces"]) if pc is not None and pc[0][0] == "Wall")
+    near_end = econ.at_span(last[0], last[2] * (1 - mp.mpf(10) ** -40))
+    assert near_end["sub"]["regime"] == "Enclosed" and rel(near_end["f"], path["f_end"]) < mp.mpf(10) ** -30
+    at_end = econ.ev(1, path["te"], w=M(1), r=0, land=path["t_inf"])
+    assert at_end["sub"]["regime"] == "Idle" and at_end["sub"]["branch"] == ["P"] and at_end["wall"] == 1
+    assert path["f_end"] < 0 < r["f_line_1"]
+    for key, val, note in (("V", r["w"], "v, on the wall"), ("P_S", r["Ps"], "P_s"), ("Y", r["Y"], "Y"),
+                           ("N_A", r["n_a"], "N_a"), ("T_P", r["T_p"], "enclosed land in rented plots"),
+                           ("F_END", path["f_end"], "f_inf with the plots on idle land: the wall's limit")):
+        put(f"L1_{key}", val, note)
+    # L2: W3 with exit (0.5, 0, 1) in space: q = 1 > q_enc = 0.5 on the wall and at its end, so
+    # every exiter stands on the floor s_ = 0 there and on the idle stretch: I2 (1d's W3).
+    econ = goodspace(lam="0.6", chi="3", exits=(priced("0.5", "0", "1"),), exit_good=1)
+    r = solved(econ, "Idle")
+    rd, qd = g1d.goodspace(lam="0.6", chi="3").solve()
+    assert rd == "LaborShort" and rel(r["f_end"], qd["f_end"]) < TOL
+    assert r["branch"] == ["F"] and r["T_p"] == 0 and r["q"] == 1 and r["regime"] == "Idle"
 
     # ------------------------------------------------------------------ T
     section("T: two priced types share a commons (docs/unit-1e.md section 3.3)")

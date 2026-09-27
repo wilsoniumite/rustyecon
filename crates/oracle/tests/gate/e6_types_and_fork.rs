@@ -5,7 +5,7 @@ use oracle::{Branch, ExitLand, ParcelEconomy, BRACKET_HI, BRACKET_LO};
 
 use crate::goldens_1e::*;
 use crate::support::*;
-use crate::support_1d::worker;
+use crate::support_1d::{appendix_b_machine, baumol_one, worker};
 use crate::support_1e::*;
 
 #[test]
@@ -197,4 +197,65 @@ fn certified_is_monotone() {
             assert!(w[1] <= w[0] + 1e-12 * w[0].abs().max(1.0));
         }
     }
+}
+
+#[test]
+fn certification_needs_both_conditions() {
+    // §5.4's Proposition 5 needs h_i ≤ s₀,i·b̄_g and h_i·ℓ₀ ≤ ε_i for every plot-taking type.
+    // F at ρ = 0 meets both; a type whose efficiency is below h·ℓ₀ fails the second alone.
+    let mut p = fork_1e(false);
+    p.rho = 0.0;
+    let e = economy_1e(p.clone());
+    let (b_food, ell0) = e.certification_totals();
+    assert!(0.05 <= 0.1 * b_food && e.certified());
+    for (efficiency, certified) in [(2.0 * 0.05 * ell0, true), (0.5 * 0.05 * ell0, false)] {
+        let mut q = p.clone();
+        q.worker_types[0].efficiency = efficiency;
+        let e = economy_1e(q);
+        assert_eq!(e.certification_totals(), (b_food, ell0));
+        assert_eq!(e.certified(), certified, "ε {efficiency}");
+    }
+    // ℓ₀ = (L̄_ŷ + L^H_ŷ)/B_ŷ is n_D per unit of market land at x = 0, where every task is
+    // human and the basket's land is direct: with the common hours of B's services (L^H 0.25)
+    // in a priced economy
+    let mut b = e0(baumol_one(1.0, 8.0, 0.25));
+    b.exits = vec![priced(0.5, 0.0, 0.1)];
+    let e = economy_1e(b.clone());
+    let first = e.workers().machines().envelope().first;
+    let zero = e.at_with(0.0, first);
+    close(
+        "ℓ₀",
+        e.certification_totals().1,
+        zero.point.n_d / zero.market_land,
+    );
+    b.human_required = vec![0.0; 3];
+    let without = economy_1e(b).certification_totals().1;
+    assert!(e.certification_totals().1 > without);
+}
+
+#[test]
+fn the_all_human_corner_takes_the_cheapest_type() {
+    // SSRN A.1 at the all-human corner: no task is done by machine, and the technique reported
+    // is the task type cheapest at the corner's wage, not the envelope's first. G1 with a
+    // second, labour-intensive machine type (build 0.3 of itself, labour 0.5, land 0.05),
+    // η 10, N 20, χ_max 0.05 and exit (0.2, 0, 0.1): the corner's wage is so low that the
+    // second type is cheaper there, while the first leads the envelope at x = 0.
+    let mut p = goodspace_1e(20.0, 10.0, 10.0, 0.05, 0.05);
+    let m = appendix_b_machine();
+    let mut a = m.clone();
+    a.build.machines = vec![m.build.machines[0], 0.0];
+    a.operating.machines = vec![0.0, 0.0];
+    let mut b = a.clone();
+    b.build.machines = vec![0.0, m.build.machines[0]];
+    b.build.labor = 0.5;
+    b.build.land = 0.05;
+    p.machine_types = vec![a, b];
+    p.exits = vec![priced(0.2, 0.0, 0.1)];
+    let (e, eq) = checked_1e(p);
+    assert_eq!(eq.base.margin, oracle::Margin::AllHuman);
+    assert_eq!(e.workers().machines().envelope().first, 0);
+    assert_eq!(eq.base.technique, 1);
+    let t = &eq.base.types;
+    assert!(t[1].price < t[0].price, "{} {}", t[1].price, t[0].price);
+    assert_eq!(eq.base.residuals.cheapest, 0.0);
 }

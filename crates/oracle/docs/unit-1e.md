@@ -338,6 +338,9 @@ every equilibrium.
 | Q4 | 80 | 1 | contestable, exit on the floor, q 2.890 ∈ (q_enc, q*) = (1.5, 4), κ 0.929: inside the gap |
 | Q5 | 80 | 0.7 | contestable, q 4.113 > q* = 4, κ 1.0055: the floor fundable |
 
+**Q6** (added by the verification, §12 item 18): N 14, η 1.5 and χ_max 3. The enclosure point
+lies on the wall, and the economy sits at it: an enclosure tie on the wall, q = 1.5, κ 4.29.
+
 **K, the commons.** G1's economy (FIELDS, 10, 1, enclosed), one type (4, 1, 1, 1) with exit
 (0.5, 0, 0.1), so q_enc = 5:
 - **K1**: a commons (WASTE, 1, 1, open), which the equilibrium does not fill: Commons, s = s₀;
@@ -369,6 +372,13 @@ the floor is the support).
 unit, so h ≤ s₀·b̄_food = 0.06: F meets §5.4's land condition, at a ρ where the Proposition is
 not proved. **F1**: with (WASTE, 1, 1, open): Commons. **F2**: without it: Enclosed.
 
+**L, an exit good made of land alone** (added by the verification, §12 item 16). W3's economy
+(λ 0.6, χ_max 3) on (LAND, 10, 1, enclosed) with Appendix B's space as exit good, which costs
+r·1 and is free at r = 0. **L1**: N 5 and exit (3.2, 0, 1.8): on the wall q = 1 < q_enc = 16/9
+and the type rents its plots; the one equilibrium is on the wall, and f_∞ is the wall's limit.
+**L2**: N 4 and exit (0.5, 0, 1): q = 1 > q_enc = 0.5 on the wall and at its end, every exiter
+on the floor s̲ = 0: W3 (I2) bit for bit on idle land.
+
 **M, three equilibria.** (LAND, 8.6, 1, enclosed), h 1.24, a 0.075, λ 0.063, b 0.88,
 γ = 1.16(0.41 + 1.88x); one type (7, 0.67, 1, 0.1) with exit (1.1, 0.17, 0.36). One equilibrium
 on the all-human corner and two on the line, where f rises from f_line(0) = −2/31 to +1.017
@@ -391,6 +401,7 @@ by far more than the gate's tolerance (the prototype's values):
 | I1-I3 | keeps 1d's `LaborShort`, or keeps rent as numeraire at r = 0 | no equilibrium, or non-finite prices |
 | I4 | idles land in proportion to the parcels | FIELDS and HEATH each 39.0% used, not 52.0% and 0 |
 | M | counts sign changes only at the sequence points | one equilibrium (the corner's), not three |
+| L1 | reads a free exit good's 0 < 0 at r = 0 as the floor (the build's first reading, §12 item 16) | three changes of side with f_∞ +2.03, not the wall at v 10.086 |
 | E0 | changes any 1d operation's order | 1d's goldens off in the last bits (§8, e1) |
 
 ## 4. Equations
@@ -456,7 +467,9 @@ In the Crowded regime, where the crossing is a drop of one type's plot demand at
 r_o = p_g·q_enc,i, that type splits between commons plots (T_o − G_{−i} of land) and its floor,
 and its supply is the same either way. With one plot-taking type its supply is vertical at
 N_i − T_o/h_i there. At r = 0 (§4.6) plots are free everywhere: r_o = 0,
-T_p = (G(0) − T_o)⁺ on idle enclosed land.
+T_p = (G(0) − T_o)⁺ on idle enclosed land. That regime is **Idle**, not Enclosed, since
+suitable land still idles (§0.2; §12 item 17). Where the exit good is free at r = 0 the regime
+is decided at the wall's end (§4.6).
 
 ### 4.5 Quantities and the market's land
 
@@ -471,8 +484,12 @@ In a priced economy D_i = 0; in a dependence economy 1d §4.3-4.4 unchanged, wit
 
 At the wall's end, under 1d's last technique τ_e, with r = 0 and the pool's wage as numeraire
 (w = 1): every price is its labour total, p_k = λ̃_k, p_j = λ̃_j (plus reserved costs in wage
-units), P_s = L_s (plus reserved costs); q = 0, r_o = 0, s_i = max(s₀,i, s̲_i). The market's land
-in use T_m runs over (0, T_m,∞], where
+units), P_s = L_s (plus reserved costs); q = 0, r_o = 0, s_i = max(s₀,i, s̲_i). Here q = 0 is the
+limit of r/p_g at the wall's end, where p_g grows with the wage. An exit good that embodies no
+labour (λ̃_g = 0, as Appendix B's space) is free at r = 0, p_g = 0, and the limit is instead
+q = 1/b̃_g: the plots are then decided as on the wall's last piece, in its units, while every
+exit value in money is p_g·s_i = 0 (§12 item 16). The market's land in use T_m runs over
+(0, T_m,∞], where
 
     T_m,∞ = T − (G(0) − T_o)⁺
 
@@ -716,8 +733,10 @@ economies' points bit for bit. New:
   (12.7 at Q2, 17.0 at Q3). At a wall's enclosure point v_e carries the cancellation in
   p*_g − b̃_g.
 - **The idle stretch.** T_m* in closed form keeps full precision; with walled types, bisection to
-  adjacent doubles and 1d's edge statement. Prices at r = 0 are the labour totals, at full
-  precision; f_∞ is 1d's value.
+  adjacent doubles and 1d's edge statement. Without walled types prices at r = 0 are the labour
+  totals, at full precision; with them P_s is the walk's fixed point and carries its
+  conditioning, one ulp of T_m moving P_s by up to about 1e-9 relative on the verification's
+  draws (§12 item 19). f_∞ is 1d's value.
 - **The scan.** Where §5.4's certification fails, a pair of equilibria inside one scan cell
   (width 1/`EXIT_SCAN` of its piece) is not seen: the count is then two short and names the
   wrong equilibrium. M's pair is 0.36 apart on the line. The build measures the misses against a
@@ -746,7 +765,8 @@ Proposed; the build may rename, and records any departure in §12.
   `at_idle(t_m, τ)`, `at_enclosure(point, side)`, `solve() -> Result<Regime<Eq1e>,
   SolveError>`, and the x-free `enclosed_land()`, `commons()`, `enclosure_targets()` and
   `certified()`.
-- `LandMarket { Scarce, Idle }`, `ExitLand { Unused, Commons, Crowded, Enclosed }`,
+- `LandMarket { Scarce, Idle }`, `ExitLand { Unused, Commons, Crowded, Enclosed }` (the build
+  adds `Idle`, §12 item 17),
   `Branch { Dependence, Plot, Floor }`, `EnclosureTie { worker, share }`.
 - `Eq1e`: 1d's `Eq1d` fields in the numeraire's units (§4.8), plus `land_market` (which also says
   the numeraire), `rent` (1 or 0), `exit_land`, `plot_rent` r_o, `q`, `exit_good_price` p_g,
@@ -775,8 +795,8 @@ points and ties in closed form, and the count by a scan four times the oracle's.
 `goldens/goldens_1e.txt` with 30 significant digits and a header of FNV-1a digests of
 `generate_1e.py`, `generate_1d.py`, `generate_1c.py`, `generate_1b.py`, `generate.py` and its
 own body; the Rust constants in `tests/gate/goldens_1e.rs` carry 20 digits (`e10`). Key
-prefixes: `P_`, `Q1_` to `Q5_`, `K1_` to `K5_`, `D_`, `I1_` to `I4_`, `T_`, `F1_`, `F2_`, `M_`,
-`A1_` to `A4_` (the wrong units of §3.3).
+prefixes: `P_`, `Q1_` to `Q6_`, `K1_` to `K5_`, `D_`, `I1_` to `I4_`, `T_`, `F1_`, `F2_`, `M_`,
+`A1_` to `A4_` (the wrong units of §3.3), and `L1_` (added by the verification, §12 item 16).
 
 The generator asserts as it goes:
 - E0 form of every 1d golden instance equals `generate_1d.py`'s solve to 1e-65, and its
@@ -894,6 +914,11 @@ every equilibrium and pins every price, P_s, v, each e_i and each supply to `at_
   `Priced(0, 0, h)` (h 0 and 1): bit for bit the dependence result, no scan. [§2.3]
 - `e1::a_dead_exit_is_dependence`: D, G1 bit for bit with `exit_land` Enclosed and every exiter
   on the floor. [check_enclosure N-iv, N-vi]
+- `e1::a_floor_without_a_plot_is_priced`: G1 with exit (0, 0.5, 0.1), no plot but not the option
+  switched off: K1's equilibrium, not G1's. [§2.3; §12 item 18]
+- `e1::the_exit_good_is_any_category`: G1, W2 and B1 without exit values and with every exit
+  good: 1d's outputs unchanged, p_g and q the exit good's, q = 1 at W2's idle equilibrium with
+  space. [§2.5; §12 items 16 and 18]
 
 **e2, the exit value alone (P).**
 - `e2::p3_floor`: P3's q_enc = 1 exactly, s weakly decreasing on (1/3, 2/3, 1, 2), 4 at q 2 and 5.
@@ -918,6 +943,11 @@ every equilibrium and pins every price, P_s, v, each e_i and each supply to `at_
 - `e3::the_tie_is_enclosure_by_price`: Q2 and Q3 are enclosure ties with q = 1.5 to rounding,
   sharing x_e, v and P_s bitwise; ψ's goldens; κ = 1 at Q2 (N_crit) and 0.75 at Q3 (the gap).
   [main.tex:854-864; §4.7]
+- `e3::an_enclosure_tie_on_the_wall`: Q6's goldens, the point on the wall at the equilibrium's
+  v bitwise, ψ the root between its two values. [§4.7; §12 item 18]
+- `e3::two_enclosure_points_in_one_piece`: Q's economy with two types, q_enc 1.5 and 2: both
+  points on the line in path order, and the first type's tie at Q2's x_e. [§4.7, §5.3; §12
+  item 18]
 
 **e4, the commons (K).**
 - `e4::commons_goldens`: K1-K4 goldens and regimes; K1's s = s₀ with the commons partly idle
@@ -941,12 +971,20 @@ every equilibrium and pins every price, P_s, v, each e_i and each supply to `at_
 - `e5::edge_on_the_idle_stretch`: I3, the trained's hours N_T and its κ_T golden. [1d item 16]
 - `e5::no_market`: I4 with exit (2, 0, 0.5), whose exit life is worth more than the ceiling wage
   (p_g·s₀ = 2·18/35 > 1 pool wage at r = 0), returns `NoMarket`. [§5.3]
+- `e5::a_free_exit_good_is_decided_at_the_wall`: L1's goldens on the wall, f_∞ the wall's limit
+  with the plots free on idle land (`Idle`, q = 1); L2 is W3 bit for bit. [§4.6; §12 item 16]
+- `e5::idle_goldens` also reads `exit_land`: Unused at I1-I3, `Idle` at I4. [§12 item 17]
 
 **e6, types and the fork (T, F).**
 - `e6::two_types_share_a_commons`: T's goldens; the plots sum to T_o; one r_o for both types. [§4.4]
 - `e6::fork_goldens`: F1, F2; food's price through the chain; the cost system over every row with
   T_m. [§4.5]
 - `e6::certified_is_monotone`: F's f nonincreasing on a 256-point grid of every stretch. [§5.4]
+- `e6::certification_needs_both_conditions`: F at ρ 0 certified, not with ε below h·ℓ₀; ℓ₀
+  equal to n_D per unit of market land at x = 0 with B's common hours. [§5.4; §12 item 18]
+- `e6::the_all_human_corner_takes_the_cheapest_type`: G1 with a second, labour-intensive
+  machine type, on the all-human corner under the type cheapest at its wage, not the
+  envelope's first. [SSRN A.1; §12 item 18]
 
 **e7, multiplicity and the scan (M).**
 - `e7::three_equilibria`: M is `MultipleEquilibria` with 3 changes of side; with the scan off (a
@@ -956,7 +994,8 @@ every equilibrium and pins every price, P_s, v, each e_i and each supply to `at_
 - `e7::root_does_not_depend_on_the_scan`: K3 and Q1 solved with `EXIT_SCAN` 256 and 17 give the
   same equilibrium bit for bit. [§5.3 step 4]
 
-**e8, random economies.** SplitMix64 seeded 941 to 946 (1d's were 931-935). 1d's d7 table for the
+**e8, random economies.** SplitMix64 seeded 941 to 946 (1d's were 931-935), and 947-948 for the
+sets (g) and (h) the verification added (§12 item 18). 1d's d7 table for the
 scalars, segments, categories and machine types, and:
 
 | draw | range |
@@ -964,27 +1003,32 @@ scalars, segments, categories and machine types, and:
 | parcels | one enclosed parcel with A ~ U(2, 12), Q 1; half the time a second, A ~ U(1, 5), Q ~ U(0.2, 2); a commons with probability 0.65, A·Q ~ U(0.02, 1.5) |
 | exit | priced with probability 0.7 (sets b, c); s₀ ~ U(0.05, 1.5), s̲ 0 or U(0, s₀) with equal odds, h ~ U(0.01, 0.4) |
 | support | 1, or U(0.05, 2), with equal odds |
-| exit good | category 0 |
+| exit good | category 0; in the verification's sets (g) and (h), uniform among the categories |
 
 Sets of 60 equilibria each: (a) one priced type, K = 1, ρ = 0; (b) 1-3 types, some in the
 dependence form, K in 1..3; (c) ρ ~ U(0, 0.1); (d) 1d's d7 draws with reserved hours, the
 dependence form, for the idle stretch and its edges; (e) certified draws, the exit good given
 direct land ≥ h/s₀; (f) enclosure ties, N set so that the equilibrium lies in an enclosure
-point's jump. A 30-digit scratch run of 100 draws in each of (a)-(c) (a scan of 30 per stretch)
+point's jump; and, added by the verification (§12 item 18), (g) as (a) with the exit good drawn
+among the categories and (h) as (f) on (g)'s draws. A 30-digit scratch run of 100 draws in each of (a)-(c) (a scan of 30 per stretch)
 gave: (a) 91 solved: 55 on the line (15 Commons, 8 Crowded, 31 Enclosed of which one a tie, 1
 Unused), 28 on the wall (11, 3, 14), 6 on idle land, 2 on the all-human corner (one a tie); 6
 not viable, 3 rejected by a stability rule this draft does not keep; f rose within the
 all-human corner in 20; (b) 93 solved, 18 of them dependence-only; (c) 94 solved and one with
 three equilibria. The build records its own tallies (`MAX_DRAWS_1E`). For each:
-- `e8::identities`: §4.8's identities, the regime conditions and bounds. [§4.8]
+- `e8::identities`: §4.8's identities, the regime conditions and bounds, with every residual of
+  1d bounded, no task type cheaper, and each category's wage floor, φ_w and φ_r with the land
+  at the rent (§12 item 18). [§4.8]
 - `e8::residuals_recompute`: each residual equals its recomputation bit for bit, and each is
   nonzero somewhere. [§6]
 - `e8::count_against_a_fine_scan`: the count equals a scan 16 times finer, or the miss is recorded;
-  set (e) is f nonincreasing on the scan and unique. [§5.4, §5.5]
+  set (e) is unique, and f nonincreasing along its whole path (64 points per piece, the idle
+  stretch included). [§5.4, §5.5]
 - `e8::supply_slope`: Lemma 5's sign at the equilibrium and at the scan's points. [§5.4]
-- `e8::the_draws_cover_the_regimes`: every exit-land regime, both land markets, every margin,
-  enclosure ties on the line, the wall and the all-human corner, `NoMarket`, and
-  `MultipleEquilibria` (or recorded as absent).
+- `e8::the_draws_cover_the_regimes`: every exit-land regime (`Idle` among them), both land
+  markets, every margin, enclosure ties on the line, the wall and the all-human corner,
+  `NoMarket`, and `MultipleEquilibria`, each asserted; and in sets (g) and (h) exit goods other
+  than category 0 on the wall, at enclosure ties (on the wall among them) and free on idle land.
 
 **e9, regimes, validation and reductions.**
 - `e9::exact_zeros`: G(0) = T_o exactly (the Commons-Crowded boundary), G(r) = T_o exactly
@@ -1054,7 +1098,8 @@ closed form against bisection; the scan's grid on bit patterns to +∞.
 ## 11. Open questions
 
 As built, 1e takes the first choice on each, and STATE.md records each as a decision open to veto,
-numbered from 88 (unit 1d's proposals are 76-87). The ones marked **Phase 2** bind it.
+numbered from 88 (unit 1d's proposals are 76-87). The ones marked **Phase 2** bind it. Questions
+14 and 15 came from the verification (P1.11).
 
 1. **Parcels as efficiency units** (§2.1; proposed decision 88): rent r·Q_z per acre, the worst
    idle first by convention. Alternative: a Ricardian working cost per acre, with a margin at
@@ -1089,8 +1134,19 @@ numbered from 88 (unit 1d's proposals are 76-87). The ones marked **Phase 2** bi
     tape's land classes need an addendum, or 1f's substitution, before a region has two scarce
     classes.
 13. **The random draws' ranges** (§8, e8; proposed 100): the build tunes and records them.
+14. **A free exit good at r = 0 is decided at the wall's end** (§4.6; the verification, §12 item
+    17; proposed 101): q = 1/b̃_g, its limit there. Alternative: §4.6 read literally, every type
+    with Δ_i > 0 on a plot at q = 0 whatever p_g, which breaks the junction when the type is on
+    its floor, or crowded out, on the wall's last piece. **Phase 2**: the tapes' exit good is
+    food, which embodies labour; an idle-land instance whose exit good is made of land alone
+    decides its plots at the wall's end.
+15. **Free plots on idle land are `ExitLand::Idle`** (§4.4; the verification, §12 item 17;
+    proposed 102). Alternatives: `Commons` (Prop exit (i)'s meaning, but the plots are on
+    enclosed parcels), or `Enclosed` with a convention (the build's first reading, which
+    contradicts §0.2). **Phase 2**: a consumer reads `Enclosed` as "closed by price, no suitable
+    land idle", and `Idle` as plots free on idle enclosed land at r = 0.
 
-## 12. Changes during the build (P1.10, 2026-09-27)
+## 12. Changes during the build (P1.10) and the verification (P1.11), 2026-09-27
 
 1. **The generator builds on 1d's.** `generate_1e.py`'s `Economy` extends `generate_1d.py`'s,
    as the prototype did: the parcels, the exit forms, the exit sub-problem, the idle stretch, the
@@ -1098,7 +1154,8 @@ numbered from 88 (unit 1d's proposals are 76-87). The ones marked **Phase 2** bi
    values is solved by `generate_1d.py`'s own solve, with −S_∞ after the wall's end: its
    `LaborShort` rows become the idle equilibrium (or the junction where f_∞ = 0), and its count
    gains one where f_∞ > 0. `goldens_1e.txt` records six digests, and `e10` checks them. It
-   writes 208 goldens in about a minute and reproduces every value of §7 to the digits shown.
+   writes 208 goldens in about a minute and reproduces every value of §7 to the digits shown
+   (223 since the verification added Q6 and L1, items 16 and 18).
    Departures from §7: the crowded commons' plot rent is not bisected to 2^-400 but found by the
    Illinois variant of regula falsi to working precision, between the rents where a type's plot
    demand drops, which are located in closed form (a split there is exact); the values are
@@ -1191,26 +1248,32 @@ numbered from 88 (unit 1d's proposals are 76-87). The ones marked **Phase 2** bi
     type at its q_enc at a point of the line rather than at an equilibrium, and the junction at
     an equilibrium (f_∞ = 0 exactly with supply saturating between x = 1 and the wall's end). §8's
     `e2::identical_workers_ignore_support` reads K3's wall at wages either side of the exit value.
-12. **The random draws** (§8 e8; decision 100). Seeds 941-946, 60 equilibria per set, the
+12. **The random draws** (§8 e8; decision 100). Seeds 941-946 (947-948 for the verification's
+    sets (g) and (h), item 18), 60 equilibria per set, the
     scalars, segments, categories and machine types from d7's table (2-3 categories and a site,
     category 0 the exit good), and §8's parcels, exits and supports. Set (d) reads d7's draws
     with reserved hours in parcel form; set (e) sets the exit good's direct land to U(1, 2)·h/s₀
     and keeps certified draws; set (f) draws as (a) and sets N midway between the two values at
     which f vanishes on either side of the first enclosure point. The tallies:
 
-    | set | draws | invalid | line | wall | all-human | idle | Commons | Crowded | Enclosed | Unused | ties | other |
-    |---|---|---|---|---|---|---|---|---|---|---|---|---|
-    | (a) one type | 69 | 6 | 22 | 38 | 0 | 9 | 25 | 10 | 24 | 1 | 1 (wall) | 1 NoMarket, 2 NotViable |
-    | (b) types | 79 | 18 | 37 | 21 | 2 | 7 | 14 | 5 | 31 | 10 | 0 | 1 NotViable |
-    | (c) interest | 67 | 6 | 43 | 17 | 0 | 2 | 7 | 13 | 30 | 10 | 0 | 1 NotViable |
-    | (d) reserved | 63 | 0 | 25 | 34 | 1 | 14 | 0 | 0 | 0 | 60 | 0 | 3 NotViable |
-    | (e) certified | 74 | 12 | 22 | 38 | 0 | 9 | 20 | 5 | 35 | 0 | 0 | 1 not certified, 1 NotViable |
-    | (f) ties | 297 | 0 | 14 | 43 | 3 | 0 | 0 | 0 | 60 | 0 | 60 (14 line, 43 wall, 3 all-human) | 236 without a point, 1 MultipleEquilibria |
+    | set | draws | invalid | line | wall | all-human | idle | Commons | Crowded | Enclosed | Idle | Unused | ties | other |
+    |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+    | (a) one type | 69 | 6 | 22 | 38 | 0 | 9 | 25 | 10 | 22 | 2 | 1 | 1 (wall) | 1 NoMarket, 2 NotViable |
+    | (b) types | 79 | 18 | 37 | 21 | 2 | 7 | 14 | 5 | 27 | 4 | 10 | 0 | 1 NotViable |
+    | (c) interest | 67 | 6 | 43 | 17 | 0 | 2 | 7 | 13 | 29 | 1 | 10 | 0 | 1 NotViable |
+    | (d) reserved | 63 | 0 | 25 | 34 | 1 | 14 | 0 | 0 | 0 | 0 | 60 | 0 | 3 NotViable |
+    | (e) certified | 74 | 12 | 22 | 38 | 0 | 9 | 20 | 5 | 30 | 5 | 0 | 0 | 1 not certified, 1 NotViable |
+    | (f) ties | 297 | 0 | 14 | 43 | 3 | 0 | 0 | 0 | 60 | 0 | 0 | 60 (14 line, 43 wall, 3 all-human) | 236 without a point, 1 MultipleEquilibria |
+    | (g) exit goods | 70 | 6 | 17 | 43 | 0 | 8 | 19 | 8 | 27 | 5 | 1 | 1 (line) | 1 NoMarket, 1 MultipleEquilibria, 2 NotViable |
+    | (h) their ties | 681 | 0 | 15 | 42 | 3 | 0 | 0 | 0 | 60 | 0 | 0 | 60 (15 line, 42 wall, 3 all-human) | 621 without a point |
 
-    (line, wall and all-human count the margins, idle the equilibria on idle land among them.)
+    (line, wall and all-human count the margins, idle the equilibria on idle land among them;
+    the exit-land columns Enclosed and Idle were one column, Enclosed, before item 17.)
     The count against a scan 16 times finer, on the first 30 draws of each set with a plot-taking
-    type, found no miss, and no certified draw has more than one equilibrium. No draw has an
-    equilibrium at the edge of a reserved shortage on the idle stretch; I3 is the gate's.
+    type, found no miss, and no certified draw has more than one equilibrium. No e8 draw has an
+    equilibrium at the edge of a reserved shortage on the idle stretch; I3 is the gate's. The
+    verification's own 240 draws with reserved hours in parcel form put 53 on the idle stretch,
+    6 of them at such an edge, all in agreement (item 19).
 13. **Numbers.** The oracle's f64 values match the goldens within 2.4e-14 relative on Q5's
     provider baskets (80.44 − 80, a cancellation), 7.0e-15 on Q2's f above its enclosure point
     (a difference), 5.1e-15 on K2's shadow rent (resolved to adjacent doubles), within 2.1e-15 on
@@ -1248,4 +1311,86 @@ numbered from 88 (unit 1d's proposals are 76-87). The ones marked **Phase 2** bi
     default form), 96 (multiple equilibria in the historical runs where support is low) and 99
     (several land classes). Item 4's free goods at zero rent, reported absent, and item 8's
     refusal at the walk's ceiling bind Phase 2 too: an idle-land instance for the agents should
-    not rest on either.
+    not rest on either. The verification (P1.11) adds proposed decisions 101, a free exit good
+    at r = 0 decided at the wall's end (item 16), and 102, free plots on idle land labelled
+    `Idle` (item 17); both are §11's questions 14 and 15, and both bind Phase 2.
+
+**The verification (P1.11, 2026-09-27).** One adversarial pass (an independent derivation at
+40-50 digits, and 30 mutants) and one fix round. Items 16 and 17 change the oracle; items 18
+and 19 add tests and amend the text.
+
+16. **A free exit good at r = 0 is decided at the wall's end** (derivation finding 1). At r = 0
+    the exit good's price is its labour total, so an exit good that embodies no labour, as
+    Appendix B's space or any land-only category, costs 0 there and q = r/p_g is 0/0. The build's
+    branch test r_o·h_i < p_g·Δ_i read 0 < 0 and put every such type on its floor at r = 0, while
+    on the wall's last piece q = 1/b̃_g and the type could rent: the idle stretch did not start
+    where the wall ends, and L1 (N 5, exit (3.2, 0, 1.8) in space; §3.3) was refused as three
+    equilibria with f_∞ = +2.03 against the wall's limit −0.176. Section 4.6's own reading, a plot
+    at q = 0 whatever p_g, repairs L1 but breaks the junction the other way wherever the type is
+    on its floor, or crowded out of the commons, on the wall's last piece (h_i ≥ b̃_g·Δ_i). So
+    at r = 0 with p_g = 0 the exit sub-problem is decided where the limit lies: in the wall's
+    end's units, where the exit good costs p_wall = b̃_g per unit of rent (its price at x = 1
+    with v = 0 and r = 1, which every point of the last piece repeats bit for bit), trial rents
+    in [0, 1], the branch test h_i·ρ < p_wall·Δ_i and the goods s₀ − (ρ/p_wall)·h_i, while
+    every exit value in money is p_g·s_i = 0 and every rent reported in money is 0. The reported
+    q at r = 0 is the limit, 1/p_wall (0 where the exit good embodies labour, as before), for
+    economies without exit values too. The junction then holds by construction: L1 solves on
+    the wall at v 10.086 (the derivation's value), f_∞ is the wall's limit within e/v far up
+    the last piece, and L2 (exit (0.5, 0, 1), on the floor at q = 1) is W3 bit for bit. With
+    the frame, a commons can be crowded at r = 0 (a unit test builds it). `generate_1e.py`
+    decides the same way and writes L1's six goldens; its other 208 are unchanged. An exit good
+    with labour, food among them, is decided as before, bit for bit. Proposed decision 101.
+17. **Free plots on idle land are `ExitLand::Idle`** (derivation finding 2). At r = 0 the build
+    labelled plots past the commons `Enclosed`, which §0.2 defines as no suitable land idle and
+    Prop exit (i) calls a commons. They are now `Idle` (code 4): at r = 0, G ≥ T_o puts the
+    spill free on idle enclosed land. `Enclosed` occurs only at r = 1. I4 is `Idle`, and
+    `e5::idle_goldens` asserts it; the other idle instances are `Unused`. The generator's regime
+    names follow. Proposed decision 102.
+18. **Tests for the mutants that survived** (mutation findings, and the minor findings). Of the
+    pass's 30 mutants, 13 survived; each is now killed by a test that fails with it:
+    - A4, the exit-free test without its floor clause: `e1::a_floor_without_a_plot_is_priced`
+      (G1 with exit (0, 0.5, 0.1) is K1's equilibrium, not G1's);
+    - B4, two enclosure points out of path order: `e3::two_enclosure_points_in_one_piece`;
+    - B6, the all-human corner under the envelope's first type:
+      `e6::the_all_human_corner_takes_the_cheapest_type`, and `check_identities_1e` now checks
+      that no task type is cheaper than the technique at every 1e equilibrium;
+    - C1, C4 and C5, three of 1d's residuals with land priced at 1 on idle land:
+      `check_identities_1e` bounds every field of 1d's residuals at every 1e equilibrium (e5's
+      idle instances catch C1 and C4; C5 needs a machine that operates on land, which e1's and
+      e8's idle draws have);
+    - C2 and C3, φ_r and the wage floor with land priced at 1 on idle land:
+      `check_identities_1e` pins each category's wage floor, φ_w and φ_r to their formulas with
+      the land at the rent, and φ_w + φ_r = 1, wherever the price is positive (e5 catches C2;
+      C3 needs a priced category with chain land, which e1's and e8's idle draws have);
+    - D4 and D5, certification's second condition and ℓ₀'s common hours:
+      `e6::certification_needs_both_conditions`;
+    - I4, I5 and I7, the exit good's index: e8's sets (g) and (h) (seeds 947-948) draw the exit
+      good among the categories, the land-only site included, and ties on them; the regimes test
+      asserts exit goods other than category 0 on the wall (34), at ties (33, 26 on the wall) and
+      free on idle land (2); `e1::the_exit_good_is_any_category` runs the p_g identity on
+      economies without exit values whose exit good is not category 0.
+
+    Two fixed goldens stand where the gate had only random tallies: L1 is `Enclosed` on the
+    wall, and Q6 (the race with N 14, η 1.5 and χ_max 3; §3.3) an enclosure tie on the wall,
+    tested by `e3::an_enclosure_tie_on_the_wall`. Building Q6 showed that `generate_1e.py`
+    placed an enclosure point at the midpoint of its last bracket, where the type can already
+    rent, so that its value below was the renting one; it now takes the bracket's floor end, as
+    the oracle takes the largest double on the floor, which moves no earlier golden.
+    `check_identities_1e` also checks each priced type's exit goods s_i against its branch and
+    q_o, the branch at r = 0 in the wall's units (item 16), q at r = 0, and `Enclosed` only at
+    r = 1. `e8::the_draws_cover_the_regimes` asserts what §8 promised and did not check: ties on
+    the wall and the all-human corner, `NoMarket` and `MultipleEquilibria`, and now `Idle`.
+    `e8::count_against_a_fine_scan` checks set (e)'s f nonincreasing along its whole path
+    (§8), and `e1::random_economies_are_bit_identical` asserts item 11's tallies exactly. Six
+    mutants of the fixes are killed too: the frame off, the spill labelled `Enclosed`, q = 0 at
+    idle, a rent charged in money in the frame, the frame's rent 0, and every free-good type on a
+    plot (the reading of §4.6 that item 16 declines). The package now has 361 tests (77 unit,
+    283 gate, 1 doc); unit 1e 63 (10 unit, 53 gate).
+19. **Two statements amended** (the minor findings). Item 12 said no draw with reserved hours
+    reaches the edge of a reserved shortage on the idle stretch; e8's do not, but the
+    verification's 240 such draws put 6 there, all agreeing with its solver, and one draw,
+    ill-conditioned (P_s about 4.5e4 pool wages on a pool of 0.0087 hours, one ulp of κ moving f
+    by 7.3e-9 of the pool), was refused by the labour net at 5.0e-9: the net working, not a
+    wrong number. §5.5 said prices at r = 0 are the labour totals at full precision; with walled
+    types P_s is the walk's fixed point instead (one ulp of T_m moved it by 4.5e-10 on the
+    derivation's draw b035), and §5.5 now says so.

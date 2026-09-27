@@ -6,6 +6,7 @@ use oracle::{Branch, EnclosureSide, Eq1e, ExitLand, LandMarket, Margin};
 
 use crate::goldens_1e::*;
 use crate::support::*;
+use crate::support_1d::worker;
 use crate::support_1e::*;
 
 /// Q1-Q5 (docs/unit-1e.md §3.3).
@@ -179,4 +180,86 @@ fn the_wrong_units_miss() {
     assert!((q3.base.participation - A4_PARTICIPATION).abs() > 0.3);
     assert!((q3.base.y - A4_Y).abs() > 50.0);
     close("3/224", A4_PARTICIPATION, 3.0 / 224.0);
+}
+
+#[test]
+fn two_enclosure_points_in_one_piece() {
+    // §4.7 and §5.3 step 2: along the path p_g rises and q = r/p_g falls, so a type with a
+    // higher q_enc meets its enclosure point first. Q's economy (N 50, η 2) with two types,
+    // (40, 1, 1, 1) with exit (1.5, 0, 1) and (30, 1, 1, 1) with exit (2, 0, 1): both points
+    // lie in the line's one region, the second type's first, and they enter the sequence in
+    // path order. The equilibrium is the first type's enclosure tie, at Q2's x_e (q = 1.5),
+    // with the second type renting.
+    let mut p = race(50.0, 2.0);
+    p.worker_types = vec![worker(40.0, 1.0, 1.0, 1.0), worker(30.0, 1.0, 1.0, 1.0)];
+    p.reserved = vec![vec![0.0, 0.0]; p.categories.len()];
+    p.exits = vec![priced(1.5, 0.0, 1.0), priced(2.0, 0.0, 1.0)];
+    let (e, eq) = checked_1e(p);
+    let points = e.enclosure_points().unwrap();
+    assert_eq!(points.len(), 2);
+    assert_eq!((points[0].worker, points[1].worker), (1, 0));
+    assert!(points.iter().all(|pt| pt.margin == Margin::Contestable));
+    assert!(points[0].x < points[1].x && points[0].v < points[1].v);
+    let q2 = solve("Q2");
+    assert_eq!(points[1].x.to_bits(), q2.base.x_star.to_bits());
+    let tie = eq.enclosure.expect("an enclosure tie");
+    assert_eq!(tie.worker, 0);
+    assert_eq!(eq.base.x_star.to_bits(), q2.base.x_star.to_bits());
+    assert_eq!(eq.base.p_s.to_bits(), q2.base.p_s.to_bits());
+    assert_eq!(
+        (eq.workers[0].branch, eq.workers[1].branch),
+        (Branch::Floor, Branch::Plot)
+    );
+    // ψ is the root of f, linear between the point's two values
+    let (f_b, f_a) = (
+        e.at_enclosure(&points[1], EnclosureSide::Below)
+            .excess_demand(),
+        e.at_enclosure(&points[1], EnclosureSide::Above)
+            .excess_demand(),
+    );
+    assert!(f_b > 0.0 && f_a < 0.0, "{f_b} {f_a}");
+    close_to("ψ linear", tie.share, f_b / (f_b - f_a), 1e-12);
+}
+
+#[test]
+fn an_enclosure_tie_on_the_wall() {
+    // Q6: the race with χ_max 3 at η 1.5 and N 14. The type's enclosure point lies on the wall
+    // (x = 1, v at p_g = r·h/Δ), and the economy sits at it: an enclosure tie on the wall with
+    // q = q_enc = 1.5, a share ψ of the exiters renting, and κ = qT/(N(1 + q)).
+    let mut p = race(14.0, 1.5);
+    p.worker_types[0].work_cost.chi_max = 3.0;
+    let (e, eq) = checked_1e(p);
+    let b = &eq.base;
+    assert_eq!(
+        (b.margin, eq.land_market, eq.exit_land),
+        (Margin::Wall, LandMarket::Scarce, ExitLand::Enclosed)
+    );
+    let tie = eq.enclosure.expect("an enclosure tie");
+    assert_eq!((tie.worker, eq.workers[0].branch), (0, Branch::Floor));
+    close_to("Q6 q", eq.q, P_Q_ENC, 1e-15);
+    close("Q6 κ", eq.coverage, eq.q * 100.0 / (14.0 * (1.0 + eq.q)));
+    for (name, got, want) in [
+        ("v", b.v, Q6_V),
+        ("P_s", b.p_s, Q6_P_S),
+        ("Y", b.y, Q6_Y),
+        ("N_a", b.n_a, Q6_N_A),
+        ("κ", eq.coverage, Q6_KAPPA),
+        ("T_p", eq.land.rented_plots, Q6_T_P),
+        ("ψ", tie.share, Q6_SHARE),
+    ] {
+        close_to(&format!("Q6 {name}"), got, want, 1e-12);
+    }
+    // the point is the economy's own, on the wall, and ψ the root of f between its two values
+    let points = e.enclosure_points().unwrap();
+    assert_eq!(points.len(), 1);
+    let point = points[0];
+    assert_eq!(point.margin, Margin::Wall);
+    assert_eq!(point.v.to_bits(), b.v.to_bits());
+    let (f_b, f_a) = (
+        e.at_enclosure(&point, EnclosureSide::Below).excess_demand(),
+        e.at_enclosure(&point, EnclosureSide::Above).excess_demand(),
+    );
+    close_to("Q6 f below", f_b, Q6_F_BELOW, 1e-12);
+    close_to("Q6 f above", f_a, Q6_F_ABOVE, 1e-12);
+    close_to("Q6 ψ linear", tie.share, f_b / (f_b - f_a), 1e-12);
 }

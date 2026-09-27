@@ -164,19 +164,24 @@ pub enum ExitLand {
     /// The commons is full and rations plots by a shadow rent r_o in (0, r) that nobody
     /// receives.
     Crowded,
-    /// Plots spill onto enclosed land at r_o = r and leave production (on idle land at
-    /// r = 0, free).
+    /// Plots spill onto enclosed land at r_o = r and leave production: no suitable land idles
+    /// (§0.2, Prop exit (ii)). Only while enclosed land is scarce, r = 1.
     Enclosed,
+    /// At r = 0: plots fill the commons and spill onto idle enclosed land, where they stand
+    /// free. Suitable land still idles, so this is Prop exit (i)'s commons in all but access,
+    /// not enclosure (§0.2, §4.4; docs/unit-1e.md §12 item 17).
+    Idle,
 }
 
 impl ExitLand {
-    /// 0 to 3, as [`Eq1e::outputs`] reports it.
+    /// 0 to 4, as [`Eq1e::outputs`] reports it.
     pub fn code(self) -> u32 {
         match self {
             ExitLand::Unused => 0,
             ExitLand::Commons => 1,
             ExitLand::Crowded => 2,
             ExitLand::Enclosed => 3,
+            ExitLand::Idle => 4,
         }
     }
 }
@@ -300,6 +305,9 @@ pub struct ParcelPoint {
     pub market_land: f64,
     /// p_g, the exit good's price.
     pub exit_good_price: f64,
+    /// q = r/p_g; at r = 0 its limit at the wall's end, 0 where the exit good embodies labour
+    /// and 1/b̃_g where it does not (docs/unit-1e.md §12 item 16).
+    pub q: f64,
     /// Where the exit plots stand.
     pub exit_land: ExitLand,
     /// r_o, the rent an exit plot pays per unit of service.
@@ -687,11 +695,15 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
         edge: Option<Edge>,
     ) -> ParcelPoint {
         let prices = self.workers.price_side(x, technique, block, rent);
+        // At r = 0 a free exit good (one that embodies no labour) leaves q = r/p_g at 0/0; its
+        // limit at the wall's end is 1/b̃_g, and the plots are decided there (§12 item 16).
+        let free_good = rent == 0.0 && prices.base_prices[self.params.exit_good] == 0.0;
+        let wall = free_good.then(|| self.wall_price(technique));
         let exit = if self.exit_free {
             self.free_state()
         } else {
             let p_g = prices.base_prices[self.params.exit_good];
-            self.exit_state(prices.block.v, prices.base_p_s, p_g, rent, force)
+            self.exit_state(prices.block.v, prices.base_p_s, p_g, rent, force, wall)
         };
         let market_land = land.unwrap_or(self.enclosed - exit.rented);
         let market = Market {
@@ -701,11 +713,17 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
         };
         let point = self.workers.finish(prices, edge, &market);
         let exit_good_price = point.prices[self.params.exit_good];
+        let q = match wall {
+            _ if rent != 0.0 => rent / exit_good_price,
+            Some(p_wall) if exit_good_price == 0.0 => 1.0 / p_wall,
+            _ => 0.0,
+        };
         ParcelPoint {
             point,
             rent,
             market_land,
             exit_good_price,
+            q,
             exit_land: exit.regime,
             plot_rent: exit.plot_rent,
             branches: exit.branches,
@@ -746,7 +764,25 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
 
     /// Each type's branch, exit value and supply at a trial plot rent r_o, in type order, and
     /// G, the plot land asked for, from 0.0 (docs/unit-1e.md §5.1 step 2).
-    fn trial(&self, plot_rent: f64, v: f64, p_s: f64, p_g: f64, force: Force) -> Trial {
+    ///
+    /// `wall` is `Some(p_wall)` at r = 0 with a free exit good (§12 item 16): the branch and
+    /// the exit goods are then decided as at the wall's end, in rent units, where the exit good
+    /// costs p_wall = b̃_g per unit of rent and `plot_rent` is the trial rent in [0, 1] there,
+    /// while the exit value in money is p_g·s = 0.
+    fn trial(
+        &self,
+        plot_rent: f64,
+        v: f64,
+        p_s: f64,
+        p_g: f64,
+        force: Force,
+        wall: Option<f64>,
+    ) -> Trial {
+        // (the price that decides the branch and the goods, the plot rent in money)
+        let (price, money_rent) = match wall {
+            None => (p_g, plot_rent),
+            Some(p_wall) => (p_wall, 0.0),
+        };
         let types = &self.params.worker_types;
         let kinds = types.len();
         let mut t = Trial {
@@ -769,14 +805,14 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
                     _ => {
                         let plot = match force {
                             Force::Above(k) if k == i => true,
-                            _ => plot_rent * p.plot < p_g * exit.advantage,
+                            _ => plot_rent * p.plot < price * exit.advantage,
                         };
                         if plot {
-                            let value = num::fma(p_g, p.gross, -(plot_rent * p.plot));
+                            let value = num::fma(p_g, p.gross, -(money_rent * p.plot));
                             let goods = if plot_rent == 0.0 {
                                 p.gross
                             } else {
-                                num::fma(-(plot_rent / p_g), p.plot, p.gross)
+                                num::fma(-(plot_rent / price), p.plot, p.gross)
                             };
                             (Branch::Plot, value, goods, 1.0)
                         } else {
@@ -801,8 +837,25 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
     }
 
     /// §4.4's regime and the plot rent at the point's prices, at the market rent r.
-    fn exit_state(&self, v: f64, p_s: f64, p_g: f64, rent: f64, force: Force) -> ExitState {
+    ///
+    /// At r = 0 the plots are free: past the commons they stand on idle enclosed land
+    /// ([`ExitLand::Idle`]). With a free exit good (`wall` is `Some`, §12 item 16) the regime and
+    /// the branches are decided in the wall's end's rent units, trial rents in [0, 1], and every
+    /// rent reported in money is 0.
+    fn exit_state(
+        &self,
+        v: f64,
+        p_s: f64,
+        p_g: f64,
+        rent: f64,
+        force: Force,
+        wall: Option<f64>,
+    ) -> ExitState {
         let t_o = self.commons;
+        // the rent in the units the plots are decided in, and a rent reported in money
+        let top = if wall.is_some() { 1.0 } else { rent };
+        let money = |r: f64| if wall.is_some() { 0.0 } else { r };
+        let trial = |r: f64| self.trial(r, v, p_s, p_g, force, wall);
         let state = |t: Trial, regime, plot_rent, commons_occupied, rented| ExitState {
             regime,
             plot_rent,
@@ -816,12 +869,12 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
             rented,
         };
         if let Force::Share(..) = force {
-            let t = self.trial(rent, v, p_s, p_g, force);
+            let t = trial(top);
             let rented = (t.demand - t_o).max(0.0);
             let occupied = t.demand.min(t_o);
-            return state(t, ExitLand::Enclosed, rent, occupied, rented);
+            return state(t, ExitLand::Enclosed, money(rent), occupied, rented);
         }
-        let t0 = self.trial(0.0, v, p_s, p_g, force);
+        let t0 = trial(0.0);
         if t0.demand == 0.0 {
             return state(t0, ExitLand::Unused, 0.0, 0.0, 0.0);
         }
@@ -829,24 +882,30 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
             let occupied = t0.demand;
             return state(t0, ExitLand::Commons, 0.0, occupied, 0.0);
         }
-        let t1 = self.trial(rent, v, p_s, p_g, force);
+        let t1 = trial(top);
         if t1.demand >= t_o {
             let rented = t1.demand - t_o;
-            return state(t1, ExitLand::Enclosed, rent, t_o, rented);
+            // at r = 0 the spill stands free on idle enclosed land: not enclosure (§0.2)
+            let regime = if rent == 0.0 {
+                ExitLand::Idle
+            } else {
+                ExitLand::Enclosed
+            };
+            return state(t1, regime, money(rent), t_o, rented);
         }
         // Crowded: the least double r_o in [0, r] with G(r_o) ≤ T_o, by bisection on bit
         // patterns.
-        let (mut lo, mut hi) = (0.0_f64, rent);
+        let (mut lo, mut hi) = (0.0_f64, top);
         while hi.to_bits() > lo.to_bits() + 1 {
             let mid = f64::from_bits(lo.to_bits() + (hi.to_bits() - lo.to_bits()) / 2);
-            if self.trial(mid, v, p_s, p_g, force).demand > t_o {
+            if trial(mid).demand > t_o {
                 lo = mid;
             } else {
                 hi = mid;
             }
         }
-        let below = self.trial(lo, v, p_s, p_g, force);
-        let mut t = self.trial(hi, v, p_s, p_g, force);
+        let below = trial(lo);
+        let mut t = trial(hi);
         // A type whose plot demand drops between the two splits between commons plots and its
         // floor, with the same supply either way (§4.4).
         if let Some(i) = (0..t.branches.len())
@@ -859,7 +918,18 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
             t.households[i] = land / plot;
             t.demand += land;
         }
-        state(t, ExitLand::Crowded, hi, t_o, 0.0)
+        state(t, ExitLand::Crowded, money(hi), t_o, 0.0)
+    }
+
+    /// p_g per unit of rent at the wall's end under `technique`, where the exit good embodies
+    /// no labour: its price at x = 1 with v = 0 and r = 1, which is b̃_g. Every point of the
+    /// wall's last piece repeats it bit for bit, since v·0 = 0 and the chain's elimination adds
+    /// nonnegative terms only, so that a structural zero stays 0 (leontief.rs).
+    fn wall_price(&self, technique: usize) -> f64 {
+        let block = self.workers.block_at_wage(0.0, 1.0, technique);
+        self.workers
+            .price_side(BRACKET_HI, technique, block, 1.0)
+            .base_prices[self.params.exit_good]
     }
 
     /// n_S,i at a trial's exit value.
@@ -1798,6 +1868,7 @@ struct LandSide {
     rent: f64,
     market_land: f64,
     exit_good_price: f64,
+    q: f64,
     exit_land: ExitLand,
     plot_rent: f64,
     branches: Vec<Branch>,
@@ -1815,6 +1886,7 @@ impl ParcelPoint {
             rent: self.rent,
             market_land: self.market_land,
             exit_good_price: self.exit_good_price,
+            q: self.q,
             exit_land: self.exit_land,
             plot_rent: self.plot_rent,
             branches: self.branches.clone(),
@@ -1863,6 +1935,7 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
             rent: 1.0,
             market_land: self.enclosed,
             exit_good_price: eq.categories[self.params.exit_good].price,
+            q: 1.0 / eq.categories[self.params.exit_good].price,
             exit_land: state.regime,
             plot_rent: state.plot_rent,
             branches: state.branches,
@@ -2004,7 +2077,7 @@ impl<S: Schedule + Clone> ParcelEconomy<S> {
             rent,
             exit_land: side.exit_land,
             plot_rent: side.plot_rent,
-            q: if scarce { rent / p_g } else { 0.0 },
+            q: side.q,
             exit_good_price: p_g,
             land,
             parcels,
@@ -2111,7 +2184,8 @@ pub struct Eq1e {
     pub exit_land: ExitLand,
     /// r_o, the rent an exit plot pays per unit of service.
     pub plot_rent: f64,
-    /// q = r/p_g.
+    /// q = r/p_g; at r = 0 its limit at the wall's end (0, or 1/b̃_g for an exit good that
+    /// embodies no labour: docs/unit-1e.md §12 item 16).
     pub q: f64,
     /// p_g.
     pub exit_good_price: f64,
@@ -2334,35 +2408,79 @@ mod tests {
         let (v, p_s, p_g) = (0.55, 1.36, 0.36);
         let exit = priced(0.5, 0.0, 0.1);
         let big = with_commons(1.0, exit);
-        let t0 = big.trial(0.0, v, p_s, p_g, Force::None);
-        let t1 = big.trial(1.0, v, p_s, p_g, Force::None);
+        let t0 = big.trial(0.0, v, p_s, p_g, Force::None, None);
+        let t1 = big.trial(1.0, v, p_s, p_g, Force::None, None);
         assert!(t1.demand < t0.demand && t0.demand < 0.4);
-        let s = big.exit_state(v, p_s, p_g, 1.0, Force::None);
+        let s = big.exit_state(v, p_s, p_g, 1.0, Force::None, None);
         assert_eq!(
             (s.regime, s.plot_rent, s.rented),
             (ExitLand::Commons, 0.0, 0.0)
         );
         assert_eq!(s.commons_occupied, t0.demand);
         let crowded = with_commons(0.5 * (t0.demand + t1.demand), exit);
-        let s = crowded.exit_state(v, p_s, p_g, 1.0, Force::None);
+        let s = crowded.exit_state(v, p_s, p_g, 1.0, Force::None, None);
         assert_eq!(s.regime, ExitLand::Crowded);
         assert!(s.plot_rent > 0.0 && s.plot_rent < 1.0);
         // r_o is the least double with G ≤ T_o
         let t_o = crowded.commons();
-        assert!(crowded.trial(s.plot_rent, v, p_s, p_g, Force::None).demand <= t_o);
+        assert!(
+            crowded
+                .trial(s.plot_rent, v, p_s, p_g, Force::None, None)
+                .demand
+                <= t_o
+        );
         let before = s.plot_rent.next_down();
-        assert!(crowded.trial(before, v, p_s, p_g, Force::None).demand > t_o);
+        assert!(crowded.trial(before, v, p_s, p_g, Force::None, None).demand > t_o);
         let small = with_commons(0.5 * t1.demand, exit);
-        let s = small.exit_state(v, p_s, p_g, 1.0, Force::None);
+        let s = small.exit_state(v, p_s, p_g, 1.0, Force::None, None);
         assert_eq!((s.regime, s.plot_rent), (ExitLand::Enclosed, 1.0));
         assert_eq!(s.rented, t1.demand - small.commons());
         // everyone works at a high enough wage: no plot is asked for
-        let s = big.exit_state(50.0, p_s, p_g, 1.0, Force::None);
+        let s = big.exit_state(50.0, p_s, p_g, 1.0, Force::None, None);
         assert_eq!((s.regime, s.demand), (ExitLand::Unused, 0.0));
-        // at r = 0 plots are free everywhere, the excess over the commons on idle land
-        let s = small.exit_state(v, p_s, p_g, 0.0, Force::None);
-        assert_eq!((s.regime, s.plot_rent), (ExitLand::Enclosed, 0.0));
+        // at r = 0 plots are free everywhere, the excess over the commons on idle land: not
+        // enclosure, since suitable land idles
+        let s = small.exit_state(v, p_s, p_g, 0.0, Force::None, None);
+        assert_eq!((s.regime, s.plot_rent), (ExitLand::Idle, 0.0));
         assert_eq!(s.rented, t0.demand - small.commons());
+    }
+
+    #[test]
+    fn a_free_exit_good_is_decided_at_the_wall() {
+        // §12 item 16: at r = 0 an exit good that embodies no labour costs 0, and q = r/p_g is
+        // 0/0. The plots are decided as at the wall's end, where the good costs p_wall = b̃_g
+        // per unit of rent (q = 1/p_wall), while every exit value in money is 0.
+        let (v, p_s, p_wall) = (1.0, 2.0, 1.0);
+        // a plot is worth its land there (h = 0.1 < p_wall·Δ = 0.5): the type rents, and the
+        // spill past the commons stands free on idle land
+        let rents = with_commons(0.01, priced(0.5, 0.0, 0.1));
+        let s = rents.exit_state(v, p_s, 0.0, 0.0, Force::None, Some(p_wall));
+        assert_eq!((s.regime, s.plot_rent), (ExitLand::Idle, 0.0));
+        assert_eq!((s.branches[0], s.values[0]), (Branch::Plot, 0.0));
+        assert_eq!(s.goods[0], num::fma(-(1.0 / p_wall), 0.1, 0.5));
+        assert_eq!(s.rented, s.demand - 0.01);
+        // without the frame the type would stand on its floor at p_g = 0 (0 < 0 is false),
+        // which is not where the wall's last piece leaves it
+        let plain = rents.exit_state(v, p_s, 0.0, 0.0, Force::None, None);
+        assert_eq!(plain.branches[0], Branch::Floor);
+        // a plot not worth its land there (h = 1 ≥ 0.5): the floor at the wall's rent, a plot
+        // on the commons at a low enough shadow rent, so a small commons is crowded, rationed
+        // at the type's drop ρ = p_wall·Δ/h = 0.5 in the wall's units, and 0 in money
+        let floor = with_commons(0.01, priced(0.5, 0.0, 1.0));
+        let s = floor.exit_state(v, p_s, 0.0, 0.0, Force::None, Some(p_wall));
+        assert_eq!(
+            (s.regime, s.plot_rent, s.rented),
+            (ExitLand::Crowded, 0.0, 0.0)
+        );
+        assert_eq!((s.branches[0], s.values[0]), (Branch::Floor, 0.0));
+        assert_eq!(s.plots[0], 0.01);
+        // with no commons every exiter stands on the floor, as on the wall's last piece
+        let none = g1(vec![land(10.0, Access::Enclosed)], priced(0.5, 0.0, 1.0));
+        let s = none.exit_state(v, p_s, 0.0, 0.0, Force::None, Some(p_wall));
+        assert_eq!(
+            (s.branches[0], s.rented, s.demand),
+            (Branch::Floor, 0.0, 0.0)
+        );
     }
 
     #[test]
@@ -2375,15 +2493,15 @@ mod tests {
         let drop: f64 = p_g * 0.3 / 0.5;
         let probe = with_commons(1.0, exit);
         let left = probe
-            .trial(drop.next_down().next_down(), v, p_s, p_g, Force::None)
+            .trial(drop.next_down().next_down(), v, p_s, p_g, Force::None, None)
             .demand;
         assert!(left > 0.0);
         let right = probe
-            .trial(drop.next_up().next_up(), v, p_s, p_g, Force::None)
+            .trial(drop.next_up().next_up(), v, p_s, p_g, Force::None, None)
             .demand;
         assert_eq!(right, 0.0);
         let split = with_commons(0.5 * left, exit);
-        let s = split.exit_state(v, p_s, p_g, 1.0, Force::None);
+        let s = split.exit_state(v, p_s, p_g, 1.0, Force::None, None);
         assert_eq!(s.regime, ExitLand::Crowded);
         assert!((s.plot_rent - drop).abs() <= 4.0 * f64::EPSILON * drop);
         assert_eq!(s.branches[0], Branch::Floor);
@@ -2603,10 +2721,11 @@ mod tests {
                 ExitLand::Unused,
                 ExitLand::Commons,
                 ExitLand::Crowded,
-                ExitLand::Enclosed
+                ExitLand::Enclosed,
+                ExitLand::Idle
             ]
             .map(ExitLand::code),
-            [0, 1, 2, 3]
+            [0, 1, 2, 3, 4]
         );
         assert_eq!(
             [LandMarket::Scarce, LandMarket::Idle].map(LandMarket::code),
