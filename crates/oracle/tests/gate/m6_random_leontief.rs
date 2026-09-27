@@ -33,7 +33,7 @@ const SEED_1C: u64 = 926;
 /// Interior economies (ties included) wanted per set.
 const WANTED_1C: usize = 60;
 
-/// The cap on draws per set. On 2026-09-27 the sets needed 213, 180, 217 and 149 draws
+/// The cap on draws per set. On 2026-09-27 the sets needed 240, 242, 228 and 65 draws
 /// (docs/unit-1c.md §12).
 const MAX_DRAWS_1C: usize = 2_000;
 

@@ -332,6 +332,73 @@ fn unused_type_changes_nothing() {
 }
 
 #[test]
+fn phi_only_when_every_type_is_flow() {
+    // φ is the flow price system's (1a's u = 1): with every u_k = 1 it is reported, and one
+    // unused type with u ≠ 1 removes it, economy-wide and per category; that type's own φ is
+    // absent and the flow type's stays. Everything else is unchanged.
+    let flow = machine_type(1.0, recipe(&[0.3], 0.05, 0.4), Recipe::zero(1), 1.0, 1);
+    let params = appendix_b_household(linear(1.0, 0.2, 0.8), 0.0, 1.0, vec![flow]);
+    let spare = machine_type(
+        0.0,
+        recipe(&[0.0, 0.0], 0.1, 0.3),
+        recipe(&[0.0, 0.0], 0.2, 0.2),
+        0.2,
+        2,
+    );
+    let with_spare = append(params.clone(), spare);
+    let (a, b) = (interior_1c(params.clone()), interior_1c(with_spare.clone()));
+    assert!(a.phi_w.is_some() && a.categories.iter().all(|c| c.phi_w.is_some()));
+    assert_eq!(b.types[1].user_cost, 0.2);
+    assert!(b.phi_w.is_none() && b.phi_r.is_none());
+    assert!(b
+        .categories
+        .iter()
+        .all(|c| c.phi_w.is_none() && c.phi_r.is_none()));
+    assert_eq!(b.types[0].phi_w, a.types[0].phi_w);
+    assert_eq!(b.types[1].phi_w, None);
+    for (x, y) in [(a.x_star, b.x_star), (a.v, b.v), (a.y, b.y), (a.n_a, b.n_a)] {
+        assert_eq!(x.to_bits(), y.to_bits());
+    }
+    check_identities_1c(&economy_1c(params), &a);
+    let e = economy_1c(with_spare);
+    check_identities_1c(&e, &b);
+    check_fork_and_bounds_1c(&e, &b);
+}
+
+#[test]
+fn a_category_bought_only_as_an_input_makes_a_margin() {
+    // margin_active reads the basket's gross outputs ŷ, not its weights z (docs/unit-1c.md
+    // §4.8): a category outside the basket that a bought one uses has tasks that are produced.
+    // Here only the unbought B has tasks on the upper segment, where the root lies.
+    let mut params = appendix_b_household(
+        linear(1.0, 0.2, 0.8),
+        0.0,
+        1.0,
+        vec![machine_type(
+            1.0,
+            Recipe::zero(1),
+            recipe(&[0.3], 0.05, 0.4),
+            1.0,
+            1,
+        )],
+    );
+    params.edges = vec![0.0, 0.5, 1.0];
+    params.categories = vec![
+        category(1.0, 0.5, &[1.0, 0.0]),
+        category(0.0, 0.2, &[0.0, 1.0]),
+    ];
+    params.intermediate = vec![vec![0.0, 0.5], vec![0.0, 0.0]];
+    let e = economy_1c(params.clone());
+    assert_eq!(e.basket_outputs(), [1.0, 0.5]);
+    let eq = interior_1c(params);
+    assert!(eq.x_star > 0.5, "{}", eq.x_star);
+    assert!(eq.margin_active);
+    assert!(eq.categories[1].gross_output > 0.0 && eq.categories[1].output == 0.0);
+    check_identities_1c(&e, &eq);
+    check_fork_and_bounds_1c(&e, &eq);
+}
+
+#[test]
 fn duplicate_task_type() {
     // A copy of the technique's type at a higher index ties with it everywhere and is never
     // chosen (the lower index, §5.2); every aggregate is bit-equal. The copied types have no
@@ -464,6 +531,29 @@ fn unit_rescaling() {
         a.delivered_cost.unwrap().to_bits(),
         (b.price / 8.0).to_bits()
     );
+    // With every u = 1 (flow types at ρ = 0), φ is reported, and as a share it does not move
+    // when the technique's unit does: θ = 4 gives φ_w = γλ̃/θ bit-equal to θ = 1's.
+    let flow_economy = |c: f64| {
+        let t = machine_type(
+            c,
+            recipe(&[0.3], c * 0.05, c * 0.4),
+            Recipe::zero(1),
+            1.0,
+            1,
+        );
+        appendix_b_household(linear(1.0, 0.2, 0.8), 0.0, 1.0, vec![t])
+    };
+    let (one, four) = (
+        interior_1c(flow_economy(1.0)),
+        interior_1c(flow_economy(4.0)),
+    );
+    assert!(one.phi_w.is_some());
+    assert_eq!(one.phi_w.map(f64::to_bits), four.phi_w.map(f64::to_bits));
+    assert_eq!(
+        four.types[0].price.to_bits(),
+        (4.0 * one.types[0].price).to_bits()
+    );
+    check_identities_1c(&economy_1c(flow_economy(4.0)), &four);
     // c = 3: within 1e-12.
     let three = interior_1c(engine_in_units_of(3.0));
     for (name, x, y) in [
@@ -492,6 +582,27 @@ fn flow(k: usize, labor: f64, land: f64) -> MachineType {
 
 #[test]
 fn envelope_edge_cases() {
+    // A crossing beyond both types' viability does not count: X (λ 0.25, b 0.1, viable below
+    // γ = 4) and the steeper L (λ 0.5, b 1, viable below 2) meet at γ = 4.5 only where both
+    // closure wages are negative. The envelope stays X, and past X's edge the economy is
+    // NotViable on X's own pivot.
+    let (x, l) = (flow(2, 0.25, 0.1), flow(2, 0.5, 1.0));
+    let block = MachineBlock::new(vec![x.clone(), l.clone()], 0.0).unwrap();
+    let totals = block.totals();
+    let (lt, bt) = (totals.lambda_tilde.unwrap(), totals.b_tilde.unwrap());
+    let crossing = (bt[1] - bt[0]) / (bt[1] * lt[0] - bt[0] * lt[1]);
+    assert!(crossing > 4.0 && crossing < 5.0 && bt[1] * lt[0] > bt[0] * lt[1]);
+    let env = block.envelope(1.0, 5.0);
+    assert_eq!((env.first, env.switches.len()), (0, 0));
+    let params = appendix_b_household(linear(1.0, 1.0, 4.0), 0.0, 1.0, vec![x, l]);
+    let e = economy_1c(params);
+    assert_eq!(e.envelope().switches.len(), 0);
+    match e.solve() {
+        Ok(Regime::NotViable { d_at_1 }) => {
+            assert_eq!(d_at_1.to_bits(), e.at_with(1.0, 0).d.to_bits())
+        }
+        other => panic!("expected NotViable, got {other:?}"),
+    }
     // Two crossings at one γ: X is cheapest below γ = 2, where A and B both meet it exactly
     // (dyadic recipes); B, the cheaper just above, takes over, and A never enters.
     let (x, a, b) = (

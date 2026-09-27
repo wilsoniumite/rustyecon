@@ -168,7 +168,8 @@ On 2026-09-25, after the final verification round, both gave 114 tests: 42 unit 
 both. With unit 1b (P1.2, 2026-09-27) there are 169: 46 unit tests (42 + 4), 122 gate
 tests (71 + 51) and 1 doc test; after its verification the same day, 173: 47 unit tests
 (42 + 5), 125 gate tests (71 + 54) and 1 doc test. With unit 1c (P1.4, 2026-09-27) there are
-232: 56 unit tests (47 + 9), 175 gate tests (125 + 50) and 1 doc test.
+232: 56 unit tests (47 + 9), 175 gate tests (125 + 50) and 1 doc test; after its verification
+the same day, 235: 57 unit tests, 177 gate tests and 1 doc test.
 
 ## The dump example
 

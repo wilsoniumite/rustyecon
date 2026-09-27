@@ -1166,3 +1166,32 @@ pivots of I − A are positive exactly when ρ(A) < 1 on constructed matrices.
     category checks, `tasks` and `segment_of` are free functions that 1c shares; their test
     files only make the helpers that m1 reuses visible (`golden_instances`, 1b's C5 draw,
     `with_eta`, `sliver_economy`).
+
+### Verification (2026-09-27)
+
+11. **An independent derivation** that does not read the crate or the generator solved 348
+    economies from a scratch probe of the oracle (the named instances, M4t and M5 across N,
+    and 400 random draws of which 73 were invalid) in another formulation: the whole price
+    system with the task margin as one more row, the technique as the viable argmin of v with
+    viability by eigenvalues, the whole clearing system, switches located where the argmin
+    changes, and a tie's σ by root-finding. It agreed on every regime, technique, tie and
+    switch count, and on the values within 5.6e-14 relative: x*, v, P_s, Y and every price
+    within 2.4e-15, 1 − x* within 9.7e-15, N_a 1.5e-14, the switch points 2.3e-14, the tie's
+    services 4.3e-14 and a boundary diagnostic 5.6e-14.
+12. **Mutation testing**: 65 mutants of `leontief.rs`, `machine_block.rs`, `machines.rs` and
+    the goldens; six survived, and five are now killed by the tests below. The sixth, a
+    crossing at exactly γ_c counting (`gamma_c <= crossing`), is equivalent in exact
+    arithmetic: a type crossing the technique exactly at γ_c and cheaper above it would have
+    won that point's tie-break (§5.2), so the two differ only where rounding separates a
+    crossing from its tie.
+13. **Tests added**, each killing its mutant: `m7::envelope_edge_cases` now has a crossing
+    beyond both types' viability, which must not count (the viability check on a crossing);
+    `m7::unit_rescaling` has a flow economy (u = 1) whose type is measured in units of 4, so φ_w =
+    γλ̃_τ/θ_τ must not move (φ's θ); `m7::phi_only_when_every_type_is_flow` adds an unused type
+    with u ≠ 1, which removes φ everywhere (φ reported when the technique alone has u = 1);
+    `m7::a_category_bought_only_as_an_input_makes_a_margin` puts the root on a segment where
+    only a category outside the basket, used by a bought one, has tasks (`margin_active` by
+    ŷ, not z); and the unit test `machines::a_tie_share_is_one_when_the_type_above_does_not_clear_labour`
+    (σ = 1 when f_b ≥ 0). `check_identities_1c` now checks φ wherever it is reported:
+    γλ̃_τ/θ_τ = vλ̃_τ/p_τ, φ_r = 1 − φ_w, and each type's vλ̃_k/p_k. The code is unchanged.
+    The package has 235 tests: 57 unit, 177 gate and 1 doc.

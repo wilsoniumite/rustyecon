@@ -1745,6 +1745,93 @@ mod tests {
         }
     }
 
+    /// M4 (docs/unit-1c.md §3.3) at η and N.
+    fn m4(eta: f64, workers: f64) -> MachineParams {
+        let recipe = |machines: [f64; 3], labor, land| Recipe {
+            machines: machines.to_vec(),
+            labor,
+            land,
+        };
+        let kind = |theta, operating, build, delta, build_lag| MachineType {
+            task_efficiency: theta,
+            operating,
+            build,
+            delta,
+            build_lag,
+        };
+        let category = |weight, direct_land, density: [f64; 3]| Category {
+            weight,
+            direct_land,
+            density: density.to_vec(),
+        };
+        MachineParams {
+            workers,
+            land: 10.0,
+            schedule: PowerSchedule {
+                eta,
+                g0: 0.2,
+                g1: 0.8,
+                k: 1.0,
+            },
+            work_cost: UniformWorkCost { chi_max: 1.0 },
+            rho: 0.04,
+            machine_types: vec![
+                kind(
+                    1.0,
+                    recipe([0.0, 0.0, 0.05], 0.3, 0.05),
+                    recipe([0.1, 0.0, 0.0], 1.0, 0.3),
+                    0.1,
+                    2,
+                ),
+                kind(
+                    2.0,
+                    recipe([0.0, 0.0, 0.5], 0.02, 0.0),
+                    recipe([0.0, 0.1, 0.0], 0.1, 0.4),
+                    0.05,
+                    3,
+                ),
+                kind(
+                    0.0,
+                    recipe([0.0, 0.0, 0.0], 0.02, 0.5),
+                    recipe([0.0, 0.1, 0.0], 0.1, 0.1),
+                    0.05,
+                    3,
+                ),
+            ],
+            edges: vec![0.0, 0.4, 0.75, 1.0],
+            categories: vec![
+                category(0.3, 0.0, [2.0, 0.0, 0.0]),
+                category(1.0, 0.6, [0.5, 1.5, 0.0]),
+                category(0.2, 0.1, [0.0, 0.0, 1.0]),
+                category(0.8, 1.0, [0.0, 0.4, 0.0]),
+            ],
+            intermediate: vec![
+                vec![0.0, 0.0, 0.0, 0.0],
+                vec![0.1, 0.0, 0.0, 0.0],
+                vec![0.0, 0.2, 0.0, 0.0],
+                vec![0.15, 0.0, 0.0, 0.0],
+            ],
+        }
+    }
+
+    #[test]
+    fn a_tie_share_is_one_when_the_type_above_does_not_clear_labour() {
+        // docs/unit-1c.md §5.3 step 3: σ = B_a·f_a/(B_a·f_a − B_b·f_b), and 1 when f_b ≥ 0,
+        // which the solve meets only within rounding of a root at the switch. At M4t's switch
+        // (η 0.5, N 8) σ is interior; with N 2 labour is short under both techniques there,
+        // f_b > 0, and the share is 1.
+        let e = MachineEconomy::new(m4(0.5, 8.0)).unwrap();
+        let x = e.switch_points().unwrap()[0];
+        let s = e.envelope().switches[0];
+        let share = e.tie_share(x, s.below, s.above);
+        assert!(share > 0.0 && share < 1.0, "{share}");
+        let e = MachineEconomy::new(m4(0.5, 2.0)).unwrap();
+        let x = e.switch_points().unwrap()[0];
+        let (below, above) = (e.at_with(x, s.below), e.at_with(x, s.above));
+        assert!(above.n_d - below.n_s > 0.0 && below.n_d - below.n_s > 0.0);
+        assert_eq!(e.tie_share(x, s.below, s.above), 1.0);
+    }
+
     #[test]
     fn a_nan_residual_is_not_lost_in_the_maximum() {
         assert!(worse(0.0, f64::NAN).is_nan());

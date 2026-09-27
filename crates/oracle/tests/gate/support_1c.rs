@@ -839,6 +839,34 @@ pub fn check_identities_1c(economy: &MachineEconomy, eq: &Eq1c) {
         at("participation")
     );
     assert_eq!(eq.u, eq.types[eq.technique].user_cost);
+    // φ, reported only when every u_k = 1: labour's share of the technique's price,
+    // γλ̃_τ/θ_τ = vλ̃_τ/p_τ, and per type vλ̃_k/p_k.
+    let all_flow = eq.types.iter().all(|t| t.user_cost == 1.0);
+    match (eq.phi_w, eq.phi_r) {
+        (Some(w), Some(r)) => {
+            assert!(all_flow, "{}", at("phi at u != 1"));
+            let t = &eq.types[eq.technique];
+            let theta = types[eq.technique].task_efficiency;
+            close(
+                &at("phi_w = gamma lt/theta"),
+                w,
+                eq.gamma_star * t.lambda_tilde / theta,
+            );
+            close(&at("phi_w = v lt/p"), w, eq.v * t.lambda_tilde / t.price);
+            assert_eq!(r, 1.0 - w);
+        }
+        (None, None) => assert!(!all_flow, "{}", at("no phi at u = 1")),
+        other => panic!("{}: {other:?}", at("phi")),
+    }
+    for t in &eq.types {
+        match t.phi_w {
+            Some(w) => {
+                assert_eq!(t.user_cost, 1.0);
+                close(&at("type phi_w"), w, eq.v * t.lambda_tilde / t.price);
+            }
+            None => assert_ne!(t.user_cost, 1.0),
+        }
+    }
     // 1 − x*: carried from the root, or 1.0 − x_i at a tie.
     let spacing = |v: f64| (v - v.next_down()).max(v.next_up() - v);
     assert!(
