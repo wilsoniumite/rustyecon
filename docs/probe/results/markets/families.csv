@@ -1,0 +1,116 @@
+family,set,cell,L,mode_a,kick_sets,tier1,tier2,tier3,verdict,prediction,ticks_to_tol_med,ticks_to_tol_max
+tick_length,i0-c2m,12/yr,,PASS,3/3 pass,16/16,20/20,,,,262,330
+tick_length,i0-c2m,365/yr,,PASS,3/3 pass,16/16,20/20,,,,2330,3155
+tick_length,i1-c2m,12/yr,,PASS,5/5 pass,30/30,38/38,,,,1026,1387
+tick_length,i1-c2m,365/yr,,PASS,5/5 pass,30/30,38/38,,,,2148,3538
+tick_length,i2-c2m,12/yr,,FAIL,0/5 pass,0/20,0/28,,,,,
+tick_length,i2-c2m,365/yr,,PASS,5/5 pass,20/20,28/28,,,,8104,11756
+tick_length,i3-c2m,12/yr,,PASS,2/5 pass,0/34,4/42,,,,770,824
+tick_length,i3-c2m,365/yr,,PASS,5/5 pass,34/34,42/42,,,,2590,4113
+tick_length,l2-c2m,12/yr,,FAIL,"0/0 pass, 5 not made",0/20,0/28,,,,,
+tick_length,l2-c2m,365/yr,,PASS,"0/1 pass, 4 not made",0/20,0/28,,,,,
+tick_length,l2-c2l,12/yr,,PASS,5/5 pass,20/20,28/28,,,,164,214
+tick_length,l2-c2l,365/yr,,PASS,"4/4 pass, 1 not made",15/20,18/28,,,,1706,2165
+tick_length,l3-c2m,12/yr,,FAIL,"0/0 pass, 5 not made",0/34,0/42,,,,,
+tick_length,l3-c2m,365/yr,,PASS,"0/1 pass, 4 not made",0/34,0/42,,,,,
+tick_length,l3-c2l,12/yr,,PASS,5/5 pass,34/34,42/42,,,,896,1496
+tick_length,l3-c2l,365/yr,,PASS,"1/3 pass, 2 not made",0/34,2/42,,,,38836,39209
+tick_length,g1-c2m,12/yr,,PASS,3/3 pass,30/30,34/34,,,,736,1205
+tick_length,g1-c2m,365/yr,,PASS,3/3 pass,30/30,34/34,,,,2064,3953
+rate_scan,i1-c2m,rate.carex2,120000,PASS,9/9 pass,30/30,38/38,39/39,GO,GO,486,761
+rate_scan,i1-c2m,rate.carex4,120000,PASS,9/9 pass,30/30,38/38,36/39,LOCAL,LOCAL,1554,2071
+rate_scan,i1-c2m,rate.carexh,288000,PASS,9/9 pass,30/30,38/38,39/39,GO,GO,414,640
+rate_scan,i1-c2m,rate.carexq,576000,PASS,9/9 pass,30/30,38/38,39/39,GO,GO,458,701
+rate_scan,i1-c2m,rate.foodx2,144000,PASS,9/9 pass,30/30,38/38,39/39,GO,GO,333,592
+rate_scan,i1-c2m,rate.foodx4,144000,PASS,9/9 pass,30/30,38/38,39/39,GO,GO,359,634
+rate_scan,i1-c2m,rate.foodxh,144000,PASS,9/9 pass,30/30,38/38,39/39,GO,GO,421,640
+rate_scan,i1-c2m,rate.foodxq,144000,PASS,9/9 pass,30/30,38/38,39/39,GO,GO,467,752
+rate_scan,i1-c2m,rate.labourx2,144000,PASS,9/9 pass,30/30,38/38,39/39,GO,GO,327,567
+rate_scan,i1-c2m,rate.labourxh,144000,PASS,9/9 pass,30/30,38/38,39/39,GO,GO,1080,1596
+rate_scan,i1-c2m,rate.machx2,144000,PASS,9/9 pass,30/30,38/38,39/39,GO,GO,499,741
+rate_scan,i1-c2m,rate.machx4,144000,PASS,8/9 pass,30/30,38/38,37/39,LOCAL,LOCAL,635,1277
+rate_scan,i1-c2m,rate.machxh,144000,PASS,9/9 pass,30/30,38/38,39/39,GO,GO,326,599
+rate_scan,i1-c2m,rate.machxq,144000,PASS,9/9 pass,30/30,38/38,39/39,GO,GO,592,1112
+rate_scan,i1-c2m,rate.manufacturesx2,144000,PASS,9/9 pass,30/30,38/38,39/39,GO,GO,491,767
+rate_scan,i1-c2m,rate.manufacturesx4,144000,PASS,9/9 pass,30/30,38/38,39/39,GO,GO,863,1421
+rate_scan,i1-c2m,rate.manufacturesxh,239000,PASS,9/9 pass,30/30,38/38,39/39,GO,GO,410,630
+rate_scan,i1-c2m,rate.manufacturesxq,477000,PASS,9/9 pass,30/30,38/38,39/39,GO,GO,456,692
+rate_scan,i1-c2m,rate.shelterx2,144000,PASS,9/9 pass,30/30,38/38,39/39,GO,GO,354,605
+rate_scan,i1-c2m,rate.shelterx4,144000,PASS,9/9 pass,30/30,38/38,39/39,GO,GO,352,667
+rate_scan,i1-c2m,rate.shelterxh,144000,PASS,9/9 pass,30/30,38/38,39/39,GO,GO,346,582
+rate_scan,i1-c2m,rate.shelterxq,144000,PASS,9/9 pass,30/30,38/38,39/39,GO,GO,429,735
+rate_scan,i2-c2m,rate.enginex2,52000,PASS,9/9 pass,20/20,28/28,29/29,GO,GO,3086,1.357e+04
+rate_scan,i2-c2m,rate.enginex4,52000,PASS,7/9 pass,20/20,28/28,25/29,LOCAL,LOCAL,3629,4169
+rate_scan,i2-c2m,rate.enginexh,52000,PASS,9/9 pass,20/20,28/28,29/29,GO,GO,2708,3509
+rate_scan,i2-c2m,rate.enginexq,52000,PASS,9/9 pass,20/20,28/28,29/29,GO,GO,1299,2234
+rate_scan,i2-c2m,rate.goodx2,26000,PASS,7/9 pass,20/20,28/28,25/29,LOCAL,LOCAL,4297,5785
+rate_scan,i2-c2m,rate.goodx4,20000,PASS,3/9 pass,0/20,0/28,4/29,NO-GO,NO-GO,1550,1641
+rate_scan,i2-c2m,rate.goodxh,104000,PASS,9/9 pass,20/20,28/28,29/29,GO,GO,1389,2160
+rate_scan,i2-c2m,rate.goodxq,207000,PASS,9/9 pass,20/20,28/28,29/29,GO,GO,1643,2999
+rate_scan,i2-c2m,rate.labourx2,52000,PASS,9/9 pass,20/20,28/28,29/29,GO,GO,1136,1700
+rate_scan,i2-c2m,rate.labourxh,52000,PASS,0/9 pass,0/20,0/28,0/29,NO-GO,NO-GO,nan,nan
+rate_scan,i2-c2m,rate.powerx2,52000,PASS,2/9 pass,0/20,0/28,4/29,NO-GO,NO-GO,6152,6156
+rate_scan,i2-c2m,rate.powerx4,52000,PASS,2/9 pass,0/20,0/28,4/29,NO-GO,NO-GO,1.238e+04,1.258e+04
+rate_scan,i2-c2m,rate.powerxh,52000,PASS,9/9 pass,20/20,28/28,29/29,GO,GO,2333,3237
+rate_scan,i2-c2m,rate.powerxq,52000,PASS,9/9 pass,20/20,28/28,29/29,GO,GO,2096,3777
+rate_scan,i3-c2m,rate.carex2,484000,PASS,9/9 pass,34/34,42/42,43/43,GO,GO,587,957
+rate_scan,i3-c2m,rate.carex4,484000,PASS,5/9 pass,0/34,0/42,2/43,NO-GO,NO-GO,3280,3280
+rate_scan,i3-c2m,rate.carexh,484000,PASS,9/9 pass,34/34,42/42,43/43,GO,GO,550,867
+rate_scan,i3-c2m,rate.carexq,834000,PASS,9/9 pass,34/34,42/42,43/43,GO,GO,541,845
+rate_scan,i3-c2m,rate.enginex2,484000,PASS,9/9 pass,34/34,42/42,43/43,GO,GO,1207,1724
+rate_scan,i3-c2m,rate.enginex4,484000,PASS,9/9 pass,34/34,23/42,13/43,NO-GO,NO-GO,2754,8368
+rate_scan,i3-c2m,rate.enginexh,484000,PASS,9/9 pass,34/34,42/42,43/43,GO,GO,396,804
+rate_scan,i3-c2m,rate.enginexq,484000,PASS,9/9 pass,34/34,42/42,43/43,GO,GO,693,1254
+rate_scan,i3-c2m,rate.foodx2,484000,PASS,9/9 pass,34/34,42/42,43/43,GO,GO,482,864
+rate_scan,i3-c2m,rate.foodx4,484000,PASS,9/9 pass,34/34,42/42,43/43,GO,GO,517,791
+rate_scan,i3-c2m,rate.foodxh,484000,PASS,9/9 pass,34/34,42/42,43/43,GO,GO,582,909
+rate_scan,i3-c2m,rate.foodxq,484000,PASS,9/9 pass,34/34,42/42,43/43,GO,GO,533,839
+rate_scan,i3-c2m,rate.labourx2,484000,PASS,9/9 pass,34/34,42/42,43/43,GO,GO,412,682
+rate_scan,i3-c2m,rate.labourxh,484000,PASS,9/9 pass,34/34,42/42,43/43,GO,GO,1102,1466
+rate_scan,i3-c2m,rate.manufacturesx2,242000,PASS,9/9 pass,34/34,42/42,43/43,GO,GO,565,899
+rate_scan,i3-c2m,rate.manufacturesx4,209000,PASS,9/9 pass,34/34,42/42,43/43,GO,GO,837,2087
+rate_scan,i3-c2m,rate.manufacturesxh,968000,PASS,9/9 pass,34/34,42/42,43/43,GO,GO,592,896
+rate_scan,i3-c2m,rate.manufacturesxq,1936000,PASS,9/9 pass,34/34,42/42,43/43,GO,GO,520,826
+rate_scan,i3-c2m,rate.powerx2,484000,PASS,9/9 pass,34/34,42/42,43/43,GO,GO,771,1083
+rate_scan,i3-c2m,rate.powerx4,484000,PASS,9/9 pass,34/34,42/42,43/43,GO,GO,813,1265
+rate_scan,i3-c2m,rate.powerxh,484000,PASS,9/9 pass,34/34,42/42,43/43,GO,GO,495,822
+rate_scan,i3-c2m,rate.powerxq,484000,PASS,9/9 pass,34/34,42/42,43/43,GO,GO,702,1241
+rate_scan,i3-c2m,rate.shelterx2,484000,PASS,9/9 pass,34/34,42/42,43/43,GO,GO,598,946
+rate_scan,i3-c2m,rate.shelterx4,484000,PASS,9/9 pass,34/34,42/42,43/43,GO,GO,666,1032
+rate_scan,i3-c2m,rate.shelterxh,484000,PASS,9/9 pass,34/34,42/42,43/43,GO,GO,565,859
+rate_scan,i3-c2m,rate.shelterxq,484000,PASS,9/9 pass,34/34,42/42,43/43,GO,GO,575,865
+map,i1-c2m,r0.5b0.5,288000,PASS,9/9 pass,30/30,38/38,39/39,GO,GO,701,1158
+map,i1-c2m,r0.5b1,288000,PASS,9/9 pass,30/30,38/38,39/39,GO,GO,540,934
+map,i1-c2m,r0.5b2,288000,PASS,9/9 pass,30/30,38/38,39/39,GO,GO,432,893
+map,i1-c2m,r1b0.5,144000,PASS,9/9 pass,30/30,38/38,39/39,GO,GO,641,1045
+map,i1-c2m,r1b2,144000,PASS,9/9 pass,30/30,38/38,39/39,GO,GO,288,445
+map,i1-c2m,r2b0.5,72000,PASS,9/9 pass,30/30,38/38,39/39,GO,GO,749,1147
+map,i1-c2m,r2b1,72000,PASS,9/9 pass,30/30,38/38,39/39,GO,GO,433,669
+map,i1-c2m,r2b2,72000,PASS,9/9 pass,30/30,38/38,39/39,GO,GO,287,435
+map,i2-c2m,r0.5b0.5,104000,PASS,9/9 pass,20/20,28/28,29/29,GO,GO,2780,4115
+map,i2-c2m,r0.5b1,104000,PASS,9/9 pass,20/20,28/28,29/29,GO,LOCAL,1.786e+04,3.414e+04
+map,i2-c2m,r0.5b2,104000,PASS,9/9 pass,20/20,28/28,29/29,GO,GO,1216,2338
+map,i2-c2m,r1b0.5,52000,PASS,4/9 pass,0/20,4/28,4/29,NO-GO,NO-GO,1.067e+04,1.851e+04
+map,i2-c2m,r1b2,52000,PASS,9/9 pass,20/20,28/28,29/29,GO,GO,2532,3534
+map,i2-c2m,r2b0.5,26000,PASS,3/9 pass,0/20,0/28,4/29,NO-GO,NO-GO,1.092e+04,1.116e+04
+map,i2-c2m,r2b1,26000,PASS,3/9 pass,0/20,0/28,4/29,NO-GO,NO-GO,6198,6208
+map,i2-c2m,r2b2,26000,PASS,9/9 pass,20/20,28/28,29/29,GO,GO,1906,4021
+map,i3-c2m,r2b0.5,242000,PASS,1/9 pass,0/34,0/42,2/43,NO-GO,NO-GO,6705,6705
+map,i3-c2m,r2b1,242000,PASS,9/9 pass,34/34,42/42,43/43,GO,GO,934,1423
+map,i3-c2m,r2b2,242000,PASS,9/9 pass,34/34,42/42,43/43,GO,GO,315,480
+map,l2-c2l,r0.5b0.5,34000,PASS,"8/8 pass, 1 not made",20/20,22/28,18/29,NO-GO,NO-GO,587,914
+map,l2-c2l,r0.5b1,34000,PASS,"8/8 pass, 1 not made",19/20,20/28,14/29,NO-GO,NO-GO,575,788
+map,l2-c2l,r0.5b2,34000,PASS,"6/6 pass, 3 not made",14/20,15/28,10/29,NO-GO,NO-GO,525,738
+map,l2-c2l,r1b0.5,20000,PASS,"8/8 pass, 1 not made",20/20,27/28,19/29,NO-GO,NO-GO,290.5,466
+map,l2-c2l,r1b2,20000,PASS,"8/8 pass, 1 not made",20/20,23/28,17/29,NO-GO,NO-GO,278,446
+map,l2-c2l,r2b0.5,20000,PASS,"8/8 pass, 1 not made",20/20,28/28,20/29,LOCAL,LOCAL,210,287
+map,l2-c2l,r2b1,20000,PASS,"8/8 pass, 1 not made",20/20,28/28,21/29,LOCAL,LOCAL,264,332
+map,l2-c2l,r2b2,20000,PASS,"8/8 pass, 1 not made",20/20,28/28,20/29,LOCAL,LOCAL,260,410
+map,l3-c2l,r0.5b0.5,314000,PASS,"7/8 pass, 1 not made",34/34,37/42,26/43,NO-GO,NO-GO,4704,6254
+map,l3-c2l,r0.5b1,314000,PASS,"6/7 pass, 2 not made",34/34,37/42,24/43,NO-GO,NO-GO,6628,8855
+map,l3-c2l,r0.5b2,314000,PASS,"5/6 pass, 3 not made",22/34,18/42,8/43,NO-GO,NO-GO,1844,3611
+map,l3-c2l,r1b0.5,157000,PASS,"8/8 pass, 1 not made",34/34,41/42,33/43,NO-GO,NO-GO,652,1865
+map,l3-c2l,r1b2,157000,PASS,"8/8 pass, 1 not made",34/34,41/42,31/43,NO-GO,NO-GO,1498,3501
+map,l3-c2l,r2b0.5,79000,PASS,"8/8 pass, 1 not made",34/34,42/42,36/43,LOCAL,LOCAL,257.5,425
+map,l3-c2l,r2b1,79000,PASS,"8/8 pass, 1 not made",34/34,42/42,36/43,LOCAL,LOCAL,415.5,1227
+map,l3-c2l,r2b2,79000,PASS,"8/8 pass, 1 not made",34/34,42/42,33/43,LOCAL,LOCAL,606,984

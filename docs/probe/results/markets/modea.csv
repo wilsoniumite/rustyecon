@@ -1,0 +1,28 @@
+set,ticks_per_year,mode_a,largest_gap_log,class,first_leaves,why
+i0-c2m,12,PASS,1.9e-15,CONVERGED,,
+i0-c2m,52,PASS,8.9e-16,CONVERGED,,
+i0-c2m,365,PASS,8.9e-16,CONVERGED,,
+i1-c2m,12,PASS,3.3e-16,CONVERGED,,
+i1-c2m,52,PASS,7.8e-16,CONVERGED,,
+i1-c2m,365,PASS,1.2e-15,CONVERGED,,
+i2-c2m,12,FAIL,,DIVERGED,tick 2427: pi.good is 1.0010787749300175e-9 from the oracle in log,the envelope grows: E4 > E3 > E2
+i2-c2m,52,PASS,7.8e-16,CONVERGED,,
+i2-c2m,365,PASS,1.2e-15,CONVERGED,,
+i3-c2m,12,PASS,3e-13,CONVERGED,,
+i3-c2m,52,PASS,1.7e-15,CONVERGED,,
+i3-c2m,365,PASS,5.6e-16,CONVERGED,,
+g1-c2m,12,PASS,8.4e-15,CONVERGED,,
+g1-c2m,52,PASS,3.3e-16,CONVERGED,,
+g1-c2m,365,PASS,3.6e-15,CONVERGED,,
+l2-c2m,12,FAIL,,DIVERGED,tick 251: y.power is 1.1650416194123141e-9 from the oracle in log,the price of good left the runaway bound at tick 720: 1.1533779406317777e6 of genesis
+l2-c2m,52,PASS,3.3e-16,CONVERGED,,
+l2-c2m,365,PASS,3.3e-16,CONVERGED,,
+l3-c2m,12,FAIL,,DIVERGED,tick 252: y.manufactures is 1.0327484428533263e-9 from the oracle in log,the price of manufactures left the runaway bound at tick 777: 1.0132932808105971e6 of genesis
+l3-c2m,52,FAIL,,DIVERGED,tick 112: y.power is 1.0316533188607057e-9 from the oracle in log,the price of food left the runaway bound at tick 559: 1.0356802004939294e6 of genesis
+l3-c2m,365,PASS,6.3e-15,CONVERGED,,
+l2-c2l,12,PASS,5.1e-15,CONVERGED,,
+l2-c2l,52,PASS,2.2e-16,CONVERGED,,
+l2-c2l,365,PASS,3.3e-16,CONVERGED,,
+l3-c2l,12,PASS,8.1e-14,CONVERGED,,
+l3-c2l,52,PASS,2.2e-14,CONVERGED,,
+l3-c2l,365,PASS,1.1e-13,CONVERGED,,

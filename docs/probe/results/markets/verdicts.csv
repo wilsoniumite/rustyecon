@@ -1,0 +1,10 @@
+set,runs,mode_a,base_kick,tier1,tier2,tier3,tier3_10L,slack_converged_t1_t2_t3,not_run,verdict,prediction,frame
+i0-c2m,57,PASS,PASS,16/16,20/20,21/21,21/21,0/0 0/0 0/0,0,GO,control,control
+i1-c2m,107,PASS,PASS,30/30,38/38,39/39,39/39,4/4 3/3 3/3,0,GO,GO,converges
+i2-c2m,77,PASS,PASS,20/20,28/28,29/29,29/29,0/0 0/0 0/0,0,GO,GO,converges (thin)
+i3-c2m,119,PASS,PASS,34/34,42/42,43/43,43/43,6/6 6/6 4/4,0,GO,GO,converges
+g1-c2m,93,PASS,PASS,30/30,34/34,29/29,29/29,8/8 6/6 1/1,6,GO,GO,converges
+l2-c2m,77,PASS,FAIL,0/20,0/28,0/29,0/29,0/0 0/0 0/0,0,NO-GO,NO-GO,diverges
+l3-c2m,119,FAIL,not possible,0/34,0/42,0/43,0/43,0/3 0/3 0/3,0,NO-GO,NO-GO,diverges
+l2-c2l,77,PASS,PASS,20/20,26/28,18/29,18/29,0/0 0/0 0/0,0,NO-GO,NO-GO,converges
+l3-c2l,119,PASS,PASS,34/34,41/42,31/43,31/43,3/3 3/3 3/3,0,NO-GO,NO-GO,converges
