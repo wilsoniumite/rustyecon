@@ -4,11 +4,13 @@
 //! Drawing trigonometry is allowed here and nowhere else (D12), under
 //! `#[expect(clippy::disallowed_methods, reason = "display only")]`. G0.1 needs none.
 //!
-//! The toolbar sits above the tiles; the tiles hold the outliner, the plots, the inspector and
-//! the registry, the timeline and the log (§4). Space runs or pauses the focused run and `.`
-//! steps it one tick, unless a text field has the keyboard. Every panel reads the focused run
-//! at the model's cursor.
+//! The toolbar sits above the tiles; the tiles hold the outliner, the plots, the inspector, the
+//! registry, the editor and compare, the timeline and the log (§4). Space runs or pauses the
+//! focused run and `.` steps it one tick, unless a text field has the keyboard. Every panel
+//! reads the focused run at the model's cursor; compare reads it against its parent.
 
+pub mod compare;
+pub mod editor;
 pub mod inspector;
 pub mod layout;
 pub mod log;
@@ -24,13 +26,15 @@ use crate::vm;
 use layout::Pane;
 use std::collections::BTreeSet;
 
-/// What the panels keep between frames: the plot cache, the toolbar's text, and which panes
-/// the last frame drew.
+/// What the panels keep between frames: the plot cache, the toolbar's and the editor's text,
+/// and which panes the last frame drew.
 #[derive(Default)]
 pub struct State {
     /// The plot cache: one decimator per plotted series.
     pub plots: plots::PlotCache,
     toolbar: toolbar::ToolbarState,
+    /// The editor's form and file fields.
+    pub editor: editor::EditorState,
     drawn: BTreeSet<Pane>,
 }
 
@@ -201,6 +205,22 @@ impl egui_tiles::Behavior<Pane> for Panes<'_> {
                     .contains(&crate::run::Breakpoint::OnError);
                 log::show(ui, &vm::log::build(m.log()), on, out);
             }
+            Pane::Editor => editor::show(ui, m, &mut self.state.editor, out),
+            Pane::Compare => match m.parent_of(run.id) {
+                None => {
+                    ui.weak(
+                        "the focused run is not a branch with its parent open: compare shows a \
+                         branch against its parent",
+                    );
+                }
+                Some(parent) => {
+                    let lineage = run.lineage.as_ref().map(|l| l.lines()).unwrap_or_default();
+                    match vm::compare::build(&parent.store, store, &lineage, &m.session.plots, at) {
+                        Some(v) => compare::show(ui, &v),
+                        None => loading(ui),
+                    }
+                }
+            },
         }
         egui_tiles::UiResponse::None
     }

@@ -119,7 +119,7 @@ fn golden(rig: &Rig, selections: &[Entity], pins: &[Entity]) -> Golden {
     let w = s.world().expect("loaded");
     let plots = every_price(w);
     Golden {
-        toolbar: vm::toolbar::build(s, Origin::Run),
+        toolbar: vm::toolbar::build(s, Origin::Run, false),
         timeline: vm::timeline::build(s, None),
         outliner: vm::outliner::build(s, selections.first(), pins, &plots),
         plots: vm::plots::build(s, &plots, None),

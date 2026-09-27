@@ -124,7 +124,7 @@ fn the_scanner_reads_what_it_should() {
     // The lists of files are what they claim: the egui-free modules hold files, the ui holds
     // the tile layout, and nothing under ui/ counts as egui-free.
     let free = egui_free_sources();
-    for m in ["model", "run", "vm", "drive", "platform"] {
+    for m in ["model", "run", "edit", "vm", "drive", "platform"] {
         assert!(
             free.iter().any(|(p, _)| p.starts_with(&format!("{m}/"))),
             "no sources read under {m}/"
@@ -214,10 +214,17 @@ fn model_run_edit_vm_import_no_egui() {
     );
 }
 
-/// Paths the run's side and the view-models may not reach: the model, the drivers, the files,
-/// the drawing, and E2's list of global state and I/O.
-fn observe_violations(toks: &[Tok]) -> Vec<String> {
-    const OWN: [&str; 5] = ["model", "drive", "platform", "ui", "app"];
+/// The modules of this crate that run/ and vm/ may not reach: the model, the editor, the
+/// drivers, the files and the drawing. They stay in crates/gui when run/ and vm/ move to
+/// observe (D13).
+const NOT_OBSERVE: [&str; 6] = ["model", "edit", "drive", "platform", "ui", "app"];
+/// The modules edit/ may not reach: it reads run types, and nothing of the model, the
+/// drivers, the files or the drawing.
+const NOT_EDIT: [&str; 5] = ["model", "drive", "platform", "ui", "app"];
+
+/// Paths a pure module may not reach: the modules of this crate in `own`, and E2's list of
+/// global state and I/O.
+fn observe_violations(toks: &[Tok], own: &[&str]) -> Vec<String> {
     const STD: [&str; 7] = ["thread", "time", "fs", "io", "env", "process", "net"];
     const NAMES: [&str; 12] = [
         "Instant",
@@ -243,7 +250,7 @@ fn observe_violations(toks: &[Tok]) -> Vec<String> {
             found.push("std::*".to_string());
         }
         let Tok::Ident(s) = t else { continue };
-        if OWN.contains(&s.as_str()) && reached(toks, &roots, i, &CRATE_ROOTS) {
+        if own.contains(&s.as_str()) && reached(toks, &roots, i, &CRATE_ROOTS) {
             found.push(format!("crate::{s}"));
         }
         if STD.contains(&s.as_str()) && reached(toks, &roots, i, &STD_ROOTS) {
@@ -260,8 +267,8 @@ fn observe_violations(toks: &[Tok]) -> Vec<String> {
 fn run_and_vm_reach_no_model_file_thread_or_clock() {
     // D13: at G2 the Runner, the Extractor, the Store and the view-models move into
     // crates/observe, which has no egui, thread, clock, file or std::io (E2's list). So run/
-    // and vm/ read the engine, certify and each other, and nothing of the model, the drivers,
-    // the files or the drawing.
+    // and vm/ read the engine, certify and each other, and nothing of the model, the editor,
+    // the drivers, the files or the drawing.
     // Every form of a reach is refused: a path, a group or a rename in a `use` tree, a glob
     // import, and the bare path a glob or a `use` allows.
     let fx = fixture(
@@ -269,10 +276,10 @@ fn run_and_vm_reach_no_model_file_thread_or_clock() {
          std::fs::read(p); println!(\"x\"); use crate::run::Store; use std::fmt; \
          use std::{thread as _, fs as _}; use crate::{model as _}; use std::{fmt::Write, io}; \
          use crate::*; use std::*; let h = thread::spawn(f); let m: model::Model; \
-         use super::{Obs, Refusal}; let fs = 2; let t = time + fs;",
+         use super::{Obs, Refusal}; let fs = 2; let t = time + fs; use crate::edit::Lineage;",
     );
     assert_eq!(
-        observe_violations(&fx),
+        observe_violations(&fx, &NOT_OBSERVE),
         [
             "crate::model",
             "std::time",
@@ -287,19 +294,51 @@ fn run_and_vm_reach_no_model_file_thread_or_clock() {
             "crate::*",
             "std::*",
             "std::thread",
-            "crate::model"
+            "crate::model",
+            "crate::edit"
         ]
     );
     let mut files = sources_under(&src().join("run"));
     files.extend(sources_under(&src().join("vm")));
-    assert!(files.len() >= 8, "run/ and vm/ are read: {}", files.len());
+    assert!(files.len() >= 9, "run/ and vm/ are read: {}", files.len());
     let mut found = Vec::new();
     for (path, toks) in shipped_tokens(&files) {
-        for v in observe_violations(&toks) {
+        for v in observe_violations(&toks, &NOT_OBSERVE) {
             found.push(format!("{path}: {v}"));
         }
     }
     assert!(found.is_empty(), "run/ and vm/ reach too far: {found:#?}");
+}
+
+#[test]
+fn edit_reaches_no_model_file_thread_or_clock() {
+    // docs/GUI.md §3.2: edit/ is text and tapes in, tapes and text out. It reads run types
+    // (the store a plan scans, the series an export writes) and reaches nothing of the model,
+    // the drivers, the files or the drawing, and no thread, clock or I/O: platform/ writes
+    // what it makes, and the model hands it the date.
+    let fx = fixture(
+        "use crate::run::Store; use crate::model::Model; use crate::platform::write_new; \
+         let t = std::time::SystemTime::now(); use super::keys; std::fs::write(p, s);",
+    );
+    assert_eq!(
+        observe_violations(&fx, &NOT_EDIT),
+        [
+            "crate::model",
+            "crate::platform",
+            "std::time",
+            "SystemTime",
+            "std::fs"
+        ]
+    );
+    let files = sources_under(&src().join("edit"));
+    assert!(files.len() >= 6, "edit/ is read: {}", files.len());
+    let mut found = Vec::new();
+    for (path, toks) in shipped_tokens(&files) {
+        for v in observe_violations(&toks, &NOT_EDIT) {
+            found.push(format!("{path}: {v}"));
+        }
+    }
+    assert!(found.is_empty(), "edit/ reaches too far: {found:#?}");
 }
 
 /// Trigonometric functions, and the constants that only serve them.
@@ -466,18 +505,32 @@ fn no_hashed_collections() {
     assert!(found.is_empty(), "hashed collections: {found:#?}");
 }
 
-/// Every path into core that is not `rustyecon_core::num::…`: core's writer (`apply`,
-/// `resolve`, the ledgers) and everything else a frontend reaches through the engine.
-fn core_paths(toks: &[Tok]) -> Vec<String> {
+/// What every module may name of core: `num`, the libm-backed logs a display takes.
+const CORE_EVERYWHERE: [&[&str]; 1] = [&["num"]];
+/// What edit/ may name besides: the tape's raw schema, `Basis` and `Unit`, the plain data a
+/// tape entry is written in. None of it writes a state, and the engine re-exports none of it.
+const CORE_IN_EDIT: [&[&str]; 4] = [&["num"], &["tape", "raw"], &["Basis"], &["Unit"]];
+
+/// Whether `rustyecon_core` at `toks[i]` goes on as `::a::b…` for the segments of `path`.
+fn core_path_is(toks: &[Tok], i: usize, path: &[&str]) -> bool {
+    path.iter().enumerate().all(|(k, seg)| {
+        let j = i + 1 + 3 * k;
+        toks.get(j).is_some_and(|n| punct(n, ':'))
+            && toks.get(j + 1).is_some_and(|n| punct(n, ':'))
+            && toks.get(j + 2).is_some_and(|n| ident(n, seg))
+    })
+}
+
+/// Every path into core that is not one of `allowed`: core's writer (`apply`, `resolve`, the
+/// ledgers), a group or a rename at core's root, and everything else a frontend reaches
+/// through the engine.
+fn core_paths(toks: &[Tok], allowed: &[&[&str]]) -> Vec<String> {
     let mut found = Vec::new();
     for (i, t) in toks.iter().enumerate() {
         if !ident(t, "rustyecon_core") {
             continue;
         }
-        let into_num = toks.get(i + 1).is_some_and(|n| punct(n, ':'))
-            && toks.get(i + 2).is_some_and(|n| punct(n, ':'))
-            && toks.get(i + 3).is_some_and(|n| ident(n, "num"));
-        if !into_num {
+        if !allowed.iter().any(|p| core_path_is(toks, i, p)) {
             let next: Vec<String> = toks[i + 1..(i + 4).min(toks.len())]
                 .iter()
                 .map(|t| format!("{t:?}"))
@@ -491,24 +544,49 @@ fn core_paths(toks: &[Tok]) -> Vec<String> {
 #[test]
 fn the_gui_names_core_for_num_alone() {
     // U1, U9, E1: the GUI reaches the run through the engine, whose API holds no writer of the
-    // state. It names core for `core::num` alone, the libm-backed logs a display takes (U6), since
-    // the engine re-exports no `num`; any other path into core, a group import included, would
-    // put core's writer in its reach. Every source file of the crate is read.
+    // state. It names core for `core::num`, the libm-backed logs a display takes (U6), since
+    // the engine re-exports no `num`; and in edit/ alone, for the tape's raw schema, `Basis`
+    // and `Unit`, the data a new entry is written in (G0.2). Any other path into core, a group
+    // or a rename at its root included, would put core's writer in its reach. Every source
+    // file of the crate is read.
     let fx = fixture(
         "use rustyecon_core::num; let v = rustyecon_core::num::ln(x); use rustyecon_core::apply; \
-         use rustyecon_core::{num, Ledger}; use rustyecon_core as core;",
+         use rustyecon_core::{num, Ledger}; use rustyecon_core as core; \
+         use rustyecon_core::tape::raw::RawEvent; use rustyecon_core::Basis; \
+         use rustyecon_core::Unit; use rustyecon_core::tape::resolve; \
+         use rustyecon_core::UnitKind; use rustyecon_core::{Basis, Unit};",
     );
-    assert_eq!(core_paths(&fx).len(), 3, "{:?}", core_paths(&fx));
+    assert_eq!(
+        core_paths(&fx, &CORE_EVERYWHERE).len(),
+        9,
+        "{:?}",
+        core_paths(&fx, &CORE_EVERYWHERE)
+    );
+    assert_eq!(
+        core_paths(&fx, &CORE_IN_EDIT).len(),
+        6,
+        "{:?}",
+        core_paths(&fx, &CORE_IN_EDIT)
+    );
     let mut found = Vec::new();
     let mut named = 0;
+    let mut in_edit = 0;
     for (path, toks) in shipped_tokens(&all_sources()) {
-        named += toks.iter().filter(|t| ident(t, "rustyecon_core")).count();
-        for p in core_paths(&toks) {
+        let n = toks.iter().filter(|t| ident(t, "rustyecon_core")).count();
+        named += n;
+        let allowed: &[&[&str]] = if path.starts_with("edit/") {
+            in_edit += n;
+            &CORE_IN_EDIT
+        } else {
+            &CORE_EVERYWHERE
+        };
+        for p in core_paths(&toks, allowed) {
             found.push(format!("{path}: {p}"));
         }
     }
     assert!(found.is_empty(), "paths into core beyond num: {found:#?}");
-    assert!(named > 0, "the inspector's ln(p′/p) names core::num");
+    assert!(named > in_edit, "the inspector's ln(p′/p) names core::num");
+    assert!(in_edit >= 3, "edit/ names the raw schema, Basis and Unit");
     let manifest = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml"))
         .expect("the manifest");
     assert!(

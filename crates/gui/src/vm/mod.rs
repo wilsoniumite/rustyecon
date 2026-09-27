@@ -8,6 +8,7 @@
 //! of recorded numbers (`ClockMethod::per_tick`, `engine::registry`), or a display transform
 //! U6 allows: a log through `core::num`. Every number carries its unit.
 
+pub mod compare;
 pub mod inspector;
 pub mod log;
 pub mod outliner;

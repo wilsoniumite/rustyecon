@@ -40,6 +40,7 @@ fn failed_run_shows_its_ledger_line() {
         Intent::TapeRead {
             path: "theft.ron".to_string(),
             text: Ok(text.clone()),
+            lineage: None,
         },
     );
     pump_until(&mut host, &mut m, |m| {
@@ -67,7 +68,7 @@ fn failed_run_shows_its_ledger_line() {
     assert!(!store.can_run());
     assert_eq!(store.hashes().len(), 73, "ticks 0 to 72 are recorded");
     // The toolbar: Poisoned, the ledger line, the last good tick.
-    let t = vm::toolbar::build(store, run.origin);
+    let t = vm::toolbar::build(store, run.origin, false);
     assert_eq!(t.health.status, vm::toolbar::Status::Poisoned);
     let line = t.health.ledger_line.clone().expect("the ledger line");
     assert!(line.starts_with("tick 73, phase 0 (events): "), "{line}");

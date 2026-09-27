@@ -80,8 +80,9 @@ pub struct HealthVm {
     pub last_good_tick: Option<u64>,
     /// Why ingestion stopped, if it did.
     pub stopped: Option<String>,
-    /// Whether the tape's ledger tolerances differ from its parent's (docs/GUI.md §5.1 item 2).
-    /// Only a branch has a parent, and branches arrive at G0.2, so a base run's is `false`.
+    /// Whether the tape's ledger tolerances differ from its parent's (docs/GUI.md §5.1 item 2):
+    /// a branch's parent run, or the ancestor a saved tape's lineage names when this session
+    /// holds it. The caller knows the parent; a run without one says `false`.
     pub ledger_changed: bool,
 }
 
@@ -179,8 +180,9 @@ pub fn ledger_keys(w: &World, e: &RunError) -> Vec<String> {
     out
 }
 
-/// The toolbar of a run: its record and its origin.
-pub fn build(store: &Store, origin: Origin) -> ToolbarVm {
+/// The toolbar of a run: its record, its origin, and whether its ledger's tolerances differ
+/// from its parent's.
+pub fn build(store: &Store, origin: Origin, ledger_changed: bool) -> ToolbarVm {
     let identity = store.run().zip(store.world()).map(|(k, w)| IdentityVm {
         name: w.name.clone(),
         commit: k.build.commit.clone(),
@@ -223,7 +225,7 @@ pub fn build(store: &Store, origin: Origin) -> ToolbarVm {
             .map_or_else(Vec::new, |(f, w)| ledger_keys(w, &f.error)),
         last_good_tick: failure.and_then(|f| f.last_good_tick()),
         stopped: store.stopped().map(|e| e.to_string()),
-        ledger_changed: false,
+        ledger_changed,
     };
     let controls = ControlsVm {
         can_run: store.can_run(),

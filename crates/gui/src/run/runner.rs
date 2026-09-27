@@ -306,6 +306,7 @@ impl Live {
                 out.push(Obs::Checkpointed(RingCheckpoint {
                     run: self.key.clone(),
                     tick,
+                    prefix_id: cp.prefix_id(),
                     bytes,
                 }));
             }

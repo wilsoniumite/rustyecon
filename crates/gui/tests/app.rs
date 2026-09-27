@@ -16,6 +16,13 @@
 //! - `every_drawn_vertex_is_recorded`: every vertex the plots lend egui is a recorded (tick,
 //!   value) of the store, no gap in the record is bridged, and each line keeps its extremes;
 //!   and every segment lent is painted.
+//! - The editor's form (G0.2): an empty note, a malformed key and a malformed date are
+//!   refused, and so are a key the tree has and a ledger tolerance; an act that does not read
+//!   puts the parser's line and column on the raw pane.
+//! - The branch script (G0.2): Apply makes a branch that resumes from the ring; compare shows
+//!   the first differing hash, the tape diff and the lineage; export writes a CSV and a
+//!   manifest that say "experiment", and the lineage; "Save tape as" writes the tape and its
+//!   lineage.
 
 mod common;
 
@@ -23,9 +30,13 @@ use egui_kittest::kittest::Queryable;
 use egui_kittest::Harness;
 use rustyecon_engine::prelude::*;
 use rustyecon_gui::app::{GuiApp, Launch};
+use rustyecon_gui::edit::export::GuiManifest;
+use rustyecon_gui::edit::{lineage_path, Lineage};
 use rustyecon_gui::model::{Intent, Model};
 use rustyecon_gui::platform::Files;
-use rustyecon_gui::run::{At, Entity, Measure, PauseReason, RunStatus, Series, SeriesKey, Store};
+use rustyecon_gui::run::{
+    At, Entity, Measure, Origin, PauseReason, RunId, RunStatus, Series, SeriesKey, Store,
+};
 use rustyecon_gui::ui::fmt;
 use rustyecon_gui::ui::plots::{DrawnLine, PALETTE};
 use std::collections::BTreeSet;
@@ -493,10 +504,13 @@ fn the_theft_script_shows_a_failed_run() {
     let store_now = store(h.state());
     let line = store_now.failure().expect("the failure").error.to_string();
     assert!(line.starts_with("tick 73, phase 0 (events): shortfall at tick 73"));
-    let keys =
-        rustyecon_gui::vm::toolbar::build(store_now, h.state().model().focused().unwrap().origin)
-            .health
-            .ledger_keys;
+    let keys = rustyecon_gui::vm::toolbar::build(
+        store_now,
+        h.state().model().focused().unwrap().origin,
+        false,
+    )
+    .health
+    .ledger_keys;
     assert_eq!(keys.len(), 2, "{keys:?}");
     paints(&mut h, "Poisoned", |t| t.starts_with("Poisoned · "));
     shows(&mut h, &line);
@@ -842,4 +856,265 @@ fn every_drawn_vertex_is_recorded() {
         .unwrap();
     let n: usize = bread.segments.iter().map(Vec::len).sum();
     assert!(n < 2080, "the price of bread is thinned: {n} vertices");
+}
+
+/// The act that restores the mine's capacity from its base value.
+const RESTORE: &str = "SetParam(param: \"mine.capacity\", to: \"mine.capacity.base\")";
+
+/// Put `text` in the field labelled `label`, in place of what it holds: focus it, select all,
+/// type.
+fn fill(h: &mut Harness<'_, GuiApp>, label: &str, text: &str) {
+    h.get_by_label(label).focus();
+    h.step();
+    h.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    h.step();
+    h.get_by_label(label).type_text(text);
+    h.step();
+    assert_eq!(
+        h.get_by_label(label).value().as_deref(),
+        Some(text),
+        "{label}"
+    );
+}
+
+/// Scroll the node labelled `label` into view, as a hand on the wheel would, so the frame
+/// paints it.
+fn scroll_to(h: &mut Harness<'_, GuiApp>, label: &str) {
+    has(h, label);
+    h.get_by_label(label).scroll_to_me();
+    h.step();
+    h.step();
+}
+
+/// Scroll the text labelled `text` into view and see the frame paint it: a pane's lines sit
+/// higher or lower as its paths and its window wrap them.
+fn see(h: &mut Harness<'_, GuiApp>, text: &str) {
+    scroll_to(h, text);
+    shows(h, text);
+}
+
+/// Press the button labelled `label`, through its accessible node.
+fn press(h: &mut Harness<'_, GuiApp>, label: &str) {
+    has(h, label);
+    h.get_by_label(label).click_accesskit();
+    h.step();
+    h.step();
+}
+
+#[test]
+fn the_editor_refuses_an_empty_note_a_malformed_key_and_a_malformed_date() {
+    // docs/GUI.md §5.1 item 2, §8.1: the form checks first. An empty note, a malformed key and
+    // a malformed date are refused, as are a key the run tree has and a ledger tolerance, and
+    // each refusal is painted; an act that does not read puts the parser's line and column on
+    // the raw pane. Nothing is staged until the form reads.
+    let mut h = harness("gate");
+    step_until(&mut h, "paused at tick 0", |a| {
+        status(a.model()) == Some(RunStatus::Paused { tick: 0, why: None })
+    });
+    click(&mut h, "Editor");
+    see(&mut h, "Branch run 0 (gate)");
+    let staged = |h: &Harness<'_, GuiApp>| h.state().model().editor().staged.len();
+    // An empty note.
+    fill(&mut h, "edit key", "gui.1.1");
+    fill(&mut h, "edit date", "1765-06-01");
+    fill(&mut h, "edit act", RESTORE);
+    press(&mut h, "Add edit");
+    see(&mut h, "refused: a note is required");
+    assert_eq!(staged(&h), 0);
+    // A malformed key.
+    fill(&mut h, "edit note", "restore the capacity early");
+    fill(&mut h, "edit key", "Mine Cut");
+    press(&mut h, "Add edit");
+    see(
+        &mut h,
+        "refused: the key \"Mine Cut\" must match [a-z0-9_.-]+",
+    );
+    assert_eq!(staged(&h), 0);
+    // A malformed date, with a minted key.
+    press(&mut h, "Mint key");
+    assert_eq!(
+        h.get_by_label("edit key").value().as_deref(),
+        Some("gui.1.1")
+    );
+    fill(&mut h, "edit date", "1765-13-45");
+    press(&mut h, "Add edit");
+    see(
+        &mut h,
+        "refused: the date does not parse: invalid date \"1765-13-45\": expected an existing \
+         YYYY-MM-DD",
+    );
+    assert_eq!(staged(&h), 0);
+    // An act that does not read: its line and column land on the raw pane, under the line.
+    fill(&mut h, "edit date", "1765-06-01");
+    let bad = "SetParam(param: \"mine.capacity\" to: \"mine.capacity.base\")";
+    fill(&mut h, "edit act", bad);
+    press(&mut h, "Add edit");
+    see(
+        &mut h,
+        "refused: the act does not read at line 1, column 33: Expected comma",
+    );
+    see(&mut h, &format!("  1 | {bad}"));
+    see(&mut h, &format!("    | {}^", " ".repeat(32)));
+    see(&mut h, "line 1, column 33: Expected comma");
+    assert_eq!(staged(&h), 0);
+    // A key the run tree has.
+    fill(&mut h, "edit act", RESTORE);
+    fill(&mut h, "edit key", "mine.cut");
+    press(&mut h, "Add edit");
+    see(
+        &mut h,
+        "refused: the key mine.cut is taken in this run tree; a new entry needs a new key \
+         (mint one)",
+    );
+    // A ledger tolerance.
+    click(&mut h, "edit kind");
+    click(&mut h, "SetGenesisParam");
+    fill(&mut h, "edit key", "ledger.rel_flow");
+    fill(&mut h, "edit value", "1e-10");
+    press(&mut h, "Add edit");
+    see(
+        &mut h,
+        "refused: ledger.rel_flow is a ledger tolerance (header.ledger), which is not editable",
+    );
+    assert_eq!(staged(&h), 0);
+    // The form read: staged, and listed.
+    click(&mut h, "edit kind");
+    click(&mut h, "AddEvent");
+    press(&mut h, "Mint key");
+    press(&mut h, "Add edit");
+    see(&mut h, "Staged edits (1)");
+    let line = {
+        let e = &h.state().model().editor().staged[0];
+        format!("1. {} ({:?})", e.op, e.note)
+    };
+    assert!(line.starts_with("1. AddEvent gui.1.1 on 1765-06-01: SetParam("));
+    see(&mut h, &line);
+    assert_eq!(staged(&h), 1);
+    assert_eq!(h.state().model().runs().count(), 1, "nothing applied yet");
+}
+
+#[test]
+fn the_branch_script_applies_compares_exports_and_saves() {
+    // docs/GUI.md §5.1, §4, §8.1: run the gate to its end, then set mine.capacity from
+    // mine.capacity.base on 1765-06-01 through the editor. Apply makes a branch, which resumes
+    // from the ring and whose identity chip says "experiment"; compare shows the first
+    // differing hash at the edit's tick, the tape diff and the lineage; export writes a CSV
+    // and a manifest envelope that say "experiment", and the lineage; "Save tape as" writes
+    // the tape and its lineage.
+    let dir = tempfile::tempdir().expect("a temporary directory");
+    let path = dir.path().join("gate.ron");
+    std::fs::write(&path, common::GATE).expect("the tape is written");
+    let path = path.display().to_string();
+    let mut h = harness_on(path.clone(), None);
+    step_until(&mut h, "paused at tick 0", |a| {
+        status(a.model()) == Some(RunStatus::Paused { tick: 0, why: None })
+    });
+    let today = h.state().model().today().expect("today's date");
+    fill(&mut h, "until", "2080");
+    click(&mut h, "Run until");
+    step_until(&mut h, "the gate's end", |a| {
+        paused(a, PauseReason::Reached(2080))
+    });
+    click(&mut h, "Editor");
+    press(&mut h, "Mint key");
+    fill(&mut h, "edit date", "1765-06-01");
+    fill(&mut h, "edit act", RESTORE);
+    fill(&mut h, "edit note", "restore the capacity early");
+    press(&mut h, "Add edit");
+    see(&mut h, "Staged edits (1)");
+    press(&mut h, "Apply");
+    step_until(&mut h, "the branch loaded", |a| {
+        a.model().focus() == Some(RunId(1)) && store(a).run().is_some()
+    });
+    let jan = common::gate_tick("1765-01-01");
+    let edit = common::gate_tick("1765-06-01");
+    assert_eq!(store(h.state()).start(), jan, "it resumed from the ring");
+    let name = format!("gate [GUI experiment {today}]");
+    let b = rustyecon_gui::build();
+    let commit: String = b.commit.chars().take(10).collect();
+    let tape = h.state().model().focused().unwrap().tape_hash;
+    shows(
+        &mut h,
+        &format!(
+            "{name} · experiment · {commit} {} · world 0x43628a8e0fd5f695 · tape {}",
+            b.state(),
+            certify::Hex(tape)
+        ),
+    );
+    // Run the branch to the end: "until" still says 2080.
+    click(&mut h, "Run until");
+    step_until(&mut h, "the branch's end", |a| {
+        paused(a, PauseReason::Reached(2080))
+    });
+    // Compare: the first differing hash is the edit's tick; the tape diff and the lineage.
+    click(&mut h, "Compare");
+    let clock = store(h.state()).world().unwrap().clock;
+    let date = clock.date_of(edit).unwrap();
+    shows_part(
+        &mut h,
+        &format!(
+            "first differing hash: state tick {}, left by report tick {edit} ({date})",
+            edit + 1
+        ),
+    );
+    // Each line is scrolled to first: how far down it sits depends on how long the paths are.
+    let from = format!("from {path} (tape_hash 0x54066d053474846b)");
+    scroll_to(&mut h, &from);
+    shows(&mut h, &from);
+    let lines = h
+        .state()
+        .model()
+        .focused()
+        .unwrap()
+        .lineage
+        .as_ref()
+        .unwrap()
+        .lines();
+    assert!(lines[1].starts_with(&format!(
+        "1. {today}: AddEvent gui.1.1 on 1765-06-01: SetParam("
+    )));
+    scroll_to(&mut h, &lines[1]);
+    shows(&mut h, &lines[1]);
+    scroll_to(&mut h, "header name changed");
+    shows(&mut h, "header name changed");
+    scroll_to(&mut h, "events gui.1.1 added");
+    shows(&mut h, "events gui.1.1 added");
+    shows_part(
+        &mut h,
+        "+ (key:\"gui.1.1\",at:\"1765-06-01\",basis:Assumed(\"GUI experiment",
+    );
+    // Export: a CSV and a manifest that say "experiment", and the lineage.
+    click(&mut h, "Editor");
+    let out = dir.path().join("export");
+    fill(&mut h, "export directory", &out.display().to_string());
+    press(&mut h, "Export");
+    let csv = std::fs::read_to_string(out.join("series.csv")).expect("the CSV is written");
+    assert!(
+        csv.starts_with("# rustyecon-gui export: experiment, draft\n"),
+        "{csv}"
+    );
+    assert!(csv.contains("\n# origin experiment\n"));
+    let manifest = std::fs::read_to_string(out.join("manifest.ron")).expect("the manifest");
+    let g = GuiManifest::from_ron(&manifest).expect("the envelope reads");
+    assert_eq!((g.origin, g.draft), (Origin::Experiment, true));
+    assert_eq!(g.manifest.tape, name);
+    let l = std::fs::read_to_string(out.join("tape.lineage.ron")).expect("the lineage");
+    let l = Lineage::from_ron(&l).expect("the lineage reads");
+    assert_eq!(l.parent.path, path);
+    assert_eq!(l.edits[0].edit.note, "restore the capacity early");
+    assert!(h
+        .state()
+        .model()
+        .log()
+        .iter()
+        .any(|e| e.text.starts_with("run 1 exported to ")));
+    // Save tape as: the tape, and its lineage beside it.
+    let saved = dir.path().join("branch.ron").display().to_string();
+    fill(&mut h, "save path", &saved);
+    press(&mut h, "Save tape as");
+    let text = std::fs::read_to_string(&saved).expect("the tape is saved");
+    assert_eq!(certify::tape_hash(&Tape::from_ron(&text).unwrap()), tape);
+    assert!(std::path::Path::new(&lineage_path(&saved)).exists());
+    scroll_to(&mut h, &format!("on disk: {saved}"));
+    shows(&mut h, &format!("on disk: {saved}"));
 }

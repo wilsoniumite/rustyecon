@@ -14,7 +14,11 @@
 #      gate names so far run by name and passed, so a renamed test cannot drop out;
 #   4. the cli's hashes: gui_equals_cli writes the GUI path's hashes of tapes/gate.ron (2,080
 #      ticks) and tapes/appb.ron (20,000), and the body of `rustyecon run <tape> --until <T>
-#      --hashes` must equal them byte for byte, both binaries built --release on this machine.
+#      --hashes` must equal them byte for byte, both binaries built --release on this machine;
+#      and the same for the two branches the editor's tests materialise and run (G0.2):
+#      branch_resume_equals_rerun writes branch.ron with its hashes, a branch resumed from its
+#      parent's ring, and removal_only_branch_is_an_experiment writes removal.ron with its
+#      hashes, each 2,080 ticks, the parent's record before the resume and the branch's after.
 #
 # The build goes to CARGO_TARGET_DIR, outside the tree; the default is
 # $HOME/scratch/target-rustyecon-gui. On a machine with no network and a warm cargo cache, set
@@ -40,7 +44,9 @@ step() { printf '\n== gui: %s\n' "$*"; }
 # The tests G0's gate names (docs/GUI.md §9), as each part of G0 lands. G0.1's second part
 # adds every_drawn_vertex_is_recorded, the view-model goldens, G0's kittest scripts, and the scan
 # that holds the GUI's use of core to `num`. The fixes after its verification add the theft
-# script and the script whose session another tape wrote.
+# script and the script whose session another tape wrote. G0.2 adds the editor's: the two
+# branch tests, the five rules of §8.1's editing row, the editor's two kittest scripts (the
+# form's refusals; apply, compare, export and save), and the scan that keeps edit/ pure.
 named=(
     gui_equals_cli
     failed_run_shows_its_ledger_line
@@ -59,6 +65,16 @@ named=(
     the_gui_names_core_for_num_alone
     the_theft_script_shows_a_failed_run
     a_second_tapes_session_still_plots_every_price
+    branch_resume_equals_rerun
+    removal_only_branch_is_an_experiment
+    gui_edits_are_always_assumed
+    saved_tape_carries_its_lineage
+    removing_the_last_use_offers_remove_param
+    ledger_tolerances_are_not_editable
+    minted_keys_never_collide
+    the_editor_refuses_an_empty_note_a_malformed_key_and_a_malformed_date
+    the_branch_script_applies_compares_exports_and_saves
+    edit_reaches_no_model_file_thread_or_clock
 )
 
 step "toolchain (rust-toolchain.toml)"
@@ -107,5 +123,21 @@ for spec in gate:2080 appb:20000; do
     echo "tapes/$name.ron: $(wc -l <"$work/$name.hashes") ticks equal, final $(tail -n 1 "$work/$name.hashes")"
 done
 grep '^run build ' "$work/gate.out"
+# The branches the editor made: each tape as materialise wrote it, run by the cli from genesis.
+for name in branch removal; do
+    if [ ! -s "$work/$name.ron" ] || [ ! -s "$work/$name.hashes" ]; then
+        echo "gui: the branch tests wrote no $name.ron or $name.hashes" >&2
+        exit 1
+    fi
+    "$bin" run "$work/$name.ron" --until 2080 --hashes "$work/$name.cli" >"$work/$name.out"
+    grep -v '^#' "$work/$name.cli" >"$work/$name.body"
+    if ! cmp -s "$work/$name.body" "$work/$name.hashes"; then
+        echo "gui: the GUI's hashes of the $name branch differ from the cli's" >&2
+        diff "$work/$name.body" "$work/$name.hashes" | head -5 >&2
+        exit 1
+    fi
+    echo "$name branch ($(sed -n 's/^# tape \(.*\) tape_hash.*/\1/p' "$work/$name.cli")):" \
+        "$(wc -l <"$work/$name.hashes") ticks equal, final $(tail -n 1 "$work/$name.hashes")"
+done
 
 step "green"

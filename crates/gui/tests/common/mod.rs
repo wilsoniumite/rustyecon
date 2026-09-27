@@ -5,13 +5,47 @@
 #![allow(dead_code)]
 
 pub mod scan;
+pub mod sync;
 
 use certify::Build;
 use rustyecon_engine::prelude::*;
-use rustyecon_gui::drive::{Driver, ThreadDriver};
+use rustyecon_gui::drive::{Driver, Host, ThreadDriver};
+use rustyecon_gui::model::Model;
 use rustyecon_gui::run::{Obs, PauseReason, Runner};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
+
+/// The date the editor's tests stamp their experiments with.
+pub fn today() -> Date {
+    Date::parse("2026-09-27").expect("a date")
+}
+
+/// A key.
+pub fn key(s: &str) -> Key {
+    Key::new(s).expect("a key")
+}
+
+/// The tick a date falls in, on the gate's calendar.
+pub fn gate_tick(date: &str) -> u64 {
+    let clock = tape_of(GATE);
+    let clock = Clock {
+        start: clock.header.start,
+        ticks_per_year: clock.header.ticks_per_year,
+    };
+    clock
+        .tick_of(Date::parse(date).expect("a date"))
+        .expect("a tick")
+}
+
+/// Pump `host` into `m` until `done` holds of the model. Fails after [`PATIENCE`].
+pub fn pump_until(host: &mut Host, m: &mut Model, what: &str, done: impl Fn(&Model) -> bool) {
+    let t0 = Instant::now();
+    while !done(m) {
+        host.pump(m);
+        assert!(t0.elapsed() < PATIENCE, "the run did not get there: {what}");
+        std::thread::sleep(Duration::from_millis(1));
+    }
+}
 
 /// The gate world (docs/ENGINE.md §10) and its length, 40 years of 52 ticks.
 pub const GATE: &str = include_str!("../../../../tapes/gate.ron");

@@ -63,6 +63,10 @@ impl GuiApp {
         let wake: Arc<dyn Fn() + Send + Sync> = Arc::new(move || wake_ctx.request_repaint());
         let mut model = Model::default();
         let mut host = Host::new(crate::build(), wake, launch.files.clone());
+        // The date experiments made in this session are stamped with (D3).
+        if let Some(d) = platform::today() {
+            host.act(&mut model, Intent::Today(d));
+        }
         let mut tree = layout::default_tree();
         if let Some(files) = &launch.files {
             if let Some(text) = files.read_session() {

@@ -267,7 +267,7 @@ fn refused(poison: f64) {
     assert_eq!(store.series(&bread).unwrap().len(), 7);
     assert!(store.catalogue().iter().position(|k| *k == bread) > Some(0));
     // The health chip says so.
-    let health = vm::toolbar::build(&store, Origin::Run).health;
+    let health = vm::toolbar::build(&store, Origin::Run, false).health;
     assert_eq!(health.status, vm::toolbar::Status::Stopped);
     assert_eq!(health.stopped.as_deref(), Some(text.as_str()));
 }

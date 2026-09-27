@@ -1,14 +1,17 @@
 //! `session.ron` (U8): what a session keeps between launches, outside every tape. The tapes it
 //! opened, by path with their `tape_hash`; the plotted series; the pinned entities; the
-//! breakpoints; the speed cap. G0.2 adds each branch's edits. Text in, text out: `platform`
-//! reads and writes the file.
+//! breakpoints; the speed cap; and the session's serial, which minted keys carry
+//! (`gui.<serial>.<n>`, docs/GUI.md §5.1 item 2). A branch lives in memory until "Save tape
+//! as" writes it: the session does not re-make branches at launch (G0.2). Text in, text out:
+//! `platform` reads and writes the file.
 
 use crate::run::{Breakpoint, Entity, SeriesKey};
 use certify::Hex;
 use serde::{Deserialize, Deserializer, Serialize};
 
-/// The format this build reads and writes.
-pub const SESSION_FORMAT: u32 = 1;
+/// The format this build reads and writes. Format 2 (G0.2) adds the serial; a format-1 file
+/// does not read, and is set aside.
+pub const SESSION_FORMAT: u32 = 2;
 
 /// A tape opened from a file: its path and its `tape_hash` when last read. A base whose file
 /// changed on disk opens as a new root run (docs/GUI.md §5.1 item 7).
@@ -27,6 +30,9 @@ pub struct Base {
 pub struct Session {
     /// [`SESSION_FORMAT`].
     pub format: u32,
+    /// The session's serial: 1 for a new session, one more at each launch that reads it. A
+    /// minted key is `gui.<serial>.<n>`, so two sessions never mint the same key.
+    pub serial: u32,
     /// The tapes opened, in the order they were.
     pub bases: Vec<Base>,
     /// The plotted series, by key.
@@ -48,10 +54,11 @@ fn required<'de, D: Deserializer<'de>, T: Deserialize<'de>>(d: D) -> Result<Opti
 }
 
 impl Default for Session {
-    /// No tape, nothing plotted or pinned, a breakpoint on error, no speed cap.
+    /// Serial 1, no tape, nothing plotted or pinned, a breakpoint on error, no speed cap.
     fn default() -> Session {
         Session {
             format: SESSION_FORMAT,
+            serial: 1,
             bases: Vec::new(),
             plots: Vec::new(),
             pins: Vec::new(),
@@ -71,12 +78,20 @@ impl Session {
     /// A session from RON, if it is one this build reads: every field present, none unknown,
     /// and the format this build writes.
     pub fn from_ron(text: &str) -> Result<Session, String> {
+        #[derive(Deserialize)]
+        #[serde(rename = "Session")]
+        struct Probe {
+            format: u32,
+        }
+        let format = |f: u32| format!("session format {f}; this build reads {SESSION_FORMAT}");
+        if let Ok(p) = ron::from_str::<Probe>(text) {
+            if p.format != SESSION_FORMAT {
+                return Err(format(p.format));
+            }
+        }
         let s: Session = ron::from_str(text).map_err(|e| e.to_string())?;
         if s.format != SESSION_FORMAT {
-            return Err(format!(
-                "session format {}; this build reads {SESSION_FORMAT}",
-                s.format
-            ));
+            return Err(format(s.format));
         }
         Ok(s)
     }

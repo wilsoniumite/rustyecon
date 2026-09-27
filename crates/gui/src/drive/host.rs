@@ -2,6 +2,7 @@
 //! observations back into [`reduce`]. The app calls it every frame; tests call it headless.
 
 use super::{Driver, ThreadDriver};
+use crate::edit::lineage_path;
 use crate::model::{reduce, Effect, Intent, Model};
 use crate::platform::{self, Files};
 use crate::run::RunId;
@@ -48,7 +49,14 @@ impl Host {
                 Effect::PickTape => platform::pick_tape().map(Intent::Open),
                 Effect::ReadTape(path) => Some(Intent::TapeRead {
                     text: platform::read_text(&path),
+                    lineage: platform::read_if_there(lineage_path(&path)),
                     path,
+                }),
+                Effect::PickSaveTape => platform::pick_save_tape().map(Intent::SaveTape),
+                Effect::PickExportDir => platform::pick_dir().map(Intent::Export),
+                Effect::Write { job, files } => Some(Intent::Written {
+                    job,
+                    result: platform::write_new(&files),
                 }),
                 Effect::Spawn(run) => {
                     let d = ThreadDriver::spawn(self.build.clone(), Arc::clone(&self.wake));

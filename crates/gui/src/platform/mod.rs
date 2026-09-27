@@ -1,12 +1,15 @@
-//! Files (docs/GUI.md §3.2): tapes, `session.ron` and `layout.ron` natively, through std::fs,
-//! and the toolbar's Open through rfd's native file dialog. The Parquet spill joins at G3.
+//! Files (docs/GUI.md §3.2): tapes, their lineages, exports, `session.ron` and `layout.ron`
+//! natively, through std::fs, and native file dialogs through rfd. The Parquet spill joins at
+//! G3. The date an experiment is stamped with is read here too, from the system clock.
 //!
 //! The session's directory is `$RUSTYECON_GUI_DIR` when set, else the platform's configuration
 //! directory: `%APPDATA%\rustyecon\gui` on Windows, `$XDG_CONFIG_HOME/rustyecon/gui` or
 //! `~/.config/rustyecon/gui` elsewhere. Both files are small, and each is written through a
 //! `.tmp` file and a rename, so a reader never sees half of one. A file that does not read is
-//! set aside as `<name>.unreadable`, never overwritten.
+//! set aside as `<name>.unreadable`, never overwritten. A saved tape, its lineage and an
+//! export's files are written only where no file is: nothing the user has is written over.
 
+use rustyecon_engine::prelude::Date;
 use std::path::{Path, PathBuf};
 
 /// The session file's name (U8).
@@ -17,6 +20,70 @@ pub const LAYOUT: &str = "layout.ron";
 /// A tape's text, or why it could not be read.
 pub fn read_text(path: &str) -> Result<String, String> {
     std::fs::read_to_string(path).map_err(|e| e.to_string())
+}
+
+/// Today's date in UTC, from the system clock: the date a GUI experiment is stamped with.
+/// `None` if the clock reads before 1970.
+pub fn today() -> Option<Date> {
+    let secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .ok()?
+        .as_secs();
+    Date::from_days(i64::try_from(secs / 86_400).ok()?)
+}
+
+/// Write each `(path, text)`, creating the directories they need, but only where no file is:
+/// if any path exists, nothing is written. Returns the paths written.
+pub fn write_new(files: &[(String, String)]) -> Result<Vec<String>, String> {
+    if let Some((p, _)) = files.iter().find(|(p, _)| Path::new(p).exists()) {
+        return Err(format!("{p} exists, and no file is written over"));
+    }
+    let mut done = Vec::new();
+    for (p, text) in files {
+        let path = Path::new(p);
+        if let Some(dir) = path.parent().filter(|d| !d.as_os_str().is_empty()) {
+            std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
+        }
+        let mut f = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(path)
+            .map_err(|e| format!("{p}: {e}"))?;
+        std::io::Write::write_all(&mut f, text.as_bytes()).map_err(|e| format!("{p}: {e}"))?;
+        done.push(p.clone());
+    }
+    Ok(done)
+}
+
+/// Ask the user where to save a tape: the native dialog, filtered to `.ron`.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn pick_save_tape() -> Option<String> {
+    rfd::FileDialog::new()
+        .set_title("Save tape as")
+        .add_filter("tape", &["ron"])
+        .save_file()
+        .map(|p| p.display().to_string())
+}
+
+/// No dialog on the web until W1.
+#[cfg(target_arch = "wasm32")]
+pub fn pick_save_tape() -> Option<String> {
+    None
+}
+
+/// Ask the user for a directory to export into: the native dialog.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn pick_dir() -> Option<String> {
+    rfd::FileDialog::new()
+        .set_title("Export into")
+        .pick_folder()
+        .map(|p| p.display().to_string())
+}
+
+/// No dialog on the web until W1.
+#[cfg(target_arch = "wasm32")]
+pub fn pick_dir() -> Option<String> {
+    None
 }
 
 /// Ask the user for a tape file: the native dialog, filtered to `.ron`. `None` if the user
@@ -84,7 +151,7 @@ impl Files {
 
     /// `session.ron`'s text: `None` when there is none yet.
     pub fn read_session(&self) -> Option<Result<String, String>> {
-        read_if_there(&self.session_path())
+        read_if_there(self.session_path())
     }
 
     /// Write `session.ron`.
@@ -94,7 +161,7 @@ impl Files {
 
     /// `layout.ron`'s text: `None` when there is none yet.
     pub fn read_layout(&self) -> Option<Result<String, String>> {
-        read_if_there(&self.layout_path())
+        read_if_there(self.layout_path())
     }
 
     /// Write `layout.ron`.
@@ -120,7 +187,9 @@ impl Files {
     }
 }
 
-fn read_if_there(path: &Path) -> Option<Result<String, String>> {
+/// A file's text: `None` when there is no file there.
+pub fn read_if_there(path: impl AsRef<Path>) -> Option<Result<String, String>> {
+    let path = path.as_ref();
     match std::fs::read_to_string(path) {
         Ok(t) => Some(Ok(t)),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,

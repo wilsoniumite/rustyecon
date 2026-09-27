@@ -90,28 +90,42 @@ fn a_session_round_trips_and_refuses_what_it_does_not_know() {
     assert!(Session::from_ron(&unknown).is_err());
     let missing = text.replacen("speed: Some(520),", "", 1);
     assert!(Session::from_ron(&missing).is_err());
-    let newer = text.replacen("format: 1,", "format: 2,", 1);
+    let serial = text.replacen("serial: 1,", "", 1);
+    assert!(
+        Session::from_ron(&serial).is_err(),
+        "the serial is required"
+    );
+    let newer = text.replacen("format: 2,", "format: 3,", 1);
     assert_eq!(
         Session::from_ron(&newer),
-        Err("session format 2; this build reads 1".to_string())
+        Err("session format 3; this build reads 2".to_string())
+    );
+    // G0.1's format, with no serial, is refused as a format.
+    let older = serial.replacen("format: 2,", "format: 1,", 1);
+    assert_eq!(
+        Session::from_ron(&older),
+        Err("session format 1; this build reads 2".to_string())
     );
 }
 
 #[test]
-fn a_layout_round_trips_and_must_hold_every_pane() {
+fn a_layout_round_trips_and_gains_a_pane_it_lacks() {
     let tree = layout::default_tree();
     for p in Pane::ALL {
         assert!(tree.tiles.find_pane(&p).is_some(), "{p:?}");
     }
     let text = layout::to_ron(&tree);
     assert!(layout::from_ron(&text).expect("it reads") == tree);
+    // A layout saved before a pane existed (G0.1's had no editor and no compare) gains it.
     let mut short = tree.clone();
-    let log = short.tiles.find_pane(&Pane::Log).unwrap();
-    short.remove_recursively(log);
-    assert_eq!(
-        layout::from_ron(&layout::to_ron(&short)).err().as_deref(),
-        Some("the layout lacks Log")
-    );
+    for p in [Pane::Log, Pane::Editor, Pane::Compare] {
+        let id = short.tiles.find_pane(&p).unwrap();
+        short.remove_recursively(id);
+    }
+    let back = layout::from_ron(&layout::to_ron(&short)).expect("it reads");
+    for p in Pane::ALL {
+        assert!(back.tiles.find_pane(&p).is_some(), "{p:?}");
+    }
     assert!(layout::from_ron("not a layout").is_err());
 }
 

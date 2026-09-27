@@ -6,10 +6,11 @@ mod common;
 
 use common::{collecting, drain, edit, tape_of, GATE};
 use rustyecon_engine::prelude::*;
-use rustyecon_gui::model::{reduce, Cursor, Effect, Intent, Model, Session};
+use rustyecon_gui::edit::{Form, OpKind};
+use rustyecon_gui::model::{reduce, Cursor, Effect, Intent, Job, Model, Session};
 use rustyecon_gui::run::{
-    At, Breakpoint, Cmd, Entity, Measure, Obs, Origin, RunId, RunStatus, Runner, SeriesKey,
-    EXPERIMENT_MARKER,
+    At, Breakpoint, Cmd, Entity, Measure, Obs, Origin, ResumeFrom, RunId, RunStatus, Runner,
+    SeriesKey, EXPERIMENT_MARKER,
 };
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
@@ -56,7 +57,12 @@ impl Sync {
                     self.runners.remove(&run);
                 }
                 Effect::SaveSession => self.saves += 1,
-                Effect::ReadTape(_) | Effect::SetAsideSession | Effect::PickTape => {}
+                Effect::ReadTape(_)
+                | Effect::SetAsideSession
+                | Effect::PickTape
+                | Effect::PickSaveTape
+                | Effect::PickExportDir
+                | Effect::Write { .. } => {}
             }
         }
         self.settle(m);
@@ -92,6 +98,7 @@ fn open(h: &mut Sync, m: &mut Model, path: &str, text: &str) -> Vec<Effect> {
         Intent::TapeRead {
             path: path.to_string(),
             text: Ok(text.to_string()),
+            lineage: None,
         },
     )
 }
@@ -168,6 +175,7 @@ fn a_tape_that_does_not_parse_or_read_is_logged_and_not_run() {
         Intent::TapeRead {
             path: "gone.ron".to_string(),
             text: Err("not found".to_string()),
+            lineage: None,
         },
     );
     assert!(e.is_empty());
@@ -469,10 +477,25 @@ fn a_session_that_does_not_read_is_set_aside() {
     assert_eq!(m.session, Session::default());
     let s = Session {
         speed: Some(3),
+        serial: 7,
         ..Session::default()
     };
-    assert!(reduce(&mut m, Intent::SessionRead(Ok(s.to_ron()))).is_empty());
-    assert_eq!(m.session, s);
+    // A session that reads is this launch's with the next serial, saved at once, so the keys
+    // this launch mints (gui.8.<n>) are new to every earlier launch's.
+    let e = reduce(&mut m, Intent::SessionRead(Ok(s.to_ron())));
+    assert!(matches!(&e[..], [Effect::SaveSession]));
+    assert_eq!(
+        m.session,
+        Session {
+            serial: 8,
+            ..s.clone()
+        }
+    );
+    assert_eq!(m.mint_key(), None, "no run is open to mint a key for");
+    // A G0.1 session, format 1 with no serial, does not read and is set aside.
+    let old = s.to_ron().replacen("format: 2,", "format: 1,", 1);
+    let e = reduce(&mut m, Intent::SessionRead(Ok(old)));
+    assert!(matches!(&e[..], [Effect::SetAsideSession]));
 }
 
 #[test]
@@ -670,7 +693,7 @@ fn a_run_whose_worker_ended_says_so_and_stops() {
     assert_eq!(status(&m), RunStatus::Ended);
     let run = m.focused().unwrap();
     assert!(!run.store.can_run());
-    let t = rustyecon_gui::vm::toolbar::build(&run.store, run.origin);
+    let t = rustyecon_gui::vm::toolbar::build(&run.store, run.origin, false);
     assert_eq!(t.health.status, rustyecon_gui::vm::toolbar::Status::Ended);
     assert!(!t.controls.can_run && !t.controls.running);
     let last = m.log().last().unwrap();
@@ -742,4 +765,140 @@ fn a_session_of_another_tape_still_plots_every_price() {
     let mut h2 = Sync::new(64);
     open(&mut h2, &mut m2, "gate.ron", GATE);
     assert_eq!(m2.session.plots, [gate[0].clone()]);
+}
+
+#[test]
+fn apply_branches_from_the_parents_ring_and_files_are_effects() {
+    // The editor as a state machine (docs/GUI.md §5.1): Apply needs a date and staged edits;
+    // then it starts a new run whose Load carries the parent's ring checkpoint, focuses it and
+    // clears the editor. "Save tape as" and export are Write effects, a write that lands puts
+    // the saved tape on disk, and one that fails is logged and shown.
+    let mut m = Model::default();
+    let mut h = Sync::new(64);
+    open(&mut h, &mut m, "gate.ron", GATE);
+    assert!(h.act(&mut m, Intent::Apply).is_empty());
+    assert_eq!(
+        m.editor().error.as_deref(),
+        Some("no date to stamp the experiment with")
+    );
+    h.act(&mut m, Intent::Today(Date::parse("2026-09-27").unwrap()));
+    assert!(h.act(&mut m, Intent::Apply).is_empty());
+    assert_eq!(m.editor().error.as_deref(), Some("no edit to apply"));
+    h.act(&mut m, Intent::Run { until: Some(1000) });
+    let form = Form {
+        kind: OpKind::AddEvent,
+        key: "gui.1.1".to_string(),
+        date: "1765-06-01".to_string(),
+        act: "SetParam(param: \"mine.capacity\", to: \"mine.capacity.base\")".to_string(),
+        note: "restore early".to_string(),
+        ..Form::default()
+    };
+    assert!(h.act(&mut m, Intent::Stage(form.clone())).is_empty());
+    assert_eq!(m.editor().staged.len(), 1);
+    h.act(&mut m, Intent::Unstage(0));
+    assert!(m.editor().staged.is_empty());
+    h.act(&mut m, Intent::Stage(form));
+    h.sent();
+    let e = h.act(&mut m, Intent::Apply);
+    let clock = m.focused().unwrap().store.world().unwrap().clock;
+    let jan = clock.tick_of(Date::parse("1765-01-01").unwrap()).unwrap();
+    match &e[..] {
+        [Effect::Spawn(RunId(1)), Effect::Send {
+            run: RunId(1),
+            cmd: Cmd::Breakpoints(b),
+        }, Effect::Send {
+            run: RunId(1),
+            cmd:
+                Cmd::Load {
+                    from: Some(ResumeFrom::Ring(cp)),
+                    tape,
+                },
+        }] => {
+            assert_eq!(b, &[Breakpoint::OnError]);
+            assert_eq!(cp.tick(), jan);
+            assert_eq!(cp.run(), m.run(RunId(0)).unwrap().store.run().unwrap());
+            assert_eq!(tape.header.name, "gate [GUI experiment 2026-09-27]");
+        }
+        other => panic!("{other:?}"),
+    }
+    assert_eq!(m.focus(), Some(RunId(1)));
+    assert_eq!(m.cursor(), Cursor::Live);
+    assert!(m.editor().staged.is_empty() && m.editor().error.is_none());
+    assert_eq!(
+        m.focused().unwrap().store.start(),
+        jan,
+        "the runner resumed"
+    );
+    // Save: the tape and its lineage beside it.
+    let e = h.act(&mut m, Intent::SaveTape(" out/b.ron ".to_string()));
+    let [Effect::Write { job, files }] = &e[..] else {
+        panic!("{e:?}");
+    };
+    assert_eq!(
+        job,
+        &Job::SaveTape {
+            run: RunId(1),
+            path: "out/b.ron".to_string()
+        }
+    );
+    let paths: Vec<&str> = files.iter().map(|f| f.0.as_str()).collect();
+    assert_eq!(paths, ["out/b.ron", "out/b.lineage.ron"]);
+    assert_eq!(files[0].1, m.focused().unwrap().tape.to_ron());
+    h.act(
+        &mut m,
+        Intent::Written {
+            job: job.clone(),
+            result: Ok(paths.iter().map(|p| p.to_string()).collect()),
+        },
+    );
+    assert_eq!(m.focused().unwrap().path.as_deref(), Some("out/b.ron"));
+    // Export: every file of it, under the directory.
+    let e = h.act(&mut m, Intent::Export("out/x".to_string()));
+    let [Effect::Write { job, files }] = &e[..] else {
+        panic!("{e:?}");
+    };
+    let names: Vec<String> = files
+        .iter()
+        .map(|f| {
+            let p = std::path::Path::new(&f.0);
+            assert!(p.starts_with("out/x"), "{}", f.0);
+            p.file_name().unwrap().to_string_lossy().to_string()
+        })
+        .collect();
+    assert_eq!(
+        names,
+        [
+            "series.csv",
+            "manifest.ron",
+            "tape.ron",
+            "tape.lineage.ron",
+            "ancestor.ron"
+        ]
+    );
+    h.act(
+        &mut m,
+        Intent::Written {
+            job: job.clone(),
+            result: Err("disk full".to_string()),
+        },
+    );
+    assert_eq!(
+        m.editor().error.as_deref(),
+        Some("run 1 not exported to out/x: disk full")
+    );
+    assert!(m
+        .log()
+        .iter()
+        .any(|l| l.text == "editor: run 1 not exported to out/x: disk full"));
+    // An empty path or directory is refused; the dialogs are effects.
+    assert!(h.act(&mut m, Intent::SaveTape("  ".to_string())).is_empty());
+    assert!(h.act(&mut m, Intent::Export(String::new())).is_empty());
+    assert!(matches!(
+        &h.act(&mut m, Intent::PickSaveTape)[..],
+        [Effect::PickSaveTape]
+    ));
+    assert!(matches!(
+        &h.act(&mut m, Intent::PickExportDir)[..],
+        [Effect::PickExportDir]
+    ));
 }

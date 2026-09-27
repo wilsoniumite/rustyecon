@@ -74,7 +74,7 @@ pub fn show(ui: &mut egui::Ui, m: &Model, st: &mut ToolbarState, out: &mut Vec<I
                     }
                 });
         }
-        let vm = toolbar::build(&run.store, run.origin);
+        let vm = toolbar::build(&run.store, run.origin, m.ledger_changed(run.id));
         let can = vm.controls.can_run;
         let running = vm.controls.running;
         let label = if running { "Pause" } else { "Run" };

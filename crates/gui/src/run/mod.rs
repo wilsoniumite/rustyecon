@@ -125,6 +125,7 @@ pub enum ResumeFrom {
 pub struct RingCheckpoint {
     run: RunKey,
     tick: u64,
+    prefix_id: u64,
     bytes: Vec<u8>,
 }
 
@@ -137,6 +138,13 @@ impl RingCheckpoint {
     /// The state's tick.
     pub fn tick(&self) -> u64 {
         self.tick
+    }
+
+    /// The `prefix_id` the checkpoint stores, the schedule's firings before its tick, read off
+    /// the checkpoint when the Runner took it. `edit::plan` compares it with a branch's; the
+    /// resume itself checks the bytes (`Sim::resume`).
+    pub fn prefix_id(&self) -> u64 {
+        self.prefix_id
     }
 
     /// The size of its bytes.
@@ -160,6 +168,7 @@ impl fmt::Debug for RingCheckpoint {
         f.debug_struct("RingCheckpoint")
             .field("run", &self.run)
             .field("tick", &self.tick)
+            .field("prefix_id", &self.prefix_id)
             .field("bytes", &self.bytes.len())
             .finish()
     }

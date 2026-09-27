@@ -191,6 +191,7 @@ pub struct Store {
     world: Option<Box<World>>,
     registry: Result<Vec<RegistryLine>, String>,
     start: u64,
+    start_hash: u64,
     tick: u64,
     hash: u64,
     status: RunStatus,
@@ -218,6 +219,7 @@ impl Default for Store {
             world: None,
             registry: Ok(Vec::new()),
             start: 0,
+            start_hash: 0,
             tick: 0,
             hash: 0,
             status: RunStatus::Empty,
@@ -273,6 +275,7 @@ impl Store {
                     world: Some(world),
                     registry,
                     start: tick,
+                    start_hash: hash,
                     tick,
                     hash,
                     status: RunStatus::Paused { tick, why: None },
@@ -444,6 +447,24 @@ impl Store {
     /// The state's tick at the load: 0 from genesis.
     pub fn start(&self) -> u64 {
         self.start
+    }
+
+    /// The hash of the state at the load: genesis's, or a resumed checkpoint's.
+    pub fn start_hash(&self) -> u64 {
+        self.start_hash
+    }
+
+    /// The hash the record holds for the state whose tick is `tick`: the state at the load, or
+    /// the state a recorded tick left. `None` outside the record.
+    pub fn state_hash_at(&self, tick: u64) -> Option<u64> {
+        if self.run.is_none() || tick < self.start {
+            return None;
+        }
+        if tick == self.start {
+            return Some(self.start_hash);
+        }
+        let i = usize::try_from(tick - self.start - 1).ok()?;
+        self.hashes.get(i).copied()
     }
 
     /// The latest state tick recorded.

@@ -31,7 +31,7 @@ certify PASS, and their certificates are in `results/`. A Phase 2 probe found th
 at the paper's margins reach the oracle's equilibrium of the SSRN Appendix B economy
 ([docs/probe/REPORT.md](docs/probe/REPORT.md)). Oracle unit 1a, the first of Phase 1, has
 landed. The GUI is designed ([docs/GUI.md](docs/GUI.md)), and its shell, G0, is under way:
-G0.1, the viewer, is built, its seams and its panels; G0.2, the editor, comes next. The crates
+G0.1, the viewer, and G0.2, the editor, are built. The crates
 fill in phase by phase:
 
 | Crate | What it holds | Fills in |
@@ -115,13 +115,16 @@ The GUI never gates engine work (docs/GUI.md, D1): the workspace's default membe
 `crates/gui` out, and `scripts/gate.sh` excludes it from clippy and the tests and checks it
 once without gating. `scripts/gui.sh` is the GUI's own gate, run at each of its stages:
 formatting, clippy, its tests in release, and the GUI's hashes of the gate and Appendix B
-worlds against the cli's. The window opens with
+worlds and of two edited branches against the cli's. The window opens with
 
 ```sh
 cargo run --release -p rustyecon-gui -- tapes/gate.ron
 ```
 
-paused at tick 0 with every price plotted: Space runs and pauses it, `.` steps a tick. It keeps
+paused at tick 0 with every price plotted: Space runs and pauses it, `.` steps a tick. The
+editor pane makes a branch from tape edits, each stamped with its note as a GUI experiment;
+compare shows a branch against its parent, and export writes the plotted series, the manifest,
+the tapes and the lineage. It keeps
 its session in `$RUSTYECON_GUI_DIR`, or else the platform's configuration directory. The smoke
 mode runs a tape to a tick, prints the CPU each frame took, and closes:
 

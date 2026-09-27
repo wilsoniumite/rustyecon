@@ -1,11 +1,11 @@
-//! The tile layout (docs/GUI.md §4, U8): outliner left, plots centre, inspector and registry
-//! right, timeline and log below. It persists in `layout.ron`, beside `session.ron`.
+//! The tile layout (docs/GUI.md §4, U8): outliner left, plots centre, inspector, registry,
+//! editor and compare right, timeline and log below. It persists in `layout.ron`, beside
+//! `session.ron`. A layout saved before a pane existed gains it beside the inspector.
 
-use egui_tiles::{Tiles, Tree};
+use egui_tiles::{Tile, Tiles, Tree};
 use serde::{Deserialize, Serialize};
 
-/// A panel in the tile layout. The toolbar sits above the tiles; the editor and compare join
-/// at G0.2.
+/// A panel in the tile layout. The toolbar sits above the tiles.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum Pane {
     /// Tape entities by key.
@@ -20,15 +20,21 @@ pub enum Pane {
     Timeline,
     /// The log.
     Log,
+    /// Tape edits, branches, saving and export (G0.2).
+    Editor,
+    /// A branch against its parent (G0.2).
+    Compare,
 }
 
 impl Pane {
     /// Every pane, in the order a new layout places them.
-    pub const ALL: [Pane; 6] = [
+    pub const ALL: [Pane; 8] = [
         Pane::Outliner,
         Pane::Plots,
         Pane::Inspector,
         Pane::Registry,
+        Pane::Editor,
+        Pane::Compare,
         Pane::Timeline,
         Pane::Log,
     ];
@@ -42,6 +48,8 @@ impl Pane {
             Pane::Registry => "Registry",
             Pane::Timeline => "Timeline",
             Pane::Log => "Log",
+            Pane::Editor => "Editor",
+            Pane::Compare => "Compare",
         }
     }
 }
@@ -53,9 +61,11 @@ pub fn default_tree() -> Tree<Pane> {
     let plots = tiles.insert_pane(Pane::Plots);
     let inspector = tiles.insert_pane(Pane::Inspector);
     let registry = tiles.insert_pane(Pane::Registry);
+    let editor = tiles.insert_pane(Pane::Editor);
+    let compare = tiles.insert_pane(Pane::Compare);
     let timeline = tiles.insert_pane(Pane::Timeline);
     let log = tiles.insert_pane(Pane::Log);
-    let right = tiles.insert_tab_tile(vec![inspector, registry]);
+    let right = tiles.insert_tab_tile(vec![inspector, registry, editor, compare]);
     let top = tiles.insert_horizontal_tile(vec![outliner, plots, right]);
     let below = tiles.insert_tab_tile(vec![timeline, log]);
     let root = tiles.insert_vertical_tile(vec![top, below]);
@@ -67,17 +77,59 @@ pub fn to_ron(tree: &Tree<Pane>) -> String {
     ron::ser::to_string_pretty(tree, ron::ser::PrettyConfig::new()).expect("a layout serialises")
 }
 
-/// A layout from RON: one that parses and holds every pane.
+/// A layout from RON: one that parses. A pane it lacks joins the container that holds the
+/// inspector, or the root's; a layout with no container to hold it does not read.
 pub fn from_ron(text: &str) -> Result<Tree<Pane>, String> {
-    let tree: Tree<Pane> = ron::from_str(text).map_err(|e| e.to_string())?;
-    let missing: Vec<&str> = Pane::ALL
+    let mut tree: Tree<Pane> = ron::from_str(text).map_err(|e| e.to_string())?;
+    let missing: Vec<Pane> = Pane::ALL
         .iter()
+        .copied()
         .filter(|p| tree.tiles.find_pane(p).is_none())
-        .map(|p| p.title())
         .collect();
-    if missing.is_empty() {
-        Ok(tree)
-    } else {
-        Err(format!("the layout lacks {}", missing.join(", ")))
+    for p in missing {
+        let home = tree
+            .tiles
+            .find_pane(&Pane::Inspector)
+            .and_then(|i| tree.tiles.parent_of(i))
+            .or_else(|| tree.root());
+        let id = tree.tiles.insert_pane(p);
+        match home.and_then(|h| tree.tiles.get_mut(h)) {
+            Some(Tile::Container(c)) => c.add_child(id),
+            _ => return Err(format!("the layout has no place for {}", p.title())),
+        }
+    }
+    Ok(tree)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn an_older_layout_gains_the_new_panes() {
+        let mut tiles = Tiles::default();
+        let panes: Vec<_> = [
+            Pane::Outliner,
+            Pane::Plots,
+            Pane::Inspector,
+            Pane::Registry,
+            Pane::Timeline,
+            Pane::Log,
+        ]
+        .into_iter()
+        .map(|p| tiles.insert_pane(p))
+        .collect();
+        let right = tiles.insert_tab_tile(panes[2..4].to_vec());
+        let top = tiles.insert_horizontal_tile(vec![panes[0], panes[1], right]);
+        let below = tiles.insert_tab_tile(panes[4..].to_vec());
+        let root = tiles.insert_vertical_tile(vec![top, below]);
+        let old = Tree::new("layout", root, tiles);
+        let tree = from_ron(&to_ron(&old)).expect("it reads");
+        for p in Pane::ALL {
+            assert!(tree.tiles.find_pane(&p).is_some(), "{p:?}");
+        }
+        let editor = tree.tiles.find_pane(&Pane::Editor).unwrap();
+        assert_eq!(tree.tiles.parent_of(editor), Some(right));
+        assert!(from_ron(&to_ron(&default_tree())).is_ok());
     }
 }

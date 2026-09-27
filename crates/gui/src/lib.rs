@@ -14,9 +14,11 @@
 //!   of checkpoints, and hands out [`run::Obs`]. [`run::Store`] records them in memory. No egui,
 //!   no clock, no thread, no I/O: it moves into `crates/observe` at G2 (D13).
 //! - [`vm`]: one pure view-model builder per panel, reading run types only. No egui.
+//! - [`edit`]: the editor's model: tape edits, `materialise`, the lineage, `plan` and export,
+//!   as tapes and text. No egui, no file, no thread, no clock.
 //! - [`drive`]: [`drive::ThreadDriver`], one worker thread per run with its clock and channels,
 //!   and [`drive::Host`], which carries out the model's effects.
-//! - [`platform`]: files: tapes, `session.ron` and `layout.ron`.
+//! - [`platform`]: files: tapes, lineages, exports, `session.ron` and `layout.ron`.
 //! - [`ui`] and [`app`]: egui. Panels draw view-models and return intents.
 //!
 //! The scans in `tests/scans.rs` hold the seams: no egui in model, run, edit, vm, drive or
@@ -25,6 +27,7 @@
 
 pub mod app;
 pub mod drive;
+pub mod edit;
 pub mod model;
 pub mod platform;
 pub mod run;
