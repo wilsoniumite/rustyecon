@@ -231,7 +231,7 @@ file and the root README.
   The five mutants, each run again alone against P1g.6's tests (the package's tests in release),
   are killed, and so is a sixth, the fixed point started 1% off in ln r
   (`D:/rustyecon-og/mut/mutate_fix.py`, `mutate_fix.out`). No decision is new; the re-check of
-  these items is O35.
+  these items passed (O35, closed).
 - **O28** (h8): eight tests: the 1d re-check's four probe tests with the assertions its probes
   printed; 1e's wall's-end frame with space's land at 2 and 0.5; a CES economy with an intermediate
   input and required hours (1f); and two of 1d's first-pass survivors, an economy with no worker
@@ -2908,11 +2908,11 @@ when its fix is reverted, checked by mutation (the review's own mutants among th
   chain's own machine goods, CAPACITY's "different 1c economy", is a fixed recipe over machine
   services and is covered, not tried on a chain. Since the start could decide which fixed point is
   found, it is pinned by test: the unplanted economy's ratios (P1g.6).
-- **O35. 1g's re-check.** Of the bounded verification of Phase 1 (an independent derivation that
-  does not read the crate, mutation testing by another hand, one fix round, a re-check of the
-  fixed items), 1g has had the first three (1g-r1 and P1g.6, recorded above). The re-check of
-  exactly the fixed items (the four new tests, P2's steps and the reworded notes) is not done. It
-  should come before Phase 2 compares agents against the goods chain.
+- **O35. 1g's re-check, closed (2026-09-28).** The bounded verification's re-check of exactly
+  the items P1g.6 fixed (the two factorisations of D-G10's check, `MachineEq.made`, the plant's
+  build lag in the long run, and the fixed point's start) ran against `3f3a1bc` and passed with no
+  issue: all 12 re-aimed mutants are killed (`D:/rustyecon-verify/1g-r2/mutants_r2.out`). 1g's
+  bounded verification is complete.
 
 O36–O40 are G1's (branch `g1`), numbered after O30 and apart from track 1g's O31–O35.
 
