@@ -212,6 +212,28 @@ pub enum Intent {
     Speed(Option<u32>),
     /// Set or clear the breakpoint on error, for every run.
     BreakOnError(bool),
+    /// Set or clear a breakpoint, for every run (G1): on error, on an event by its key, or on a
+    /// date.
+    Breakpoint {
+        /// The breakpoint.
+        at: Breakpoint,
+        /// Set it, or clear it.
+        on: bool,
+    },
+    /// Read a breakpoint as the log's field writes it, a date `YYYY-MM-DD` or else an event's
+    /// key, and set it (G1). Text that is neither is logged and refused.
+    BreakAt(String),
+    /// Watch a series: the outliner's watchlist shows its value at the cursor (G1).
+    Watch(SeriesKey),
+    /// Stop watching a series.
+    Unwatch(SeriesKey),
+    /// Draw the plot panel of a unit on a log scale, or linear (G1).
+    LogAxis {
+        /// The panel's unit, as its axis names it.
+        unit: String,
+        /// Log, or linear.
+        on: bool,
+    },
     /// Ask the focused run for a snapshot of a tick.
     Snapshot(u64),
     /// Focus a run.
@@ -622,21 +644,29 @@ pub fn reduce(m: &mut Model, i: Intent) -> Vec<Effect> {
             }
             out
         }
-        Intent::BreakOnError(on) => {
-            let b = &mut m.session.breakpoints;
-            b.retain(|x| *x != Breakpoint::OnError);
+        Intent::BreakOnError(on) => set_breakpoint(m, Breakpoint::OnError, on),
+        Intent::Breakpoint { at, on } => set_breakpoint(m, at, on),
+        Intent::BreakAt(text) => break_at(m, &text),
+        Intent::Watch(k) => {
+            if m.session.watch.contains(&k) {
+                return Vec::new();
+            }
+            m.session.watch.push(k);
+            vec![Effect::SaveSession]
+        }
+        Intent::Unwatch(k) => {
+            let before = m.session.watch.len();
+            m.session.watch.retain(|w| *w != k);
+            changed(before != m.session.watch.len())
+        }
+        Intent::LogAxis { unit, on } => {
+            let before = m.session.log_axes.clone();
+            m.session.log_axes.retain(|u| *u != unit);
             if on {
-                b.push(Breakpoint::OnError);
-                b.sort();
+                m.session.log_axes.push(unit);
+                m.session.log_axes.sort();
             }
-            let mut out = vec![Effect::SaveSession];
-            for id in m.runs.keys() {
-                out.push(Effect::Send {
-                    run: *id,
-                    cmd: Cmd::Breakpoints(m.session.breakpoints.clone()),
-                });
-            }
-            out
+            changed(before != m.session.log_axes)
         }
         Intent::Snapshot(t) => focused_cmd(m, Cmd::Snapshot(t)),
         Intent::Focus(id) => {
@@ -755,6 +785,56 @@ fn snapshot_wanted(m: &mut Model) -> Vec<Effect> {
         run: r.id,
         cmd: Cmd::Snapshot(tick),
     }]
+}
+
+/// Set or clear a breakpoint in the session, and send every run the session's breakpoints.
+fn set_breakpoint(m: &mut Model, at: Breakpoint, on: bool) -> Vec<Effect> {
+    let b = &mut m.session.breakpoints;
+    b.retain(|x| *x != at);
+    if on {
+        b.push(at);
+        b.sort();
+    }
+    let mut out = vec![Effect::SaveSession];
+    for id in m.runs.keys() {
+        out.push(Effect::Send {
+            run: *id,
+            cmd: Cmd::Breakpoints(m.session.breakpoints.clone()),
+        });
+    }
+    out
+}
+
+/// A breakpoint read from text: a date `YYYY-MM-DD` breaks after the tick it falls in, and a
+/// key after any tick its event fires in. A key the focused run's world has no event of is set
+/// all the same, keys being kept across tapes (U7), and the log says so.
+fn break_at(m: &mut Model, text: &str) -> Vec<Effect> {
+    let t = text.trim();
+    let at = if let Ok(d) = Date::parse(t) {
+        Breakpoint::OnDate(d)
+    } else if let Ok(k) = Key::new(t) {
+        let world = m.focused().and_then(|r| r.store.world());
+        if let Some(w) = world {
+            if w.id_of::<EventId>(k.as_str()).is_none() {
+                let text = format!(
+                    "no event {k} in {}'s world: the breakpoint waits for a tape that has one",
+                    w.name
+                );
+                m.note(Level::Info, text);
+            }
+        }
+        Breakpoint::OnEvent(k)
+    } else {
+        m.note(
+            Level::Error,
+            format!(
+                "not a breakpoint: {t:?} is neither a date YYYY-MM-DD nor an event's key \
+                 [a-z0-9_.-]+"
+            ),
+        );
+        return Vec::new();
+    };
+    set_breakpoint(m, at, true)
 }
 
 /// `SaveSession` if the session changed.

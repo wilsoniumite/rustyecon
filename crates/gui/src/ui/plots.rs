@@ -8,6 +8,10 @@
 //! keeps its true least and greatest values, and a gap in the record splits the line, so a
 //! gap is never bridged. The cache records what it lent each frame, so a test can check
 //! every drawn vertex against the store (`every_drawn_vertex_is_recorded`).
+//!
+//! A panel on a log scale (G1) lends each kept vertex (t, v) with v > 0 as (t, ln v), through
+//! the engine's `num`, and splits the line where v ≤ 0, which has no log; its y axis is
+//! labelled by v. ln keeps order, so each column's least and greatest stay drawn.
 
 use crate::model::{Cursor, Intent};
 use crate::run::{Decimator, RunId, SeriesKey, Store};
@@ -17,6 +21,7 @@ use egui_plot::{
     log_grid_spacer, GridInput, GridMark, HoverPosition, Legend, Line, Plot, PlotPoint, PlotPoints,
     VLine,
 };
+use rustyecon_engine::num;
 use std::collections::BTreeMap;
 
 /// A neutral palette: each line of a panel takes the next, and no colour means good or bad. A
@@ -32,6 +37,16 @@ pub const PALETTE: [Color32; 8] = [
     Color32::from_rgb(0xba, 0xb0, 0xac),
 ];
 
+/// The colours of every other chart (the lab's curves and sweeps, a market's waterfall): as
+/// neutral, and none of them the plots' own, so what the plots lend is told apart from what
+/// else the window paints by colour alone (`every_drawn_vertex_is_recorded`).
+pub const OTHER: [Color32; 4] = [
+    Color32::from_rgb(0x3b, 0x6e, 0xa5),
+    Color32::from_rgb(0xe0, 0x7b, 0x1a),
+    Color32::from_rgb(0x5a, 0x9e, 0x98),
+    Color32::from_rgb(0x9a, 0x6b, 0x8f),
+];
+
 /// One cached line.
 struct Cached {
     width: u64,
@@ -40,6 +55,9 @@ struct Cached {
     seen: usize,
     /// The thinned line, one list per unbroken stretch of the record.
     segments: Vec<Vec<PlotPoint>>,
+    /// The same on a log scale, made when a log panel first draws it: (t, ln v) for v > 0,
+    /// split where v ≤ 0.
+    log: Option<Vec<Vec<PlotPoint>>>,
     /// The frame that last drew it.
     drawn: u64,
 }
@@ -66,6 +84,28 @@ pub struct DrawnLine {
     /// Its segments' vertices, `[x, y]`, as egui received them: one per `Line` handed to the
     /// plot, in the order they were handed.
     pub segments: Vec<Vec<[f64; 2]>>,
+    /// Whether it was lent on a log scale, each y the ln of a recorded value (G1).
+    pub log: bool,
+}
+
+/// A line's segments on a log scale: each point (t, v) with v > 0 as (t, ln v), a segment
+/// split where v ≤ 0.
+fn log_segments(segments: &[Vec<PlotPoint>]) -> Vec<Vec<PlotPoint>> {
+    let mut out = Vec::new();
+    for seg in segments {
+        let mut run: Vec<PlotPoint> = Vec::new();
+        for p in seg {
+            if p.y > 0.0 {
+                run.push(PlotPoint::new(p.x, num::ln(p.y)));
+            } else if !run.is_empty() {
+                out.push(std::mem::take(&mut run));
+            }
+        }
+        if !run.is_empty() {
+            out.push(run);
+        }
+    }
+    out
 }
 
 /// Lend egui one segment of a line and record what it received. The record is read from the
@@ -74,7 +114,7 @@ pub struct DrawnLine {
 fn lend<'a>(
     pui: &mut egui_plot::PlotUi<'a>,
     lent: &mut Vec<DrawnLine>,
-    key: &SeriesKey,
+    (key, log): (&SeriesKey, bool),
     label: &str,
     colour: Color32,
     seg: &'a [PlotPoint],
@@ -87,6 +127,7 @@ fn lend<'a>(
         _ => lent.push(DrawnLine {
             key: key.clone(),
             segments: vec![received],
+            log,
         }),
     }
 }
@@ -131,6 +172,7 @@ impl PlotCache {
                     decimator: Decimator::new(origin, width),
                     seen: 0,
                     segments: Vec::new(),
+                    log: None,
                     drawn: 0,
                 },
             );
@@ -145,6 +187,7 @@ impl PlotCache {
         }
         c.decimator.extend(series);
         c.seen = series.len();
+        c.log = None;
         c.segments = c
             .decimator
             .segments()
@@ -197,20 +240,40 @@ pub fn show(
         let width = width_for(span, columns);
         for l in &p.lines {
             cache.update(store, &l.key, width);
+            if p.log {
+                if let Some(c) = cache.lines.get_mut(&l.key) {
+                    if c.log.is_none() {
+                        c.log = Some(log_segments(&c.segments));
+                    }
+                }
+            }
         }
     }
     // Drop the lines no longer plotted.
     let frame = cache.frame;
     cache.lines.retain(|_, c| c.drawn == frame);
     let n = vm.panels.len() as f32;
-    let height = ((ui.available_height() - 8.0 * n) / n).max(140.0);
+    // Each panel has its header row (the log scale's toggle) above it.
+    let height = ((ui.available_height() - 34.0 * n) / n).max(140.0);
     let cursor = vm.cursor;
     let mut bounds = Vec::new();
     let mut clicked = None;
+    let mut toggled = Vec::new();
     let lines = &cache.lines;
     let lent = &mut cache.lent;
     egui::ScrollArea::vertical().show(ui, |ui| {
         for p in &vm.panels {
+            let mut on = p.log;
+            let name = format!("log scale: {}", p.unit);
+            let toggle = ui
+                .checkbox(&mut on, name)
+                .on_hover_text("plot ln v for each value v > 0, labelled by v (G1)");
+            if toggle.changed() {
+                toggled.push(Intent::LogAxis {
+                    unit: p.unit.clone(),
+                    on,
+                });
+            }
             // Gridlines on year starts, labelled by their year; below two years, egui's own
             // marks, labelled by date.
             let fallback = log_grid_spacer(10);
@@ -224,11 +287,25 @@ pub fn show(
                     None => fallback(input),
                 }
             };
+            let log = p.log;
+            let y_label = if log {
+                format!("{} (log scale)", p.unit)
+            } else {
+                p.unit.clone()
+            };
             let resp = Plot::new(("plot", p.unit.as_str()))
                 .height(height)
                 .link_axis("plots", [true, false])
                 .link_cursor("plots", [true, false])
-                .y_axis_label(p.unit.clone())
+                .y_axis_label(y_label)
+                .y_axis_formatter(move |mark, _| {
+                    let v = if log {
+                        num::exp(mark.value)
+                    } else {
+                        mark.value
+                    };
+                    super::fmt(v)
+                })
                 .x_grid_spacer(spacer)
                 .x_axis_formatter(move |mark, _| tick_label(&clock, mark.value, mark.step_size))
                 .label_formatter({
@@ -249,10 +326,8 @@ pub fn show(
                         } else {
                             format!("{name}\n")
                         };
-                        Some(format!(
-                            "{head}{date} (tick {t})\n{} {unit}",
-                            super::fmt(v.y)
-                        ))
+                        let y = if log { num::exp(v.y) } else { v.y };
+                        Some(format!("{head}{date} (tick {t})\n{} {unit}", super::fmt(y)))
                     }
                 })
                 .legend(Legend::default())
@@ -262,8 +337,12 @@ pub fn show(
                         let Some(c) = lines.get(&l.key) else {
                             continue;
                         };
-                        for seg in &c.segments {
-                            lend(pui, lent, &l.key, &l.label, colour, seg);
+                        let segments = match (&c.log, log) {
+                            (Some(s), true) => s,
+                            _ => &c.segments,
+                        };
+                        for seg in segments {
+                            lend(pui, lent, (&l.key, log), &l.label, colour, seg);
                         }
                     }
                     if let Some(t) = cursor {
@@ -280,6 +359,7 @@ pub fn show(
         }
     });
     cache.bounds = bounds.into_iter().collect();
+    out.extend(toggled);
     if let Some(x) = clicked {
         if x.is_finite() && x >= 0.0 {
             out.push(Intent::Cursor(Cursor::At(x.round() as u64)));
@@ -290,6 +370,13 @@ pub fn show(
 #[cfg(test)]
 mod tests {
     use super::width_for;
+
+    #[test]
+    fn other_charts_paint_in_colours_of_their_own() {
+        for c in super::OTHER {
+            assert!(!super::PALETTE.contains(&c), "{c:?}");
+        }
+    }
 
     #[test]
     fn widths_are_powers_of_two_that_fit_the_columns() {

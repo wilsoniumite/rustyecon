@@ -415,6 +415,8 @@ fn no_reexport_hands_out_core_writer() {
     // anything from core but the read-only types is flagged (an allow-list, which the
     // prelude's list must equal), and so is core whole: bare, renamed, by glob, by `self` in a
     // group (the review's mutant 3, O11), through a private alias, or as `pub extern crate`.
+    // Two of core's modules are allowed, each only as itself (amended at G1.1): `num`, pure
+    // maths, and `tape::raw`, the raw schema's plain data; see `CORE_MODULES`.
     // The doc tests of the engine's lib.rs pin the same from outside:
     // `rustyecon_engine::rustyecon_core::apply` does not compile. Checked on the source, the
     // scanner on regression fixtures first.
@@ -441,10 +443,17 @@ fn no_reexport_hands_out_core_writer() {
         use rustyecon_core::{apply, Ledger};
         pub use rustyecon_agents;
         pub use crate::prelude::*;
+        pub use rustyecon_core::num;
+        pub use rustyecon_core::tape::raw;
+        pub use rustyecon_core::tape;
+        pub use rustyecon_core::tape::resolve;
+        pub use rustyecon_core::tape::raw::*;
+        pub use rustyecon_core::num as maths;
+        pub use rustyecon_core::{num, tape::raw};
     ";
     let mut seen = 0;
     let flagged = writer_reexports(&shipped(&strip(fixtures)), &mut seen);
-    assert_eq!(seen, 16);
+    assert_eq!(seen, 23);
     assert_eq!(
         flagged,
         [
@@ -460,6 +469,13 @@ fn no_reexport_hands_out_core_writer() {
             "pub use rustyecon_core::inventory::Inventory",
             "pub use c::Resolver",
             "pub extern crate rustyecon_core",
+            // G1.1: `num` and `tape::raw` are allowed as themselves, and nothing else is: the
+            // parent `tape` module, an item of it, a glob, a rename and a group are flagged.
+            "pub use rustyecon_core::tape",
+            "pub use rustyecon_core::tape::resolve",
+            "pub use rustyecon_core::tape::raw::*",
+            "pub use rustyecon_core::num as maths",
+            "pub use rustyecon_core::{num, tape::raw}",
         ]
     );
     // The allow-list is exactly what the prelude re-exports from core.

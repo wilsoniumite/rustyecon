@@ -39,6 +39,10 @@ pub struct PanelVm {
     pub unit: String,
     /// Its series, in the order they were plotted.
     pub lines: Vec<LineVm>,
+    /// Whether it is drawn on a log scale (G1): each value v > 0 plotted as ln v through the
+    /// engine's `num`, labelled by v. Written only when set.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub log: bool,
 }
 
 /// The plots.
@@ -86,9 +90,19 @@ fn line(store: &Store, key: &SeriesKey, cursor: Option<u64>) -> LineVm {
     }
 }
 
-/// The plots of `plots`, with the cursor at report tick `cursor` (`None`: live). A plotted
-/// series of another world is listed apart, in [`PlotsVm::absent`].
+/// The plots of `plots`, with the cursor at report tick `cursor` (`None`: live), every panel
+/// linear. A plotted series of another world is listed apart, in [`PlotsVm::absent`].
 pub fn build(store: &Store, plots: &[SeriesKey], cursor: Option<u64>) -> Option<PlotsVm> {
+    build_with(store, plots, &[], cursor)
+}
+
+/// The plots, with the panels of the units in `log_axes` on a log scale (G1).
+pub fn build_with(
+    store: &Store,
+    plots: &[SeriesKey],
+    log_axes: &[String],
+    cursor: Option<u64>,
+) -> Option<PlotsVm> {
     let w = store.world()?;
     let cursor = report_tick(store, cursor);
     let mut panels: Vec<PanelVm> = Vec::new();
@@ -103,6 +117,7 @@ pub fn build(store: &Store, plots: &[SeriesKey], cursor: Option<u64>) -> Option<
         match panels.iter_mut().find(|p| p.unit == unit) {
             Some(p) => p.lines.push(l),
             None => panels.push(PanelVm {
+                log: log_axes.contains(&unit),
                 unit,
                 lines: vec![l],
             }),

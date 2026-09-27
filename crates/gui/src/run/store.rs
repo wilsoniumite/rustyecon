@@ -216,7 +216,7 @@ impl Failure {
 }
 
 /// Where a run stands, as its observations say.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RunStatus {
     /// No tape is loaded.
     Empty,
@@ -406,7 +406,7 @@ impl Store {
                 }
             }
             Obs::Paused { tick, why } => {
-                self.paused = Some((tick, why));
+                self.paused = Some((tick, why.clone()));
                 if !self.poisoned() {
                     self.status = RunStatus::Paused {
                         tick,
@@ -542,12 +542,12 @@ impl Store {
 
     /// Where the run stands.
     pub fn status(&self) -> RunStatus {
-        self.status
+        self.status.clone()
     }
 
     /// The last pause and its reason, even when the run is poisoned.
     pub fn paused(&self) -> Option<(u64, PauseReason)> {
-        self.paused
+        self.paused.clone()
     }
 
     /// Every series seen, by catalogue index.

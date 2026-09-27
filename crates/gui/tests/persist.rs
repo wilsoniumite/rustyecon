@@ -69,8 +69,20 @@ fn full_session() -> Session {
             },
             Entity::Param(key("mine.capacity")),
         ],
-        breakpoints: vec![Breakpoint::OnError],
+        breakpoints: vec![
+            Breakpoint::OnError,
+            Breakpoint::OnEvent(key("mine.cut")),
+            Breakpoint::OnDate(Date::parse("1765-06-01").unwrap()),
+        ],
         speed: Some(520),
+        watch: vec![SeriesKey {
+            measure: Measure::Price,
+            at: At::Market {
+                node: key("village"),
+                good: key("grain"),
+            },
+        }],
+        log_axes: vec!["coin per bread".to_string()],
         ..Session::default()
     }
 }
@@ -95,17 +107,76 @@ fn a_session_round_trips_and_refuses_what_it_does_not_know() {
         Session::from_ron(&serial).is_err(),
         "the serial is required"
     );
-    let newer = text.replacen("format: 2,", "format: 3,", 1);
+    let newer = text.replacen("format: 3,", "format: 4,", 1);
     assert_eq!(
         Session::from_ron(&newer),
-        Err("session format 3; this build reads 2".to_string())
+        Err("session format 4; this build reads 2 to 3".to_string())
     );
     // G0.1's format, with no serial, is refused as a format.
-    let older = serial.replacen("format: 2,", "format: 1,", 1);
+    let older = serial.replacen("format: 3,", "format: 1,", 1);
     assert_eq!(
         Session::from_ron(&older),
-        Err("session format 1; this build reads 2".to_string())
+        Err("session format 1; this build reads 2 to 3".to_string())
     );
+    // G0's format 2, without the watchlist and the log scales, reads as format 3 with none of
+    // either, and is written back as 3. A format-2 file that has them is not one G0 wrote.
+    let g0 = Session {
+        watch: Vec::new(),
+        log_axes: Vec::new(),
+        breakpoints: vec![Breakpoint::OnError],
+        ..s.clone()
+    };
+    let two: String = g0
+        .to_ron()
+        .replacen("format: 3,", "format: 2,", 1)
+        .lines()
+        .filter(|l| !l.contains("watch:") && !l.contains("log_axes:"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(
+        !two.contains("watch") && two.contains("format: 2,"),
+        "{two}"
+    );
+    assert_eq!(Session::from_ron(&two), Ok(g0.clone()));
+    assert!(Session::from_ron(&two)
+        .unwrap()
+        .to_ron()
+        .contains("format: 3,"));
+    let mixed = text.replacen("format: 3,", "format: 2,", 1);
+    assert!(Session::from_ron(&mixed).is_err());
+    // G1's verification: the format's fields are each required, and none it lacks is read. A
+    // format-3 file without `watch` or without `log_axes` is refused, as one without `speed` is.
+    let lines = |t: &str, drop: &str| {
+        t.lines()
+            .filter(|l| !l.contains(drop))
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+    let empty = Session::default().to_ron();
+    for field in ["watch", "log_axes"] {
+        let short = lines(&empty, &format!("{field}:"));
+        assert_ne!(short, empty);
+        assert_eq!(
+            Session::from_ron(&short),
+            Err(format!("session format 3 lacks the field {field}"))
+        );
+    }
+    // A format-2 file with an empty watchlist, or with an event or a date breakpoint, is not
+    // one G0 wrote: G0 had neither.
+    let empty_watch = lines(&two, "log_axes:").replacen("speed:", "watch: [], speed:", 1);
+    assert!(Session::from_ron(&empty_watch)
+        .unwrap_err()
+        .contains("does not have the watchlist"));
+    for b in ["OnEvent(\"mine.cut\")", "OnDate(\"1765-06-01\")"] {
+        let later = two.replacen("OnError", &format!("OnError, {b}"), 1);
+        assert_ne!(later, two);
+        assert!(
+            Session::from_ron(&later)
+                .unwrap_err()
+                .contains("does not have event or date breakpoints"),
+            "{b}"
+        );
+    }
 }
 
 #[test]

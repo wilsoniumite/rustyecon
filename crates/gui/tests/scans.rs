@@ -47,9 +47,11 @@ const CRATE_ROOTS: [&str; 4] = ["crate", "self", "super", "rustyecon_gui"];
 /// The roots of a path into the standard library.
 const STD_ROOTS: [&str; 3] = ["std", "core", "alloc"];
 
-/// For each token, the first segment of the `use` declaration it sits in, if it sits in one:
-/// in `use crate::{run::Store, ui as _};` every token after `use` up to the `;` has the root
-/// `crate`. A `use<…>` bound is not a declaration.
+/// For each token, the first segment of the `use` tree it sits in, if it sits in one: in
+/// `use crate::{run::Store, ui as _};` every token after `use` up to the `;` has the root
+/// `crate`. A tree that opens with a group gives each of its branches its own root: in
+/// `use {std::fmt as _, crate::{ui as _}};` the second branch's tokens have the root `crate`
+/// (G1; O20, what G0.1's re-check found). A `use<…>` bound is not a declaration.
 fn use_roots(toks: &[Tok]) -> Vec<Option<String>> {
     let mut roots = vec![None; toks.len()];
     let mut i = 0;
@@ -62,16 +64,107 @@ fn use_roots(toks: &[Tok]) -> Vec<Option<String>> {
         let end = (i + 1..toks.len())
             .find(|&j| punct(&toks[j], ';'))
             .unwrap_or(toks.len());
-        let root = toks[i + 1..end].iter().find_map(|t| match t {
-            Tok::Ident(s) => Some(s.clone()),
-            _ => None,
-        });
-        for r in &mut roots[i + 1..end] {
-            r.clone_from(&root);
+        let open = (i + 1..end).find(|&j| !punct(&toks[j], ':'));
+        if open.is_some_and(|j| punct(&toks[j], '{')) {
+            let mut depth = 0_usize;
+            let mut root: Option<String> = None;
+            for (k, r) in roots.iter_mut().enumerate().take(end).skip(i + 1) {
+                match &toks[k] {
+                    Tok::Punct('{') => {
+                        depth += 1;
+                        if depth == 1 {
+                            root = None;
+                        }
+                    }
+                    Tok::Punct('}') => depth = depth.saturating_sub(1),
+                    Tok::Punct(',') if depth == 1 => root = None,
+                    Tok::Ident(s) if depth >= 1 && root.is_none() => root = Some(s.clone()),
+                    _ => {}
+                }
+                r.clone_from(&root);
+            }
+        } else {
+            let root = toks[i + 1..end].iter().find_map(|t| match t {
+                Tok::Ident(s) => Some(s.clone()),
+                _ => None,
+            });
+            for r in &mut roots[i + 1..end] {
+                r.clone_from(&root);
+            }
         }
         i = end;
     }
     roots
+}
+
+/// `from` and every name a `use` or an `extern crate` gives one of them in the file: `use
+/// crate as g;` makes `g` a root of this crate, so `g::ui::layout` reaches `ui` (G1; O20, what
+/// G0.1's re-check found), and so do `extern crate self as g;` and `extern crate rustyecon_gui
+/// as g;` (G1's verification).
+fn with_aliases(toks: &[Tok], roots: &[Option<String>], from: &[&str]) -> Vec<String> {
+    let mut out: Vec<String> = from.iter().map(|s| (*s).to_string()).collect();
+    for k in 0..toks.len() {
+        let Tok::Ident(s) = &toks[k] else { continue };
+        let at_root = roots[k].as_deref() == Some(s.as_str()) && from.contains(&s.as_str());
+        let external = k >= 2
+            && ident(&toks[k - 2], "extern")
+            && ident(&toks[k - 1], "crate")
+            && from.contains(&s.as_str());
+        let renamed = toks.get(k + 1).is_some_and(|t| ident(t, "as"));
+        if let (true, true, Some(Tok::Ident(alias))) =
+            (at_root || external, renamed, toks.get(k + 2))
+        {
+            if alias != "_" && !out.contains(alias) {
+                out.push(alias.clone());
+            }
+        }
+    }
+    out
+}
+
+/// Code a module brings in that no scan of its own file reads (G1's verification): a `path`
+/// attribute, `#[path = "…"]` on a module or inside a `cfg_attr`, whose file may lie outside
+/// the module, and `include!`, which compiles another file's text in place. The egui-free and
+/// the pure modules use neither; their data comes in by `include_str!`, which is text.
+fn unscanned(toks: &[Tok]) -> Vec<String> {
+    let mut found = Vec::new();
+    let mut i = 0;
+    while i < toks.len() {
+        let open = if toks.get(i + 1).is_some_and(|t| punct(t, '!')) {
+            i + 2
+        } else {
+            i + 1
+        };
+        if punct(&toks[i], '#') && toks.get(open).is_some_and(|t| punct(t, '[')) {
+            let mut depth = 0_usize;
+            let mut k = open;
+            while k < toks.len() {
+                match &toks[k] {
+                    Tok::Punct('[') => depth += 1,
+                    Tok::Punct(']') => {
+                        depth -= 1;
+                        if depth == 0 {
+                            break;
+                        }
+                    }
+                    Tok::Ident(a)
+                        if a == "path" && toks.get(k + 1).is_some_and(|t| punct(t, '=')) =>
+                    {
+                        found.push("#[path]".to_string());
+                    }
+                    _ => {}
+                }
+                k += 1;
+            }
+            i = k + 1;
+            continue;
+        }
+        if ident(&toks[i], "include") && toks.get(i + 1).is_some_and(|t| punct(t, '!')) {
+            found.push("include!".to_string());
+        }
+        i += 1;
+    }
+    found
 }
 
 /// Whether `toks[i]`, an identifier, is a path segment reached from one of `from`: a segment of
@@ -124,7 +217,7 @@ fn the_scanner_reads_what_it_should() {
     // The lists of files are what they claim: the egui-free modules hold files, the ui holds
     // the tile layout, and nothing under ui/ counts as egui-free.
     let free = egui_free_sources();
-    for m in ["model", "run", "edit", "vm", "drive", "platform"] {
+    for m in ["model", "run", "edit", "vm", "drive", "platform", "lab"] {
         assert!(
             free.iter().any(|(p, _)| p.starts_with(&format!("{m}/"))),
             "no sources read under {m}/"
@@ -154,16 +247,18 @@ const DRAWING: [&str; 10] = [
 /// glob import of the crate, which brings them into scope.
 fn drawing_uses(toks: &[Tok]) -> Vec<String> {
     let roots = use_roots(toks);
-    let mut found = Vec::new();
+    let ours = with_aliases(toks, &roots, &CRATE_ROOTS);
+    let ours: Vec<&str> = ours.iter().map(String::as_str).collect();
+    let mut found = unscanned(toks);
     for (i, t) in toks.iter().enumerate() {
-        if glob_from(toks, &roots, i, &CRATE_ROOTS) {
+        if glob_from(toks, &roots, i, &ours) {
             found.push("crate::*".to_string());
         }
         let Tok::Ident(s) = t else { continue };
         if DRAWING.contains(&s.as_str()) || s.starts_with("egui") || s.starts_with("wgpu") {
             found.push(s.clone());
         }
-        if (s == "ui" || s == "app") && reached(toks, &roots, i, &CRATE_ROOTS) {
+        if (s == "ui" || s == "app") && reached(toks, &roots, i, &ours) {
             found.push(format!("::{s}"));
         }
     }
@@ -198,6 +293,30 @@ fn model_run_edit_vm_import_no_egui() {
             "::app"
         ]
     );
+    // O20, what G0.1's re-check found (fixed at G1): a reach into ui through a renamed crate
+    // root, and a `use` group whose first root is another crate.
+    let escapes = fixture(
+        "use crate as g; fn h() -> g::ui::layout::Pane { todo!() } \
+         use {std::fmt as _, crate::{ui as _}}; use {std::fmt, rustyecon_gui::app::GuiApp}; \
+         use {std::fmt as _, crate::run as r}; let x = r::Store::default();",
+    );
+    assert_eq!(drawing_uses(&escapes), ["::ui", "::ui", "::app"]);
+    // G1's verification: two more ways past the scan. A crate root renamed by `extern crate`,
+    // and code brought in from a file the scan does not read, by a `path` attribute (bare or
+    // inside a `cfg_attr`) or by `include!`. Text by `include_str!` is data, and a field named
+    // `path` is not an attribute.
+    let escapes = fixture(
+        "extern crate self as g; pub fn f() -> Option<g::ui::layout::Pane> { None } \
+         extern crate rustyecon_gui as h; use h::app::GuiApp; extern crate std as s; \
+         #[path = \"../ui/fmt_probe.rs\"] mod probe; \
+         #[cfg_attr(all(), path = \"../ui/x.rs\")] mod x; include!(\"../ui/y.rs\"); \
+         const G: &str = include_str!(\"../../g.txt\"); let path = p.path; #[derive(Debug)] \
+         struct S { path: String }",
+    );
+    assert_eq!(
+        drawing_uses(&escapes),
+        ["#[path]", "#[path]", "include!", "::ui", "::app"]
+    );
     let mut found = Vec::new();
     for (path, toks) in shipped_tokens(&egui_free_sources()) {
         for u in drawing_uses(&toks) {
@@ -221,6 +340,11 @@ const NOT_OBSERVE: [&str; 6] = ["model", "edit", "drive", "platform", "ui", "app
 /// The modules edit/ may not reach: it reads run types, and nothing of the model, the
 /// drivers, the files or the drawing.
 const NOT_EDIT: [&str; 5] = ["model", "drive", "platform", "ui", "app"];
+/// The modules lab/ may not reach (G1): it reads the oracle alone, and nothing of the runs, the
+/// model, the editor, the drivers, the files, the view-models or the drawing.
+const NOT_LAB: [&str; 8] = [
+    "model", "run", "edit", "vm", "drive", "platform", "ui", "app",
+];
 
 /// Paths a pure module may not reach: the modules of this crate in `own`, and E2's list of
 /// global state and I/O.
@@ -241,19 +365,23 @@ fn observe_violations(toks: &[Tok], own: &[&str]) -> Vec<String> {
         "dbg",
     ];
     let roots = use_roots(toks);
-    let mut found = Vec::new();
+    let ours = with_aliases(toks, &roots, &CRATE_ROOTS);
+    let ours: Vec<&str> = ours.iter().map(String::as_str).collect();
+    let stds = with_aliases(toks, &roots, &STD_ROOTS);
+    let stds: Vec<&str> = stds.iter().map(String::as_str).collect();
+    let mut found = unscanned(toks);
     for (i, t) in toks.iter().enumerate() {
-        if glob_from(toks, &roots, i, &CRATE_ROOTS) {
+        if glob_from(toks, &roots, i, &ours) {
             found.push("crate::*".to_string());
         }
-        if glob_from(toks, &roots, i, &STD_ROOTS) {
+        if glob_from(toks, &roots, i, &stds) {
             found.push("std::*".to_string());
         }
         let Tok::Ident(s) = t else { continue };
-        if own.contains(&s.as_str()) && reached(toks, &roots, i, &CRATE_ROOTS) {
+        if own.contains(&s.as_str()) && reached(toks, &roots, i, &ours) {
             found.push(format!("crate::{s}"));
         }
-        if STD.contains(&s.as_str()) && reached(toks, &roots, i, &STD_ROOTS) {
+        if STD.contains(&s.as_str()) && reached(toks, &roots, i, &stds) {
             found.push(format!("std::{s}"));
         }
         if NAMES.contains(&s.as_str()) {
@@ -298,6 +426,31 @@ fn run_and_vm_reach_no_model_file_thread_or_clock() {
             "crate::edit"
         ]
     );
+    // O20's two escapes, for the model and std: a renamed root and a group's later branch.
+    let escapes = fixture(
+        "use crate as g; let m: g::model::Model; use std as s; let t = s::time::Instant; \
+         use {super::Obs, crate::{drive as _}}; use {core::fmt, std::{fs as _}};",
+    );
+    assert_eq!(
+        observe_violations(&escapes, &NOT_OBSERVE),
+        [
+            "crate::model",
+            "std::time",
+            "Instant",
+            "crate::drive",
+            "std::fs"
+        ]
+    );
+    // G1's verification: an `extern crate` alias of this crate or of std, and code from a file
+    // the scan does not read.
+    let escapes = fixture(
+        "extern crate self as g; let m: g::model::Model; extern crate std as s; \
+         let f = s::fs::read(p); #[path = \"../model/probe.rs\"] mod probe; include!(\"x.rs\");",
+    );
+    assert_eq!(
+        observe_violations(&escapes, &NOT_OBSERVE),
+        ["#[path]", "include!", "crate::model", "std::fs"]
+    );
     let mut files = sources_under(&src().join("run"));
     files.extend(sources_under(&src().join("vm")));
     assert!(files.len() >= 9, "run/ and vm/ are read: {}", files.len());
@@ -339,6 +492,31 @@ fn edit_reaches_no_model_file_thread_or_clock() {
         }
     }
     assert!(found.is_empty(), "edit/ reaches too far: {found:#?}");
+}
+
+#[test]
+fn lab_reaches_no_run_model_file_thread_or_clock() {
+    // G1: the oracle lab's domain is parameters in and the oracle's numbers out. It reads the
+    // oracle and the engine's `num`, and nothing of the runs, the model, the editor, the
+    // drivers, the files, the view-models or the drawing, and no thread, clock or I/O, so it
+    // moves with vm/ into crates/observe, which depends on the engine and the oracle (§3.2).
+    let fx = fixture(
+        "use oracle::Economy; use crate::run::Store; use crate::vm::lab; \
+         use super::presets; std::fs::read_to_string(p); let t = Instant::now();",
+    );
+    assert_eq!(
+        observe_violations(&fx, &NOT_LAB),
+        ["crate::run", "crate::vm", "std::fs", "Instant"]
+    );
+    let files = sources_under(&src().join("lab"));
+    assert!(files.len() >= 5, "lab/ is read: {}", files.len());
+    let mut found = Vec::new();
+    for (path, toks) in shipped_tokens(&files) {
+        for v in observe_violations(&toks, &NOT_LAB) {
+            found.push(format!("{path}: {v}"));
+        }
+    }
+    assert!(found.is_empty(), "lab/ reaches too far: {found:#?}");
 }
 
 /// Trigonometric functions, and the constants that only serve them.
@@ -505,92 +683,180 @@ fn no_hashed_collections() {
     assert!(found.is_empty(), "hashed collections: {found:#?}");
 }
 
-/// What every module may name of core: `num`, the libm-backed logs a display takes.
-const CORE_EVERYWHERE: [&[&str]; 1] = [&["num"]];
-/// What edit/ may name besides: the tape's raw schema, `Basis` and `Unit`, the plain data a
-/// tape entry is written in. None of it writes a state, and the engine re-exports none of it.
-const CORE_IN_EDIT: [&[&str]; 4] = [&["num"], &["tape", "raw"], &["Basis"], &["Unit"]];
-
-/// Whether `rustyecon_core` at `toks[i]` goes on as `::a::b…` for the segments of `path`.
-fn core_path_is(toks: &[Tok], i: usize, path: &[&str]) -> bool {
-    path.iter().enumerate().all(|(k, seg)| {
-        let j = i + 1 + 3 * k;
-        toks.get(j).is_some_and(|n| punct(n, ':'))
-            && toks.get(j + 1).is_some_and(|n| punct(n, ':'))
-            && toks.get(j + 2).is_some_and(|n| ident(n, seg))
-    })
+/// Every reach into the engine's `raw`, the tape's raw schema (G1.1): a path
+/// `rustyecon_engine::raw…`, or `raw` in a `use` tree rooted at the engine, groups included.
+fn raw_reaches(toks: &[Tok]) -> Vec<usize> {
+    let roots = use_roots(toks);
+    (0..toks.len())
+        .filter(|&i| {
+            ident(&toks[i], "raw")
+                && (roots[i].as_deref() == Some("rustyecon_engine")
+                    || path_from(toks, i, &["rustyecon_engine"]))
+        })
+        .collect()
 }
 
-/// Every path into core that is not one of `allowed`: core's writer (`apply`, `resolve`, the
-/// ledgers), a group or a rename at core's root, and everything else a frontend reaches
-/// through the engine.
-fn core_paths(toks: &[Tok], allowed: &[&[&str]]) -> Vec<String> {
-    let mut found = Vec::new();
-    for (i, t) in toks.iter().enumerate() {
-        if !ident(t, "rustyecon_core") {
-            continue;
-        }
-        if !allowed.iter().any(|p| core_path_is(toks, i, p)) {
-            let next: Vec<String> = toks[i + 1..(i + 4).min(toks.len())]
-                .iter()
-                .map(|t| format!("{t:?}"))
-                .collect();
-            found.push(format!("rustyecon_core {}", next.join(" ")));
-        }
+/// Every path into core, and every reach into the engine's `raw` when `raw_allowed` is false:
+/// core's writer (`apply`, `resolve`, the ledgers) and everything else of core is reached
+/// through the engine, whose API holds no writer, and the raw schema is edit/'s alone.
+fn core_paths(toks: &[Tok], raw_allowed: bool) -> Vec<String> {
+    let show = |i: usize| {
+        let next: Vec<String> = toks[i + 1..(i + 4).min(toks.len())]
+            .iter()
+            .map(|t| format!("{t:?}"))
+            .collect();
+        format!("{:?} {}", toks[i], next.join(" "))
+    };
+    let mut found: Vec<String> = (0..toks.len())
+        .filter(|&i| ident(&toks[i], "rustyecon_core"))
+        .map(show)
+        .collect();
+    if !raw_allowed {
+        found.extend(raw_reaches(toks).into_iter().map(show));
     }
     found
 }
 
+/// The lines of a manifest that make core a dependency, under its own name or another: a key
+/// `rustyecon-core` (`rustyecon-core.workspace = true`), or `package = "rustyecon-core"`, inline
+/// (`kore = { package = "rustyecon-core", path = "../core" }`) or in a dependency's own table
+/// (G1's verification: a renamed core passed a check of the key alone).
+fn core_in_manifest(manifest: &str) -> Vec<String> {
+    manifest
+        .lines()
+        .map(|l| l.split('#').next().unwrap_or("").trim())
+        .filter(|l| {
+            let bare: String = l.chars().filter(|c| !c.is_whitespace()).collect();
+            let key = ["rustyecon-core", "\"rustyecon-core\""].iter().any(|k| {
+                bare.strip_prefix(k)
+                    .is_some_and(|rest| rest.starts_with(['.', '=']))
+            });
+            key || bare.contains("package=\"rustyecon-core\"")
+        })
+        .map(str::to_string)
+        .collect()
+}
+
+/// The dependencies the lockfile gives the package `name`, by package name, whatever the
+/// manifest calls them: `rustyecon-core` however it is renamed, and wherever the rename is made
+/// (the workspace's table or the crate's own). Dev-dependencies are listed too.
+fn locked_dependencies(lock: &str, name: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    for block in lock.split("[[package]]") {
+        if !block
+            .lines()
+            .any(|l| l.trim() == format!("name = \"{name}\""))
+        {
+            continue;
+        }
+        let mut inside = false;
+        for l in block.lines().map(str::trim) {
+            if l.starts_with("dependencies = [") {
+                inside = true;
+            } else if inside && l.starts_with(']') {
+                inside = false;
+            } else if inside {
+                let dep = l.trim_matches(|c| c == '"' || c == ',');
+                let dep = dep.split(' ').next().unwrap_or(dep);
+                out.push(dep.to_string());
+            }
+        }
+    }
+    out
+}
+
 #[test]
-fn the_gui_names_core_for_num_alone() {
+fn the_gui_reaches_core_through_the_engine_alone() {
     // U1, U9, E1: the GUI reaches the run through the engine, whose API holds no writer of the
-    // state. It names core for `core::num`, the libm-backed logs a display takes (U6), since
-    // the engine re-exports no `num`; and in edit/ alone, for the tape's raw schema, `Basis`
-    // and `Unit`, the data a new entry is written in (G0.2). Any other path into core, a group
-    // or a rename at its root included, would put core's writer in its reach. Every source
-    // file of the crate is read.
+    // state. Since G1.1 the engine re-exports `num`, the libm-backed maths a display takes
+    // (U6), and the tape's raw schema with `Basis` and `Unit` in its prelude, so the GUI has no
+    // edge to core: core's writer is out of its reach by type (the manifest names no core, and
+    // cargo refuses a path into a crate that is not a dependency), and this scan says so of
+    // every source file, a group or a rename at core's root included. The raw schema, the
+    // plain data a new entry is written in, is named in edit/ alone (G0.2). Every source file
+    // of the crate is read.
     let fx = fixture(
         "use rustyecon_core::num; let v = rustyecon_core::num::ln(x); use rustyecon_core::apply; \
          use rustyecon_core::{num, Ledger}; use rustyecon_core as core; \
-         use rustyecon_core::tape::raw::RawEvent; use rustyecon_core::Basis; \
-         use rustyecon_core::Unit; use rustyecon_core::tape::resolve; \
-         use rustyecon_core::UnitKind; use rustyecon_core::{Basis, Unit};",
+         use rustyecon_engine::raw::RawEvent; use rustyecon_engine::num; \
+         use rustyecon_engine::prelude::{Basis, Unit}; let r = rustyecon_engine::raw::RawAct; \
+         use rustyecon_engine::rawness; use rustyecon_engine::{num, raw::RawParam}; \
+         let raw = 1; use crate::run::raw;",
     );
-    assert_eq!(
-        core_paths(&fx, &CORE_EVERYWHERE).len(),
-        9,
-        "{:?}",
-        core_paths(&fx, &CORE_EVERYWHERE)
-    );
-    assert_eq!(
-        core_paths(&fx, &CORE_IN_EDIT).len(),
-        6,
-        "{:?}",
-        core_paths(&fx, &CORE_IN_EDIT)
-    );
+    let anywhere = core_paths(&fx, true);
+    assert_eq!(anywhere.len(), 5, "{anywhere:?}");
+    let outside_edit = core_paths(&fx, false);
+    assert_eq!(outside_edit.len(), 8, "{outside_edit:?}");
     let mut found = Vec::new();
-    let mut named = 0;
-    let mut in_edit = 0;
+    let mut raw_in_edit = 0;
+    let mut num_named = 0;
     for (path, toks) in shipped_tokens(&all_sources()) {
-        let n = toks.iter().filter(|t| ident(t, "rustyecon_core")).count();
-        named += n;
-        let allowed: &[&[&str]] = if path.starts_with("edit/") {
-            in_edit += n;
-            &CORE_IN_EDIT
-        } else {
-            &CORE_EVERYWHERE
-        };
-        for p in core_paths(&toks, allowed) {
+        let in_edit = path.starts_with("edit/");
+        if in_edit {
+            raw_in_edit += raw_reaches(&toks).len();
+        }
+        num_named += toks
+            .windows(4)
+            .filter(|w| {
+                ident(&w[0], "rustyecon_engine")
+                    && punct(&w[1], ':')
+                    && punct(&w[2], ':')
+                    && ident(&w[3], "num")
+            })
+            .count();
+        for p in core_paths(&toks, in_edit) {
             found.push(format!("{path}: {p}"));
         }
     }
-    assert!(found.is_empty(), "paths into core beyond num: {found:#?}");
-    assert!(named > in_edit, "the inspector's ln(p′/p) names core::num");
-    assert!(in_edit >= 3, "edit/ names the raw schema, Basis and Unit");
+    assert!(
+        found.is_empty(),
+        "paths into core, or raw outside edit/: {found:#?}"
+    );
+    assert!(
+        num_named >= 2,
+        "the inspector's ln(p′/p) names the engine's num"
+    );
+    assert!(raw_in_edit >= 1, "edit/ names the engine's raw schema");
+    // The manifest names no core, under its own name or another, and the lockfile, which
+    // names each dependency by its package, gives the GUI none: a core renamed in the
+    // manifest, or in the workspace's table, passes neither.
+    let named = core_in_manifest(
+        "[dependencies]\nrustyecon-engine.workspace = true\n\
+         kore = { package = \"rustyecon-core\", path = \"../core\" }\n\
+         rustyecon-core.workspace = true\n# rustyecon-core, in a comment\n\
+         [dependencies.inner]\npackage=\"rustyecon-core\"\n[dev-dependencies]\n\
+         \"rustyecon-core\" = { path = \"../core\" }\nrustyecon-coreless = \"1\"\n",
+    );
+    assert_eq!(named.len(), 4, "{named:?}");
+    let lock = "[[package]]\nname = \"rustyecon-gui\"\nversion = \"0.2.0\"\n\
+                dependencies = [\n \"egui\",\n \"rustyecon-core\",\n \"rustyecon-engine\",\n]\n\n\
+                [[package]]\nname = \"rustyecon-markets\"\ndependencies = [\n \"rustyecon-core\",\n]\n";
+    assert_eq!(
+        locked_dependencies(lock, "rustyecon-gui"),
+        ["egui", "rustyecon-core", "rustyecon-engine"]
+    );
+    let root = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
     let manifest = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml"))
         .expect("the manifest");
     assert!(
-        manifest.contains("rustyecon-core.workspace = true"),
-        "the manifest names core as the scan assumes"
+        manifest
+            .lines()
+            .any(|l| l.trim() == "rustyecon-engine.workspace = true"),
+        "the manifest is read"
+    );
+    assert!(
+        core_in_manifest(&manifest).is_empty(),
+        "the manifest names core: {:?}",
+        core_in_manifest(&manifest)
+    );
+    let lock = std::fs::read_to_string(format!("{root}/Cargo.lock")).expect("Cargo.lock");
+    let deps = locked_dependencies(&lock, "rustyecon-gui");
+    assert!(
+        deps.iter().any(|d| d == "rustyecon-engine"),
+        "the lockfile is read: {deps:?}"
+    );
+    assert!(
+        !deps.iter().any(|d| d == "rustyecon-core"),
+        "the lockfile gives the GUI core: {deps:?}"
     );
 }

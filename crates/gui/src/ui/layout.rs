@@ -1,7 +1,8 @@
-//! The tile layout (docs/GUI.md §4, U8): outliner left, the map and the plots as tabs in the
-//! centre, inspector, registry, editor and compare right, timeline and log below. It persists
-//! in `layout.ron`, beside `session.ron`. A layout saved before a pane existed gains it beside
-//! the inspector; one saved before the map (D.3) gains the map as a tab beside the plots.
+//! The tile layout (docs/GUI.md §4, U8): outliner left, the plots, the map and the oracle lab
+//! as tabs in the centre, inspector, registry, editor and compare right, timeline and log
+//! below. It persists in `layout.ron`, beside `session.ron`. A layout saved before a pane
+//! existed gains it beside the inspector; one saved before the map (D.3) or the lab (G1) gains
+//! it as a tab beside the plots.
 
 use egui_tiles::{Tile, Tiles, Tree};
 use serde::{Deserialize, Serialize};
@@ -27,14 +28,17 @@ pub enum Pane {
     Compare,
     /// The map and its lenses (D.3; docs/GUI.md §4, §6).
     Map,
+    /// The oracle lab (G1; docs/GUI.md §9).
+    Lab,
 }
 
 impl Pane {
     /// Every pane, in the order a new layout places them.
-    pub const ALL: [Pane; 9] = [
+    pub const ALL: [Pane; 10] = [
         Pane::Outliner,
         Pane::Map,
         Pane::Plots,
+        Pane::Lab,
         Pane::Inspector,
         Pane::Registry,
         Pane::Editor,
@@ -55,6 +59,7 @@ impl Pane {
             Pane::Editor => "Editor",
             Pane::Compare => "Compare",
             Pane::Map => "Map",
+            Pane::Lab => "Lab",
         }
     }
 }
@@ -71,9 +76,10 @@ pub fn default_tree() -> Tree<Pane> {
     let timeline = tiles.insert_pane(Pane::Timeline);
     let log = tiles.insert_pane(Pane::Log);
     let map = tiles.insert_pane(Pane::Map);
+    let lab = tiles.insert_pane(Pane::Lab);
     // The plots come first, so a tape with no map opens on them; one with a map is brought
-    // forward on the map (`bring_forward`).
-    let centre = tiles.insert_tab_tile(vec![plots, map]);
+    // forward on the map (`bring_forward`). The lab needs no tape (G1).
+    let centre = tiles.insert_tab_tile(vec![plots, map, lab]);
     let right = tiles.insert_tab_tile(vec![inspector, registry, editor, compare]);
     let top = tiles.insert_horizontal_tile(vec![outliner, centre, right]);
     let below = tiles.insert_tab_tile(vec![timeline, log]);
@@ -99,9 +105,9 @@ pub fn bring_forward(tree: &mut Tree<Pane>, pane: Pane) -> bool {
     tree.make_active(|_, tile| matches!(tile, Tile::Pane(p) if *p == pane))
 }
 
-/// Put the map beside the plots, as a tab: in the plots' tabs, or in new tabs that take the
-/// plots' place.
-fn place_map(tree: &mut Tree<Pane>, map: egui_tiles::TileId) -> bool {
+/// Put a pane beside the plots, as a tab: in the plots' tabs, or in new tabs that take the
+/// plots' place. The map (D.3) and the lab (G1) join an older layout so.
+fn beside_plots(tree: &mut Tree<Pane>, pane: egui_tiles::TileId) -> bool {
     let Some(plots) = tree.tiles.find_pane(&Pane::Plots) else {
         return false;
     };
@@ -109,10 +115,10 @@ fn place_map(tree: &mut Tree<Pane>, map: egui_tiles::TileId) -> bool {
         return false;
     };
     if let Some(Tile::Container(egui_tiles::Container::Tabs(t))) = tree.tiles.get_mut(parent) {
-        t.add_child(map);
+        t.add_child(pane);
         return true;
     }
-    let tabs = tree.tiles.insert_tab_tile(vec![plots, map]);
+    let tabs = tree.tiles.insert_tab_tile(vec![plots, pane]);
     match tree.tiles.get_mut(parent) {
         Some(Tile::Container(c)) => c.replace_child(plots, tabs).is_some(),
         _ => false,
@@ -125,8 +131,8 @@ pub fn to_ron(tree: &Tree<Pane>) -> String {
 }
 
 /// A layout from RON: one that parses. A pane it lacks joins the container that holds the
-/// inspector, or the root's, and the map joins the plots as a tab; a layout with no container
-/// to hold it does not read.
+/// inspector, or the root's, and the map and the lab join the plots as tabs; a layout with no
+/// container to hold it does not read.
 pub fn from_ron(text: &str) -> Result<Tree<Pane>, String> {
     let mut tree: Tree<Pane> = ron::from_str(text).map_err(|e| e.to_string())?;
     let missing: Vec<Pane> = Pane::ALL
@@ -135,9 +141,9 @@ pub fn from_ron(text: &str) -> Result<Tree<Pane>, String> {
         .filter(|p| tree.tiles.find_pane(p).is_none())
         .collect();
     for p in missing {
-        if p == Pane::Map {
+        if p == Pane::Map || p == Pane::Lab {
             let id = tree.tiles.insert_pane(p);
-            if place_map(&mut tree, id) {
+            if beside_plots(&mut tree, id) {
                 continue;
             }
             tree.tiles.remove(id);
@@ -195,6 +201,9 @@ mod tests {
             Some(Tile::Container(egui_tiles::Container::Tabs(_)))
         ));
         assert_eq!(tree.tiles.parent_of(centre), Some(top));
+        // G1: the lab joins the plots' tabs too.
+        let lab = tree.tiles.find_pane(&Pane::Lab).unwrap();
+        assert_eq!(tree.tiles.parent_of(lab), Some(centre));
         assert!(from_ron(&to_ron(&default_tree())).is_ok());
         let mut fresh = default_tree();
         assert!(bring_forward(&mut fresh, Pane::Map));

@@ -26,7 +26,7 @@ fn load(r: &mut Runner, t: &Tape) {
 fn pauses(obs: &[Obs]) -> Vec<(u64, PauseReason)> {
     obs.iter()
         .filter_map(|o| match o {
-            Obs::Paused { tick, why } => Some((*tick, *why)),
+            Obs::Paused { tick, why } => Some((*tick, why.clone())),
             _ => None,
         })
         .collect()

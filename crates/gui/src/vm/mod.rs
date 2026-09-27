@@ -10,13 +10,16 @@
 
 pub mod compare;
 pub mod inspector;
+pub mod lab;
 pub mod log;
 pub mod map;
 pub mod outliner;
 pub mod plots;
+pub mod pricestep;
 pub mod registry;
 pub mod timeline;
 pub mod toolbar;
+pub mod watch;
 
 use crate::run::{At, HolderKey, Measure, SeriesKey, StateField, Store};
 use rustyecon_engine::prelude::*;

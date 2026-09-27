@@ -9,8 +9,9 @@ pub fn src() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("src")
 }
 
-/// The egui-free modules (docs/GUI.md §3.2): directories under `src`. `edit` arrives at G0.2.
-pub const EGUI_FREE: [&str; 6] = ["model", "run", "edit", "vm", "drive", "platform"];
+/// The egui-free modules (docs/GUI.md §3.2): directories under `src`. `edit` arrives at G0.2,
+/// `lab` at G1.
+pub const EGUI_FREE: [&str; 7] = ["model", "run", "edit", "vm", "drive", "platform", "lab"];
 
 /// Every `.rs` file under `dir`, with its path relative to `src`, sorted. A directory that does
 /// not exist yet gives none.

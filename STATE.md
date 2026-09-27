@@ -10,21 +10,36 @@ the tape's schema is [docs/TAPE.md](docs/TAPE.md), and the GUI's design is
 **Collaboration:** as in laborformal. Sequencing, engineering and drafting are delegated to
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
-**Branch `oracle-goods`, track 1g** (2026-09-27): unit 1g, the oracle's addendum for machines
-built from goods (next step 5), is built on branch `oracle-goods` from `reboot` at `16eb728`,
-P1g.1-P1g.7, not merged and not pushed. It is D-G10 (productivity and the chain to land checked on
-the per-period recipes, which accepts every economy 1c accepted with every result bit for bit),
-the mapping of a chain of goods to unit 1c, plants as machine types (the capacity damper's long
-run), 210 goldens at 70 digits, and tests for some of O28's mutants. Its bounded verification
-found no wrong result and five surviving mutants, each killed by a test at P1g.6; the re-check of
-the fixed items is still to come (O35). Its record is the first block of "Where things stand"; its
-proposed decisions are 179-190 and its open items O31-O35 (track G1, on its own branch, numbers
-200-219 and O36-O40, so the two do not collide).
-**State as of:** 2026-09-27, on `reboot`'s line. **`phase1` is merged** into it by this
-commit, on branch `merge-p1` from `reboot` at `2398b6a`, not pushed: while `reboot` stays at
-`2398b6a`, taking the merge is a fast-forward, on your word. Two lines of work that both started
-at `503897e` meet here. **Phase 1 is closed** at P1.14 ("Where things stand"), built on branch
-`phase1`: units 1d (worker types and the wall), 1e (parcels, the idle margin and the priced
+**State as of:** 2026-09-28, on `reboot`'s line. **`oracle-goods` and `g1` are merged** into it
+by this commit, on branch `merge-og-g1` from `reboot` at `16eb728`, not pushed: `oracle-goods`
+came in by a fast-forward and `g1` by this merge; while `reboot` stays at `16eb728`, taking the
+merge is a fast-forward, on your word. The two tracks both started at `16eb728` and numbered
+apart, so nothing is renumbered: track 1g's decisions are 179–190 (its range 179–199) and its
+open items O31–O35, and G1's decisions are 200–219 and its open items O36–O40. No code
+conflicted; README.md and this file were joined by hand ("Where things stand").
+**Unit 1g, machines as goods, is built** (track 1g, branch `oracle-goods`, P1g.1–P1g.7): the
+oracle's addendum for machines built from goods. It is D-G10 (productivity and the chain to land
+checked on the per-period recipes, which accepts every economy 1c accepted with every result bit
+for bit), the mapping of a chain of goods to unit 1c, plants as machine types (the capacity
+damper's long run), 210 goldens at 70 digits, and tests for some of O28's mutants. Its bounded
+verification found no wrong result and five surviving mutants, each killed by a test at P1g.6;
+the re-check of the fixed items is still to come (O35).
+**G1, the oracle lab, is built** (G1.1–G1.10; "Where things stand"): the lab solves any of the
+oracle's units 1a–1f from 16 golden presets and shows the regime and every output beside its
+golden, a field over x with its root and bracket, and one-knob sweeps; the market inspector
+explains each price step with markets' own `next_price` and draws its log waterfall; plots take
+log axes, the outliner a watchlist, runs event and date breakpoints; the toolbar saves PNG
+snapshots marked never citable. The engine now re-exports `num` and the tape's raw schema, so the
+GUI's edge to core is gone (next step 4), and O26's map items and two of O20's are done. Every
+gate item of G1 is met but the window's p90 checked by hand, which is yours. **G1's bounded
+verification ran, and its findings are fixed at G1.11** ("Where things stand"): six major and
+four minor, each a test that passed with the code it guards broken, a way past a scan, or a doc;
+no number the GUI shows was wrong. A re-check of those fixes ran after G1.11 and left five
+majors open, none a wrong number (O37). The lab does not yet show unit 1g (O38).
+**`phase1` is merged** into `reboot` at `16eb728`, on branch `merge-p1` from `reboot` at
+`2398b6a`, and the local `reboot` took the merge by a fast-forward. Two lines of work that both
+started at `503897e` meet there. **Phase 1 is closed** at P1.14 ("Where things stand"), built on
+branch `phase1`: units 1d (worker types and the wall), 1e (parcels, the idle margin and the priced
 exit) and 1f (households and government) are built and verified (P1.8–P1.13), and PLAN Phase
 1's gate is met item by item. `phase1`'s copy of this file numbered its new decisions from 76
 and its open items from O20, as this line's copy had, so Phase 1's are renumbered after this
@@ -61,14 +76,72 @@ the GUI's design, plan amendment A14 and R16 landed at P0.11 (O1); by your rulin
 the Phase 2 probe ran first, with verdict GO ([docs/probe/REPORT.md](docs/probe/REPORT.md)) and
 no fallback (decision 38); and Breakpoint B's pre-look passed beside it (S5.0,
 docs/spine/EYEBALL.md; decision 35).
-Next, in order: your look at the window (the G0 gate's item checked by hand) and at the demo's
-map; G1, the oracle lab; the oracle's addendum for machines built from goods; the goods chain,
-with a plant stock as its loop damper, on design evidence kept outside the repository; Phase 2
-proper on loop-free wall and commons instances, after your rulings on the decisions that bind
-it; the demo's second pass, with goods, machine types and carriers, on the many-market roles
+Next, in order: your look at the windows (the G0 gate's item and G1's p90, both checked by
+hand) and at the demo's map; G1's remainder (what G0 moved to it, O36; the five majors its
+re-check left, O37; unit 1g in the lab, O38); your rulings on 1g's decisions and its re-check
+(O35); the goods chain in the engine, the horse economy first, with a plant stock as its loop
+damper (CAPACITY.md) and GOODS-CHAIN's staging, on design evidence kept outside the repository;
+Phase 2 proper on loop-free wall and commons instances, after your rulings on the decisions that
+bind it; the demo's second pass, with goods, machine types and carriers, on the many-market roles
 (O27). "Next steps" has each.
 
 ## Where things stand
+
+**`oracle-goods` and `g1` are merged** (2026-09-28, this commit, on branch `merge-og-g1` from
+`reboot` at `16eb728`). Track 1g (P1g.1–P1g.7, `1a70eab` to `3f3a1bc`, on `oracle-goods`) and
+G1 (G1.1–G1.11, `d8b8a32` to `3d1ad6f`, on `g1`) both started at `16eb728`; `oracle-goods` came
+in by a fast-forward, and `g1` by this merge. No code conflicted: track 1g changed only
+`crates/oracle`, README.md and this file, and G1 changed `crates/gui`, the engine's re-exports
+and its frontend guard, `scripts/gui.sh`, docs/GUI.md, docs/ENGINE.md, the workspace's manifest
+and lockfile, README.md and this file, never `crates/oracle`. Two files were joined by hand,
+each side's content kept whole:
+- README.md: the status paragraph names unit 1g on `oracle-goods`, then G1 on `g1`, beside G0's
+  close and the demo's map; the crate table's oracle row is track 1g's and its GUI row G1's;
+  "Running the GUI" and the GUI gate's count of named tests are `g1`'s alone;
+- this file: the header says both have landed; below this block come 1g's record, then G1's two
+  (its verification's fixes, then the build), then `phase1`'s merge and what came before, as
+  they were. The lists (the decisions, the open calls and items, the next steps, the file map and
+  the repro notes) are joined, and the open calls carry each hand check's command.
+
+The two tracks numbered apart, as each copy of this file said: 1g's decisions are 179–190 of its
+range 179–199 and its open items O31–O35, G1's are 200–219 and O36–O40. No number is used twice,
+and nothing is renumbered. The lab builds the oracle's parameter types for 1a–1f as struct
+literals and reads their points from the oracle's `Debug` (decisions 202 and 203, O38); track 1g
+added `goods.rs` and `plants.rs` and changed only `MachineBlock::new`'s validation (D-G10), which
+accepts every economy 1c accepted with every result bit for bit, and no type or field the lab
+builds or reads. So the lab builds unchanged, and `lab_presets_solve_to_their_goldens` and every
+other test of G1's passes on the merge. Unit 1g in the lab is not a trivial addition (O38,
+amended at this merge), so it is left to G1's second part. The re-check of G1.11's fixes ran
+after `g1`'s last commit and is recorded here, in O37, since `g1` did not record it.
+
+The gates on the committed merge, with a clean build stamp (logs in `D:/rustyecon-merge-og-g1/`):
+- **`scripts/gate.sh`** is green in WSL (`CARGO_TARGET_DIR=/root/scratch/target-merge-og-g1`,
+  202 s) and on Windows under Git Bash (`D:/rustyecon-targets/merge-og-g1`, 206 s), the two run
+  at once on fresh targets. 846 tests pass in the workspace on each machine, with 3 ignored and
+  run by name: the `phase1` merge's 795, 1g's 50 and G1's engine doc test. Certify alone,
+  Parquet-free, passes 67 with 1 ignored; zero warnings. The gate hash is `0x61f9c8529131ff17`,
+  and the stamp names the merge's code, clean, on both (`320619d`, the merge before this record
+  was added; only this file differs). Both certificates PASS and recompute byte-equal, the
+  probe's pins hold (`probe_battery_csv_unchanged` by name, and the markets probe's
+  `markets_tapes_are_their_generators_output` among the workspace's tests), `derive.py --check`
+  passes, `demo_runs_to_1901` ends at `0xfad880fe08d06645` with hash stream
+  `0xdb63cc96f769fb3e`, and telemetry is identical from two processes. The GUI's non-blocking
+  check passes in WSL (skipped on Windows), as do the wasm32 checks of the engine and certify.
+- **`scripts/gui.sh`** is green in WSL (the same target, 136 s) and on Windows under Git Bash
+  (159 s): 117 tests pass with 4 ignored measurements, the 87 named ones by name, among them the
+  lab's (`lab_presets_solve_to_their_goldens`, `a_points_fields_are_the_oracles_doubles`,
+  `every_knob_is_the_field_its_path_names`, `the_lab_shows_appendix_b_bit_for_bit`); fmt and
+  clippy clean with `-D warnings`; in WSL the sweep measurement by name, a median of 0.727 ms of
+  20 (0.680 to 0.787 ms). Five hash diffs are equal, the same on both machines: gate (2,080
+  ticks, `0x61f9c8529131ff17`), appb (20,000, `0xe1fa082b26995867`), demo-gb (7,852,
+  `0xfad880fe08d06645`), and the two branch tapes as at G0.3 (`branch`, final
+  `0x9fc2f964a8510756`; `removal`, `0xd057e3ea708da495`).
+- **The oracle's generators:** all seven pass `--check` under laborformal's venv on Windows, run
+  beside the gates (`generate.py` 1 s, `generate_1b.py` 1 s, `generate_1c.py` 12 s,
+  `generate_1d.py` 32 s, `generate_1e.py` 39 s, `generate_1f.py` 22 s, `generate_1g.py` 25 s).
+- **Recorded, not gated:** the cli's per-tick hashes of gate (2,080), appb (20,000) and demo-gb
+  (7,852) are byte-identical on WSL and Windows but for the header line naming the target
+  (`D:/rustyecon-merge-og-g1/hashes/`).
 
 **Unit 1g, machines as goods, is built** (2026-09-27, branch `oracle-goods`, worktree
 `D:/rustyecon-wt/og`; [crates/oracle/docs/unit-1g.md](crates/oracle/docs/unit-1g.md)). You asked
@@ -187,7 +260,225 @@ file and the root README.
   change to `generate_1g.py` is its notes on the goods made and an assertion, `generate_1g.py
   --check` passes again (25 s), and it imports nothing that changed.
 
-**`phase1` is merged** (2026-09-27, this commit). Phase 1's units 1d–1f and its close
+**G1's bounded verification ran, and its findings are fixed** (2026-09-27, G1.11 on `g1`;
+GUI.md, the block "Amended after G1's verification"; decisions 200, 204, 208, 210, 214–216
+and 218 amended; O36, O37 and O39 amended). One adversarial pass (`D:/rustyecon-verify/g1-r1/`,
+on a clone of `92048db`) ran 44 mutants, two scan probes and four gate variants. It found no wrong
+number: every paired output of the 16 presets agreed with its golden to at most 8.5e-16
+relative, and the explainer equalled `next_price` at all 12,480 (tick, market) pairs of each
+variant. It found six major issues and four minor, and each is fixed by a test that fails
+without its fix:
+- *The lab's golden checks* (its mutants L3–L6 and L8 had survived; the letters are the
+  verifier's, in its `mutations.txt`): `vm::lab::build_beside` takes goldens a test
+  doctored; G1's, doctored either side of each bar, agree or not by the bar with the exact
+  difference, and the table drawn alone paints each disagreement in the error colour.
+- *The explainer off the gate's easy path* (E1, E2, E4–E7): four gate variants (bread's rate
+  doubled on 1755-01-01, bread's price scaled by 1.5 on 1756-01-01, `Ratio`, `Saturate`), the
+  explainer equal to the engine at all 12,480 pairs of each; the waterfall flags `rate.up` and
+  `bread.shock` alone, its bins' residuals add up, and bread's residual is the holds, or the
+  holds and ln 1.5, within 1e-9; one bit of a recorded next price flipped is said to differ and
+  painted "DIFFERS".
+- *What is painted* (L9–L12, E3, E8, P4): `ui::charts` records every line, mark and bar the
+  lab's field over x and its sweep and the waterfall lend egui, with the plot's transform; the
+  scripts hold each vertex, mark and bar to its view-model bit for bit and each painted path
+  and bar to what was lent; the lab script paints `BoundaryNoMargin` (G1 at N 0.4)
+  with its f(1); the explainer script reads p, S, D, x, k and k·x back from the screen; the watch
+  script paints the change with its sign.
+- *The knobs* (X2): every preset's knobs equal its parameter type's `Debug` path by path and bit
+  for bit, and each of 552 knobs set to a value of its own moves its own path alone.
+- *The scans*: `extern crate self as g` (and of this crate or std by name) is a root, and a
+  `path` attribute and `include!` are refused in the egui-free and pure modules; the core scan
+  reads the manifest for `package = "rustyecon-core"` and the lockfile's dependencies of
+  `rustyecon-gui`, so a renamed core (N1) is refused wherever the rename is made.
+- *The minors*: decision 209's event before a date (P2); the credit's clamp (A5), a unit test at
+  every width from 60 to 1,000 points, where at 169 the canvas's edge decides its x; under
+  `Ratio` the waterfall sums ln(D/S), the rule's own steps (bread's residual was 2.71 of 2.91,
+  now under 1e-9); `session.ron` format 3 must have `watch` and `log_axes`, and format 2 may have
+  neither nor an event or date breakpoint; the docs (decisions 214, 215, 218, O37, O39, ENGINE's
+  G1.1 item 3). The toolbar's test opens the demo world at 1,600 and 1,024 too, where the chip
+  note was made: one or two lines, so that note is closed.
+
+**Mutation** (`D:/rustyecon-g1/fix-r1/`, `mutate.py`, a clone with the fixes, the whole suite in
+release per mutant, split between WSL and Windows): 35 mutants, the verifier's 22 survivors
+re-aimed where the fix moved their code and 13 of the fixes' own (a mark or a line painted off
+its record, a bar recorded negated, the level line scaled, bars unstacked, a parcel knob bound
+to another field, the verifier's `extern crate self` and `#[path]` probe, each scan fix undone,
+core renamed in the workspace's table, `Ratio` read as `Imbalance`, each session check undone):
+all killed, each by a test G1.11 added or extended (`mutations.txt`; the probe's first build
+did not compile, and one that does was refused by both scans). Logs in `logs-wsl/` and
+`logs-win/`.
+
+**Tests.** The GUI's suite grows from 110 (106 run, 4 ignored) to 121 (117 run, 4 ignored):
+three in `tests/lab.rs`, four in `tests/pricestep.rs`, two scripts in `tests/app.rs`, one in
+`tests/watch.rs` and a unit test in `ui/map.rs`, with the lab, explainer, watch and toolbar
+scripts, the persist test and the scans' fixtures extended. `scripts/gui.sh` names 87, up from
+75.
+
+**The gates**, on the committed tree at G1.11 (`2fdc7a5`), logs in `D:/rustyecon-g1/gates/`:
+- **`scripts/gate.sh`** is green in WSL (`CARGO_TARGET_DIR=/root/scratch/target-g1`, warm,
+  90 s) and on Windows under Git Bash (`D:/rustyecon-targets/g1`, warm, 91 s), the two run at
+  once: 796 tests pass in the workspace on each, as at G1.9, with 3 ignored and run by name;
+  zero warnings; the gate hash `0x61f9c8529131ff17`, the stamp naming `2fdc7a5` clean; both
+  certificates PASS and recompute byte-equal, the probe's pins hold, `demo_runs_to_1901` ends
+  at `0xfad880fe08d06645` with hash stream `0xdb63cc96f769fb3e`, and telemetry is identical
+  from two processes.
+- **`scripts/gui.sh`** is green in WSL (90 s) and on Windows (99 s), the two run at once: 117
+  tests pass with 4 ignored, the 87 named ones by name, fmt and clippy clean with `-D
+  warnings`; in WSL the sweep measurement by name, a median of 0.688 ms of 20 (0.625 to 0.756
+  ms); five hash diffs equal on both machines: gate (2,080 ticks, `0x61f9c8529131ff17`), appb
+  (20,000, `0xe1fa082b26995867`), demo-gb (7,852, `0xfad880fe08d06645`), and the two branch
+  tapes (`0x9fc2f964a8510756`, `0xd057e3ea708da495`).
+
+**Pending:** the window's p90 by hand, yours (below); a re-check of these fixes, and what the
+verification did not reach (O37); what G0 moved to G1 (O36).
+
+**G1, the oracle lab, is built** (2026-09-27, G1.1–G1.10, branch `g1` from `reboot` at
+`16eb728`, worktree `D:/rustyecon-wt/g1`; [docs/GUI.md](docs/GUI.md), the block "Amended at
+G1", and §9; ENGINE, amended at G1.1; decisions 200–219, O36–O40). G0 and Phase 1's gate were
+both met, so §9's G1 was unblocked; it was built as §9 lists it, with STATE's next step 4 (the
+engine's re-exports), O26's map items and two of O20's. Nothing on the engine path changed
+behaviour: no hash, `world_id` or `prefix_id` moved.
+
+| Commit | What landed |
+|---|---|
+| `d8b8a32` G1.1 | the engine re-exports `num` and the tape's raw schema (`raw`), with `Basis` and `Unit` in its prelude; its frontend guard allows exactly those two modules; the GUI drops `rustyecon-core` |
+| `f539365` G1.2 | the oracle lab: `lab/` (instances of units 1a–1f, 16 golden presets, knobs, the bundled goldens, a point's fields from the oracle's `Debug`), `vm/lab.rs` and the Lab tab |
+| `ee69769` G1.3 | the price-step explainer and the log waterfall, `vm/pricestep.rs`, in the market inspector |
+| `01a7af5` G1.4 | event and date breakpoints; the watchlist; log axes; `session.ron` format 3 |
+| `ff7fd50` G1.5 | PNG snapshots of the window, never citable |
+| `64383f3` G1.6 | O26's map items: the credit wraps; the eight surviving mutants killed |
+| `27bda7f` G1.7 | O20's two ways past the no-egui scan closed |
+| `c1658ce` G1.8 | `scripts/gui.sh` names 74 tests and runs G1's sweep measurement by name |
+| `a902bb3` G1.9 | the toolbar keeps its chips whole (the gates' first run on G1.8 failed the branch script on it); every preset's sweep time recorded |
+| G1.10 | this file, GUI.md's block and §9, the README |
+
+**What it is.**
+- **The lab** (the Lab tab, beside the plots and the map; it needs no tape and drives no run).
+  Pick a unit and one of its presets: 16 instances the goldens were computed on, two to four a
+  unit (1a: G1, G3 η 0.3, G5 flow, G5 durable; 1b: C3, C7 gap; 1c: M3, M4; 1d: B1, E1; 1e: K1,
+  Q1; 1f: TX, GB, C1), each built as the oracle's gate tests build it. Every number of the
+  instance is a knob by its path. The oracle solves it through the unit's own `new` and
+  `solve`, and every output its `outputs()` lists is shown as the dump prints it, the float's
+  shortest round-trip digits, beside the golden of the same name (1e-12 relative) and the
+  paper's published value (5e-6 absolute); an edited instance shows no golden. At G1 the screen
+  shows x\* `0.863150418162437`, v `0.5434359606967785`, Y `7.880605524972908` and N_a
+  `1.3433818800977175`, the oracle's doubles, beside 0.86315, 0.54344, 7.88061 and 1.34338.
+  Every preset's paired outputs agree with their goldens (`lab_presets_solve_to_their_goldens`:
+  G1 pairs 29 outputs, M3 15, TX 9). Any field of the unit's point plots over x in [0, 1], f
+  by default, with x\* and the bracket [1e-12, 1] marked; a knob sweeps over a range, 200
+  points by default.
+- **"Why is this price 12.3?"** The market inspector recomputes the tick's step with markets'
+  own `imbalance` and `next_price` on the recorded p, S, D and the rate's per-tick value, and
+  says whether it equals the run's next price bit for bit; below it, the log waterfall of
+  ln(p/p₀) as Σ k·x a year at a time, the residual (the gate holds one-sided markets, so its
+  residual is those holds) and the events.
+- **The panels.** Breakpoints on an event by key (every occurrence) or on a date, from the
+  log's field or the event's inspector; a run pauses after the tick, and the log names the
+  breakpoint. A watchlist at the top of the outliner. A "log scale" toggle on each plot panel.
+  `session.ron` format 3 keeps them; format 2 still reads.
+- **Snapshots.** The toolbar's Snapshot writes a PNG of the window to `snapshots/` beside the
+  session, with a banner across its top and text chunks that say NEVER CITABLE, the build, the
+  run and the lab's preset.
+
+**Tests.** The GUI's suite grows from 86 (84 run, 2 ignored) to 110 (106 run, 4 ignored): new
+files `tests/lab.rs` (6, and 2 ignored measurements), `tests/pricestep.rs` (3), `tests/watch.rs`
+(3) and `tests/snapshot.rs` (2); kittest scripts of the lab, the explainer, the watchlist and
+breakpoints and the snapshot, and checks of the toolbar at four widths and of the credit on a
+narrow canvas; the lab's scan; unit tests of the `Debug` reader and the charts' colours; and
+extensions of `gui_equals_cli` (event and date breakpoints),
+`every_drawn_vertex_is_recorded` (a log panel), the goldens (each market's explainer, equal bit
+for bit), `lens_values_equal_the_engine` (every county's card), the demo script (the cursor
+behind live), `rebuilt_mesh_colours_are_the_lens_colours` (every painted vertex and legend
+segment) and the two O20 fixtures. The engine's frontend guard gains five fixtures and a doc
+test. `scripts/gui.sh` names 75, up from 55.
+
+**The toolbar.** The gates' first run, on G1.8, failed `the_branch_script_…` on both machines:
+the Snapshot button made the toolbar's first row wider, the health chip began a row with 16
+points left, and its text wrapped into a column one word wide and 1,150 points tall, which
+pushed every tile below the window. G1.9 starts a chip on a new row whenever less than 360
+points of its row are left; `the_toolbar_keeps_its_chips_whole` and the branch script fail
+without it. This is the toolbar half of O26's note that the chip wraps on a narrow window.
+
+**G1's gate** (GUI.md §9):
+- **The lab shows x\* 0.86315, v 0.54344, Y 7.88061 and N_a 1.34338, bit for bit the oracle's
+  outputs:** met. `the_lab_shows_appendix_b_bit_for_bit` parses the view's text back to the
+  oracle's doubles, called directly; `the_lab_script_shows_appendix_b_and_its_goldens` finds the
+  same texts painted, with the published values and the 30-digit goldens beside them.
+- **The explainer equals `next_price` on every gate tick:** met.
+  `the_explainer_equals_next_price_on_every_gate_tick` holds the explainer's next price to a
+  `Sim`'s own report bit for bit at all 12,480 (tick, market) pairs of the gate, and appb's
+  80,000 beside it.
+- **A 200-point sweep's view-model builds in under 16 ms on WSL (median of 20):** met,
+  `a_200_point_sweep_builds_in_under_16_ms`, ignored and run by name by `scripts/gui.sh`: G1
+  over N from 2 to 8, reading x\*, v, Y and N_a: a median of 0.675 ms of 20 (0.632 to 0.733
+  ms) in the gate's run, and 0.75 ms alone. On Windows, not gated, 0.82 ms.
+- **The window's p90 frame stays under 16 ms, checked by hand:** PENDING, yours (below).
+- U1–U12 and the scans hold: `scripts/gui.sh` is green on both machines (below).
+
+**The gates**, on the committed tree at G1.9 (`a902bb3`; G1.10 changes docs only), with logs in
+`D:/rustyecon-g1/gates/`:
+- **`scripts/gate.sh`** is green in WSL (`CARGO_TARGET_DIR=/root/scratch/target-g1`, warm, 90 s)
+  and on Windows under Git Bash (`D:/rustyecon-targets/g1`, warm, 94 s), the two run at once.
+  796 tests pass in the workspace on each machine, with 3 ignored and run by name: the merge's
+  795 and the engine's new doc test. Certify alone, Parquet-free, passes 67 with 1 ignored;
+  zero warnings. The gate hash is `0x61f9c8529131ff17`, and the stamp names `a902bb3`, clean,
+  on both. Both certificates PASS and recompute byte-equal, the probe's pins hold,
+  `demo_runs_to_1901` ends at `0xfad880fe08d06645` with hash stream `0xdb63cc96f769fb3e`, and
+  telemetry is identical from two processes. The GUI's non-blocking check passes in WSL
+  (skipped on Windows), as do the wasm32 checks of the engine and certify.
+- **`scripts/gui.sh`** is green in WSL (85 s) and on Windows under Git Bash (95 s): 106 tests
+  pass with 4 ignored measurements, the 75 named ones by name, fmt and clippy clean with `-D
+  warnings`, and in WSL the sweep measurement by name. Five hash diffs are equal, the same on
+  both machines: gate (2,080 ticks, `0x61f9c8529131ff17`), appb (20,000,
+  `0xe1fa082b26995867`), demo-gb (7,852, `0xfad880fe08d06645`), and the two branch tapes as at
+  G0.3 (`branch`, final `0x9fc2f964a8510756`; `removal`, `0xd057e3ea708da495`).
+- **The first run, on G1.8, was red on both machines:** the branch script, the toolbar's chip
+  (above); G1.9 fixed it, and the second run is the one recorded.
+- **Recorded, not gated:** the cli's per-tick hashes of gate (2,080), appb (20,000) and demo-gb
+  (7,852) are byte-identical on WSL and Windows (`D:/rustyecon-g1/hashes/`).
+- **The smoke mode on Windows**, `rustyecon-gui --smoke 2080 tapes/gate.ron` (release; the
+  outliner, plots, inspector and timeline drawn), twice: 479 frames running, CPU per frame p50
+  0.93 and 0.99 ms, p90 1.22 and 1.78 ms, max 35.5 and 33.4 ms (the first frame); paused, p90
+  1.15 and 2.03 ms. As at G0.3's close (p90 1.62 ms running). The window opened and closed by
+  itself; nobody looked at it.
+
+**Measured, recorded and not gated** (release, alone on the machine): a 200-point sweep of each
+preset's first real knob, ±10% about its value, median of 5
+(`every_presets_sweep_time_is_recorded`). On WSL: 1a 0.7–1.6 ms, 1b 3.3–3.7 ms, 1c 6.3–11.4
+ms, 1d 10.4–11.8 ms, 1e 172–185 ms (its paths are scanned, `EXIT_SCAN`), 1f 11.8–14.5 ms. On
+Windows: 1a 0.8–1.7 ms, 1b 5.7–5.8 ms, 1c 10.7–16.7 ms, 1d 17.8–18.3 ms, 1e 294–328 ms, 1f
+18.2–28.5 ms. Every point interior. So a 1e sweep holds the window for about a third of a
+second on Windows (O40). Logs in `D:/rustyecon-g1/gates/`.
+
+**Checked by hand: PENDING, yours** (G1's gate: the window's p90 frame under 16 ms). On
+Windows, from the repository once this merge is in `reboot` (or from `merge-og-g1`), in
+PowerShell:
+
+```powershell
+$env:CARGO_TARGET_DIR = 'D:/rustyecon-targets/g1-hand'
+cargo run --release -p rustyecon-gui -- tapes/gate.ron
+```
+
+1. Open the Lab tab (beside Plots and Map): G1 is solved, the outputs beside their goldens.
+   Pick another unit and preset; edit a knob in "Instance" and press Enter; press "Run the
+   sweep". Watch the frame stay smooth; the smoke mode's figures are above for comparison.
+2. Press Space to run the gate, pause, select town/bread in the outliner: the inspector's "Why
+   this price" and the waterfall. Tick "log scale" on a plot panel.
+3. In the Log pane, type `mine.cut` in "break at" and press "Add breakpoint", then run: the run
+   pauses at 1760-03-01's tick and the log says why.
+4. Press Snapshot: the banner shows, and a PNG appears in `%APPDATA%\rustyecon\gui\snapshots\`;
+   its picture carries the banner. This is the one path no headless test can reach (a headless
+   window has no renderer).
+
+**What G1 leaves** (O36–O40): what G0 moved to G1 and G1 did not build (overlay, difference and
+ratio against a parent; re-making branches at launch; the registry's and the inspector's ways
+into the editor; a lock on `session.ron`) and the rest of O20; a re-check of G1.11's fixes of
+its verification (above), and what that did not reach; the lab's two copies (presets
+transcribed from the oracle's gate tests, and goldens paired by name), which the next change to
+the oracle's parameter types must carry; O26's clock and two layout notes; and the snapshot's
+renderer path and the lab's heavier sweeps on the UI thread.
+
+**`phase1` is merged** (2026-09-27, `16eb728`). Phase 1's units 1d–1f and its close
 (P1.8–P1.14, `a2a9b93` to `78d6edc`, on `phase1`) and `reboot`'s line since `503897e` (the `g0`
 merge, the many-markets probe and the demo world, to `2398b6a`) both started at `503897e`, and no
 code conflicted: `phase1` changed only `crates/oracle`, README.md and STATE.md, and `reboot`
@@ -216,8 +507,8 @@ the committed merge, with a clean build stamp (logs in `D:/rustyecon-merge-p1/`)
   and 220 s). 795 tests pass in the workspace on each machine, with 3 ignored and run by name,
   which is the demo merge's 599 and P1.14's 745 less the 549 they shared at `503897e`; certify
   alone, Parquet-free, passes 67 with 1 ignored; zero warnings. The gate hash is
-  `0x61f9c8529131ff17`, and the stamp names the merge's code, clean, on both (`ac8ed51`, this
-  commit before this record was added; only this file differs). Both certificates PASS and
+  `0x61f9c8529131ff17`, and the stamp names the merge's code, clean, on both (`ac8ed51`, the
+  merge before this record was added; only this file differs). Both certificates PASS and
   recompute byte-equal, the probe's pins hold, `derive.py --check` passes, `demo_runs_to_1901`
   ends at `0xfad880fe08d06645` with hash stream `0xdb63cc96f769fb3e`, and telemetry is
   identical from two processes. The GUI's non-blocking check passes in WSL (skipped on
@@ -1430,13 +1721,13 @@ same script under Git Bash, by hand.
 **Remote** (as the local remote-tracking refs show on 2026-09-27): `origin` has `main` at
 `f614792`, `reboot` at `cf3c0ff`, the three `july-v2-*` tags and `pre-foundations` (A1 done).
 Not pushed:
-- the local `reboot` at `2398b6a` (S2.1–S2.6, Phase 1's P1.2–P1.7, the `g0` merge, the
-  many-markets probe, P2.1.1–P2.1.4, and the `demo-world` merge);
-- this merge, on `merge-p1`;
-- `phase1` (P1.8–P1.14), whose work is in this merge;
-- the local branches `merge-demo`, `demo-world`, `phase2-markets`, `merge-g0`, `g0`,
-  `phase0-s2`, `phase2-probe`, `spine-eyeball` and `reboot-phase0`, whose work is in
-  `reboot`.
+- the local `reboot` at `16eb728` (S2.1–S2.6, Phase 1's P1.2–P1.7, the `g0` merge, the
+  many-markets probe, P2.1.1–P2.1.4, the `demo-world` merge and the `phase1` merge);
+- this merge, on `merge-og-g1`;
+- `oracle-goods` (P1g.1–P1g.7) and `g1` (G1.1–G1.11), whose work is in this merge;
+- the local branches `merge-p1`, `phase1`, `merge-demo`, `demo-world`, `phase2-markets`,
+  `merge-g0`, `g0`, `phase0-s2`, `phase2-probe`, `spine-eyeball` and `reboot-phase0`, whose work
+  is in `reboot`.
 
 ## Decisions — veto window (your one-word calls)
 
@@ -1446,7 +1737,9 @@ carried out): each stands unless vetoed before G0. D10's window closed with sess
 built its items. 41–58 are session 2's. 59–75 are Phase 1's units 1b and 1c.
 76–117 are G0's, numbered 59–100 on `g0` and renumbered after Phase 1's when `g0` was merged
 (n became n + 17). 135–178 are Phase 1's units 1d, 1e and 1f, numbered 76–119 on `phase1` and
-renumbered after the demo's when `phase1` was merged (n became n + 59).
+renumbered after the demo's when `phase1` was merged (n became n + 59). 179–190 are unit 1g's
+(track 1g's range is 179–199) and 200–219 G1's, numbered apart on their branches and merged
+together without renumbering.
 
 1. **Package names and layout.** Each crate is `crates/<short name>`, package
    `rustyecon-<short name>`; the root is a virtual workspace, `members = ["crates/*"]`, resolver
@@ -1937,7 +2230,8 @@ and docs/demo/WORLD.md, carry each; all are open to veto.
      Alternative: a second fix round before the close.
 
 Decisions 135–178 are Phase 1's units 1d, 1e and 1f (2026-09-27), made on branch `phase1`,
-where they were numbered 76–119; this merge renumbered them after the demo's, from n to n + 59,
+where they were numbered 76–119; the `phase1` merge renumbered them after the demo's, from n to
+n + 59,
 and the specs cite them so. Most are the open questions of each spec (1d's §11 Q1–Q12, 1e's §11
 Q1–Q15, 1f's §12 Q1–Q16), which the builds took as their drafts proposed; 160, 161 and 178 came
 from the verifications. Each spec gives the reasoning. All are open to veto; a veto of one means
@@ -2107,6 +2401,95 @@ any engine path.
 189. **O28's cheap survivors get tests** (1g Q11): eight (h8); the rest are carried (O33).
 190. **The test groups are h1-h9** (1g Q12), since "g" is 1a's.
 
+200–219 are G1's (branch `g1`), numbered after 178 and apart from track 1g's 179–199.
+
+200. **The engine re-exports `num` and the tape's raw schema, whole, and `Basis` and `Unit` in
+     its prelude** (G1.1; STATE's next step 4, decisions 96 and 97 carried out). The frontend
+     guard allows exactly these two modules of core, each only as itself; the GUI drops its
+     edge to core. Alternative: a narrower `num` (the logs alone), which would need a list the
+     guard keeps. *Amended at G1.11:* the GUI's scan holds, besides its sources, that neither
+     its manifest (`package = "rustyecon-core"` under any key) nor the lockfile's list of its
+     dependencies gives it core under another name.
+201. **The lab needs no tape and drives no run, and its form is the panels' state** (G1.2): not
+     the model's, which holds runs, and not the session's, so nothing of it persists and no
+     intent reaches `reduce`. Its numbers are origin "oracle" (U3) and are fed to no run (U5).
+     Alternative: the lab's instance in `session.ron`, which a later stage can add.
+202. **A point's fields are read from the oracle's own `Debug`** (G1.2), not from a
+     `Point::outputs()` in the oracle (§7.3): the derived `Debug` names every field and prints
+     every float in round-trip digits, so the lab keeps no copy of the fields and reads them bit
+     for bit (`a_points_fields_are_the_oracles_doubles`), and the oracle is untouched while
+     track 1g edits it. Alternative: `outputs()` on each point type, which the next change to
+     the oracle can add; the lab then reads that instead.
+203. **The presets are the goldens' instances, transcribed from the oracle's gate tests**
+     (G1.2): 16, two to four a unit, each named by its goldens file and prefix. A copy of the
+     instances, not of any equation, held to its goldens by `lab_presets_solve_to_their_goldens`.
+204. **An output pairs with the golden of its own name** (G1.2): `PREFIX_KEY` and
+     `PUB_PREFIX_KEY`, the key upper-cased with `.` read as `_`; a generator's golden agrees
+     within 1e-12 relative, a published one within 5e-6 absolute (the oracle gate's `FULL` and
+     `PUBLISHED`). A golden named otherwise is listed apart, never guessed at, and an instance
+     edited from its preset pairs with none. *Amended at G1.11:* `build_beside` pairs with
+     goldens it is handed, so a test holds a disagreement to being shown as one, either side of
+     each bar.
+205. **Every number of an instance is a knob; its structure is the preset's** (G1.2): counts,
+     access, the exit form's kind, the budget's rule and the basket's kind are not edited. A
+     whole-number knob reads `3` or `3.0`.
+206. **Sweeps run on the UI thread when asked for, and the view-model includes the solves**
+     (G1.2). The gate's measurement is G1 over N, 200 points: well under 16 ms. The heavier units
+     take longer ("Where things stand" records each) and can hold a frame; a worker waits for
+     need.
+207. **The explainer recomputes from the record, and compares bit for bit** (G1.3): p, S, D at
+     the tick and the rate's value at the tick converted by the good's own site, through
+     markets' `imbalance` and `next_price`; beside the run's recorded next price where the
+     catalogue records one, and "not recorded" under the lean catalogue.
+208. **The waterfall is Σ k·x, and the residual is shown, not explained away** (G1.3): over the
+     ticks before the cursor's, a bar a year from two years up; the residual is what the rule's
+     steps do not give (held one-sided ticks, an event's price move, rounding). An event is
+     flagged when it scales this price or sets its rate. Alternative: the rule's own log steps,
+     ln(next/p), which would hide the holds. *Amended at G1.11:* under `Ratio`, which ignores
+     k and holds a one-sided market by the rule, the steps are its own, ln(D/S) where both
+     sides posted, and a rate set flags nothing; the rule is read by the name the tape gives
+     it, since the engine's prelude does not name its type (alternative: `PriceRule` in the
+     prelude, an engine change).
+209. **Breakpoints on an event by key and on a date** (G1.4): after the tick an event fires in,
+     every occurrence; after the tick a date falls in, once, not in a run begun past it; an
+     event before a date in one tick; a key the world lacks is kept (U7) and the log says so.
+     `PauseReason` and `RunStatus` lose `Copy`.
+210. **`session.ron` format 3, reading format 2** (G1.4): the watchlist and the log scales, and
+     the breakpoints' new kinds; a format-2 file reads with none of them. A G0 build sets a
+     format-3 file aside. *Amended at G1.11:* a format-3 file must have `watch` and `log_axes`,
+     as it must `speed`; a format-2 file may have neither, nor an event or date breakpoint,
+     since G0 wrote none.
+211. **The watchlist opens the outliner** (G1.4; §4's "Outliner: G1 watchlist"): by key, the
+     value at the cursor and the change from the tick before.
+212. **Log axes per unit, as ln v through `num`, labelled by v** (G1.4): a value v ≤ 0 splits
+     the line; D2's "no log axes" is lifted. `every_drawn_vertex_is_recorded` holds a log
+     panel's vertices to ln of the record.
+213. **Snapshots say never citable in the picture and in the file** (G1.5): a banner painted
+     while the picture is taken, tEXt chunks, `snapshots/` beside the session, never over a file;
+     `png =0.18.1`, already in the lockfile. With no session directory there is nowhere to write.
+214. **Other charts paint in colours of their own** (G1.4), so the plots' tests, which find the
+     plots by their palette and their axes, stay exact. The lab's field over x names its field
+     on a rotated y label (this said none until G1.11); it is drawn on the Lab tab, which the
+     default layout shows in place of the plots, never beside them. *Amended at G1.11:* they
+     record what they lend egui (`ui::charts`), and the scripts hold it to the view-models and
+     to what was painted.
+215. **O26's map items, by tests that read what was painted** (G1.6): the credit wraps; the eight
+     surviving mutants are killed. The clock and two of the three layout notes are O39's; the
+     third, the chip on a narrow window, is closed (G1.9, and G1.11 on the demo world).
+216. **O20's scan escapes closed** (G1.7): a group's branches each have their root, and a root's
+     alias is a root. The rest of O20 stays (O36). *Amended at G1.11:* an `extern crate` alias
+     is a root too, and a `path` attribute and `include!` are refused in the egui-free and pure
+     modules.
+217. **What G0 moved to G1 waits for a G1 second part** (O36): overlay, difference and ratio
+     against a parent; re-making branches at launch; the registry's and the inspector's ways into
+     the editor; a lock on `session.ron`. §9's list came first, as the task set it.
+218. **G1's bounded verification ran once, and each finding is fixed by a test that fails without
+     its fix** (G1.11; O37). At G1.10 none had run. One adversarial pass found six major and
+     four minor issues and no wrong number; the fixes' mutants are all killed. A re-check of
+     the fixes, as G0's steps had, is O37's.
+219. **The window's p90 frame under 16 ms stays yours, checked by hand** (§9), with the smoke
+     mode's figures beside it.
+
 ## Open — your calls
 
 - **The GUI's decisions**, 22–34 (D1–D13): G0 carried them out, none vetoed; a veto now reopens
@@ -2150,25 +2533,60 @@ any engine path.
 - **Decisions 124–134** (the demo world and its map, branch `demo-world`), open to veto. The
   ones that shape later work: Northern Ireland in the atlas (125), the base county's departure
   from Appendix B (126), and the lens measures in worldgen until observe (128).
-- **The demo map's window check, by hand** (the command is in "Where things stand", under "The
-  demo world and its map are closed"): the map opens `tapes/demo-gb.ron` paused at 1750, runs
-  to 1901 and recolours, the lenses switch, and hover and click work. The smoke mode ran it on
-  Windows, and two screenshots are in `docs/demo/`; nobody has looked at the window. If it fails
-  your look, a D.6 fixes it on top of `reboot`'s line.
-- **The G0 gate's window check, by hand** (the command is in "Where things stand", under "G0
-  is closed"): the window opens `tapes/gate.ron` and runs to 2,080 with every price plotted
-  and no panic. The smoke mode ran it on Windows; nobody has looked at it. `g0` proposed
-  merging after your look; the merge came first, so if the window fails your look, the G0.4
-  that fixes it (decision 114) lands on top of `reboot`'s line, before G1.
+- **Three windows to check by hand, all PENDING, yours.** Each ran headless or in the smoke
+  mode on Windows; nobody has looked at any of them. On Windows, from the repository once this
+  merge is in `reboot` (or from `merge-og-g1`), in PowerShell:
+  - *The G0 gate's window* (G0's gate; how to try the editor is under "G0 is closed" in "Where
+    things stand"):
+
+    ```powershell
+    $env:CARGO_TARGET_DIR = 'D:/rustyecon-targets/g0-hand'
+    cargo run --release -p rustyecon-gui -- tapes/gate.ron
+    ```
+
+    Type `2080` in "until" and press "Run until": every price is plotted, the run reaches tick
+    2,080, and nothing panics. `g0` proposed merging after your look; the merge came first, so
+    if the window fails your look, the G0.4 that fixes it (decision 114) lands on top of
+    `reboot`'s line.
+  - *The demo's map* (under "The demo world and its map are closed" in "Where things stand"):
+
+    ```powershell
+    $env:CARGO_TARGET_DIR = 'D:/rustyecon-targets/demo-hand'
+    cargo run --release -p rustyecon-gui -- tapes/demo-gb.ron
+    ```
+
+    The map opens paused at 1750, runs to 1901 and recolours on Space, the lenses switch on `[`
+    and `]`, and hover and click work; two screenshots are in `docs/demo/`. If it fails your
+    look, a D.6 fixes it on top of `reboot`'s line.
+  - *G1's window frame time* (G1's gate: the window's p90 frame under 16 ms; the four steps to
+    take are under "G1, the oracle lab, is built" in "Where things stand"):
+
+    ```powershell
+    $env:CARGO_TARGET_DIR = 'D:/rustyecon-targets/g1-hand'
+    cargo run --release -p rustyecon-gui -- tapes/gate.ron
+    ```
+
+    The frame stays smooth with the lab solving and sweeping, the explainer and its waterfall,
+    a log panel and a breakpoint in use, and a snapshot's PNG carries its banner. The smoke
+    mode's p90 was 1.22 and 1.78 ms running. If it fails your look, a G1.12 fixes it on top of
+    `reboot`'s line.
+- **Decisions 179–190** (unit 1g's, track 1g), open to veto. The ones that bind Phase 2: 179,
+  decision 67 reworded (D-G1: machines are durable goods built from and run on goods, never
+  from a category, E1), and 186, E2 enforced and G1 not approximated (hearth coal and carters'
+  fodder wait for G1). 180 (D-G10) amends 71 and keeps every result of 1c bit for bit; 181, the
+  mapping per period in the oracle, leaves where tapes are built to O32.
+- **Decisions 200–219** (G1's, branch `g1`), open to veto. The ones that shape later work: the
+  lab's form outside the model and the session (201), the fields read from the oracle's `Debug`
+  rather than a `Point::outputs()` in the oracle (202), goldens paired by name (204), the
+  breakpoints' semantics (209), and G0's leftovers deferred to a G1 second part (217).
 - **Landing the branches.** `phase0-s2`, `phase1`'s P1.2–P1.7, the `g0` merge (`708167f`),
-  `phase2-markets` (P2.1.1–P2.1.4, `b2a55e3`) and the `demo-world` merge (`2398b6a`) are in the
-  local `reboot` by fast-forwards. `phase1`'s P1.8–P1.14 are merged by this commit, on
-  `merge-p1`: while `reboot` stays at `2398b6a`, it takes the merge by a fast-forward. Its
-  decisions and open items are renumbered after 134 and O27, as the `demo-world` merge
-  renumbered the demo's and the `g0` merge G0's.
-- **Pushing `reboot`** (locally at `2398b6a`, with session 2, Phase 1's units 1b and 1c, G0, the
-  many-markets probe and the demo world; `origin/reboot` is at `cf3c0ff`), and this merge once
-  it has landed.
+  `phase2-markets` (P2.1.1–P2.1.4, `b2a55e3`), the `demo-world` merge (`2398b6a`) and the
+  `phase1` merge (`16eb728`) are in the local `reboot` by fast-forwards. `oracle-goods`
+  (P1g.1–P1g.7) and `g1` (G1.1–G1.11) are merged by this commit, on `merge-og-g1`: while `reboot`
+  stays at `16eb728`, it takes the merge by a fast-forward. Nothing is renumbered: the two
+  tracks numbered apart (179–199 and O31–O35; 200–219 and O36–O40).
+- **Pushing `reboot`** (locally at `16eb728`, with session 2, Phase 1, G0, the many-markets probe
+  and the demo world; `origin/reboot` is at `cf3c0ff`), and this merge once it has landed.
 - **The Phase 2 session budget** that A11's kill condition needs (PLAN Phase 2), now for Phase 2
   proper's other instances.
 - **The decisions above**, especially 10 (the engine crate, not in PLAN's crate list), 11, 15
@@ -2181,11 +2599,13 @@ any engine path.
   the Runner and `ThreadDriver`, the Extractor, the store and the ring; the toolbar, timeline,
   outliner, plots, inspector, registry and log, the goldens, the kittest scripts and the smoke
   mode) and G0.2 the editor (`materialise`, the lineage, branches, compare and export), each
-  verified and fixed. Its window check by hand is yours. G1, the oracle lab, may start now that
-  G0 and Phase 1's gate are both met, and takes O20 first, with what G0 moved to it: the
-  plots' overlay, difference and ratio against a parent; re-making branches at launch; the
-  registry's and the inspector's ways into the editor; a lock on `session.ron`; log axes, the
-  watchlist, and event and date breakpoints. `crates/engine` was built for it: a frontend
+  verified and fixed. Its window check by hand is yours. G1, the oracle lab, is built on branch
+  `g1` (G1.1–G1.10, 2026-09-27; "Where things stand"): the lab, a field over x, sweeps, the
+  price-step explainer and the log waterfall, log axes, the watchlist, event and date
+  breakpoints and PNG snapshots, with the engine's re-exports (the GUI's edge to core is gone),
+  O26's map items and O20's scan escapes; verified once and its findings fixed at G1.11. Its
+  window's p90 by hand is yours; what G0 moved to it and it did not build is O36, and a
+  re-check of its fixes O37. `crates/engine` was built for it: a frontend
   depends on the engine alone, steps a `Sim` on a worker thread and reads each `TickReport` over
   a channel. Session 2 gave it what §7.2 asked: `FiredEvent.source`, the registry's sites with
   their methods, a `world_id` that a new source event keeps, and from certify `RunKey`,
@@ -2280,8 +2700,9 @@ when its fix is reverted, checked by mutation (the review's own mutants among th
   two mutants of P1.6's count, equivalent on every economy the gate can build (unit-1c.md §12
   items 12 and 17). A change to those lines should look at them again.
 - **O20. What G0's two re-checks left** (decision 116; GUI.md, closed at G0.3, item 5). Each
-  re-check found the fixes in place; these are left, none of them a gate item. G1 takes them
-  first, each with a test that fails without its fix:
+  re-check found the fixes in place; these are left, none of them a gate item. G1 takes them,
+  each with a test that fails without its fix. G1.7 closed the first item's two scan escapes;
+  the rest is O36's:
   - *G0.1's re-check, on `2cced21`* (`D:/rustyecon-g0/verify-G01-*-r2/`). Two ways past the
     no-egui scan survive: a reach into `ui` through a renamed crate root (`use crate as g;`
     then `g::ui::…`), and a `use` group whose first root is another crate (`use {std::fmt as
@@ -2355,7 +2776,9 @@ when its fix is reverted, checked by mutation (the review's own mutants among th
 - **O26. What D.4's re-check left** (decision 134; GUI.md, "The map and lenses, brought
   forward", items 8 and 9). The re-check (`D:/rustyecon-demo/verify-map-r2/`,
   `verify-world-r2/`) found D.4's fixes in place, and 17 of its 25 mutants of the map were
-  killed. The demo's next pass takes these first, each with a test that fails without its fix:
+  killed. G1.6 (branch `g1`) took the first two items: the eight mutants are killed and the
+  credit wraps, each by a test that fails without it (decision 215). The clock and the layout
+  notes are O39's, for the demo's next pass:
   - *Eight mutants of the map survive* (`verify-map-r2/mutate.py`, `mutations.txt`):
     - V7, the county card's value read a tick early;
     - V8, the card's change lens read against the cursor instead of genesis;
@@ -2491,6 +2914,84 @@ when its fix is reverted, checked by mutation (the review's own mutants among th
   exactly the fixed items (the four new tests, P2's steps and the reworded notes) is not done. It
   should come before Phase 2 compares agents against the goods chain.
 
+O36–O40 are G1's (branch `g1`), numbered after O30 and apart from track 1g's O31–O35.
+
+- **O36. What G0 moved to G1 that G1 did not build** (decision 217; GUI.md, the block "Amended
+  at G1", item 15). The plots' overlay, difference and ratio against a parent (decision 106);
+  re-making branches at launch, with §5.1 item 7's refusal of a base whose hash changed (107);
+  the registry's and the inspector's ways into the editor (103); a lock on `session.ron`, so two
+  windows cannot share a serial (110). And O20 but for its first item's two scan escapes
+  (closed at G1.7): the three plot mutants that `every_drawn_vertex_is_recorded` misses (a y
+  changed only where a line is lent, and a segment's last vertex dropped from record and line),
+  G0.2's five surviving mutants of compare and the ancestor, and its two edge cases of
+  provenance. A G1 second part takes them, each with a test that fails without it. One limit
+  of any token scan stays (G1.11): a macro exported from `ui/` and invoked in `vm/` is not
+  followed; `crates/observe` at G2, with no egui dependency, closes it by type.
+- **O37. G1's verification: the re-check** (decision 218). One bounded verification ran over
+  G1.1–G1.10 (`D:/rustyecon-verify/g1-r1/`), and G1.11 fixed what it found. It covered the
+  presets and their goldens (every paired output within 8.5e-16), the `Debug` reader on every
+  point type (every number token read), the knobs against the parameter types, the explainer
+  under a rate change, a shock, `Ratio` and `Saturate`, the session's formats, and 44 mutants.
+  Left: a re-check of G1.11's fixes; the waterfall at a run resumed from a ring checkpoint (its
+  p₀ is the record's first tick, not genesis); breakpoints under a branch that resumes past a
+  date; and a golden named after another output's key (O38), which pairing by name would take
+  for that output's. *Amended at the merge of `g1` (2026-09-28):* the re-check ran after
+  G1.11, on clones of `3d1ad6f` (`D:/rustyecon-verify/g1-r2/`, `mutate.py` and
+  `mutations.txt`; the GUI's whole suite in release per mutant on Windows, 117 passing at
+  baseline). The 19 mutants of round 1 that had survived, re-aimed where G1.11 moved their
+  code, are all killed, each by a test G1.11 added or extended. Of its 22 new mutants and
+  probes, two are killed (a flag painted the wrong way, a log step inverted) and one is not a
+  probe (cargo refuses a second name for egui). It found no wrong number, and it left five
+  majors open:
+  - *painted values that no test reads back.* The lab's count of agreeing outputs, its "at x\*"
+    note and an unpaired golden's text (LM1, LM6, LM7); a sweep's gaps bridged (LP1); the
+    explainer's next-price, ln(next/p) and rate rows and its one-side note (EM1–EM3, EM5); and the
+    waterfall's event colours, its count of moving events and its one-sided count (EW1, EW2,
+    EW4) each survive: the scripts hold the charts, the headline figures and the verdict to
+    their view-models, but not every row of text. And a golden of 0.0 (3 of the 216 paired
+    cells: G5 flow's interest and capital share, K1's plot rent) takes the relative
+    difference's zero branch, which a mutant can make always agree (L6b);
+  - *five more ways past the no-egui and reach scans*, each a file in `vm/` naming
+    `ui::layout::Pane`: an alias of an alias (`use crate as g; use g as h;`, Z4),
+    `self::super::super` as a root (Z5), a group's `self` alias (`use crate::{self as g};`,
+    Z8), a re-export at the crate root (`pub use ui::layout as lay;` in `lib.rs`, Z9), and a
+    root alias exported by another module (`pub use crate as root;` in `vm/mod.rs`, Z11).
+    Besides them, a path built from a `macro_rules!` argument (Z6) is the macro limit above
+    (O36), and egui's colour crate under a second name in the manifest (`paint = { package =
+    "ecolor" }`, Z7b) is not refused, as a renamed core is.
+  Each wants a test that fails without its fix; G1's second part (O36) takes them, before G2.
+- **O38. The lab's copies of the oracle** (decisions 202–204). The presets build the oracle's
+  parameter types as struct literals (`MachineType`, `Recipe`, `WorkerType`, `Category`,
+  `Parcel`, `PricedExit`, `Params`) and read `Eq1d::margin`, `Eq1e::land_market` and
+  `exit_land` by name. Track 1g's addendum, or any change to those types, breaks the GUI's build
+  where it adds a field, and the merge that brings it fixes the presets;
+  `lab_presets_solve_to_their_goldens` then says whether each is still its golden's economy.
+  Goldens are paired by name only: a generator that names a golden after another output's key
+  pairs them, which O37's pass should look for. *Amended at the merge of `g1` (2026-09-28):*
+  track 1g changed none of these types, fields or names (it added `goods.rs` and `plants.rs`
+  and changed `MachineBlock::new`'s validation, D-G10), so the presets build unchanged and
+  `lab_presets_solve_to_their_goldens` passes on all 16. The lab does not show unit 1g, and
+  adding it is not a merge's change: a chain is a `GoodsChain` keyed by strings and a plant
+  economy a `PlantEconomy` over `MachineParams`, whose equilibria (`ChainEq`, `PlantEq`) read
+  out per good, machine and plant and have no `outputs()`, and whose 210 goldens
+  (`goldens_1g.txt`) are named per good (`S1_COAL_PRICE`). A 1g unit in the lab needs presets
+  transcribed from 1g's gate support (S1, S2, S2H, A0, the horse, L2's plants), knobs by good,
+  a readout per good, machine and plant, pairing by those names, and a `Debug` reader check on
+  their points. The cheapest first step is a preset per chain built through
+  `GoodsChain::to_machine_params` and shown under unit 1c, without the goods' readouts. G1's
+  second part (O36) takes it.
+- **O39. O26's remainder** (decision 215). The demo compiler holds the dials to C2 but not the
+  clock to 52 ticks a year; at 4 a year the tape runs to 46,548 dead county-ticks. And two of the
+  close's three layout notes: the legend and the credit cover Cornwall at the fitted view, and
+  the ranked table's value column is cut under a long lens name. The third, the health chip
+  wrapped on a narrow window, is closed: G1.9 keeps a chip whole, and G1.11's toolbar test
+  opens the demo world at 1,600 and 1,024 points, the chip in one or two lines. The demo's next
+  pass (O27) takes the rest.
+- **O40. What no headless test reaches** (decisions 206, 213). A snapshot's picture comes from
+  the renderer, which kittest's harness does not have; the test hands the app a picture. The
+  lab's sweeps of the heavier units (1e and 1f scan their paths) run on the UI thread and can
+  hold a frame. Both are for the window check by hand; a sweep worker waits for need.
+
 ## Corrections logged (A3; ADDENDUM §1.4)
 
 REVIEW.md is kept as written; these of its claims do not hold.
@@ -2514,54 +3015,63 @@ REVIEW.md is kept as written; these of its claims do not hold.
 ## Next steps, in order
 
 G0 is closed but for your look at its window, and the demo world but for your look at its map.
-The many-markets probe is closed, and Phase 1 is closed (O3) and merged by this commit, so G1,
-the oracle lab, is unblocked. What follows joins both lines' lists. Steps 5 and 6 build on the
-goods chain's design evidence, which is outside the repository ("Where things stand"), and each
-needs your rulings first.
+The many-markets probe is closed, Phase 1 is closed (O3) and merged at `16eb728`, and unit 1g
+and G1, the oracle lab, are merged by this commit, G1 but for its window check by hand. What
+follows joins the lines' lists. Steps 5 and 6 build on the goods chain's design evidence, which
+is outside the repository ("Where things stand"), and each needs your rulings first.
 
 1. **Your look at the window**, the G0 gate's item checked by hand (the command is under "G0
    is closed" in "Where things stand", with how to try the editor). G0 is otherwise closed
    (G0.3, 2026-09-27; O1). If the window fails, a G0.4 fixes it first (decision 114), on top of
-   `reboot`'s line, before G1.
+   `reboot`'s line.
 2. **Your look at the demo's map** (the command is under "The demo world and its map are
    closed" in "Where things stand"). If it fails your look, a D.6 fixes it first, on top of
    `reboot`'s line.
-3. **G1, the oracle lab** (GUI.md §9; PLAN Phase 1's GUI line), now that G0 and Phase 1's gate
-   are both met. It starts with O20, then what G0 moved to it: the plots' overlay, difference
-   and ratio against a parent, re-making branches at launch, the registry's and the
-   inspector's ways into the editor, a lock on `session.ron` (decisions 106, 107, 103, 110).
-   Then its own scope: the lab, which shows an instance's regime and outputs beside their
-   goldens, any field over x, one-parameter sweeps, the price-step explainer and the log
-   waterfall; log axes, the watchlist, and event and date breakpoints. With 1d–1f the lab has
-   the path's margins to show (the line, the wall, the all-human corner, idle land), worker
-   types, parcels, the two exit forms and a government.
-4. **At the next engine step, the engine re-exports `num`** (decision 96), and the tape's raw
-   entry types, `Basis` and `Unit` (decision 97), so the GUI's edge to core goes and core's
-   writer is out of its reach by type again. `scripts/gate.sh`'s check of the GUI then says
-   whether the GUI still builds; a break is fixed at G1 at the latest (D1).
+3. **G1: your look at its window, then its remainder and its re-check's findings** (GUI.md §9,
+   the block "Amended at G1"; decisions 200–219). The lab, a field over x, sweeps, the explainer
+   and the waterfall, log axes, the watchlist, event and date breakpoints and PNG snapshots are
+   built (G1.1–G1.10), verified once and fixed (G1.11), and merged by this commit, every gate
+   item met but the window's p90 by hand (the command is in "Open — your calls", and under "G1,
+   the oracle lab, is built" in "Where things stand"). If the window fails your look, a G1.12
+   fixes it first, on top of `reboot`'s line. Then a G1 second part takes what G0 moved to it
+   (O36: overlay, difference and ratio against a parent, re-making branches at launch, the ways
+   into the editor, a lock on `session.ron`, and the rest of O20), the five majors the re-check
+   of G1.11 left (O37: painted values not read back, and five more ways past the scans), and
+   unit 1g in the lab (O38), each with a test that fails without it, before G2.
+4. **The engine re-exports `num`, the tape's raw schema, `Basis` and `Unit`: done at G1.1**
+   (decision 200; ENGINE, amended at G1.1). The GUI's edge to core is gone, and
+   `scripts/gate.sh`'s check of the GUI builds.
 5. **The oracle's addendum for machines built from goods** (GOODS-CHAIN §2): **built** as unit
-   1g on branch `oracle-goods` (P1g.1-P1g.7, "Where things stand"), verified with one fix round
-   (P1g.6), not merged. What is left: your rulings on decisions 179 (67 reworded, D-G1) and 180
-   (D-G10), and on 181-190; the re-check of the fixed items (O35); the merge into `reboot`, whose
-   only other change to `crates/oracle` would be track G1's, if any; the mapping's call where
-   tapes are built (O32); and the rest of the addendum when its instances need it (O31). Machine
-   recipes stay on pool labour (decision 140).
-6. **The goods chain, with a plant stock as its loop damper** (GOODS-CHAIN §3–§6; CAPACITY.md,
-   in place of LOOPS.md's diminishing returns, which stay the registered alternative). First
-   the mirror's own next step, in Python: a material market, the fodder–horse-days loop with
-   stocks, build lags and interest, with the plant on both sides of every loop at θ 0.8 and
-   δ 10% a year under C2g. Then two registered probes on the engine: machine stocks without
-   loops (P2.2a), and the loops (P2.2b). The engine needs a plant good for each loop desk, held
-   and never traded (D-G2's `Indefinite` good, worn by `Depreciation` burns), the form
-   y = K^(1−θ)·z^θ, and a plan that reads only the desk's own coin, plant and recipe and the
-   posted prices (R13); at θ = 1 it must be the flow run bit for bit. The oracle needs no new
-   solve at ρ = 0, only closed-form readouts per plant desk (K\*, V and the user cost). Loops in
-   Phase 2 need your ruling against decision 120, and machine stocks brought forward from Phase
-   3 your ruling on D-G11.
+   1g (P1g.1–P1g.7, "Where things stand"), verified with one fix round (P1g.6), and merged by
+   this commit. What is left: your rulings on decisions 179 (67 reworded, D-G1) and 180
+   (D-G10), and on 181–190; the re-check of the fixed items (O35), before Phase 2 compares
+   agents against the goods chain; the mapping's call where tapes are built (O32); and the rest
+   of the addendum when its instances need it (O31). Machine recipes stay on pool labour
+   (decision 140).
+6. **The goods chain in the engine, the horse economy first, with a plant stock as its loop
+   damper** (GOODS-CHAIN §3–§6, staged as its §5 and §6 set out; CAPACITY.md, in place of
+   LOOPS.md's diminishing returns, which stay the registered alternative). First the mirror's
+   own next step, in Python (GOODS-CHAIN §6 step 3): a material market, the fodder–horse-days
+   loop with stocks, build lags and interest, with the plant on both sides of every loop at
+   θ 0.8 and δ 10% a year under C2g, its predictions registered. Then, on the engine, the horse
+   economy: GOODS-CHAIN's rule A (stage v2a.1), A0's economy with the horse held as a stock and
+   rented out wet, fodder from land alone, so no loop, in a registered probe of machine stocks
+   without loops (P2.2a, with S1 without its pumping loop). Its oracle is 1c with D-G10 and the
+   mapping, now built: 1g's A0 at 52 ticks a year and CHAIN's horse at weekly periods are
+   goldens, and the tape's goods need O32's schema and builder. Then the loops (P2.2b): rule
+   B's horse, fodder raised with horse-days, with CAPACITY.md's plant on every loop desk, both
+   sides: a plant good for each loop desk, held and never traded (D-G2's `Indefinite` good, worn
+   by `Depreciation` burns), s1 bundles of the desk's own recipe per plant unit, ordered by
+   M3's rule with s_K = 2δ, the form y = K^(1−θ)·z^θ, and a plan that reads only the desk's own
+   coin, plant and recipe and the posted prices (R13); at θ = 1 it must be the flow run bit for
+   bit. The oracle needs no new solve at ρ = 0, only closed-form readouts per plant desk (K\*,
+   V and the user cost), which 1g's plants give (decision 184). Loops in Phase 2 need your
+   ruling against decision 120, and machine stocks brought forward from Phase 3 your ruling on
+   D-G11.
 7. **Phase 2 proper** (PLAN Phase 2), after your rulings on the decisions that bind it: 61, 67
    and 70 from 1b and 1c, 118–123 from the markets probe, and 135, 137, 139, 140, 147, 149, 151,
-   153–155, 158, 160–162, 164, 165, 167–169 and 173 from 1d–1f. The markets probe recommends
-   keeping 67 and 70 (MARKETS §6). It opens on loop-free wall and commons instances, which need
+   153–155, 158, 160–162, 164, 165, 167–169 and 173 from 1d–1f, and 179 and 186 from 1g for the
+   goods chain's instances. The markets probe recommends keeping 67 and 70 (MARKETS §6). It opens on loop-free wall and commons instances, which need
    neither step 5 nor step 6, with the markets probe's roles, the `probe::markets` harness and
    C2m at 52 ticks a year (decisions 119–121): beside the Appendix B instance (1a), a
    wall-regime instance, a solved wall (1d; decision 137), and an open-commons instance under
@@ -2592,13 +3102,14 @@ STATE.md                 you are here; start here next session
 README.md                what rustyecon is, the crates, how to build and test
 docs/PLAN.md             the plan, amended by the addendum's rulings (2026-09-25) and decision 39
 docs/ENGINE.md           the Phase 0 engine contract, with each step's amendments (P0.3–G0.3,
-                         P2.1.1, D.2)
+                         P2.1.1, D.2, G1.1)
 docs/CERTIFY.md          session 2's contract: criteria, batteries, kick, seal, manifest, cli,
                          telemetry, with each step's amendments (S2.2–S2.6)
 docs/TAPE.md             the tape's schema guide
 docs/GUI.md              the GUI's design (A14): stack, architecture, panels, editor, map, roadmap;
                          amended at G0.1, in its two parts, and at G0.2; closed at G0.3; the map
-                         and lenses brought forward at D.3–D.5 (branch demo-world)
+                         and lenses brought forward at D.3–D.5 (branch demo-world); amended at
+                         G1 and after its verification (G1.10, G1.11)
 docs/demo/WORLD.md       the illustrative demo world: its tables, history, lenses, compiler, run
 docs/demo/*.png          two screenshots of the demo's map, rendered headlessly (D.5)
 docs/reboot/             REVIEW.md and ADDENDUM.md, kept as written (links fixed) but for A14 and
@@ -2629,7 +3140,11 @@ crates/worldgen          the atlas's loader (D.1), the demo world's compiler (D.
                          measures (D.3); Phase 4's research compiler later
 crates/gui               the GUI (G0.1, G0.2): model/, run/, edit/, vm/, drive/, platform/, ui/,
                          app.rs, the binary rustyecon-gui; its tests run under scripts/gui.sh
-                         only (D1); the map pane and lenses since D.3 (ui/map.rs, vm/map.rs)
+                         only (D1); the map pane and lenses since D.3 (ui/map.rs, vm/map.rs);
+                         the oracle lab since G1 (lab/, vm/lab.rs, ui/lab.rs), the price-step
+                         explainer (vm/pricestep.rs), the watchlist (vm/watch.rs), snapshots
+                         (platform/snapshot.rs), and what the other charts lend egui
+                         (ui/charts.rs; tests/common/paint.rs reads it back, G1.11)
 crates/gui/tests/golden  the view-model goldens, one RON file per builder and point
                          (UPDATE_GOLDEN=1 rewrites them)
 tapes/gate.ron           the gate world
@@ -2648,7 +3163,9 @@ scripts/gate.sh          the gate as one script; the GUI excluded, checked once 
                          derive.py --check and the demo's long run by name (D.2)
 scripts/gui.sh           the GUI's gate, run at each G-stage (G0.1); diffs the editor's branch
                          tapes against the cli too (G0.2); names 42 tests (G0.3), 55 with the
-                         map's and the demo tape's hashes (D.3, D.4)
+                         map's and the demo tape's hashes (D.3, D.4), 75 with G1's, 87 after
+                         its verification (G1.11), and runs G1's sweep measurement by name on
+                         Linux
 .github/workflows/ci.yml hosted CI, on every push
 ```
 
@@ -2702,6 +3219,20 @@ scripts/gui.sh           the GUI's gate, run at each G-stage (G0.1); diffs the e
   (`/mnt/d/rustyecon-wt/merge-p1` in WSL), on branch `merge-p1`, with both gates' targets
   `/root/scratch/target-merge-p1` and `D:/rustyecon-targets/merge-p1` (the engine gate's GUI
   check in `…-gui` beside them) and its logs in `D:/rustyecon-merge-p1/`.
+- The `oracle-goods` and `g1` merge ran from a worktree, `D:/rustyecon-wt/merge-og-g1`
+  (`/mnt/d/rustyecon-wt/merge-og-g1` in WSL), on branch `merge-og-g1`, with both gates'
+  targets `/root/scratch/target-merge-og-g1` and `D:/rustyecon-targets/merge-og-g1` (the engine
+  gate's GUI check in `…-gui` beside them), its logs, the generators' and the cross-machine
+  hashes in `D:/rustyecon-merge-og-g1/`, and the runners `run-wsl.sh` and `run-win.sh` there.
+- G1 ran from a worktree, `D:/rustyecon-wt/g1` (`/mnt/d/rustyecon-wt/g1` in WSL), on branch
+  `g1`, with targets `/root/scratch/target-g1` and `D:/rustyecon-targets/g1` (the engine gate's
+  GUI check in `…-gui` beside them), and its gate logs in `D:/rustyecon-g1/gates/`. The ignored
+  measurements run by name: `cargo test --release -p rustyecon-gui --test lab -- --ignored
+  --nocapture`. G1's verification is in `D:/rustyecon-verify/g1-r1/`; G1.11's mutants run from
+  `D:/rustyecon-g1/fix-r1/`: `mutate.py ROOT CARGO_WRAPPER LOGDIR [NAME…]` on a clone with the
+  fixes committed locally (`mut/` in WSL through `c-wsl.sh`, `mutw/` on Windows through
+  `c-win.sh` with laborformal's venv python and `BASH_EXE` set to Git's bash); it restores the
+  clone with git after each.
 - The goods chain's design evidence is outside the repository: `D:/rustyecon-goods/`
   (GOODS-CHAIN.md over its `oracle/`, `agents/`, `chain/` and `synthesis/` passes) and
   `D:/rustyecon-loops/` (LOOPS.md over `diminishing/`, `buffers/`, `planning/` and

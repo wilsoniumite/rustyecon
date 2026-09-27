@@ -19,8 +19,33 @@ use rustyecon_gui::drive::Driver;
 use rustyecon_gui::run::{Breakpoint, Catalogue, Cmd, Obs, PauseReason, Store};
 use std::time::Duration;
 
+/// The event and date breakpoints the script sets once it is past `from`, with the state tick
+/// each pauses at, in order: the gate's `mine.cut` (in any tape that has it, and fires after
+/// `from`), and the date of the tick three quarters of the way to `until` (G1).
+fn breakpoints_after(t: &Tape, from: u64, until: u64) -> Vec<(u64, Breakpoint)> {
+    let clock = Clock {
+        start: t.header.start,
+        ticks_per_year: t.header.ticks_per_year,
+    };
+    let mut out = Vec::new();
+    for e in &t.events {
+        if e.key.as_str() == "mine.cut" {
+            let tick = clock.tick_of(e.at).expect("a tick");
+            if tick >= from {
+                out.push((tick + 1, Breakpoint::OnEvent(e.key.clone())));
+            }
+        }
+    }
+    let date = clock.date_of(until * 3 / 4).expect("a date");
+    let tick = clock.tick_of(date).expect("a tick");
+    out.push((tick + 1, Breakpoint::OnDate(date)));
+    out.sort();
+    out
+}
+
 /// Run `t` through a `ThreadDriver` by a fixed script of pauses, speed caps, steps of 1 and 7,
-/// run-untils, snapshots and the breakpoint on error, to `until`; every observation, in order.
+/// run-untils, snapshots, the breakpoint on error, and event and date breakpoints (G1), to
+/// `until`; every observation, in order.
 fn scripted(t: &Tape, until: u64) -> Vec<Obs> {
     let mut d = driver();
     let mut log = Vec::new();
@@ -74,6 +99,19 @@ fn scripted(t: &Tape, until: u64) -> Vec<Obs> {
         wait_paused(&mut d, &mut log),
         (at + 21, PauseReason::Reached(at))
     );
+    // G1: an event and a date breakpoint; each pauses the run after its tick, and a run on
+    // goes on to the next, then to the end.
+    let expect = breakpoints_after(t, at + 21, until);
+    let mut bps = vec![Breakpoint::OnError];
+    bps.extend(expect.iter().map(|(_, b)| b.clone()));
+    d.send(Cmd::Breakpoints(bps));
+    for (tick, b) in expect {
+        d.send(run(Some(until), None));
+        assert_eq!(
+            wait_paused(&mut d, &mut log),
+            (tick, PauseReason::Breakpoint(b))
+        );
+    }
     d.send(run(Some(until), None));
     assert_eq!(
         wait_paused(&mut d, &mut log),
@@ -107,15 +145,29 @@ fn check(name: &str, text: &str, until: u64) {
     assert_eq!(got, reference, "{name}: the GUI's hashes are the engine's");
     assert_eq!(store.hashes(), reference.as_slice());
     assert_eq!(store.hash(), reference[reference.len() - 1]);
-    // No failure, and the breakpoint never fired.
+    // No failure, and the breakpoint on error never fired; the event and date breakpoints
+    // paused the run where they should and changed no hash.
     assert!(store.failure().is_none());
     assert!(!log.iter().any(|o| matches!(
         o,
         Obs::Paused {
-            why: PauseReason::Breakpoint(_),
+            why: PauseReason::Breakpoint(Breakpoint::OnError),
             ..
         }
     )));
+    let hits = log
+        .iter()
+        .filter(|o| {
+            matches!(
+                o,
+                Obs::Paused {
+                    why: PauseReason::Breakpoint(_),
+                    ..
+                }
+            )
+        })
+        .count();
+    assert!(hits >= 1, "{name}: a date breakpoint paused the run");
     // The snapshots equal the state at their ticks.
     for tick in [300, 250] {
         let snap = store.snapshot(tick).expect("the snapshot arrived");

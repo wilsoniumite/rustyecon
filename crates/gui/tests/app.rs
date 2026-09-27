@@ -35,9 +35,10 @@ use rustyecon_gui::edit::{lineage_path, Lineage};
 use rustyecon_gui::model::{Intent, Model};
 use rustyecon_gui::platform::Files;
 use rustyecon_gui::run::{
-    At, Entity, LedgerCheck, Measure, Origin, PauseReason, RunId, RunStatus, Series, SeriesKey,
-    Store,
+    At, Breakpoint, Entity, LedgerCheck, Measure, Origin, PauseReason, RunId, RunStatus, Series,
+    SeriesKey, Store,
 };
+use rustyecon_gui::ui::charts::{Chart, Lent};
 use rustyecon_gui::ui::fmt;
 use rustyecon_gui::ui::plots::{DrawnLine, PALETTE};
 use std::collections::BTreeSet;
@@ -760,6 +761,14 @@ fn check_drawn(store: &Store, lines: &[DrawnLine]) -> usize {
     let mut n = 0;
     for l in lines {
         let s = store.series(&l.key).expect("a drawn series is recorded");
+        // On a log scale each y lent is ln of the recorded value, through the engine's num.
+        let shown = |v: f64| {
+            if l.log {
+                rustyecon_engine::num::ln(v)
+            } else {
+                v
+            }
+        };
         let mut all: Vec<[f64; 2]> = Vec::new();
         for seg in &l.segments {
             assert!(!seg.is_empty(), "{}: an empty segment", l.key);
@@ -767,7 +776,7 @@ fn check_drawn(store: &Store, lines: &[DrawnLine]) -> usize {
                 assert!(x >= 0.0 && x.fract() == 0.0, "{}: x {x} is no tick", l.key);
                 let t = x as u64;
                 assert_eq!(
-                    s.at(t).map(f64::to_bits),
+                    s.at(t).map(|v| shown(v).to_bits()),
                     Some(y.to_bits()),
                     "{}: the vertex ({t}, {y}) is not recorded",
                     l.key
@@ -789,8 +798,8 @@ fn check_drawn(store: &Store, lines: &[DrawnLine]) -> usize {
         let stretches = 1 + s.ticks().windows(2).filter(|w| w[1] != w[0] + 1).count();
         assert_eq!(l.segments.len(), stretches, "{}", l.key);
         // The series' least and greatest values are drawn.
-        let min = s.values().iter().copied().fold(f64::INFINITY, f64::min);
-        let max = s.values().iter().copied().fold(f64::NEG_INFINITY, f64::max);
+        let min = shown(s.values().iter().copied().fold(f64::INFINITY, f64::min));
+        let max = shown(s.values().iter().copied().fold(f64::NEG_INFINITY, f64::max));
         assert!(all.iter().any(|p| p[1] == min), "{}: its minimum", l.key);
         assert!(all.iter().any(|p| p[1] == max), "{}: its maximum", l.key);
         n += all.len();
@@ -857,6 +866,31 @@ fn every_drawn_vertex_is_recorded() {
         .unwrap();
     let n: usize = bread.segments.iter().map(Vec::len).sum();
     assert!(n < 2080, "the price of bread is thinned: {n} vertices");
+    // G1: the bread panel on a log scale lends ln of each recorded price, bit for bit, keeps
+    // its extremes and bridges no gap; its axis says so, and the other panels stay linear.
+    h.set_size(egui::vec2(1600.0, 1000.0));
+    h.state_mut().act(Intent::LogAxis {
+        unit: "coin per bread".to_string(),
+        on: true,
+    });
+    h.step();
+    h.step();
+    let drawn = h.state().drawn();
+    let logged: Vec<&SeriesKey> = drawn.iter().filter(|l| l.log).map(|l| &l.key).collect();
+    assert_eq!(
+        logged,
+        [&price("town", "bread"), &price("village", "bread")],
+        "the bread panel alone is on a log scale"
+    );
+    check_drawn(store(h.state()), &drawn);
+    lent_is_painted(&h, &drawn);
+    let axes = axis_labels(&h);
+    assert_eq!(axes[0], "coin per bread (log scale)", "{axes:?}");
+    assert_eq!(&axes[1..3], ["coin per fuel", "coin per grain"], "{axes:?}");
+    assert_eq!(
+        h.state().model().session.log_axes,
+        ["coin per bread".to_string()]
+    );
 }
 
 /// The act that restores the mine's capacity from its base value.
@@ -1165,4 +1199,625 @@ fn the_branch_script_applies_compares_exports_and_saves() {
         &mut unchecked,
         &format!("ledger unchecked: its lineage's ancestor {path} cannot be read: "),
     );
+}
+
+/// The app with no tape and no session, in a 1600 × 1000 window.
+fn harness_bare<'a>() -> Harness<'a, GuiApp> {
+    Harness::builder()
+        .with_size(egui::vec2(1600.0, 1000.0))
+        .build_eframe(move |cc| {
+            GuiApp::new(
+                &cc.egui_ctx,
+                Launch {
+                    tape: None,
+                    files: None,
+                    smoke: None,
+                },
+            )
+        })
+}
+
+#[test]
+fn the_lab_script_shows_appendix_b_and_its_goldens() {
+    // §9 G1's gate, on the screen: with no tape open, the Lab tab paints the SSRN Appendix B
+    // instance's x*, v, Y and N_a as the oracle's own doubles (its outputs, called here
+    // directly, printed with the shortest digits that read back), beside the paper's published
+    // 0.86315, 0.54344, 7.88061 and 1.34338 and the generator's 70-digit goldens; its regime;
+    // f over x with the root; an edited knob that drops the goldens; and a sweep.
+    use oracle::{Economy, Regime};
+    let eq = match Economy::new(rustyecon_gui::lab::presets::appendix_b())
+        .expect("valid")
+        .solve()
+    {
+        Ok(Regime::Interior(eq)) => eq,
+        other => panic!("{other:?}"),
+    };
+    let mut h = harness_bare();
+    h.step();
+    click(&mut h, "Lab");
+    shows(&mut h, "regime Interior");
+    for (value, published, golden) in [
+        (eq.x_star, "0.86315", "0.863150418162437031916392798424"),
+        (eq.v, "0.54344", "0.543435960696778328420453096896"),
+        (eq.y, "7.88061", "7.88060552497290767677101216703"),
+        (eq.n_a, "1.34338", "1.34338188009771734611380197514"),
+    ] {
+        let text = format!("{value:?}");
+        see(&mut h, &text);
+        let back: f64 = text.parse().unwrap();
+        assert_eq!(back.to_bits(), value.to_bits());
+        see(&mut h, published);
+        see(&mut h, golden);
+    }
+    // The painted value is the lab's view of the oracle's own output.
+    let vm = h
+        .state()
+        .ui_state()
+        .lab
+        .view()
+        .cloned()
+        .expect("the lab solved");
+    let x = vm.outputs.iter().find(|o| o.key == "x_star").unwrap();
+    assert_eq!(x.value, format!("{:?}", eq.x_star));
+    assert_eq!(vm.origin, "oracle");
+    // f over x: the root is named, and the bracket.
+    see(
+        &mut h,
+        &format!("x* {:?}; bracket [1e-12, 1]; regime Interior", eq.x_star),
+    );
+    // An edit: N 5. The regime is solved again, and no golden is shown beside another
+    // economy's output.
+    press(&mut h, "Instance");
+    scroll_to(&mut h, "workers");
+    fill(&mut h, "workers", "5");
+    h.key_press(egui::Key::Enter);
+    h.step();
+    h.step();
+    shows_part(
+        &mut h,
+        "edited from its preset: its goldens are another economy's",
+    );
+    let vm = h
+        .state()
+        .ui_state()
+        .lab
+        .view()
+        .cloned()
+        .expect("solved again");
+    assert!(vm.edited);
+    let mut p = rustyecon_gui::lab::presets::appendix_b();
+    p.workers = 5.0;
+    let five = match Economy::new(p).unwrap().solve() {
+        Ok(Regime::Interior(eq)) => eq,
+        other => panic!("{other:?}"),
+    };
+    see(&mut h, &format!("{:?}", five.x_star));
+    // A regime other than Interior, as the oracle names it: the first N of these at which G1
+    // has no interior equilibrium, with its diagnostic.
+    let (n, regime) = [0.4, 0.3, 0.2, 0.1]
+        .into_iter()
+        .find_map(|n| {
+            let mut p = rustyecon_gui::lab::presets::appendix_b();
+            p.workers = n;
+            match Economy::new(p).unwrap().solve() {
+                Ok(Regime::Interior(_)) => None,
+                Ok(r) => Some((n, r)),
+                Err(e) => panic!("N {n}: {e}"),
+            }
+        })
+        .expect("a boundary regime of G1");
+    assert_ne!(regime.name(), "Interior");
+    fill(&mut h, "workers", &format!("{n:?}"));
+    h.key_press(egui::Key::Enter);
+    h.step();
+    h.step();
+    shows(&mut h, &format!("regime {}", regime.name()));
+    let vm = h.state().ui_state().lab.view().cloned().expect("solved");
+    assert_eq!(vm.regime, regime.name());
+    let (k, d) = vm.detail.first().cloned().expect("its diagnostic");
+    shows(&mut h, &format!("{k} {d}"));
+    let diagnostic = match regime {
+        Regime::BoundaryNoMargin { f_at_1 } => f_at_1,
+        Regime::NotViable { d_at_1 } => d_at_1,
+        Regime::NoInteriorAtZero { f_at_0 } => f_at_0,
+        Regime::Interior(_) => unreachable!(),
+    };
+    assert_eq!(d, format!("{diagnostic:?}"));
+    assert!(vm.outputs.is_empty());
+    // A sweep of N over 200 points.
+    press(&mut h, "Reset to preset");
+    press(&mut h, "Run the sweep");
+    let s = match h.state().ui_state().lab.swept() {
+        Some(Ok(s)) => s.clone(),
+        other => panic!("{other:?}"),
+    };
+    assert_eq!((s.xs.len(), s.xs[0], s.xs[199]), (200, 2.0, 6.0));
+    assert_eq!(s.knob, "workers");
+    see(&mut h, &rustyecon_gui::ui::lab::sweep_line(&s));
+    // Another unit: 1c's M3, its x* beside the generator's 70-digit golden.
+    press(&mut h, "unit");
+    press(&mut h, "1c many machine types and the Leontief inverse");
+    let vm = h.state().ui_state().lab.view().cloned();
+    let vm = vm.expect("solved");
+    assert_eq!((vm.unit.as_str(), vm.preset.as_deref()), ("1c", Some("M3")));
+    let x = vm.outputs.iter().find(|o| o.key == "x_star").unwrap();
+    assert!(x.golden.as_ref().is_some_and(|g| g.agrees));
+    see(&mut h, &x.value);
+    see(&mut h, "0.910574687993354806041937921365");
+}
+
+#[test]
+fn the_explainer_script_paints_the_step_and_the_waterfall() {
+    // G1 (docs/GUI.md §4, "Why is this price 12.3?"): on the gate run to 1760-03-01, the
+    // market inspector of (town, bread) paints the tick's step recomputed by markets' own
+    // `next_price` from the recorded inputs, the run's next price beside it and that they are
+    // equal bit for bit, and the log waterfall's sum at the cursor.
+    // A window tall enough that the explainer's grid is painted whole.
+    let mut h = harness_sized(Some("gate"), 1600.0, 2400.0);
+    step_until(&mut h, "paused at tick 0", |a| {
+        status(a.model()) == Some(RunStatus::Paused { tick: 0, why: None })
+    });
+    let clock = store(h.state()).world().unwrap().clock;
+    let cut = clock.tick_of(Date::parse("1760-03-01").unwrap()).unwrap();
+    h.state_mut().act(Intent::Run {
+        until: Some(cut + 1),
+    });
+    step_until(&mut h, "reached", |a| {
+        paused(a, PauseReason::Reached(cut + 1))
+    });
+    click(&mut h, "town/bread");
+    step_until(&mut h, "selected", |a| {
+        a.model().selection()
+            == Some(&Entity::Market {
+                node: key("town"),
+                good: key("bread"),
+            })
+    });
+    see(&mut h, "Why this price: the tick's step, recomputed");
+    let next = store(h.state())
+        .series(&SeriesKey {
+            measure: Measure::NextPrice,
+            at: At::Market {
+                node: key("town"),
+                good: key("bread"),
+            },
+        })
+        .and_then(|s| s.at(cut))
+        .expect("the next price at the cut's tick");
+    see(&mut h, &format!("{next:?}"));
+    see(&mut h, &format!("{next:?}: equal bit for bit"));
+    see(&mut h, "k = log_step(rate.bread)");
+    // Each input, read back from the screen, is the explainer's double at the cursor's tick,
+    // and the record's: p, S, D, x, k and k·x.
+    let e =
+        rustyecon_gui::vm::pricestep::explain(store(h.state()), &key("town"), &key("bread"), cut)
+            .expect("the explainer");
+    assert!(e.supply != e.demand, "S and D differ at the cut's tick");
+    // The inspector scrolls both ways: bring the grid's first column back into view.
+    scroll_to(&mut h, "p, posted");
+    let rows = explainer_rows(&h);
+    let said = |k: &str| {
+        let v = rows
+            .iter()
+            .find(|(key, _)| key == k || (k == "k" && key.starts_with("k = ")))
+            .map(|(_, v)| v.clone())
+            .unwrap_or_else(|| panic!("no row {k}: {rows:?}"));
+        let end = v.find(' ').unwrap_or(v.len());
+        v[..end]
+            .parse::<f64>()
+            .unwrap_or_else(|_| panic!("{k}: {v:?}"))
+    };
+    let at = |m: Measure| {
+        store(h.state())
+            .series(&SeriesKey {
+                measure: m,
+                at: At::Market {
+                    node: key("town"),
+                    good: key("bread"),
+                },
+            })
+            .and_then(|s| s.at(cut))
+            .expect("recorded")
+    };
+    for (k, want) in [
+        ("p, posted", at(Measure::Price)),
+        ("S", at(Measure::Supply)),
+        ("D", at(Measure::Demand)),
+        ("x = imbalance(S, D)", e.imbalance),
+        ("k", e.k),
+        ("k·x", e.kx),
+    ] {
+        assert_eq!(said(k).to_bits(), want.to_bits(), "{k}");
+    }
+    let w = rustyecon_gui::vm::pricestep::waterfall(
+        store(h.state()),
+        &key("town"),
+        &key("bread"),
+        None,
+    )
+    .expect("the waterfall");
+    assert_eq!(w.tick, cut);
+    see(
+        &mut h,
+        &format!(
+            "at tick {cut}: ln(p/p₀) {} = Σ k·x {} + residual {}",
+            fmt(w.level),
+            fmt(w.explained),
+            fmt(w.residual)
+        ),
+    );
+}
+
+#[test]
+fn the_watch_and_breakpoint_script() {
+    // G1's panels on the gate: watch a price from the inspector and see it in the outliner's
+    // watchlist at the cursor; add an event breakpoint in the log's field, run, and pause after
+    // the tick it fires in, the log naming it; clear it from the event's inspector.
+    let mut h = harness("gate");
+    step_until(&mut h, "paused at tick 0", |a| {
+        status(a.model()) == Some(RunStatus::Paused { tick: 0, why: None })
+    });
+    click(&mut h, "town/bread");
+    // The outliner's row and the inspector each have the button; the inspector's is the last.
+    has(&mut h, "watch price at town/bread");
+    let buttons: Vec<_> = h.query_all_by_label("watch price at town/bread").collect();
+    assert_eq!(buttons.len(), 2, "the outliner's and the inspector's");
+    buttons[1].click_accesskit();
+    h.step();
+    h.step();
+    assert_eq!(
+        h.state().model().session.watch,
+        [price("town", "bread")],
+        "watched"
+    );
+    see(&mut h, "Watchlist (1)");
+    // The log's field: an event's key.
+    click(&mut h, "Log");
+    fill(&mut h, "break at", "mine.cut");
+    press(&mut h, "Add breakpoint");
+    see(&mut h, "breakpoint on event mine.cut");
+    let cut = store(h.state())
+        .world()
+        .unwrap()
+        .clock
+        .tick_of(Date::parse("1760-03-01").unwrap())
+        .unwrap();
+    // Run on (the field keeps the keyboard, so not by Space).
+    assert_eq!(
+        h.state().model().session.breakpoints,
+        [Breakpoint::OnError, Breakpoint::OnEvent(key("mine.cut"))]
+    );
+    h.state_mut().act(Intent::Run { until: Some(2080) });
+    let hit = PauseReason::Breakpoint(Breakpoint::OnEvent(key("mine.cut")));
+    step_until(&mut h, "the breakpoint", |a| paused(a, hit.clone()));
+    assert_eq!(store(h.state()).tick(), cut + 1);
+    shows_part(
+        &mut h,
+        &format!("breakpoint on event mine.cut at state tick {}", cut + 1),
+    );
+    // The watchlist reads the cursor: the price at the tick that ran.
+    let p = store(h.state())
+        .series(&price("town", "bread"))
+        .and_then(|s| s.at(cut))
+        .unwrap();
+    let text = format!("{} coin per bread", fmt(p));
+    let times = painted(&h).iter().filter(|t| **t == text).count();
+    assert!(
+        times >= 2,
+        "the watchlist and the inspector paint {text}: {times}"
+    );
+    // And the change from the tick before, with its sign (G1's verification: a change painted
+    // with its sign flipped passed).
+    let before = store(h.state())
+        .series(&price("town", "bread"))
+        .and_then(|s| s.at(cut - 1))
+        .unwrap();
+    let change = p - before;
+    assert!(change != 0.0, "the price moved at the cut's tick");
+    let sign = if change > 0.0 { "+" } else { "" };
+    shows(
+        &mut h,
+        &format!("{sign}{} since the tick before", fmt(change)),
+    );
+    // The event's inspector clears it.
+    h.state_mut()
+        .act(Intent::Select(Some(Entity::Event(key("mine.cut")))));
+    h.step();
+    press(&mut h, "break on event mine.cut");
+    assert_eq!(
+        h.state().model().session.breakpoints,
+        [Breakpoint::OnError],
+        "cleared"
+    );
+}
+
+#[test]
+fn the_toolbar_keeps_its_chips_whole() {
+    // G1 (and O26's note of the chip on a narrow window): a chip that would start with too
+    // little of its row left goes to the next row whole, rather than wrap its text into a column
+    // one word wide, which grew the toolbar down the window. At each width the health chip is
+    // painted in a line or two and the tiles' tabs stay near the top: on the gate, and on the
+    // demo world at the width of the demo's screenshots, where the note was made (1,600) and
+    // narrower.
+    for (tape, w, hgt) in [
+        ("gate", 1600.0, 1000.0),
+        ("gate", 1280.0, 800.0),
+        ("gate", 1024.0, 768.0),
+        ("gate", 800.0, 700.0),
+        ("demo-gb", 1600.0, 1000.0),
+        ("demo-gb", 1024.0, 768.0),
+    ] {
+        let mut h = Harness::builder()
+            .with_size(egui::vec2(w, hgt))
+            .build_eframe(move |cc| {
+                GuiApp::new(
+                    &cc.egui_ctx,
+                    Launch {
+                        tape: Some(tape_path(tape)),
+                        files: None,
+                        smoke: None,
+                    },
+                )
+            });
+        step_until(&mut h, "paused at tick 0", |a| {
+            status(a.model()) == Some(RunStatus::Paused { tick: 0, why: None })
+        });
+        h.step();
+        fn walk(s: &egui::Shape, out: &mut Vec<(String, egui::Rect)>) {
+            match s {
+                egui::Shape::Text(t) => {
+                    out.push((t.galley.text().to_string(), t.visual_bounding_rect()))
+                }
+                egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, out)),
+                _ => {}
+            }
+        }
+        let mut texts = Vec::new();
+        for c in &h.output().shapes {
+            walk(&c.shape, &mut texts);
+        }
+        let (_, chip) = texts
+            .iter()
+            .find(|(t, _)| {
+                t.starts_with("Paused · max_margin")
+                    || t.starts_with("Paused ·")
+                    || t.starts_with("Paused")
+            })
+            .expect("the health chip is painted");
+        assert!(
+            chip.height() < 60.0 && chip.width() > 100.0,
+            "{tape} at {w} × {hgt}: the health chip is painted in {chip:?}"
+        );
+        let tab = h.get_by_label("Plots").rect();
+        assert!(
+            tab.min.y < 160.0,
+            "{tape} at {w} × {hgt}: the tabs start at {tab:?}"
+        );
+    }
+}
+
+/// The app on a tape of `tapes/` (or none), with no session, in a window of `w` × `h`: tall
+/// enough that a pane's charts are on screen whole.
+fn harness_sized<'a>(tape: Option<&str>, w: f32, h: f32) -> Harness<'a, GuiApp> {
+    let tape = tape.map(tape_path);
+    Harness::builder()
+        .with_size(egui::vec2(w, h))
+        .build_eframe(move |cc| {
+            GuiApp::new(
+                &cc.egui_ctx,
+                Launch {
+                    tape,
+                    files: None,
+                    smoke: None,
+                },
+            )
+        })
+}
+
+/// The chart named `plot` the last frame drew.
+fn chart(h: &Harness<'_, GuiApp>, plot: &str) -> Chart {
+    let all = h.state().charts();
+    let named: Vec<String> = all.iter().map(|c| c.plot.clone()).collect();
+    all.into_iter()
+        .find(|c| c.plot == plot)
+        .unwrap_or_else(|| panic!("no chart {plot} drawn: {named:?}"))
+}
+
+/// The lines a chart lent, as `(name, vertices)`, in order.
+fn lent_lines(c: &Chart) -> Vec<(String, Vec<[f64; 2]>)> {
+    c.items
+        .iter()
+        .filter_map(|i| match i {
+            Lent::Line { name, points, .. } => Some((name.clone(), points.clone())),
+            _ => None,
+        })
+        .collect()
+}
+
+/// The vertical lines a chart lent, as `(name, x)`, in order.
+fn lent_marks(c: &Chart) -> Vec<(String, f64)> {
+    c.items
+        .iter()
+        .filter_map(|i| match i {
+            Lent::VLine { name, x, .. } => Some((name.clone(), *x)),
+            _ => None,
+        })
+        .collect()
+}
+
+fn bits(points: &[[f64; 2]]) -> Vec<[u64; 2]> {
+    points
+        .iter()
+        .map(|p| [p[0].to_bits(), p[1].to_bits()])
+        .collect()
+}
+
+/// Step until the chart `plot` is drawn and painted, and check it: what it lent is what was
+/// painted. Returns it.
+fn painted_chart(h: &mut Harness<'_, GuiApp>, plot: &str) -> Chart {
+    for _ in 0..20 {
+        if h.state().charts().iter().any(|c| c.plot == plot) {
+            break;
+        }
+        h.step();
+    }
+    h.step();
+    let c = chart(h, plot);
+    let n = common::paint::chart_is_painted(&h.output().shapes, &c);
+    assert!(n > 0, "{plot}: nothing checked");
+    c
+}
+
+#[test]
+fn the_lab_charts_are_lent_as_their_view_models_and_painted_as_lent() {
+    // G1's verification: the lab's curve and sweep lines and its root marker were never held
+    // to their view-models, nor a regime other than Interior to the oracle's. Each chart now
+    // records what it lends egui: here every vertex and mark is the view-model's, bit for bit,
+    // and what was painted is what was lent, each at the place the plot's transform gives it.
+    let mut h = harness_sized(None, 1600.0, 4000.0);
+    h.step();
+    click(&mut h, "Lab");
+    shows(&mut h, "regime Interior");
+    let lab = &h.state().ui_state().lab;
+    let vm = lab.curve().cloned().expect("the curve");
+    assert_eq!((vm.field.as_str(), vm.error.as_deref()), ("f", None));
+    let c = painted_chart(&mut h, "lab-curve-plot");
+    let lines = lent_lines(&c);
+    assert_eq!(lines.len(), vm.segments.len());
+    for ((name, got), want) in lines.iter().zip(&vm.segments) {
+        assert_eq!(name, "f");
+        assert_eq!(bits(got), bits(want), "the curve's vertices");
+    }
+    let root = vm.root.expect("x*");
+    let marks: Vec<(String, u64)> = lent_marks(&c)
+        .into_iter()
+        .map(|(n, x)| (n, x.to_bits()))
+        .collect();
+    assert_eq!(
+        marks,
+        [
+            ("bracket".to_string(), vm.bracket.0.to_bits()),
+            ("bracket".to_string(), vm.bracket.1.to_bits()),
+            ("x*".to_string(), root.to_bits()),
+        ]
+    );
+    assert!(c
+        .items
+        .iter()
+        .any(|i| matches!(i, Lent::HLine { y, .. } if *y == 0.0)));
+    // The sweep: each output's line, broken where a point has no number, is the view's.
+    press(&mut h, "Run the sweep");
+    let s = match h.state().ui_state().lab.swept() {
+        Some(Ok(s)) => s.clone(),
+        other => panic!("{other:?}"),
+    };
+    let c = painted_chart(&mut h, "lab-sweep-plot");
+    let mut want: Vec<(String, Vec<[f64; 2]>)> = Vec::new();
+    for l in &s.lines {
+        let mut run: Vec<[f64; 2]> = Vec::new();
+        for (x, v) in s.xs.iter().zip(&l.values) {
+            match v {
+                Some(v) if v.is_finite() => run.push([*x, *v]),
+                _ => {
+                    if !run.is_empty() {
+                        want.push((l.key.clone(), std::mem::take(&mut run)));
+                    }
+                }
+            }
+        }
+        if !run.is_empty() {
+            want.push((l.key.clone(), run));
+        }
+    }
+    let got = lent_lines(&c);
+    assert_eq!(got.len(), want.len());
+    for ((gn, gp), (wn, wp)) in got.iter().zip(&want) {
+        assert_eq!(gn, wn);
+        assert_eq!(bits(gp), bits(wp), "{gn} along the sweep");
+    }
+}
+
+/// The painted rows of the explainer's grid after its heading, key and value: each key's text
+/// is followed by its value's.
+fn explainer_rows(h: &Harness<'_, GuiApp>) -> Vec<(String, String)> {
+    let texts = painted(h);
+    let from = texts
+        .iter()
+        .position(|t| t == "Why this price: the tick's step, recomputed")
+        .expect("the explainer's heading");
+    let keys = ["p, posted", "S", "D", "x = imbalance(S, D)", "k·x"];
+    let mut rows = Vec::new();
+    for (i, t) in texts.iter().enumerate().skip(from) {
+        if keys.contains(&t.as_str()) || t.starts_with("k = ") {
+            if let Some(v) = texts.get(i + 1) {
+                rows.push((t.clone(), v.clone()));
+            }
+        }
+    }
+    rows
+}
+
+#[test]
+fn the_waterfall_is_lent_as_its_view_model_and_painted_as_lent() {
+    // G1's verification: the waterfall's bars were never held to its view-model. On the gate
+    // run to 1760-03-01, town/bread's waterfall lends a bar a year of Σ k·x, stacked from the
+    // year's start, the line of ln(p/p₀) and a line at each event, bit for bit the view's,
+    // and paints what it lent.
+    let mut h = harness_sized(Some("gate"), 1600.0, 3000.0);
+    step_until(&mut h, "paused at tick 0", |a| {
+        status(a.model()) == Some(RunStatus::Paused { tick: 0, why: None })
+    });
+    let clock = store(h.state()).world().unwrap().clock;
+    let cut = clock.tick_of(Date::parse("1760-03-01").unwrap()).unwrap();
+    h.state_mut().act(Intent::Run {
+        until: Some(cut + 1),
+    });
+    step_until(&mut h, "reached", |a| {
+        paused(a, PauseReason::Reached(cut + 1))
+    });
+    click(&mut h, "town/bread");
+    see(&mut h, "Why this price: the tick's step, recomputed");
+    let w = rustyecon_gui::vm::pricestep::waterfall(
+        store(h.state()),
+        &key("town"),
+        &key("bread"),
+        rustyecon_gui::ui::cursor(h.state().model()),
+    )
+    .expect("the waterfall");
+    assert!(w.bins.len() > 5 && w.events.len() > 5, "{w:?}");
+    let c = painted_chart(&mut h, "waterfall");
+    let bars: Vec<[u64; 4]> = c
+        .items
+        .iter()
+        .find_map(|i| match i {
+            Lent::Bars { name, bars, .. } => {
+                assert_eq!(name, "Σ k·x");
+                Some(
+                    bars.iter()
+                        .map(|b| [b.argument, b.value, b.base, b.width].map(f64::to_bits))
+                        .collect(),
+                )
+            }
+            _ => None,
+        })
+        .expect("the bars");
+    let mut base = 0.0;
+    let mut want = Vec::new();
+    for b in &w.bins {
+        let mid = (b.from + b.to) as f64 / 2.0;
+        let width = (b.to - b.from) as f64 * 0.9;
+        want.push([mid, b.kx, base, width].map(f64::to_bits));
+        base = b.level;
+    }
+    assert_eq!(bars, want, "a bar a bin, stacked from the level before it");
+    assert!(w.bins.iter().any(|b| b.kx != 0.0));
+    let mut level = vec![[w.start as f64, 0.0]];
+    level.extend(w.bins.iter().map(|b| [b.to as f64, b.level]));
+    let lines = lent_lines(&c);
+    assert_eq!(lines.len(), 1);
+    assert_eq!(lines[0].0, "ln(p/p₀)");
+    assert_eq!(bits(&lines[0].1), bits(&level));
+    let marks: Vec<u64> = lent_marks(&c).iter().map(|(_, x)| x.to_bits()).collect();
+    let ticks: Vec<u64> = w.events.iter().map(|e| (e.tick as f64).to_bits()).collect();
+    assert_eq!(marks, ticks, "a line at each event");
 }

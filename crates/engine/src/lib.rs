@@ -21,7 +21,11 @@
 //!
 //! The engine re-exports markets and agents under their own names, and a [`prelude`] of the
 //! types a frontend names, core's read-only ones among them, so a frontend depends on this crate
-//! alone. Core itself is not re-exported. These do not compile:
+//! alone. Of core's modules it re-exports two, neither of which writes a state (amended at
+//! G1.1): [`num`], the libm-backed maths a display takes (ln(p′/p), a log axis), the same on
+//! every platform; and [`raw`], the tape's raw entry types, the plain data a tape edit is
+//! written in, with `Basis` and `Unit` in the prelude. Core itself is not re-exported. These do
+//! not compile:
 //!
 //! ```compile_fail
 //! use rustyecon_engine::rustyecon_core::apply;
@@ -73,6 +77,21 @@
 //! }
 //! ```
 //!
+//! Core's maths and the tape's raw schema are reachable through the engine, and a frontend
+//! needs no edge to core for them:
+//!
+//! ```
+//! use rustyecon_engine::prelude::{Basis, Key, Unit};
+//! use rustyecon_engine::raw::RawParam;
+//! let p = RawParam {
+//!     key: Key::new("x").expect("a key"),
+//!     value: 1.0,
+//!     unit: Unit::Dimensionless,
+//!     basis: Basis::Assumed("a doc test".to_string()),
+//! };
+//! assert_eq!(rustyecon_engine::num::ln(p.value), 0.0);
+//! ```
+//!
 //! Reading them compiles:
 //!
 //! ```
@@ -106,8 +125,12 @@ mod sim;
 mod tick;
 
 // Core is not re-exported: its writer (`apply`, `resolve`, the ledger) must stay out of a
-// frontend's reach (E1). The prelude re-exports its read-only types.
+// frontend's reach (E1). The prelude re-exports its read-only types, and of its modules only
+// `num` and the tape's raw schema are re-exported, whole and by these names (amended at G1.1):
+// pure functions and plain data, so a frontend needs no edge to core.
 pub use rustyecon_agents;
+pub use rustyecon_core::num;
+pub use rustyecon_core::tape::raw;
 pub use rustyecon_markets;
 
 pub use error::{ReplayError, ResumeError, RunError, RunErrorKind};

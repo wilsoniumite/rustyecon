@@ -892,7 +892,7 @@ fn minted_keys_never_collide() {
         ..Session::default()
     }
     .to_ron()
-    .replacen("format: 2,", "format: 3,", 1);
+    .replacen("format: 3,", "format: 4,", 1);
     h.act(&mut later, Intent::SessionRead(Ok(old)));
     assert_eq!(later.session.serial, 8);
     h.act(

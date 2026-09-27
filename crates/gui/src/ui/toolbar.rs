@@ -10,11 +10,14 @@ use crate::run::{LedgerCheck, RunId};
 use crate::vm::toolbar::{self, Status, ToolbarVm};
 use egui::{Button, RichText};
 
-/// The toolbar's own text: the "run until" field and why it did not read.
+/// The toolbar's own text: the "run until" field and why it did not read; and whether its
+/// Snapshot button was pressed this frame (G1).
 #[derive(Debug, Default)]
 pub struct ToolbarState {
     until: String,
     error: Option<String>,
+    /// Snapshot was pressed: `ui::draw` takes it.
+    pub snapshot: bool,
 }
 
 /// The speed caps offered, in model years a second; `None` runs as fast as the machine does.
@@ -44,6 +47,16 @@ pub fn show(ui: &mut egui::Ui, m: &Model, st: &mut ToolbarState, out: &mut Vec<I
             .clicked()
         {
             out.push(Intent::PickTape);
+        }
+        if ui
+            .button("Snapshot")
+            .on_hover_text(
+                "save a PNG of the window in snapshots/ beside the session, marked never \
+                 citable in the picture and in the file",
+            )
+            .clicked()
+        {
+            st.snapshot = true;
         }
         let runs: Vec<(RunId, String)> = m
             .runs()
@@ -148,6 +161,19 @@ pub fn show(ui: &mut egui::Ui, m: &Model, st: &mut ToolbarState, out: &mut Vec<I
     });
 }
 
+/// The least width a chip starts a row with (G1): a chip that would start with less goes to
+/// the next row whole, rather than wrap its text into a column one word wide, which grew the
+/// toolbar down the window (O26's note of the chip on a narrow window).
+const CHIP_MIN_WIDTH: f32 = 360.0;
+
+/// Start a new row of the toolbar when less than [`CHIP_MIN_WIDTH`] is left of this one (the
+/// width before the wrap, not the row's whole).
+fn room_for_a_chip(ui: &mut egui::Ui) {
+    if ui.available_size_before_wrap().x < CHIP_MIN_WIDTH {
+        ui.end_row();
+    }
+}
+
 fn chips(ui: &mut egui::Ui, vm: &ToolbarVm) {
     if let Some(c) = &vm.clock {
         ui.label(format!(
@@ -156,6 +182,7 @@ fn chips(ui: &mut egui::Ui, vm: &ToolbarVm) {
         ));
     }
     if let Some(id) = &vm.identity {
+        room_for_a_chip(ui);
         egui::Frame::group(ui.style()).show(ui, |ui| {
             let commit: String = id.commit.chars().take(10).collect();
             let state = if id.dirty { "dirty" } else { "clean" };
@@ -170,6 +197,7 @@ fn chips(ui: &mut egui::Ui, vm: &ToolbarVm) {
         });
     }
     let h = &vm.health;
+    room_for_a_chip(ui);
     egui::Frame::group(ui.style()).show(ui, |ui| {
         let status = match h.status {
             Status::Empty => "Empty",

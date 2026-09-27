@@ -36,10 +36,12 @@ item by item ([crates/oracle/README.md](crates/oracle/README.md)). On branch `or
 (2026-09-27, P1g.1–P1g.7) the oracle gained unit 1g, machines as goods: durable goods built from
 and run on goods, productivity checked per period (D-G10), a chain of goods mapped to unit 1c,
 and plants as machine types ([crates/oracle/docs/unit-1g.md](crates/oracle/docs/unit-1g.md)),
-verified with one fix round (P1g.6).
-The GUI is designed ([docs/GUI.md](docs/GUI.md)), and its shell, G0, is closed: G0.1, the viewer, and G0.2, the
-editor (see "Running the GUI" below); G1, the oracle lab, may follow, since G0 and Phase 1's
-gate are both met. On branch `demo-world` (2026-09-27, D.1–D.5), the GUI's county map and its
+verified with one fix round (P1g.6). The GUI is designed ([docs/GUI.md](docs/GUI.md)), and its
+shell, G0, is closed: G0.1, the viewer, and G0.2, the editor (see "Running the GUI" below). G1,
+the oracle lab, is built on branch `g1` (2026-09-27, G1.1–G1.10, and verified once, its findings
+fixed at G1.11): the oracle's units 1a–1f solved beside their goldens, the price-step explainer,
+log axes, a watchlist, event and date breakpoints and snapshots, with its window checked by hand
+still to come. On branch `demo-world` (2026-09-27, D.1–D.5), the GUI's county map and its
 lenses came forward over an illustrative world of the United Kingdom's 93 historic counties,
 1750–1901 (see "The demo world's map" below). The crates fill in phase by phase:
 
@@ -54,7 +56,7 @@ lenses came forward over an illustrative world of the United Kingdom's 93 histor
 | `crates/oracle` | the equilibrium solver (library `oracle`): unit 1a, one category with durability and interest, reproduces the SSRN Appendix B; 1b adds many categories and the fork, 1c many machine types and the Leontief inverse, 1d worker types and the wall, 1e parcels, the idle margin and the priced exit, 1f households and government, 1g machines as goods ([its README](crates/oracle/README.md)) | Phase 1: 1a–1f landed, closed at P1.14; 1g on `oracle-goods` (P1g) |
 | `crates/worldgen` | the tape compiler: the county atlas (D.1), and a first compiler for the illustrative demo world, `worlds/demo-gb` ([docs/demo/WORLD.md](docs/demo/WORLD.md), D.2), and that world's lens measures, which the GUI's map shows (D.3) | Phase 4; the demo world's form on branch `demo-world` |
 | `crates/probe` | the Phase 2 probe's harness: the Appendix B tape's generator, named perturbations, per-tick observables against the oracle ([docs/probe/RULES.md](docs/probe/RULES.md)); its oracle-free measures are certify's; the markets probe's harness, tapes and kick sets ([docs/probe/MARKETS-RULES.md](docs/probe/MARKETS-RULES.md)) | the probe, P2.0.1; the markets probe, P2.1.1 |
-| `crates/gui` | the interactive frontend, in egui: live runs, plots, lenses, the tape editor, and a county map ([docs/GUI.md](docs/GUI.md)); the binary `rustyecon-gui` | from G0, after Phase 0's second session; one stage beside each phase (G0 closed at G0.3) |
+| `crates/gui` | the interactive frontend, in egui: live runs, plots, lenses, the tape editor, a county map, and the oracle lab ([docs/GUI.md](docs/GUI.md)); the binary `rustyecon-gui` | from G0, after Phase 0's second session; one stage beside each phase (G0 closed at G0.3; G1 built on `g1`) |
 
 Packages are named `rustyecon-<crate>`. `tapes/gate.ron` is the Phase 0 gate world,
 `tapes/appb.ron` the probe's Appendix B world, `tapes/markets-<id>.ron` the markets probe's
@@ -130,8 +132,9 @@ two platforms is recorded in STATE.md, not gated. `.github/workflows/ci.yml` run
 The GUI never gates engine work (docs/GUI.md, D1): the workspace's default members leave
 `crates/gui` out, and `scripts/gate.sh` excludes it from clippy and the tests and checks it
 once without gating. `scripts/gui.sh` is the GUI's own gate, run at each of its stages:
-formatting, clippy, its tests in release with 55 of them checked by name, and the GUI's
-hashes of the gate, Appendix B and demo worlds and of two edited branches against the cli's.
+formatting, clippy, its tests in release with 87 of them checked by name and, on Linux, G1's
+sweep measurement, and the GUI's hashes of the gate, Appendix B and demo worlds and of two
+edited branches against the cli's.
 It runs as the gate does:
 
 ```sh
@@ -175,6 +178,16 @@ it reopens the tapes of the last session, and the toolbar's Open picks another.
   the first differing hash, the tape diff and the plotted series' differences. Export writes
   the plotted series as CSV, `manifest.ron`, the tape and, for an experiment, its lineage and
   ancestor. "Save tape as" writes the tape and its lineage. Nothing is written over.
+- **The oracle lab** (G1). The Lab tab needs no tape: pick one of the oracle's units 1a–1f and a
+  preset, one of the instances its goldens were computed on, and see the regime and every
+  output, as the oracle's own doubles, beside its golden; edit any number; plot any field of
+  the price block over x, f(x) = n_D − n_S by default, with its root; sweep a knob.
+- **Why is this price what it is** (G1). A market's inspector recomputes the tick's step with
+  markets' own `next_price` and says whether it equals the run's, bit for bit, and draws the
+  log price as the sum of its steps, a year at a time.
+- **Follow a run** (G1). "watch" puts a series in the outliner's watchlist; each plot panel has
+  a log scale; the Log pane takes breakpoints on an event's key or a date. Snapshot saves a PNG
+  of the window, marked never citable, in `snapshots/` beside the session.
 
 The session, `session.ron` and `layout.ron`, lives in `$RUSTYECON_GUI_DIR`, or else in
 `%APPDATA%\rustyecon\gui` on Windows and `~/.config/rustyecon/gui` elsewhere. A file that does

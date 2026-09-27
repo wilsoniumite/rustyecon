@@ -21,7 +21,7 @@
 use super::toolbar::IdentityVm;
 use super::{date, report_tick};
 use crate::run::{At, Entity, Measure, Origin, SeriesKey, StateField, Store};
-use rustyecon_core::num;
+use rustyecon_engine::num;
 use rustyecon_engine::prelude::*;
 use rustyecon_worldgen::atlas::{Atlas, Country};
 use rustyecon_worldgen::lens::{self as wl, CountyKeys, Readings, MARKETS, NO_TRADE_WINDOW};

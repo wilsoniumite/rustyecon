@@ -9,9 +9,11 @@
 //! focused run and `.` steps it one tick, unless a text field has the keyboard. Every panel
 //! reads the focused run at the model's cursor; compare reads it against its parent.
 
+pub mod charts;
 pub mod compare;
 pub mod editor;
 pub mod inspector;
+pub mod lab;
 pub mod layout;
 pub mod log;
 pub mod map;
@@ -27,17 +29,42 @@ use crate::vm;
 use layout::Pane;
 use std::collections::BTreeSet;
 
+/// A snapshot's progress (G1): asked for this frame, then waiting for the picture egui takes
+/// of a later frame, with the banner painted until it comes, and how many frames it waited.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Snap {
+    /// None asked for.
+    #[default]
+    Idle,
+    /// Asked for: this frame paints the banner and asks egui for a picture.
+    Asked,
+    /// Waiting for the picture, this many frames so far.
+    Waiting(u32),
+}
+
+/// How many frames a snapshot waits for its picture before it gives up: a window with no
+/// renderer (a headless test) never sends one.
+pub const SNAPSHOT_PATIENCE: u32 = 600;
+
 /// What the panels keep between frames: the plot cache, the toolbar's and the editor's text,
 /// and which panes the last frame drew.
 #[derive(Default)]
 pub struct State {
+    /// A PNG snapshot's progress (G1).
+    pub snapshot: Snap,
     /// The plot cache: one decimator per plotted series.
     pub plots: plots::PlotCache,
+    /// What the other charts (the lab's, a market's waterfall) lent egui this frame (G1).
+    pub charts: charts::Charts,
     toolbar: toolbar::ToolbarState,
     /// The editor's form and file fields.
     pub editor: editor::EditorState,
     /// The map: the atlas triangulated once, the lens shown, the view (D.3).
     pub map: map::MapState,
+    /// The oracle lab's form and what it last solved (G1).
+    pub lab: lab::LabState,
+    /// The log's breakpoint field (G1).
+    break_at: String,
     drawn: BTreeSet<Pane>,
     /// The run and load whose tab was last brought forward: the map for a tape with one,
     /// the plots for a tape without.
@@ -58,6 +85,13 @@ pub struct State {
         std::time::Instant,
         Option<vm::registry::RegistryVm>,
     )>,
+    /// The selected market's log waterfall, what it was made from and when (G1): remade when
+    /// its key changes, and at most four times a second while a run streams live.
+    waterfall: Option<(
+        WaterfallKey,
+        std::time::Instant,
+        Result<vm::pricestep::WaterfallVm, String>,
+    )>,
 }
 
 /// What the map's view-model reads: the run, its load and its latest tick, the cursor, the lens
@@ -69,6 +103,17 @@ type MapKey = (
     Option<u64>,
     String,
     Option<Entity>,
+);
+
+/// What a market's log waterfall reads: the run, its load and its latest tick, the cursor, and
+/// the market.
+type WaterfallKey = (
+    crate::run::RunId,
+    u64,
+    u64,
+    Option<u64>,
+    rustyecon_engine::prelude::Key,
+    rustyecon_engine::prelude::Key,
 );
 
 /// What the registry's view-model reads: the run, its load and its latest tick, and the
@@ -142,6 +187,23 @@ pub fn value_label(ui: &mut egui::Ui, v: Option<f64>, unit: &str) -> egui::Respo
     }
 }
 
+/// A small "watch" or "unwatch" button for a series (G1): the outliner's watchlist shows a
+/// watched series at the cursor. Its accessible name, and its hover text, name the series.
+pub fn watch_button(ui: &mut egui::Ui, s: &SeriesKey, watched: bool, out: &mut Vec<Intent>) {
+    let (text, act) = if watched {
+        ("unwatch", Intent::Unwatch(s.clone()))
+    } else {
+        ("watch", Intent::Watch(s.clone()))
+    };
+    let r = ui.small_button(text).on_hover_text(s.to_string());
+    r.widget_info(|| {
+        egui::WidgetInfo::labeled(egui::WidgetType::Button, true, format!("{text} {s}"))
+    });
+    if r.clicked() {
+        out.push(act);
+    }
+}
+
 /// A small "plot" or "unplot" button for a series. It reads "plot"; its accessible name, and
 /// its hover text, name the series, so a screen reader or a script can tell one row's button
 /// from another's.
@@ -180,6 +242,7 @@ pub fn draw(
     }
     state.drawn.clear();
     state.plots.begin_frame();
+    state.charts.begin_frame();
     // A tape with a map opens on the map, and one without on the plots, once per load.
     if let Some(run) = m.focused() {
         let load = (run.id, run.store.generation());
@@ -195,6 +258,10 @@ pub fn draw(
     egui::Panel::top("toolbar").show(ui, |ui| {
         toolbar::show(ui, m, &mut state.toolbar, &mut intents);
     });
+    if std::mem::take(&mut state.toolbar.snapshot) {
+        state.snapshot = Snap::Asked;
+    }
+    snapshot_frame(ui, m, state, &mut intents);
     egui::CentralPanel::default().show(ui, |ui| {
         let mut panes = Panes {
             m,
@@ -204,6 +271,99 @@ pub fn draw(
         tree.ui(&mut panes, ui);
     });
     intents
+}
+
+/// What a snapshot shows, by the keys that name it (U3): the build, the focused run and the lab.
+pub fn snapshot_marks(m: &Model, lab: &lab::LabState) -> Vec<(&'static str, String)> {
+    let b = crate::build();
+    let build = format!(
+        "rustyecon-gui, build {} {}",
+        b.commit,
+        if b.dirty { "dirty" } else { "clean" }
+    );
+    let run = match m.focused() {
+        None => "no tape open".to_string(),
+        Some(r) => {
+            let name = r
+                .store
+                .world()
+                .map_or_else(|| r.tape.header.name.clone(), |w| w.name.clone());
+            let world = r
+                .store
+                .run()
+                .map_or_else(String::new, |k| format!(", world_id {}", k.world_id));
+            format!(
+                "{}: {name}, origin {}, tape_hash {}{world}, state tick {}",
+                r.id,
+                r.origin,
+                certify::Hex(r.tape_hash),
+                r.store.tick()
+            )
+        }
+    };
+    let preset = lab
+        .preset()
+        .map_or_else(String::new, |p| format!(" {}", p.id));
+    let lab = format!("lab: unit {}{preset}", lab.instance().unit());
+    let made = m
+        .today()
+        .map_or_else(|| "unknown".to_string(), |d| d.to_string());
+    vec![
+        ("Title", "rustyecon GUI snapshot".to_string()),
+        ("Software", build),
+        ("Description", format!("{run}; {lab}")),
+        ("Creation Time", made),
+    ]
+}
+
+/// A snapshot's frame: paint the never-citable banner while one is asked for or awaited, ask
+/// egui for the picture once, and give up after [`SNAPSHOT_PATIENCE`] frames without one.
+fn snapshot_frame(ui: &mut egui::Ui, m: &Model, state: &mut State, out: &mut Vec<Intent>) {
+    if state.snapshot == Snap::Idle {
+        return;
+    }
+    let marks = snapshot_marks(m, &state.lab);
+    let line = marks
+        .iter()
+        .filter(|(k, _)| *k != "Title")
+        .map(|(_, v)| v.as_str())
+        .collect::<Vec<_>>()
+        .join(" · ");
+    egui::Area::new(egui::Id::new("snapshot-banner"))
+        .order(egui::Order::Foreground)
+        .fixed_pos(egui::pos2(8.0, 4.0))
+        .show(ui.ctx(), |ui| {
+            egui::Frame::new()
+                .fill(egui::Color32::from_rgb(0x8b, 0x1a, 0x1a))
+                .inner_margin(6.0)
+                .show(ui, |ui| {
+                    ui.label(
+                        egui::RichText::new(crate::platform::snapshot::BANNER)
+                            .strong()
+                            .color(egui::Color32::WHITE),
+                    );
+                    ui.label(egui::RichText::new(line).color(egui::Color32::WHITE));
+                });
+        });
+    match state.snapshot {
+        Snap::Idle => {}
+        Snap::Asked => {
+            ui.ctx()
+                .send_viewport_cmd(egui::ViewportCommand::Screenshot(egui::UserData::default()));
+            state.snapshot = Snap::Waiting(0);
+        }
+        Snap::Waiting(n) if n >= SNAPSHOT_PATIENCE => {
+            state.snapshot = Snap::Idle;
+            out.push(Intent::FileFailed {
+                what: "the snapshot was not taken".to_string(),
+                why: "no picture came back from the renderer".to_string(),
+            });
+        }
+        Snap::Waiting(n) => {
+            state.snapshot = Snap::Waiting(n + 1);
+            ui.ctx().request_repaint();
+        }
+    }
 }
 
 /// The tiles' behaviour: each pane draws its view-model.
@@ -226,6 +386,11 @@ impl egui_tiles::Behavior<Pane> for Panes<'_> {
     ) -> egui_tiles::UiResponse {
         self.state.drawn.insert(*pane);
         let m = self.m;
+        // The lab needs no tape: it solves the oracle, outside any run (G1).
+        if *pane == Pane::Lab {
+            lab::show(ui, &mut self.state.lab, &mut self.state.charts);
+            return egui_tiles::UiResponse::None;
+        }
         let Some(run) = m.focused() else {
             ui.weak("no tape open: Open, or rustyecon-gui <tape.ron>");
             return egui_tiles::UiResponse::None;
@@ -251,15 +416,25 @@ impl egui_tiles::Behavior<Pane> for Panes<'_> {
                     );
                     cache.key = Some(key);
                 }
+                let watch = vm::watch::build(store, &m.session.watch, &m.session.plots, at);
                 match &cache.vm {
-                    Some(v) => outliner::show(ui, v, m.selection(), &mut cache.filter, out),
+                    Some(v) => {
+                        let ctx = outliner::Ctx {
+                            selection: m.selection(),
+                            watch: &m.session.watch,
+                            watchlist: watch.as_ref(),
+                        };
+                        outliner::show(ui, v, &ctx, &mut cache.filter, out);
+                    }
                     None => loading(ui),
                 }
             }
-            Pane::Plots => match vm::plots::build(store, &m.session.plots, at) {
-                Some(v) => plots::show(ui, run.id, store, &v, &mut self.state.plots, out),
-                None => loading(ui),
-            },
+            Pane::Plots => {
+                match vm::plots::build_with(store, &m.session.plots, &m.session.log_axes, at) {
+                    Some(v) => plots::show(ui, run.id, store, &v, &mut self.state.plots, out),
+                    None => loading(ui),
+                }
+            }
             Pane::Map => match self.state.map.ready() {
                 Err(e) => {
                     ui.colored_label(ui.visuals().error_fg_color, e);
@@ -311,7 +486,50 @@ impl egui_tiles::Behavior<Pane> for Panes<'_> {
                     ui.weak("select an entity in the outliner");
                 }
                 Some(sel) => match vm::inspector::build(store, sel, at) {
-                    Some(v) => inspector::show(ui, &v, &m.session.plots, out),
+                    Some(v) => {
+                        let waterfall = match sel {
+                            Entity::Market { node, good } => {
+                                let key = (
+                                    run.id,
+                                    store.generation(),
+                                    store.tick(),
+                                    at,
+                                    node.clone(),
+                                    good.clone(),
+                                );
+                                let live = at.is_none()
+                                    && matches!(
+                                        store.status(),
+                                        crate::run::RunStatus::Running { .. }
+                                    );
+                                let fresh = match &self.state.waterfall {
+                                    None => false,
+                                    Some((k, _, _)) if *k == key => true,
+                                    // While the run streams live, a waterfall stands 250 ms.
+                                    Some((k, made, _)) => {
+                                        live && (&k.0, k.1, k.3, &k.4, &k.5)
+                                            == (&key.0, key.1, key.3, &key.4, &key.5)
+                                            && made.elapsed()
+                                                < std::time::Duration::from_millis(250)
+                                    }
+                                };
+                                if !fresh {
+                                    let w = vm::pricestep::waterfall(store, node, good, at);
+                                    self.state.waterfall =
+                                        Some((key, std::time::Instant::now(), w));
+                                }
+                                self.state.waterfall.as_ref().map(|(_, _, w)| w)
+                            }
+                            _ => None,
+                        };
+                        let ctx = inspector::Ctx {
+                            plots: &m.session.plots,
+                            watch: &m.session.watch,
+                            breakpoints: &m.session.breakpoints,
+                            waterfall,
+                        };
+                        inspector::show(ui, &v, &ctx, &mut self.state.charts, out);
+                    }
                     None => loading(ui),
                 },
             },
@@ -347,10 +565,6 @@ impl egui_tiles::Behavior<Pane> for Panes<'_> {
                 None => loading(ui),
             },
             Pane::Log => {
-                let on = m
-                    .session
-                    .breakpoints
-                    .contains(&crate::run::Breakpoint::OnError);
                 // The log only grows: the lines added since the last frame are appended.
                 let all = m.log();
                 let (n, v) = self
@@ -363,9 +577,12 @@ impl egui_tiles::Behavior<Pane> for Panes<'_> {
                     v.lines.extend(vm::log::build(&all[*n..]).lines);
                 }
                 *n = all.len();
-                log::show(ui, v, on, out);
+                let field = &mut self.state.break_at;
+                log::show(ui, v, &m.session.breakpoints, field, out);
             }
             Pane::Editor => editor::show(ui, m, &mut self.state.editor, out),
+            // Drawn above, with or without a tape.
+            Pane::Lab => {}
             Pane::Compare => match m.parent_of(run.id) {
                 None => {
                     ui.weak(

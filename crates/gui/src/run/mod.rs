@@ -220,17 +220,34 @@ impl fmt::Debug for RingCheckpoint {
     }
 }
 
-/// A condition that pauses a run. At G0 the only one is an error; event and date breakpoints
-/// join at G1, conditions at G2.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+/// A condition that pauses a run, by key and date (U7). At G0 the only one was an error; event
+/// and date breakpoints join at G1, conditions at G2. Like a pause, a breakpoint changes when
+/// `step` is called, never what it computes (U1, U4).
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum Breakpoint {
     /// Pause on a run error. A failed `Sim` is poisoned and stops either way (E5); with this
     /// set, the pause is reported as the breakpoint's.
     OnError,
+    /// Pause after a tick in which this tape event fired, every occurrence of a recurring one
+    /// (G1). A key the run's world lacks never fires.
+    OnEvent(Key),
+    /// Pause after the tick this date falls in has run, as "run until" a date does, so the
+    /// events of that date have fired (G1). A run that starts past it does not pause there.
+    OnDate(Date),
+}
+
+impl fmt::Display for Breakpoint {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Breakpoint::OnError => write!(f, "breakpoint on error"),
+            Breakpoint::OnEvent(k) => write!(f, "breakpoint on event {k}"),
+            Breakpoint::OnDate(d) => write!(f, "breakpoint on date {d}"),
+        }
+    }
 }
 
 /// Why a run paused.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PauseReason {
     /// A `Pause` command.
     Asked,
@@ -250,7 +267,7 @@ impl fmt::Display for PauseReason {
             PauseReason::Asked => write!(f, "paused"),
             PauseReason::Stepped => write!(f, "stepped"),
             PauseReason::Reached(t) => write!(f, "reached tick {t}"),
-            PauseReason::Breakpoint(Breakpoint::OnError) => write!(f, "breakpoint on error"),
+            PauseReason::Breakpoint(b) => write!(f, "{b}"),
             PauseReason::Failed => write!(f, "stopped by a run error"),
         }
     }
