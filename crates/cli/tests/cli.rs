@@ -2,6 +2,7 @@
 //! its checkpoints and hashes files, and its exit codes. Hashes are compared exactly. From S2.4
 //! (docs/CERTIFY.md §10): the hash output names its run, a run's manifest records its
 //! checkpoints, a resume verifies against it, and `certify` writes its verdict and exits on it.
+//! From D.2, `worldgen` writes the committed demo tape.
 //!
 //! Test bars for `certify`, named once and none of them a registered bar: runs of 520 ticks in
 //! one-year segments, resumed at half, with a runaway bound of 1e4 (loose enough to pass) or of
@@ -1181,4 +1182,52 @@ fn manifest_names_every_input() {
     ]);
     assert_eq!(code(&out), 3, "{}", stderr(&out));
     assert!(!blocked.join("certificate.ron").exists());
+}
+
+#[test]
+fn worldgen_writes_the_committed_demo_tape() {
+    // D.2 (docs/demo/WORLD.md §8): `rustyecon worldgen worlds/demo-gb --out FILE` writes exactly
+    // the committed tapes/demo-gb.ron and prints its tape_hash. Tables that do not compile are
+    // exit 1, and a directory without them exit 3.
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let world = root.join("worlds/demo-gb");
+    let dir = tempfile::tempdir().unwrap();
+    let out_path = dir.path().join("demo-gb.ron");
+    let out = rustyecon(&["worldgen", s(&world), "--out", s(&out_path)]);
+    assert_eq!(code(&out), 0, "{}", stderr(&out));
+    let written = fs::read_to_string(&out_path).expect("the tape is written");
+    let committed = fs::read_to_string(root.join("tapes/demo-gb.ron")).expect("the committed tape");
+    assert!(
+        written == committed,
+        "the written tape is not tapes/demo-gb.ron"
+    );
+    let tape = Tape::from_ron(&written).expect("the tape loads");
+    let printed = format!("tape_hash 0x{:016x}", tape_hash(&tape));
+    assert!(stdout(&out).contains(&printed), "{}", stdout(&out));
+    // A region missing from regions.csv does not compile.
+    let bad = dir.path().join("bad");
+    fs::create_dir(&bad).unwrap();
+    for f in [
+        "world.csv",
+        "counties.csv",
+        "regions.csv",
+        "history.csv",
+        "lenses.csv",
+    ] {
+        let text = fs::read_to_string(world.join(f)).unwrap();
+        let text = if f == "regions.csv" {
+            text.lines()
+                .filter(|l| !l.starts_with("county.lan,"))
+                .map(|l| format!("{l}\n"))
+                .collect()
+        } else {
+            text
+        };
+        fs::write(bad.join(f), text).unwrap();
+    }
+    let out = rustyecon(&["worldgen", s(&bad)]);
+    assert_eq!(code(&out), 1, "{}", stderr(&out));
+    assert!(stderr(&out).contains("county.lan (Lancashire) has no row"));
+    let out = rustyecon(&["worldgen", s(dir.path())]);
+    assert_eq!(code(&out), 3, "{}", stderr(&out));
 }

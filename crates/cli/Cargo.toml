@@ -11,10 +11,12 @@ path = "src/main.rs"
 
 # A thin frontend: everything it runs comes through the engine (docs/ENGINE.md §8), and every
 # certificate, manifest and telemetry file through certify (docs/CERTIFY.md §10), with Parquet
-# on. build.rs stamps the build (§3). The worldgen stub joins when Phase 4 fills it.
+# on. build.rs stamps the build (§3). The world compiler is worldgen's (D.2): `rustyecon worldgen`
+# reads a world's tables and writes its tape.
 [dependencies]
 rustyecon-engine.workspace = true
 rustyecon-certify = { workspace = true, features = ["parquet"] }
+rustyecon-worldgen.workspace = true
 clap.workspace = true
 
 [dev-dependencies]

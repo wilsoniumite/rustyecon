@@ -1,0 +1,606 @@
+key,start,end,regions,param,mode,from,to,steps_per_year,weight,lever,note
+enclosure.open-fields.1,1760,1780,tag:openfield,land,scale,1,1.06,12,openfield,rents (T),first wave of parliamentary enclosure: Midland open fields consolidated
+enclosure.wastes.2,1793,1815,nation:england+wales,land,scale,1,1.08,12,waste,rents (T),war-time wave: commons and wastes enclosed; weight = upland share outside the Highlands
+enclosure.open-fields.2,1793,1815,tag:openfield,land,scale,1,1.04,12,openfield,rents (T),war-time wave: the rest of the open fields
+improvement.scotland,1760,1830,nation:scotland,land,scale,1,1.15,12,improver,rents (T),"Lowland improvement: runrig ended, farms consolidated, limed and drained"
+potato.ground,1750,1841,nation:ireland,land,scale,1,1.4,12,,rents (T),potato ground: bog edge and hill land taken into tillage as Ulster's population grows
+drainage.fens,1820,1850,tag:fen,land,scale,1,1.15,12,fen,rents (T),steam pumping drains the Fens
+clearances.sheep,1780,1855,tag:highland,land,scale,1,1.06,12,highland,rents (T),Highland clearances: townships cleared for sheep walks (people leave through N)
+kelp.boom,1765,1810,tag:kelp,land,scale,1,1.1,12,kelp,rents (T),kelp burned on the shore for alkali: a mineral-like rent
+kelp.bust,1815,1830,tag:kelp,land,scale,1,0.909091,12,kelp,rents (T),"kelp collapses after the war (Spanish barilla, then Leblanc soda)"
+mines.metal.boom,1750,1860,tag:mining,land,scale,1,1.3,12,mining,rents (T),"copper, tin and lead: mineral rents rise (Cornwall, Parys Mountain, the Peak)"
+mines.metal.bust,1866,1885,tag:mining,land,scale,1,0.8,12,mining,rents (T),copper and tin collapse; lead declines
+mines.slate,1780,1900,tag:slate,land,scale,1,1.6,12,slate,rents (T),"slate quarries: Penrhyn, Dinorwic, Ffestiniog roof the towns"
+coal.mineral.1,1750,1830,tag:coal,land,scale,1,1.3,12,coal,rents (T),"coal's mineral rent: output grows on the old fields (Tyne, Wear, Lancashire, the West Riding)"
+coal.mineral.2,1830,1870,tag:coal,land,scale,1,1.6,12,coal,rents (T),coal's mineral rent: the railway age opens the fields
+coal.mineral.3,1870,1901,tag:coal,land,scale,1,1.3,12,coal,rents (T),"coal's mineral rent: steam coal (South Wales, Durham) for ships and export"
+improvement.rotation,1750,1840,nation:england+wales,space,scale,1,0.85,12,improver,rents (h),"Norfolk four-course rotation, turnips and clover: a basket needs less land"
+improvement.high-farming,1840,1875,all,space,scale,1,0.9,12,lowland,rents (h),"high farming: tile drainage, guano and superphosphate; weight = lowland share"
+steam.coalfields,1770,1830,tag:coal,b,scale,1,0.7,12,coal,rents (b),Watt's engine and coke iron: machine services need less land (fuel and fodder) on the coalfields
+canals,1760,1830,tag:canal,b,scale,1,0.9,12,canal,rents (b),canals carry coal to the works: machine services need less land
+railways.gb,1835,1875,nation:england+wales+scotland,b,scale,1,0.75,12,offcoal,rents (b),railways carry coal everywhere: the fall is largest away from the coalfields (weight 1 - coal/2)
+railways.ireland,1845,1885,nation:ireland,b,scale,1,0.8,12,offcoal,rents (b),"Ulster's railways, later and thinner"
+railways.own-input,1835,1875,all,a,scale,1,0.9,12,,recursive (a),cheaper carriage of materials: machine services need fewer machine services
+machine-tools,1800,1870,tag:eng,lam,scale,1,0.7,12,eng,recursive (lam),"Maudslay, Nasmyth and Whitworth: machine tools cut the labour in making machines"
+engineering.spread,1850,1901,all,lam,scale,1,0.8,12,,recursive (lam),engineering spreads: every county's machines take less labour to make
+textile.cotton,textile_from,1835,kind:cotton,eta,scale,1,0.6,12,textile,task (eta),"cotton: jenny, water frame, mule, then the power loom; starts at the county's textile_from"
+textile.wool,textile_from,1850,kind:wool,eta,scale,1,0.7,12,textile,task (eta),"wool and worsted: scribbling and spinning mills, then worsted power looms"
+textile.linen,textile_from,1870,kind:linen,eta,scale,1,0.7,12,textile,task (eta),"wet-spun flax and jute: Dundee, Belfast, Dunfermline"
+textile.hosiery,textile_from,1880,kind:hosiery,eta,scale,1,0.8,12,textile,task (eta),hosiery and lace move into steam-powered factories
+textile.other,textile_from,1880,kind:silk+pottery+ribbons+carpets+boots,eta,scale,1,0.85,12,textile,task (eta),"silk, ribbons, carpets, pottery and boots: later and partial mechanisation"
+threshing,1790,1830,tag:improver,eta,scale,1,0.95,12,improver,task (eta),threshing machines in the arable counties (broken in the Swing riots of 1830)
+mechanisation.general,1830,1901,all,eta,scale,1,0.9,12,,task (eta),"general mechanisation: reapers, engineering, printing, food processing"
+poor-law.speenhamland,1795,1800,tag:speen,chi_max,scale,1,1.08,12,speen,exit (chi),Speenhamland allowances in the southern and eastern arable counties: dependence worth more
+poor-law.1834,1834,1840,nation:england+wales,chi_max,scale,1,0.9,12,,exit (chi),"Poor Law Amendment Act: the workhouse test, less eligibility"
+poor-law.ireland,1838,1845,nation:ireland,chi_max,scale,1,0.95,12,,exit (chi),Irish Poor Law: workhouse unions
+poor-law.scotland,1845,1850,nation:scotland,chi_max,scale,1,1.03,12,,exit (chi),"Poor Law (Scotland) Act: parochial boards, some relief for the able-bodied in need"
+population.bdf.1750,1750,1801,county.bdf,workers,path,110.24,131.04,12,,scarcity (N),population ~53k to ~63k (rough benchmarks)
+sites.bdf.1750,1750,1801,county.bdf,land,scale,1,1.09027,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.bdf.1801,1801,1851,county.bdf,workers,path,131.04,257.92,12,,scarcity (N),population ~63k to ~124k (rough benchmarks)
+sites.bdf.1801,1801,1851,county.bdf,land,scale,1,1.40294,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.bdf.1851,1851,1901,county.bdf,workers,path,257.92,357.76,12,,scarcity (N),population ~124k to ~172k (rough benchmarks)
+sites.bdf.1851,1851,1901,county.bdf,land,scale,1,1.17775,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.brk.1750,1750,1801,county.brk,workers,path,191.36,228.8,12,,scarcity (N),population ~92k to ~110k (rough benchmarks)
+sites.brk.1750,1750,1801,county.brk,land,scale,1,1.09346,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.brk.1801,1801,1851,county.brk,workers,path,228.8,353.6,12,,scarcity (N),population ~110k to ~170k (rough benchmarks)
+sites.brk.1801,1801,1851,county.brk,land,scale,1,1.24316,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.brk.1851,1851,1901,county.brk,workers,path,353.6,532.48,12,,scarcity (N),population ~170k to ~256k (rough benchmarks)
+sites.brk.1851,1851,1901,county.brk,land,scale,1,1.22714,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.bkm.1750,1750,1801,county.bkm,workers,path,187.2,224.64,12,,scarcity (N),population ~90k to ~108k (rough benchmarks)
+sites.bkm.1750,1750,1801,county.bkm,land,scale,1,1.10548,12,,rents (T),"site services follow population: (N'/N)^0.55 (towns, harbours, works)"
+population.bkm.1801,1801,1851,county.bkm,workers,path,224.64,339.04,12,,scarcity (N),population ~108k to ~163k (rough benchmarks)
+sites.bkm.1801,1801,1851,county.bkm,land,scale,1,1.25407,12,,rents (T),"site services follow population: (N'/N)^0.55 (towns, harbours, works)"
+population.bkm.1851,1851,1901,county.bkm,workers,path,339.04,407.68,12,,scarcity (N),population ~163k to ~196k (rough benchmarks)
+sites.bkm.1851,1851,1901,county.bkm,land,scale,1,1.10672,12,,rents (T),"site services follow population: (N'/N)^0.55 (towns, harbours, works)"
+population.cam.1750,1750,1801,county.cam,workers,path,149.76,185.12,12,,scarcity (N),population ~72k to ~89k (rough benchmarks)
+sites.cam.1750,1750,1801,county.cam,land,scale,1,1.11181,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.cam.1801,1801,1851,county.cam,workers,path,185.12,384.8,12,,scarcity (N),population ~89k to ~185k (rough benchmarks)
+sites.cam.1801,1801,1851,county.cam,land,scale,1,1.44175,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.cam.1851,1851,1901,county.cam,workers,path,384.8,397.28,12,,scarcity (N),population ~185k to ~191k (rough benchmarks)
+sites.cam.1851,1851,1901,county.cam,land,scale,1,1.01609,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.chs.1750,1750,1801,county.chs,workers,path,272.48,399.36,12,,scarcity (N),population ~131k to ~192k (rough benchmarks)
+sites.chs.1750,1750,1801,county.chs,land,scale,1,1.21064,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.chs.1801,1801,1851,county.chs,workers,path,399.36,948.48,12,,scarcity (N),population ~192k to ~456k (rough benchmarks)
+sites.chs.1801,1801,1851,county.chs,land,scale,1,1.5411,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.chs.1851,1851,1901,county.chs,workers,path,948.48,1695.2,12,,scarcity (N),population ~456k to ~815k (rough benchmarks)
+sites.chs.1851,1851,1901,county.chs,land,scale,1,1.33689,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.con.1750,1750,1801,county.con,workers,path,280.8,399.36,12,,scarcity (N),population ~135k to ~192k (rough benchmarks)
+sites.con.1750,1750,1801,county.con,land,scale,1,1.23532,12,,rents (T),"site services follow population: (N'/N)^0.60 (towns, harbours, works)"
+population.con.1801,1801,1851,county.con,workers,path,399.36,740.48,12,,scarcity (N),population ~192k to ~356k (rough benchmarks)
+sites.con.1801,1801,1851,county.con,land,scale,1,1.4484,12,,rents (T),"site services follow population: (N'/N)^0.60 (towns, harbours, works)"
+population.con.1851,1851,1901,county.con,workers,path,740.48,669.76,12,,scarcity (N),population ~356k to ~322k (rough benchmarks)
+sites.con.1851,1851,1901,county.con,land,scale,1,0.94155,12,,rents (T),"site services follow population: (N'/N)^0.60 (towns, harbours, works)"
+population.cul.1750,1750,1801,county.cul,workers,path,180.96,243.36,12,,scarcity (N),population ~87k to ~117k (rough benchmarks)
+sites.cul.1750,1750,1801,county.cul,land,scale,1,1.18572,12,,rents (T),"site services follow population: (N'/N)^0.57 (towns, harbours, works)"
+population.cul.1801,1801,1851,county.cul,workers,path,243.36,405.6,12,,scarcity (N),population ~117k to ~195k (rough benchmarks)
+sites.cul.1801,1801,1851,county.cul,land,scale,1,1.34141,12,,rents (T),"site services follow population: (N'/N)^0.57 (towns, harbours, works)"
+population.cul.1851,1851,1901,county.cul,workers,path,405.6,555.36,12,,scarcity (N),population ~195k to ~267k (rough benchmarks)
+sites.cul.1851,1851,1901,county.cul,land,scale,1,1.19805,12,,rents (T),"site services follow population: (N'/N)^0.57 (towns, harbours, works)"
+population.dby.1750,1750,1801,county.dby,workers,path,228.8,334.88,12,,scarcity (N),population ~110k to ~161k (rough benchmarks)
+sites.dby.1750,1750,1801,county.dby,land,scale,1,1.20981,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.dby.1801,1801,1851,county.dby,workers,path,334.88,615.68,12,,scarcity (N),population ~161k to ~296k (rough benchmarks)
+sites.dby.1801,1801,1851,county.dby,land,scale,1,1.35592,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.dby.1851,1851,1901,county.dby,workers,path,615.68,1289.6,12,,scarcity (N),population ~296k to ~620k (rough benchmarks)
+sites.dby.1851,1851,1901,county.dby,land,scale,1,1.44727,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.dev.1750,1750,1801,county.dev,workers,path,565.76,713.44,12,,scarcity (N),population ~272k to ~343k (rough benchmarks)
+sites.dev.1750,1750,1801,county.dev,land,scale,1,1.15599,12,,rents (T),"site services follow population: (N'/N)^0.62 (towns, harbours, works)"
+population.dev.1801,1801,1851,county.dev,workers,path,713.44,1179.36,12,,scarcity (N),population ~343k to ~567k (rough benchmarks)
+sites.dev.1801,1801,1851,county.dev,land,scale,1,1.36909,12,,rents (T),"site services follow population: (N'/N)^0.62 (towns, harbours, works)"
+population.dev.1851,1851,1901,county.dev,workers,path,1179.36,1376.96,12,,scarcity (N),population ~567k to ~662k (rough benchmarks)
+sites.dev.1851,1851,1901,county.dev,land,scale,1,1.10166,12,,rents (T),"site services follow population: (N'/N)^0.62 (towns, harbours, works)"
+population.dor.1750,1750,1801,county.dor,workers,path,187.2,239.2,12,,scarcity (N),population ~90k to ~115k (rough benchmarks)
+sites.dor.1750,1750,1801,county.dor,land,scale,1,1.13039,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.dor.1801,1801,1851,county.dor,workers,path,239.2,382.72,12,,scarcity (N),population ~115k to ~184k (rough benchmarks)
+sites.dor.1801,1801,1851,county.dor,land,scale,1,1.26491,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.dor.1851,1851,1901,county.dor,workers,path,382.72,420.16,12,,scarcity (N),population ~184k to ~202k (rough benchmarks)
+sites.dor.1851,1851,1901,county.dor,land,scale,1,1.04777,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.dur.1750,1750,1801,county.dur,workers,path,280.8,332.8,12,,scarcity (N),population ~135k to ~160k (rough benchmarks)
+sites.dur.1750,1750,1801,county.dur,land,scale,1,1.11676,12,,rents (T),"site services follow population: (N'/N)^0.65 (towns, harbours, works)"
+population.dur.1801,1801,1851,county.dur,workers,path,332.8,813.28,12,,scarcity (N),population ~160k to ~391k (rough benchmarks)
+sites.dur.1801,1801,1851,county.dur,land,scale,1,1.78746,12,,rents (T),"site services follow population: (N'/N)^0.65 (towns, harbours, works)"
+population.dur.1851,1851,1901,county.dur,workers,path,813.28,2468.96,12,,scarcity (N),population ~391k to ~1187k (rough benchmarks)
+sites.dur.1851,1851,1901,county.dur,land,scale,1,2.05815,12,,rents (T),"site services follow population: (N'/N)^0.65 (towns, harbours, works)"
+population.ess.1750,1750,1801,county.ess,workers,path,347.36,470.08,12,,scarcity (N),population ~167k to ~226k (rough benchmarks)
+sites.ess.1750,1750,1801,county.ess,land,scale,1,1.19904,12,,rents (T),"site services follow population: (N'/N)^0.60 (towns, harbours, works)"
+population.ess.1801,1801,1851,county.ess,workers,path,470.08,769.6,12,,scarcity (N),population ~226k to ~370k (rough benchmarks)
+sites.ess.1801,1801,1851,county.ess,land,scale,1,1.34418,12,,rents (T),"site services follow population: (N'/N)^0.60 (towns, harbours, works)"
+population.ess.1851,1851,1901,county.ess,workers,path,769.6,2254.72,12,,scarcity (N),population ~370k to ~1084k (rough benchmarks)
+sites.ess.1851,1851,1901,county.ess,land,scale,1,1.90588,12,,rents (T),"site services follow population: (N'/N)^0.60 (towns, harbours, works)"
+population.gls.1750,1750,1801,county.gls,workers,path,432.64,522.08,12,,scarcity (N),population ~208k to ~251k (rough benchmarks)
+sites.gls.1750,1750,1801,county.gls,land,scale,1,1.12992,12,,rents (T),"site services follow population: (N'/N)^0.65 (towns, harbours, works)"
+population.gls.1801,1801,1851,county.gls,workers,path,522.08,952.64,12,,scarcity (N),population ~251k to ~458k (rough benchmarks)
+sites.gls.1801,1801,1851,county.gls,land,scale,1,1.47834,12,,rents (T),"site services follow population: (N'/N)^0.65 (towns, harbours, works)"
+population.gls.1851,1851,1901,county.gls,workers,path,952.64,1474.72,12,,scarcity (N),population ~458k to ~709k (rough benchmarks)
+sites.gls.1851,1851,1901,county.gls,land,scale,1,1.32849,12,,rents (T),"site services follow population: (N'/N)^0.65 (towns, harbours, works)"
+population.ham.1750,1750,1801,county.ham,workers,path,287.04,455.52,12,,scarcity (N),population ~138k to ~219k (rough benchmarks)
+sites.ham.1750,1750,1801,county.ham,land,scale,1,1.3501,12,,rents (T),"site services follow population: (N'/N)^0.65 (towns, harbours, works)"
+population.ham.1801,1801,1851,county.ham,workers,path,455.52,842.4,12,,scarcity (N),population ~219k to ~405k (rough benchmarks)
+sites.ham.1801,1801,1851,county.ham,land,scale,1,1.49127,12,,rents (T),"site services follow population: (N'/N)^0.65 (towns, harbours, works)"
+population.ham.1851,1851,1901,county.ham,workers,path,842.4,1659.84,12,,scarcity (N),population ~405k to ~798k (rough benchmarks)
+sites.ham.1851,1851,1901,county.ham,land,scale,1,1.55402,12,,rents (T),"site services follow population: (N'/N)^0.65 (towns, harbours, works)"
+population.hef.1750,1750,1801,county.hef,workers,path,164.32,185.12,12,,scarcity (N),population ~79k to ~89k (rough benchmarks)
+sites.hef.1750,1750,1801,county.hef,land,scale,1,1.06141,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.hef.1801,1801,1851,county.hef,workers,path,185.12,239.2,12,,scarcity (N),population ~89k to ~115k (rough benchmarks)
+sites.hef.1801,1801,1851,county.hef,land,scale,1,1.13672,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.hef.1851,1851,1901,county.hef,workers,path,239.2,237.12,12,,scarcity (N),population ~115k to ~114k (rough benchmarks)
+sites.hef.1851,1851,1901,county.hef,land,scale,1,0.995643,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.hrt.1750,1750,1801,county.hrt,workers,path,178.88,201.76,12,,scarcity (N),population ~86k to ~97k (rough benchmarks)
+sites.hrt.1750,1750,1801,county.hrt,land,scale,1,1.06844,12,,rents (T),"site services follow population: (N'/N)^0.55 (towns, harbours, works)"
+population.hrt.1801,1801,1851,county.hrt,workers,path,201.76,347.36,12,,scarcity (N),population ~97k to ~167k (rough benchmarks)
+sites.hrt.1801,1801,1851,county.hrt,land,scale,1,1.34825,12,,rents (T),"site services follow population: (N'/N)^0.55 (towns, harbours, works)"
+population.hrt.1851,1851,1901,county.hrt,workers,path,347.36,536.64,12,,scarcity (N),population ~167k to ~258k (rough benchmarks)
+sites.hrt.1851,1851,1901,county.hrt,land,scale,1,1.27027,12,,rents (T),"site services follow population: (N'/N)^0.55 (towns, harbours, works)"
+population.hun.1750,1750,1801,county.hun,workers,path,66.56,79.04,12,,scarcity (N),population ~32k to ~38k (rough benchmarks)
+sites.hun.1750,1750,1801,county.hun,land,scale,1,1.08972,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.hun.1801,1801,1851,county.hun,workers,path,79.04,133.12,12,,scarcity (N),population ~38k to ~64k (rough benchmarks)
+sites.hun.1801,1801,1851,county.hun,land,scale,1,1.29777,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.hun.1851,1851,1901,county.hun,workers,path,133.12,118.56,12,,scarcity (N),population ~64k to ~57k (rough benchmarks)
+sites.hun.1851,1851,1901,county.hun,land,scale,1,0.943729,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.ken.1750,1750,1801,county.ken,workers,path,395.2,638.56,12,,scarcity (N),population ~190k to ~307k (rough benchmarks)
+sites.ken.1750,1750,1801,county.ken,land,scale,1,1.366,12,,rents (T),"site services follow population: (N'/N)^0.65 (towns, harbours, works)"
+population.ken.1801,1801,1851,county.ken,workers,path,638.56,1279.2,12,,scarcity (N),population ~307k to ~615k (rough benchmarks)
+sites.ken.1801,1801,1851,county.ken,land,scale,1,1.57083,12,,rents (T),"site services follow population: (N'/N)^0.65 (towns, harbours, works)"
+population.ken.1851,1851,1901,county.ken,workers,path,1279.2,2805.92,12,,scarcity (N),population ~615k to ~1349k (rough benchmarks)
+sites.ken.1851,1851,1901,county.ken,land,scale,1,1.66625,12,,rents (T),"site services follow population: (N'/N)^0.65 (towns, harbours, works)"
+population.lan.1750,1750,1801,county.lan,workers,path,617.76,1399.84,12,,scarcity (N),population ~297k to ~673k (rough benchmarks)
+sites.lan.1750,1750,1801,county.lan,land,scale,1,1.8469,12,,rents (T),"site services follow population: (N'/N)^0.75 (towns, harbours, works)"
+population.lan.1801,1801,1851,county.lan,workers,path,1399.84,4224.48,12,,scarcity (N),population ~673k to ~2031k (rough benchmarks)
+sites.lan.1801,1801,1851,county.lan,land,scale,1,2.28966,12,,rents (T),"site services follow population: (N'/N)^0.75 (towns, harbours, works)"
+population.lan.1851,1851,1901,county.lan,workers,path,4224.48,9166.56,12,,scarcity (N),population ~2031k to ~4407k (rough benchmarks)
+sites.lan.1851,1851,1901,county.lan,land,scale,1,1.78782,12,,rents (T),"site services follow population: (N'/N)^0.75 (towns, harbours, works)"
+population.lei.1750,1750,1801,county.lei,workers,path,197.6,270.4,12,,scarcity (N),population ~95k to ~130k (rough benchmarks)
+sites.lei.1750,1750,1801,county.lei,land,scale,1,1.1698,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.lei.1801,1801,1851,county.lei,workers,path,270.4,486.72,12,,scarcity (N),population ~130k to ~234k (rough benchmarks)
+sites.lei.1801,1801,1851,county.lei,land,scale,1,1.34164,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.lei.1851,1851,1901,county.lei,workers,path,486.72,902.72,12,,scarcity (N),population ~234k to ~434k (rough benchmarks)
+sites.lei.1851,1851,1901,county.lei,land,scale,1,1.36187,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.lin.1750,1750,1801,county.lin,workers,path,332.8,432.64,12,,scarcity (N),population ~160k to ~208k (rough benchmarks)
+sites.lin.1750,1750,1801,county.lin,land,scale,1,1.14018,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.lin.1801,1801,1851,county.lin,workers,path,432.64,846.56,12,,scarcity (N),population ~208k to ~407k (rough benchmarks)
+sites.lin.1801,1801,1851,county.lin,land,scale,1,1.39883,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.lin.1851,1851,1901,county.lin,workers,path,846.56,1037.92,12,,scarcity (N),population ~407k to ~499k (rough benchmarks)
+sites.lin.1851,1851,1901,county.lin,land,scale,1,1.10727,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.mdx.1750,1750,1801,county.mdx,workers,path,1333.28,1701.44,12,,scarcity (N),population ~641k to ~818k (rough benchmarks)
+sites.mdx.1750,1750,1801,county.mdx,land,scale,1,1.27613,12,,rents (T),"site services follow population: (N'/N)^1.00 (towns, harbours, works)"
+population.mdx.1801,1801,1851,county.mdx,workers,path,1701.44,3924.96,12,,scarcity (N),population ~818k to ~1887k (rough benchmarks)
+sites.mdx.1801,1801,1851,county.mdx,land,scale,1,2.30685,12,,rents (T),"site services follow population: (N'/N)^1.00 (towns, harbours, works)"
+population.mdx.1851,1851,1901,county.mdx,workers,path,3924.96,7456.8,12,,scarcity (N),population ~1887k to ~3585k (rough benchmarks)
+sites.mdx.1851,1851,1901,county.mdx,land,scale,1,1.89984,12,,rents (T),"site services follow population: (N'/N)^1.00 (towns, harbours, works)"
+population.nfk.1750,1750,1801,county.nfk,workers,path,447.2,567.84,12,,scarcity (N),population ~215k to ~273k (rough benchmarks)
+sites.nfk.1750,1750,1801,county.nfk,land,scale,1,1.15408,12,,rents (T),"site services follow population: (N'/N)^0.60 (towns, harbours, works)"
+population.nfk.1801,1801,1851,county.nfk,workers,path,567.84,921.44,12,,scarcity (N),population ~273k to ~443k (rough benchmarks)
+sites.nfk.1801,1801,1851,county.nfk,land,scale,1,1.33704,12,,rents (T),"site services follow population: (N'/N)^0.60 (towns, harbours, works)"
+population.nfk.1851,1851,1901,county.nfk,workers,path,921.44,990.08,12,,scarcity (N),population ~443k to ~476k (rough benchmarks)
+sites.nfk.1851,1851,1901,county.nfk,land,scale,1,1.04405,12,,rents (T),"site services follow population: (N'/N)^0.60 (towns, harbours, works)"
+population.nth.1750,1750,1801,county.nth,workers,path,257.92,274.56,12,,scarcity (N),population ~124k to ~132k (rough benchmarks)
+sites.nth.1750,1750,1801,county.nth,land,scale,1,1.03175,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.nth.1801,1801,1851,county.nth,workers,path,274.56,443.04,12,,scarcity (N),population ~132k to ~213k (rough benchmarks)
+sites.nth.1801,1801,1851,county.nth,land,scale,1,1.27029,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.nth.1851,1851,1901,county.nth,workers,path,443.04,703.04,12,,scarcity (N),population ~213k to ~338k (rough benchmarks)
+sites.nth.1851,1851,1901,county.nth,land,scale,1,1.2597,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.nbl.1750,1750,1801,county.nbl,workers,path,293.28,326.56,12,,scarcity (N),population ~141k to ~157k (rough benchmarks)
+sites.nbl.1750,1750,1801,county.nbl,land,scale,1,1.07814,12,,rents (T),"site services follow population: (N'/N)^0.70 (towns, harbours, works)"
+population.nbl.1801,1801,1851,county.nbl,workers,path,326.56,632.32,12,,scarcity (N),population ~157k to ~304k (rough benchmarks)
+sites.nbl.1801,1801,1851,county.nbl,land,scale,1,1.58811,12,,rents (T),"site services follow population: (N'/N)^0.70 (towns, harbours, works)"
+population.nbl.1851,1851,1901,county.nbl,workers,path,632.32,1254.24,12,,scarcity (N),population ~304k to ~603k (rough benchmarks)
+sites.nbl.1851,1851,1901,county.nbl,land,scale,1,1.61514,12,,rents (T),"site services follow population: (N'/N)^0.70 (towns, harbours, works)"
+population.ntt.1750,1750,1801,county.ntt,workers,path,160.16,291.2,12,,scarcity (N),population ~77k to ~140k (rough benchmarks)
+sites.ntt.1750,1750,1801,county.ntt,land,scale,1,1.3484,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.ntt.1801,1801,1851,county.ntt,workers,path,291.2,561.6,12,,scarcity (N),population ~140k to ~270k (rough benchmarks)
+sites.ntt.1801,1801,1851,county.ntt,land,scale,1,1.38873,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.ntt.1851,1851,1901,county.ntt,workers,path,561.6,1069.12,12,,scarcity (N),population ~270k to ~514k (rough benchmarks)
+sites.ntt.1851,1851,1901,county.ntt,land,scale,1,1.37975,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.oxf.1750,1750,1801,county.oxf,workers,path,191.36,232.96,12,,scarcity (N),population ~92k to ~112k (rough benchmarks)
+sites.oxf.1750,1750,1801,county.oxf,land,scale,1,1.10335,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.oxf.1801,1801,1851,county.oxf,workers,path,232.96,353.6,12,,scarcity (N),population ~112k to ~170k (rough benchmarks)
+sites.oxf.1801,1801,1851,county.oxf,land,scale,1,1.23201,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.oxf.1851,1851,1901,county.oxf,workers,path,353.6,378.56,12,,scarcity (N),population ~170k to ~182k (rough benchmarks)
+sites.oxf.1851,1851,1901,county.oxf,land,scale,1,1.03469,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.rut.1750,1750,1801,county.rut,workers,path,27.04,33.28,12,,scarcity (N),population ~13k to ~16k (rough benchmarks)
+sites.rut.1750,1750,1801,county.rut,land,scale,1,1.1094,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.rut.1801,1801,1851,county.rut,workers,path,33.28,47.84,12,,scarcity (N),population ~16k to ~23k (rough benchmarks)
+sites.rut.1801,1801,1851,county.rut,land,scale,1,1.19896,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.rut.1851,1851,1901,county.rut,workers,path,47.84,41.6,12,,scarcity (N),population ~23k to ~20k (rough benchmarks)
+sites.rut.1851,1851,1901,county.rut,land,scale,1,0.932505,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.sal.1750,1750,1801,county.sal,workers,path,270.4,349.44,12,,scarcity (N),population ~130k to ~168k (rough benchmarks)
+sites.sal.1750,1750,1801,county.sal,land,scale,1,1.1368,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.sal.1801,1801,1851,county.sal,workers,path,349.44,476.32,12,,scarcity (N),population ~168k to ~229k (rough benchmarks)
+sites.sal.1801,1801,1851,county.sal,land,scale,1,1.16752,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.sal.1851,1851,1901,county.sal,workers,path,476.32,499.2,12,,scarcity (N),population ~229k to ~240k (rough benchmarks)
+sites.sal.1851,1851,1901,county.sal,land,scale,1,1.02374,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.som.1750,1750,1801,county.som,workers,path,465.92,569.92,12,,scarcity (N),population ~224k to ~274k (rough benchmarks)
+sites.som.1750,1750,1801,county.som,land,scale,1,1.10599,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.som.1801,1801,1851,county.som,workers,path,569.92,923.52,12,,scarcity (N),population ~274k to ~444k (rough benchmarks)
+sites.som.1801,1801,1851,county.som,land,scale,1,1.27296,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.som.1851,1851,1901,county.som,workers,path,923.52,1056.64,12,,scarcity (N),population ~444k to ~508k (rough benchmarks)
+sites.som.1851,1851,1901,county.som,land,scale,1,1.06965,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.sts.1750,1750,1801,county.sts,workers,path,332.8,497.12,12,,scarcity (N),population ~160k to ~239k (rough benchmarks)
+sites.sts.1750,1750,1801,county.sts,land,scale,1,1.22219,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.sts.1801,1801,1851,county.sts,workers,path,497.12,1266.72,12,,scarcity (N),population ~239k to ~609k (rough benchmarks)
+sites.sts.1801,1801,1851,county.sts,land,scale,1,1.59628,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.sts.1851,1851,1901,county.sts,workers,path,1266.72,2568.8,12,,scarcity (N),population ~609k to ~1235k (rough benchmarks)
+sites.sts.1851,1851,1901,county.sts,land,scale,1,1.42405,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.sfk.1750,1750,1801,county.sfk,workers,path,324.48,445.12,12,,scarcity (N),population ~156k to ~214k (rough benchmarks)
+sites.sfk.1750,1750,1801,county.sfk,land,scale,1,1.19934,12,,rents (T),"site services follow population: (N'/N)^0.57 (towns, harbours, works)"
+population.sfk.1801,1801,1851,county.sfk,workers,path,445.12,700.96,12,,scarcity (N),population ~214k to ~337k (rough benchmarks)
+sites.sfk.1801,1801,1851,county.sfk,land,scale,1,1.29837,12,,rents (T),"site services follow population: (N'/N)^0.57 (towns, harbours, works)"
+population.sfk.1851,1851,1901,county.sfk,workers,path,700.96,798.72,12,,scarcity (N),population ~337k to ~384k (rough benchmarks)
+sites.sfk.1851,1851,1901,county.sfk,land,scale,1,1.07796,12,,rents (T),"site services follow population: (N'/N)^0.57 (towns, harbours, works)"
+population.sry.1750,1750,1801,county.sry,workers,path,339.04,559.52,12,,scarcity (N),population ~163k to ~269k (rough benchmarks)
+sites.sry.1750,1750,1801,county.sry,land,scale,1,1.56967,12,,rents (T),"site services follow population: (N'/N)^0.90 (towns, harbours, works)"
+population.sry.1801,1801,1851,county.sry,workers,path,559.52,1420.64,12,,scarcity (N),population ~269k to ~683k (rough benchmarks)
+sites.sry.1801,1801,1851,county.sry,land,scale,1,2.31314,12,,rents (T),"site services follow population: (N'/N)^0.90 (towns, harbours, works)"
+population.sry.1851,1851,1901,county.sry,workers,path,1420.64,4184.96,12,,scarcity (N),population ~683k to ~2012k (rough benchmarks)
+sites.sry.1851,1851,1901,county.sry,land,scale,1,2.64415,12,,rents (T),"site services follow population: (N'/N)^0.90 (towns, harbours, works)"
+population.ssx.1750,1750,1801,county.ssx,workers,path,222.56,330.72,12,,scarcity (N),population ~107k to ~159k (rough benchmarks)
+sites.ssx.1750,1750,1801,county.ssx,land,scale,1,1.29363,12,,rents (T),"site services follow population: (N'/N)^0.65 (towns, harbours, works)"
+population.ssx.1801,1801,1851,county.ssx,workers,path,330.72,698.88,12,,scarcity (N),population ~159k to ~336k (rough benchmarks)
+sites.ssx.1801,1801,1851,county.ssx,land,scale,1,1.62634,12,,rents (T),"site services follow population: (N'/N)^0.65 (towns, harbours, works)"
+population.ssx.1851,1851,1901,county.ssx,workers,path,698.88,1258.4,12,,scarcity (N),population ~336k to ~605k (rough benchmarks)
+sites.ssx.1851,1851,1901,county.ssx,land,scale,1,1.46562,12,,rents (T),"site services follow population: (N'/N)^0.65 (towns, harbours, works)"
+population.war.1750,1750,1801,county.war,workers,path,291.2,432.64,12,,scarcity (N),population ~140k to ~208k (rough benchmarks)
+sites.war.1750,1750,1801,county.war,land,scale,1,1.2189,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.war.1801,1801,1851,county.war,workers,path,432.64,990.08,12,,scarcity (N),population ~208k to ~476k (rough benchmarks)
+sites.war.1801,1801,1851,county.war,land,scale,1,1.51277,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.war.1851,1851,1901,county.war,workers,path,990.08,1865.76,12,,scarcity (N),population ~476k to ~897k (rough benchmarks)
+sites.war.1851,1851,1901,county.war,land,scale,1,1.37275,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.wes.1750,1750,1801,county.wes,workers,path,74.88,85.28,12,,scarcity (N),population ~36k to ~41k (rough benchmarks)
+sites.wes.1750,1750,1801,county.wes,land,scale,1,1.06719,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.wes.1801,1801,1851,county.wes,workers,path,85.28,122.72,12,,scarcity (N),population ~41k to ~59k (rough benchmarks)
+sites.wes.1801,1801,1851,county.wes,land,scale,1,1.19959,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.wes.1851,1851,1901,county.wes,workers,path,122.72,133.12,12,,scarcity (N),population ~59k to ~64k (rough benchmarks)
+sites.wes.1851,1851,1901,county.wes,land,scale,1,1.04151,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.wil.1750,1750,1801,county.wil,workers,path,349.44,382.72,12,,scarcity (N),population ~168k to ~184k (rough benchmarks)
+sites.wil.1750,1750,1801,county.wil,land,scale,1,1.04654,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.wil.1801,1801,1851,county.wil,workers,path,382.72,530.4,12,,scarcity (N),population ~184k to ~255k (rough benchmarks)
+sites.wil.1801,1801,1851,county.wil,land,scale,1,1.17723,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.wil.1851,1851,1901,county.wil,workers,path,530.4,569.92,12,,scarcity (N),population ~255k to ~274k (rough benchmarks)
+sites.wil.1851,1851,1901,county.wil,land,scale,1,1.03659,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.wor.1750,1750,1801,county.wor,workers,path,224.64,289.12,12,,scarcity (N),population ~108k to ~139k (rough benchmarks)
+sites.wor.1750,1750,1801,county.wor,land,scale,1,1.13448,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.wor.1801,1801,1851,county.wor,workers,path,289.12,576.16,12,,scarcity (N),population ~139k to ~277k (rough benchmarks)
+sites.wor.1801,1801,1851,county.wor,land,scale,1,1.41167,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.wor.1851,1851,1901,county.wor,workers,path,576.16,1015.04,12,,scarcity (N),population ~277k to ~488k (rough benchmarks)
+sites.wor.1851,1851,1901,county.wor,land,scale,1,1.3273,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.ery.1750,1750,1801,county.ery,workers,path,187.2,230.88,12,,scarcity (N),population ~90k to ~111k (rough benchmarks)
+sites.ery.1750,1750,1801,county.ery,land,scale,1,1.15813,12,,rents (T),"site services follow population: (N'/N)^0.70 (towns, harbours, works)"
+population.ery.1801,1801,1851,county.ery,workers,path,230.88,457.6,12,,scarcity (N),population ~111k to ~220k (rough benchmarks)
+sites.ery.1801,1801,1851,county.ery,land,scale,1,1.61425,12,,rents (T),"site services follow population: (N'/N)^0.70 (towns, harbours, works)"
+population.ery.1851,1851,1901,county.ery,workers,path,457.6,800.8,12,,scarcity (N),population ~220k to ~385k (rough benchmarks)
+sites.ery.1851,1851,1901,county.ery,land,scale,1,1.47954,12,,rents (T),"site services follow population: (N'/N)^0.70 (towns, harbours, works)"
+population.nry.1750,1750,1801,county.nry,workers,path,268.32,322.4,12,,scarcity (N),population ~129k to ~155k (rough benchmarks)
+sites.nry.1750,1750,1801,county.nry,land,scale,1,1.10626,12,,rents (T),"site services follow population: (N'/N)^0.55 (towns, harbours, works)"
+population.nry.1801,1801,1851,county.nry,workers,path,322.4,447.2,12,,scarcity (N),population ~155k to ~215k (rough benchmarks)
+sites.nry.1801,1801,1851,county.nry,land,scale,1,1.19718,12,,rents (T),"site services follow population: (N'/N)^0.55 (towns, harbours, works)"
+population.nry.1851,1851,1901,county.nry,workers,path,447.2,784.16,12,,scarcity (N),population ~215k to ~377k (rough benchmarks)
+sites.nry.1851,1851,1901,county.nry,land,scale,1,1.3619,12,,rents (T),"site services follow population: (N'/N)^0.55 (towns, harbours, works)"
+population.wry.1750,1750,1801,county.wry,workers,path,750.88,1173.12,12,,scarcity (N),population ~361k to ~564k (rough benchmarks)
+sites.wry.1750,1750,1801,county.wry,land,scale,1,1.24993,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.wry.1801,1801,1851,county.wry,workers,path,1173.12,2756,12,,scarcity (N),population ~564k to ~1325k (rough benchmarks)
+sites.wry.1801,1801,1851,county.wry,land,scale,1,1.53274,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.wry.1851,1851,1901,county.wry,workers,path,2756,5873.92,12,,scarcity (N),population ~1325k to ~2824k (rough benchmarks)
+sites.wry.1851,1851,1901,county.wry,land,scale,1,1.4599,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.mon.1750,1750,1801,county.mon,workers,path,83.2,95.68,12,,scarcity (N),population ~40k to ~46k (rough benchmarks)
+sites.mon.1750,1750,1801,county.mon,land,scale,1,1.07238,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.mon.1801,1801,1851,county.mon,workers,path,95.68,326.56,12,,scarcity (N),population ~46k to ~157k (rough benchmarks)
+sites.mon.1801,1801,1851,county.mon,land,scale,1,1.84744,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.mon.1851,1851,1901,county.mon,workers,path,326.56,619.84,12,,scarcity (N),population ~157k to ~298k (rough benchmarks)
+sites.mon.1851,1851,1901,county.mon,land,scale,1,1.37771,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.agy.1750,1750,1801,county.agy,workers,path,52,70.72,12,,scarcity (N),population ~25k to ~34k (rough benchmarks)
+sites.agy.1750,1750,1801,county.agy,land,scale,1,1.16619,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.agy.1801,1801,1851,county.agy,workers,path,70.72,118.56,12,,scarcity (N),population ~34k to ~57k (rough benchmarks)
+sites.agy.1801,1801,1851,county.agy,land,scale,1,1.29479,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.agy.1851,1851,1901,county.agy,workers,path,118.56,106.08,12,,scarcity (N),population ~57k to ~51k (rough benchmarks)
+sites.agy.1851,1851,1901,county.agy,land,scale,1,0.945905,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.bre.1750,1750,1801,county.bre,workers,path,56.16,66.56,12,,scarcity (N),population ~27k to ~32k (rough benchmarks)
+sites.bre.1750,1750,1801,county.bre,land,scale,1,1.08866,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.bre.1801,1801,1851,county.bre,workers,path,66.56,126.88,12,,scarcity (N),population ~32k to ~61k (rough benchmarks)
+sites.bre.1801,1801,1851,county.bre,land,scale,1,1.38067,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.bre.1851,1851,1901,county.bre,workers,path,126.88,112.32,12,,scarcity (N),population ~61k to ~54k (rough benchmarks)
+sites.bre.1851,1851,1901,county.bre,land,scale,1,0.940875,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.cae.1750,1750,1801,county.cae,workers,path,68.64,87.36,12,,scarcity (N),population ~33k to ~42k (rough benchmarks)
+sites.cae.1750,1750,1801,county.cae,land,scale,1,1.12815,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.cae.1801,1801,1851,county.cae,workers,path,87.36,183.04,12,,scarcity (N),population ~42k to ~88k (rough benchmarks)
+sites.cae.1801,1801,1851,county.cae,land,scale,1,1.44749,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.cae.1851,1851,1901,county.cae,workers,path,183.04,262.08,12,,scarcity (N),population ~88k to ~126k (rough benchmarks)
+sites.cae.1851,1851,1901,county.cae,land,scale,1,1.19659,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.cgn.1750,1750,1801,county.cgn,workers,path,68.64,89.44,12,,scarcity (N),population ~33k to ~43k (rough benchmarks)
+sites.cgn.1750,1750,1801,county.cgn,land,scale,1,1.1415,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.cgn.1801,1801,1851,county.cgn,workers,path,89.44,145.6,12,,scarcity (N),population ~43k to ~70k (rough benchmarks)
+sites.cgn.1801,1801,1851,county.cgn,land,scale,1,1.27589,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.cgn.1851,1851,1901,county.cgn,workers,path,145.6,126.88,12,,scarcity (N),population ~70k to ~61k (rough benchmarks)
+sites.cgn.1851,1851,1901,county.cgn,land,scale,1,0.933503,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.cmn.1750,1750,1801,county.cmn,workers,path,114.4,139.36,12,,scarcity (N),population ~55k to ~67k (rough benchmarks)
+sites.cmn.1750,1750,1801,county.cmn,land,scale,1,1.10371,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.cmn.1801,1801,1851,county.cmn,workers,path,139.36,230.88,12,,scarcity (N),population ~67k to ~111k (rough benchmarks)
+sites.cmn.1801,1801,1851,county.cmn,land,scale,1,1.28713,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.cmn.1851,1851,1901,county.cmn,workers,path,230.88,280.8,12,,scarcity (N),population ~111k to ~135k (rough benchmarks)
+sites.cmn.1851,1851,1901,county.cmn,land,scale,1,1.10282,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.den.1750,1750,1801,county.den,workers,path,104,124.8,12,,scarcity (N),population ~50k to ~60k (rough benchmarks)
+sites.den.1750,1750,1801,county.den,land,scale,1,1.09545,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.den.1801,1801,1851,county.den,workers,path,124.8,201.76,12,,scarcity (N),population ~60k to ~97k (rough benchmarks)
+sites.den.1801,1801,1851,county.den,land,scale,1,1.27148,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.den.1851,1851,1901,county.den,workers,path,201.76,270.4,12,,scarcity (N),population ~97k to ~130k (rough benchmarks)
+sites.den.1851,1851,1901,county.den,land,scale,1,1.15767,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.fln.1750,1750,1801,county.fln,workers,path,66.56,83.2,12,,scarcity (N),population ~32k to ~40k (rough benchmarks)
+sites.fln.1750,1750,1801,county.fln,land,scale,1,1.11803,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.fln.1801,1801,1851,county.fln,workers,path,83.2,143.52,12,,scarcity (N),population ~40k to ~69k (rough benchmarks)
+sites.fln.1801,1801,1851,county.fln,land,scale,1,1.31339,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.fln.1851,1851,1901,county.fln,workers,path,143.52,168.48,12,,scarcity (N),population ~69k to ~81k (rough benchmarks)
+sites.fln.1851,1851,1901,county.fln,land,scale,1,1.08347,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.gla.1750,1750,1801,county.gla,workers,path,114.4,147.68,12,,scarcity (N),population ~55k to ~71k (rough benchmarks)
+sites.gla.1750,1750,1801,county.gla,land,scale,1,1.18054,12,,rents (T),"site services follow population: (N'/N)^0.65 (towns, harbours, works)"
+population.gla.1801,1801,1851,county.gla,workers,path,147.68,482.56,12,,scarcity (N),population ~71k to ~232k (rough benchmarks)
+sites.gla.1801,1801,1851,county.gla,land,scale,1,2.15898,12,,rents (T),"site services follow population: (N'/N)^0.65 (towns, harbours, works)"
+population.gla.1851,1851,1901,county.gla,workers,path,482.56,1788.8,12,,scarcity (N),population ~232k to ~860k (rough benchmarks)
+sites.gla.1851,1851,1901,county.gla,land,scale,1,2.34346,12,,rents (T),"site services follow population: (N'/N)^0.65 (towns, harbours, works)"
+population.mer.1750,1750,1801,county.mer,workers,path,52,60.32,12,,scarcity (N),population ~25k to ~29k (rough benchmarks)
+sites.mer.1750,1750,1801,county.mer,land,scale,1,1.07703,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.mer.1801,1801,1851,county.mer,workers,path,60.32,81.12,12,,scarcity (N),population ~29k to ~39k (rough benchmarks)
+sites.mer.1801,1801,1851,county.mer,land,scale,1,1.15967,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.mer.1851,1851,1901,county.mer,workers,path,81.12,101.92,12,,scarcity (N),population ~39k to ~49k (rough benchmarks)
+sites.mer.1851,1851,1901,county.mer,land,scale,1,1.1209,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.mgy.1750,1750,1801,county.mgy,workers,path,87.36,99.84,12,,scarcity (N),population ~42k to ~48k (rough benchmarks)
+sites.mgy.1750,1750,1801,county.mgy,land,scale,1,1.06904,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.mgy.1801,1801,1851,county.mgy,workers,path,99.84,141.44,12,,scarcity (N),population ~48k to ~68k (rough benchmarks)
+sites.mgy.1801,1801,1851,county.mgy,land,scale,1,1.19024,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.mgy.1851,1851,1901,county.mgy,workers,path,141.44,114.4,12,,scarcity (N),population ~68k to ~55k (rough benchmarks)
+sites.mgy.1851,1851,1901,county.mgy,land,scale,1,0.899346,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.pem.1750,1750,1801,county.pem,workers,path,93.6,116.48,12,,scarcity (N),population ~45k to ~56k (rough benchmarks)
+sites.pem.1750,1750,1801,county.pem,land,scale,1,1.14021,12,,rents (T),"site services follow population: (N'/N)^0.60 (towns, harbours, works)"
+population.pem.1801,1801,1851,county.pem,workers,path,116.48,195.52,12,,scarcity (N),population ~56k to ~94k (rough benchmarks)
+sites.pem.1801,1801,1851,county.pem,land,scale,1,1.36447,12,,rents (T),"site services follow population: (N'/N)^0.60 (towns, harbours, works)"
+population.pem.1851,1851,1901,county.pem,workers,path,195.52,183.04,12,,scarcity (N),population ~94k to ~88k (rough benchmarks)
+sites.pem.1851,1851,1901,county.pem,land,scale,1,0.961198,12,,rents (T),"site services follow population: (N'/N)^0.60 (towns, harbours, works)"
+population.rad.1750,1750,1801,county.rad,workers,path,35.36,39.52,12,,scarcity (N),population ~17k to ~19k (rough benchmarks)
+sites.rad.1750,1750,1801,county.rad,land,scale,1,1.05719,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.rad.1801,1801,1851,county.rad,workers,path,39.52,52,12,,scarcity (N),population ~19k to ~25k (rough benchmarks)
+sites.rad.1801,1801,1851,county.rad,land,scale,1,1.14708,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.rad.1851,1851,1901,county.rad,workers,path,52,47.84,12,,scarcity (N),population ~25k to ~23k (rough benchmarks)
+sites.rad.1851,1851,1901,county.rad,land,scale,1,0.959166,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.abd.1750,1750,1801,county.abd,workers,path,241.28,251.68,12,,scarcity (N),population ~116k to ~121k (rough benchmarks)
+sites.abd.1750,1750,1801,county.abd,land,scale,1,1.02781,12,,rents (T),"site services follow population: (N'/N)^0.65 (towns, harbours, works)"
+population.abd.1801,1801,1851,county.abd,workers,path,251.68,440.96,12,,scarcity (N),population ~121k to ~212k (rough benchmarks)
+sites.abd.1801,1801,1851,county.abd,land,scale,1,1.43982,12,,rents (T),"site services follow population: (N'/N)^0.65 (towns, harbours, works)"
+population.abd.1851,1851,1901,county.abd,workers,path,440.96,634.4,12,,scarcity (N),population ~212k to ~305k (rough benchmarks)
+sites.abd.1851,1851,1901,county.abd,land,scale,1,1.26671,12,,rents (T),"site services follow population: (N'/N)^0.65 (towns, harbours, works)"
+population.ans.1750,1750,1801,county.ans,workers,path,141.44,205.92,12,,scarcity (N),population ~68k to ~99k (rough benchmarks)
+sites.ans.1750,1750,1801,county.ans,land,scale,1,1.27653,12,,rents (T),"site services follow population: (N'/N)^0.65 (towns, harbours, works)"
+population.ans.1801,1801,1851,county.ans,workers,path,205.92,397.28,12,,scarcity (N),population ~99k to ~191k (rough benchmarks)
+sites.ans.1801,1801,1851,county.ans,land,scale,1,1.53288,12,,rents (T),"site services follow population: (N'/N)^0.65 (towns, harbours, works)"
+population.ans.1851,1851,1901,county.ans,workers,path,397.28,590.72,12,,scarcity (N),population ~191k to ~284k (rough benchmarks)
+sites.ans.1851,1851,1901,county.ans,land,scale,1,1.29415,12,,rents (T),"site services follow population: (N'/N)^0.65 (towns, harbours, works)"
+population.arl.1750,1750,1801,county.arl,workers,path,137.28,168.48,12,,scarcity (N),population ~66k to ~81k (rough benchmarks)
+sites.arl.1750,1750,1801,county.arl,land,scale,1,1.10782,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.arl.1801,1801,1851,county.arl,workers,path,168.48,185.12,12,,scarcity (N),population ~81k to ~89k (rough benchmarks)
+sites.arl.1801,1801,1851,county.arl,land,scale,1,1.04822,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.arl.1851,1851,1901,county.arl,workers,path,185.12,151.84,12,,scarcity (N),population ~89k to ~73k (rough benchmarks)
+sites.arl.1851,1851,1901,county.arl,land,scale,1,0.905663,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.ayr.1750,1750,1801,county.ayr,workers,path,122.72,174.72,12,,scarcity (N),population ~59k to ~84k (rough benchmarks)
+sites.ayr.1750,1750,1801,county.ayr,land,scale,1,1.1932,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.ayr.1801,1801,1851,county.ayr,workers,path,174.72,395.2,12,,scarcity (N),population ~84k to ~190k (rough benchmarks)
+sites.ayr.1801,1801,1851,county.ayr,land,scale,1,1.50396,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.ayr.1851,1851,1901,county.ayr,workers,path,395.2,528.32,12,,scarcity (N),population ~190k to ~254k (rough benchmarks)
+sites.ayr.1851,1851,1901,county.ayr,land,scale,1,1.15622,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.ban.1750,1750,1801,county.ban,workers,path,74.88,76.96,12,,scarcity (N),population ~36k to ~37k (rough benchmarks)
+sites.ban.1750,1750,1801,county.ban,land,scale,1,1.01379,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.ban.1801,1801,1851,county.ban,workers,path,76.96,112.32,12,,scarcity (N),population ~37k to ~54k (rough benchmarks)
+sites.ban.1801,1801,1851,county.ban,land,scale,1,1.20808,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.ban.1851,1851,1901,county.ban,workers,path,112.32,126.88,12,,scarcity (N),population ~54k to ~61k (rough benchmarks)
+sites.ban.1851,1851,1901,county.ban,land,scale,1,1.06284,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.bew.1750,1750,1801,county.bew,workers,path,49.92,64.48,12,,scarcity (N),population ~24k to ~31k (rough benchmarks)
+sites.bew.1750,1750,1801,county.bew,land,scale,1,1.13652,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.bew.1801,1801,1851,county.bew,workers,path,64.48,74.88,12,,scarcity (N),population ~31k to ~36k (rough benchmarks)
+sites.bew.1801,1801,1851,county.bew,land,scale,1,1.07763,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.bew.1851,1851,1901,county.bew,workers,path,74.88,64.48,12,,scarcity (N),population ~36k to ~31k (rough benchmarks)
+sites.bew.1851,1851,1901,county.bew,land,scale,1,0.927961,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.but.1750,1750,1801,county.but,workers,path,14.56,24.96,12,,scarcity (N),population ~7k to ~12k (rough benchmarks)
+sites.but.1750,1750,1801,county.but,land,scale,1,1.30931,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.but.1801,1801,1851,county.but,workers,path,24.96,35.36,12,,scarcity (N),population ~12k to ~17k (rough benchmarks)
+sites.but.1801,1801,1851,county.but,land,scale,1,1.19024,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.but.1851,1851,1901,county.but,workers,path,35.36,37.44,12,,scarcity (N),population ~17k to ~18k (rough benchmarks)
+sites.but.1851,1851,1901,county.but,land,scale,1,1.02899,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.cai.1750,1750,1801,county.cai,workers,path,45.76,47.84,12,,scarcity (N),population ~22k to ~23k (rough benchmarks)
+sites.cai.1750,1750,1801,county.cai,land,scale,1,1.02247,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.cai.1801,1801,1851,county.cai,workers,path,47.84,81.12,12,,scarcity (N),population ~23k to ~39k (rough benchmarks)
+sites.cai.1801,1801,1851,county.cai,land,scale,1,1.30217,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.cai.1851,1851,1901,county.cai,workers,path,81.12,70.72,12,,scarcity (N),population ~39k to ~34k (rough benchmarks)
+sites.cai.1851,1851,1901,county.cai,land,scale,1,0.9337,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.clk.1750,1750,1801,county.clk,workers,path,18.72,22.88,12,,scarcity (N),population ~9k to ~11k (rough benchmarks)
+sites.clk.1750,1750,1801,county.clk,land,scale,1,1.10554,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.clk.1801,1801,1851,county.clk,workers,path,22.88,47.84,12,,scarcity (N),population ~11k to ~23k (rough benchmarks)
+sites.clk.1801,1801,1851,county.clk,land,scale,1,1.446,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.clk.1851,1851,1901,county.clk,workers,path,47.84,66.56,12,,scarcity (N),population ~23k to ~32k (rough benchmarks)
+sites.clk.1851,1851,1901,county.clk,land,scale,1,1.17954,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.dfs.1750,1750,1801,county.dfs,workers,path,83.2,114.4,12,,scarcity (N),population ~40k to ~55k (rough benchmarks)
+sites.dfs.1750,1750,1801,county.dfs,land,scale,1,1.1726,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.dfs.1801,1801,1851,county.dfs,workers,path,114.4,162.24,12,,scarcity (N),population ~55k to ~78k (rough benchmarks)
+sites.dfs.1801,1801,1851,county.dfs,land,scale,1,1.19087,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.dfs.1851,1851,1901,county.dfs,workers,path,162.24,149.76,12,,scarcity (N),population ~78k to ~72k (rough benchmarks)
+sites.dfs.1851,1851,1901,county.dfs,land,scale,1,0.960769,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.dnb.1750,1750,1801,county.dnb,workers,path,27.04,43.68,12,,scarcity (N),population ~13k to ~21k (rough benchmarks)
+sites.dnb.1750,1750,1801,county.dnb,land,scale,1,1.27098,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.dnb.1801,1801,1851,county.dnb,workers,path,43.68,93.6,12,,scarcity (N),population ~21k to ~45k (rough benchmarks)
+sites.dnb.1801,1801,1851,county.dnb,land,scale,1,1.46385,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.dnb.1851,1851,1901,county.dnb,workers,path,93.6,235.04,12,,scarcity (N),population ~45k to ~113k (rough benchmarks)
+sites.dnb.1851,1851,1901,county.dnb,land,scale,1,1.58465,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.eln.1750,1750,1801,county.eln,workers,path,62.4,62.4,12,,scarcity (N),population ~30k to ~30k (rough benchmarks)
+sites.eln.1750,1750,1801,county.eln,land,scale,1,1,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.eln.1801,1801,1851,county.eln,workers,path,62.4,74.88,12,,scarcity (N),population ~30k to ~36k (rough benchmarks)
+sites.eln.1801,1801,1851,county.eln,land,scale,1,1.09545,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.eln.1851,1851,1901,county.eln,workers,path,74.88,81.12,12,,scarcity (N),population ~36k to ~39k (rough benchmarks)
+sites.eln.1851,1851,1901,county.eln,land,scale,1,1.04083,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.fif.1750,1750,1801,county.fif,workers,path,168.48,195.52,12,,scarcity (N),population ~81k to ~94k (rough benchmarks)
+sites.fif.1750,1750,1801,county.fif,land,scale,1,1.07726,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.fif.1801,1801,1851,county.fif,workers,path,195.52,320.32,12,,scarcity (N),population ~94k to ~154k (rough benchmarks)
+sites.fif.1801,1801,1851,county.fif,land,scale,1,1.27996,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.fif.1851,1851,1901,county.fif,workers,path,320.32,455.52,12,,scarcity (N),population ~154k to ~219k (rough benchmarks)
+sites.fif.1851,1851,1901,county.fif,land,scale,1,1.19251,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.inv.1750,1750,1801,county.inv,workers,path,124.8,153.92,12,,scarcity (N),population ~60k to ~74k (rough benchmarks)
+sites.inv.1750,1750,1801,county.inv,land,scale,1,1.12226,12,,rents (T),"site services follow population: (N'/N)^0.55 (towns, harbours, works)"
+population.inv.1801,1801,1851,county.inv,workers,path,153.92,199.68,12,,scarcity (N),population ~74k to ~96k (rough benchmarks)
+sites.inv.1801,1801,1851,county.inv,land,scale,1,1.15391,12,,rents (T),"site services follow population: (N'/N)^0.55 (towns, harbours, works)"
+population.inv.1851,1851,1901,county.inv,workers,path,199.68,187.2,12,,scarcity (N),population ~96k to ~90k (rough benchmarks)
+sites.inv.1851,1851,1901,county.inv,land,scale,1,0.965126,12,,rents (T),"site services follow population: (N'/N)^0.55 (towns, harbours, works)"
+population.kcd.1750,1750,1801,county.kcd,workers,path,49.92,54.08,12,,scarcity (N),population ~24k to ~26k (rough benchmarks)
+sites.kcd.1750,1750,1801,county.kcd,land,scale,1,1.04083,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.kcd.1801,1801,1851,county.kcd,workers,path,54.08,72.8,12,,scarcity (N),population ~26k to ~35k (rough benchmarks)
+sites.kcd.1801,1801,1851,county.kcd,land,scale,1,1.16024,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.kcd.1851,1851,1901,county.kcd,workers,path,72.8,83.2,12,,scarcity (N),population ~35k to ~40k (rough benchmarks)
+sites.kcd.1851,1851,1901,county.kcd,land,scale,1,1.06904,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.krs.1750,1750,1801,county.krs,workers,path,8.32,14.56,12,,scarcity (N),population ~4k to ~7k (rough benchmarks)
+sites.krs.1750,1750,1801,county.krs,land,scale,1,1.32288,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.krs.1801,1801,1851,county.krs,workers,path,14.56,18.72,12,,scarcity (N),population ~7k to ~9k (rough benchmarks)
+sites.krs.1801,1801,1851,county.krs,land,scale,1,1.13389,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.krs.1851,1851,1901,county.krs,workers,path,18.72,14.56,12,,scarcity (N),population ~9k to ~7k (rough benchmarks)
+sites.krs.1851,1851,1901,county.krs,land,scale,1,0.881917,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.kkd.1750,1750,1801,county.kkd,workers,path,45.76,60.32,12,,scarcity (N),population ~22k to ~29k (rough benchmarks)
+sites.kkd.1750,1750,1801,county.kkd,land,scale,1,1.14812,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.kkd.1801,1801,1851,county.kkd,workers,path,60.32,89.44,12,,scarcity (N),population ~29k to ~43k (rough benchmarks)
+sites.kkd.1801,1801,1851,county.kkd,land,scale,1,1.21769,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.kkd.1851,1851,1901,county.kkd,workers,path,89.44,81.12,12,,scarcity (N),population ~43k to ~39k (rough benchmarks)
+sites.kkd.1851,1851,1901,county.kkd,land,scale,1,0.952353,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.lks.1750,1750,1801,county.lks,workers,path,168.48,305.76,12,,scarcity (N),population ~81k to ~147k (rough benchmarks)
+sites.lks.1750,1750,1801,county.lks,land,scale,1,1.51769,12,,rents (T),"site services follow population: (N'/N)^0.70 (towns, harbours, works)"
+population.lks.1801,1801,1851,county.lks,workers,path,305.76,1102.4,12,,scarcity (N),population ~147k to ~530k (rough benchmarks)
+sites.lks.1801,1801,1851,county.lks,land,scale,1,2.45398,12,,rents (T),"site services follow population: (N'/N)^0.70 (towns, harbours, works)"
+population.lks.1851,1851,1901,county.lks,workers,path,1102.4,2785.12,12,,scarcity (N),population ~530k to ~1339k (rough benchmarks)
+sites.lks.1851,1851,1901,county.lks,land,scale,1,1.91317,12,,rents (T),"site services follow population: (N'/N)^0.70 (towns, harbours, works)"
+population.mln.1750,1750,1801,county.mln,workers,path,187.2,255.84,12,,scarcity (N),population ~90k to ~123k (rough benchmarks)
+sites.mln.1750,1750,1801,county.mln,land,scale,1,1.22513,12,,rents (T),"site services follow population: (N'/N)^0.65 (towns, harbours, works)"
+population.mln.1801,1801,1851,county.mln,workers,path,255.84,538.72,12,,scarcity (N),population ~123k to ~259k (rough benchmarks)
+sites.mln.1801,1801,1851,county.mln,land,scale,1,1.62258,12,,rents (T),"site services follow population: (N'/N)^0.65 (towns, harbours, works)"
+population.mln.1851,1851,1901,county.mln,workers,path,538.72,1017.12,12,,scarcity (N),population ~259k to ~489k (rough benchmarks)
+sites.mln.1851,1851,1901,county.mln,land,scale,1,1.51149,12,,rents (T),"site services follow population: (N'/N)^0.65 (towns, harbours, works)"
+population.mor.1750,1750,1801,county.mor,workers,path,62.4,56.16,12,,scarcity (N),population ~30k to ~27k (rough benchmarks)
+sites.mor.1750,1750,1801,county.mor,land,scale,1,0.948683,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.mor.1801,1801,1851,county.mor,workers,path,56.16,81.12,12,,scarcity (N),population ~27k to ~39k (rough benchmarks)
+sites.mor.1801,1801,1851,county.mor,land,scale,1,1.20185,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.mor.1851,1851,1901,county.mor,workers,path,81.12,93.6,12,,scarcity (N),population ~39k to ~45k (rough benchmarks)
+sites.mor.1851,1851,1901,county.mor,land,scale,1,1.07417,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.nai.1750,1750,1801,county.nai,workers,path,10.4,16.64,12,,scarcity (N),population ~5k to ~8k (rough benchmarks)
+sites.nai.1750,1750,1801,county.nai,land,scale,1,1.26491,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.nai.1801,1801,1851,county.nai,workers,path,16.64,20.8,12,,scarcity (N),population ~8k to ~10k (rough benchmarks)
+sites.nai.1801,1801,1851,county.nai,land,scale,1,1.11803,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.nai.1851,1851,1901,county.nai,workers,path,20.8,18.72,12,,scarcity (N),population ~10k to ~9k (rough benchmarks)
+sites.nai.1851,1851,1901,county.nai,land,scale,1,0.948683,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.oki.1750,1750,1801,county.oki,workers,path,47.84,49.92,12,,scarcity (N),population ~23k to ~24k (rough benchmarks)
+sites.oki.1750,1750,1801,county.oki,land,scale,1,1.02151,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.oki.1801,1801,1851,county.oki,workers,path,49.92,66.56,12,,scarcity (N),population ~24k to ~32k (rough benchmarks)
+sites.oki.1801,1801,1851,county.oki,land,scale,1,1.1547,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.oki.1851,1851,1901,county.oki,workers,path,66.56,58.24,12,,scarcity (N),population ~32k to ~28k (rough benchmarks)
+sites.oki.1851,1851,1901,county.oki,land,scale,1,0.935414,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.pee.1750,1750,1801,county.pee,workers,path,18.72,18.72,12,,scarcity (N),population ~9k to ~9k (rough benchmarks)
+sites.pee.1750,1750,1801,county.pee,land,scale,1,1,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.pee.1801,1801,1851,county.pee,workers,path,18.72,22.88,12,,scarcity (N),population ~9k to ~11k (rough benchmarks)
+sites.pee.1801,1801,1851,county.pee,land,scale,1,1.10554,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.pee.1851,1851,1901,county.pee,workers,path,22.88,31.2,12,,scarcity (N),population ~11k to ~15k (rough benchmarks)
+sites.pee.1851,1851,1901,county.pee,land,scale,1,1.16775,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.per.1750,1750,1801,county.per,workers,path,249.6,262.08,12,,scarcity (N),population ~120k to ~126k (rough benchmarks)
+sites.per.1750,1750,1801,county.per,land,scale,1,1.0247,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.per.1801,1801,1851,county.per,workers,path,262.08,289.12,12,,scarcity (N),population ~126k to ~139k (rough benchmarks)
+sites.per.1801,1801,1851,county.per,land,scale,1,1.05032,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.per.1851,1851,1901,county.per,workers,path,289.12,255.84,12,,scarcity (N),population ~139k to ~123k (rough benchmarks)
+sites.per.1851,1851,1901,county.per,land,scale,1,0.940687,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.rfw.1750,1750,1801,county.rfw,workers,path,56.16,162.24,12,,scarcity (N),population ~27k to ~78k (rough benchmarks)
+sites.rfw.1750,1750,1801,county.rfw,land,scale,1,2.10141,12,,rents (T),"site services follow population: (N'/N)^0.70 (towns, harbours, works)"
+population.rfw.1801,1801,1851,county.rfw,workers,path,162.24,336.96,12,,scarcity (N),population ~78k to ~162k (rough benchmarks)
+sites.rfw.1801,1801,1851,county.rfw,land,scale,1,1.66799,12,,rents (T),"site services follow population: (N'/N)^0.70 (towns, harbours, works)"
+population.rfw.1851,1851,1901,county.rfw,workers,path,336.96,559.52,12,,scarcity (N),population ~162k to ~269k (rough benchmarks)
+sites.rfw.1851,1851,1901,county.rfw,land,scale,1,1.42615,12,,rents (T),"site services follow population: (N'/N)^0.70 (towns, harbours, works)"
+population.roc.1750,1750,1801,county.roc,workers,path,99.84,116.48,12,,scarcity (N),population ~48k to ~56k (rough benchmarks)
+sites.roc.1750,1750,1801,county.roc,land,scale,1,1.08012,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.roc.1801,1801,1851,county.roc,workers,path,116.48,172.64,12,,scarcity (N),population ~56k to ~83k (rough benchmarks)
+sites.roc.1801,1801,1851,county.roc,land,scale,1,1.21743,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.roc.1851,1851,1901,county.roc,workers,path,172.64,160.16,12,,scarcity (N),population ~83k to ~77k (rough benchmarks)
+sites.roc.1851,1851,1901,county.roc,land,scale,1,0.963177,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.rox.1750,1750,1801,county.rox,workers,path,72.8,70.72,12,,scarcity (N),population ~35k to ~34k (rough benchmarks)
+sites.rox.1750,1750,1801,county.rox,land,scale,1,0.985611,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.rox.1801,1801,1851,county.rox,workers,path,70.72,106.08,12,,scarcity (N),population ~34k to ~51k (rough benchmarks)
+sites.rox.1801,1801,1851,county.rox,land,scale,1,1.22474,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.rox.1851,1851,1901,county.rox,workers,path,106.08,99.84,12,,scarcity (N),population ~51k to ~48k (rough benchmarks)
+sites.rox.1851,1851,1901,county.rox,land,scale,1,0.970143,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.sel.1750,1750,1801,county.sel,workers,path,10.4,12.48,12,,scarcity (N),population ~5k to ~6k (rough benchmarks)
+sites.sel.1750,1750,1801,county.sel,land,scale,1,1.09545,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.sel.1801,1801,1851,county.sel,workers,path,12.48,20.8,12,,scarcity (N),population ~6k to ~10k (rough benchmarks)
+sites.sel.1801,1801,1851,county.sel,land,scale,1,1.29099,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.sel.1851,1851,1901,county.sel,workers,path,20.8,47.84,12,,scarcity (N),population ~10k to ~23k (rough benchmarks)
+sites.sel.1851,1851,1901,county.sel,land,scale,1,1.51658,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.shi.1750,1750,1801,county.shi,workers,path,31.2,45.76,12,,scarcity (N),population ~15k to ~22k (rough benchmarks)
+sites.shi.1750,1750,1801,county.shi,land,scale,1,1.21106,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.shi.1801,1801,1851,county.shi,workers,path,45.76,64.48,12,,scarcity (N),population ~22k to ~31k (rough benchmarks)
+sites.shi.1801,1801,1851,county.shi,land,scale,1,1.18705,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.shi.1851,1851,1901,county.shi,workers,path,64.48,58.24,12,,scarcity (N),population ~31k to ~28k (rough benchmarks)
+sites.shi.1851,1851,1901,county.shi,land,scale,1,0.950382,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.sti.1750,1750,1801,county.sti,workers,path,79.04,106.08,12,,scarcity (N),population ~38k to ~51k (rough benchmarks)
+sites.sti.1750,1750,1801,county.sti,land,scale,1,1.15849,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.sti.1801,1801,1851,county.sti,workers,path,106.08,178.88,12,,scarcity (N),population ~51k to ~86k (rough benchmarks)
+sites.sti.1801,1801,1851,county.sti,land,scale,1,1.29857,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.sti.1851,1851,1901,county.sti,workers,path,178.88,295.36,12,,scarcity (N),population ~86k to ~142k (rough benchmarks)
+sites.sti.1851,1851,1901,county.sti,land,scale,1,1.28498,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.sut.1750,1750,1801,county.sut,workers,path,43.68,47.84,12,,scarcity (N),population ~21k to ~23k (rough benchmarks)
+sites.sut.1750,1750,1801,county.sut,land,scale,1,1.04654,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.sut.1801,1801,1851,county.sut,workers,path,47.84,52,12,,scarcity (N),population ~23k to ~25k (rough benchmarks)
+sites.sut.1801,1801,1851,county.sut,land,scale,1,1.04257,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.sut.1851,1851,1901,county.sut,workers,path,52,45.76,12,,scarcity (N),population ~25k to ~22k (rough benchmarks)
+sites.sut.1851,1851,1901,county.sut,land,scale,1,0.938083,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.wln.1750,1750,1801,county.wln,workers,path,33.28,37.44,12,,scarcity (N),population ~16k to ~18k (rough benchmarks)
+sites.wln.1750,1750,1801,county.wln,land,scale,1,1.06066,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.wln.1801,1801,1851,county.wln,workers,path,37.44,62.4,12,,scarcity (N),population ~18k to ~30k (rough benchmarks)
+sites.wln.1801,1801,1851,county.wln,land,scale,1,1.29099,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.wln.1851,1851,1901,county.wln,workers,path,62.4,135.2,12,,scarcity (N),population ~30k to ~65k (rough benchmarks)
+sites.wln.1851,1851,1901,county.wln,land,scale,1,1.47196,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.wig.1750,1750,1801,county.wig,workers,path,33.28,47.84,12,,scarcity (N),population ~16k to ~23k (rough benchmarks)
+sites.wig.1750,1750,1801,county.wig,land,scale,1,1.19896,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.wig.1801,1801,1851,county.wig,workers,path,47.84,89.44,12,,scarcity (N),population ~23k to ~43k (rough benchmarks)
+sites.wig.1801,1801,1851,county.wig,land,scale,1,1.36732,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.wig.1851,1851,1901,county.wig,workers,path,89.44,66.56,12,,scarcity (N),population ~43k to ~32k (rough benchmarks)
+sites.wig.1851,1851,1901,county.wig,land,scale,1,0.862662,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.ant.1750,1750,1801,county.ant,workers,path,270.4,416,12,,scarcity (N),population ~130k to ~200k (rough benchmarks)
+sites.ant.1750,1750,1801,county.ant,land,scale,1,1.35195,12,,rents (T),"site services follow population: (N'/N)^0.70 (towns, harbours, works)"
+population.ant.1801,1801,1841,county.ant,workers,path,416,748.8,12,,scarcity (N),population ~200k to ~360k (rough benchmarks)
+sites.ant.1801,1801,1841,county.ant,land,scale,1,1.50901,12,,rents (T),"site services follow population: (N'/N)^0.70 (towns, harbours, works)"
+population.ant.1841,1841,1851,county.ant,workers,path,748.8,730.08,12,,scarcity (N),population ~360k to ~351k (rough benchmarks)
+sites.ant.1841,1841,1851,county.ant,land,scale,1,0.982434,12,,rents (T),"site services follow population: (N'/N)^0.70 (towns, harbours, works)"
+population.ant.1851,1851,1901,county.ant,workers,path,730.08,1125.28,12,,scarcity (N),population ~351k to ~541k (rough benchmarks)
+sites.ant.1851,1851,1901,county.ant,land,scale,1,1.3537,12,,rents (T),"site services follow population: (N'/N)^0.70 (towns, harbours, works)"
+population.arm.1750,1750,1801,county.arm,workers,path,187.2,332.8,12,,scarcity (N),population ~90k to ~160k (rough benchmarks)
+sites.arm.1750,1750,1801,county.arm,land,scale,1,1.33333,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.arm.1801,1801,1841,county.arm,workers,path,332.8,482.56,12,,scarcity (N),population ~160k to ~232k (rough benchmarks)
+sites.arm.1801,1801,1841,county.arm,land,scale,1,1.20416,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.arm.1841,1841,1851,county.arm,workers,path,482.56,409.76,12,,scarcity (N),population ~232k to ~197k (rough benchmarks)
+sites.arm.1841,1841,1851,county.arm,land,scale,1,0.921487,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.arm.1851,1851,1901,county.arm,workers,path,409.76,260,12,,scarcity (N),population ~197k to ~125k (rough benchmarks)
+sites.arm.1851,1851,1901,county.arm,land,scale,1,0.796566,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.dow.1750,1750,1801,county.dow,workers,path,312,520,12,,scarcity (N),population ~150k to ~250k (rough benchmarks)
+sites.dow.1750,1750,1801,county.dow,land,scale,1,1.29099,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.dow.1801,1801,1841,county.dow,workers,path,520,750.88,12,,scarcity (N),population ~250k to ~361k (rough benchmarks)
+sites.dow.1801,1801,1841,county.dow,land,scale,1,1.20167,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.dow.1841,1841,1851,county.dow,workers,path,750.88,684.32,12,,scarcity (N),population ~361k to ~329k (rough benchmarks)
+sites.dow.1841,1841,1851,county.dow,land,scale,1,0.95465,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.dow.1851,1851,1901,county.dow,workers,path,684.32,603.2,12,,scarcity (N),population ~329k to ~290k (rough benchmarks)
+sites.dow.1851,1851,1901,county.dow,land,scale,1,0.93886,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.fer.1750,1750,1801,county.fer,workers,path,124.8,208,12,,scarcity (N),population ~60k to ~100k (rough benchmarks)
+sites.fer.1750,1750,1801,county.fer,land,scale,1,1.29099,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.fer.1801,1801,1841,county.fer,workers,path,208,324.48,12,,scarcity (N),population ~100k to ~156k (rough benchmarks)
+sites.fer.1801,1801,1841,county.fer,land,scale,1,1.249,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.fer.1841,1841,1851,county.fer,workers,path,324.48,241.28,12,,scarcity (N),population ~156k to ~116k (rough benchmarks)
+sites.fer.1841,1841,1851,county.fer,land,scale,1,0.862316,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.fer.1851,1851,1901,county.fer,workers,path,241.28,135.2,12,,scarcity (N),population ~116k to ~65k (rough benchmarks)
+sites.fer.1851,1851,1901,county.fer,land,scale,1,0.748562,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.ldy.1750,1750,1801,county.ldy,workers,path,187.2,312,12,,scarcity (N),population ~90k to ~150k (rough benchmarks)
+sites.ldy.1750,1750,1801,county.ldy,land,scale,1,1.35866,12,,rents (T),"site services follow population: (N'/N)^0.60 (towns, harbours, works)"
+population.ldy.1801,1801,1841,county.ldy,workers,path,312,461.76,12,,scarcity (N),population ~150k to ~222k (rough benchmarks)
+sites.ldy.1801,1801,1841,county.ldy,land,scale,1,1.26519,12,,rents (T),"site services follow population: (N'/N)^0.60 (towns, harbours, works)"
+population.ldy.1841,1841,1851,county.ldy,workers,path,461.76,399.36,12,,scarcity (N),population ~222k to ~192k (rough benchmarks)
+sites.ldy.1841,1841,1851,county.ldy,land,scale,1,0.916577,12,,rents (T),"site services follow population: (N'/N)^0.60 (towns, harbours, works)"
+population.ldy.1851,1851,1901,county.ldy,workers,path,399.36,299.52,12,,scarcity (N),population ~192k to ~144k (rough benchmarks)
+sites.ldy.1851,1851,1901,county.ldy,land,scale,1,0.841466,12,,rents (T),"site services follow population: (N'/N)^0.60 (towns, harbours, works)"
+population.tyr.1750,1750,1801,county.tyr,workers,path,249.6,436.8,12,,scarcity (N),population ~120k to ~210k (rough benchmarks)
+sites.tyr.1750,1750,1801,county.tyr,land,scale,1,1.32288,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.tyr.1801,1801,1841,county.tyr,workers,path,436.8,651.04,12,,scarcity (N),population ~210k to ~313k (rough benchmarks)
+sites.tyr.1801,1801,1841,county.tyr,land,scale,1,1.22085,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.tyr.1841,1841,1851,county.tyr,workers,path,651.04,532.48,12,,scarcity (N),population ~313k to ~256k (rough benchmarks)
+sites.tyr.1841,1841,1851,county.tyr,land,scale,1,0.904373,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"
+population.tyr.1851,1851,1901,county.tyr,workers,path,532.48,312,12,,scarcity (N),population ~256k to ~150k (rough benchmarks)
+sites.tyr.1851,1851,1901,county.tyr,land,scale,1,0.765466,12,,rents (T),"site services follow population: (N'/N)^0.50 (towns, harbours, works)"

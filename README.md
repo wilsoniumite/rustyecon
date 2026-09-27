@@ -41,15 +41,18 @@ fill in phase by phase:
 | `crates/markets` | orders and admission, clearing, settlement, the price update | Phase 0 |
 | `crates/agents` | the behaviour seam and the scripted actor; the agent rules | Phase 0; rules in Phase 2 (the probe's four Appendix B roles since P2.0.1) |
 | `crates/engine` | `Sim`: the tick loop, checkpoints, resume, the replay audit, the read-only per-tick report a frontend drives and reads | Phase 0 |
-| `crates/cli` | the `rustyecon` binary (`run`, `resume`, `replay`, `registry`, `certify`): arguments, files, exit codes, the build stamp | Phase 0 |
+| `crates/cli` | the `rustyecon` binary (`run`, `resume`, `replay`, `registry`, `certify`, `worldgen`): arguments, files, exit codes, the build stamp | Phase 0 |
 | `crates/certify` | dated criteria, the batteries and the kick check, sealed certificates, the run's manifest, and Parquet telemetry behind the feature `parquet` ([docs/CERTIFY.md](docs/CERTIFY.md)) | Phase 0, second session |
 | `crates/oracle` | the equilibrium solver (library `oracle`): unit 1a, one category with durability and interest, reproduces the SSRN Appendix B; 1b adds many categories and the fork, 1c many machine types and the Leontief inverse ([its README](crates/oracle/README.md)) | Phase 1: 1a–1c landed; 1d–1f to come |
-| `crates/worldgen` | the tape compiler | Phase 4 |
+| `crates/worldgen` | the tape compiler: the county atlas (D.1), and a first compiler for the illustrative demo world, `worlds/demo-gb` ([docs/demo/WORLD.md](docs/demo/WORLD.md), D.2) | Phase 4; the demo world's form on branch `demo-world` |
 | `crates/probe` | the Phase 2 probe's harness: the Appendix B tape's generator, named perturbations, per-tick observables against the oracle ([docs/probe/RULES.md](docs/probe/RULES.md)); its oracle-free measures are certify's | the probe, P2.0.1 |
 | `crates/gui` | the interactive frontend, in egui: live runs, plots, lenses, the tape editor, and a county map ([docs/GUI.md](docs/GUI.md)); the binary `rustyecon-gui` | from G0, after Phase 0's second session; one stage beside each phase (G0 closed at G0.3) |
 
-Packages are named `rustyecon-<crate>`. `tapes/gate.ron` is the Phase 0 gate world, and
-`tapes/appb.ron` the probe's Appendix B world. `criteria/` holds each tape's dated
+Packages are named `rustyecon-<crate>`. `tapes/gate.ron` is the Phase 0 gate world,
+`tapes/appb.ron` the probe's Appendix B world, and `tapes/demo-gb.ron` the illustrative demo
+world, 93 historic counties of the United Kingdom from 1750 to 1901, compiled by
+`rustyecon worldgen worlds/demo-gb --out tapes/demo-gb.ron`; nothing from it may be scored or
+cited. `criteria/` holds each tape's dated
 criteria, registered before its first certified run, and `results/` the certificates and
 manifests they gave.
 

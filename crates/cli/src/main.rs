@@ -11,6 +11,9 @@
 //! `manifest.ron` beside its checkpoints, and a resume verifies its checkpoint against the
 //! manifest of the run that made it.
 //!
+//! `worldgen` compiles a world's tables into a tape through `rustyecon-worldgen`, which reads no
+//! file: the cli reads the tables and writes the tape.
+//!
 //! Exit codes: 0 ok (for `certify`, PASS); 1 a load or argument error (an unknown checkpoint
 //! extension, criteria that do not load or fit, and an `--out` holding the manifest a resume
 //! verifies against included); 2 a run error, with the error or ledger line and the last good
@@ -22,6 +25,8 @@ use certify::{tape_hash, Build, Criteria, Hex, Manifest, RunKey, Scoring, Verdic
 use clap::{ArgGroup, Args, Parser, Subcommand, ValueEnum};
 use rustyecon_engine::prelude::*;
 use rustyecon_engine::registry;
+use rustyecon_worldgen::atlas::Atlas;
+use rustyecon_worldgen::{compile, Tables};
 use std::fs::{self, File};
 use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
@@ -123,6 +128,17 @@ enum Cmd {
         /// Also write the base run's telemetry as tidy long Parquet.
         #[arg(long)]
         telemetry: bool,
+    },
+    /// Compile a world's tables and the bundled county atlas into a tape (crates/worldgen;
+    /// docs/demo/WORLD.md): read DIR/world.csv, counties.csv, regions.csv, history.csv and
+    /// lenses.csv, check them, solve every county's oracle at genesis and after every step,
+    /// and write the tape to --out. Without --out it checks and reports only.
+    Worldgen {
+        /// The world's directory, such as worlds/demo-gb.
+        dir: PathBuf,
+        /// Write the tape here.
+        #[arg(short, long, value_name = "FILE")]
+        out: Option<PathBuf>,
     },
 }
 
@@ -572,7 +588,78 @@ fn run(cmd: Cmd) -> Result<(), Exit> {
             out,
             telemetry,
         } => certify_run(&tape, criteria.as_deref(), until, &out, telemetry),
+        Cmd::Worldgen { dir, out } => worldgen(&dir, out.as_deref()),
     }
+}
+
+/// Compile the world in `dir` (crates/worldgen): the cli reads the tables and writes the tape;
+/// the compiler reads no file. The tape is loaded and resolved before it is written, and its
+/// `tape_hash` printed.
+fn worldgen(dir: &Path, out: Option<&Path>) -> Result<(), Exit> {
+    let read = |name: &str| {
+        let path = dir.join(name);
+        fs::read_to_string(&path).map_err(|e| io_error("cannot read", &path, e))
+    };
+    let tables = Tables {
+        world: read(Tables::FILES[0])?,
+        counties: read(Tables::FILES[1])?,
+        regions: read(Tables::FILES[2])?,
+        history: read(Tables::FILES[3])?,
+        lenses: read(Tables::FILES[4])?,
+    };
+    let atlas = Atlas::gb().map_err(|e| Exit::new(LOAD, format!("{e}")))?;
+    let compiled = compile(&tables, &atlas).map_err(|e| Exit::new(LOAD, format!("{e}")))?;
+    let tape = Tape::from_ron(&compiled.tape).map_err(|e| {
+        Exit::new(
+            LOAD,
+            format!("worldgen: the compiled tape does not load: {e}"),
+        )
+    })?;
+    let sim = Sim::new(&tape).map_err(|e| {
+        Exit::new(
+            LOAD,
+            format!("worldgen: the compiled tape does not resolve: {e}"),
+        )
+    })?;
+    let s = &compiled.summary;
+    println!(
+        "worldgen {}: {} counties, {} steps on {} county dates, every one solved Interior",
+        dir.display(),
+        s.counties,
+        s.events,
+        s.step_dates
+    );
+    println!(
+        "  funding: the provider's own baskets per unit of N at least {:.3} ({})",
+        s.min_funding.0, s.min_funding.1
+    );
+    println!(
+        "  participation {:.3} ({}) to {:.3} ({}); x* {:.3} ({}) to {:.3} ({})",
+        s.min_participation.0,
+        s.min_participation.1,
+        s.max_participation.0,
+        s.max_participation.1,
+        s.min_x.0,
+        s.min_x.1,
+        s.max_x.0,
+        s.max_x.1
+    );
+    println!(
+        "  largest move at one date: relative prices and technique {:.4} in log ({}),          quantities {:.4} ({})",
+        s.max_step_prices.0, s.max_step_prices.1, s.max_step_quantities.0, s.max_step_quantities.1
+    );
+    println!(
+        "tape {:?}: {} bytes, tape_hash 0x{:016x}, world_id 0x{:016x}",
+        tape.header.name,
+        compiled.tape.len(),
+        tape_hash(&tape),
+        sim.world().world_id
+    );
+    if let Some(path) = out {
+        write_atomic(path, compiled.tape.as_bytes())?;
+        println!("wrote {}", path.display());
+    }
+    Ok(())
 }
 
 fn main() -> ExitCode {

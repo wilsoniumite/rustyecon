@@ -3059,6 +3059,7 @@ dependencies = [
  "clap",
  "rustyecon-certify",
  "rustyecon-engine",
+ "rustyecon-worldgen",
  "tempfile",
 ]
 
@@ -3133,6 +3134,9 @@ version = "0.2.0"
 dependencies = [
  "ron",
  "rustyecon-core",
+ "rustyecon-engine",
+ "rustyecon-oracle",
+ "rustyecon-probe",
  "serde",
 ]
 

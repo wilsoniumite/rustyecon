@@ -7,10 +7,20 @@ publish.workspace = true
 # The atlas loader (src/atlas.rs) reads data/atlas/gb.atlas.ron with serde and ron, the parser the
 # workspace already uses for tapes. It has no egui, file, thread or clock, so the GUI and the
 # tape compiler can both use it; the file is bundled with include_str!.
+# The compiler (D.2) solves the oracle to seed genesis and check every county's history, outside
+# any Sim (R13): the oracle depends on core alone, and nothing on the engine path depends on
+# worldgen. It reads no file; the cli reads the tables and writes the tape.
 [dependencies]
 rustyecon-core.workspace = true
+rustyecon-oracle.workspace = true
 serde.workspace = true
 ron.workspace = true
+
+# The tests run the compiled tape on the engine and score it with the probe's harness, whose
+# registered dials and genesis the compiler's must equal.
+[dev-dependencies]
+rustyecon-engine.workspace = true
+rustyecon-probe.workspace = true
 
 [lints]
 workspace = true
