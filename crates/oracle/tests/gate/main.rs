@@ -90,6 +90,7 @@ mod h4_a0;
 mod h5_horse;
 mod h6_plants;
 mod h7_nesting;
+mod h8_o28;
 mod h9_goldens_file;
 
 mod p1_gate;
