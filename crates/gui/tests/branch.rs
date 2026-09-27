@@ -23,11 +23,20 @@ use rustyecon_gui::edit::export::{GuiManifest, LINEAGE, MANIFEST, SERIES, TAPE};
 use rustyecon_gui::edit::{materialise, EditOp, Form, Lineage, OpKind, TapeEdit};
 use rustyecon_gui::model::{Intent, Model, Run};
 use rustyecon_gui::run::{
-    Cmd, Obs, Origin, PauseReason, RunId, RunStatus, Store, EXPERIMENT_MARKER,
+    Cmd, LedgerCheck, Obs, Origin, PauseReason, RunId, RunStatus, Store, EXPERIMENT_MARKER,
 };
 use rustyecon_gui::vm;
 use std::sync::Arc;
 use std::time::Instant;
+
+/// A run as compare reads it, with no earlier record.
+fn side(r: &Run) -> vm::compare::Side<'_> {
+    vm::compare::Side {
+        store: &r.store,
+        earlier: &[],
+        origin: r.origin,
+    }
+}
 
 /// A model and a host whose runs are `ThreadDriver` workers, with the gate open, run to its
 /// end and paused.
@@ -92,7 +101,8 @@ fn hash_lines(parent: &Run, branch: &Run) -> String {
     body
 }
 
-/// Write a branch's tape and hash lines where `RUSTYECON_GUI_HASHES` names, for gui.sh.
+/// Write a branch's tape, hash lines and run key's `tape_hash` where `RUSTYECON_GUI_HASHES`
+/// names, for gui.sh, which checks the cli's run of the tape against both.
 fn write_for_the_cli(name: &str, parent: &Run, branch: &Run) {
     if let Some(dir) = std::env::var_os("RUSTYECON_GUI_HASHES") {
         let dir = std::path::Path::new(&dir);
@@ -103,6 +113,12 @@ fn write_for_the_cli(name: &str, parent: &Run, branch: &Run) {
             hash_lines(parent, branch),
         )
         .expect("the hashes are written");
+        let key = branch.store.run().expect("the branch loaded");
+        std::fs::write(
+            dir.join(format!("{name}.tape_hash")),
+            format!("{}\n", key.tape_hash),
+        )
+        .expect("the tape_hash is written");
     }
 }
 
@@ -179,11 +195,16 @@ fn branch_resume_equals_rerun() {
     assert_eq!(first, edit, "the first differing report hash");
     // Compare says the same, and nothing differs before the resume.
     let lines = b.lineage.as_ref().map(|l| l.lines()).unwrap();
-    let c = vm::compare::build(&p.store, &b.store, &lines, &m.session.plots, None).unwrap();
+    let c = vm::compare::build(side(p), side(b), &lines, &m.session.plots, None).unwrap();
     let d = c.first_difference.expect("a difference");
     assert_eq!((d.report_tick, d.state_tick), (Some(edit), edit + 1));
+    assert!(!d.may_be_earlier);
     assert!(!c.before_resume);
     assert_eq!(c.compared, (jan, GATE_TICKS));
+    assert_eq!(
+        (c.parent.origin, c.child.origin),
+        (Origin::Run, Origin::Experiment)
+    );
     assert_eq!(c.tape.len(), 2, "the name and the event: {:?}", c.tape);
     assert_eq!(c.tape[1].key, k.to_string());
     let price = c
@@ -218,9 +239,114 @@ fn branch_resume_equals_rerun() {
             hash: p.store.state_hash_at(jan).unwrap() ^ 1,
         })
         .unwrap();
-    let c = vm::compare::build(&p.store, &forged, &[], &[], None).unwrap();
+    let forged = vm::compare::Side {
+        store: &forged,
+        earlier: &[],
+        origin: Origin::Experiment,
+    };
+    let c = vm::compare::build(side(p), forged, &[], &[], None).unwrap();
     assert!(c.before_resume);
     assert_eq!(c.first_difference.map(|d| d.state_tick), Some(jan));
+    // A grandchild under the resumed branch. The branch holds no record before its start,
+    // 780; its states there are its parent's, which compare reads, so it finds the true first
+    // difference. A world edit reruns from genesis and first differs at genesis.
+    let under = |host: &mut Host, m: &mut Model, f: Form| {
+        host.act(m, Intent::Focus(branch));
+        host.act(m, Intent::Stage(f));
+        assert_eq!(m.editor().error, None);
+        host.act(m, Intent::Apply);
+        let g = m.focus().unwrap();
+        assert_eq!(m.run(g).unwrap().parent, Some(branch));
+        assert!(m.run(g).unwrap().rerun.is_some(), "it reruns from genesis");
+        loaded(host, m);
+        run_to_the_end(host, m);
+        g
+    };
+    let world = under(
+        &mut host,
+        &mut m,
+        Form {
+            kind: OpKind::SetGenesisParam,
+            key: "mill.spend".to_string(),
+            value: "12".to_string(),
+            note: "spend more".to_string(),
+            ..Form::default()
+        },
+    );
+    let earlier = m.earlier(branch);
+    assert_eq!(earlier.len(), 1, "the branch's parent's record");
+    assert!(std::ptr::eq(earlier[0], &m.run(parent).unwrap().store));
+    assert!(
+        m.earlier(parent).is_empty(),
+        "a run from genesis continues none"
+    );
+    let (b, w) = (m.run(branch).unwrap(), m.run(world).unwrap());
+    let resumed = vm::compare::Side {
+        store: &b.store,
+        earlier: &earlier,
+        origin: b.origin,
+    };
+    let c = vm::compare::build(resumed, side(w), &[], &m.session.plots, None).unwrap();
+    assert_eq!(c.compared, (0, GATE_TICKS));
+    let d = c.first_difference.expect("another genesis");
+    assert_eq!(
+        (d.state_tick, d.report_tick, d.may_be_earlier),
+        (0, None, false)
+    );
+    assert!(!c.before_resume);
+    // With the branch's own record alone, the first state both hold is its start, where the
+    // hashes already differ: compare says they may differ earlier.
+    let c = vm::compare::build(side(b), side(w), &[], &m.session.plots, None).unwrap();
+    assert_eq!(c.compared, (jan, GATE_TICKS));
+    let d = c.first_difference.expect("a difference");
+    assert_eq!((d.state_tick, d.may_be_earlier), (jan, true));
+    assert!(!c.before_resume);
+    // An edit dated before the branch's start: no checkpoint of the branch shares its prefix,
+    // so it reruns, and the first difference is at that date's tick, in the parent's record.
+    let k = m.mint_key().unwrap();
+    let mint = under(
+        &mut host,
+        &mut m,
+        Form {
+            kind: OpKind::AddEvent,
+            key: k.to_string(),
+            date: "1755-05-05".to_string(),
+            act: "Mint(holder: \"workers\", good: \"coin\", qty: 1.0)".to_string(),
+            note: "a gift".to_string(),
+            ..Form::default()
+        },
+    );
+    let early = gate_tick("1755-05-05");
+    assert!(early < jan);
+    let earlier = m.earlier(branch);
+    let (b, g) = (m.run(branch).unwrap(), m.run(mint).unwrap());
+    let resumed = vm::compare::Side {
+        store: &b.store,
+        earlier: &earlier,
+        origin: b.origin,
+    };
+    let c = vm::compare::build(resumed, side(g), &[], &m.session.plots, None).unwrap();
+    let d = c.first_difference.expect("a difference");
+    assert_eq!(
+        (d.report_tick, d.state_tick, d.may_be_earlier),
+        (Some(early), early + 1, false)
+    );
+    let truth = reference_hashes(&b.tape, GATE_TICKS)
+        .iter()
+        .zip(reference_hashes(&g.tape, GATE_TICKS))
+        .position(|(x, y)| *x != y);
+    assert_eq!(truth, Some(early as usize), "the engine's first difference");
+    // The plotted series are read in the parent's record too.
+    assert!(
+        c.series
+            .iter()
+            .any(|s| s.first_differs.is_some_and(|t| t < jan)),
+        "{:?}",
+        c.series
+    );
+    // With the base closed, the branch's earlier record is gone.
+    host.act(&mut m, Intent::Close(parent));
+    assert!(m.earlier(branch).is_empty());
 }
 
 #[test]
@@ -271,7 +397,8 @@ fn removal_only_branch_is_an_experiment() {
     assert_eq!(b.store.hashes(), &rerun[jan as usize..]);
     write_for_the_cli("removal", p, b);
     // The toolbar's identity chip says "experiment".
-    let t = vm::toolbar::build(&b.store, b.origin, m.ledger_changed(branch));
+    let t = vm::toolbar::build(&b.store, b.origin, m.ledger(branch));
+    assert_eq!(t.health.ledger, LedgerCheck::Same);
     assert_eq!(
         t.identity.as_ref().map(|i| i.origin),
         Some(Origin::Experiment)
@@ -354,7 +481,7 @@ fn removal_only_branch_is_an_experiment() {
     // Its genesis is another world's, which compare reports as the first difference, at state
     // tick 0, and does not flag: a rerun does not share its parent's start.
     let (p, w) = (m.run(parent).unwrap(), m.run(world).unwrap());
-    let c = vm::compare::build(&p.store, &w.store, &[], &m.session.plots, None).unwrap();
+    let c = vm::compare::build(side(p), side(w), &[], &m.session.plots, None).unwrap();
     let d = c.first_difference.expect("another genesis");
     assert_eq!((d.state_tick, d.report_tick), (0, None));
     assert!(!c.before_resume);

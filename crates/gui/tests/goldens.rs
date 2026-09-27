@@ -18,7 +18,9 @@ use certify::Build;
 use common::{tape_of, APPB, GATE};
 use rustyecon_engine::prelude::*;
 use rustyecon_gui::run::log::{self, Entry, RationWatch};
-use rustyecon_gui::run::{At, Cmd, Entity, Measure, Obs, Origin, RunId, Runner, SeriesKey, Store};
+use rustyecon_gui::run::{
+    At, Cmd, Entity, LedgerCheck, Measure, Obs, Origin, RunId, Runner, SeriesKey, Store,
+};
 use rustyecon_gui::vm;
 use rustyecon_gui::vm::inspector::InspectorVm;
 use serde::Serialize;
@@ -119,7 +121,7 @@ fn golden(rig: &Rig, selections: &[Entity], pins: &[Entity]) -> Golden {
     let w = s.world().expect("loaded");
     let plots = every_price(w);
     Golden {
-        toolbar: vm::toolbar::build(s, Origin::Run, false),
+        toolbar: vm::toolbar::build(s, Origin::Run, LedgerCheck::NoParent),
         timeline: vm::timeline::build(s, None),
         outliner: vm::outliner::build(s, selections.first(), pins, &plots),
         plots: vm::plots::build(s, &plots, None),

@@ -9,8 +9,8 @@ use rustyecon_engine::prelude::*;
 use rustyecon_gui::edit::{Form, OpKind};
 use rustyecon_gui::model::{reduce, Cursor, Effect, Intent, Job, Model, Session};
 use rustyecon_gui::run::{
-    At, Breakpoint, Cmd, Entity, Measure, Obs, Origin, ResumeFrom, RunId, RunStatus, Runner,
-    SeriesKey, EXPERIMENT_MARKER,
+    At, Breakpoint, Cmd, Entity, LedgerCheck, Measure, Obs, Origin, ResumeFrom, RunId, RunStatus,
+    Runner, SeriesKey, EXPERIMENT_MARKER,
 };
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
@@ -58,6 +58,7 @@ impl Sync {
                 }
                 Effect::SaveSession => self.saves += 1,
                 Effect::ReadTape(_)
+                | Effect::ReadAncestor { .. }
                 | Effect::SetAsideSession
                 | Effect::PickTape
                 | Effect::PickSaveTape
@@ -693,7 +694,7 @@ fn a_run_whose_worker_ended_says_so_and_stops() {
     assert_eq!(status(&m), RunStatus::Ended);
     let run = m.focused().unwrap();
     assert!(!run.store.can_run());
-    let t = rustyecon_gui::vm::toolbar::build(&run.store, run.origin, false);
+    let t = rustyecon_gui::vm::toolbar::build(&run.store, run.origin, LedgerCheck::NoParent);
     assert_eq!(t.health.status, rustyecon_gui::vm::toolbar::Status::Ended);
     assert!(!t.controls.can_run && !t.controls.running);
     let last = m.log().last().unwrap();

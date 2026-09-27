@@ -7,8 +7,8 @@ mod common;
 use common::{collecting, drain, tape_of, GATE};
 use rustyecon_engine::prelude::*;
 use rustyecon_gui::run::{
-    decimate, At, Cmd, Decimator, IngestError, Measure, Obs, Origin, RunStatus, Runner, Series,
-    SeriesKey, Store,
+    decimate, At, Cmd, Decimator, IngestError, LedgerCheck, Measure, Obs, Origin, RunStatus,
+    Runner, Series, SeriesKey, Store,
 };
 use rustyecon_gui::vm;
 
@@ -267,7 +267,7 @@ fn refused(poison: f64) {
     assert_eq!(store.series(&bread).unwrap().len(), 7);
     assert!(store.catalogue().iter().position(|k| *k == bread) > Some(0));
     // The health chip says so.
-    let health = vm::toolbar::build(&store, Origin::Run, false).health;
+    let health = vm::toolbar::build(&store, Origin::Run, LedgerCheck::NoParent).health;
     assert_eq!(health.status, vm::toolbar::Status::Stopped);
     assert_eq!(health.stopped.as_deref(), Some(text.as_str()));
 }

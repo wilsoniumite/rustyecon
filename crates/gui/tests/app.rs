@@ -35,7 +35,8 @@ use rustyecon_gui::edit::{lineage_path, Lineage};
 use rustyecon_gui::model::{Intent, Model};
 use rustyecon_gui::platform::Files;
 use rustyecon_gui::run::{
-    At, Entity, Measure, Origin, PauseReason, RunId, RunStatus, Series, SeriesKey, Store,
+    At, Entity, LedgerCheck, Measure, Origin, PauseReason, RunId, RunStatus, Series, SeriesKey,
+    Store,
 };
 use rustyecon_gui::ui::fmt;
 use rustyecon_gui::ui::plots::{DrawnLine, PALETTE};
@@ -507,7 +508,7 @@ fn the_theft_script_shows_a_failed_run() {
     let keys = rustyecon_gui::vm::toolbar::build(
         store_now,
         h.state().model().focused().unwrap().origin,
-        false,
+        LedgerCheck::NoParent,
     )
     .health
     .ledger_keys;
@@ -904,9 +905,9 @@ fn press(h: &mut Harness<'_, GuiApp>, label: &str) {
 #[test]
 fn the_editor_refuses_an_empty_note_a_malformed_key_and_a_malformed_date() {
     // docs/GUI.md §5.1 item 2, §8.1: the form checks first. An empty note, a malformed key and
-    // a malformed date are refused, as are a key the run tree has and a ledger tolerance, and
-    // each refusal is painted; an act that does not read puts the parser's line and column on
-    // the raw pane. Nothing is staged until the form reads.
+    // a malformed date are refused, as are a key a tape of the session has and a ledger
+    // tolerance, and each refusal is painted; an act that does not read puts the parser's line
+    // and column on the raw pane. Nothing is staged until the form reads.
     let mut h = harness("gate");
     step_until(&mut h, "paused at tick 0", |a| {
         status(a.model()) == Some(RunStatus::Paused { tick: 0, why: None })
@@ -957,14 +958,14 @@ fn the_editor_refuses_an_empty_note_a_malformed_key_and_a_malformed_date() {
     see(&mut h, &format!("    | {}^", " ".repeat(32)));
     see(&mut h, "line 1, column 33: Expected comma");
     assert_eq!(staged(&h), 0);
-    // A key the run tree has.
+    // A key a tape of the session has.
     fill(&mut h, "edit act", RESTORE);
     fill(&mut h, "edit key", "mine.cut");
     press(&mut h, "Add edit");
     see(
         &mut h,
-        "refused: the key mine.cut is taken in this run tree; a new entry needs a new key \
-         (mint one)",
+        "refused: the key mine.cut is taken by a tape of this session; a new entry needs a new \
+         key (mint one)",
     );
     // A ledger tolerance.
     click(&mut h, "edit kind");
@@ -998,9 +999,11 @@ fn the_branch_script_applies_compares_exports_and_saves() {
     // docs/GUI.md §5.1, §4, §8.1: run the gate to its end, then set mine.capacity from
     // mine.capacity.base on 1765-06-01 through the editor. Apply makes a branch, which resumes
     // from the ring and whose identity chip says "experiment"; compare shows the first
-    // differing hash at the edit's tick, the tape diff and the lineage; export writes a CSV
-    // and a manifest envelope that say "experiment", and the lineage; "Save tape as" writes
-    // the tape and its lineage.
+    // differing hash at the edit's tick, both identities with their origins, the range
+    // compared, the tape diff and the lineage; export writes a CSV and a manifest envelope
+    // that say "experiment", and the lineage; "Save tape as" writes the tape and its lineage.
+    // The saved tape, edited by hand and reopened, paints "ledger changed", and "ledger
+    // unchecked" once its base is gone.
     let dir = tempfile::tempdir().expect("a temporary directory");
     let path = dir.path().join("gate.ron");
     std::fs::write(&path, common::GATE).expect("the tape is written");
@@ -1057,6 +1060,25 @@ fn the_branch_script_applies_compares_exports_and_saves() {
             edit + 1
         ),
     );
+    // Each identity names its origin (U3), and the range compared is shown.
+    see(
+        &mut h,
+        &format!(
+            "parent: gate · run · {commit} {} · world 0x43628a8e0fd5f695 · tape \
+             0x54066d053474846b · state ticks 0 to 2080",
+            b.state()
+        ),
+    );
+    see(
+        &mut h,
+        &format!(
+            "branch: {name} · experiment · {commit} {} · world 0x43628a8e0fd5f695 · tape {} · \
+             state ticks {jan} to 2080",
+            b.state(),
+            certify::Hex(tape)
+        ),
+    );
+    see(&mut h, &format!("compared: state ticks {jan} to 2080"));
     // Each line is scrolled to first: how far down it sits depends on how long the paths are.
     let from = format!("from {path} (tape_hash 0x54066d053474846b)");
     scroll_to(&mut h, &from);
@@ -1117,4 +1139,30 @@ fn the_branch_script_applies_compares_exports_and_saves() {
     assert!(std::path::Path::new(&lineage_path(&saved)).exists());
     scroll_to(&mut h, &format!("on disk: {saved}"));
     shows(&mut h, &format!("on disk: {saved}"));
+    // The saved tape, its tolerance edited by hand and its lineage beside it, opened in a new
+    // window: the host reads the base its lineage names, and the chip paints "ledger
+    // changed". With the base gone, the chip paints "ledger unchecked" and why.
+    let mut t = Tape::from_ron(&text).unwrap();
+    let flow = t
+        .params
+        .iter_mut()
+        .find(|p| p.key.as_str() == "ledger.rel_flow")
+        .unwrap();
+    flow.value *= 2.0;
+    let hand = dir.path().join("by-hand.ron").display().to_string();
+    std::fs::write(&hand, t.to_ron()).unwrap();
+    std::fs::copy(lineage_path(&saved), lineage_path(&hand)).unwrap();
+    let mut changed = harness_on(hand.clone(), None);
+    paints(&mut changed, " · ledger changed", |t| {
+        t.contains(" · ledger changed")
+    });
+    std::fs::rename(&path, dir.path().join("gone.ron")).unwrap();
+    let mut unchecked = harness_on(hand, None);
+    paints(&mut unchecked, " · ledger unchecked", |t| {
+        t.contains(" · ledger unchecked")
+    });
+    shows_part(
+        &mut unchecked,
+        &format!("ledger unchecked: its lineage's ancestor {path} cannot be read: "),
+    );
 }

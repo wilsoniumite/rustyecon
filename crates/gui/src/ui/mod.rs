@@ -215,7 +215,18 @@ impl egui_tiles::Behavior<Pane> for Panes<'_> {
                 }
                 Some(parent) => {
                     let lineage = run.lineage.as_ref().map(|l| l.lines()).unwrap_or_default();
-                    match vm::compare::build(&parent.store, store, &lineage, &m.session.plots, at) {
+                    let earlier = m.earlier(parent.id);
+                    let p = vm::compare::Side {
+                        store: &parent.store,
+                        earlier: &earlier,
+                        origin: parent.origin,
+                    };
+                    let c = vm::compare::Side {
+                        store,
+                        earlier: &[],
+                        origin: run.origin,
+                    };
+                    match vm::compare::build(p, c, &lineage, &m.session.plots, at) {
                         Some(v) => compare::show(ui, &v),
                         None => loading(ui),
                     }

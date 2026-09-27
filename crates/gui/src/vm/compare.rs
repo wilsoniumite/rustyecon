@@ -1,10 +1,15 @@
 //! The compare panel's view-model (docs/GUI.md §4, §5.1 item 5): a branch against its parent.
 //!
-//! - **Identities:** each run's key (build, `world_id`, `tape_hash`) and where it started.
+//! - **Identities:** each run's key (build, `world_id`, `tape_hash`), its origin and where it
+//!   started.
 //! - **The first differing hash:** the first state tick whose hash differs, over the ticks
 //!   both runs recorded, and the report tick that left it. A branch shares its parent's past
 //!   up to its resume tick, so a difference at or before the state it resumed from is flagged
-//!   ([`CompareVm::before_resume`]).
+//!   ([`CompareVm::before_resume`]). A parent that itself resumed from its own parent's ring
+//!   holds no record before its start; its earlier states are that run's, so the comparison
+//!   reads them there ([`Side::earlier`]). When the records this session holds do not reach
+//!   back far enough, a difference at the first state both hold says it may begin earlier
+//!   ([`FirstDifferenceVm::may_be_earlier`]).
 //! - **The tape diff by key:** every entry added, removed or changed, section by section, each
 //!   written as the tape writes it.
 //! - **The lineage:** its lines, as the caller gives them (the lineage is the editor's; this
@@ -15,14 +20,58 @@
 //!   transform U6 allows.
 
 use super::{date, report_tick, unit_of};
-use crate::run::{SeriesKey, Store};
+use crate::run::{Origin, SeriesKey, Store};
 use serde::Serialize;
+
+/// One run as compare reads it.
+#[derive(Debug, Clone, Copy)]
+pub struct Side<'a> {
+    /// Its record.
+    pub store: &'a Store,
+    /// The records of the runs it resumed from, nearest first, as far back as the caller holds
+    /// them: a run resumed from its parent's ring checkpoint has no record before its start,
+    /// and its states there are its parent's. Compare reads the parent's side only: a branch's
+    /// own states before its start are its parent's, so nothing there can differ.
+    pub earlier: &'a [&'a Store],
+    /// Run or experiment (U3).
+    pub origin: Origin,
+}
+
+impl Side<'_> {
+    /// The record that holds state tick or report tick `t`: its own from its start, else the
+    /// first earlier one that starts at or before `t`.
+    fn at(&self, t: u64) -> Option<&Store> {
+        std::iter::once(self.store)
+            .chain(self.earlier.iter().copied())
+            .find(|s| s.run().is_some() && s.start() <= t)
+    }
+
+    /// The first state tick its records hold.
+    fn first(&self) -> u64 {
+        std::iter::once(self.store)
+            .chain(self.earlier.iter().copied())
+            .filter(|s| s.run().is_some())
+            .map(Store::start)
+            .min()
+            .unwrap_or(self.store.start())
+    }
+
+    fn state_hash_at(&self, s: u64) -> Option<u64> {
+        self.at(s)?.state_hash_at(s)
+    }
+
+    fn value_at(&self, key: &SeriesKey, t: u64) -> Option<f64> {
+        self.at(t)?.series(key)?.at(t)
+    }
+}
 
 /// One run's identity.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct IdentityVm {
     /// The tape's name.
     pub name: String,
+    /// Run or experiment (U3).
+    pub origin: Origin,
     /// The build's commit.
     pub commit: String,
     /// Whether the build's sources differed from it.
@@ -50,6 +99,10 @@ pub struct FirstDifferenceVm {
     pub parent: String,
     /// The branch's.
     pub child: String,
+    /// Whether this is the first state both records hold, past genesis and past the branch's
+    /// start: the parent's records begin there, so the hashes may differ earlier, in states
+    /// this session does not hold.
+    pub may_be_earlier: bool,
 }
 
 /// How an entry changed.
@@ -103,7 +156,8 @@ pub struct CompareVm {
     pub parent: IdentityVm,
     /// The branch.
     pub child: IdentityVm,
-    /// The state ticks compared: from the later start to the earlier latest tick.
+    /// The state ticks compared: from the later of the two records' first states (the
+    /// parent's reaching back through the runs it resumed from) to the earlier latest tick.
     pub compared: (u64, u64),
     /// The first differing hash, if any in the ticks compared.
     pub first_difference: Option<FirstDifferenceVm>,
@@ -122,11 +176,13 @@ pub struct CompareVm {
     pub series: Vec<SeriesDiffVm>,
 }
 
-fn identity(store: &Store) -> Option<IdentityVm> {
+fn identity(side: &Side<'_>) -> Option<IdentityVm> {
+    let store = side.store;
     let k = store.run()?;
     let w = store.world()?;
     Some(IdentityVm {
         name: w.name.clone(),
+        origin: side.origin,
         commit: k.build.commit.clone(),
         dirty: k.build.dirty,
         world_id: k.world_id.to_string(),
@@ -267,7 +323,7 @@ pub fn tape_diff(
 }
 
 /// The first state tick in `lo..=hi` whose hash differs between the two records.
-fn first_difference(parent: &Store, child: &Store, lo: u64, hi: u64) -> Option<u64> {
+fn first_difference(parent: &Side<'_>, child: &Store, lo: u64, hi: u64) -> Option<u64> {
     (lo..=hi).find(|&s| {
         let (p, c) = (parent.state_hash_at(s), child.state_hash_at(s));
         p.is_some() && c.is_some() && p != c
@@ -275,20 +331,22 @@ fn first_difference(parent: &Store, child: &Store, lo: u64, hi: u64) -> Option<u
 }
 
 fn series_diff(
-    parent: &Store,
+    parent: &Side<'_>,
     child: &Store,
     key: &SeriesKey,
     unit: String,
     cursor: Option<u64>,
 ) -> SeriesDiffVm {
-    let (p, c) = (parent.series(key), child.series(key));
-    let at = |s: Option<&crate::run::Series>| s.and_then(|s| s.at(cursor?));
-    let (pv, cv) = (at(p), at(c));
+    let c = child.series(key);
+    let pv = cursor.and_then(|t| parent.value_at(key, t));
+    let cv = c.and_then(|s| s.at(cursor?));
     let mut largest: Option<(u64, f64)> = None;
     let mut first = None;
-    if let (Some(p), Some(c)) = (p, c) {
+    if let Some(c) = c {
         for (&t, &y) in c.ticks().iter().zip(c.values()) {
-            let Some(x) = p.at(t) else { continue };
+            let Some(x) = parent.value_at(key, t) else {
+                continue;
+            };
             if x.to_bits() != y.to_bits() && first.is_none() {
                 first = Some(t);
             }
@@ -310,20 +368,22 @@ fn series_diff(
 
 /// The compare panel of the branch `child` against `parent`, with the branch's lineage in
 /// lines, the plotted series and the cursor at report tick `cursor` of the branch (`None`:
-/// live). `None` until both have loaded.
+/// live). `None` until both have loaded. The parent's earlier records are read for the
+/// states before its start; the branch's are not.
 pub fn build(
-    parent: &Store,
-    child: &Store,
+    parent: Side<'_>,
+    child: Side<'_>,
     lineage: &[String],
     plots: &[SeriesKey],
     cursor: Option<u64>,
 ) -> Option<CompareVm> {
-    let (pi, ci) = (identity(parent)?, identity(child)?);
-    let w = child.world()?;
-    let lo = parent.start().max(child.start());
-    let hi = parent.tick().min(child.tick());
+    let (pi, ci) = (identity(&parent)?, identity(&child)?);
+    let (ps, cs) = (parent.store, child.store);
+    let w = cs.world()?;
+    let lo = parent.first().max(cs.start());
+    let hi = ps.tick().min(cs.tick());
     let first = if lo <= hi {
-        first_difference(parent, child, lo, hi)
+        first_difference(&parent, cs, lo, hi)
     } else {
         None
     };
@@ -336,21 +396,22 @@ pub fn build(
             parent: parent
                 .state_hash_at(s)
                 .map_or_else(String::new, |h| certify::Hex(h).to_string()),
-            child: child
+            child: cs
                 .state_hash_at(s)
                 .map_or_else(String::new, |h| certify::Hex(h).to_string()),
+            may_be_earlier: s == lo && lo > 0 && lo > cs.start(),
         }
     });
-    let before_resume = child.start() > 0 && first.is_some_and(|s| s <= child.start());
-    let tape = match (parent.tape(), child.tape()) {
+    let before_resume = cs.start() > 0 && first.is_some_and(|s| s <= cs.start());
+    let tape = match (ps.tape(), cs.tape()) {
         (Some(a), Some(b)) => tape_diff(a, b),
         _ => Vec::new(),
     };
-    let cursor = report_tick(child, cursor);
+    let cursor = report_tick(cs, cursor);
     let series = plots
         .iter()
         .filter(|k| k.in_world(w))
-        .map(|k| series_diff(parent, child, k, unit_of(w, k), cursor))
+        .map(|k| series_diff(&parent, cs, k, unit_of(w, k), cursor))
         .collect();
     Some(CompareVm {
         parent: pi,

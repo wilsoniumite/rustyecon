@@ -26,6 +26,6 @@
         ledger_keys: [],
         last_good_tick: None,
         stopped: None,
-        ledger_changed: false,
+        ledger: NoParent,
     ),
 )

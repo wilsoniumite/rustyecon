@@ -9,7 +9,7 @@ use common::{build, gift_then_theft, reference_hashes, tape_of, PATIENCE};
 use rustyecon_engine::prelude::*;
 use rustyecon_gui::drive::Host;
 use rustyecon_gui::model::{Intent, Model};
-use rustyecon_gui::run::{Breakpoint, Entity, PauseReason, RunStatus};
+use rustyecon_gui::run::{Breakpoint, Entity, LedgerCheck, PauseReason, RunStatus};
 use rustyecon_gui::vm;
 use rustyecon_gui::vm::inspector::InspectorVm;
 use std::sync::Arc;
@@ -68,7 +68,7 @@ fn failed_run_shows_its_ledger_line() {
     assert!(!store.can_run());
     assert_eq!(store.hashes().len(), 73, "ticks 0 to 72 are recorded");
     // The toolbar: Poisoned, the ledger line, the last good tick.
-    let t = vm::toolbar::build(store, run.origin, false);
+    let t = vm::toolbar::build(store, run.origin, LedgerCheck::NoParent);
     assert_eq!(t.health.status, vm::toolbar::Status::Poisoned);
     let line = t.health.ledger_line.clone().expect("the ledger line");
     assert!(line.starts_with("tick 73, phase 0 (events): "), "{line}");

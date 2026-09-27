@@ -67,7 +67,7 @@ pub struct TapeEdit {
 pub enum EditOp {
     /// A new dated event: it fires in the tick `at` falls in.
     AddEvent {
-        /// Its key, new to the whole run tree (E8).
+        /// Its key, new to every tape of the session (E8).
         key: Key,
         /// Its date.
         at: Date,
@@ -78,7 +78,7 @@ pub enum EditOp {
     RemoveEvent(Key),
     /// A new recurring entry.
     AddRecurring {
-        /// Its key, new to the whole run tree.
+        /// Its key, new to every tape of the session.
         key: Key,
         /// Its first firing.
         first: Date,
@@ -93,7 +93,7 @@ pub enum EditOp {
     RemoveRecurring(Key),
     /// A new param: a new value that a `SetParam` can copy, so it keeps a basis (§5.2).
     AddParam {
-        /// Its key, new to the whole run tree.
+        /// Its key, new to every tape of the session.
         key: Key,
         /// Its value, in `unit`.
         value: f64,
@@ -328,7 +328,8 @@ impl fmt::Display for EditError {
             ),
             EditError::Taken { edit, key } => write!(
                 f,
-                "edit {}: the key {key} is taken; a new entry needs a key new to the run tree",
+                "edit {}: the key {key} is taken; a new entry needs a key new to every tape of \
+                 this session",
                 edit + 1
             ),
             EditError::Missing { edit, kind, key } => {

@@ -13,7 +13,7 @@ are a veto window for your one-word calls.
 **State as of:** 2026-09-27. **G0, the GUI's shell, is under way** on branch `g0`, from
 `reboot` at `397d7cd` (S2.6): G0.1, the viewer, is built, in two commits named G0.1, the crate
 and its seams and then the panels, and a third that fixes what its verification found; G0.2,
-the editor, is built in one commit (below).
+the editor, is built in one commit, and a second fixes what its verification found (below).
 **Phase 0 is closed.** Session 1 closed at P0.9, on
 `reboot`.
 Session 2 closed at S2.6, built on branch `phase0-s2` (S2.1–S2.6, from `reboot` at `cf3c0ff`);
@@ -24,10 +24,62 @@ PASS. Before it: oracle unit 1a joined at P1.1 (O3); the GUI's design, plan amen
 R16 landed at P0.11 (O1); by your ruling of 2026-09-26 the Phase 2 probe ran first, with verdict
 GO ([docs/probe/REPORT.md](docs/probe/REPORT.md)) and no fallback (decision 38); and Breakpoint
 B's pre-look passed beside it (S5.0, docs/spine/EYEBALL.md; decision 35).
-Next, in order: G0.2's verification, and your look at the window (the G0 gate's item checked
-by hand); Phase 1's units 1b–1f alongside.
+Next, in order: your look at the window (the G0 gate's item checked by hand), then G0 closes;
+Phase 1's units 1b–1f alongside.
 
 ## Where things stand
+
+**G0.2's verification fixes** (2026-09-27; [docs/GUI.md](docs/GUI.md), amended at G0.2's
+verification fixes; decisions 92–96). A bounded verification of G0.2 found six major issues
+and four minor ones. Each is fixed or answered, with a test that fails without its fix,
+checked by mutation:
+- **"Ledger changed" said "no" when it could not know.** A reopened hand-edited tape whose
+  base was not open exported `# ledger changed: no`. It now has three answers. A reopened
+  tape reads the ancestor its lineage names from its path and keeps it only when its
+  `tape_hash` matches. Without it, the chip says "ledger unchecked" and why, the CSV says
+  `unknown (…)`, and the manifest says `None` (`ledger_tolerances_are_not_editable`).
+- **U3's other clauses had no test.** A lineage alone and a marked basis alone now make an
+  experiment, and neither makes a run (`saved_tape_carries_its_lineage`).
+- **A reopened experiment's export had no `ancestor.ron`,** and the test that claimed it
+  exported another run. The reopened run keeps its ancestor, and the test exports it, the
+  in-memory branch and a fresh session's reopen.
+- **Minted keys collided across one family:** a reopened saved branch, one file opened twice,
+  a closed parent. Keys are now new to every tape open in the session. A minted `n` only
+  grows, and a set-aside session's serial is carried forward (`minted_keys_never_collide`,
+  with params, recurring entries and Apply's re-check).
+- **Compare gave a false first difference under a resumed parent.** It now reads the parent's
+  earlier states in the records it resumed from. When they are gone, it says the hashes may
+  differ earlier, and it always shows the range compared (`branch_resume_equals_rerun`).
+- **The minors.** RemoveRecurring and its offered RemoveParam are tested through the model.
+  A lineage that describes another tape is flagged in the CSV and the manifest, and logged
+  when saved. Compare's identities name their origin. `scripts/gui.sh` checks the cli's
+  `tape_hash` of each branch tape against the GUI's. Two windows on one `session.ron` can
+  still share a serial (decision 93).
+- **Tests:** 72 in `crates/gui`, one of them an ignored measurement, as before. The fixes
+  extend six named tests and the branch script, which now also opens the saved tape, edited
+  by hand, in two new windows ("ledger changed" with the base on disk, "ledger unchecked" and
+  why without it). `scripts/gui.sh` still names 27.
+- **Mutation** (WSL, each mutant alone against the whole suite, on a copy of the tree;
+  `D:/rustyecon-g0/g02-fix/`, `round1/`, `round2.txt`, logs in `mut/`): 72 mutants. They are
+  G0.2's 45 again, rewritten where the fixes changed their text; the verification's five
+  (MX1, MX2, MX3, MX6, M5); and 22 of the fixes' own. In the first round 67 were killed. One
+  survived: the chip's "ledger unchecked" was painted by no test. The branch script's two new
+  windows kill it, and three more mutants of the chip and of the host's read of the ancestor.
+  So all 72 are killed, each by a named test that guards it. A 73rd, a branch test writing
+  another `tape_hash` than the run key's, turns `scripts/gui.sh` red at its new check.
+- **The gates** (logs in `D:/rustyecon-g0/g02-fix/`). `scripts/gui.sh` is green in WSL and
+  on Windows under Git Bash (99 s with the build): 71 tests pass and one measurement is
+  ignored, the 27 named ones by name, clippy clean with `-D warnings`, and four hash diffs
+  equal. They are gate (final `0x61f9c8529131ff17`), appb (final `0xe1fa082b26995867`), and
+  the two branch tapes run by the cli, whose `tape_hash` is now checked against the GUI's
+  (`branch`, `0x1b061337f44ea5c1`, final `0x9fc2f964a8510756`; `removal`,
+  `0xe15acd82a00d52fe`, final `0xd057e3ea708da495`), the same on both machines.
+  `scripts/gate.sh` is green in WSL (44 s) and on Windows under Git Bash (41 s): the gate
+  hash `0x61f9c8529131ff17`, both certificates PASS and byte-equal, and the GUI's
+  non-blocking check passing in WSL (skipped on Windows). No engine file
+  changed, and the lockfile did not change. The editor's, branch, reducer and kittest tests
+  ran 20 times in WSL and 10 on Windows, all clean.
+- **Checked by hand: still PENDING, yours.** The command is under G0.1's second part, below.
 
 **G0.2: the editor** (2026-09-27; [docs/GUI.md](docs/GUI.md), amended at G0.2). The editor is
 built at G0's scope, in `crates/gui/src/edit/` (no egui, model, file, thread or clock) with
@@ -889,6 +941,27 @@ code after S2.6. GUI.md's amendment for G0.2 carries each; all are open to veto.
 91. **A layout saved before a pane existed gains it** beside the inspector, rather than being
     set aside.
 
+Decisions 92–96 were made while fixing what G0.2's verification found. GUI.md's amendment
+for G0.2's verification fixes carries each; all are open to veto.
+
+92. **"Ledger changed" has three answers:** yes, no, or unchecked with the reason. A reopened
+    tape reads the ancestor its lineage names from its path, and keeps it only when its
+    `tape_hash` is the lineage's. `GuiManifest.ledger_changed` becomes an `Option<bool>`.
+    Alternative: say unchecked whenever the ancestor is not open, and read no file.
+93. **Keys are new to every tape open in the session,** not only to the run tree, and a minted
+    `n` only grows within a session. A set-aside session's serial is carried forward when it
+    reads. Two windows on one `session.ron` can still share a serial. A lock file would fix
+    that; it is left for G1.
+94. **Compare reads a resumed parent's earlier states in the records it resumed from,** while
+    they are open, and says when the records do not reach back far enough. Alternative: only
+    say so, and never walk the records.
+95. **A lineage that describes another tape is still saved beside a copy,** and is flagged in
+    the export and the log. Refusing it, or writing it under another name, would let a tape
+    whose only mark was its lineage reopen as a run (U3).
+96. **The toolbar's goldens changed their field,** `ledger: NoParent` for `ledger_changed:
+    false`, in a commit that did not retune the gate world. The view-model's shape changed;
+    its values did not.
+
 ## Open — your calls
 
 - **The GUI's decisions**, 22–34 (D1–D13): open to veto before G0. D10's items are built.
@@ -898,7 +971,7 @@ code after S2.6. GUI.md's amendment for G0.2 carries each; all are open to veto.
   your word and open to veto.
 - **Decisions 41–58** (session 2's), open to veto.
 - **Decisions 59–64** (G0.1's first part), **65–72** (its second part), **73–79** (its
-  verification fixes) and **80–91** (G0.2), open to veto.
+  verification fixes), **80–91** (G0.2) and **92–96** (its verification fixes), open to veto.
 - **The G0 gate's window check, by hand** (the command is in "Where things stand", under G0.1's
   second part): the window opens `tapes/gate.ron` and runs to 2,080 with every price plotted
   and no panic. The smoke mode ran it on Windows; nobody has looked at it.
@@ -1021,10 +1094,11 @@ REVIEW.md is kept as written; these of its claims do not hold.
 
 ## Next steps, in order
 
-1. **G0.2's verification** (O1; docs/GUI.md §9), bounded as G0.1's was, then G0 closes when
-   its gate's last item, the window by hand, is checked. G0.1, the viewer, and G0.2, the
-   editor, are built (2026-09-27). The plots' overlay, difference and ratio against a parent,
-   and re-making branches at launch, are G1's (decisions 89, 90).
+1. **G0 closes** (O1; docs/GUI.md §9) when its gate's last item, the window by hand, is
+   checked. G0.1, the viewer, and G0.2, the editor, are built and verified, and what the
+   verifications found is fixed (2026-09-27). The plots' overlay, difference and ratio against
+   a parent, re-making branches at launch, and a lock on `session.ron`, are G1's (decisions
+   89, 90, 93).
 2. **Your look at the window**, the G0 gate's item checked by hand (the command is under G0.1's
    second part in "Where things stand"; G0.2's entry says how to try the editor).
 3. **At the next engine step, the engine re-exports `num`** (decision 79), and the tape's raw

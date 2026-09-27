@@ -22,7 +22,7 @@ use crate::edit::{
     TapeEdit,
 };
 use crate::run::log::{self, Entry, Level, RationWatch};
-use crate::run::{At, RunStatus};
+use crate::run::{At, LedgerCheck, RunStatus};
 use crate::run::{
     Breakpoint, Cmd, Entity, Measure, Obs, Origin, ResumeFrom, RingCheckpoint, RunId, SeriesKey,
     Store,
@@ -67,8 +67,13 @@ pub struct Run {
     pub resume: Option<RingCheckpoint>,
     /// Why the branch reruns from genesis, if `plan` found no checkpoint.
     pub rerun: Option<String>,
-    /// The tape of its nearest ancestor on disk, which an export carries.
+    /// The tape of its nearest ancestor on disk, which an export carries and "ledger changed"
+    /// compares with: a branch's is made with it; a reopened tape's is the one its lineage
+    /// names, found open in this session or read from its path, and kept only when its
+    /// `tape_hash` is the lineage's.
     ancestor: Option<Box<Tape>>,
+    /// Why the ancestor a reopened tape's lineage names is not held, once reading it failed.
+    ancestor_missing: Option<String>,
     /// The `until` of the last `Run` command, which a change of speed repeats.
     until: Option<u64>,
     /// The state ticks a snapshot was asked for since the last load, so each is asked once.
@@ -92,13 +97,16 @@ impl Run {
             resume: None,
             rerun: None,
             ancestor: None,
+            ancestor_missing: None,
             until: None,
             asked: BTreeSet::new(),
             watch: RationWatch::default(),
         }
     }
 
-    /// The tape of its nearest ancestor on disk, when this session holds it.
+    /// The tape of its nearest ancestor on disk, when this session holds it: a branch's, made
+    /// with it; or, for a reopened tape, the one its lineage names, found open in this session
+    /// or read from its path, with that `tape_hash`.
     pub fn ancestor(&self) -> Option<&Tape> {
         self.ancestor.as_deref()
     }
@@ -166,6 +174,15 @@ pub enum Intent {
         text: Result<String, String>,
         /// `<name>.lineage.ron`'s text, or why it could not be read; `None` when there is none.
         lineage: Option<Result<String, String>>,
+    },
+    /// The text of the ancestor a reopened tape's lineage names, or why it could not be read.
+    AncestorRead {
+        /// The reopened run.
+        run: RunId,
+        /// The ancestor's path, as the lineage names it.
+        path: String,
+        /// Its text, or the read error.
+        text: Result<String, String>,
     },
     /// `session.ron`'s text at launch, or why it could not be read.
     SessionRead(Result<String, String>),
@@ -258,6 +275,14 @@ pub enum Effect {
     PickTape,
     /// Read a tape file, and the lineage beside it, and answer with [`Intent::TapeRead`].
     ReadTape(String),
+    /// Read the ancestor a reopened tape's lineage names, and answer with
+    /// [`Intent::AncestorRead`]. It opens no run.
+    ReadAncestor {
+        /// The reopened run.
+        run: RunId,
+        /// The ancestor's path.
+        path: String,
+    },
     /// Start a driver for a new run.
     Spawn(RunId),
     /// Send a run's driver a command.
@@ -302,6 +327,9 @@ pub struct Model {
     editor: Editor,
     /// The keys of every run closed in this session, never minted again (E8).
     retired: BTreeSet<String>,
+    /// The largest `n` of a `gui.<serial>.<n>` key staged this session: a mint goes above it,
+    /// so no `n` is minted twice in a session.
+    high: u64,
 }
 
 impl Model {
@@ -383,47 +411,95 @@ impl Model {
             .collect()
     }
 
-    /// Every key a new entry of a branch of `id` may not take (E8): each key of every tape in
-    /// its run tree, siblings and ancestors included, of the staged edits, and of every run
-    /// closed in this session.
-    pub fn taken_keys(&self, id: RunId) -> BTreeSet<String> {
+    /// Every key a new entry may not take (E8): each key of every tape open in this session,
+    /// so every tape of the run tree and of every other tree, a saved branch reopened as its
+    /// own root and a second root of one file included; of every run closed in this session;
+    /// and of the staged edits.
+    pub fn taken_keys(&self) -> BTreeSet<String> {
         let mut out = self.retired.clone();
-        for r in self.tree(id) {
-            if let Some(run) = self.runs.get(&r) {
-                out.extend(keys::tape_keys(&run.tape));
-            }
+        for run in self.runs.values() {
+            out.extend(keys::tape_keys(&run.tape));
         }
         out.extend(keys::added_keys(&self.editor.staged));
         out
     }
 
-    /// A key for a new entry of a branch of the focused run: `gui.<serial>.<n>`, new to its
-    /// run tree and to the staged edits.
+    /// A key for a new entry of a branch of the focused run: `gui.<serial>.<n>`, with `n` above
+    /// every `n` under this serial in [`Model::taken_keys`] and every key staged this session.
     pub fn mint_key(&self) -> Option<Key> {
-        let id = self.focus?;
-        Some(keys::mint(self.session.serial, &self.taken_keys(id)))
+        self.focus?;
+        Some(keys::mint(
+            self.session.serial,
+            &self.taken_keys(),
+            self.high,
+        ))
     }
 
-    /// Whether a run's ledger tolerances differ from its parent's: the branch's parent run, or
-    /// the ancestor its lineage names when this session holds that tape (§5.1 item 2).
-    pub fn ledger_changed(&self, id: RunId) -> bool {
+    /// An open run, other than `except`, of the tape an ancestor names: by path and hash.
+    fn held(&self, a: &Ancestor, except: RunId) -> Option<&Run> {
+        self.runs.values().find(|x| {
+            x.id != except
+                && x.path.as_deref() == Some(a.path.as_str())
+                && x.tape_hash == a.tape_hash.0
+        })
+    }
+
+    /// Whether a run's ledger tolerances differ from its parent's (§5.1 item 2): the branch's
+    /// parent run, or else the ancestor its lineage names, when this session holds it. A run
+    /// with neither is unchecked and says why; only a tape no GUI edit made, with no lineage,
+    /// has no parent.
+    pub fn ledger(&self, id: RunId) -> LedgerCheck {
         let Some(r) = self.runs.get(&id) else {
-            return false;
+            return LedgerCheck::Unknown(format!("{id} is not open"));
+        };
+        let against = |p: &Tape| {
+            if edit::ledger_changed(&r.tape, p) {
+                LedgerCheck::Changed
+            } else {
+                LedgerCheck::Same
+            }
         };
         if let Some(p) = self.parent_of(id) {
-            return edit::ledger_changed(&r.tape, &p.tape);
+            return against(&p.tape);
         }
-        let Some(l) = &r.lineage else {
-            return false;
-        };
-        self.runs
-            .values()
-            .find(|a| {
-                a.id != id
-                    && a.path.as_deref() == Some(l.parent.path.as_str())
-                    && a.tape_hash == l.parent.tape_hash.0
-            })
-            .is_some_and(|a| edit::ledger_changed(&r.tape, &a.tape))
+        if let Some(a) = r.ancestor() {
+            return against(a);
+        }
+        match &r.lineage {
+            Some(l) => LedgerCheck::Unknown(r.ancestor_missing.clone().unwrap_or_else(|| {
+                format!(
+                    "its lineage's ancestor {} (tape_hash {}) is not open in this session and \
+                     has not been read",
+                    l.parent.path, l.parent.tape_hash
+                )
+            })),
+            None if r.origin == Origin::Experiment => LedgerCheck::Unknown(
+                "the tape carries the GUI-experiment marker and no lineage names its parent"
+                    .to_string(),
+            ),
+            None => LedgerCheck::NoParent,
+        }
+    }
+
+    /// The records a run's own record continues, nearest first: while a run resumed from its
+    /// parent's ring checkpoint and that parent is open, the parent's record holds its states
+    /// before its start. Compare reads them (§4).
+    pub fn earlier(&self, id: RunId) -> Vec<&Store> {
+        let mut out = Vec::new();
+        let mut at = self.runs.get(&id);
+        while let Some(r) = at {
+            let resumed = r
+                .resume
+                .as_ref()
+                .is_some_and(|cp| r.store.run().is_some() && cp.tick() == r.store.start());
+            let parent = self.parent_of(r.id);
+            match parent {
+                Some(p) if resumed && r.store.start() > 0 => out.push(&p.store),
+                _ => break,
+            }
+            at = parent;
+        }
+        out
     }
 
     /// The export of a run, as text: its files, by name in the export directory.
@@ -439,8 +515,8 @@ impl Model {
             origin: r.origin,
             resumed_from: resumed.as_ref(),
             lineage: r.lineage.as_ref(),
-            ancestor: r.ancestor.as_deref(),
-            ledger_changed: self.ledger_changed(id),
+            ancestor: r.ancestor(),
+            ledger: self.ledger(id),
         };
         export::files(&src)
     }
@@ -467,11 +543,13 @@ pub fn reduce(m: &mut Model, i: Intent) -> Vec<Effect> {
             text,
             lineage,
         } => open(m, path, text, lineage),
+        Intent::AncestorRead { run, path, text } => ancestor_read(m, run, &path, text),
         Intent::SessionRead(Ok(text)) => match Session::from_ron(&text) {
             Ok(mut s) => {
                 // A new launch: the next serial, so this session's keys are new.
                 s.serial = s.serial.saturating_add(1);
                 m.session = s;
+                m.high = 0;
                 vec![Effect::SaveSession]
             }
             Err(e) => {
@@ -479,7 +557,22 @@ pub fn reduce(m: &mut Model, i: Intent) -> Vec<Effect> {
                     Level::Error,
                     format!("session.ron does not read ({e}); starting a new session"),
                 );
-                vec![Effect::SetAsideSession]
+                let mut out = vec![Effect::SetAsideSession];
+                // Its serial, if one can be read, is carried forward, so the new session's
+                // keys are new to the old one's.
+                if let Some(old) = session::serial_of(&text) {
+                    let next = old.saturating_add(1);
+                    if next > m.session.serial {
+                        m.session.serial = next;
+                        m.high = 0;
+                        m.note(
+                            Level::Info,
+                            format!("the new session takes serial {next}, after the old one's"),
+                        );
+                        out.push(Effect::SaveSession);
+                    }
+                }
+                out
             }
         },
         Intent::SessionRead(Err(e)) => {
@@ -803,13 +896,85 @@ fn open(
     } else {
         Origin::of(&tape)
     };
+    // The ancestor its lineage names: a run of this session with that path and tape_hash, or
+    // else the file at that path, read and kept if its tape_hash is the lineage's.
+    let mut read = None;
+    let ancestor = match &lineage {
+        Some(l) => match m.held(&l.parent, id) {
+            Some(a) => Some(Box::new(a.tape.clone())),
+            None => {
+                read = Some(l.parent.path.clone());
+                None
+            }
+        },
+        None => None,
+    };
     let mut run = Run::new(id, Some(path), tape.clone(), origin);
     run.lineage = lineage;
+    run.ancestor = ancestor;
     m.runs.insert(id, run);
     m.focus = Some(id);
     m.cursor = Cursor::Live;
     out.extend(start(m, id, tape, None));
+    if let Some(path) = read {
+        out.push(Effect::ReadAncestor { run: id, path });
+    }
     out
+}
+
+/// The ancestor a reopened tape's lineage names, read from its path: kept when it loads and
+/// its `tape_hash` is the lineage's, and otherwise the reason is kept, which "ledger changed"
+/// shows as unchecked.
+fn ancestor_read(
+    m: &mut Model,
+    id: RunId,
+    path: &str,
+    text: Result<String, String>,
+) -> Vec<Effect> {
+    let Some(r) = m.runs.get(&id) else {
+        return Vec::new();
+    };
+    let Some(l) = &r.lineage else {
+        return Vec::new();
+    };
+    if l.parent.path != path || r.ancestor.is_some() {
+        return Vec::new();
+    }
+    let want = l.parent.tape_hash;
+    let got = text
+        .map_err(|e| format!("its lineage's ancestor {path} cannot be read: {e}"))
+        .and_then(|t| {
+            Tape::from_ron(&t)
+                .map_err(|e| format!("its lineage's ancestor {path} does not load: {e}"))
+        })
+        .and_then(|t| {
+            let h = tape_hash(&t);
+            if h == want.0 {
+                Ok(t)
+            } else {
+                Err(format!(
+                    "its lineage's ancestor {path} has tape_hash {}, not the {want} the lineage \
+                     names: it changed on disk",
+                    Hex(h)
+                ))
+            }
+        });
+    let run = m.runs.get_mut(&id).expect("checked above");
+    match got {
+        Ok(t) => {
+            run.ancestor = Some(Box::new(t));
+            run.ancestor_missing = None;
+            m.note(
+                Level::Info,
+                format!("{id}: read its lineage's ancestor {path} (tape_hash {want})"),
+            );
+        }
+        Err(why) => {
+            run.ancestor_missing = Some(why.clone());
+            m.note(Level::Info, format!("{id}: the ledger is unchecked: {why}"));
+        }
+    }
+    Vec::new()
 }
 
 /// A run's observation: log it, record it, and react. A run that is closed is ignored.
@@ -903,10 +1068,17 @@ fn stage(m: &mut Model, form: &Form) -> Vec<Effect> {
     let Some(id) = m.focus else {
         return m.refuse("no run is open to edit".to_string());
     };
-    let taken = m.taken_keys(id);
+    let taken = m.taken_keys();
     let tape = &m.runs[&id].tape;
     match edit::form::parse(form, tape, &taken) {
         Ok(e) => {
+            // A key under this session's serial raises the mark every mint goes above.
+            if let Some(n) =
+                e.op.added()
+                    .and_then(|k| keys::minted_n(k.as_str(), m.session.serial))
+            {
+                m.high = m.high.max(n);
+            }
             m.editor.staged.push(e);
             m.editor.error = None;
             m.editor.raw = None;
@@ -941,15 +1113,16 @@ fn apply(m: &mut Model) -> Vec<Effect> {
         return m.refuse("the run has not loaded yet".to_string());
     }
     let edits = m.editor.staged.clone();
-    // Keys new to the run tree, checked again: the tree may have grown since the edit was
-    // staged.
-    let mut tree = m.retired.clone();
-    for r in m.tree(pid) {
-        tree.extend(keys::tape_keys(&m.runs[&r].tape));
+    // Keys new to every open tape and every closed run, checked again: a tape may have been
+    // opened since the edit was staged. The staged edits' own keys are left out; materialise
+    // refuses one that two of them add.
+    let mut taken = m.retired.clone();
+    for r in m.runs.values() {
+        taken.extend(keys::tape_keys(&r.tape));
     }
     for (i, e) in edits.iter().enumerate() {
         if let Some(k) = e.op.added() {
-            if tree.contains(k.as_str()) {
+            if taken.contains(k.as_str()) {
                 return m.refuse(
                     EditError::Taken {
                         edit: i,
@@ -1052,13 +1225,27 @@ fn save_tape(m: &mut Model, path: String) -> Vec<Effect> {
         ));
     }
     let mut files = vec![(path.clone(), r.tape.to_ron())];
+    let mut stale = None;
     if let Some(l) = &r.lineage {
+        // A lineage that describes another tape is still written beside it: without it, a tape
+        // whose only mark was its lineage would reopen as a run (U3). Its own tape_hash says
+        // what it describes, a reopen logs the difference, and so does this save.
+        if l.tape_hash.0 != r.tape_hash {
+            stale = Some(format!(
+                "the lineage saved beside {path} describes tape_hash {}, not this tape's {}: \
+                 the tape was edited by hand after it was saved, and those edits are in no \
+                 lineage",
+                l.tape_hash,
+                Hex(r.tape_hash)
+            ));
+        }
         files.push((lineage_path(&path), l.to_ron()));
     }
-    vec![Effect::Write {
-        job: Job::SaveTape { run: r.id, path },
-        files,
-    }]
+    let job = Job::SaveTape { run: r.id, path };
+    if let Some(why) = stale {
+        m.note(Level::Error, why);
+    }
+    vec![Effect::Write { job, files }]
 }
 
 /// Export the focused run into `dir`.

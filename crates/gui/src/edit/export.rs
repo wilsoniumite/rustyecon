@@ -4,12 +4,13 @@
 //! - `series.csv`: exactly the plotted series at full resolution, one row per report tick, a
 //!   value written as the shortest text that reads back to the same f64, a gap left empty. Its
 //!   `#` lines give the export's stamp ("run, draft" or "experiment, draft"), the run key as
-//!   the cli's `run …` line gives it, the ticks, the origin, the lineage file and whether the
-//!   ledger changed.
+//!   the cli's `run …` line gives it, the ticks, the origin, the lineage file (and, when it
+//!   describes another `tape_hash`, which), and whether the ledger changed: yes, no, or
+//!   unknown and why.
 //! - `manifest.ron`: a [`GuiManifest`], an envelope around certify's `Manifest`, so certify's
 //!   type does not change: the run's record (its key, genesis, start, any checkpoint it resumed
 //!   from and its hash stream by digest), with the origin, the draft mark, the lineage's file
-//!   name and "ledger changed".
+//!   name, whether the lineage describes another tape, and "ledger changed" (`None`: unknown).
 //! - `tape.ron`: the run's tape, canonical, which the cli runs unchanged (E1).
 //! - For an experiment, `tape.lineage.ron`, and `ancestor.ron`: the tape of the nearest
 //!   ancestor on disk that the lineage names, when this session holds it.
@@ -18,7 +19,7 @@
 //! read and dropped: only a Runner keeps a `Sim` (U1).
 
 use super::Lineage;
-use crate::run::{Origin, SeriesKey, Store};
+use crate::run::{LedgerCheck, Origin, SeriesKey, Store};
 use certify::{Hex, Manifest, ResumedFrom};
 use rustyecon_engine::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -47,8 +48,13 @@ pub struct GuiManifest {
     /// The lineage's file name, beside this one, for an experiment.
     #[serde(deserialize_with = "required")]
     pub lineage: Option<String>,
-    /// Whether the tape's ledger tolerances differ from its parent's (§5.1 item 2).
-    pub ledger_changed: bool,
+    /// Whether the lineage describes another `tape_hash` than this tape's: the tape was edited
+    /// by hand after it was saved, and those edits are in no lineage.
+    pub lineage_stale: bool,
+    /// Whether the tape's ledger tolerances differ from its parent's (§5.1 item 2); `None`
+    /// when this session could not check, and the CSV's `#` line says why.
+    #[serde(deserialize_with = "required")]
+    pub ledger_changed: Option<bool>,
 }
 
 /// Read an `Option` field that must be written.
@@ -86,7 +92,7 @@ pub fn stamp(origin: Origin) -> String {
 }
 
 /// What an export reads.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Source<'a> {
     /// The run's record.
     pub store: &'a Store,
@@ -100,8 +106,19 @@ pub struct Source<'a> {
     pub lineage: Option<&'a Lineage>,
     /// The tape of the nearest ancestor on disk, when this session holds it.
     pub ancestor: Option<&'a Tape>,
-    /// Whether the ledger's tolerances differ from the parent's.
-    pub ledger_changed: bool,
+    /// Whether the ledger's tolerances differ from the parent's, or why that is unknown.
+    pub ledger: LedgerCheck,
+}
+
+impl Source<'_> {
+    /// The `tape_hash` the lineage describes, when it is not this run's: the tape was edited
+    /// by hand after it was saved.
+    fn stale(&self) -> Option<Hex> {
+        let run = self.store.run()?;
+        self.lineage
+            .map(|l| l.tape_hash)
+            .filter(|h| *h != run.tape_hash)
+    }
 }
 
 /// The run's manifest envelope: begun at genesis as the cli begins one, moved to the tick the
@@ -123,7 +140,8 @@ pub fn manifest(s: &Source<'_>) -> Result<GuiManifest, String> {
         origin: s.origin,
         draft: true,
         lineage: s.lineage.map(|_| LINEAGE.to_string()),
-        ledger_changed: s.ledger_changed,
+        lineage_stale: s.stale().is_some(),
+        ledger_changed: s.ledger.changed(),
     })
 }
 
@@ -164,14 +182,15 @@ pub fn csv(s: &Source<'_>, m: &GuiManifest) -> Result<String, String> {
         ));
     }
     out.push_str(&format!("# origin {}\n", m.origin));
-    match &m.lineage {
-        Some(f) => out.push_str(&format!("# lineage {f}\n")),
-        None => out.push_str("# lineage none\n"),
+    match (&m.lineage, s.stale()) {
+        (Some(f), None) => out.push_str(&format!("# lineage {f}\n")),
+        (Some(f), Some(h)) => out.push_str(&format!(
+            "# lineage {f} (describes tape_hash {h}, not this tape: the tape was edited by hand \
+             after it was saved, and those edits are in no lineage)\n"
+        )),
+        (None, _) => out.push_str("# lineage none\n"),
     }
-    out.push_str(&format!(
-        "# ledger changed: {}\n",
-        if m.ledger_changed { "yes" } else { "no" }
-    ));
+    out.push_str(&format!("# ledger changed: {}\n", s.ledger));
     let mut header = vec!["tick".to_string(), "date".to_string()];
     header.extend(keys.iter().map(|k| field(&k.to_string())));
     out.push_str(&header.join(","));

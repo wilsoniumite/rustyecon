@@ -1,12 +1,12 @@
 //! The toolbar (docs/GUI.md §4): Open; run and pause (Space); step one tick (`.`); step a
 //! year; run until a tick or a date; the speed cap; the date, tick and ticks per year; the
 //! identity chip (commit and dirty flag, `world_id`, `tape_hash`, origin); the health chip
-//! (status, the tick's largest margin, the hash, "ledger changed", and a failed run's ledger
-//! line and last good tick).
+//! (status, the tick's largest margin, the hash, "ledger changed" or "ledger unchecked" with
+//! why, and a failed run's ledger line and last good tick).
 
 use super::fmt;
 use crate::model::{Intent, Model};
-use crate::run::RunId;
+use crate::run::{LedgerCheck, RunId};
 use crate::vm::toolbar::{self, Status, ToolbarVm};
 use egui::{Button, RichText};
 
@@ -74,7 +74,7 @@ pub fn show(ui: &mut egui::Ui, m: &Model, st: &mut ToolbarState, out: &mut Vec<I
                     }
                 });
         }
-        let vm = toolbar::build(&run.store, run.origin, m.ledger_changed(run.id));
+        let vm = toolbar::build(&run.store, run.origin, m.ledger(run.id));
         let can = vm.controls.can_run;
         let running = vm.controls.running;
         let label = if running { "Pause" } else { "Run" };
@@ -191,8 +191,10 @@ fn chips(ui: &mut egui::Ui, vm: &ToolbarVm) {
         if let Some(hash) = &h.hash {
             text.push_str(&format!(" · hash {hash}"));
         }
-        if h.ledger_changed {
-            text.push_str(" · ledger changed");
+        match &h.ledger {
+            LedgerCheck::Changed => text.push_str(" · ledger changed"),
+            LedgerCheck::Unknown(_) => text.push_str(" · ledger unchecked"),
+            LedgerCheck::NoParent | LedgerCheck::Same => {}
         }
         let alarm = matches!(h.status, Status::Poisoned | Status::Stopped | Status::Ended);
         let rich = if alarm {
@@ -219,6 +221,9 @@ fn chips(ui: &mut egui::Ui, vm: &ToolbarVm) {
         }
         if let Some(s) = &h.stopped {
             ui.colored_label(ui.visuals().error_fg_color, s);
+        }
+        if let LedgerCheck::Unknown(why) = &h.ledger {
+            ui.label(format!("ledger unchecked: {why}"));
         }
     });
 }

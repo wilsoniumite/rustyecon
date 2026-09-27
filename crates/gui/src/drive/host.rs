@@ -52,6 +52,11 @@ impl Host {
                     lineage: platform::read_if_there(lineage_path(&path)),
                     path,
                 }),
+                Effect::ReadAncestor { run, path } => Some(Intent::AncestorRead {
+                    run,
+                    text: platform::read_text(&path),
+                    path,
+                }),
                 Effect::PickSaveTape => platform::pick_save_tape().map(Intent::SaveTape),
                 Effect::PickExportDir => platform::pick_dir().map(Intent::Export),
                 Effect::Write { job, files } => Some(Intent::Written {

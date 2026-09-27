@@ -30,8 +30,11 @@ pub struct Base {
 pub struct Session {
     /// [`SESSION_FORMAT`].
     pub format: u32,
-    /// The session's serial: 1 for a new session, one more at each launch that reads it. A
-    /// minted key is `gui.<serial>.<n>`, so two sessions never mint the same key.
+    /// The session's serial: 1 for a new session, one more at each launch that reads it, and
+    /// one more than a set-aside session's when its serial still reads. A minted key is
+    /// `gui.<serial>.<n>`, so launches that read one `session.ron` in turn mint different
+    /// keys. Two windows launched from one file, or a session whose file is lost, can share a
+    /// serial; a key is then new only to the tapes each session opened.
     pub serial: u32,
     /// The tapes opened, in the order they were.
     pub bases: Vec<Base>,
@@ -95,4 +98,16 @@ impl Session {
         }
         Ok(s)
     }
+}
+
+/// The serial of a session file that does not read as a whole, if that field still reads: a
+/// session of another format, or with a field this build does not know. A format-1 file has
+/// none; no key was minted under one.
+pub fn serial_of(text: &str) -> Option<u32> {
+    #[derive(Deserialize)]
+    #[serde(rename = "Session")]
+    struct Probe {
+        serial: u32,
+    }
+    ron::from_str::<Probe>(text).ok().map(|p| p.serial)
 }

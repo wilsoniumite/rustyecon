@@ -10,8 +10,8 @@ fn identity(ui: &mut egui::Ui, who: &str, id: &IdentityVm) {
     let commit: String = id.commit.chars().take(10).collect();
     let state = if id.dirty { "dirty" } else { "clean" };
     ui.label(format!(
-        "{who}: {} · {commit} {state} · world {} · tape {} · state ticks {} to {}",
-        id.name, id.world_id, id.tape_hash, id.start, id.tick
+        "{who}: {} · {} · {commit} {state} · world {} · tape {} · state ticks {} to {}",
+        id.name, id.origin, id.world_id, id.tape_hash, id.start, id.tick
     ));
 }
 
@@ -23,7 +23,18 @@ pub fn show(ui: &mut egui::Ui, vm: &CompareVm) {
             identity(ui, "parent", &vm.parent);
             identity(ui, "branch", &vm.child);
             let (lo, hi) = vm.compared;
+            if lo <= hi {
+                ui.label(format!("compared: state ticks {lo} to {hi}"));
+            }
             match &vm.first_difference {
+                Some(d) if d.may_be_earlier => {
+                    ui.label(format!(
+                        "the hashes already differ at state tick {}, the first state both \
+                         records hold: the parent's record starts there, so they may differ \
+                         earlier; parent {}, branch {}",
+                        d.state_tick, d.parent, d.child
+                    ));
+                }
                 Some(d) => {
                     let report = d.report_tick.map_or_else(String::new, |t| {
                         format!(", left by report tick {t} ({})", d.date)

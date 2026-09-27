@@ -6,7 +6,7 @@
 //! The controls say whether the run can take a tick and whether it is running; "run until"
 //! reads a tick or a date ([`parse_until`]).
 
-use crate::run::{Origin, PauseReason, RunStatus, Store};
+use crate::run::{LedgerCheck, Origin, PauseReason, RunStatus, Store};
 use rustyecon_engine::prelude::{
     Clock, CoreError, Date, Key, Phase, RunError, RunErrorKind, World,
 };
@@ -81,9 +81,10 @@ pub struct HealthVm {
     /// Why ingestion stopped, if it did.
     pub stopped: Option<String>,
     /// Whether the tape's ledger tolerances differ from its parent's (docs/GUI.md §5.1 item 2):
-    /// a branch's parent run, or the ancestor a saved tape's lineage names when this session
-    /// holds it. The caller knows the parent; a run without one says `false`.
-    pub ledger_changed: bool,
+    /// a branch's parent run, or the ancestor a saved tape's lineage names. The caller knows
+    /// the parent. A run with none says so, and a run whose parent is not held is unchecked,
+    /// with the reason.
+    pub ledger: LedgerCheck,
 }
 
 /// What the run controls may do.
@@ -182,7 +183,7 @@ pub fn ledger_keys(w: &World, e: &RunError) -> Vec<String> {
 
 /// The toolbar of a run: its record, its origin, and whether its ledger's tolerances differ
 /// from its parent's.
-pub fn build(store: &Store, origin: Origin, ledger_changed: bool) -> ToolbarVm {
+pub fn build(store: &Store, origin: Origin, ledger: LedgerCheck) -> ToolbarVm {
     let identity = store.run().zip(store.world()).map(|(k, w)| IdentityVm {
         name: w.name.clone(),
         commit: k.build.commit.clone(),
@@ -225,7 +226,7 @@ pub fn build(store: &Store, origin: Origin, ledger_changed: bool) -> ToolbarVm {
             .map_or_else(Vec::new, |(f, w)| ledger_keys(w, &f.error)),
         last_good_tick: failure.and_then(|f| f.last_good_tick()),
         stopped: store.stopped().map(|e| e.to_string()),
-        ledger_changed,
+        ledger,
     };
     let controls = ControlsVm {
         can_run: store.can_run(),

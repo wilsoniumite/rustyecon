@@ -78,6 +78,47 @@ impl fmt::Display for Origin {
     }
 }
 
+/// Whether a run's ledger tolerances differ from its parent's (docs/GUI.md §5.1 item 2): the
+/// params `header.ledger` names, by key, value and unit. The model compares them. A run whose
+/// parent this session cannot read says so, and never says "no".
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LedgerCheck {
+    /// A run with no parent to compare with: a tape no GUI edit made, with no lineage.
+    NoParent,
+    /// The tolerances equal the parent's: the parent run's, or those of the ancestor the
+    /// lineage names.
+    Same,
+    /// They differ: the tape was edited by hand.
+    Changed,
+    /// Not checked, and why: no parent run is open and the ancestor the lineage names is not
+    /// held, or the tape is an experiment and no lineage names its parent.
+    Unknown(String),
+}
+
+impl LedgerCheck {
+    /// Whether the tolerances changed, when the check can say: `Some(false)` for a run with
+    /// no parent, and `None` when it is unchecked.
+    pub fn changed(&self) -> Option<bool> {
+        match self {
+            LedgerCheck::NoParent | LedgerCheck::Same => Some(false),
+            LedgerCheck::Changed => Some(true),
+            LedgerCheck::Unknown(_) => None,
+        }
+    }
+}
+
+impl fmt::Display for LedgerCheck {
+    /// As the export's `#` line writes it, after "ledger changed: ".
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            LedgerCheck::NoParent => write!(f, "no (no parent: a tape no GUI edit made)"),
+            LedgerCheck::Same => write!(f, "no"),
+            LedgerCheck::Changed => write!(f, "yes"),
+            LedgerCheck::Unknown(why) => write!(f, "unknown ({why})"),
+        }
+    }
+}
+
 /// What the model asks a Runner to do. None of these changes what a tick computes.
 #[derive(Debug, Clone)]
 pub enum Cmd {

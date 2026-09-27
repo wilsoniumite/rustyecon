@@ -1,9 +1,9 @@
 //! The editor's form (docs/GUI.md §5.1 item 2): its text fields, read into a [`TapeEdit`]
 //! before anything is applied. The form checks first: the note is not empty, a key matches
-//! `[a-z0-9_.-]+` and a new one is new to the whole run tree, a date parses, an act reads as
-//! the tape writes one, and no edit touches a ledger tolerance. An act that does not read is
-//! refused with the parser's line and column, which the editor's raw pane shows beside the
-//! text it read.
+//! `[a-z0-9_.-]+` and a new one is new to every tape of the session, a date parses, an act
+//! reads as the tape writes one, and no edit touches a ledger tolerance. An act that does not
+//! read is refused with the parser's line and column, which the editor's raw pane shows beside
+//! the text it read.
 
 use super::keys;
 use super::{touches_ledger, Act, EditOp, TapeEdit, Unit};
@@ -133,7 +133,7 @@ pub enum FormError {
     Note,
     /// The key is malformed.
     Key(String),
-    /// The key is not new to the run tree (E8).
+    /// The key is not new to the tapes of this session (E8).
     Taken(String),
     /// A date does not parse.
     Date {
@@ -169,7 +169,8 @@ impl fmt::Display for FormError {
             FormError::Key(why) => write!(f, "{why}"),
             FormError::Taken(k) => write!(
                 f,
-                "the key {k} is taken in this run tree; a new entry needs a new key (mint one)"
+                "the key {k} is taken by a tape of this session; a new entry needs a new key \
+                 (mint one)"
             ),
             FormError::Date { field, why } => write!(f, "the {field} does not parse: {why}"),
             FormError::Act { line, col, message } => write!(
@@ -217,7 +218,8 @@ fn value(text: &str) -> Result<f64, FormError> {
 }
 
 /// Read the form into an edit of `tape`. A key it adds must not be in `taken`: every key of
-/// the run tree and of the edits waiting to be applied.
+/// every tape open in this session, of every run closed in it, and of the edits waiting to be
+/// applied.
 pub fn parse(form: &Form, tape: &Tape, taken: &BTreeSet<String>) -> Result<TapeEdit, FormError> {
     let note = form.note.trim();
     if note.is_empty() {

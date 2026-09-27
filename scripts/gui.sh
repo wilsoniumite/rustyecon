@@ -18,7 +18,9 @@
 #      and the same for the two branches the editor's tests materialise and run (G0.2):
 #      branch_resume_equals_rerun writes branch.ron with its hashes, a branch resumed from its
 #      parent's ring, and removal_only_branch_is_an_experiment writes removal.ron with its
-#      hashes, each 2,080 ticks, the parent's record before the resume and the branch's after.
+#      hashes, each 2,080 ticks, the parent's record before the resume and the branch's after;
+#      each also writes its run key's tape_hash, which must be the one the cli's hash file
+#      names.
 #
 # The build goes to CARGO_TARGET_DIR, outside the tree; the default is
 # $HOME/scratch/target-rustyecon-gui. On a machine with no network and a warm cargo cache, set
@@ -124,19 +126,29 @@ for spec in gate:2080 appb:20000; do
 done
 grep '^run build ' "$work/gate.out"
 # The branches the editor made: each tape as materialise wrote it, run by the cli from genesis.
+# The cli's tape_hash of it must be the GUI run key's, and its hashes the GUI's.
 for name in branch removal; do
-    if [ ! -s "$work/$name.ron" ] || [ ! -s "$work/$name.hashes" ]; then
-        echo "gui: the branch tests wrote no $name.ron or $name.hashes" >&2
+    if [ ! -s "$work/$name.ron" ] || [ ! -s "$work/$name.hashes" ] ||
+        [ ! -s "$work/$name.tape_hash" ]; then
+        echo "gui: the branch tests wrote no $name.ron, $name.hashes or $name.tape_hash" >&2
         exit 1
     fi
     "$bin" run "$work/$name.ron" --until 2080 --hashes "$work/$name.cli" >"$work/$name.out"
+    cli_hash="$(sed -n 's/^# tape .* tape_hash \(0x[0-9a-f]\{16\}\) world_id .*/\1/p' "$work/$name.cli")"
+    gui_hash="$(cat "$work/$name.tape_hash")"
+    if [ -z "$cli_hash" ] || [ "$cli_hash" != "$gui_hash" ]; then
+        echo "gui: the cli's tape_hash of the $name branch (${cli_hash:-none}) is not" \
+            "the GUI run key's ($gui_hash)" >&2
+        exit 1
+    fi
     grep -v '^#' "$work/$name.cli" >"$work/$name.body"
     if ! cmp -s "$work/$name.body" "$work/$name.hashes"; then
         echo "gui: the GUI's hashes of the $name branch differ from the cli's" >&2
         diff "$work/$name.body" "$work/$name.hashes" | head -5 >&2
         exit 1
     fi
-    echo "$name branch ($(sed -n 's/^# tape \(.*\) tape_hash.*/\1/p' "$work/$name.cli")):" \
+    echo "$name branch ($(sed -n 's/^# tape \(.*\) tape_hash.*/\1/p' "$work/$name.cli")," \
+        "tape_hash $cli_hash, the GUI's):" \
         "$(wc -l <"$work/$name.hashes") ticks equal, final $(tail -n 1 "$work/$name.hashes")"
 done
 

@@ -66,6 +66,11 @@ impl SyncHost {
                     lineage: platform::read_if_there(lineage_path(&path)),
                     path,
                 }),
+                Effect::ReadAncestor { run, path } => Some(Intent::AncestorRead {
+                    run,
+                    text: platform::read_text(&path),
+                    path,
+                }),
                 Effect::Write { job, files } => {
                     let result = platform::write_new(&files);
                     self.written.push((job.clone(), result.clone()));
