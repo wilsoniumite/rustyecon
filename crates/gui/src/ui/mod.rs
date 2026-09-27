@@ -9,6 +9,7 @@
 //! focused run and `.` steps it one tick, unless a text field has the keyboard. Every panel
 //! reads the focused run at the model's cursor; compare reads it against its parent.
 
+pub mod charts;
 pub mod compare;
 pub mod editor;
 pub mod inspector;
@@ -53,6 +54,8 @@ pub struct State {
     pub snapshot: Snap,
     /// The plot cache: one decimator per plotted series.
     pub plots: plots::PlotCache,
+    /// What the other charts (the lab's, a market's waterfall) lent egui this frame (G1).
+    pub charts: charts::Charts,
     toolbar: toolbar::ToolbarState,
     /// The editor's form and file fields.
     pub editor: editor::EditorState,
@@ -239,6 +242,7 @@ pub fn draw(
     }
     state.drawn.clear();
     state.plots.begin_frame();
+    state.charts.begin_frame();
     // A tape with a map opens on the map, and one without on the plots, once per load.
     if let Some(run) = m.focused() {
         let load = (run.id, run.store.generation());
@@ -384,7 +388,7 @@ impl egui_tiles::Behavior<Pane> for Panes<'_> {
         let m = self.m;
         // The lab needs no tape: it solves the oracle, outside any run (G1).
         if *pane == Pane::Lab {
-            lab::show(ui, &mut self.state.lab);
+            lab::show(ui, &mut self.state.lab, &mut self.state.charts);
             return egui_tiles::UiResponse::None;
         }
         let Some(run) = m.focused() else {
@@ -524,7 +528,7 @@ impl egui_tiles::Behavior<Pane> for Panes<'_> {
                             breakpoints: &m.session.breakpoints,
                             waterfall,
                         };
-                        inspector::show(ui, &v, &ctx, out);
+                        inspector::show(ui, &v, &ctx, &mut self.state.charts, out);
                     }
                     None => loading(ui),
                 },

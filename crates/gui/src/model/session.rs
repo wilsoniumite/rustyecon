@@ -95,13 +95,24 @@ impl Session {
     }
 
     /// A session from RON, if it is one this build reads: every field its format has present,
-    /// none unknown, and a format from [`SESSION_FORMAT_READ`] to [`SESSION_FORMAT`]. A
-    /// format-2 session reads as format 3 with nothing watched and no log scale.
+    /// none unknown, none its format lacks, and a format from [`SESSION_FORMAT_READ`] to
+    /// [`SESSION_FORMAT`]. A format-3 file has `watch` and `log_axes`; a format-2 file, as G0
+    /// wrote it, has neither and no event or date breakpoint, and reads as format 3 with nothing
+    /// watched and no log scale.
     pub fn from_ron(text: &str) -> Result<Session, String> {
         #[derive(Deserialize)]
         #[serde(rename = "Session")]
         struct Probe {
             format: u32,
+        }
+        /// Which of format 3's fields a file has written.
+        #[derive(Deserialize)]
+        #[serde(rename = "Session")]
+        struct Written {
+            #[serde(default, deserialize_with = "written")]
+            watch: bool,
+            #[serde(default, deserialize_with = "written")]
+            log_axes: bool,
         }
         let readable = |f: u32| (SESSION_FORMAT_READ..=SESSION_FORMAT).contains(&f);
         let format = |f: u32| {
@@ -118,15 +129,41 @@ impl Session {
         if !readable(s.format) {
             return Err(format(s.format));
         }
-        if s.format < 3 && !(s.watch.is_empty() && s.log_axes.is_empty()) {
-            return Err(format!(
-                "session format {} does not have the watchlist or log scales",
-                s.format
-            ));
+        let w: Written = ron::from_str(text).map_err(|e| e.to_string())?;
+        if s.format == 3 {
+            for (field, has) in [("watch", w.watch), ("log_axes", w.log_axes)] {
+                if !has {
+                    return Err(format!("session format 3 lacks the field {field}"));
+                }
+            }
+        }
+        if s.format < 3 {
+            if w.watch || w.log_axes {
+                return Err(format!(
+                    "session format {} does not have the watchlist or log scales",
+                    s.format
+                ));
+            }
+            let later = s
+                .breakpoints
+                .iter()
+                .find(|b| matches!(b, Breakpoint::OnEvent(_) | Breakpoint::OnDate(_)));
+            if let Some(b) = later {
+                return Err(format!(
+                    "session format {} does not have event or date breakpoints: {b:?}",
+                    s.format
+                ));
+            }
         }
         s.format = SESSION_FORMAT;
         Ok(s)
     }
+}
+
+/// Read a field only to say that it was written: `#[serde(default)]` gives `false` where it
+/// was not.
+fn written<'de, D: Deserializer<'de>>(d: D) -> Result<bool, D::Error> {
+    serde::de::IgnoredAny::deserialize(d).map(|_| true)
 }
 
 /// The serial of a session file that does not read as a whole, if that field still reads: a

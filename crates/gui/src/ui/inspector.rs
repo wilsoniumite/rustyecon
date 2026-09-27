@@ -7,6 +7,7 @@
 //! price the run recorded, and the log waterfall, ln(p_t/p_0) as Σ k·x a year at a time with
 //! the residual and the events fired.
 
+use super::charts::{self, Charts};
 use super::{fmt, value_label};
 use crate::model::Intent;
 use crate::run::{Breakpoint, SeriesKey};
@@ -16,7 +17,7 @@ use crate::vm::inspector::{
 use crate::vm::pricestep::{ExplainerVm, WaterfallVm};
 use crate::vm::registry::CopiedVm;
 use egui::Color32;
-use egui_plot::{Bar, BarChart, Legend, Line, Plot, PlotPoints, VLine};
+use egui_plot::{Bar, Legend, Plot};
 
 /// What the inspector reads besides its view-model.
 pub struct Ctx<'a> {
@@ -31,11 +32,17 @@ pub struct Ctx<'a> {
 }
 
 /// Draw the inspector.
-pub fn show(ui: &mut egui::Ui, vm: &InspectorVm, ctx: &Ctx<'_>, out: &mut Vec<Intent>) {
+pub fn show(
+    ui: &mut egui::Ui,
+    vm: &InspectorVm,
+    ctx: &Ctx<'_>,
+    charts: &mut Charts,
+    out: &mut Vec<Intent>,
+) {
     egui::ScrollArea::both()
         .id_salt("inspector")
         .show(ui, |ui| match vm {
-            InspectorVm::Market(m) => market(ui, m, ctx, out),
+            InspectorVm::Market(m) => market(ui, m, ctx, charts, out),
             InspectorVm::Actor(a) => actor(ui, a, ctx, out),
             InspectorVm::Param(p) => param(ui, p, ctx, out),
             InspectorVm::Event(e) => event(ui, e, ctx.breakpoints, out),
@@ -114,7 +121,13 @@ fn param_refs(ui: &mut egui::Ui, id: &str, refs: &[ParamRefVm]) {
         });
 }
 
-fn market(ui: &mut egui::Ui, m: &MarketVm, ctx: &Ctx<'_>, out: &mut Vec<Intent>) {
+fn market(
+    ui: &mut egui::Ui,
+    m: &MarketVm,
+    ctx: &Ctx<'_>,
+    charts: &mut Charts,
+    out: &mut Vec<Intent>,
+) {
     ui.heading(format!("Market {}/{}", m.node, m.good));
     at(ui, m.tick, &m.date);
     values(ui, "market", &m.values, ctx, out);
@@ -133,9 +146,10 @@ fn market(ui: &mut egui::Ui, m: &MarketVm, ctx: &Ctx<'_>, out: &mut Vec<Intent>)
     }
     if let Some(w) = ctx.waterfall {
         ui.separator();
-        ui.strong("ln(p/p₀) as Σ k·x: the log waterfall");
+        let term = w.as_ref().map_or("k·x", |w| w.term.as_str());
+        ui.strong(format!("ln(p/p₀) as Σ {term}: the log waterfall"));
         match w {
-            Ok(w) => waterfall(ui, w),
+            Ok(w) => waterfall(ui, w, charts),
             Err(why) => {
                 ui.weak(why);
             }
@@ -168,7 +182,7 @@ fn market(ui: &mut egui::Ui, m: &MarketVm, ctx: &Ctx<'_>, out: &mut Vec<Intent>)
 }
 
 /// The explainer: every input, and markets' own result beside the run's, bit for bit.
-fn explainer(ui: &mut egui::Ui, e: &ExplainerVm) {
+pub fn explainer(ui: &mut egui::Ui, e: &ExplainerVm) {
     egui::Grid::new("explainer")
         .num_columns(2)
         .striped(true)
@@ -222,21 +236,26 @@ fn explainer(ui: &mut egui::Ui, e: &ExplainerVm) {
                 row(ui, "ln(next/p)", format!("{l:?}"));
             }
         });
+    if e.rule == "Ratio" {
+        ui.weak("Ratio ignores k: the next price is p·D/S where both sides posted, else p");
+    }
 }
 
-/// The waterfall: a bar a year of Σ k·x, stacked from ln(p/p₀) at the year's start; the line
-/// of ln(p/p₀) itself; and each event fired, a line at its tick, orange where it acts on this
-/// market's price or its rate.
-fn waterfall(ui: &mut egui::Ui, w: &WaterfallVm) {
+/// The waterfall: a bar a year of Σ k·x (Σ ln(D/S) under `Ratio`), stacked from ln(p/p₀) at the
+/// year's start; the line of ln(p/p₀) itself; and each event fired, a line at its tick, orange
+/// where it acts on this market's price or its rate. What the plot is lent is recorded in
+/// `charts`. Public so a test can draw it alone.
+pub fn waterfall(ui: &mut egui::Ui, w: &WaterfallVm, charts: &mut Charts) {
+    let term = format!("Σ {}", w.term);
     ui.label(format!(
-        "at tick {}: ln(p/p₀) {} = Σ k·x {} + residual {}",
+        "at tick {}: ln(p/p₀) {} = {term} {} + residual {}",
         w.tick,
         fmt(w.level),
         fmt(w.explained),
         fmt(w.residual)
     ))
     .on_hover_text(format!(
-        "p₀ {:?} at tick {}, p {:?}; ln(p/p₀) {:?}, Σ k·x {:?}, residual {:?}",
+        "p₀ {:?} at tick {}, p {:?}; ln(p/p₀) {:?}, {term} {:?}, residual {:?}",
         w.p0, w.start, w.p, w.level, w.explained, w.residual
     ));
     let moving = w.events.iter().filter(|e| e.moves).count();
@@ -257,7 +276,7 @@ fn waterfall(ui: &mut egui::Ui, w: &WaterfallVm) {
             let bar = Bar::new(mid, b.kx)
                 .base_offset(before)
                 .width(width)
-                .name(format!("{}: Σ k·x {}", b.label, fmt(b.kx)));
+                .name(format!("{}: {term} {}", b.label, fmt(b.kx)));
             before = b.level;
             bar
         })
@@ -265,23 +284,23 @@ fn waterfall(ui: &mut egui::Ui, w: &WaterfallVm) {
     let mut level: Vec<[f64; 2]> = vec![[w.start as f64, 0.0]];
     level.extend(w.bins.iter().map(|b| [b.to as f64, b.level]));
     let (orange, blue) = (super::plots::OTHER[1], super::plots::OTHER[0]);
-    Plot::new("waterfall")
+    let plot = Plot::new("waterfall")
         .height(200.0)
-        .legend(Legend::default())
-        .show(ui, |pui| {
-            pui.bar_chart(BarChart::new("Σ k·x", bars).color(blue));
-            pui.line(Line::new("ln(p/p₀)", PlotPoints::from(level)).color(orange));
-            for e in &w.events {
-                // Not the plots' grey, which marks their cursor.
-                let colour = if e.moves {
-                    orange
-                } else {
-                    Color32::from_gray(128)
-                };
-                let name = format!("{} ({})", e.key, e.what);
-                pui.vline(VLine::new(name, e.tick as f64).color(colour));
-            }
-        });
+        .legend(Legend::default());
+    charts::show(charts, "waterfall", plot, ui, move |pui, lend| {
+        lend.bars(pui, &term, bars, blue);
+        lend.line(pui, "ln(p/p₀)", level, orange);
+        for e in &w.events {
+            // Not the plots' grey, which marks their cursor.
+            let colour = if e.moves {
+                orange
+            } else {
+                Color32::from_gray(128)
+            };
+            let name = format!("{} ({})", e.key, e.what);
+            lend.vline(pui, &name, e.tick as f64, colour);
+        }
+    });
 }
 
 fn actor(ui: &mut egui::Ui, a: &ActorVm, ctx: &Ctx<'_>, out: &mut Vec<Intent>) {

@@ -261,3 +261,50 @@ fn breakpoints_watch_and_log_scales_live_in_the_session() {
     assert_eq!(h.act(&mut m, on(false)).len(), 1);
     assert!(m.session.log_axes.is_empty());
 }
+
+#[test]
+fn an_event_breakpoint_names_the_pause_before_a_date_in_one_tick() {
+    // Decision 209, which G1's verification found no test of: when an event breakpoint and a
+    // date breakpoint both fall in one tick, the run pauses once, after it, and says the
+    // event's. mine.cut fires on 1760-03-01; the date breakpoint is that date. Listed either way
+    // round, the reason is the event's; then the date's alone, once the event's is cleared.
+    let cut = tick_of("1760-03-01");
+    let date = Breakpoint::OnDate(Date::parse("1760-03-01").unwrap());
+    let event = Breakpoint::OnEvent(key("mine.cut"));
+    for list in [
+        vec![date.clone(), event.clone()],
+        vec![event.clone(), date.clone()],
+    ] {
+        let (mut r, seen) = collecting();
+        r.handle(Cmd::Breakpoints(list.clone()));
+        r.handle(Cmd::Load {
+            tape: Box::new(tape_of(GATE)),
+            from: None,
+        });
+        r.handle(Cmd::Run {
+            until: Some(2080),
+            max_tps: None,
+        });
+        settle(&mut r);
+        assert_eq!(
+            pauses(&drain(&seen)),
+            [(cut + 1, PauseReason::Breakpoint(event.clone()))],
+            "{list:?}"
+        );
+    }
+    let (mut r, seen) = collecting();
+    r.handle(Cmd::Breakpoints(vec![date.clone()]));
+    r.handle(Cmd::Load {
+        tape: Box::new(tape_of(GATE)),
+        from: None,
+    });
+    r.handle(Cmd::Run {
+        until: Some(2080),
+        max_tps: None,
+    });
+    settle(&mut r);
+    assert_eq!(
+        pauses(&drain(&seen)),
+        [(cut + 1, PauseReason::Breakpoint(date))]
+    );
+}

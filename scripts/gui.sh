@@ -62,7 +62,11 @@ step() { printf '\n== gui: %s\n' "$*"; }
 # renames the core scan (the GUI's edge to core went at G1.1) and adds the oracle lab's, the
 # price-step explainer's and waterfall's, the breakpoints', the watchlist's and log axes', the
 # snapshots', the lab's scan, the credit on a narrow window (O26), and the toolbar's chips kept
-# whole.
+# whole. G1.11, after G1's verification, adds twelve: doctored goldens and their error colour,
+# the knobs held to the parameter types' Debug, the explainer off the gate's easy path (a rate
+# change, a shock, Ratio, Saturate, a flipped record), the waterfall's flags and bins and its
+# Ratio steps, what the lab's charts and the waterfall lend and paint, an event before a date,
+# the credit's clamp, and the session's format.
 named=(
     gui_equals_cli
     failed_run_shows_its_ledger_line
@@ -139,6 +143,18 @@ named=(
     the_snapshot_script_marks_the_picture_never_citable
     the_credit_is_painted_whole_on_a_narrow_window
     the_toolbar_keeps_its_chips_whole
+    doctored_goldens_disagree_by_their_exact_difference
+    a_disagreement_is_painted_in_the_error_colour
+    every_knob_is_the_field_its_path_names
+    the_explainer_equals_next_price_under_a_rate_change_a_shock_ratio_and_saturate
+    the_waterfall_flags_what_moves_a_price_and_its_bins_add_up
+    under_ratio_the_waterfall_sums_the_rules_own_steps
+    a_next_price_that_differs_is_said_to
+    the_lab_charts_are_lent_as_their_view_models_and_painted_as_lent
+    the_waterfall_is_lent_as_its_view_model_and_painted_as_lent
+    an_event_breakpoint_names_the_pause_before_a_date_in_one_tick
+    ui::map::tests::the_credit_moved_above_the_legend_stays_on_the_canvas
+    a_session_round_trips_and_refuses_what_it_does_not_know
 )
 
 step "toolchain (rust-toolchain.toml)"

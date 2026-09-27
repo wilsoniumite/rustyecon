@@ -119,10 +119,23 @@ fn cell(g: &Golden, out: Option<Value>, published: bool) -> GoldenCellVm {
 /// The lab's view of `inst`, solved, beside the goldens of `preset` when the instance is the
 /// preset's own. `build` names the binary (U3).
 pub fn build(preset: Option<&Preset>, inst: &Instance, build: &str) -> LabVm {
+    let all = preset.map_or_else(Vec::new, |p| goldens::of(p.file, p.prefix));
+    build_beside(preset, inst, build, &all)
+}
+
+/// The lab's view of `inst`, solved, beside `goldens`, read as the goldens of `preset`'s prefix
+/// when the instance is the preset's own; an edited instance pairs none. [`build`] passes the
+/// preset's goldens file; a test passes goldens it doctored, to see a disagreement shown as one.
+pub fn build_beside(
+    preset: Option<&Preset>,
+    inst: &Instance,
+    build: &str,
+    goldens: &[Golden],
+) -> LabVm {
     let solved: Solved = inst.solve();
     let edited = preset.is_some_and(|p| p.instance() != *inst);
     let own = preset.filter(|_| !edited);
-    let all: Vec<Golden> = own.map_or_else(Vec::new, |p| goldens::of(p.file, p.prefix));
+    let all: Vec<Golden> = own.map_or_else(Vec::new, |_| goldens.to_vec());
     let mut used = vec![false; all.len()];
     let mut find = |key: &str| -> Option<(usize, &Golden)> {
         let i = all.iter().position(|g| g.key == key)?;

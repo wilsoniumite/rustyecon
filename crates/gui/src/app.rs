@@ -11,6 +11,7 @@ use crate::drive::{FrameSummary, Frames, Host};
 use crate::model::{Intent, Model};
 use crate::platform::{self, Files};
 use crate::run::{PauseReason, RunStatus};
+use crate::ui::charts::Chart;
 use crate::ui::plots::DrawnLine;
 use crate::ui::{self, layout, layout::Pane};
 use std::collections::BTreeSet;
@@ -142,6 +143,12 @@ impl GuiApp {
     /// Every line the plots lent egui in the last frame, as egui received it.
     pub fn drawn(&self) -> Vec<DrawnLine> {
         self.ui.plots.drawn()
+    }
+
+    /// Every other chart the last frame drew (the lab's curve and sweep, a market's
+    /// waterfall), with what each lent egui and the transform it painted with (G1).
+    pub fn charts(&self) -> Vec<Chart> {
+        self.ui.charts.drawn()
     }
 
     /// Smoke mode's report, once it has one.

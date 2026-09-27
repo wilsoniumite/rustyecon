@@ -35,7 +35,8 @@ and the priced exit s(q)) and 1f (households and government), and PLAN Phase 1's
 item by item ([crates/oracle/README.md](crates/oracle/README.md)). The GUI is designed
 ([docs/GUI.md](docs/GUI.md)), and its shell, G0, is closed: G0.1, the viewer, and G0.2, the
 editor (see "Running the GUI" below). G1, the oracle lab, is built on branch `g1` (2026-09-27,
-G1.1–G1.10): the oracle's units 1a–1f solved beside their goldens, the price-step explainer,
+G1.1–G1.10, and verified once, its findings fixed at G1.11): the oracle's units 1a–1f solved
+beside their goldens, the price-step explainer,
 log axes, a watchlist, event and date breakpoints and snapshots, with its window checked by hand
 still to come. On branch `demo-world` (2026-09-27, D.1–D.5), the GUI's county map and its
 lenses came forward over an illustrative world of the United Kingdom's 93 historic counties,
@@ -128,7 +129,7 @@ two platforms is recorded in STATE.md, not gated. `.github/workflows/ci.yml` run
 The GUI never gates engine work (docs/GUI.md, D1): the workspace's default members leave
 `crates/gui` out, and `scripts/gate.sh` excludes it from clippy and the tests and checks it
 once without gating. `scripts/gui.sh` is the GUI's own gate, run at each of its stages:
-formatting, clippy, its tests in release with 75 of them checked by name and, on Linux, G1's
+formatting, clippy, its tests in release with 87 of them checked by name and, on Linux, G1's
 sweep measurement, and the GUI's hashes of the gate, Appendix B and demo worlds and of two
 edited branches against the cli's.
 It runs as the gate does:

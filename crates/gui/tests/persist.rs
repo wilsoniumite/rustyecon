@@ -144,6 +144,39 @@ fn a_session_round_trips_and_refuses_what_it_does_not_know() {
         .contains("format: 3,"));
     let mixed = text.replacen("format: 3,", "format: 2,", 1);
     assert!(Session::from_ron(&mixed).is_err());
+    // G1's verification: the format's fields are each required, and none it lacks is read. A
+    // format-3 file without `watch` or without `log_axes` is refused, as one without `speed` is.
+    let lines = |t: &str, drop: &str| {
+        t.lines()
+            .filter(|l| !l.contains(drop))
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+    let empty = Session::default().to_ron();
+    for field in ["watch", "log_axes"] {
+        let short = lines(&empty, &format!("{field}:"));
+        assert_ne!(short, empty);
+        assert_eq!(
+            Session::from_ron(&short),
+            Err(format!("session format 3 lacks the field {field}"))
+        );
+    }
+    // A format-2 file with an empty watchlist, or with an event or a date breakpoint, is not
+    // one G0 wrote: G0 had neither.
+    let empty_watch = lines(&two, "log_axes:").replacen("speed:", "watch: [], speed:", 1);
+    assert!(Session::from_ron(&empty_watch)
+        .unwrap_err()
+        .contains("does not have the watchlist"));
+    for b in ["OnEvent(\"mine.cut\")", "OnDate(\"1765-06-01\")"] {
+        let later = two.replacen("OnError", &format!("OnError, {b}"), 1);
+        assert_ne!(later, two);
+        assert!(
+            Session::from_ron(&later)
+                .unwrap_err()
+                .contains("does not have event or date breakpoints"),
+            "{b}"
+        );
+    }
 }
 
 #[test]

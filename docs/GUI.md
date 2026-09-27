@@ -737,15 +737,20 @@ build decided; each change is here, and STATE.md's decisions 200–219 record ea
     lockfile gains only the GUI's edge to it. With no session directory, or no picture after
     600 frames (a headless window has no renderer), the log says why.
 11. **Other charts' colours** (§3.4; G1.4). The lab's curves and sweeps and the waterfall paint
-    in colours of their own (`ui::plots::OTHER`) and with no rotated axis label, so the plots'
-    tests tell the plots' lines, cursors and axes from theirs.
+    in colours of their own (`ui::plots::OTHER`), so the plots' tests tell the plots' lines and
+    cursors from theirs. Of the three, the lab's field over x alone has a rotated axis label,
+    its field's name; it is drawn on the Lab tab, which the default layout shows in place of the
+    plots and never beside them, so the plots' tests read the plots' axes alone. The waterfall
+    and the sweep have none. (Corrected after G1's verification, which found the label.)
 12. **O26, the map's part** (G1.6). The credit wraps each line to the canvas and keeps its panel
     inside it; `the_credit_is_painted_whole_on_a_narrow_window` reads the painted text at four
     sizes down to 480 × 600. The eight surviving mutants of `verify-map-r2` are each killed by a
     test that reads what was painted or what the engine gives: the county card held to the
     engine (V7, V8), the cursor behind live in the demo script (V9), every painted mesh vertex
     and legend segment (C6–C8), the credit painted and seen inside its clip (A2, A3). Left: the
-    clock held to 52 in the compiler, and the screenshots' three layout notes (STATE, O26).
+    clock held to 52 in the compiler, and two of the screenshots' three layout notes (STATE,
+    O39); the third, the health chip on a narrow window, is closed by item 14 and, on the demo
+    world, by the next block's item 7.
 13. **O20, the scans' part** (§8.1; G1.7). A `use` tree that opens with a group gives each
     branch its own root, and a name a `use` gives a root (`crate as g`) is a root of that file,
     so both ways past the no-egui scan G0.1's re-check found are closed. The rest of O20 stays.
@@ -765,6 +770,63 @@ build decided; each change is here, and STATE.md's decisions 200–219 record ea
     refusal; the registry's and the inspector's ways into the editor; a lock on `session.ron`;
     and the rest of O20. And §9's window check by hand, the p90 frame under 16 ms, which is the
     user's.
+
+**Amended after G1's verification (2026-09-27), on branch `g1`.** One bounded verification ran
+over G1.1–G1.10 (`D:/rustyecon-verify/g1-r1/`): six major findings and four minor, each a test
+that did not fail when the code it guards was broken, a scan with a way past it, or a doc that
+said otherwise than the code. No number the GUI shows was wrong: every paired output of the 16
+presets agreed with its golden to 8.5e-16 relative, and the explainer equalled `next_price` at
+every pair of four gate variants. Each fix is a test that fails without it: 35 mutants, the
+verifier's 22 survivors and 13 of the fixes' own, all killed (`D:/rustyecon-g1/fix-r1/`,
+`mutations.txt`). STATE's decisions 200–219, amended, record the choices:
+1. **A disagreement is shown as one** (§9 G1). `vm::lab::build_beside` pairs an instance with
+   goldens a test hands it; `build` hands it the preset's file. G1's goldens doctored either side
+   of each bar (v's 2e-12 relative off and Y's 0.5e-12, x*'s published value 6e-6 absolute off
+   and N_a's 4e-6, the flag `funded` flipped) come out agreeing or not by the bar, with the exact
+   difference, and the counts say two disagree; the table, drawn alone, paints each
+   disagreement in the error colour with its "rel" or "abs" text, and no agreement so.
+2. **The other charts record what they lend** (§3.4). `ui::charts` lends each line, mark and
+   bar of the lab's field over x and its sweep and of the waterfall, records it as egui received
+   it, and keeps the transform the plot painted with. The scripts hold every vertex, mark and
+   bar to `CurveVm`, `SweepVm` and `WaterfallVm` bit for bit, and every painted path and bar to
+   what was lent, at the place the transform gives it. The lab script paints a boundary regime
+   (G1 at N 0.4, `BoundaryNoMargin`, with its f(1)); the explainer script reads p, S, D, x, k
+   and k·x back from the screen as the record's doubles; the watch script paints the change
+   with its sign.
+3. **The explainer and the waterfall off the gate's easy path** (§4). Four variants of the gate
+   (bread's rate doubled on 1755-01-01; bread's price scaled by 1.5 on 1756-01-01; `Ratio`;
+   `Saturate`): the explainer equals the engine's next price at all 12,480 pairs of each; the
+   waterfall flags `rate.up` and `bread.shock` and nothing else, its bins' residuals add up, and
+   bread's residual is the holds, or the holds and ln 1.5. A store with one bit of a recorded next
+   price flipped is said to differ, and the panel paints "DIFFERS". Under `Ratio`, which ignores
+   k and holds a one-sided market by itself, the waterfall sums the rule's own steps, ln(D/S)
+   where both sides posted (`WaterfallVm::term`), so its residual is events and rounding (it
+   was 2.71 of bread's 2.91), and a rate set moves nothing; the explainer says `Ratio` ignores
+   k. The rule is read by the name the tape gives it, since the engine's prelude does not name
+   its type.
+4. **The knobs are the parameter types' own fields** (§9 G1). For every preset, `knobs::list`
+   equals the numbers of the parameter type's `Debug`, path by path and bit for bit (the priced
+   exit's `exits[0].0.gross` read as `exits[0].gross`), and a knob set to a value of its own
+   moves its own path and no other.
+5. **The scans** (§8.1, O20). `extern crate self as g` and `extern crate rustyecon_gui as g`
+   (and `extern crate std as s`) name a root as a `use` does; a `path` attribute, bare or in a
+   `cfg_attr`, and `include!` are refused in the egui-free and the pure modules, since they
+   bring in a file no scan of the module reads (`include_str!` is text). The core scan reads
+   the manifest for `package = "rustyecon-core"` under any key and the lockfile's dependency
+   list of `rustyecon-gui`, which names a renamed core by its package wherever the rename is
+   made. A token scan still cannot follow a macro exported from `ui/` and invoked in `vm/`; the
+   crate boundary at G2, `crates/observe` with no egui dependency, closes that by type (O36).
+6. **The rules without a test** (G1.4, G1.6). Decision 209's event before a date in one tick,
+   either order in the list; the credit's clamp, a unit test of `credit` beside the legend's
+   box (`legend_box`, factored out of `legend`) at every width from 60 to 1,000 points, where at
+   169 widths the canvas's right edge decides its x; and `session.ron`: a format-3 file must
+   have `watch` and `log_axes`, and a format-2 file may have neither, nor an event or date
+   breakpoint, since G0 wrote none.
+7. **The chip on the demo world** (O26's note). `the_toolbar_keeps_its_chips_whole` also opens
+   the demo world at 1,600 × 1,000, the width of the screenshot that showed the chip wrapped to
+   five lines, and at 1,024 × 768: the chip is one or two lines and the tiles start near the top.
+8. **Tests.** The GUI's suite grows from 110 (106 run, 4 ignored) to 121 (117 run, 4 ignored);
+   `scripts/gui.sh` names 87, up from 75.
 
 ## 0. Rulings and decisions
 
@@ -1675,7 +1737,8 @@ England run, becomes roughly 35–50.
     `a_200_point_sweep_builds_in_under_16_ms` (0.75 ms on WSL, run by name); the window's p90
     by hand is PENDING, the user's. Left for G1 from G0: overlay, difference and ratio against
     a parent, re-making branches, the ways into the editor, the session's lock, and the rest of
-    O20.
+    O20. *Verified once* (`D:/rustyecon-verify/g1-r1/`), and its findings fixed at G1.11, each
+    by a test that fails without its fix (the block "Amended after G1's verification").
   - Solve an instance and show the regime and outputs beside their goldens.
   - Plot any `Point` field over x in [0, 1], so f(x) = n_D − n_S shows its root and bracket.
   - One-param sweeps.

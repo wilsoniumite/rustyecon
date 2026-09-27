@@ -97,21 +97,74 @@ fn use_roots(toks: &[Tok]) -> Vec<Option<String>> {
     roots
 }
 
-/// `from` and every name a `use` gives one of them in the file: `use crate as g;` makes `g` a
-/// root of this crate, so `g::ui::layout` reaches `ui` (G1; O20, what G0.1's re-check found).
+/// `from` and every name a `use` or an `extern crate` gives one of them in the file: `use
+/// crate as g;` makes `g` a root of this crate, so `g::ui::layout` reaches `ui` (G1; O20, what
+/// G0.1's re-check found), and so do `extern crate self as g;` and `extern crate rustyecon_gui
+/// as g;` (G1's verification).
 fn with_aliases(toks: &[Tok], roots: &[Option<String>], from: &[&str]) -> Vec<String> {
     let mut out: Vec<String> = from.iter().map(|s| (*s).to_string()).collect();
     for k in 0..toks.len() {
         let Tok::Ident(s) = &toks[k] else { continue };
         let at_root = roots[k].as_deref() == Some(s.as_str()) && from.contains(&s.as_str());
+        let external = k >= 2
+            && ident(&toks[k - 2], "extern")
+            && ident(&toks[k - 1], "crate")
+            && from.contains(&s.as_str());
         let renamed = toks.get(k + 1).is_some_and(|t| ident(t, "as"));
-        if let (true, true, Some(Tok::Ident(alias))) = (at_root, renamed, toks.get(k + 2)) {
+        if let (true, true, Some(Tok::Ident(alias))) =
+            (at_root || external, renamed, toks.get(k + 2))
+        {
             if alias != "_" && !out.contains(alias) {
                 out.push(alias.clone());
             }
         }
     }
     out
+}
+
+/// Code a module brings in that no scan of its own file reads (G1's verification): a `path`
+/// attribute, `#[path = "…"]` on a module or inside a `cfg_attr`, whose file may lie outside
+/// the module, and `include!`, which compiles another file's text in place. The egui-free and
+/// the pure modules use neither; their data comes in by `include_str!`, which is text.
+fn unscanned(toks: &[Tok]) -> Vec<String> {
+    let mut found = Vec::new();
+    let mut i = 0;
+    while i < toks.len() {
+        let open = if toks.get(i + 1).is_some_and(|t| punct(t, '!')) {
+            i + 2
+        } else {
+            i + 1
+        };
+        if punct(&toks[i], '#') && toks.get(open).is_some_and(|t| punct(t, '[')) {
+            let mut depth = 0_usize;
+            let mut k = open;
+            while k < toks.len() {
+                match &toks[k] {
+                    Tok::Punct('[') => depth += 1,
+                    Tok::Punct(']') => {
+                        depth -= 1;
+                        if depth == 0 {
+                            break;
+                        }
+                    }
+                    Tok::Ident(a)
+                        if a == "path" && toks.get(k + 1).is_some_and(|t| punct(t, '=')) =>
+                    {
+                        found.push("#[path]".to_string());
+                    }
+                    _ => {}
+                }
+                k += 1;
+            }
+            i = k + 1;
+            continue;
+        }
+        if ident(&toks[i], "include") && toks.get(i + 1).is_some_and(|t| punct(t, '!')) {
+            found.push("include!".to_string());
+        }
+        i += 1;
+    }
+    found
 }
 
 /// Whether `toks[i]`, an identifier, is a path segment reached from one of `from`: a segment of
@@ -196,7 +249,7 @@ fn drawing_uses(toks: &[Tok]) -> Vec<String> {
     let roots = use_roots(toks);
     let ours = with_aliases(toks, &roots, &CRATE_ROOTS);
     let ours: Vec<&str> = ours.iter().map(String::as_str).collect();
-    let mut found = Vec::new();
+    let mut found = unscanned(toks);
     for (i, t) in toks.iter().enumerate() {
         if glob_from(toks, &roots, i, &ours) {
             found.push("crate::*".to_string());
@@ -248,6 +301,22 @@ fn model_run_edit_vm_import_no_egui() {
          use {std::fmt as _, crate::run as r}; let x = r::Store::default();",
     );
     assert_eq!(drawing_uses(&escapes), ["::ui", "::ui", "::app"]);
+    // G1's verification: two more ways past the scan. A crate root renamed by `extern crate`,
+    // and code brought in from a file the scan does not read, by a `path` attribute (bare or
+    // inside a `cfg_attr`) or by `include!`. Text by `include_str!` is data, and a field named
+    // `path` is not an attribute.
+    let escapes = fixture(
+        "extern crate self as g; pub fn f() -> Option<g::ui::layout::Pane> { None } \
+         extern crate rustyecon_gui as h; use h::app::GuiApp; extern crate std as s; \
+         #[path = \"../ui/fmt_probe.rs\"] mod probe; \
+         #[cfg_attr(all(), path = \"../ui/x.rs\")] mod x; include!(\"../ui/y.rs\"); \
+         const G: &str = include_str!(\"../../g.txt\"); let path = p.path; #[derive(Debug)] \
+         struct S { path: String }",
+    );
+    assert_eq!(
+        drawing_uses(&escapes),
+        ["#[path]", "#[path]", "include!", "::ui", "::app"]
+    );
     let mut found = Vec::new();
     for (path, toks) in shipped_tokens(&egui_free_sources()) {
         for u in drawing_uses(&toks) {
@@ -300,7 +369,7 @@ fn observe_violations(toks: &[Tok], own: &[&str]) -> Vec<String> {
     let ours: Vec<&str> = ours.iter().map(String::as_str).collect();
     let stds = with_aliases(toks, &roots, &STD_ROOTS);
     let stds: Vec<&str> = stds.iter().map(String::as_str).collect();
-    let mut found = Vec::new();
+    let mut found = unscanned(toks);
     for (i, t) in toks.iter().enumerate() {
         if glob_from(toks, &roots, i, &ours) {
             found.push("crate::*".to_string());
@@ -371,6 +440,16 @@ fn run_and_vm_reach_no_model_file_thread_or_clock() {
             "crate::drive",
             "std::fs"
         ]
+    );
+    // G1's verification: an `extern crate` alias of this crate or of std, and code from a file
+    // the scan does not read.
+    let escapes = fixture(
+        "extern crate self as g; let m: g::model::Model; extern crate std as s; \
+         let f = s::fs::read(p); #[path = \"../model/probe.rs\"] mod probe; include!(\"x.rs\");",
+    );
+    assert_eq!(
+        observe_violations(&escapes, &NOT_OBSERVE),
+        ["#[path]", "include!", "crate::model", "std::fs"]
     );
     let mut files = sources_under(&src().join("run"));
     files.extend(sources_under(&src().join("vm")));
@@ -638,6 +717,54 @@ fn core_paths(toks: &[Tok], raw_allowed: bool) -> Vec<String> {
     found
 }
 
+/// The lines of a manifest that make core a dependency, under its own name or another: a key
+/// `rustyecon-core` (`rustyecon-core.workspace = true`), or `package = "rustyecon-core"`, inline
+/// (`kore = { package = "rustyecon-core", path = "../core" }`) or in a dependency's own table
+/// (G1's verification: a renamed core passed a check of the key alone).
+fn core_in_manifest(manifest: &str) -> Vec<String> {
+    manifest
+        .lines()
+        .map(|l| l.split('#').next().unwrap_or("").trim())
+        .filter(|l| {
+            let bare: String = l.chars().filter(|c| !c.is_whitespace()).collect();
+            let key = ["rustyecon-core", "\"rustyecon-core\""].iter().any(|k| {
+                bare.strip_prefix(k)
+                    .is_some_and(|rest| rest.starts_with(['.', '=']))
+            });
+            key || bare.contains("package=\"rustyecon-core\"")
+        })
+        .map(str::to_string)
+        .collect()
+}
+
+/// The dependencies the lockfile gives the package `name`, by package name, whatever the
+/// manifest calls them: `rustyecon-core` however it is renamed, and wherever the rename is made
+/// (the workspace's table or the crate's own). Dev-dependencies are listed too.
+fn locked_dependencies(lock: &str, name: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    for block in lock.split("[[package]]") {
+        if !block
+            .lines()
+            .any(|l| l.trim() == format!("name = \"{name}\""))
+        {
+            continue;
+        }
+        let mut inside = false;
+        for l in block.lines().map(str::trim) {
+            if l.starts_with("dependencies = [") {
+                inside = true;
+            } else if inside && l.starts_with(']') {
+                inside = false;
+            } else if inside {
+                let dep = l.trim_matches(|c| c == '"' || c == ',');
+                let dep = dep.split(' ').next().unwrap_or(dep);
+                out.push(dep.to_string());
+            }
+        }
+    }
+    out
+}
+
 #[test]
 fn the_gui_reaches_core_through_the_engine_alone() {
     // U1, U9, E1: the GUI reaches the run through the engine, whose API holds no writer of the
@@ -690,20 +817,46 @@ fn the_gui_reaches_core_through_the_engine_alone() {
         "the inspector's ln(p′/p) names the engine's num"
     );
     assert!(raw_in_edit >= 1, "edit/ names the engine's raw schema");
+    // The manifest names no core, under its own name or another, and the lockfile, which
+    // names each dependency by its package, gives the GUI none: a core renamed in the
+    // manifest, or in the workspace's table, passes neither.
+    let named = core_in_manifest(
+        "[dependencies]\nrustyecon-engine.workspace = true\n\
+         kore = { package = \"rustyecon-core\", path = \"../core\" }\n\
+         rustyecon-core.workspace = true\n# rustyecon-core, in a comment\n\
+         [dependencies.inner]\npackage=\"rustyecon-core\"\n[dev-dependencies]\n\
+         \"rustyecon-core\" = { path = \"../core\" }\nrustyecon-coreless = \"1\"\n",
+    );
+    assert_eq!(named.len(), 4, "{named:?}");
+    let lock = "[[package]]\nname = \"rustyecon-gui\"\nversion = \"0.2.0\"\n\
+                dependencies = [\n \"egui\",\n \"rustyecon-core\",\n \"rustyecon-engine\",\n]\n\n\
+                [[package]]\nname = \"rustyecon-markets\"\ndependencies = [\n \"rustyecon-core\",\n]\n";
+    assert_eq!(
+        locked_dependencies(lock, "rustyecon-gui"),
+        ["egui", "rustyecon-core", "rustyecon-engine"]
+    );
+    let root = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
     let manifest = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml"))
         .expect("the manifest");
-    let deps: Vec<&str> = manifest
-        .lines()
-        .map(str::trim)
-        .filter(|l| !l.starts_with('#'))
-        .collect();
     assert!(
-        !deps.iter().any(|l| l.starts_with("rustyecon-core")),
-        "the manifest names core"
+        manifest
+            .lines()
+            .any(|l| l.trim() == "rustyecon-engine.workspace = true"),
+        "the manifest is read"
     );
     assert!(
-        deps.iter()
-            .any(|l| l.starts_with("rustyecon-engine.workspace = true")),
-        "the manifest is read"
+        core_in_manifest(&manifest).is_empty(),
+        "the manifest names core: {:?}",
+        core_in_manifest(&manifest)
+    );
+    let lock = std::fs::read_to_string(format!("{root}/Cargo.lock")).expect("Cargo.lock");
+    let deps = locked_dependencies(&lock, "rustyecon-gui");
+    assert!(
+        deps.iter().any(|d| d == "rustyecon-engine"),
+        "the lockfile is read: {deps:?}"
+    );
+    assert!(
+        !deps.iter().any(|d| d == "rustyecon-core"),
+        "the lockfile gives the GUI core: {deps:?}"
     );
 }

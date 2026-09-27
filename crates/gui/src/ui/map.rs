@@ -1063,16 +1063,26 @@ fn hover_card(p: &egui::Painter, rect: Rect, pointer: Pos2, lines: &[String], in
     panel(p, rect, pointer + vec2(16.0, 16.0), &styled, ink);
 }
 
+/// The legend's bar's width on a canvas: 42% of the canvas's, from 180 to 380 points.
+fn legend_bar(rect: Rect) -> f32 {
+    (rect.width() * 0.42).clamp(180.0, 380.0)
+}
+
+/// The legend's box on a canvas, in its lower left corner.
+fn legend_box(rect: Rect) -> Rect {
+    let box_h = 74.0;
+    Rect::from_min_size(
+        pos2(rect.min.x + 10.0, rect.max.y - box_h - 10.0),
+        vec2(legend_bar(rect) + 24.0, box_h),
+    )
+}
+
 /// The legend: the scale as a bar with its marks, the unit, the reference and the domain; and
 /// what it drew, with its box.
 fn legend(p: &egui::Painter, rect: Rect, lens: &LensVm, ink: &Ink) -> (LegendFrame, Rect) {
     let mut drawn = LegendFrame::default();
-    let bar_w = (rect.width() * 0.42).clamp(180.0, 380.0);
-    let box_h = 74.0;
-    let r = Rect::from_min_size(
-        pos2(rect.min.x + 10.0, rect.max.y - box_h - 10.0),
-        vec2(bar_w + 24.0, box_h),
-    );
+    let bar_w = legend_bar(rect);
+    let r = legend_box(rect);
     p.rect(
         r,
         6.0,
@@ -1454,4 +1464,57 @@ pub fn index(geo: &Geo) -> BTreeMap<String, usize> {
         .enumerate()
         .map(|(i, r)| (r.key.clone(), i))
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{credit, ink, legend_box};
+    use egui::{pos2, vec2, Rect};
+
+    /// The credit's panel on a canvas of `w` × 600 beside the legend, as the canvas places it,
+    /// with the legend's box and the credit's width.
+    fn placed(ctx: &egui::Context, w: f32) -> (Rect, Rect, Rect) {
+        let canvas = Rect::from_min_size(pos2(20.0, 30.0), vec2(w, 600.0));
+        let avoid = legend_box(canvas);
+        let mut got = None;
+        let _ = ctx.run_ui(egui::RawInput::default(), |ui| {
+            got = Some(credit(ui.painter(), canvas, avoid, &ink(false)).1);
+        });
+        (canvas, avoid, got.expect("the credit was placed"))
+    }
+
+    #[test]
+    fn the_credit_moved_above_the_legend_stays_on_the_canvas() {
+        // G1's verification (A5): no test decided the credit's x once it moves above the legend.
+        // On a canvas narrow enough that the credit meets the legend, the credit starts at the
+        // legend's left edge unless that would run it past the canvas's right edge, where it
+        // starts as far right as fits; never left of the canvas's own edge. Every width from 60
+        // to 1,000 points is tried, and at some of them the right edge decides.
+        let ctx = egui::Context::default();
+        let mut decided = Vec::new();
+        for w in 60..=1000 {
+            let (canvas, avoid, r) = placed(&ctx, w as f32);
+            let moved = r.max.y <= avoid.min.y;
+            if !moved {
+                continue;
+            }
+            assert!(!r.intersects(avoid), "at {w}: {r:?} over {avoid:?}");
+            assert!(r.min.x >= canvas.min.x + 4.0 - 1e-3, "at {w}: {r:?}");
+            assert!(r.min.x <= avoid.min.x + 1e-3, "at {w}: {r:?}");
+            if r.width() <= canvas.width() - 8.0 {
+                assert!(
+                    r.max.x <= canvas.max.x - 4.0 + 1e-3,
+                    "at {w}: {r:?} runs past {canvas:?}"
+                );
+            }
+            if r.min.x < avoid.min.x - 1e-3 {
+                decided.push(w);
+            }
+        }
+        println!(
+            "the right edge decides the credit's x at {} widths",
+            decided.len()
+        );
+        assert!(!decided.is_empty(), "no width tried moves the credit left");
+    }
 }

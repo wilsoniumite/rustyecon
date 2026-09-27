@@ -7,14 +7,16 @@
 //! reaches the model, and every number it paints is the oracle's (origin "oracle"), a golden as
 //! the generator wrote it, or their difference. An output is painted as the oracle's dump
 //! prints it, the shortest digits that read back as its double, so what is on screen is the
-//! oracle's number bit for bit.
+//! oracle's number bit for bit. The curve and the sweep record what they lend their plots
+//! ([`super::charts`]), so a test holds each vertex and mark to the view-model.
 
+use super::charts::{self, Charts};
 use super::fmt;
 use crate::lab::presets::{self, Preset};
 use crate::lab::{fields, knobs, Instance, OracleUnit};
 use crate::vm::lab::{self as vm, CurveVm, GoldenCellVm, LabVm, SweepVm};
 use egui::{Color32, RichText};
-use egui_plot::{HLine, Legend, Line, Plot, PlotPoints, VLine};
+use egui_plot::{Legend, Plot};
 use std::collections::BTreeMap;
 
 /// The points of a field's curve over [0, 1].
@@ -169,8 +171,8 @@ fn golden_cell(ui: &mut egui::Ui, g: Option<&GoldenCellVm>) {
     }
 }
 
-/// Draw the lab.
-pub fn show(ui: &mut egui::Ui, st: &mut LabState) {
+/// Draw the lab, and record in `charts` what its plots lend egui.
+pub fn show(ui: &mut egui::Ui, st: &mut LabState, charts: &mut Charts) {
     egui::ScrollArea::vertical()
         .id_salt("lab")
         .auto_shrink([false, false])
@@ -196,11 +198,11 @@ pub fn show(ui: &mut egui::Ui, st: &mut LabState) {
             egui::CollapsingHeader::new("A field over x")
                 .id_salt("lab-curve")
                 .default_open(true)
-                .show(ui, |ui| curve(ui, st));
+                .show(ui, |ui| curve(ui, st, charts));
             egui::CollapsingHeader::new("Sweep")
                 .id_salt("lab-sweep")
                 .default_open(true)
-                .show(ui, |ui| sweep(ui, st));
+                .show(ui, |ui| sweep(ui, st, charts));
         });
 }
 
@@ -308,7 +310,9 @@ fn form(ui: &mut egui::Ui, st: &mut LabState) {
     }
 }
 
-fn solved(ui: &mut egui::Ui, v: &LabVm) {
+/// The solve: the preset, the regime and every output beside its goldens, a disagreement in the
+/// error colour. Public so a test can hand it a view whose goldens it doctored.
+pub fn solved(ui: &mut egui::Ui, v: &LabVm) {
     let preset = v.preset.as_deref().unwrap_or("no preset");
     let edited = if v.edited { ", edited" } else { "" };
     ui.label(format!(
@@ -375,7 +379,7 @@ fn solved(ui: &mut egui::Ui, v: &LabVm) {
     }
 }
 
-fn curve(ui: &mut egui::Ui, st: &mut LabState) {
+fn curve(ui: &mut egui::Ui, st: &mut LabState, charts: &mut Charts) {
     if st.curve.is_none() {
         st.curve = Some(vm::curve(&st.inst, &st.field, CURVE_POINTS));
     }
@@ -419,25 +423,42 @@ fn curve(ui: &mut egui::Ui, st: &mut LabState) {
         c.at_root
             .map_or_else(String::new, |v| format!("; at x* {}", fmt(v)))
     ));
-    Plot::new("lab-curve-plot")
+    let plot = Plot::new("lab-curve-plot")
         .height(240.0)
         .legend(Legend::default())
         .x_axis_label("x")
-        .y_axis_label(c.field.clone())
-        .show(ui, |pui| {
-            for s in &c.segments {
-                let line = Line::new(c.field.clone(), PlotPoints::from(s.clone()));
-                pui.line(line.color(super::plots::OTHER[0]));
+        .y_axis_label(c.field.clone());
+    charts::show(charts, "lab-curve-plot", plot, ui, move |pui, lend| {
+        for s in &c.segments {
+            lend.line(pui, &c.field, s.clone(), super::plots::OTHER[0]);
+        }
+        if c.field == fields::F {
+            lend.hline(pui, "0", 0.0, Color32::from_gray(128));
+        }
+        lend.vline(pui, "bracket", c.bracket.0, Color32::DARK_GRAY);
+        lend.vline(pui, "bracket", c.bracket.1, Color32::DARK_GRAY);
+        if let Some(r) = c.root {
+            lend.vline(pui, "x*", r, super::plots::OTHER[1]);
+        }
+    });
+}
+
+/// A sweep's line of one output as the plot draws it: `[knob, value]` in unbroken stretches, a
+/// point with no equilibrium or no finite number breaking the line.
+fn sweep_segments(xs: &[f64], values: &[Option<f64>]) -> Vec<Vec<[f64; 2]>> {
+    let mut segments: Vec<Vec<[f64; 2]>> = vec![Vec::new()];
+    for (x, v) in xs.iter().zip(values) {
+        match v.filter(|v| v.is_finite()) {
+            Some(v) => {
+                if let Some(seg) = segments.last_mut() {
+                    seg.push([*x, v]);
+                }
             }
-            if c.field == fields::F {
-                pui.hline(HLine::new("0", 0.0).color(Color32::from_gray(128)));
-            }
-            pui.vline(VLine::new("bracket", c.bracket.0).color(Color32::DARK_GRAY));
-            pui.vline(VLine::new("bracket", c.bracket.1).color(Color32::DARK_GRAY));
-            if let Some(r) = c.root {
-                pui.vline(VLine::new("x*", r).color(super::plots::OTHER[1]));
-            }
-        });
+            None => segments.push(Vec::new()),
+        }
+    }
+    segments.retain(|s| !s.is_empty());
+    segments
 }
 
 /// A sweep's line: the knob, its range, and how many points each regime took.
@@ -453,7 +474,7 @@ pub fn sweep_line(s: &SweepVm) -> String {
     )
 }
 
-fn sweep(ui: &mut egui::Ui, st: &mut LabState) {
+fn sweep(ui: &mut egui::Ui, st: &mut LabState, charts: &mut Charts) {
     let ks = knobs::list(&st.inst);
     let mut run = false;
     ui.horizontal_wrapped(|ui| {
@@ -515,30 +536,18 @@ fn sweep(ui: &mut egui::Ui, st: &mut LabState) {
         }
         Some(Ok(s)) => {
             ui.label(sweep_line(s));
-            Plot::new("lab-sweep-plot")
+            let plot = Plot::new("lab-sweep-plot")
                 .height(240.0)
                 .legend(Legend::default())
-                .x_axis_label(s.knob.clone())
-                .show(ui, |pui| {
-                    for (i, l) in s.lines.iter().enumerate() {
-                        let colour = super::plots::OTHER[i % super::plots::OTHER.len()];
-                        // A point with no equilibrium, or no number, breaks the line.
-                        let mut segments: Vec<Vec<[f64; 2]>> = vec![Vec::new()];
-                        for (x, v) in s.xs.iter().zip(&l.values) {
-                            match v.filter(|v| v.is_finite()) {
-                                Some(v) => {
-                                    if let Some(seg) = segments.last_mut() {
-                                        seg.push([*x, v]);
-                                    }
-                                }
-                                None => segments.push(Vec::new()),
-                            }
-                        }
-                        for seg in segments.into_iter().filter(|s| !s.is_empty()) {
-                            pui.line(Line::new(l.key.clone(), PlotPoints::from(seg)).color(colour));
-                        }
+                .x_axis_label(s.knob.clone());
+            charts::show(charts, "lab-sweep-plot", plot, ui, |pui, lend| {
+                for (i, l) in s.lines.iter().enumerate() {
+                    let colour = super::plots::OTHER[i % super::plots::OTHER.len()];
+                    for seg in sweep_segments(&s.xs, &l.values) {
+                        lend.line(pui, &l.key, seg, colour);
                     }
-                });
+                }
+            });
         }
     }
 }

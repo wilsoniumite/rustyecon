@@ -4,6 +4,7 @@
 // Each test file is its own crate and uses part of this module.
 #![allow(dead_code)]
 
+pub mod paint;
 pub mod scan;
 pub mod sync;
 

@@ -724,10 +724,13 @@ as before, and no `world_id` or `prefix_id` moved.
    `tape::raw`, each allowed only as itself. The parent `tape` module, an item of it, a glob,
    a rename and a group are still flagged, and five new fixtures say so. A doc test of lib.rs
    writes a `RawParam` and takes a log through the engine alone.
-3. §1: the GUI's edge to core is gone. It depends on the engine, certify and worldgen, and a
-   scan of the GUI
+3. §1: the GUI's edge to core is gone. It depends on the engine, certify, worldgen and the
+   oracle, which depend on core and re-export none of it, and a scan of the GUI
    (`the_gui_reaches_core_through_the_engine_alone`) holds that no source names core and that
-   the raw schema is named in `edit/` alone. The lockfile's only change is the GUI's own entry.
+   the raw schema is named in `edit/` alone; since G1's verification it also holds that neither
+   the GUI's manifest nor the lockfile gives it core under another name
+   (`kore = { package = "rustyecon-core", … }`). The lockfile's only change is the GUI's own
+   entry.
 
 ## 0. Engine invariants
 

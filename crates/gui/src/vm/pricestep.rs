@@ -10,7 +10,10 @@
 //! - **The log waterfall:** ln(p_t/p_0) as Σ k·x over the ticks before t, a year at a time,
 //!   with the residual, what the rule's steps do not explain: a one-sided market held, a price
 //!   moved by an event, and rounding. The events fired in the span are marked, and those that
-//!   act on this market's price or its rate are flagged.
+//!   act on this market's price or its rate are flagged. Under `Ratio`, which ignores k and
+//!   holds a one-sided market by the rule itself, the steps are its own, ln(D/S) where both
+//!   sides posted, the residual is events and rounding, and a rate set moves nothing (G1's
+//!   verification).
 //!
 //! Every number is recorded, the result of markets' own function, or a display transform of
 //! those: a product, a sum, a difference, a log through the engine's `num` (U6).
@@ -21,6 +24,13 @@ use rustyecon_engine::num;
 use rustyecon_engine::prelude::*;
 use rustyecon_engine::rustyecon_markets::{imbalance, next_price};
 use serde::Serialize;
+
+/// Whether the world's price rule is `Ratio`, read by the name the tape gives it, as the
+/// explainer shows it: the engine's prelude does not name the rule's type, and the GUI has no
+/// edge to core (G1.1).
+fn is_ratio(w: &World) -> bool {
+    format!("{:?}", w.market.rule) == "Ratio"
+}
 
 /// The explainer at one tick.
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -167,9 +177,13 @@ pub struct WaterEventVm {
     pub moves: bool,
 }
 
-/// ln(p_t/p_0) as Σ k·x at (node, good), from the record's first tick to the cursor's.
+/// ln(p_t/p_0) as Σ k·x at (node, good), from the record's first tick to the cursor's; under
+/// `Ratio`, which ignores k, as Σ ln(D/S), the rule's own steps.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct WaterfallVm {
+    /// What each tick's step is: `k·x` under `Imbalance`, `ln(D/S)` under `Ratio` (0 where a
+    /// side is empty, which the rule holds).
+    pub term: String,
     /// The first tick, p_0's.
     pub start: u64,
     /// The cursor's report tick, p_t's.
@@ -180,7 +194,7 @@ pub struct WaterfallVm {
     pub p: f64,
     /// ln(p_t/p_0).
     pub level: f64,
-    /// Σ k·x over the ticks before t.
+    /// Σ of the term over the ticks before t.
     pub explained: f64,
     /// `level` less `explained`.
     pub residual: f64,
@@ -239,24 +253,34 @@ pub fn waterfall(
     let mut bin_kx = 0.0;
     let mut bin_from = start;
     let mut level_at_from = 0.0;
+    let ratio = is_ratio(w);
     for t in start..tick {
-        let inputs = (
-            supply.and_then(|s| s.at(t)),
-            demand.and_then(|s| s.at(t)),
-            rates.and_then(|s| s.at(t)),
-        );
-        match inputs {
-            (Some(s), Some(d), Some(v)) => match site.convert(&w.clock, v) {
-                Ok(k) => {
-                    let kx = k * imbalance(s, d);
-                    explained += kx;
-                    bin_kx += kx;
-                    if (s > 0.0) != (d > 0.0) {
-                        one_sided += 1;
-                    }
+        let volumes = supply
+            .and_then(|s| s.at(t))
+            .zip(demand.and_then(|s| s.at(t)));
+        // The tick's step in the log price by the rule: k·x under `Imbalance`, from the rate at
+        // the tick; ln(D/S) under `Ratio`, which ignores k and holds a one-sided market.
+        let step = volumes.and_then(|(s, d)| {
+            if ratio {
+                Some(if s > 0.0 && d > 0.0 {
+                    num::ln(d / s)
+                } else {
+                    0.0
+                })
+            } else {
+                let v = rates.and_then(|r| r.at(t))?;
+                let k = site.convert(&w.clock, v).ok()?;
+                Some(k * imbalance(s, d))
+            }
+        });
+        match (step, volumes) {
+            (Some(x), Some((s, d))) => {
+                explained += x;
+                bin_kx += x;
+                if (s > 0.0) != (d > 0.0) {
+                    one_sided += 1;
                 }
-                Err(_) => missing += 1,
-            },
+            }
             _ => missing += 1,
         }
         let end = t + 1;
@@ -304,7 +328,8 @@ pub fn waterfall(
                 StateDelta::ScalePrice {
                     node: en, good: eg, ..
                 } => Some(*en) == n && Some(*eg) == g,
-                StateDelta::SetParam { param, .. } => *param == rate_id,
+                // Under `Ratio` the rate moves nothing.
+                StateDelta::SetParam { param, .. } => !ratio && *param == rate_id,
                 _ => false,
             };
             WaterEventVm {
@@ -317,6 +342,7 @@ pub fn waterfall(
         .collect();
     let level = num::ln(p / p0);
     Ok(WaterfallVm {
+        term: if ratio { "ln(D/S)" } else { "k·x" }.to_string(),
         start,
         tick,
         p0,
