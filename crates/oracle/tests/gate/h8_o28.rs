@@ -190,11 +190,19 @@ fn ces_required_hours_come_from_gross_outputs() {
 
 #[test]
 fn an_economy_needs_a_worker_type() {
-    // 1d, O28 (a survivor of the first pass): no worker types is refused, by name.
+    // 1d, O28 (a survivor of the first pass): no worker types is refused, and says so. Without
+    // its own check the economy is still refused, by the next one, which asks for a type that
+    // sells on the line: the same name with the wrong reason.
     let mut p = one_type(4.0, 1.0);
     p.worker_types.clear();
     match WorkerEconomy::new(p) {
-        Err(ParamError::Invalid { name, .. }) => assert_eq!(name, "worker types"),
+        Err(ParamError::Invalid { name, reason }) => {
+            assert_eq!(name, "worker types");
+            assert!(
+                reason.contains("needs at least one worker type"),
+                "{reason}"
+            );
+        }
         other => panic!("{other:?}"),
     }
 }
