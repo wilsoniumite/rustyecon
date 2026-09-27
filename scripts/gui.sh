@@ -48,7 +48,9 @@ step() { printf '\n== gui: %s\n' "$*"; }
 # that holds the GUI's use of core to `num`. The fixes after its verification add the theft
 # script and the script whose session another tape wrote. G0.2 adds the editor's: the two
 # branch tests, the five rules of §8.1's editing row, the editor's two kittest scripts (the
-# form's refusals; apply, compare, export and save), and the scan that keeps edit/ pure.
+# form's refusals; apply, compare, export and save), and the scan that keeps edit/ pure. G0's
+# close (G0.3) adds the reducer's state-machine tests (tests/model.rs), which the gate names as a
+# group, so every test it names is checked by name.
 named=(
     gui_equals_cli
     failed_run_shows_its_ledger_line
@@ -77,6 +79,21 @@ named=(
     the_editor_refuses_an_empty_note_a_malformed_key_and_a_malformed_date
     the_branch_script_applies_compares_exports_and_saves
     edit_reaches_no_model_file_thread_or_clock
+    opening_a_tape_records_its_base_and_loads_it_paused
+    a_tape_that_does_not_parse_or_read_is_logged_and_not_run
+    space_runs_and_pauses_and_steps_follow_the_status
+    a_poisoned_run_takes_no_more_commands
+    a_stopped_record_pauses_its_run_once
+    speed_breakpoints_plots_and_pins_live_in_the_session
+    closing_a_run_stops_its_driver_and_ignores_its_late_observations
+    a_changed_base_is_logged_and_an_edited_tape_is_an_experiment
+    a_session_that_does_not_read_is_set_aside
+    a_selected_actor_asks_for_the_snapshot_its_cursor_reads
+    rationing_onsets_are_logged_once_a_class_line
+    a_log_line_moves_the_cursor_to_the_tick_it_names
+    a_run_whose_worker_ended_says_so_and_stops
+    a_session_of_another_tape_still_plots_every_price
+    apply_branches_from_the_parents_ring_and_files_are_effects
 )
 
 step "toolchain (rust-toolchain.toml)"

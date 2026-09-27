@@ -267,6 +267,98 @@ items 9 and 6 of the G0.2 block:
 8. **The toolbar's goldens** say `ledger: NoParent` where they said `ledger_changed: false`.
    The view-model's field changed; the gate world did not.
 
+**Closed at G0.3 (2026-09-27).** G0 is built, and its gate is met but for the window checked
+by hand, which is the user's (§9; STATE.md has the command). G0 is five commits on branch `g0`
+from `397d7cd` and this one; the five blocks above say what each built and where the build
+departed from this file. This block adds what the close did, what G0 leaves to G1, and an index
+of every deviation:
+1. **What G0 built.** `crates/gui`, a library and the binary `rustyecon-gui`. `model/` holds the
+   session, the intents, the effects and `reduce`. `run/` holds the Runner, the Extractor, the
+   store and its decimator, the ring and the log. `edit/` holds the edits, `materialise`,
+   `plan`, the lineage, the form, the keys and export. `vm/` has one builder per panel.
+   `drive/` holds `ThreadDriver`, its pace, the `Host` and the smoke mode's frame timings.
+   `platform/` holds the files, rfd and the session's directory. `ui/` draws the toolbar,
+   timeline, outliner, plots, inspector, registry, editor, compare and log in an egui_tiles
+   layout. The crate has 72 tests, one of them an ignored measurement. `scripts/gui.sh` is its
+   gate.
+2. **The gate's tests by name** (§8.2, §9). §9 names "the reducer's state-machine tests" as a
+   group, and `scripts/gui.sh` did not check them by name. It now names the fifteen in
+   `tests/model.rs`, so it names 42 tests. Eight of the fifteen had killed no mutant by name.
+   At the close each of the eight kills a mutant of `reduce` (STATE.md has the ten).
+3. **The measurements** (§3.1, §5.2, §8.2) are taken again on the finished crate, on WSL. G0.1
+   took D1's costs and the recount on the crate's seams alone, and G0.2 took the rerun time
+   before its fixes. §3.1, §5.2 and §8.2 give the numbers.
+4. **Left to G1**, collected from the blocks above: the plots' overlay, difference and ratio
+   against a parent (G0.2, item 11); re-making branches at launch, with §5.1 item 7's refusal
+   (G0.2, item 12); the registry's and the inspector's ways into the editor (G0.2, item 8); a
+   lock on `session.ron`, so two windows cannot share a serial (G0.2's fixes, item 4); and what
+   the two re-checks left (item 5). The watchlist, event and date breakpoints and log axes
+   were G1's from the start (§9).
+5. **What the two re-checks left.** The bounded verification is one pass, one fix round and
+   one re-check of the fixed items; G0.1 and G0.2 each had one. Both re-checks found the fixes
+   in place. They left these, which the close records and does not fix (STATE.md, O18); G1
+   takes them first:
+   - After G0.1's fixes, two ways past the no-egui scan: a reach into `ui` through a renamed
+     crate root (`use crate as g;`, then `g::ui::…`), and a `use` group whose first root is
+     another crate (`use {std::fmt as _, crate::{ui as _}};`).
+   - After G0.1's fixes, three mutants of the plots that `every_drawn_vertex_is_recorded`
+     misses: a y changed only where a line is lent (scaled on some lines, or moved by one
+     affine map on all), and each segment's last vertex dropped from the record and the line
+     alike. The painted y and the end of a segment are not yet held to the store. Rerun at the
+     close, these five still survive.
+   - After G0.2's fixes, five mutants that pass the whole suite. Compare's hedge drops its
+     check of the branch's own start. The model's walk to earlier records takes any resumed
+     run, not only one whose resume tick is its store's start. The compare pane is handed no
+     earlier records. The pane never paints the hedge. And the ancestor is never taken from an
+     open run, so the host reads the file instead. The first two look equivalent: a run that
+     resumed starts at its checkpoint's tick, where its state is its parent's, and a run that
+     reran starts at 0, which the walk refuses. The last three are what no test paints or
+     takes.
+   - After G0.2's fixes, a branch of a hand-edited tape compares its tolerances with that
+     tape, its parent, and says "no". "Ledger changed" reads one generation, not the chain
+     back to the base.
+   - After G0.2's fixes, a tape with no marker, beside a lineage file that does not read,
+     opens as a run, and the log says the lineage does not read. Read strictly, U3 makes it an
+     experiment.
+6. **Every deviation, by section.** Each is made in place, in the section named, and the item
+   named in its block says why. "G0.1" is the first part's block and "second part" is G0.1's
+   second part's:
+   - §2, U3: a lineage alone, or a marker in one basis alone, makes an experiment (G0.2's
+     fixes, 2).
+   - §3.1: the recount and licence read with certify in the tree (here, 3).
+   - §3.2: the gate script is `scripts/gui.sh` (G0.1, 1); the build script is the cli's (G0.1,
+     2); vm/ reads run types only (G0.1, 5); the GUI depends on core, for `num` everywhere and
+     for the raw schema, `Basis` and `Unit` in `edit/` alone, held by a scan (G0.1's second
+     part, 9; G0.1's fixes, 11; G0.2, 1).
+   - §3.3: `Runner::new` takes the build (G0.1, 2); `Loaded`, `Running`, `Refused`, `Ended`
+     and `Snapshot` as built (G0.1, 3; second part, 6 and 7; G0.1's fixes, 7); the effects
+     and `drive::Host` (G0.1, 4; second part, 10; G0.2, 10); ring ticks (G0.1, 7); each ring
+     checkpoint's `prefix_id` (G0.2, 3); a poisoned run's snapshot from the ring (G0.1's fixes,
+     1); the ledger line by key (G0.1's fixes, 6).
+   - §3.4: series stamped with the tick that ran, gaps as missing pairs (G0.1, 6); stacked
+     plots, the `2^k` cache and the record of what is lent (second part, 2 and 3; G0.1's
+     fixes, 3); year gridlines (G0.1's fixes, 9).
+   - §4: the cursor is a report tick (second part, 1); run until (second part, 4); the
+     registry (second part, 5); the log's onsets and ticks (second part, 8; G0.1's fixes, 8);
+     plots across tapes (G0.1's fixes, 4); "ledger changed" with three answers (G0.2, 9; G0.2's
+     fixes, 1); export (G0.2, 10; G0.2's fixes, 3 and 6); compare (G0.2, 11; G0.2's fixes, 5);
+     the layout gains a pane (G0.2, 13); the session and its serial (G0.1, 9; G0.2, 6).
+   - §5.1: `materialise` returns the branch's world (G0.2, 2); `plan` reads the parent's store
+     (G0.2, 3); a removal of an event and its source param resumes (G0.2, 4); the lineage
+     names its tape (G0.2, 5); keys new to the whole session (G0.2, 6; G0.2's fixes, 4); the
+     stamp's date (G0.2, 7); the act as text, with the raw pane's caret (G0.2, 8); branches not
+     re-made at launch (G0.2, 12).
+   - §5.2: a new value copied from a new param resumes; only a change to what the world reads
+     reruns (G0.2, 4).
+   - §8.1: the scans read `drive/` and `platform/` and `use` trees (G0.1, 8; G0.1's fixes, 2);
+     the smoke mode (second part, 12); the goldens' points (second part, 13); no image
+     snapshot, since WSL has no lavapipe (second part, 14); U10's test poisons NaN and both
+     infinities (G0.1's fixes, 10).
+   - §8.2: `scripts/gui.sh` tests in release, names its tests and checks the branch tapes'
+     `tape_hash` (G0.1, 1; G0.2's fixes, 7; here, 2); Windows runs both scripts under Git
+     Bash, with no `ci/gate.ps1` (G0.1, 10).
+   - §9: D2's "no log axes" stays for G1 (second part, 15); what moves to G1 (here, 4).
+
 ## 0. Rulings and decisions
 
 **Rulings (2026-09-25),** numbered here 1–4; they are ADDENDUM's rulings 5–8.
@@ -398,6 +490,12 @@ which clashed with the G-stages.
     method gives the spike's own tree (with egui_dock and colorgrad) 273, 186 and 127.
   - Session 2 fixes certify's tree. G0 re-runs the count, the licence read and D1's check timing
     with certify in the tree.
+  - As re-run at G0, with certify in the tree (WSL, the same method): 274 crates on Linux, 187
+    on Windows and 125 on wasm32; 281, 196 and 129 with build dependencies. G0.1 counted them
+    on the crate's seams and the close again on the finished crate, with the same result: the
+    lockfile has not changed since G0.1's second part. The licences are as above, with 2 crates
+    under BSL-1.0 on Windows, and `self_cell` and `r-efi` each offering a permissive licence
+    among others (STATE.md).
   - All the crates are permissive (18 under Unicode-3.0). The exception is the default fonts
     (OFL-1.1, Ubuntu Font Licence 1.0), whose notices ship with every build.
   - The spike was clippy-clean under the default lints only. The workspace's `clippy.toml` rejects
@@ -827,7 +925,9 @@ As built at G0.2 (item 4 of its block): a new param that only a `SetParam` reads
 `world_id`, so a new value copied from it resumes from the ring; only a change to what the
 world reads reruns. G0.2 measured the gate world's rerun (`gate_rerun_time_is_recorded`, an
 ignored test): `materialise` of a genesis value, then `Sim::new` and the run to 2,080 through
-`ThreadDriver` with the G0 Extractor took a median of 42.5 ms over 5 runs (WSL, release).
+`ThreadDriver` with the G0 Extractor took a median of 42.5 ms over 5 runs (WSL, release). At
+the close, on the finished crate, the same test gave a median of 41.3 ms (40.1 to 43.5 ms),
+and 40.2 ms when run again. There is no threshold.
 
 **Levels.** D9 defers them to a schema bump before Phase 3's long runs, ruled then.
 - **The schema.** `SetParam { param: Key, to: SetTo }`, with `enum SetTo { Param(Key), Level(Key)
@@ -1055,6 +1155,14 @@ Dropped: `markets::price_step`. P0.4's public `next_price` and `imbalance` serve
   G0 records the warm check: `cargo check -p rustyecon-gui` after touching
   `crates/engine/src/lib.rs`, in its own target directory, median of 3. It also re-runs the clean
   check with certify in the tree.
+
+  As recorded at G0 (WSL, 48 threads, certify in the tree), on the seams at G0.1 and on the
+  finished crate at the close:
+
+  | Build | At G0.1 | At the close |
+  |---|---|---|
+  | check, clean | 16.1 s, 0.81 GB, 0.87 GB peak RSS | 17.3 s, 0.85 GB, 0.87 GB peak RSS |
+  | check, warm (median of 3) | 2.55 s | 2.92 s |
 - **`ci/gui.sh`** gates G-stages only, on WSL. It runs `cargo clippy -p rustyecon-gui --all-targets
   -- -D warnings` (the crate sets `[lints] workspace = true`), `cargo test -p rustyecon-gui`, and
   the cli hash diffs of §8.1. As built at G0.1 it is `scripts/gui.sh`: `cargo fmt -p
@@ -1070,6 +1178,8 @@ Dropped: `markets::price_step`. P0.4's public `next_price` and `imbalance` serve
   tapes the branch tests write, `branch.ron` and `removal.ron`, to 2,080, and diffs each hash
   file's body against the GUI's. After G0.2's verification it also checks the `tape_hash` in
   the cli's hash file against the GUI run key's, which the branch tests write beside each tape.
+  At G0's close it names 42: the reducer's fifteen state-machine tests join them, since §9
+  names them as a group.
 - **Windows, extending A5.**
   - `ci/gate.ps1` skips the GUI while C: is short: 3.3 GB free at the last check (df, the evening
     of 2026-09-25). `%TEMP%` is on C: too. At G0.1 there is no `ci/gate.ps1`: Windows runs
@@ -1107,6 +1217,10 @@ England run, becomes roughly 35–50.
     change), with compare's tape diff. The plots' overlay, difference and ratio against a
     parent, and re-making branches at launch, move to G1.
   - *If G0.2 overruns,* compare's tape diff moves to G1.
+  - *Closed at G0.3* (2026-09-27). Every gate item below is met and recorded in STATE.md but
+    the window checked by hand, which is the user's. `scripts/gui.sh` names 42 tests: the
+    fifteen of the reducer's state machine joined at the close (the block "Closed at G0.3"
+    above).
   - *If a §7.2 item slips,* G0 ships without what needs it. Without item 4, the registry panel
     shows `engine::registry`'s one method per param. Without item 2, the copied basis is joined
     from `World::schedule`. Without item 1, more dial edits rerun from genesis.
@@ -1127,7 +1241,8 @@ England run, becomes roughly 35–50.
       lints.
     - On Windows, checked by hand and recorded in STATE.md, the window opens `tapes/gate.ron` and
       runs to 2080 with every price plotted and no panic. Smoke mode records CPU per frame (p50,
-      p90, max) with its panel set.
+      p90, max) with its panel set. At the close the smoke mode is recorded and the check by
+      hand is PENDING, the user's.
     - `ci/gate.sh` carries D1's changes, with ENGINE's amendment.
     - STATE.md records the warm check, the clean check with certify in the tree, and the recount.
       It also records the gate world's rerun time, with no threshold: WSL, release, median of 5
@@ -1228,7 +1343,8 @@ England run, becomes roughly 35–50.
 1. Until levels exist, a new dial value on a long world reruns from genesis.
 2. egui breaks its API every 6 to 24 weeks (D6).
 3. C: is nearly full: 3.3 GB free, and one build failed with os error 112. The Windows GUI build,
-   Windows' `CARGO_HOME` and the spill therefore go to D:.
+   Windows' `CARGO_HOME` and the spill therefore go to D:. At G0 C: had 114 GB free; the
+   targets went to D: all the same, and `CARGO_HOME` stayed on C:.
 4. Full recording may not fit (§3.4).
 5. The full layout's frame time is unproven (§6). The spike left about 3 ms of headroom at 40
    regions and 1.6 ms at 700, against G4's 8 ms p90 bar and G9's same bar at 700 regions.

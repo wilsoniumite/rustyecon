@@ -638,6 +638,16 @@ changed, so no hash, `prefix_id` or `world_id` moved.
    core's writer stays out of the GUI's reach (E1). No engine-path crate changed, and the
    lockfile gained only the GUI's own edge to core.
 
+**Amended at G0.3** (2026-09-27: G0, the GUI's shell, closed; docs/GUI.md, closed at G0.3),
+the same way. No crate but `crates/gui` changed during G0, so no hash, `prefix_id` or
+`world_id` moved, and the lockfile has not changed since G0.1's second part.
+
+1. §13: the GUI's row says G0 is closed; G1 follows G0 and Phase 1's gate.
+2. §1, as G0.2 left it: the GUI's `edit/` also names core's raw tape schema, `Basis` and
+   `Unit`, the plain data an entry is written in, and no other module of the GUI does. The same
+   scan holds every other path into core out (GUI.md, amended at G0.2, item 1). When the
+   engine re-exports `num` and these types, the GUI's edge to core goes.
+
 ## 0. Engine invariants
 
 Numbered so tests and reviews can cite them. Each has at least one test in §11.
@@ -1944,7 +1954,7 @@ Housekeeping (PLAN Phase 0 steps 2 and 6; A3):
 | Transport desks, channel state, pass-through recipes; home-node trading (Phase 0 lets an actor post at any node with no channel and no crossing cost) | Phases 4 and 9 |
 | Credit, banks, monetary regimes | Phase 8 |
 | Region shards and parallel reduction; sweeps of registered params (each point a tape edit, E1) | when §3.9's budget needs them; Phase 6 |
-| crates/gui — the interactive frontend, built with egui (eframe); the stack is pinned in docs/GUI.md §3.1 (A14) | G0, after session 2, beside Phase 1; under way from G0.1 (2026-09-27) |
+| crates/gui — the interactive frontend, built with egui (eframe); the stack is pinned in docs/GUI.md §3.1 (A14) | G0, after session 2, beside Phase 1: built from G0.1 and closed at G0.3 (2026-09-27), its window check by hand the user's; G1 after G0 and Phase 1's gate |
 
 ## 14. Open questions
 

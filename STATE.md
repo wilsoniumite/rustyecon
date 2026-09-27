@@ -10,24 +10,133 @@ the tape's schema is [docs/TAPE.md](docs/TAPE.md), and the GUI's design is
 **Collaboration:** as in laborformal. Sequencing, engineering and drafting are delegated to
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
-**State as of:** 2026-09-27. **G0, the GUI's shell, is under way** on branch `g0`, from
-`reboot` at `397d7cd` (S2.6): G0.1, the viewer, is built, in two commits named G0.1, the crate
-and its seams and then the panels, and a third that fixes what its verification found; G0.2,
-the editor, is built in one commit, and a second fixes what its verification found (below).
+**State as of:** 2026-09-27. **G0, the GUI's shell, is closed** at G0.3, on branch `g0` from
+`reboot` at `397d7cd` (S2.6), not merged or pushed. G0.1, the viewer, and G0.2, the editor,
+are built and verified, and what each verification found is fixed. Every item of G0's gate is
+met but the window checked by hand, which is yours; the command is in "Where things stand".
+`reboot` has since moved on to `503897e` (P1.7, Phase 1's units 1b and 1c), so `g0` lands by
+a merge, not a fast-forward ("Open — your calls").
 **Phase 0 is closed.** Session 1 closed at P0.9, on
 `reboot`.
 Session 2 closed at S2.6, built on branch `phase0-s2` (S2.1–S2.6, from `reboot` at `cf3c0ff`);
-`reboot` has since moved to it by a fast-forward, at `397d7cd`, and neither is pushed
-(`origin/reboot` is at `cf3c0ff`). Session 2 built the
+`reboot` moved to it by a fast-forward, at `397d7cd`, and on to Phase 1's work since; neither
+is pushed (`origin/reboot` is at `cf3c0ff`). Session 2 built the
 certification stack, the GUI's engine asks and the probe's criteria, and both tapes certify
 PASS. Before it: oracle unit 1a joined at P1.1 (O3); the GUI's design, plan amendment A14 and
 R16 landed at P0.11 (O1); by your ruling of 2026-09-26 the Phase 2 probe ran first, with verdict
 GO ([docs/probe/REPORT.md](docs/probe/REPORT.md)) and no fallback (decision 38); and Breakpoint
 B's pre-look passed beside it (S5.0, docs/spine/EYEBALL.md; decision 35).
-Next, in order: your look at the window (the G0 gate's item checked by hand), then G0 closes;
-Phase 1's units 1b–1f alongside.
+Next, in order: your look at the window (the G0 gate's item checked by hand); landing `g0`
+beside Phase 1's work on `reboot`; G1, the oracle lab, after Phase 1's gate.
 
 ## Where things stand
+
+**G0 is closed** (2026-09-27, G0.3; [docs/GUI.md](docs/GUI.md), closed at G0.3; ENGINE,
+amended at G0.3; decisions 97–100). G0 built `crates/gui`, the GUI's shell, on branch `g0`
+from `397d7cd`, in five commits and this one:
+
+| Commit | What landed |
+|---|---|
+| `f897ca8` G0.1 | `crates/gui` and its seams: the model and `reduce`, the Runner, `ThreadDriver`, the Extractor, the store and its decimator, the ring, `session.ron` and `layout.ron`; D1 in the workspace; `scripts/gui.sh` |
+| `1d6dd2b` G0.1 | the panels (toolbar, timeline, outliner, plots, inspector, registry, log), the view-model goldens, G0's kittest scripts, `every_drawn_vertex_is_recorded` and the smoke mode |
+| `2cced21` G0.1 | the verification's fixes, five majors and seven minors, each with a test |
+| `b2757c6` G0.2 | the editor: tape edits, branches, the lineage, compare and export |
+| `22dff0f` G0.2 | the verification's fixes, six majors and four minors, each with a test |
+| G0.3 | this file, GUI.md, ENGINE and README; `scripts/gui.sh` names the reducer's tests |
+
+No crate but `crates/gui` changed, so no hash, `prefix_id` or `world_id` moved. The lockfile
+has not changed since `1d6dd2b`, where it gained only the GUI's edge to core.
+
+**The gate** (GUI.md §9), item by item:
+- **The named tests pass under `scripts/gui.sh`,** on WSL and on Windows. It names 42, up from
+  27: `gui_equals_cli`; `failed_run_shows_its_ledger_line`; the two branch tests; the five
+  editing tests; the reducer's fifteen state-machine tests, named at the close; the two
+  goldens; the eight kittest scripts, `every_drawn_vertex_is_recorded` among them;
+  `decimation_keeps_extremes` and `nonfinite_ingest_stops_with_the_series_named`; and six scans,
+  the two §9 names, the two copied ones, `the_gui_names_core_for_num_alone` and
+  `edit_reaches_no_model_file_thread_or_clock`.
+- **Clippy** with `-D warnings` under the workspace lints: clean on both machines.
+- **The window on Windows, checked by hand: PENDING, yours.** See below.
+- **Smoke mode** on Windows: recorded at each step, and again at the close (below).
+- **`scripts/gate.sh` carries D1,** with ENGINE's amendment, since G0.1.
+- **The costs, the recount and the rerun time** are recorded below, at G0.1 and again at the
+  close.
+- **One key press gives a live price plot** from `rustyecon-gui tapes/gate.ron`:
+  `one_key_press_gives_a_live_price_plot`.
+
+**The measurements** (WSL, 48 threads, release where it applies, alone on the machine; logs in
+`D:/rustyecon-g0/close/measure.txt`). G0.1 took the first three on the crate's seams; the
+close took them again on the finished crate:
+- **The clean check,** `cargo check -p rustyecon-gui` in a fresh target with certify in the
+  tree: 17.3 s, a 0.85 GB target (`du -sb`), 0.87 GB peak RSS. At G0.1: 16.1 s, 0.81 GB and
+  0.87 GB.
+- **The warm check** after touching `crates/engine/src/lib.rs`: 2.92, 2.89 and 2.92 s, median
+  2.92 s. At G0.1: median 2.55 s.
+- **The recount** (`cargo tree -e normal`, root included): 274 crates on Linux, 187 on Windows,
+  125 on wasm32; 281, 196 and 129 with build dependencies, the same as at G0.1. The licences
+  are G0.1's, below.
+- **The gate world's rerun time,** with no threshold: `materialise` of `mill.spend`'s genesis
+  value, then `Sim::new` and `run_until(2080)` through `ThreadDriver` with the G0 Extractor
+  (`gate_rerun_time_is_recorded`, ignored): median 41.3 ms of 5 (40.1 to 43.5 ms), and 40.2 ms
+  when run again. At G0.2, before its fixes: 42.5 ms.
+
+**Tests.** 72 in `crates/gui`, 71 run and one ignored measurement: app 8 (the kittest
+scripts), branch 3 (one ignored), edit 6, failed 1, goldens 2, hashes 1, model 15, persist 4,
+runner 5, scans 8, store 4, and 15 unit tests. The engine's gate is unchanged: 421 tests pass
+with 2 ignored and run by name.
+
+**Mutation over G0,** each mutant alone against the whole suite, each killed by a named test
+that guards it: 23 at G0.1's first part, 21 at its second, 33 at its fixes, 45 at G0.2 and 72
+at its fixes (G0.2's 45 rewritten among them). At the close, ten of `reduce`, one for each
+state-machine test that no earlier round had killed by name, all killed
+(`D:/rustyecon-g0/close/mutants.txt`): the new run's breakpoints dropped, an unreadable tape
+not logged, Space not running a paused run, a year's step one short, a poisoned run taking
+Run, a speed change not resent, a base dropped while another run reads it, a closed run's late
+observation logged, a changed base keeping its old hash, and the serial not advanced. Under
+the poisoned-run mutant `a_run_whose_worker_ended_says_so_and_stops` also hung, and was
+stopped by hand.
+
+**The verifications.** G0.1 and G0.2 each had a bounded verification: one adversarial pass,
+one fix round, one re-check of the fixed items. Both re-checks found the fixes in place, and
+both left findings the close carries, not fixes (decision 99; O18).
+
+**The gates at the close** (logs in `D:/rustyecon-g0/close/`, `gate-*-pre.log` and
+`gui-*-pre.log`), on this commit's tree before it was committed. Its only changes to
+`22dff0f` are docs and `scripts/gui.sh`, so the build stamp reads `22dff0f` clean:
+- **`scripts/gui.sh`** is green in WSL (76 s, `CARGO_TARGET_DIR=/root/scratch/target-g0-close`)
+  and on Windows under Git Bash (115 s, `D:/rustyecon-targets/g0-close`): 71 tests pass and
+  one measurement is ignored, the 42 named ones by name, fmt and clippy clean with `-D
+  warnings`, zero warnings, and four hash diffs equal on both machines: gate (2,080 ticks,
+  final `0x61f9c8529131ff17`), appb (20,000, final `0xe1fa082b26995867`), and the two branch
+  tapes run by the cli, their `tape_hash` the GUI's (`branch`, `0x1b061337f44ea5c1`, final
+  `0x9fc2f964a8510756`; `removal`, `0xe15acd82a00d52fe`, final `0xd057e3ea708da495`).
+- **`scripts/gate.sh`** is green in WSL (125 s, a fresh target) and on Windows under Git Bash
+  (127 s, a fresh target): 421 tests pass with 2 ignored and run by name, zero warnings, the
+  gate hash `0x61f9c8529131ff17`, the stamp matching the checkout, both certificates PASS
+  and byte-equal on both machines, the probe's pins, and telemetry identical from two
+  processes. The GUI's non-blocking check passes in WSL and is skipped on Windows; the wasm32
+  checks of the engine and certify pass in WSL.
+- **Smoke mode on Windows** (release, the gate to 2,080 at ten years a second, 5.2 s; panes
+  drawn: Outliner, Plots, Inspector, Timeline): 484 frames running, CPU per frame p50 1.05 ms,
+  p90 1.62 ms, max 36.39 ms (the first frame); 120 paused, p50 1.60 ms, p90 2.31 ms, max
+  2.78 ms. No panic. The window opened and closed by itself; nobody looked at it.
+
+**Checked by hand: PENDING, yours** (the G0 gate's window item). On Windows, from the
+repository, in PowerShell:
+
+```powershell
+$env:CARGO_TARGET_DIR = 'D:/rustyecon-targets/g0-hand'
+cargo run --release -p rustyecon-gui -- tapes/gate.ron
+```
+
+Type `2080` in "until" and press "Run until", or press Space and Space again to pause. Check
+that every price is plotted, that the run reaches tick 2,080, and that nothing panics. `cargo
+run --release -p rustyecon-gui -- --smoke 2080 tapes/gate.ron` prints the CPU per frame of the
+same run. To try the editor with the window open: in the Editor tab, Mint key, date
+`1765-06-01`, act `SetParam(param: "mine.capacity", to: "mine.capacity.base")`, a note, Add
+edit, Apply; run the branch to 2080, and the Compare tab shows the first differing hash at
+report tick 801. If the window fails your look, the fix is a G0.4 on `g0` before G1 (decision
+97).
 
 **G0.2's verification fixes** (2026-09-27; [docs/GUI.md](docs/GUI.md), amended at G0.2's
 verification fixes; decisions 92–96). A bounded verification of G0.2 found six major issues
@@ -624,10 +733,11 @@ CI is wanted at all is your call (A5). Since S2.4 it checks out full history, si
 checks that each committed certificate's build commit is an ancestor of HEAD. Windows runs the
 same script under Git Bash, by hand.
 
-**Remote** (as the local remote-tracking refs show on 2026-09-26): `origin` has `main` and
+**Remote** (as the local remote-tracking refs show on 2026-09-27): `origin` has `main` and
 `reboot` at `cf3c0ff`, the three `july-v2-*` tags and `pre-foundations` (A1 done). Not pushed:
-`phase0-s2` (S2.1–S2.6), and the local branches `phase2-probe`, `spine-eyeball` and
-`reboot-phase0`, whose work is in `reboot`.
+the local `reboot` at `503897e` (S2.1–S2.6 and Phase 1's P1.2–P1.7), `phase1` at the same
+commit, `g0` (G0.1–G0.3), and the local branches `phase0-s2`, `phase2-probe`,
+`spine-eyeball` and `reboot-phase0`, whose work is in `reboot`.
 
 ## Decisions — veto window (your one-word calls)
 
@@ -962,27 +1072,55 @@ for G0.2's verification fixes carries each; all are open to veto.
     false`, in a commit that did not retune the gate world. The view-model's shape changed;
     its values did not.
 
+Decisions 97–100 were made at G0's close (G0.3). GUI.md's block "Closed at G0.3" carries
+each; all are open to veto.
+
+97. **G0 closes with its window item pending yours.** Every other item of GUI.md §9's gate is
+    met and recorded, and nobody could look at a window. If the window fails your look, the
+    fix is a G0.4 on `g0` before G1 starts. Alternative: keep G0 open until you look.
+98. **`scripts/gui.sh` names the reducer's fifteen state-machine tests,** which §9 names as a
+    group, so every test the gate names is checked by name: 42. Eight of the fifteen had
+    killed no mutant by name; each now kills one of `reduce`.
+99. **What the two re-checks left is carried, not fixed** (O18). The bounded verification is
+    one pass, one fix round and one re-check, as in session 2, which carried O16. What is left
+    is test gaps, two ways past a scan, and two edge cases of provenance; none is a gate
+    item. G1 takes them first. Alternative: a third fix round before the close.
+100. **The measurements are taken again on the finished crate,** beside G0.1's on its seams
+     and G0.2's rerun time before its fixes; both sets stand. §9 does not say when in G0 to
+     take them, and the finished crate is what an engine step's check builds.
+
 ## Open — your calls
 
-- **The GUI's decisions**, 22–34 (D1–D13): open to veto before G0. D10's items are built.
+- **The GUI's decisions**, 22–34 (D1–D13): G0 carried them out, none vetoed; a veto now reopens
+  what G0 built on it. D10's items are built.
 - **Hosted CI** (A5): the push of 2026-09-26 started it; it runs on every push unless you turn it
   off.
 - **Decisions 35–40** (Breakpoint B's three calls and the probe's proposals), taken by Claude on
   your word and open to veto.
 - **Decisions 41–58** (session 2's), open to veto.
 - **Decisions 59–64** (G0.1's first part), **65–72** (its second part), **73–79** (its
-  verification fixes), **80–91** (G0.2) and **92–96** (its verification fixes), open to veto.
-- **The G0 gate's window check, by hand** (the command is in "Where things stand", under G0.1's
-  second part): the window opens `tapes/gate.ron` and runs to 2,080 with every price plotted
+  verification fixes), **80–91** (G0.2), **92–96** (its verification fixes) and **97–100**
+  (G0's close), open to veto.
+- **The G0 gate's window check, by hand** (the command is in "Where things stand", under "G0
+  is closed"): the window opens `tapes/gate.ron` and runs to 2,080 with every price plotted
   and no panic. The smoke mode ran it on Windows; nobody has looked at it.
+- **Landing `g0`.** `reboot` moved from `397d7cd` to `503897e` (P1.2–P1.7, Phase 1's units 1b
+  and 1c) after `g0` branched, so `g0` lands by a merge. Only `crates/oracle`, README.md and
+  STATE.md changed on `reboot`; on `g0` only `crates/gui`, the workspace manifest, the
+  lockfile, `scripts/`, the CI workflow's comment, docs/ENGINE.md, docs/GUI.md, README.md and
+  STATE.md. So README.md and STATE.md conflict and nothing else does (checked with `git
+  merge-tree` at `22dff0f`). Both copies of this file number
+  decisions from 59: Phase 1's 59–75 and G0's 59–100. Proposed: merge `g0` into `reboot`
+  after your look, keep Phase 1's numbers, renumber G0's as 76–117 in the merged STATE.md
+  (GUI.md and ENGINE cite none of them), and rerun both gates on the merge.
 - **CERTIFY §15.1's questions:** (1) is a registered `price_shocks` count above 0 ever
   acceptable in a certified tape, or does `ScalePrice` belong to the kick alone; (2) should the
   cli resume under a dated edit behind an explicit `--edited` flag that records the parent and
   marks the run; (3) BalanceWatch's bars are absolute on the imbalance, a number in [−1, 1],
   read as allowed by A12; (4) C11 edited probe code that REPORT cites at `55c9e88`, guarded by
   its pins; (6) the kick's horizon is one L, so an instability slower than L passes.
-- **Pushing `reboot`** (at `397d7cd`, session 2 merged by a fast-forward), and merging `g0` into
-  it when G0 closes.
+- **Pushing `reboot`** (now at `503897e`, with session 2 and Phase 1's units 1b and 1c), and
+  `g0` once it has landed.
 - **The Phase 2 session budget** that A11's kill condition needs (PLAN Phase 2), now for Phase 2
   proper's other instances.
 - **The decisions above**, especially 10 (the engine crate, not in PLAN's crate list), 11, 15
@@ -991,13 +1129,15 @@ for G0.2's verification fixes carries each; all are open to veto.
 ## Open — work
 
 - **O1. The GUI.** Designed ([docs/GUI.md](docs/GUI.md); A14), with egui in `crates/gui`. G0,
-  the shell, is under way (two to three sessions; GUI.md §9): G0.1 the viewer is built, on
-  2026-09-27, in two parts (the crate's seams, the Runner and `ThreadDriver`, the Extractor, the
-  store and the ring; then the toolbar, timeline, outliner, plots, inspector, registry and log,
-  the goldens, the kittest scripts and the smoke mode), and its verification's twelve issues
-  are fixed; G0.2 the editor is built, on the same day (`materialise`, the lineage, branches,
-  compare and export); next is G0.2's verification. G1, the
-  oracle lab, starts after G0 and Phase 1's gate. `crates/engine` was built for it: a frontend
+  the shell, is closed at G0.3 (2026-09-27; GUI.md §9): G0.1 the viewer (the crate's seams,
+  the Runner and `ThreadDriver`, the Extractor, the store and the ring; the toolbar, timeline,
+  outliner, plots, inspector, registry and log, the goldens, the kittest scripts and the smoke
+  mode) and G0.2 the editor (`materialise`, the lineage, branches, compare and export), each
+  verified and fixed. Its window check by hand is yours. G1, the oracle lab, starts after G0
+  and Phase 1's gate, and takes O18 first, with what G0 moved to it: the plots' overlay,
+  difference and ratio against a parent; re-making branches at launch; the registry's and
+  the inspector's ways into the editor; a lock on `session.ron`; log axes, the watchlist, and
+  event and date breakpoints. `crates/engine` was built for it: a frontend
   depends on the engine alone, steps a `Sim` on a worker thread and reads each `TickReport` over
   a channel. Session 2 gave it what §7.2 asked: `FiredEvent.source`, the registry's sites with
   their methods, a `world_id` that a new source event keeps, and from certify `RunKey`,
@@ -1071,6 +1211,33 @@ when its fix is reverted, checked by mutation (the review's own mutants among th
   classifier. Until the dead floor arrives, a run frozen at tiny positive volumes passes Trades,
   and certifies under criteria that list no Kick, as the gate's do; under appb-style criteria the
   kick catches the probe's known case (CERTIFY, amended at S2.5, item 9).
+- **O18. What G0's two re-checks left** (decision 99; GUI.md, closed at G0.3, item 5). Each
+  re-check found the fixes in place; these are left, none of them a gate item. G1 takes them
+  first, each with a test that fails without its fix:
+  - *G0.1's re-check, on `2cced21`* (`D:/rustyecon-g0/verify-G01-*-r2/`). Two ways past the
+    no-egui scan survive: a reach into `ui` through a renamed crate root (`use crate as g;`
+    then `g::ui::…`), and a `use` group whose first root is another crate (`use {std::fmt as
+    _, crate::{ui as _}};`). Three mutants of the plots survive
+    `every_drawn_vertex_is_recorded`: the village's lines' y scaled by 1.5 where they are lent,
+    every line's y moved to 2y + 1 where it is lent, and each segment's last vertex dropped
+    from both the record and the line. So the painted y, and the end of each segment, are not
+    held to the store. G0.2 changed neither the scans' reading of roots nor the plots, and at
+    the close all five, rerun on `22dff0f`'s code, still survive
+    (`D:/rustyecon-g0/close/recheck.txt`).
+  - *G0.2's re-check, on `22dff0f`* (`D:/rustyecon-g0/verify-G02-*-r2/`): 31 of 36 mutants
+    killed. Five survive: compare's hedge without its check of the branch's own start, and
+    the walk to earlier records taking any resumed run, both of which look equivalent (a run
+    that resumed starts at its checkpoint's tick, where its state is its parent's, and a run
+    that reran starts at 0, which the walk refuses); the compare pane handed no earlier
+    records, and the pane never painting the hedge, which no kittest script reaches (none
+    builds a branch of a resumed branch); and the ancestor never taken from an open run, which
+    the host then reads from disk, where every test leaves it.
+  - *Two edge cases of provenance,* from G0.2's re-check's probes. A branch of a hand-edited
+    tape compares its tolerances with that tape, its parent, and its export says `# ledger
+    changed: no`, though its tolerance differs from the base's: "ledger changed" reads one
+    generation. And a tape with no marker, beside a lineage file that does not read, opens as
+    a run, with the log saying the lineage does not read; U3 read strictly makes it an
+    experiment.
 
 ## Corrections logged (A3; ADDENDUM §1.4)
 
@@ -1094,20 +1261,25 @@ REVIEW.md is kept as written; these of its claims do not hold.
 
 ## Next steps, in order
 
-1. **G0 closes** (O1; docs/GUI.md §9) when its gate's last item, the window by hand, is
-   checked. G0.1, the viewer, and G0.2, the editor, are built and verified, and what the
-   verifications found is fixed (2026-09-27). The plots' overlay, difference and ratio against
-   a parent, re-making branches at launch, and a lock on `session.ron`, are G1's (decisions
-   89, 90, 93).
-2. **Your look at the window**, the G0 gate's item checked by hand (the command is under G0.1's
-   second part in "Where things stand"; G0.2's entry says how to try the editor).
+1. **Your look at the window**, the G0 gate's item checked by hand (the command is under "G0
+   is closed" in "Where things stand", with how to try the editor). G0 is otherwise closed
+   (G0.3, 2026-09-27; O1). If the window fails, a G0.4 on `g0` fixes it first (decision 97).
+2. **Landing `g0` on `reboot`,** by a merge, after your look ("Open — your calls": README.md
+   and STATE.md conflict, and G0's decisions are renumbered after Phase 1's), then both gates
+   on the merge.
 3. **At the next engine step, the engine re-exports `num`** (decision 79), and the tape's raw
    entry types, `Basis` and `Unit` (decision 80), so the GUI's edge to core goes and core's
-   writer is out of its reach by type again.
-4. **Alongside, Phase 1's units 1b–1f** (O3; PLAN Phase 1), each with its gate: many categories
-   and the fork, many machine types, worker types and the wall, parcels and s(q), households and
-   government. Units 1b–1e also give Phase 2 proper its other instances; it starts from the
-   probe's roles and harness, with many markets as its first untested risk.
+   writer is out of its reach by type again. `scripts/gate.sh`'s check of the GUI then says
+   whether the GUI still builds; a break is fixed at G1 at the latest (D1).
+4. **Phase 1's units 1d–1f** (O3; PLAN Phase 1), on `reboot` since P1.7: worker types and the
+   wall, parcels and s(q), households and government, each with its gate. Units 1b–1e also give
+   Phase 2 proper its other instances.
+5. **G1, the oracle lab, after G0 and Phase 1's gate** (GUI.md §9). It starts with O18, then
+   what G0 moved to it: the plots' overlay, difference and ratio against a parent, re-making
+   branches at launch, the registry's and the inspector's ways into the editor, a lock on
+   `session.ron` (decisions 89, 90, 86, 93); and its own scope: the lab, one-param sweeps, the
+   price-step explainer and the log waterfall, log axes, the watchlist, and event and date
+   breakpoints.
 
 ## File map
 
@@ -1115,12 +1287,12 @@ REVIEW.md is kept as written; these of its claims do not hold.
 STATE.md                 you are here; start here next session
 README.md                what rustyecon is, the crates, how to build and test
 docs/PLAN.md             the plan, amended by the addendum's rulings (2026-09-25) and decision 39
-docs/ENGINE.md           the Phase 0 engine contract, with each step's amendments (P0.3–G0.1)
+docs/ENGINE.md           the Phase 0 engine contract, with each step's amendments (P0.3–G0.3)
 docs/CERTIFY.md          session 2's contract: criteria, batteries, kick, seal, manifest, cli,
                          telemetry, with each step's amendments (S2.2–S2.6)
 docs/TAPE.md             the tape's schema guide
 docs/GUI.md              the GUI's design (A14): stack, architecture, panels, editor, map, roadmap;
-                         amended at G0.1, in its two parts, and at G0.2
+                         amended at G0.1, in its two parts, and at G0.2; closed at G0.3
 docs/reboot/             REVIEW.md and ADDENDUM.md, kept as written (links fixed) but for A14 and
                          rulings 5–8 (P0.11); GUI-review-ledger.md, the GUI design's two reviews
 docs/timeline/eras.md    era research for worldgen
@@ -1153,7 +1325,7 @@ data/spine/              the spine's fetch, extract and eyeball scripts, manifes
 docs/spine/              DATA_NOTES.md and EYEBALL.md, Breakpoint B's pre-look (S5.0)
 scripts/gate.sh          the gate as one script; the GUI excluded, checked once on Linux (D1)
 scripts/gui.sh           the GUI's gate, run at each G-stage (G0.1); diffs the editor's branch
-                         tapes against the cli too (G0.2)
+                         tapes against the cli too (G0.2); names 42 tests (G0.3)
 .github/workflows/ci.yml hosted CI, on every push
 ```
 

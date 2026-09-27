@@ -30,8 +30,8 @@ the run's manifest and Parquet telemetry. The gate world and the Appendix B worl
 certify PASS, and their certificates are in `results/`. A Phase 2 probe found that agents
 at the paper's margins reach the oracle's equilibrium of the SSRN Appendix B economy
 ([docs/probe/REPORT.md](docs/probe/REPORT.md)). Oracle unit 1a, the first of Phase 1, has
-landed. The GUI is designed ([docs/GUI.md](docs/GUI.md)), and its shell, G0, is under way:
-G0.1, the viewer, and G0.2, the editor, are built. The crates
+landed. The GUI is designed ([docs/GUI.md](docs/GUI.md)), and its shell, G0, is closed:
+G0.1, the viewer, and G0.2, the editor (see "Running the GUI" below). The crates
 fill in phase by phase:
 
 | Crate | What it holds | Fills in |
@@ -45,7 +45,7 @@ fill in phase by phase:
 | `crates/oracle` | the equilibrium solver (library `oracle`): unit 1a, one category with durability and interest, reproduces the SSRN Appendix B ([its README](crates/oracle/README.md)) | Phase 1: 1a landed; 1b–1f to come |
 | `crates/worldgen` | the tape compiler | Phase 4 |
 | `crates/probe` | the Phase 2 probe's harness: the Appendix B tape's generator, named perturbations, per-tick observables against the oracle ([docs/probe/RULES.md](docs/probe/RULES.md)); its oracle-free measures are certify's | the probe, P2.0.1 |
-| `crates/gui` | the interactive frontend, in egui: live runs, plots, lenses, the tape editor, and a county map ([docs/GUI.md](docs/GUI.md)); the binary `rustyecon-gui` | from G0, after Phase 0's second session; one stage beside each phase (the seams since G0.1) |
+| `crates/gui` | the interactive frontend, in egui: live runs, plots, lenses, the tape editor, and a county map ([docs/GUI.md](docs/GUI.md)); the binary `rustyecon-gui` | from G0, after Phase 0's second session; one stage beside each phase (G0 closed at G0.3) |
 
 Packages are named `rustyecon-<crate>`. `tapes/gate.ron` is the Phase 0 gate world, and
 `tapes/appb.ron` the probe's Appendix B world. `criteria/` holds each tape's dated
@@ -114,27 +114,60 @@ two platforms is recorded in STATE.md, not gated. `.github/workflows/ci.yml` run
 The GUI never gates engine work (docs/GUI.md, D1): the workspace's default members leave
 `crates/gui` out, and `scripts/gate.sh` excludes it from clippy and the tests and checks it
 once without gating. `scripts/gui.sh` is the GUI's own gate, run at each of its stages:
-formatting, clippy, its tests in release, and the GUI's hashes of the gate and Appendix B
-worlds and of two edited branches against the cli's. The window opens with
+formatting, clippy, its tests in release with 42 of them checked by name, and the GUI's
+hashes of the gate and Appendix B worlds and of two edited branches against the cli's. It runs
+as the gate does:
 
 ```sh
-cargo run --release -p rustyecon-gui -- tapes/gate.ron
-```
-
-paused at tick 0 with every price plotted: Space runs and pauses it, `.` steps a tick. The
-editor pane makes a branch from tape edits, each stamped with its note as a GUI experiment;
-compare shows a branch against its parent, and export writes the plotted series, the manifest,
-the tapes and the lineage. It keeps
-its session in `$RUSTYECON_GUI_DIR`, or else the platform's configuration directory. The smoke
-mode runs a tape to a tick, prints the CPU each frame took, and closes:
-
-```sh
-cargo run --release -p rustyecon-gui -- --smoke 2080 tapes/gate.ron
+wsl -d ubuntu --exec bash -lc '/mnt/c/<path to the repository>/scripts/gui.sh'
 ```
 
 `clippy.toml` enforces two standing rules: no std hash containers (R8, no unordered
 iteration on the delta path), and no platform transcendentals (`exp`, `ln`, `powf` and
 the rest go through one module backed by the `libm` crate; `mul_add` is banned too).
+
+## Running the GUI
+
+`rustyecon-gui` is the interactive frontend ([docs/GUI.md](docs/GUI.md)). Its shell, G0, is
+built: it runs a tape live, plots any recorded series, inspects markets, actors, params and
+events, edits the tape into branches, compares a branch with its parent, and exports. It is not
+a default member, so build it by name, with the build directory outside the tree. On Windows,
+where the window is checked, in PowerShell from the repository:
+
+```powershell
+$env:CARGO_TARGET_DIR = 'D:/rustyecon-targets/gui'
+cargo run --release -p rustyecon-gui -- tapes/gate.ron
+```
+
+Elsewhere, `cargo run --release -p rustyecon-gui -- tapes/gate.ron` with a display. With no tape
+it reopens the tapes of the last session, and the toolbar's Open picks another.
+
+- **Run.** The tape opens paused at tick 0 with every price plotted. Space runs and pauses,
+  `.` steps one tick, and the toolbar steps a year, runs until a tick or a date, and caps the
+  speed. By default the run pauses on an error, with its ledger line.
+- **Look.** The outliner lists the tape's entities by key; select one to inspect it, or plot
+  its series. The plots stack one panel per unit. The timeline shows the cursor, the events
+  and the checkpoints; the registry lists every param with its uses and basis; the log lists
+  loads, runs, pauses, fired events, rationing onsets and errors.
+- **Edit.** In the Editor tab, mint a key, give a date, type the act as the tape writes it,
+  for example `SetParam(param: "mine.capacity", to: "mine.capacity.base")`, write a note, Add
+  edit, then Apply. The branch resumes from its parent's last matching checkpoint, or reruns
+  from genesis and says why. Each entry it adds or changes is stamped
+  `Assumed("GUI experiment <date>: <note>")`, and its name carries the marker
+  `[GUI experiment <date>]`.
+- **Compare and export.** The Compare tab shows a branch against its parent: both identities,
+  the first differing hash, the tape diff and the plotted series' differences. Export writes
+  the plotted series as CSV, `manifest.ron`, the tape and, for an experiment, its lineage and
+  ancestor. "Save tape as" writes the tape and its lineage. Nothing is written over.
+
+The session, `session.ron` and `layout.ron`, lives in `$RUSTYECON_GUI_DIR`, or else in
+`%APPDATA%\rustyecon\gui` on Windows and `~/.config/rustyecon/gui` elsewhere. A file that does
+not read is set aside, never written over. The smoke mode runs a tape to a tick at ten model
+years a second, prints the CPU each frame took, and closes, keeping no session:
+
+```sh
+cargo run --release -p rustyecon-gui -- --smoke 2080 tapes/gate.ron
+```
 
 ## History
 
