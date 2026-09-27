@@ -554,11 +554,12 @@ passed 1e-9 and the run's class.
 | G1 | C2m | PASS, 8.4e-15 | PASS, 3.3e-16 | PASS, 3.6e-15 |
 
 The registered prediction (PREDICTION §4) had mode A PASS everywhere but I2 at 12 a year (the
-mirror leaves 1e-9 at tick 2,558) and L2 and L3 at C2m (at ticks 102 and 115 at 52 a year, 195
-and 253 at 12). The engine agrees but in three cells: L3 at C2m leaves at ticks 112 and 252, and
-L2 at C2m at 12 a year at tick 251. L2 at C2m at 52 and 365 a year, and L3 at C2m at 365, pass
-because the engine's genesis rounds onto the point and stays there; mode A cannot see that the
-point is unstable (REPORT §5). The kick set can.
+mirror leaves 1e-9 at tick 2,558) and L2 and L3 at C2m (the mirror leaves at ticks 102 and 115 at
+52 a year, 195 and 253 at 12, and 324 for L3 at 365). Where both fail, the engine leaves at
+nearly the same tick: I2 at 12 a year at 2,427, L3 at 112 and 252, L2 at 12 a year at 251. The
+engine passes three cells the mirror fails, all on the loop at C2m: L2 at 52 and 365 a year and
+L3 at 365. There the engine's genesis rounds onto the point and stays there, and mode A cannot
+see that the point is unstable (REPORT §5). The kick set can.
 
 The base kick set, which MARKETS-SPEC §7.6 makes part of mode A, at 52 a year with H = L
 (`D:/rustyecon-p2m/build/kicks/`):
@@ -590,7 +591,8 @@ end state to kick; its mode A fails at tick 112 anyway.
 - `markets_conserve_every_tick`: at rest and from w×2 with every desk's coin ×0.1, each tape's
   ledger closes every tick and the money stock drifts by at most 1e-12 of itself over 2,000
   ticks.
-- **The gate at P2.1.1** (`d0ceaa6`). `scripts/gate.sh` is green in WSL
+- **The gate at P2.1.1** (`d0ceaa6`), and again at P2.1.2 (`455b813`) with the same counts.
+  `scripts/gate.sh` is green in WSL
   (`CARGO_TARGET_DIR=/root/scratch/target-p2m-build`) and on Windows under Git Bash
   (`D:/rustyecon-targets/p2m-build`, a fresh target). On each machine 569 tests pass in the
   workspace (549 before, and the 20 of §6) with 2 ignored and run by name, and zero warnings;
