@@ -55,6 +55,10 @@ egui_kittest = { version = "=0.36.2", features = ["eframe"] }
 # forward with the map.
 earcut = "=0.4.11"
 colorous = "=1.0.16"
+# The GUI's PNG snapshots (docs/GUI.md §9, G1): the encoder eframe's image loader already
+# brings in on every target, at the version the lockfile has, so the lockfile gains only the
+# GUI's edge to it. Each snapshot is marked never citable in the picture and in its text chunks.
+png = "=0.18.1"
 
 # The workspace's own crates.
 rustyecon-core = { path = "crates/core" }

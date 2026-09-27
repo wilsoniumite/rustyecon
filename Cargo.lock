@@ -3111,6 +3111,7 @@ dependencies = [
  "egui_plot",
  "egui_tiles",
  "mimalloc",
+ "png",
  "rfd",
  "ron",
  "rustyecon-certify",

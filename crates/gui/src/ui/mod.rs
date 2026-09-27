@@ -28,10 +28,29 @@ use crate::vm;
 use layout::Pane;
 use std::collections::BTreeSet;
 
+/// A snapshot's progress (G1): asked for this frame, then waiting for the picture egui takes
+/// of a later frame, with the banner painted until it comes, and how many frames it waited.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Snap {
+    /// None asked for.
+    #[default]
+    Idle,
+    /// Asked for: this frame paints the banner and asks egui for a picture.
+    Asked,
+    /// Waiting for the picture, this many frames so far.
+    Waiting(u32),
+}
+
+/// How many frames a snapshot waits for its picture before it gives up: a window with no
+/// renderer (a headless test) never sends one.
+pub const SNAPSHOT_PATIENCE: u32 = 600;
+
 /// What the panels keep between frames: the plot cache, the toolbar's and the editor's text,
 /// and which panes the last frame drew.
 #[derive(Default)]
 pub struct State {
+    /// A PNG snapshot's progress (G1).
+    pub snapshot: Snap,
     /// The plot cache: one decimator per plotted series.
     pub plots: plots::PlotCache,
     toolbar: toolbar::ToolbarState,
@@ -235,6 +254,10 @@ pub fn draw(
     egui::Panel::top("toolbar").show(ui, |ui| {
         toolbar::show(ui, m, &mut state.toolbar, &mut intents);
     });
+    if std::mem::take(&mut state.toolbar.snapshot) {
+        state.snapshot = Snap::Asked;
+    }
+    snapshot_frame(ui, m, state, &mut intents);
     egui::CentralPanel::default().show(ui, |ui| {
         let mut panes = Panes {
             m,
@@ -244,6 +267,99 @@ pub fn draw(
         tree.ui(&mut panes, ui);
     });
     intents
+}
+
+/// What a snapshot shows, by the keys that name it (U3): the build, the focused run and the lab.
+pub fn snapshot_marks(m: &Model, lab: &lab::LabState) -> Vec<(&'static str, String)> {
+    let b = crate::build();
+    let build = format!(
+        "rustyecon-gui, build {} {}",
+        b.commit,
+        if b.dirty { "dirty" } else { "clean" }
+    );
+    let run = match m.focused() {
+        None => "no tape open".to_string(),
+        Some(r) => {
+            let name = r
+                .store
+                .world()
+                .map_or_else(|| r.tape.header.name.clone(), |w| w.name.clone());
+            let world = r
+                .store
+                .run()
+                .map_or_else(String::new, |k| format!(", world_id {}", k.world_id));
+            format!(
+                "{}: {name}, origin {}, tape_hash {}{world}, state tick {}",
+                r.id,
+                r.origin,
+                certify::Hex(r.tape_hash),
+                r.store.tick()
+            )
+        }
+    };
+    let preset = lab
+        .preset()
+        .map_or_else(String::new, |p| format!(" {}", p.id));
+    let lab = format!("lab: unit {}{preset}", lab.instance().unit());
+    let made = m
+        .today()
+        .map_or_else(|| "unknown".to_string(), |d| d.to_string());
+    vec![
+        ("Title", "rustyecon GUI snapshot".to_string()),
+        ("Software", build),
+        ("Description", format!("{run}; {lab}")),
+        ("Creation Time", made),
+    ]
+}
+
+/// A snapshot's frame: paint the never-citable banner while one is asked for or awaited, ask
+/// egui for the picture once, and give up after [`SNAPSHOT_PATIENCE`] frames without one.
+fn snapshot_frame(ui: &mut egui::Ui, m: &Model, state: &mut State, out: &mut Vec<Intent>) {
+    if state.snapshot == Snap::Idle {
+        return;
+    }
+    let marks = snapshot_marks(m, &state.lab);
+    let line = marks
+        .iter()
+        .filter(|(k, _)| *k != "Title")
+        .map(|(_, v)| v.as_str())
+        .collect::<Vec<_>>()
+        .join(" · ");
+    egui::Area::new(egui::Id::new("snapshot-banner"))
+        .order(egui::Order::Foreground)
+        .fixed_pos(egui::pos2(8.0, 4.0))
+        .show(ui.ctx(), |ui| {
+            egui::Frame::new()
+                .fill(egui::Color32::from_rgb(0x8b, 0x1a, 0x1a))
+                .inner_margin(6.0)
+                .show(ui, |ui| {
+                    ui.label(
+                        egui::RichText::new(crate::platform::snapshot::BANNER)
+                            .strong()
+                            .color(egui::Color32::WHITE),
+                    );
+                    ui.label(egui::RichText::new(line).color(egui::Color32::WHITE));
+                });
+        });
+    match state.snapshot {
+        Snap::Idle => {}
+        Snap::Asked => {
+            ui.ctx()
+                .send_viewport_cmd(egui::ViewportCommand::Screenshot(egui::UserData::default()));
+            state.snapshot = Snap::Waiting(0);
+        }
+        Snap::Waiting(n) if n >= SNAPSHOT_PATIENCE => {
+            state.snapshot = Snap::Idle;
+            out.push(Intent::FileFailed {
+                what: "the snapshot was not taken".to_string(),
+                why: "no picture came back from the renderer".to_string(),
+            });
+        }
+        Snap::Waiting(n) => {
+            state.snapshot = Snap::Waiting(n + 1);
+            ui.ctx().request_repaint();
+        }
+    }
 }
 
 /// The tiles' behaviour: each pane draws its view-model.

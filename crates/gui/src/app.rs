@@ -163,6 +163,52 @@ impl GuiApp {
         }
     }
 
+    /// A picture egui took of a frame whose banner says it is never citable: encode it as a
+    /// PNG whose text chunks say so too, and write it to a new file in `snapshots/` beside the
+    /// session (G1). A picture nobody asked for is ignored; with no session directory there is
+    /// nowhere to write, and the log says so.
+    pub fn save_snapshot(&mut self, image: &egui::ColorImage) {
+        if !matches!(self.ui.snapshot, ui::Snap::Waiting(_)) {
+            return;
+        }
+        self.ui.snapshot = ui::Snap::Idle;
+        let marks = ui::snapshot_marks(&self.model, &self.ui.lab);
+        let rgba: Vec<u8> = image
+            .pixels
+            .iter()
+            .flat_map(|c| c.to_srgba_unmultiplied())
+            .collect();
+        let [w, h] = image.size;
+        let result = u32::try_from(w)
+            .ok()
+            .zip(u32::try_from(h).ok())
+            .ok_or_else(|| "the picture is too large".to_string())
+            .and_then(|(w, h)| platform::snapshot::png(&rgba, w, h, &marks))
+            .and_then(|bytes| {
+                let dir = self
+                    .host
+                    .files()
+                    .map(|f| f.dir().to_path_buf())
+                    .ok_or("no session directory to write it in")?;
+                let date = self
+                    .model
+                    .today()
+                    .map_or_else(|| "undated".to_string(), |d| d.to_string());
+                platform::snapshot::write(&dir, &date, &bytes)
+            });
+        let i = match result {
+            Ok(path) => Intent::Note(format!(
+                "snapshot saved as {}: never citable, as its banner and its text say",
+                path.display()
+            )),
+            Err(why) => Intent::FileFailed {
+                what: "the snapshot was not saved".to_string(),
+                why,
+            },
+        };
+        self.host.act(&mut self.model, i);
+    }
+
     /// Smoke mode, once a frame: start the run when the tape has loaded, record each frame's
     /// CPU while it runs and for a tail after it pauses, then report and close.
     fn smoke_frame(&mut self, ctx: &egui::Context, cpu: Option<f32>) {
@@ -245,6 +291,15 @@ impl eframe::App for GuiApp {
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
+        let shot = ui.ctx().input(|i| {
+            i.raw.events.iter().find_map(|e| match e {
+                egui::Event::Screenshot { image, .. } => Some(image.clone()),
+                _ => None,
+            })
+        });
+        if let Some(image) = shot {
+            self.save_snapshot(&image);
+        }
         let intents = ui::draw(ui, &self.model, &mut self.tree, &mut self.ui);
         for i in intents {
             self.host.act(&mut self.model, i);

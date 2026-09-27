@@ -9,6 +9,8 @@
 //! set aside as `<name>.unreadable`, never overwritten. A saved tape, its lineage and an
 //! export's files are written only where no file is: nothing the user has is written over.
 
+pub mod snapshot;
+
 use rustyecon_engine::prelude::Date;
 use std::path::{Path, PathBuf};
 

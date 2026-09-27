@@ -10,11 +10,14 @@ use crate::run::{LedgerCheck, RunId};
 use crate::vm::toolbar::{self, Status, ToolbarVm};
 use egui::{Button, RichText};
 
-/// The toolbar's own text: the "run until" field and why it did not read.
+/// The toolbar's own text: the "run until" field and why it did not read; and whether its
+/// Snapshot button was pressed this frame (G1).
 #[derive(Debug, Default)]
 pub struct ToolbarState {
     until: String,
     error: Option<String>,
+    /// Snapshot was pressed: `ui::draw` takes it.
+    pub snapshot: bool,
 }
 
 /// The speed caps offered, in model years a second; `None` runs as fast as the machine does.
@@ -44,6 +47,16 @@ pub fn show(ui: &mut egui::Ui, m: &Model, st: &mut ToolbarState, out: &mut Vec<I
             .clicked()
         {
             out.push(Intent::PickTape);
+        }
+        if ui
+            .button("Snapshot")
+            .on_hover_text(
+                "save a PNG of the window in snapshots/ beside the session, marked never \
+                 citable in the picture and in the file",
+            )
+            .clicked()
+        {
+            st.snapshot = true;
         }
         let runs: Vec<(RunId, String)> = m
             .runs()
