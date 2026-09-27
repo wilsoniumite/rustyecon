@@ -1,29 +1,35 @@
 //! d8: regimes, validation and reductions (docs/unit-1d.md §8): exact zeros at the junctions,
 //! viability unchanged by the worker types, every validation rule, the worker types permuted,
-//! efficiency measured in other units, and the walk's ceiling.
+//! efficiency measured in other units, the walk's ceiling, the edge of a reserved shortage on
+//! the line and in a tie's split, and the rules at exact equality.
 
 use oracle::{
     MachineEconomy, Margin, ParamError, Regime, Shortage, SolveError, WorkerEconomy, WorkerParams,
-    BRACKET_LO,
+    WorkerPoint, BRACKET_LO,
 };
+use rustyecon_core::num;
 
 use crate::g8_regimes::saturated;
+use crate::goldens_1d::*;
 use crate::support::*;
 use crate::support_1b::category;
 use crate::support_1c::*;
 use crate::support_1d::*;
 
-/// G1 (χ_max 1) with N chosen so that f on the line at x is exactly 0 in f64: supply there is
-/// N·c with c = F(ln(1 + v/P_s)) independent of N, so among the doubles next to n_D(x)/c one
-/// has N·c = n_D(x) exactly.
-fn exact_zero_at(x: f64) -> WorkerParams {
-    let probe = economy_1d(goodspace(1.0, 0.05, 1.0));
-    let q = probe.at_with(x, 0);
+/// The one-type economy `build(N)` with N chosen so that f at the point `at` evaluates is
+/// exactly 0 in f64: supply there is N·c with c = F(ln(1 + v/P_s)) independent of N (and n_D
+/// too), so among the doubles next to n_D/c one has N·c = n_D exactly.
+fn exact_zero(
+    what: &str,
+    build: impl Fn(f64) -> WorkerParams,
+    at: impl Fn(&WorkerEconomy) -> WorkerPoint,
+) -> WorkerParams {
+    let q = at(&economy_1d(build(1.0)));
     let c = q.n_s;
     let mut n = q.n_d / c;
     for _ in 0..64 {
         if n * c == q.n_d {
-            return goodspace(n, 0.05, 1.0);
+            return build(n);
         }
         n = if n * c < q.n_d {
             n.next_up()
@@ -31,7 +37,16 @@ fn exact_zero_at(x: f64) -> WorkerParams {
             n.next_down()
         };
     }
-    panic!("no N gives f({x}) = 0 exactly");
+    panic!("no N gives f = 0 exactly at {what}");
+}
+
+/// G1 (χ_max 1) with f on the line at x exactly 0 in f64.
+fn exact_zero_at(x: f64) -> WorkerParams {
+    exact_zero(
+        &format!("x = {x}"),
+        |n| goodspace(n, 0.05, 1.0),
+        |e| e.at_with(x, 0),
+    )
 }
 
 #[test]
@@ -70,14 +85,26 @@ fn exact_zeros_at_the_junctions() {
     assert_eq!(eq.bisection_steps, 0);
     assert!(eq.f_line_0.unwrap() > 0.0);
     check_identities_1d(&e, &eq);
-    // The knife edge (§12): with supply saturated at N = n_D(1), f is 0 on the whole wall and
-    // at its end, which counts on the positive side (no equilibrium at v = ∞): no change of
-    // side, LaborShort, although every wage on the wall clears labour.
+    // The saturated knife edge (§12 items 4 and 17): with supply saturated at N = n_D(1), f is
+    // 0 on the whole wall and at its end. The wall's piece starts at an exact zero, so f_∞ = 0
+    // counts on the negative side and the junction is the equilibrium: x* = 1 and v = v(1),
+    // without a bisection step, as with the unsaturated exact zero above (the exact economy on
+    // these doubles has its root within 5e-17 of x = 1: not decidable in f64, §5.5).
     let n_1 = economy_1d(from_1a(saturated(1.0))).at_with(1.0, 0).n_d;
     let e = economy_1d(from_1a(saturated(n_1)));
-    assert_eq!(e.at_with(1.0, 0).excess_demand(), 0.0);
+    let line = e.at_with(1.0, 0);
+    assert_eq!(line.excess_demand(), 0.0);
     assert_eq!(e.wall_end().excess, 0.0);
-    assert!(matches!(e.solve(), Err(SolveError::LaborShort { excess, .. }) if excess == 0.0));
+    let (values, changes) = sequence_1d(&e);
+    assert_eq!((values[values.len() - 2], changes), (0.0, 1));
+    let eq = solved_1d(from_1a(saturated(n_1)));
+    assert_eq!(eq.margin, Margin::Wall);
+    assert_eq!(eq.v.to_bits(), line.v.to_bits());
+    assert_eq!(
+        (eq.bisection_steps, eq.f_line_1, eq.f_end),
+        (0, Some(0.0), 0.0)
+    );
+    check_identities_1d(&e, &eq);
 }
 
 #[test]
@@ -193,6 +220,12 @@ fn validation() {
         with(&|p| {
             p.human_required.pop();
         }),
+        None,
+        "human_required",
+    );
+    rejected(
+        "human_required too long",
+        with(&|p| p.human_required.push(0.0)),
         None,
         "human_required",
     );
@@ -445,62 +478,94 @@ fn walk_ceiling() {
 }
 
 #[test]
-fn a_jump_to_a_shortage_is_labor_short() {
-    // E's economy with abundant entrants (N_E 40, χ_max 0.05) and N_T 1: low on the line Y is
-    // large and the trained's reserved demand D_T = 0.12·Y exceeds N_T (short, +∞); where it
-    // falls below N_T the pool is in excess supply. The one change of side is a jump, not a
-    // root: no point clears both markets, and the solve says LaborShort, naming the trained,
-    // rather than bisecting onto the jump (docs/unit-1d.md §12).
-    let e = economy_1d(entrant_trained(40.0, 1.0, 1.0, 0.05));
+fn the_edge_of_a_reserved_shortage() {
+    // J1 (§12 item 16): E's economy with abundant entrants (N_E 40, χ_max 0.05) and N_T 1. Low
+    // on the line Y is large and the trained's reserved demand D_T = 0.12·Y exceeds N_T (short,
+    // +∞); from the double where it has fallen to N_T the pool is far in excess supply. At that
+    // edge the trained's supply is vertical at N_T for every real wage above expm1(0.8), and the
+    // one that clears the pool is the equilibrium: the trained walled at κ·ν·P_s with all its
+    // hours reserved, "a scarcity price … set by demand" (main.tex:584). A unit that refuses the
+    // jump reports LaborShort; one that bisects onto it at the type's own ζ leaves the pool in
+    // excess supply.
+    let (e, eq) = checked_1d(entrant_trained(40.0, 1.0, 1.0, 0.05));
     let (values, changes) = sequence_1d(&e);
-    assert_eq!(changes, 1);
-    assert_eq!(values[0], f64::INFINITY);
-    match e.solve() {
-        Err(SolveError::LaborShort { excess, reserved }) => {
-            assert_eq!((excess, reserved), (f64::INFINITY, Some(1)));
-        }
-        other => panic!("{other:?}"),
+    assert_eq!((values[0], changes), (f64::INFINITY, 1));
+    check_count_1d(&e, &e.solve());
+    assert_eq!(eq.margin, Margin::Contestable);
+    let trained = &eq.workers[1];
+    assert!(trained.edge && !trained.pooled && !eq.workers[0].edge);
+    assert!(trained.clearing_real_wage > num::expm1(0.8));
+    // x* is the edge's finite side: short one double below, and in excess supply at the
+    // trained's own ζ.
+    assert_eq!(
+        e.at_with(eq.x_star.next_down(), 0).short,
+        Some(Shortage::Reserved(1))
+    );
+    assert!(e.at_with(eq.x_star, 0).excess_demand() < -10.0);
+    for (name, got, want) in [
+        ("x*", eq.x_star, J1_X_STAR),
+        ("v", eq.v, J1_V),
+        ("P_s", eq.p_s, J1_P_S),
+        ("Y", eq.y, J1_Y),
+        ("N_a", eq.n_a, J1_N_A),
+        ("n_pool", eq.n_pool, J1_N_POOL),
+        ("entrant hours", eq.workers[0].hours, J1_ENTRANT_HOURS),
+        ("trained wage", trained.wage, J1_TRAINED_WAGE),
+        ("kappa", trained.clearing_real_wage, J1_TRAINED_CLEARING),
+        ("premium", trained.premium.unwrap(), J1_TRAINED_PREMIUM),
+    ] {
+        close(name, got, want);
     }
-    // The jump: adjacent doubles, short below and far in excess supply above.
-    let (mut lo, mut hi) = (0.0f64, 1.0f64);
-    while lo.next_up() < hi {
-        let mid = 0.5 * (lo + hi);
-        if e.at_with(mid, 0).short.is_some() {
-            lo = mid;
-        } else {
-            hi = mid;
-        }
-    }
-    assert_eq!(e.at_with(lo, 0).short, Some(Shortage::Reserved(1)));
-    assert!(e.at_with(hi, 0).excess_demand() < -10.0);
+    close("trained hours = N_T", trained.hours, 1.0);
+    // The steps count both bisections: x to adjacent doubles in [lo, 1] (about 53) and κ on
+    // bit patterns (up to 64).
+    assert!(eq.bisection_steps > 64, "{}", eq.bisection_steps);
     check_path_1d(&e);
-    // The same jump inside [0, 1e-12], where the solve bisects on bit patterns: N_T between
-    // the trained's reserved demand at x = 0 and at lo (Y falls by about 1e-13 relative
-    // across the stretch, and D_T with it), so f(0) is +∞ and f(lo) far below 0.
-    let d_0 = e.at_with(0.0, 0).reserved_demand[1];
-    let d_lo = e.at_with(BRACKET_LO, 0).reserved_demand[1];
-    assert!(d_lo < d_0);
-    let n_t = 0.5 * (d_0 + d_lo);
-    assert!(d_lo < n_t && n_t < d_0);
-    let e = economy_1d(entrant_trained(40.0, n_t, 1.0, 0.05));
+    // J1b: the same edge inside [0, 1e-12], where the solve bisects on bit patterns: N_T the
+    // double midway between the trained's reserved demand at x = 0 and at lo (Y falls by about
+    // 2e-13 relative across the stretch, and D_T with it), so f(0) is +∞ and f(lo) far below 0.
+    let e = economy_1d(entrant_trained(40.0, J1B_N_T, 1.0, 0.05));
+    let (d_0, d_lo) = (
+        e.at_with(0.0, 0).reserved_demand[1],
+        e.at_with(BRACKET_LO, 0).reserved_demand[1],
+    );
+    assert!(d_lo < J1B_N_T && J1B_N_T < d_0);
     let (values, changes) = sequence_1d(&e);
     assert_eq!((values[0], changes), (f64::INFINITY, 1));
     assert!(values[1] < -10.0);
-    match e.solve() {
-        Err(SolveError::LaborShort { excess, reserved }) => {
-            assert_eq!((excess, reserved), (f64::INFINITY, Some(1)));
-        }
-        other => panic!("{other:?}"),
+    let (_, eq) = checked_1d(entrant_trained(40.0, J1B_N_T, 1.0, 0.05));
+    assert!(eq.workers[1].edge && eq.x_star > 0.0 && eq.x_star < BRACKET_LO);
+    assert!(eq.bisection_steps <= 2 * 64);
+    // x* is resolved to the rounding of D_T over its slope, absolute (§5.5, as W5's): 8 ulps.
+    let slope = (d_0 - d_lo) / BRACKET_LO;
+    near(
+        "x*",
+        eq.x_star,
+        J1B_X_STAR,
+        8.0 * f64::EPSILON * J1B_N_T / slope,
+    );
+    for (name, got, want) in [
+        ("v", eq.v, J1B_V),
+        ("P_s", eq.p_s, J1B_P_S),
+        ("trained wage", eq.workers[1].wage, J1B_TRAINED_WAGE),
+        (
+            "kappa",
+            eq.workers[1].clearing_real_wage,
+            J1B_TRAINED_CLEARING,
+        ),
+    ] {
+        close(name, got, want);
     }
 }
 
 #[test]
-fn a_tie_across_a_shortage() {
-    // F's economy at η 0.5 with N_T between the trained's reserved demand at the line's switch
-    // under the loom and under the engine: the loom's side is short (+∞), the engine's clears.
-    // The tie's σ moves Y and D_T with it, so f(σ) is +∞ up to some σ and finite after. With
-    // N_E 30 it is already below 0 there: a jump, LaborShort. With N_E 16 it falls through 0
-    // after the jump: a tie with the trained at its wall, every identity holding.
+fn the_edge_in_a_ties_share() {
+    // J2 (§12 item 16): F's economy at η 0.5 with N_T the double midway between the trained's
+    // reserved demand at the line's switch under the loom and under the engine: the loom's side
+    // is short (+∞), the engine's clears. The tie's σ moves Y and D_T with it; with N_E 30 the
+    // pool is already in excess supply where D_T reaches N_T, so the equilibrium is that edge in
+    // σ, the trained walled at κ. With N_E 16 f(σ) falls through 0 after the edge: a tie with
+    // the trained at its wall at its own ζ.
     let probe = economy_1d(full(16.0, 1.5, 0.5));
     let x = probe.switch_points().unwrap()[0];
     let s = probe.machines().envelope().switches[0];
@@ -508,21 +573,97 @@ fn a_tie_across_a_shortage() {
         probe.at_with(x, s.below).reserved_demand[1],
         probe.at_with(x, s.above).reserved_demand[1],
     );
-    assert!(d_above < d_below);
-    let n_t = 0.5 * (d_below + d_above);
-    let e = economy_1d(full(30.0, n_t, 0.5));
-    assert_eq!(e.at_with(x, s.below).excess_demand(), f64::INFINITY);
+    assert!(d_above < J2_N_T && J2_N_T < d_below);
+    let (e, eq) = checked_1d(full(30.0, J2_N_T, 0.5));
+    check_count_1d(&e, &e.solve());
+    let q = e.at_with(x, s.below);
+    assert_eq!(q.excess_demand(), f64::INFINITY);
     assert!(e.at_with(x, s.above).excess_demand() < 0.0);
-    match e.solve() {
-        Err(SolveError::LaborShort { excess, reserved }) => {
-            assert_eq!((excess, reserved), (f64::INFINITY, Some(1)));
-        }
-        other => panic!("{other:?}"),
+    let tie = eq.tie.expect("a tie");
+    assert_eq!((eq.x_star, eq.technique, tie.above), (x, s.below, s.above));
+    let trained = &eq.workers[1];
+    assert!(trained.edge && !trained.pooled);
+    assert!(trained.clearing_real_wage > num::expm1(0.8));
+    // σ is the edge's finite side: the mix one double below is short, and at σ with the
+    // trained's own ζ the pool is in excess supply.
+    assert_eq!(
+        e.excess_at_share(&q, s.above, tie.share.next_down()),
+        f64::INFINITY
+    );
+    assert!(e.excess_at_share(&q, s.above, tie.share) < 0.0);
+    for (name, got, want) in [
+        ("sigma", tie.share, J2_SHARE),
+        ("v", eq.v, J2_V),
+        ("P_s", eq.p_s, J2_P_S),
+        ("Y", eq.y, J2_Y),
+        ("N_a", eq.n_a, J2_N_A),
+        ("trained wage", trained.wage, J2_TRAINED_WAGE),
+        ("kappa", trained.clearing_real_wage, J2_TRAINED_CLEARING),
+    ] {
+        close(name, got, want);
     }
-    let (e, eq) = checked_1d(full(16.0, n_t, 0.5));
+    let (e, eq) = checked_1d(full(16.0, J2_N_T, 0.5));
     assert_eq!(e.at_with(x, s.below).excess_demand(), f64::INFINITY);
     let tie = eq.tie.expect("a tie");
     assert!(tie.share > 0.0 && tie.share < 1.0);
+    assert!(!eq.workers[1].pooled && !eq.workers[1].edge);
+    assert!(eq.workers[1].reserved_hours < J2_N_T);
+}
+
+#[test]
+fn rules_at_exact_equality() {
+    // A reserved market with demand equal to its workers is not short (§4.3: short when
+    // D_i > N_i). E3's economy with N_T the double D_T(1) = Y(1)·R_ŷT, which does not depend on
+    // N_T: at x = 1 the trained's demand is its workers exactly, and its ζ is expm1(χ_max).
+    let d_1 = economy_1d(entrant_trained(8.0, 2.0, 0.3, 1.0))
+        .at_with(1.0, 0)
+        .reserved_demand[1];
+    let e = economy_1d(entrant_trained(8.0, d_1, 0.3, 1.0));
+    let one = e.at_with(1.0, 0);
+    assert_eq!(one.reserved_demand[1], d_1);
+    assert_eq!(one.short, None);
+    assert_eq!(one.clearing[1], num::expm1(0.8));
+    assert!(one.excess_demand().is_finite());
+    let (e, eq) = checked_1d(entrant_trained(8.0, d_1, 0.3, 1.0));
+    check_count_1d(&e, &e.solve());
+    assert_eq!(eq.x_star, 1.0);
     assert!(!eq.workers[1].pooled);
-    assert!(eq.workers[1].reserved_hours < n_t);
+    // The walk walls a type only when c_i·P > e_i: at equality it stays pooled (§4.3), which
+    // the walk's unit test `walk_keeps_a_type_at_its_threshold_pooled` pins.
+    // The all-human corner reports the cheapest task type at its wage, ties to the lower index
+    // (§5.3): W4 with Appendix B's machine twice, each using only itself.
+    let twice = |mut params: WorkerParams| {
+        let m = appendix_b_machine();
+        let mut first = m.clone();
+        first.build.machines = vec![m.build.machines[0], 0.0];
+        first.operating.machines = vec![0.0, 0.0];
+        let mut second = first.clone();
+        second.build.machines = vec![0.0, m.build.machines[0]];
+        params.machine_types = vec![first, second];
+        params
+    };
+    let (e, eq) = checked_1d(twice(goodspace(20.0, 0.05, 0.05)));
+    assert_eq!(eq.margin, Margin::AllHuman);
+    assert_eq!(eq.types[0].price.to_bits(), eq.types[1].price.to_bits());
+    assert_eq!(eq.technique, 0);
+    check_path_1d(&e);
+    // A root at a wall switch's value below, exactly 0: the piece's upper end, v = v_s, without
+    // a bisection step (§5.3 step 3). X's economy with N among the doubles next to n_D/c there.
+    let at_switch = |e: &WorkerEconomy| {
+        let s = e.wall_switches()[0];
+        e.at_wage(1.0, s.wage, s.below)
+    };
+    let params = exact_zero("the wall switch", wall_switch_economy, at_switch);
+    let e = economy_1d(params.clone());
+    assert_eq!(at_switch(&e).excess_demand(), 0.0);
+    let s = e.wall_switches()[0];
+    let eq = solved_1d(params);
+    assert_eq!(
+        (eq.margin, eq.technique, eq.tie),
+        (Margin::Wall, s.below, None)
+    );
+    assert_eq!(eq.v.to_bits(), s.wage.to_bits());
+    assert_eq!(eq.bisection_steps, 0);
+    assert!(eq.f_line_1.unwrap() > 0.0);
+    check_identities_1d(&e, &eq);
 }

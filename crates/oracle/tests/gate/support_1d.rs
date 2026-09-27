@@ -7,10 +7,11 @@
 use std::collections::BTreeMap;
 
 use oracle::{
-    CategoryParams, Eq1d, MachineParams, MachineType, Margin, Output1b, Params, PowerSchedule,
-    Recipe, Regime, Residuals1d, Schedule, SolveError, UniformWorkCost, WorkerEconomy,
-    WorkerParams, WorkerPoint, WorkerType, BRACKET_LO,
+    CategoryParams, Edge, Eq1d, MachineParams, MachineType, Margin, Output1b, Params,
+    PowerSchedule, Recipe, Regime, Residuals1d, Schedule, SolveError, UniformWorkCost,
+    WorkerEconomy, WorkerParams, WorkerPoint, WorkerType, BRACKET_LO,
 };
+use rustyecon_core::num;
 
 use crate::support::*;
 use crate::support_1b::*;
@@ -183,11 +184,20 @@ pub fn wall_switch_economy(workers: f64) -> WorkerParams {
     })
 }
 
-/// The evaluation that priced an equilibrium: the line's at x* on the line, the wage-given one
-/// at a corner, under the reported technique.
+/// The type at the edge of its reserved shortage at an equilibrium, if one is (§12 item 16).
+pub fn edge_of(eq: &Eq1d) -> Option<Edge> {
+    eq.workers.iter().position(|w| w.edge).map(|worker| Edge {
+        worker,
+        clearing: eq.workers[worker].clearing_real_wage,
+    })
+}
+
+/// The evaluation that priced an equilibrium: the line's at x* on the line (with the type at
+/// its edge, if one is), the wage-given one at a corner, under the reported technique.
 pub fn point_of(economy: &WorkerEconomy, eq: &Eq1d) -> WorkerPoint {
-    match eq.margin {
-        Margin::Contestable => economy.at_with(eq.x_star, eq.technique),
+    match (eq.margin, edge_of(eq)) {
+        (Margin::Contestable, Some(edge)) => economy.at_edge(eq.x_star, eq.technique, edge),
+        (Margin::Contestable, None) => economy.at_with(eq.x_star, eq.technique),
         _ => economy.at_wage(eq.x_star, eq.v, eq.technique),
     }
 }
@@ -474,6 +484,26 @@ pub fn check_identities_1d(economy: &WorkerEconomy, eq: &Eq1d) {
             }
         }
     }
+    // The technique's outputs at g = v/π on every stretch (γ(x*) on the line): its closure
+    // wage at g is v, and φ_w = g·λ̃_τ/θ_τ = v·λ̃_τ/p_τ (§4.7).
+    let tau = &eq.types[eq.technique];
+    close(
+        &at("closure wage of tau"),
+        tau.closure_wage.unwrap_or(f64::NAN),
+        eq.v,
+    );
+    if let Some(phi) = eq.phi_w {
+        close(&at("phi_w"), eq.v * tau.lambda_tilde / tau.price, phi);
+        close(&at("phi_w + phi_r"), phi + eq.phi_r.unwrap(), 1.0);
+    }
+    // Lemma B.1 with the support ν (eq 25): f_line(1) < 0 and T > ν·P_s(1).
+    let at_one = economy.at_with(1.0, economy.machines().envelope().last());
+    assert_eq!(
+        eq.lemma_b1,
+        at_one.excess_demand() < 0.0 && p.land > economy.support() * at_one.p_s,
+        "{}",
+        at("lemma B.1")
+    );
     // The cheapest task type (SSRN A.1).
     for k in 0..k_count {
         if types[k].task_efficiency > 0.0 {
@@ -549,6 +579,22 @@ pub fn check_identities_1d(economy: &WorkerEconomy, eq: &Eq1d) {
             w.wage,
         );
         assert_eq!(w.efficiency, t.efficiency);
+        // ζ_i from the type's demand; at the edge of its shortage κ_i ≥ ζ_i, its demand within
+        // rounding of its workers, and the type walled (§12 item 16).
+        let zeta = num::expm1(t.work_cost.chi_max * (w.reserved_hours / t.workers));
+        if w.edge {
+            assert!(!w.pooled, "{}", at("the edge type is walled"));
+            close(&at("edge: D = N"), w.reserved_hours, t.workers);
+            at_most(&at("edge: kappa >= zeta"), zeta, w.clearing_real_wage);
+            assert_eq!(edge_of(eq).map(|e| e.worker), Some(i), "one edge");
+        } else {
+            assert_eq!(
+                w.clearing_real_wage.to_bits(),
+                zeta.to_bits(),
+                "{}",
+                at("zeta")
+            );
+        }
         if w.pooled {
             assert_eq!(
                 w.wage.to_bits(),
@@ -924,7 +970,8 @@ pub fn check_identities_1d(economy: &WorkerEconomy, eq: &Eq1d) {
 
 /// The sequence of docs/unit-1d.md §5.3 step 2 from the public evaluations, and its number of
 /// changes of side: f(0), f(lo), each line switch (below, above), f(1), each wall switch
-/// (below, above), f_∞, with a positive side first, f(1) and f_∞ positive when ≥ 0.
+/// (below, above), f_∞, with a positive side first, f(1) and f_∞ positive when ≥ 0, except
+/// f_∞ = 0 after a last piece that starts at an exact zero (§12 item 17).
 pub fn sequence_1d(economy: &WorkerEconomy) -> (Vec<f64>, usize) {
     let env = economy.machines().envelope();
     let f = |q: WorkerPoint| q.excess_demand();
@@ -950,8 +997,10 @@ pub fn sequence_1d(economy: &WorkerEconomy) -> (Vec<f64>, usize) {
     let last = values.len() - 1;
     let mut sides = vec![true];
     for (i, &v) in values.iter().enumerate() {
-        sides.push(if i == one || i == last {
+        sides.push(if i == one {
             v >= 0.0
+        } else if i == last {
+            v > 0.0 || (v == 0.0 && values[i - 1] != 0.0)
         } else {
             v > 0.0
         });
@@ -1026,21 +1075,34 @@ pub fn check_path_1d(economy: &WorkerEconomy) {
                 .collect();
             monotone("wall", &values);
         }
+        // f_∞ (§4.5, the walk with every type's efficiency) is the limit of f on the wall's
+        // last piece: its value 10^10 times further up than the piece's start.
+        let end = economy.wall_end();
+        let &(start, last) = starts.last().unwrap();
+        assert_eq!(end.technique, last);
+        if end.excess.is_finite() {
+            let far = economy.at_wage(1.0, 1e10 * start.max(1.0), last);
+            assert!(
+                (far.excess_demand() - end.excess).abs() <= 1e-6 * far.n_d.max(1.0),
+                "f_end {:e} is not the limit of the wall, {:e}, at {p:?}",
+                end.excess,
+                far.excess_demand()
+            );
+        }
     }
 }
 
-/// The count of the sequence against the solve's result: one equilibrium, none
-/// (`LaborShort`; one when its change of side is a jump to a short point, excess +∞), or
-/// `MultipleEquilibria` with the count.
+/// The count of the sequence against the solve's result: one equilibrium (the edge of a
+/// reserved shortage among them), none (`LaborShort`), or `MultipleEquilibria` with the count.
 pub fn check_count_1d(economy: &WorkerEconomy, result: &Result<Regime<Eq1d>, SolveError>) {
     let (_, changes) = sequence_1d(economy);
     match result {
         Ok(Regime::Interior(_)) => assert_eq!(changes, 1),
         Ok(Regime::NotViable { .. }) => {}
-        Err(SolveError::LaborShort { excess, .. }) if changes == 1 => {
-            assert_eq!(*excess, f64::INFINITY, "a jump")
+        Err(SolveError::LaborShort { excess, .. }) => {
+            assert_eq!(changes, 0);
+            assert_eq!(*excess, economy.wall_end().excess);
         }
-        Err(SolveError::LaborShort { .. }) => assert_eq!(changes, 0),
         Err(SolveError::MultipleEquilibria { sign_changes, .. }) => {
             assert_eq!(*sign_changes, changes)
         }

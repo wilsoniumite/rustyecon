@@ -3,11 +3,11 @@
 # Each line is KEY = value  # note. Values carry 30 significant digits.
 # Equations: docs/unit-1d.md section 4. laborformal references are at 31b3482.
 # The one-type form nests generate_1c.py's solves within 8.72e-72 (1e-65 asserted).
-# fnv1a64 generate_1d.py = 9603c4dcaa02d593
+# fnv1a64 generate_1d.py = d686b5e68d108fe9
 # fnv1a64 generate_1c.py = c40f0a2b406dd67e
 # fnv1a64 generate_1b.py = 909520ffb1f41ee9
 # fnv1a64 generate.py = cf9d71a6ac25699d
-# fnv1a64 body = 0b88d163240d7903
+# fnv1a64 body = 2b0dfa042de66651
 
 # D0: unit 1c's boundary rows in one-type form, solved (docs/unit-1d.md section 3.3)
 D0_M4_ETA025_V = 0.064963057288499518553531792385  # M4 at eta 0.25 (1c's BoundaryNoMargin): the wall's wage
@@ -214,6 +214,13 @@ E8_TRAINED_PREMIUM = 1.00209414748631574322360131671  # the trained's premium
 E8_MASTER_WAGE = 1.34744268597079079759396569327  # the master's wage
 E8_MASTER_PREMIUM = 1.22900870232505408628320733948  # the master's premium
 
+# E9: E4 with chi_max 3 for both types: the end of the wall with supply unsaturated (docs/unit-1d.md section 12 item 18)
+E9_V = 4.38626936911682199688506415385  # the wall's wage
+E9_P_S = 3.18452002222771155693684430982  # P_s
+E9_F_END = -1.26286208450989347388594978734  # f at the end of the wall, both types unsaturated there
+E9_OMEGA_END = 2.20994475138121546961325966851  # omega_infinity, from the walk with every type's efficiency
+E9_TRAINED_WAGE = 6.74384682619481302321386939915  # the trained's wage
+
 # F: 1c's M4 with L^H_care 0.2, the entrant and the trained (docs/unit-1d.md section 3.3)
 F1_X_STAR = 0.988893686967310945791987079218  # x*, with the engine
 F1_V = 0.15114482308841387645537250594  # v
@@ -268,3 +275,29 @@ X3_P_S = 1.78505204721548030243413657177  # P_s
 X3_Y = 9.78282136568186264918802582665  # Y
 X3_N_A = 0.0023478771277636470358051261984  # N_a
 X3_INTEREST = 7.42318369009524549184103053822  # interest
+
+# J: the edge of a reserved shortage (docs/unit-1d.md section 12 item 16)
+J1_X_STAR = 0.5  # x*, where the trained's reserved demand D_T = 0.12 Y reaches N_T 1
+J1_V = 0.358208955223880597014925373134  # v
+J1_P_S = 29.7239137185910182980504597507  # P_s
+J1_Y = 8.33333333333333333333333333333  # Y
+J1_N_A = 10.5833333333333333333333333333  # N_a
+J1_N_POOL = 9.58333333333333333333333333333  # the pool's efficiency hours
+J1_ENTRANT_HOURS = 9.58333333333333333333333333333  # the entrant's hours
+J1_TRAINED_WAGE = 234.266445167362963429027463096  # the trained's wage, kappa nu P_s
+J1_TRAINED_CLEARING = 6.567844311745738328275545016  # kappa, above expm1(0.8): set by the pool's clearing
+J1_TRAINED_PREMIUM = 435.995884061481070826245556318  # the trained's premium
+J1B_N_T = 1.19999999999987982945981457306  # N_T, the double midway between D_T(0) and D_T(1e-12)
+J1B_X_STAR = 0.000000000000500710584105494319770794500173  # x*, the edge below 1e-12
+J1B_V = 0.11594202898574282539558839316  # v
+J1B_P_S = 4.57995168831696342356227694475  # P_s
+J1B_TRAINED_WAGE = 27.9005635862123147730925021681  # the trained's wage
+J1B_TRAINED_CLEARING = 5.07657530853147293893752250424  # kappa
+J2_N_T = 0.754214671091173349815051096812  # N_T, the double midway between D_T under the loom and the engine
+J2_SHARE = 0.498249245699340117268319883164  # sigma, where the mix's D_T reaches N_T
+J2_V = 0.064963057288499518553531792385  # v
+J2_P_S = 1.95177924455686918009378004314  # P_s
+J2_Y = 6.73405956331404776620581336439  # Y
+J2_N_A = 1.73647761261939991875205986741  # N_a
+J2_TRAINED_WAGE = 4.03824296625370907221357425363  # the trained's wage
+J2_TRAINED_CLEARING = 1.72417166606468576191547182864  # kappa

@@ -199,9 +199,10 @@ class Economy(g1c.Economy):
             assert rel(P, Pbase + sum(max(e[i], c[i] * P) for i in range(self.I))) < TOL
         return P, sorted(walled)
 
-    def evaluate(self, x, t, w=None, split=None):
+    def evaluate(self, x, t, w=None, split=None, edge=None):
         """Section 5.1 at (x, t) on the line (w None) or at a corner's wage w, with the task
-        services split as given (by default all to t)."""
+        services split as given (by default all to t), and with edge = (i, kappa) a type at the
+        edge of its reserved shortage, kappa in place of its zeta (section 12 item 16)."""
         x = M(x)
         ps = self.price_side(x, t, w)
         if ps is None:
@@ -228,10 +229,12 @@ class Economy(g1c.Economy):
                 out.update(short=("reserved", i), f=INF)
                 return out
         zeta = [mp.expm1(self.chi[i] * D[i] / self.Nw[i]) for i in range(I)]
+        if edge is not None:
+            zeta[edge[0]] = edge[1]
         e = [self.eps[i] * w * self.lR[i] for i in range(I)]
         c = [zeta[i] * self.sig[i] * self.lR[i] for i in range(I)]
         P, walled = self.walk(Pbase, e, c)
-        out.update(zeta=zeta, e=e, c=c)
+        out.update(zeta=zeta, e=e, c=c, edge=edge)
         if P is None:
             out.update(short=("ceiling", walled), f=INF)
             return out
@@ -347,8 +350,13 @@ class Economy(g1c.Economy):
             seq.append((("WallBelow", s), qb["f"]))
             seq.append((("WallAbove", s), qa["f"]))
         end = self.wall_end(wtechs[-1])
+        last_start = seq[-1][1]
         seq.append(("End", end["f"]))
-        sides = [True] + [(f >= 0 if kind in ("One", "End") else f > 0) for kind, f in seq]
+        # f_infinity = 0 is positive (no equilibrium at v = infinity), except after a last piece
+        # that starts at an exact zero, which is then the equilibrium (section 12 item 17)
+        side = lambda kind, f: (f >= 0 if kind == "One" else  # noqa: E731
+                                (f > 0 or (f == 0 and last_start != 0)) if kind == "End" else f > 0)
+        sides = [True] + [side(kind, f) for kind, f in seq]
         changes = [i for i in range(len(sides) - 1) if sides[i] != sides[i + 1]]
         base = dict(seq=seq, changes=len(changes), ltechs=ltechs, wtechs=wtechs, line_sw=line_sw,
                     wall_sw=wall_sw, xs=xs, wws=wws, one=one, at0=at0, atlo=atlo, f_line_1=one["f"],
@@ -374,7 +382,7 @@ class Economy(g1c.Economy):
                     lo = mid
                 else:
                     hi = mid
-            return "Contestable", self.report((lo + hi) / 2, first, base=base, margin="Contestable")
+            return "Contestable", self.line_root(lo, hi, first, base)
         if kind in ("Lo", "SwitchAbove"):
             r = 0 if kind == "Lo" else before[1] + 1
             t = ltechs[r]
@@ -385,19 +393,19 @@ class Economy(g1c.Economy):
                     lo = mid
                 else:
                     hi = mid
-            return "Contestable", self.report((lo + hi) / 2, t, base=base, margin="Contestable")
+            return "Contestable", self.line_root(lo, hi, t, base)
         if kind == "SwitchBelow":
             i = before[1]
             below, above = ltechs[i], ltechs[i + 1]
-            share = self.tie_share(xs[i], below, above, None)
+            share, edge = self.tie_share(xs[i], below, above, None)
             return "Contestable", self.report(xs[i], below, base=base, margin="Contestable",
-                                              tie=(above, share, line_sw[i][0]))
+                                              tie=(above, share, line_sw[i][0]), edge=edge)
         if kind == "WallBelow":
             s = before[1]
             below, above = wall_sw[s][1], wall_sw[s][2]
-            share = self.tie_share(M(1), below, above, wws[s])
+            share, edge = self.tie_share(M(1), below, above, wws[s])
             return "Wall", self.report(1, below, w=wws[s], base=base, margin="Wall",
-                                       tie=(above, share, wall_sw[s][0]))
+                                       tie=(above, share, wall_sw[s][0]), edge=edge)
         # a piece of the wall, from One or a WallAbove to a WallBelow or End
         piece = 0 if kind == "One" else before[1] + 1
         t = wtechs[piece]
@@ -418,10 +426,42 @@ class Economy(g1c.Economy):
         w = self.wage_of_omega(om, q)
         return "Wall", self.report(1, t, w=w, base=base, margin="Wall", omega=om)
 
+    def line_root(self, lo, hi, t, base):
+        """The root on the line that bisection bracketed by [lo, hi] under t. Where lo is short,
+        the bracket closed on the edge of that type's reserved shortage: the root is the edge,
+        hi, with the type's kappa (section 12 item 16)."""
+        ql = self.evaluate(lo, t)
+        if ql["short"] is None:
+            return self.report((lo + hi) / 2, t, base=base, margin="Contestable")
+        assert ql["short"][0] == "reserved"
+        i = ql["short"][1]
+        kappa = self.edge_kappa(i, lambda k: self.evaluate(hi, t, edge=(i, k))["f"])
+        return self.report(hi, t, base=base, margin="Contestable", edge=(i, kappa))
+
+    def edge_kappa(self, i, f):
+        """Section 12 item 16: type i's real wage per support basket at the edge of its reserved
+        shortage, where its supply is N_i for every kappa >= expm1(chi_max,i); f(kappa), the
+        pool's excess demand, rises with kappa, and the pool clears at the returned kappa."""
+        lo = mp.expm1(self.chi[i])
+        assert f(lo) < 0, "the edge's finite side is in excess supply"
+        hi = 2 * lo
+        while f(hi) < 0:
+            hi *= 2
+        for _ in range(HALVINGS):
+            mid = (lo + hi) / 2
+            if f(mid) < 0:
+                lo = mid
+            else:
+                hi = mid
+        return (lo + hi) / 2
+
     def tie_share(self, x, below, above, w):
         """Section 4.6: sigma at a switch of the line (w None) or of the wall (w = v_s): 1c's
-        closed form when no type is walled under either pure technique, else bisection."""
-        f = lambda s: self.evaluate(x, below, w=w, split=[(below, 1 - s), (above, s)])["f"]  # noqa: E731
+        closed form when no type is walled under either pure technique, else bisection; and the
+        type at the edge of its reserved shortage, (i, kappa), when that bisection closes on a
+        short mix (section 12 item 16), else None."""
+        mix = lambda s: [(below, 1 - s), (above, s)]  # noqa: E731
+        f = lambda s: self.evaluate(x, below, w=w, split=mix(s))["f"]  # noqa: E731
         fa, fb = f(mp.mpf(0)), f(mp.mpf(1))
         assert fa > 0 >= fb, (fa, fb)
         qa = self.evaluate(x, below, w=w)
@@ -430,7 +470,7 @@ class Economy(g1c.Economy):
             Ba, Bb = qa["qty"]["land"], qb["qty"]["land"]
             sig = Ba * fa / (Ba * fa - Bb * fb)
             assert abs(f(sig)) < TOL * qa["nD"]
-            return sig
+            return sig, None
         lo, hi = mp.mpf(0), mp.mpf(1)
         for _ in range(HALVINGS):
             mid = (lo + hi) / 2
@@ -438,7 +478,13 @@ class Economy(g1c.Economy):
                 lo = mid
             else:
                 hi = mid
-        return (lo + hi) / 2
+        ql = self.evaluate(x, below, w=w, split=mix(lo))
+        if ql["short"] is None:
+            return (lo + hi) / 2, None
+        assert ql["short"][0] == "reserved"
+        i = ql["short"][1]
+        kappa = self.edge_kappa(i, lambda k: self.evaluate(x, below, w=w, split=mix(hi), edge=(i, k))["f"])
+        return hi, (i, kappa)
 
     def closed_form_share(self, x, below, above, w):
         """1c's closed form for sigma, B_a f_a/(B_a f_a - B_b f_b) with the supply of the type
@@ -451,10 +497,11 @@ class Economy(g1c.Economy):
         return Ba * fa / (Ba * fa - Bb * fb)
 
     # ---------------------------------------------------------------- the report
-    def report(self, x, t, w=None, base=None, margin=None, tie=None, omega=None):
-        """Section 4.7 at the equilibrium, every identity asserted to 1e-65."""
+    def report(self, x, t, w=None, base=None, margin=None, tie=None, omega=None, edge=None):
+        """Section 4.7 at the equilibrium, every identity asserted to 1e-65; edge = (i, kappa) a
+        type at the edge of its reserved shortage (section 12 item 16)."""
         split = [(t, 1)] if tie is None else [(t, 1 - tie[1]), (tie[0], tie[1])]
-        q = self.evaluate(x, t, w=w, split=split)
+        q = self.evaluate(x, t, w=w, split=split, edge=edge)
         assert q["short"] is None
         K, C, I = self.K, self.C, self.I
         w, Y, Ps = q["w"], q["Y"], q["Ps"]
@@ -490,7 +537,8 @@ class Economy(g1c.Economy):
             types.append(dict(name=self.wn[i], wage=wage, real_wage=wage / Ps, pooled=i not in q["walled"],
                               premium=(wage / (self.eps[i] * w)) if self.eps[i] > 0 else None,
                               hours=hours[i], reserved_hours=q["D"][i], supply=q["nS"][i],
-                              zeta=q["zeta"][i], chi_star=mp.log1p(wage / (self.sig[i] * Ps))))
+                              zeta=q["zeta"][i], chi_star=mp.log1p(wage / (self.sig[i] * Ps)),
+                              edge=edge is not None and edge[0] == i))
         out = dict(base or {})
         out.update(margin=margin, x=q["x"], one_minus_x=1 - q["x"], gamma=q["gamma"], g=g, t=t, w=w,
                    pi=q["pi"], p_machine=q["p"], O=q["O"], V=q["V"], Ps=Ps, Y=Y, n_pool=q["nD"],
@@ -499,7 +547,8 @@ class Economy(g1c.Economy):
                    worker_baskets=self.nu + wage_bill / Ps, types=types, cats=cats, X=X, tie=tie, q=q,
                    replacement_top=self.gamma(M(1)) * q["pi"], replacement_bottom=self.gamma(M(0)) * q["pi"],
                    L_s=L_s, B_s=B_s, omega=omega, S=q["S"], My=q["My"], Hy=q["Hy"],
-                   final_hours=Y * q["Hy"], required_hours=Y * self.LH_y, Lq=sum(z * c["lambda_q"] for z, c in zip(self.z, cats)),
+                   final_hours=Y * q["Hy"], required_hours=Y * self.LH_y, edge=edge,
+                   Lq=sum(z * c["lambda_q"] for z, c in zip(self.z, cats)),
                    Bq=sum(z * c["b_q"] for z, c in zip(self.z, cats)))
         self.assert_identities(out, q, split)
         return out
@@ -521,6 +570,12 @@ class Economy(g1c.Economy):
             else:
                 assert q["nS"][i] >= q["D"][i] * (1 - tol), ("pooled covers reserved", i)
                 assert q["wages"][i] == self.eps[i] * w
+        # a type at the edge of its reserved shortage (section 12 item 16): walled, its demand
+        # its workers, its kappa at least expm1(chi_max), where its supply stops rising
+        if r["edge"] is not None:
+            i, kappa = r["edge"]
+            assert i in q["walled"] and kappa >= mp.expm1(self.chi[i]), ("edge", i)
+            ch["edge D = N"] = rel(q["D"][i], self.Nw[i])
         # the walk's fixed point (section 4.3)
         ch["walk"] = rel(Ps, q["Pbase"] + sum(max(q["e"][i], q["c"][i] * Ps) for i in range(I)))
         # the basket (SSRN eq 7) with reserved costs
@@ -673,10 +728,11 @@ def baumol(workers=None, eta="1", LH="0.25", N="4", reserved=None):
                    required=(LH, "0", "0"), reserved=reserved)
 
 
-def entrant_trained(NE, NT, eta="1", chiE="1"):
+def entrant_trained(NE, NT, eta="1", chiE="1", chiT="0.8"):
     """E: the entrant (N_E, chi, 1, 1) and the trained (N_T, 0.8, 1.5, 1.2) with reserved hours
-    0.1 per unit of services and 0.02 per unit of goods (section 3.3)."""
-    ws = (worker("ENTRANT", NE, chiE), worker("TRAINED", NT, "0.8", eps="1.5", sig="1.2"))
+    0.1 per unit of services and 0.02 per unit of goods (section 3.3); E9 gives the trained
+    chi_max 3 (section 12 item 18)."""
+    ws = (worker("ENTRANT", NE, chiE), worker("TRAINED", NT, chiT, eps="1.5", sig="1.2"))
     return baumol(workers=ws, eta=eta, reserved=(("0", "0.1"), ("0", "0.02"), ("0", "0")))
 
 
@@ -1017,6 +1073,21 @@ def build():
                            ("MASTER_PREMIUM", ty[2]["premium"], "the master's premium")):
         put(f"E8_{key}", val, note)
 
+    section("E9: E4 with chi_max 3 for both types: the end of the wall with supply unsaturated (docs/unit-1d.md section 12 item 18)")
+    econ = entrant_trained("8", "3", "0.3", "3", "3")
+    r = solved(econ, "Wall")
+    q_end = econ.evaluate(1, r["wtechs"][-1], w=M(1))
+    assert r["omega_end"] != INF and all(
+        econ.eps[i] * r["omega_end"] / econ.sig[i] < mp.expm1(econ.chi[i]) for i in range(2)), "unsaturated at the end"
+    far = econ.evaluate(1, r["wtechs"][-1], w=mp.mpf(10) ** 30)
+    assert abs(far["f"] - r["f_end"]) < mp.mpf(10) ** -25, "f_end is the limit of the wall"
+    for key, val, note in (("V", r["w"], "the wall's wage"), ("P_S", r["Ps"], "P_s"),
+                           ("F_END", r["f_end"], "f at the end of the wall, both types unsaturated there"),
+                           ("OMEGA_END", r["omega_end"], "omega_infinity, from the walk with every type's efficiency"),
+                           ("TRAINED_WAGE", r["types"][1]["wage"], "the trained's wage")):
+        put(f"E9_{key}", val, note)
+    assert q_end["short"] is None
+
     # ------------------------------------------------------------------ F
     section("F: 1c's M4 with L^H_care 0.2, the entrant and the trained (docs/unit-1d.md section 3.3)")
     econ = full("4", "3", "1")
@@ -1079,6 +1150,58 @@ def build():
     for key, val, note in (("V", r["w"], "v, the durable type"), ("P_S", r["Ps"], "P_s"), ("Y", r["Y"], "Y"),
                            ("N_A", r["n_a"], "N_a"), ("INTEREST", r["interest"], "interest")):
         put(f"X3_{key}", val, note)
+
+    # ------------------------------------------------------------------ J
+    section("J: the edge of a reserved shortage (docs/unit-1d.md section 12 item 16)")
+    econ = entrant_trained("40", "1", "1", "0.05")
+    r = solved(econ, "Contestable")
+    trained = r["types"][1]
+    assert r["edge"] is not None and r["edge"][0] == 1 and trained["edge"] and not trained["pooled"]
+    assert econ.evaluate(r["x"] - mp.mpf(10) ** -30, 0)["short"] == ("reserved", 1)
+    assert econ.evaluate(r["x"] + mp.mpf(10) ** -30, 0)["f"] < -10
+    assert trained["zeta"] > mp.expm1(M("0.8"))
+    for key, val, note in (("X_STAR", r["x"], "x*, where the trained's reserved demand D_T = 0.12 Y reaches N_T 1"),
+                           ("V", r["w"], "v"), ("P_S", r["Ps"], "P_s"), ("Y", r["Y"], "Y"), ("N_A", r["n_a"], "N_a"),
+                           ("N_POOL", r["n_pool"], "the pool's efficiency hours"),
+                           ("ENTRANT_HOURS", r["types"][0]["hours"], "the entrant's hours"),
+                           ("TRAINED_WAGE", trained["wage"], "the trained's wage, kappa nu P_s"),
+                           ("TRAINED_CLEARING", trained["zeta"], "kappa, above expm1(0.8): set by the pool's clearing"),
+                           ("TRAINED_PREMIUM", trained["premium"], "the trained's premium")):
+        put(f"J1_{key}", val, note)
+    # J1b: N_T between the trained's reserved demand at x = 0 and at 1e-12, as doubles
+    d0, dl = float(econ.evaluate(0, 0)["D"][1]), float(econ.evaluate(LO, 0)["D"][1])
+    nt = 0.5 * (d0 + dl)
+    assert dl < nt < d0
+    econ = entrant_trained("40", nt, "1", "0.05")
+    r = solved(econ, "Contestable")
+    trained = r["types"][1]
+    assert r["edge"] is not None and r["edge"][0] == 1 and 0 < r["x"] < LO
+    for key, val, note in (("N_T", M(nt), "N_T, the double midway between D_T(0) and D_T(1e-12)"),
+                           ("X_STAR", r["x"], "x*, the edge below 1e-12"), ("V", r["w"], "v"), ("P_S", r["Ps"], "P_s"),
+                           ("TRAINED_WAGE", trained["wage"], "the trained's wage"),
+                           ("TRAINED_CLEARING", trained["zeta"], "kappa")):
+        put(f"J1B_{key}", val, note)
+    # J2: F at eta 0.5, N_E 30, N_T between the trained's demand at the line's switch under the
+    # loom and under the engine: the edge in the tie's sigma
+    probe = full("16", "1.5", "0.5")
+    _, line_sw, _ = probe.envelope_ext()
+    xsw = probe.gamma_inv(line_sw[0][0])
+    db = float(probe.evaluate(xsw, line_sw[0][1])["D"][1])
+    da = float(probe.evaluate(xsw, line_sw[0][2])["D"][1])
+    nt = 0.5 * (db + da)
+    assert da < nt < db
+    econ = full("30", nt, "0.5")
+    r = solved(econ, "Contestable")
+    trained = r["types"][1]
+    assert r["tie"] is not None and r["edge"] is not None and r["edge"][0] == 1 and 0 < r["tie"][1] < 1
+    mix = lambda s: [(r["t"], 1 - s), (r["tie"][0], s)]  # noqa: E731
+    assert econ.evaluate(r["x"], r["t"], split=mix(r["tie"][1] - mp.mpf(10) ** -30))["short"] == ("reserved", 1)
+    for key, val, note in (("N_T", M(nt), "N_T, the double midway between D_T under the loom and the engine"),
+                           ("SHARE", r["tie"][1], "sigma, where the mix's D_T reaches N_T"), ("V", r["w"], "v"),
+                           ("P_S", r["Ps"], "P_s"), ("Y", r["Y"], "Y"), ("N_A", r["n_a"], "N_a"),
+                           ("TRAINED_WAGE", trained["wage"], "the trained's wage"),
+                           ("TRAINED_CLEARING", trained["zeta"], "kappa")):
+        put(f"J2_{key}", val, note)
 
     body = "\n".join(LINES) + "\n"
     header = [

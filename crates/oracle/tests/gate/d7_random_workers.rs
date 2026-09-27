@@ -348,6 +348,7 @@ struct Tally {
     wall: usize,
     all_human: usize,
     with_walled: usize,
+    edges: usize,
     ties: usize,
     short_pool: usize,
     short_reserved: usize,
@@ -387,6 +388,7 @@ fn sample(set: Set, seed: u64) -> (Vec<Sample>, Tally) {
                     Margin::AllHuman => tally.all_human += 1,
                 }
                 tally.with_walled += usize::from(eq.workers.iter().any(|w| !w.pooled));
+                tally.edges += usize::from(eq.workers.iter().any(|w| w.edge));
                 tally.ties += usize::from(eq.tie.is_some());
             }
             Ok(Regime::NotViable { .. }) => tally.not_viable += 1,
@@ -575,10 +577,11 @@ fn type_status() {
 
 #[test]
 fn the_draws_cover_the_regimes() {
-    // Every margin, walled and pooled types, a type with ε = 0, ties on the line and on the
-    // wall, both causes of LaborShort, and MultipleEquilibria at ρ > 0 (recorded if absent).
-    let (mut margins, mut walled, mut pooled_other, mut zero_eff) =
-        ([false; 3], false, false, false);
+    // Every margin, walled and pooled types, a type with ε = 0, a type at the edge of its
+    // reserved shortage, ties on the line and on the wall, both causes of LaborShort, and
+    // MultipleEquilibria at ρ > 0 (recorded if absent).
+    let (mut margins, mut walled, mut pooled_other, mut zero_eff, mut edge) =
+        ([false; 3], false, false, false, false);
     let (mut line_tie, mut wall_tie) = (false, false);
     let (mut short_pool, mut short_reserved, mut multiple) = (false, false, 0);
     for s in samples() {
@@ -588,6 +591,7 @@ fn the_draws_cover_the_regimes() {
                 walled |= eq.workers.iter().any(|w| !w.pooled);
                 pooled_other |= eq.workers.iter().skip(1).any(|w| w.pooled);
                 zero_eff |= eq.workers.iter().any(|w| w.efficiency == 0.0);
+                edge |= eq.workers.iter().any(|w| w.edge);
                 line_tie |= eq.tie.is_some() && eq.margin == Margin::Contestable;
                 wall_tie |= eq.tie.is_some() && eq.margin == Margin::Wall;
             }
@@ -603,7 +607,7 @@ fn the_draws_cover_the_regimes() {
         }
     }
     assert_eq!(margins, [true; 3], "every margin");
-    assert!(walled && pooled_other && zero_eff);
+    assert!(walled && pooled_other && zero_eff && edge);
     assert!(
         line_tie && wall_tie,
         "ties: line {line_tie}, wall {wall_tie}"

@@ -340,9 +340,14 @@ fn boundary_rows_are_solved() {
             },
             Nesting::Solved(Margin::AllHuman),
         ),
-        // Supply saturated at N = n_D(1): f is 0 on the whole wall and at its end, which
-        // counts on the positive side; the knife edge is LaborShort (docs/unit-1d.md §12).
-        ("f(1) = 0 exactly", saturated(tie_1), Nesting::Short),
+        // Supply saturated at N = n_D(1): f is 0 on the whole wall and at its end; the piece
+        // starts at an exact zero, so the junction is the equilibrium (docs/unit-1d.md §12
+        // item 17).
+        (
+            "f(1) = 0 exactly",
+            saturated(tie_1),
+            Nesting::Solved(Margin::Wall),
+        ),
         (
             "f(lo) = 0 exactly",
             saturated(tie_lo),

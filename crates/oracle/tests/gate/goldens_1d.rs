@@ -416,6 +416,18 @@ goldens! {
     /// goldens/generate_1d.py: the master's premium.
     E8_MASTER_PREMIUM: f64 = 1.2290087023250540863;
 
+    // E9: E4 with chi_max 3 for both types: the end of the wall with supply unsaturated (docs/unit-1d.md section 12 item 18)
+    /// goldens/generate_1d.py: the wall's wage.
+    E9_V: f64 = 4.3862693691168219969;
+    /// goldens/generate_1d.py: P_s.
+    E9_P_S: f64 = 3.1845200222277115569;
+    /// goldens/generate_1d.py: f at the end of the wall, both types unsaturated there.
+    E9_F_END: f64 = -1.2628620845098934739;
+    /// goldens/generate_1d.py: omega_infinity, from the walk with every type's efficiency.
+    E9_OMEGA_END: f64 = 2.2099447513812154696;
+    /// goldens/generate_1d.py: the trained's wage.
+    E9_TRAINED_WAGE: f64 = 6.7438468261948130232;
+
     // F: 1c's M4 with L^H_care 0.2, the entrant and the trained (docs/unit-1d.md section 3.3)
     /// goldens/generate_1d.py: x*, with the engine.
     F1_X_STAR: f64 = 0.98889368696731094579;
@@ -521,4 +533,54 @@ goldens! {
     X3_N_A: f64 = 0.0023478771277636470358;
     /// goldens/generate_1d.py: interest.
     X3_INTEREST: f64 = 7.4231836900952454918;
+
+    // J: the edge of a reserved shortage (docs/unit-1d.md section 12 item 16)
+    /// goldens/generate_1d.py: x*, where the trained's reserved demand D_T = 0.12 Y reaches N_T 1.
+    J1_X_STAR: f64 = 0.5;
+    /// goldens/generate_1d.py: v.
+    J1_V: f64 = 0.35820895522388059701;
+    /// goldens/generate_1d.py: P_s.
+    J1_P_S: f64 = 29.723913718591018298;
+    /// goldens/generate_1d.py: Y.
+    J1_Y: f64 = 8.3333333333333333333;
+    /// goldens/generate_1d.py: N_a.
+    J1_N_A: f64 = 10.583333333333333333;
+    /// goldens/generate_1d.py: the pool's efficiency hours.
+    J1_N_POOL: f64 = 9.5833333333333333333;
+    /// goldens/generate_1d.py: the entrant's hours.
+    J1_ENTRANT_HOURS: f64 = 9.5833333333333333333;
+    /// goldens/generate_1d.py: the trained's wage, kappa nu P_s.
+    J1_TRAINED_WAGE: f64 = 234.26644516736296343;
+    /// goldens/generate_1d.py: kappa, above expm1(0.8): set by the pool's clearing.
+    J1_TRAINED_CLEARING: f64 = 6.5678443117457383283;
+    /// goldens/generate_1d.py: the trained's premium.
+    J1_TRAINED_PREMIUM: f64 = 435.99588406148107083;
+    /// goldens/generate_1d.py: N_T, the double midway between D_T(0) and D_T(1e-12).
+    J1B_N_T: f64 = 1.1999999999998798295;
+    /// goldens/generate_1d.py: x*, the edge below 1e-12.
+    J1B_X_STAR: f64 = 5.0071058410549431977e-13;
+    /// goldens/generate_1d.py: v.
+    J1B_V: f64 = 0.1159420289857428254;
+    /// goldens/generate_1d.py: P_s.
+    J1B_P_S: f64 = 4.5799516883169634236;
+    /// goldens/generate_1d.py: the trained's wage.
+    J1B_TRAINED_WAGE: f64 = 27.900563586212314773;
+    /// goldens/generate_1d.py: kappa.
+    J1B_TRAINED_CLEARING: f64 = 5.0765753085314729389;
+    /// goldens/generate_1d.py: N_T, the double midway between D_T under the loom and the engine.
+    J2_N_T: f64 = 0.75421467109117334982;
+    /// goldens/generate_1d.py: sigma, where the mix's D_T reaches N_T.
+    J2_SHARE: f64 = 0.49824924569934011727;
+    /// goldens/generate_1d.py: v.
+    J2_V: f64 = 0.064963057288499518554;
+    /// goldens/generate_1d.py: P_s.
+    J2_P_S: f64 = 1.9517792445568691801;
+    /// goldens/generate_1d.py: Y.
+    J2_Y: f64 = 6.7340595633140477662;
+    /// goldens/generate_1d.py: N_a.
+    J2_N_A: f64 = 1.7364776126193999188;
+    /// goldens/generate_1d.py: the trained's wage.
+    J2_TRAINED_WAGE: f64 = 4.0382429662537090722;
+    /// goldens/generate_1d.py: kappa.
+    J2_TRAINED_CLEARING: f64 = 1.7241716660646857619;
 }

@@ -11,7 +11,7 @@ use crate::support_1d::*;
 #[test]
 fn interior_with_the_tail() {
     // B1, N 8, η 1: a contestable margin with |H| = 0.25 in services. Without the tail in labour
-    // demand the root would be x* 0.8442.
+    // demand (kept in prices) the root would be x* 0.8549; without the tail at all, 0.8442.
     let (e, eq) = checked_1d(baumol_one(1.0, 8.0, 0.25));
     assert_eq!(eq.margin, Margin::Contestable);
     for (name, got, want) in [

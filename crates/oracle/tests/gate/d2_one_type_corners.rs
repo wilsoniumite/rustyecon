@@ -61,6 +61,16 @@ fn wall_goldens() {
         (0.6 * eq.v + 0.4) / 0.7,
         eq.types[0].price,
     );
+    // d is the least pivot of the wage-given system that priced it (§6): with one flow type,
+    // no operating recipe and u = 1 its pivots are 1 and 1 − a.
+    close("d = 1 - a", eq.d, 1.0 - 0.3);
+    // At the wall the technique's closure wage at g = v/π is v, and φ_w = g·λ̃/θ = v·λ̃/p_m.
+    close("closure wage", eq.types[0].closure_wage.unwrap(), eq.v);
+    close(
+        "phi_w",
+        eq.phi_w.unwrap(),
+        eq.v * eq.types[0].lambda_tilde / eq.types[0].price,
+    );
     check_path_1d(&e);
 }
 

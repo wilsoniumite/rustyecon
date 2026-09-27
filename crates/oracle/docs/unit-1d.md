@@ -32,7 +32,7 @@ must reproduce them. The build records where it departs from this draft in §12.
 | SSRN p.7, Figure 1's caption | "If labor holds no machine-contestable task, the wall marks the boundary assignment in which wages are determined within the human-required sector" |
 | SSRN Prop 1 and its proof, pp.7 and 26 (main.tex:164-175) | w = p_m·γ(x*) at an interior contestable margin; "final-task labor demand is Y∫_{x*}^1 dx/γ_L(x), including the human-required tail" |
 | SSRN §5, pp.11-13 (eq 10-11; main.tex:431) | N_a = N·F(log(1 + w/P_s)); T·L_s/B_s = N·F(…); "Heterogeneity and skill premia. Workers differ in task productivity, access to support, living costs, and preferences. An active contestable margin prices each type's wage against machine services. For a type employed only at human-required tasks in H, demand, supply, institutions, and participation determine the wage" |
-| SSRN §8, p.17 (main.tex:582-586) | the eras: pre-industrial, "the margin sits at the wall for entrant and master alike, so the machine prices no one's hour"; industrial, the entrant's margin on the steep stretch, while "the trained worker … held tasks closed to engines; that margin stayed at the wall, so no machine set the wage, and it was instead a scarcity price on trained hands and heads" |
+| SSRN §8, pp.17-18 (main.tex:582-586) | the eras: pre-industrial, "the margin sits at the wall for entrant and master alike, so the machine prices no one's hour"; industrial, the entrant's margin on the steep stretch, while "the trained worker … held tasks closed to engines; that margin stayed at the wall, so no machine set the wage, and it was instead a scarcity price on trained hands and heads" |
 | SSRN A.1, pp.24-25 (main.tex:686-722) | "Tasks in H are closed to machines by capability, preference, or law"; "Types may differ in task productivity, access to support, living requirements, and preferences"; "With type-specific schedules, replacement applies at each type's active contestable margin. … Reservation wages depend on each type's support, living costs, and preferences"; labour clearing N_a = λᵀy |
 | SSRN Appendix E, pp.34-36 (main.tex:908-940) | H of positive measure with H-wage w_H; γ → 0 outside H; Prop E.1 (Baumol concentration): (i) a good with no additional direct land whose task list contains H has unit cost → \|H\|·w_H/γ_L, labour's share of its cost → 1; (ii) under CES the H-content share → 1 for σ_H < 1; (iii) the three-way split; the premises: w_H and r converge to positive finite values, p_m stays bounded, γ_L constant on H |
 | main.tex:922-938 (SSRN p.36 as prose) | the fraud bound v·f/(1 − v); the superstar lemma, median = (1 − ψ)·mean |
@@ -321,8 +321,8 @@ goldens by far more than the gate's tolerance (the prototype's values):
 | W2, W3 | ignores saturation or the real-wage ceiling | a wall wage, where there is none |
 | W4 | stops at lo with the margin's wage v(lo) | v 0.1159, not 0.02597 |
 | W5, W6 | keeps 1a's `NoInteriorAtZero`, or bisects arithmetically below lo | no root, or 128 steps without one |
-| B1 | leaves the tail out of labour demand | x* 0.8442, not 0.9756 |
-| B2 | the same | contestable, not the wall |
+| B1 | leaves the tail out of labour demand (keeping it in prices) | x* 0.8549, not 0.9756 (0.8442 is the economy without the tail) |
+| B2 | the same | contestable at x* 0.9392, not the wall |
 | BP | prices the machine at the wall by the margin's b/(1 − a − λγ) | p_m off by λv/(1 − a), 5% at η 10^-6 |
 | E1 | walls a type whose pooled wage covers its reserved work | a premium above 1 |
 | E2 | treats types as efficiency units only | premium 1 and x* 0.9289, not 2.204 and 0.9942 |
@@ -383,7 +383,10 @@ The real wage per support basket that makes it offer exactly D_i is
     ζ_i = e^{F_i⁻¹(D_i/N_i)} − 1 = expm1(χ_max,i·D_i/N_i)           (uniform F; D_i ≤ N_i)
 
 If D_i > N_i, no wage clears type i's reserved market at that point of the path: the
-point is **short** and its excess demand is +∞ (§5.3).
+point is **short** and its excess demand is +∞ (§5.3). At D_i = N_i the type's supply is
+vertical, and every real wage at or above expm1(χ_max,i) clears its market; the path takes
+the least, ζ_i, except at the edge of a shortage, where the pool's clearing sets it (§12
+item 16).
 
 Type i sells at the pool's wage if that covers its reserved work, and otherwise at the
 wage that clears its reserved market:
@@ -616,7 +619,8 @@ closure wage of the type below, 1c §4.3), where p_a/θ_a = p_b/θ_b. The wall's
    is +∞.
 3. **Sides.** Put a positive side first, for v → 0, where S → 0 and f → n_D(0) > 0 (§3.2).
    A value is on the positive side when > 0, except f_line(1) and f_∞, which are when ≥ 0
-   (1a's convention at f(1) = 0; an equilibrium at v = ∞ is none). Each change of side is
+   (1a's convention at f(1) = 0; an equilibrium at v = ∞ is none), and f_∞ = 0 after a last
+   piece that starts at an exact zero, which is not (§12 item 17). Each change of side is
    one equilibrium. None is `SolveError::LaborShort { excess: f_∞, reserved }` (`reserved`
    the first type short at the end of the path). More than one is
    `SolveError::MultipleEquilibria { sign_changes, switches }` (the line's x_i; the count
@@ -636,7 +640,10 @@ closure wage of the type below, 1c §4.3), where p_a/θ_a = p_b/θ_b. The wall's
      (x = 1, v = v(1));
    - between a wall switch's two values: a **tie on the wall** at v_s (§4.6);
    - after a wall switch: a root on that piece, bisecting f(ω) under its technique, up to the
-     next switch's ω or ω_∞.
+     next switch's ω or ω_∞;
+   - where a bisection in x or in a tie's σ closes on a short point (+∞): the **edge of that
+     reserved shortage**, at the bracket's finite end, with the short type's κ_i by bisection
+     on bit patterns over [ζ_i, +∞] until the pool clears (§12 item 16).
 4. **Report** at the equilibrium (§4.7), the finiteness check of every output (1c's errors,
    and `SolveError::NonFiniteInWorker { worker, what }`), and 1a's labour net on the pool:
    |n_pool − S|/n_pool above `LABOR_RESIDUAL_NET` is `LaborNotCleared`.
@@ -720,6 +727,14 @@ one-type case bit for bit. New:
   output is continuous across the threshold.
 - **Ties with a walled type.** σ by bisection to adjacent doubles, then 1c §5.6's
   statements about ties.
+- **Ties at a wall switch.** Every output is evaluated at v = v_s, which carries the
+  crossing's rounding amplified by (|b̃_b·θ_a| + |b̃_a·θ_b|)/|b̃_b·θ_a − b̃_a·θ_b|, large when
+  the two delivered costs are nearly parallel, and σ carries that times |dlog σ/dlog v|: 1c
+  §5.6's statement for a line switch, at the wall (§12 item 18 has a measured case).
+- **The edge of a reserved shortage** (§12 item 16). x* (or σ) is the double on the edge's
+  finite side, resolved to the rounding of D_i over its slope, absolute: about 1e-15 at J1b,
+  whose x* is 5e-13, as W5's root. κ_i is resolved to adjacent doubles, or to the rounding of S
+  over its slope in κ_i, and the type's reserved residual is of rounding order.
 - **The Baumol path.** At η = 10^-6 the machine sector's outputs are of order η and keep
   their relative precision (no cancellation); the H-free good's price is p_m·J(1).
 - **Decidability.** 1c's statement extends to every value of the sequence: a value within
@@ -755,7 +770,7 @@ Proposed; the build may rename, and records any departure in §12.
   (v_i/(ε_i·v), `None` at ε_i = 0), `hours`, `reserved_hours` D_i, `pool_hours` (pool_i/ε_i),
   `supply` n_S,i at the reported prices, `participation`, `clearing_real_wage` ζ_i,
   `marginal_work_cost` ln(1 + v_i/(ν_i·P_s)), `at_wall` (walled, or pooled with the
-  margin at the wall).
+  margin at the wall), and `edge` (at the edge of its reserved shortage, §12 item 16).
 - `CategoryEq1d`: 1c's `CategoryEq1c`, with `price` including the reserved costs, `l_bar`
   the pool's L̄_j + L̃^H_j, `wage_floor` 1/(L̄_j + L̃^H_j + (b̄_j + R_j)/v), `wage_ceiling`
   v/(b̃_j + R_j), φ per §4.7; plus `human_required` (L̃^H_j) and `reserved_cost` (R_j).
@@ -1114,8 +1129,10 @@ veto, numbered from 76. The ones marked **Phase 2** bind it.
    62 and 69. Alternative: new variants `Wall` and `AllHuman`, which change 1a's `Regime`
    and every match on it.
 3. **No equilibrium with land fully rented is `SolveError::LaborShort`** (§2.4; proposed
-   78), as decision 70 refuses. **Phase 2**: its wall-regime instance must be a solved wall,
-   not a short one. **1e** resolves these economies with idle land.
+   78), as decision 70 refuses: only where the excess demand changes side nowhere on the
+   path; the edge of a reserved shortage is an equilibrium and is solved (§12 item 16).
+   **Phase 2**: its wall-regime instance must be a solved wall, not a short one. **1e**
+   resolves these economies with idle land.
 4. **Living costs as support baskets on one basket** (§2.3; proposed 79). Alternative: a
    basket per type, 1f's.
 5. **Type hours**: the pool's demand split among pooled types by their net supplies (§4.7;
@@ -1129,7 +1146,8 @@ veto, numbered from 76. The ones marked **Phase 2** bind it.
 7. **The [0, lo] stretch and the corners by bisection on bit patterns** (§5.3; proposed 82).
    Alternative: keep 1a's `NoInteriorAtZero` for roots below lo.
 8. **Training is exogenous** (proposed 83): N_i are inputs; the premium of a type at its
-   wall is a scarcity price, not a cost of training recovered (SSRN p.17's reading).
+   wall is a scarcity price, not a cost of training recovered (SSRN p.18's reading of the
+   industrial era, main.tex:584; p.17's pre-industrial craftsman has the other).
 9. **Viability at the top of the line stands** (decision 64), although the wall stretch
    prices machines at any wage (proposed 84).
 10. **A tie with a walled type is solved by bisection on σ** (§4.6; proposed 85), with 1c's
@@ -1150,20 +1168,16 @@ veto, numbered from 76. The ones marked **Phase 2** bind it.
    solve stops at 1a's regime tests (it predates P1.6's count), so for M5b it says
    `BoundaryNoMargin`; the generator counts 1c's three changes of side from the line's part of
    1d's sequence instead.
-2. **A jump to a shortage is `LaborShort`** (added). Where a type's reserved demand crosses its
-   workers along the line, f is +∞ on one side and can be far below 0 on the other: a change
-   of side that is not a root. §5.3 as drafted bisects onto it, and the labour net then
-   refuses the result as `LaborNotCleared`. Two draws of d7's set (d) did this, f falling from
-   +∞ to −33 and to −47 across one double. No point there clears both the pool and the
-   reserved market, so the build returns `SolveError::LaborShort { excess: +∞, reserved:
-   Some(i) }`, naming the type short on the jump's other side. `Root` records a bracket that
-   closes on +∞ (`jump`, always false in 1a-1c), and the solve checks it after the root in
-   [0, lo] and after a root on the line; a tie's σ, whose Y moves every D_i, is handled the
-   same way. `d8::a_jump_to_a_shortage_is_labor_short` builds the jump on the line (E's
-   economy with N_E 40, χ_E 0.05, N_T 1) and inside [0, 10^-12] (N_T between the trained's
-   reserved demand at 0 and at lo), and `d8::a_tie_across_a_shortage` at F's line switch (N_T
-   between the trained's demand under the loom and under the engine): a jump in σ at N_E 30,
-   and a genuine tie past the edge of the shortage at N_E 16.
+2. **A change of side at a reserved shortage** (added; corrected by the verification, item
+   16). Where a type's reserved demand crosses its workers along the line, f is +∞ on one side
+   and can be far below 0 on the other. §5.3 as drafted bisects onto that edge, and the labour
+   net then refuses the result as `LaborNotCleared`: two draws of d7's set (d) did this, f
+   falling from +∞ to −33 and to −47 across one double. The build returned
+   `SolveError::LaborShort` there, holding that no point clears both the pool and the reserved
+   market. That was wrong: at the edge the short type's supply is vertical, and a wage above
+   its own ζ clears the pool (item 16). `Root` records a bracket that closes on +∞ (`jump`,
+   always false in 1a-1c), and the solve reads it after the root in [0, lo], after a root on
+   the line and after a tie's σ, whose Y moves every D_i.
 3. **The corners are not short in part.** At a corner D_i and ζ_i are fixed, so a reserved
    shortage makes the whole corner short. The walk's ceiling cannot bind at an ω below one
    where it does not: pooling a type j that takes the walled share C below 1 needs
@@ -1172,15 +1186,16 @@ veto, numbered from 76. The ones marked **Phase 2** bind it.
    §4.5 has it, and the corners need no jump check. A draft of the build carried one; it was
    dead code and was removed.
 4. **The saturated knife edge.** With supply saturated at N = n_D(1) (1c's "f(1) = 0 exactly"
-   row, from G8), f is 0 on the whole wall and at its end. f_∞ = 0 counts on the positive side
-   (§5.3: an equilibrium at v = ∞ is none), so there is no change of side and the economy is
-   `LaborShort`, although every wage on the wall clears labour: a continuum of equilibria. The
-   rule is kept, and the case is recorded. The row is `Short` in d1, and
-   `d8::exact_zeros_at_the_junctions` builds its exact zeros at x = 1 and x = 0 without
-   saturation: G1 with χ_max 1, and N chosen among the doubles next to n_D(x)/c, where c =
-   F(ln(1 + v/P_s)) does not depend on N, so that N·c = n_D(x) exactly. The saturated
-   construction stays for lo, where n_D(0) > n_D(lo) makes the root determinate, and the
-   knife edge itself is asserted.
+   row, from G8), f is 0 on the whole wall and at its end. On the row's own doubles the exact
+   n_D(1) is 0.31914893617021278857, 4.9e-17 below N, so the exact economy has its root just
+   below x = 1: the row is not decidable in f64 (§5.5). The build counted f_∞ = 0 on the
+   positive side and returned `LaborShort`, the one label wrong under every reading, although
+   its own f_line(1) was 0, the junction by §5.3's exact-zero rule. The junction rule now takes
+   precedence (item 17): the row is the wall at x* = 1 and v = v(1) in d1 and in
+   `d8::exact_zeros_at_the_junctions`, which builds the exact zeros at x = 1 and x = 0 without
+   saturation too: G1 with χ_max 1, and N chosen among the doubles next to n_D(x)/c, where
+   c = F(ln(1 + v/P_s)) does not depend on N, so that N·c = n_D(x) exactly. The saturated
+   construction stays for lo, where n_D(0) > n_D(lo) makes the root determinate.
 5. **Type hours.** pool_i = n_pool·(s_i/S), not s_i + (n_D − S)·(s_i/S): the same in exact
    arithmetic, and for one type n_pool·1.0 = n_pool exactly, without Sterbenz's condition.
    The wage bill is the demand side, v·n_pool + Σ_i v_i·D_i; Σ_i v_i·hours_i + T + interest = I
@@ -1235,11 +1250,12 @@ veto, numbered from 76. The ones marked **Phase 2** bind it.
     | (a) ρ = 0, K = 1 | 87 | 10 | 33 | 26 | 1 | 16 | 0 | 11 | 3 | 3 | 0 |
     | (b) ρ = 0 | 107 | 16 | 18 | 41 | 1 | 22 | 2 | 24 | 5 | 2 | 0 |
     | (c) ρ > 0 | 94 | 12 | 25 | 34 | 1 | 27 | 2 | 14 | 6 | 2 | 0 |
-    | (d) abundant | 90 | 18 | 27 | 1 | 32 | 38 | 0 | 3 | 7 | 2 | 0 |
+    | (d) abundant | 88 | 18 | 27 | 1 | 32 | 39 | 0 | 3 | 5 | 2 | 0 |
     | (e) switches | 101 | 18 | 36 | 24 | 0 | 16 | 31 | 7 | 14 | 0 | 2 |
 
-    Both `MultipleEquilibria` are at ρ > 0 in set (e); set (d)'s shortages by a reserved
-    market include the two jumps of item 2. d1's random nesting, over 1116 draws: 600 give the
+    Both `MultipleEquilibria` are at ρ > 0 in set (e). Set (d)'s equilibria include two at the
+    edge of a reserved shortage (item 16); P1.8 counted them as reserved shortages and needed 90
+    draws. d1's random nesting, over 1116 draws: 600 give the
     same equilibrium bit for bit (1a's 180, 1b's 180 and 1c's 240), 366 of 1c's boundary
     regimes are solved at the wall and 2 at the all-human corner, 131 are `LaborShort`, and 12
     are `NotViable` and 5 `MultipleEquilibria` in both; none has further equilibria on the wall.
@@ -1262,12 +1278,96 @@ veto, numbered from 76. The ones marked **Phase 2** bind it.
     technique; every new validation rule; `at_wall` and `premium`; the envelope stopped at
     γ(1); the wage-given system's u and labour; the bit bisection's stopping rule and −0.0; and
     the three goldens files. The first run left two survivors of 60: the jump check after a
-    root in [0, lo], now killed by the second half of `a_jump_to_a_shortage_is_labor_short`;
-    and a wall switch's wage taken as the closure wage of the type above rather than below,
-    equivalent in exact arithmetic (the two are equal at the crossing) and within rounding of
-    it in f64. A 61st, the jump check of a tie's σ, is killed by `a_tie_across_a_shortage`.
+    root in [0, lo], now killed by the second half of `a_jump_to_a_shortage_is_labor_short`
+    (since P1.9 `d8::the_edge_of_a_reserved_shortage`, item 16); and a wall switch's wage
+    taken as the closure wage of the type above rather than below, equivalent in exact
+    arithmetic (the two are equal at the crossing) and within rounding of it in f64. A 61st,
+    the jump check of a tie's σ, is killed by `a_tie_across_a_shortage` (since P1.9
+    `d8::the_edge_in_a_ties_share`).
 15. **Decisions.** The build takes §11's first choice on each question, as proposed decisions
     76-87 for STATE.md at the unit's close, open to veto; 76 (one shape and an efficiency per
     type), 78 (Phase 2's wall instance a solved wall), 80 (type hours split by net supply) and
-    81 (machine recipes on pool labour) bind Phase 2. The knife edge of item 4 and the jump of
-    item 2 extend 78: an instance for Phase 2 should be neither.
+    81 (machine recipes on pool labour) bind Phase 2. The knife edge of item 4 extends 78: an
+    instance for Phase 2 should not be one. The edge of a reserved shortage (item 16) is solved,
+    not refused, and also binds Phase 2.
+16. **The edge of a reserved shortage is an equilibrium** (the verification's blocker, P1.9,
+    2026-09-27). An independent derivation, with the pool's wage v as its unknown and the
+    walled set enumerated, found equilibria where P1.8 returned `LaborShort`. Where D_i = N_i,
+    type i's supply is vertical at N_i for every real wage per support basket κ_i ≥
+    expm1(χ_max,i) (uniform F), so its reserved market clears at any such wage. Raising κ_i
+    raises P_s through the walk and lowers the pool's real wage, so f rises with κ_i,
+    continuously, from its value at the edge's finite side (< 0) toward n_D > 0 at the walk's
+    ceiling, and a κ_i clears the pool: every market clears, and the type's wage is "a scarcity
+    price … set by demand" (main.tex:584; SSRN §5). The case is not a knife edge: of the
+    derivation's 60 targeted draws (seed 77, N_i between D_i(0) and D_i(1)) 7 were such edges,
+    and d7's set (d) has 2. Now, where a bisection in x (the root in [0, lo] or on the line) or
+    in a tie's σ closes on a short point, the equilibrium is the bracket's finite end, where
+    D_i is within rounding of N_i, with the short type walled at κ_i·ν_i·P_s: κ_i by bisection
+    on bit patterns over [ζ_i, +∞], ζ_i the type's own at the finite end (where f < 0) and +∞
+    short (the walk has no fixed point). `bisection_steps` adds κ_i's steps to x's on the line
+    (0 at a tie, as before). `WorkerEq::edge` flags the type, whose `clearing_real_wage` is
+    κ_i, and `WorkerEconomy::at_edge(x, τ, Edge { worker, clearing })` is the evaluation that
+    prices it; its reserved residual is of rounding order. A change of side cannot close on the
+    walk's ceiling: approaching it from the finite side, 1 − C → 0+, P_s → ∞, the pool's real
+    wage → 0 and f → n_D > 0 (P1.8's documentation of `LaborShort` said it could), and the
+    solve treats such a close as a non-finite value. `LaborShort` is now an economy whose
+    excess demand changes side nowhere on the path, and `check_count_1d` requires no change of
+    side for it. `generate_1d.py` finds the edge by the same bracket in x or σ at 70 digits,
+    then κ_i, and asserts every identity there. The goldens:
+    - J1, E's economy with N_E 40, χ_E 0.05 and N_T 1: D_T reaches N_T at x* = 0.5 exactly with
+      decimal inputs (the derivation, on the doubles: 0.50000000000000006774; the oracle gives
+      the next double above 0.5); v 0.35820895522388059701, P_s 29.723913718591018298, the
+      trained walled at κ 6.5678443117457383283 (above expm1(0.8) = 1.2255), v_T
+      234.26644516736296343, all its N_T hours reserved;
+    - J1b, N_T the double 1.1999999999998798 midway between D_T(0) and D_T(10^-12): x*
+      5.0071058410549431977e-13, v_T 27.900563586212314773;
+    - J2, F at η 0.5 and N_E 30 with N_T the double 0.7542146710911733 midway between the
+      trained's demand at the line's switch under the loom and under the engine: a tie at σ
+      0.49824924569934011727, v_T 4.0382429662537090722. With N_E 16 the same N_T is a tie
+      past the edge, the trained at its own ζ.
+    The derivation's values agree (J1 within 1.5e-15 of the oracle; J2's v_T within 8.7e-14),
+    and its targeted set now agrees on all 60 draws, within 1.2e-13. **Phase 2** (decision
+    78): at an edge a type's hours are its workers and its wage is set through the pool's
+    clearing and the basket's price, not by its own supply; an agent market needs some wage
+    mechanism for a vertical supply to reach it, or should avoid the edge.
+17. **f_∞ = 0 after an exact zero** (the verification's minor on item 4). f_∞ = 0 counted on
+    the positive side made the saturated knife edge `LaborShort`. Now f_∞ = 0 is on the
+    negative side when the wall's last piece starts at an exact zero (f_line(1), or the last
+    wall switch's value above): f is then 0 on the whole piece (Lemma 3'), and its start is the
+    equilibrium by §5.3's exact-zero rule. `sequence_1d` in the tests and the generator's count
+    take the same rule.
+18. **The rest of the verification.** The mutation pass's survivors are now killed:
+    - f_∞'s walk with the worker efficiencies: `check_path_1d` asserts that f_∞ is the limit of
+      f on the wall's last piece (its value at 10^10 times the piece's start, within 1e-6 of
+      max(n_D, 1)), so d7 runs it on every draw; and E9, E4 with χ_max 3 for both types, the
+      trained walled at the equilibrium and pooled at the end of the wall, pins f_∞
+      −1.2628620845098934739 and ω_∞ 2.2099447513812154696
+      (`d4::the_end_of_the_wall_counts_efficiency`; a walk with every ε_i = 1 gives −1.689);
+    - φ_w and the technique's closure wage at a corner: `check_identities_1d` asserts
+      φ_w = v·λ̃_τ/p_τ and the closure wage of τ equal to v on every stretch; d, the wage-given
+      system's least pivot, is pinned at W1 to 1 − a (`d2::wall_goldens`);
+    - lemma B.1 with ν ≠ Σ N_i: `check_identities_1d` recomputes it from `at_with(1, τ_m)`, and
+      `d4::lemma_b1_counts_the_support` separates ν from Σ N_i (E1 with both supports 0.4);
+    - `LaborShort`'s `reserved` with two types short at the end: `d4::reserved_shortage`
+      (E7's economy with N_T = N_M = 0.01 names the trained);
+    - `human_required` longer than C: `d8::validation`;
+    - the rules at exact equality, in `d8::rules_at_exact_equality` and the walk's unit test
+      `walk_keeps_a_type_at_its_threshold_pooled`: D_i = N_i is not short (E3 with N_T the
+      double D_T(1)), c_i·P = e_i stays pooled, the all-human corner's cheapest type with two
+      identical types is the lower index, and a wall switch's value below that is exactly 0 is
+      the piece's end, v = v_s without a bisection step (X with N among the doubles next to
+      n_D/c).
+    The fix round ran 20 mutants, the survivors above and nine of the fix (the edge ignored on
+    the line or in a tie, κ_i left at ζ_i, the short type read at the root, the edge not
+    reported, its flag, its steps, the override, and f_∞ = 0 always positive): all are killed.
+    The minors also corrected §3.3's B1 row (0.8442 is the economy without the tail; a unit
+    that leaves the tail out of labour demand only gets x* 0.8549 at B1 and 0.9392, contestable,
+    at B2), the eras' pages (SSRN pp.17-18) and decision 83's (p.18: the industrial era's
+    "scarcity price on trained hands and heads"; p.17's pre-industrial premium "is the cost of
+    those years, recovered"), and §5.5 at a wall switch's tie, where the derivation measured,
+    for nearly parallel delivered costs (slopes 0.18784 and 0.18710, an amplification of 234),
+    v off by 4.4e-14 relative and σ by 8.8e-12 (dlog σ/dlog v = −201), and at a line tie with
+    a walled type σ off by 3.1e-12 and interest by 1.4e-12; the gate's 1e-12 holds on every
+    golden. `goldens_1d.txt` now has 269 goldens (J1, J1b, J2, E9): the oracle is within
+    8.0e-14 relative of the new ones (J2's v_T; its σ 3.6e-14; J1, J1b and E9 within 3.1e-15), and
+    J1b's x* within 5.6e-16 absolute. The package has 298 tests (67 unit, 230 gate, 1 doc).

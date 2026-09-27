@@ -460,21 +460,19 @@ pub enum SolveError {
         /// The switch points x_i, the largest double below each switch.
         switches: Vec<f64>,
     },
-    /// Unit 1d: no wage clears labour with land fully rented (docs/unit-1d.md §2.4 and §5.3).
-    /// Either the excess demand is positive along the whole path from the all-human corner to
-    /// the end of the wall: demand at the wall exceeds what the pool's supply can reach (its
+    /// Unit 1d: no wage clears labour with land fully rented (docs/unit-1d.md §2.4 and §5.3):
+    /// the excess demand changes side nowhere along the path from the all-human corner to the
+    /// end of the wall. Either demand at the wall exceeds what the pool's supply can reach (its
     /// workers, or the real-wage ceiling that the basket's embodied labour sets), or a worker
-    /// type's reserved demand exceeds its workers. Or the path's one change of side is a jump
-    /// from a short point (+∞) to excess supply, at the edge of a reserved shortage or of the
-    /// walk's ceiling, so that no point clears the pool and every reserved market at once
-    /// (docs/unit-1d.md §12). Unit 1e's idle land resolves these economies.
+    /// type's reserved demand exceeds its workers, or the walled types' wages cost the whole
+    /// basket, at every point. A change of side at the edge of a reserved shortage is an
+    /// equilibrium, not this ([`WorkerEq::edge`](crate::WorkerEq::edge); docs/unit-1d.md §12
+    /// item 16). Unit 1e's idle land resolves these economies.
     LaborShort {
-        /// f_∞, the excess demand at the end of the wall (+∞ where a point is short); +∞ at a
-        /// jump.
+        /// f_∞, the excess demand at the end of the wall (+∞ where the end is short).
         excess: f64,
-        /// The first worker type whose reserved demand exceeds its workers: at the end of the
-        /// path, or on the short side of a jump; `None` when the shortage is the pool's or the
-        /// walk's ceiling.
+        /// The first worker type whose reserved demand exceeds its workers at the end of the
+        /// path; `None` when the shortage is the pool's or the walk's ceiling.
         reserved: Option<usize>,
     },
     /// A per-worker-type output of a unit-1d solve overflowed or became NaN.
@@ -792,8 +790,9 @@ pub(crate) struct Root {
     /// Bisection steps taken.
     pub(crate) steps: u32,
     /// Whether the bracket closed on a jump to +∞ at its positive end: unit 1d's short points
-    /// (docs/unit-1d.md §5.3), where the sign change is not a root. Always false in units 1a-1c,
-    /// whose excess demand is finite wherever the solve bisects.
+    /// (docs/unit-1d.md §5.3), where the change of side is the edge of a reserved shortage and
+    /// the root is solved there (§12 item 16). Always false in units 1a-1c, whose excess demand
+    /// is finite wherever the solve bisects.
     pub(crate) jump: bool,
 }
 

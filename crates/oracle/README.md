@@ -168,7 +168,8 @@ human-required tasks and one worker type, exactly":
   price to |H|·v, labour's share to 1, the CES share of H-content to 1, the wage to v_∞);
 - **d4**, the entrant and the trained: pooled, at the trained's wall, at the wall and at the
   all-human corner; a reserved shortage; the walk's order and its cascade with a master type;
-  supply and exit per type; a type split in two;
+  supply and exit per type; a type split in two; the end of the wall with each type's
+  efficiency; lemma B.1 with the support;
 - **d5**, 1c's M4 with worker types: reserved costs through the chain, the cost system with
   them, a wall past a machine switch, and a tie with a walled type (σ by bisection);
 - **d6**, switches on the wall: a tie at a wall switch, and roots either side of it;
@@ -176,8 +177,9 @@ human-required tasks and one worker type, exactly":
   abundant labour, and a set built to switch on the line or the wall): every identity and
   bound, the residuals, f nonincreasing on every stretch, the count, the types' status;
 - **d8**, exact zeros at the junctions, viability unchanged, every validation rule, the types
-  permuted, efficiency in other units (bit for bit at c = 4), the walk's ceiling, and a jump
-  to a reserved shortage on the line, below 10^-12 and in a tie's split;
+  permuted, efficiency in other units (bit for bit at c = 4), the walk's ceiling, the edge
+  of a reserved shortage solved on the line, below 10^-12 and in a tie's split, and the rules
+  at exact equality;
 - **d9**, `goldens_1d.txt`'s five digests and the Rust constants.
 
 The goldens are pinned to laborformal `31b3482`.
@@ -208,6 +210,14 @@ that fails without it. Where the pass found nothing wrong in the code, the fix i
   mutants that survived the gate as it was are now killed, and six of the eight made of the
   fix; three survivors are equivalent on every economy the gate can build (§12 items 12
   and 17).
+- **1d** (P1.9): an independent derivation found a blocker. Where a type's reserved demand
+  reaches its workers, its supply is vertical, and a wage above its own clearing wage clears
+  the pool: an equilibrium, which P1.8 had refused as `LaborShort`. It is now solved (seven of
+  the derivation's 60 targeted draws, two of d7's), and the saturated knife edge with f(1) = 0
+  is the junction rather than `LaborShort`. The mutation pass left eleven survivors among f_∞'s
+  efficiencies, a corner's φ and closure wage, d, lemma B.1's support, the first short type,
+  `human_required`'s length and four rules at exact equality; each now has a test, and the fix
+  round's 20 mutants are all killed (docs/unit-1d.md §12 items 16-18).
 
 Each spec's §12 has the details.
 
@@ -235,7 +245,7 @@ Each spec's §12 has the details.
 | `goldens/generate_1c.py` | unit 1c's goldens, at 70 digits; imports `generate_1b.py` (and so `generate.py`) to assert the nesting |
 | `goldens/goldens_1c.txt` | its output, 210 goldens |
 | `goldens/generate_1d.py` | unit 1d's goldens, at 70 digits; builds on `generate_1c.py` (and so the other two), and asserts the nesting |
-| `goldens/goldens_1d.txt` | its output, 240 goldens |
+| `goldens/goldens_1d.txt` | its output, 269 goldens |
 
 ## Running the tests
 
@@ -480,8 +490,10 @@ tie share and 2.8e-14 on the switch points.
   near its ceiling has a wage ill-conditioned in the data (docs/unit-1d.md §5.5).
 - In unit 1d a point where a reserved market cannot clear (demand above the type's workers)
   or where the walled types' shares of the basket reach 1 is short, its excess demand +∞.
-  A change of side that closes on such a point is a jump, not a root, and the solve says
-  `LaborShort` (docs/unit-1d.md §12 item 2).
+  A change of side that closes on a short point is the edge of that reserved shortage, where
+  the type's supply is vertical at its workers: the equilibrium is there, with the type's
+  wage set by the pool's clearing (docs/unit-1d.md §12 item 16). `LaborShort` is an economy
+  whose excess demand changes side nowhere on the path.
 - The power x^k, ln(1 + z) and the fused multiply-add come from `core::num`, that is from
   the `libm` crate, so the outputs do not depend on the platform (docs/unit-1a.md §8).
   On 2026-09-26, 5000 random economies (every regime, J_b up to 12) gave byte-identical

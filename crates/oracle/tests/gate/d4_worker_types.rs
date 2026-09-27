@@ -239,6 +239,58 @@ fn reserved_shortage() {
     close("D_T(1)", one.reserved_demand[1], E6_TRAINED_DEMAND_AT_1);
     assert_eq!(one.short, Some(oracle::Shortage::Reserved(1)));
     assert!(one.p_s.is_nan() && one.excess_demand() == f64::INFINITY);
+    // With the trained and the master both short at the end of the path, `reserved` names the
+    // first of them (§5.3 step 3), the trained.
+    let e = economy_1d(three_types(0.01, 0.01));
+    let end = e.at_with(1.0, 0);
+    assert!(end.reserved_demand[1] > 0.01 && end.reserved_demand[2] > 0.01);
+    match e.solve() {
+        Err(SolveError::LaborShort { excess, reserved }) => {
+            assert_eq!((excess, reserved), (f64::INFINITY, Some(1)));
+        }
+        other => panic!("{other:?}"),
+    }
+}
+
+#[test]
+fn the_end_of_the_wall_counts_efficiency() {
+    // E9 (§12 item 18): E4 with χ_max 3 for both types, so that supply is not saturated at
+    // ω_∞ and each type's efficiency enters f_∞ through the walk (§4.5): the trained is walled
+    // at the equilibrium and pooled at the end of the wall, where ρ_∞ carries ε_T·R_ŷT.
+    let mut params = entrant_trained(8.0, 3.0, 0.3, 3.0);
+    params.worker_types[1].work_cost.chi_max = 3.0;
+    let (e, eq) = checked_1d(params);
+    assert_eq!(eq.margin, Margin::Wall);
+    assert!(!eq.workers[1].pooled);
+    let end = e.wall_end();
+    for (name, got, want) in [
+        ("v", eq.v, E9_V),
+        ("P_s", eq.p_s, E9_P_S),
+        ("f_end", eq.f_end, E9_F_END),
+        ("f_end (wall_end)", end.excess, E9_F_END),
+        ("omega_end", end.omega.unwrap(), E9_OMEGA_END),
+        ("trained wage", eq.workers[1].wage, E9_TRAINED_WAGE),
+    ] {
+        close(name, got, want);
+    }
+    check_path_1d(&e);
+}
+
+#[test]
+fn lemma_b1_counts_the_support() {
+    // Lemma B.1's funding condition is T > ν·P_s(1) with ν = Σ ν_i·N_i (§4.7): E1's economy with
+    // both supports 0.4 has ν = 4.4 and Σ N_i = 11, and T = 10 lies between ν·P_s(1) and
+    // Σ N_i·P_s(1).
+    let mut params = entrant_trained(8.0, 3.0, 1.0, 1.0);
+    for t in &mut params.worker_types {
+        t.support = 0.4;
+    }
+    let (e, eq) = checked_1d(params.clone());
+    let one = e.at_with(1.0, e.machines().envelope().last());
+    let workers: f64 = params.worker_types.iter().map(|t| t.workers).sum();
+    assert!(one.excess_demand() < 0.0);
+    assert!(e.support() * one.p_s < params.land && params.land < workers * one.p_s);
+    assert!(eq.lemma_b1);
 }
 
 #[test]

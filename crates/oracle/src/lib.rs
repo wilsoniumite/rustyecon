@@ -90,7 +90,7 @@ pub use solve::{
     LABOR_RESIDUAL_NET, MAX_BISECTION_STEPS,
 };
 pub use workers::{
-    CategoryEq1d, Eq1d, Margin, Residuals1d, Shortage, WallEnd, WallSwitch, WorkerEconomy,
+    CategoryEq1d, Edge, Eq1d, Margin, Residuals1d, Shortage, WallEnd, WallSwitch, WorkerEconomy,
     WorkerEq, WorkerParams, WorkerPoint, WorkerType,
 };
 
