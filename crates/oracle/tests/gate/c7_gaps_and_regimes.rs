@@ -153,7 +153,7 @@ fn margin_on_an_edge() {
 /// The sliver economy (constructed 2026-09-27; docs/unit-1b.md §5.4): a service with tasks
 /// on [0.5, 1] only (z 1, b 0.5) and a site (z 1, b 1), durable (ρ 0.05, δ 0.2, J_b 2).
 /// With the root just above 0.5, all machine use is in the sliver [0.5, x*].
-fn sliver_economy(workers: f64) -> CategoryParams {
+pub(crate) fn sliver_economy(workers: f64) -> CategoryParams {
     CategoryParams {
         workers,
         rho: 0.05,

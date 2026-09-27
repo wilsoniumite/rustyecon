@@ -129,12 +129,118 @@ fn in_category(index: usize) -> impl Fn(ParamError) -> ParamError {
 /// L̄_j = Σ_s μ_js·(e_s − e_{s−1}), summed from 0.0 in segment order: the hours of the
 /// all-human method (main.tex:445). The same terms, in the same order, as the hours at a
 /// threshold below every task of the category, so the two are equal bit for bit.
-fn all_human_hours(edges: &[f64], density: &[f64]) -> f64 {
+pub(crate) fn all_human_hours(edges: &[f64], density: &[f64]) -> f64 {
     let mut hours = 0.0;
     for (s, &mu) in density.iter().enumerate() {
         hours += mu * (edges[s + 1] - edges[s]);
     }
     hours
+}
+
+/// The task line's checks (docs/unit-1b.md §3.2), shared by units 1b and 1c: at least two
+/// edges, finite, the first exactly 0 and the last exactly 1, strictly increasing, with −0.0
+/// stored as +0.0; J(0) exactly 0. Returns J at every edge.
+pub(crate) fn validate_line<S: Schedule>(
+    edges: &mut [f64],
+    schedule: &S,
+) -> Result<Vec<f64>, ParamError> {
+    if edges.len() < 2 {
+        return Err(ParamError::Invalid {
+            name: "edges",
+            reason: "the task line needs at least two edges, 0 and 1",
+        });
+    }
+    for edge in edges.iter_mut() {
+        *edge = params::finite("edges", *edge)? + 0.0;
+    }
+    let last = edges.len() - 1;
+    if edges[0] != 0.0 || edges[last] != 1.0 {
+        return Err(ParamError::Invalid {
+            name: "edges",
+            reason: "the first edge must be exactly 0 and the last exactly 1",
+        });
+    }
+    if edges.windows(2).any(|w| w[1] <= w[0]) {
+        return Err(ParamError::Invalid {
+            name: "edges",
+            reason: "the edges must strictly increase",
+        });
+    }
+    if schedule.integral(0.0) != 0.0 {
+        return Err(ParamError::Invalid {
+            name: "J(0)",
+            reason: "J(0) must be exactly 0: J is the integral of gamma from 0",
+        });
+    }
+    let mut integral_at_edges = Vec::with_capacity(edges.len());
+    for &edge in edges.iter() {
+        integral_at_edges.push(params::finite("J(edge)", schedule.integral(edge))?);
+    }
+    Ok(integral_at_edges)
+}
+
+/// One category's own checks (docs/unit-1b.md §3.2), shared by units 1b and 1c: weight,
+/// direct land and densities 0 or scale, one density per segment, −0.0 stored as +0.0.
+pub(crate) fn validate_category(
+    category: &mut Category,
+    segments: usize,
+) -> Result<(), ParamError> {
+    category.weight = params::zero_or_scale("weight", category.weight)?;
+    category.direct_land = params::zero_or_scale("direct_land", category.direct_land)?;
+    if category.density.len() != segments {
+        return Err(ParamError::Invalid {
+            name: "density",
+            reason: "a category needs one density per segment of the task line",
+        });
+    }
+    for mu in &mut category.density {
+        *mu = params::zero_or_scale("density", *mu)?;
+    }
+    Ok(())
+}
+
+/// (H_j, M_j) for one category at threshold x, with J(x) given (docs/unit-1b.md §4.1 and
+/// §5.1 step 2): hours at human tasks and machine services per unit of the category, from
+/// its densities on the task line's segments and J at their edges.
+///
+/// With `carried` = Some(1 − x*), the top segment's human length e_S − x is the carried
+/// 1 − x* whenever x lies in the top segment, x = 1 included (§5.1 step 5).
+pub(crate) fn tasks(
+    edges: &[f64],
+    integral_at_edges: &[f64],
+    density: &[f64],
+    x: f64,
+    j_x: f64,
+    carried: Option<f64>,
+) -> (f64, f64) {
+    let je = integral_at_edges;
+    let top = edges.len() - 2;
+    let (mut human, mut machine) = (0.0, 0.0);
+    for (s, &mu) in density.iter().enumerate() {
+        let (lo, hi) = (edges[s], edges[s + 1]);
+        if x >= hi {
+            machine += mu * (je[s + 1] - je[s]);
+            if let (true, Some(one_minus_x)) = (s == top, carried) {
+                human += mu * one_minus_x;
+            }
+        } else if x <= lo {
+            human += mu * (hi - lo);
+        } else {
+            let length = match carried {
+                Some(one_minus_x) if s == top => one_minus_x,
+                _ => hi - x,
+            };
+            human += mu * length;
+            machine += mu * (j_x - je[s]);
+        }
+    }
+    (human, machine)
+}
+
+/// The segment holding x: e_s ≤ x < e_{s+1}, and the top segment for x ≥ 1.
+pub(crate) fn segment_of(edges: &[f64], x: f64) -> usize {
+    let above = edges.partition_point(|&e| e <= x);
+    above.clamp(1, edges.len() - 1) - 1
 }
 
 impl<S: Schedule> CategoryEconomy<S> {
@@ -175,38 +281,7 @@ impl<S: Schedule> CategoryEconomy<S> {
             return Err(ParamError::UserCostNotFinite { u });
         }
         // The task line.
-        if params.edges.len() < 2 {
-            return Err(ParamError::Invalid {
-                name: "edges",
-                reason: "the task line needs at least two edges, 0 and 1",
-            });
-        }
-        for edge in &mut params.edges {
-            *edge = params::finite("edges", *edge)? + 0.0;
-        }
-        let last = params.edges.len() - 1;
-        if params.edges[0] != 0.0 || params.edges[last] != 1.0 {
-            return Err(ParamError::Invalid {
-                name: "edges",
-                reason: "the first edge must be exactly 0 and the last exactly 1",
-            });
-        }
-        if params.edges.windows(2).any(|w| w[1] <= w[0]) {
-            return Err(ParamError::Invalid {
-                name: "edges",
-                reason: "the edges must strictly increase",
-            });
-        }
-        if params.schedule.integral(0.0) != 0.0 {
-            return Err(ParamError::Invalid {
-                name: "J(0)",
-                reason: "J(0) must be exactly 0: J is the integral of gamma from 0",
-            });
-        }
-        let mut integral_at_edges = Vec::with_capacity(params.edges.len());
-        for &edge in &params.edges {
-            integral_at_edges.push(params::finite("J(edge)", params.schedule.integral(edge))?);
-        }
+        let integral_at_edges = validate_line(&mut params.edges, &params.schedule)?;
         // The categories.
         if params.categories.is_empty() {
             return Err(ParamError::Invalid {
@@ -214,22 +289,11 @@ impl<S: Schedule> CategoryEconomy<S> {
                 reason: "the economy needs at least one category",
             });
         }
-        let segments = last;
+        let segments = params.edges.len() - 1;
         let mut all_human = Vec::with_capacity(params.categories.len());
         for (index, category) in params.categories.iter_mut().enumerate() {
             let item = in_category(index);
-            category.weight = params::zero_or_scale("weight", category.weight).map_err(&item)?;
-            category.direct_land =
-                params::zero_or_scale("direct_land", category.direct_land).map_err(&item)?;
-            if category.density.len() != segments {
-                return Err(item(ParamError::Invalid {
-                    name: "density",
-                    reason: "a category needs one density per segment of the task line",
-                }));
-            }
-            for mu in &mut category.density {
-                *mu = params::zero_or_scale("density", *mu).map_err(&item)?;
-            }
+            validate_category(category, segments).map_err(&item)?;
             let hours = all_human_hours(&params.edges, &category.density);
             if !(hours > 0.0 || category.direct_land > 0.0) {
                 return Err(item(ParamError::Invalid {
@@ -296,35 +360,17 @@ impl<S: Schedule> CategoryEconomy<S> {
         self.basket_all_human
     }
 
-    /// (H_j, M_j) for one category at threshold x, with J(x) given (docs/unit-1b.md §4.1 and
-    /// §5.1 step 2): hours at human tasks and machine services per unit of the category.
-    ///
-    /// With `carried` = Some(1 − x*), the top segment's human length e_S − x is the carried
-    /// 1 − x* whenever x lies in the top segment, x = 1 included (§5.1 step 5).
+    /// (H_j, M_j) for one category at threshold x: the free function [`tasks`] on this
+    /// economy's line.
     fn tasks(&self, category: &Category, x: f64, j_x: f64, carried: Option<f64>) -> (f64, f64) {
-        let edges = &self.params.edges;
-        let je = &self.integral_at_edges;
-        let top = edges.len() - 2;
-        let (mut human, mut machine) = (0.0, 0.0);
-        for (s, &mu) in category.density.iter().enumerate() {
-            let (lo, hi) = (edges[s], edges[s + 1]);
-            if x >= hi {
-                machine += mu * (je[s + 1] - je[s]);
-                if let (true, Some(one_minus_x)) = (s == top, carried) {
-                    human += mu * one_minus_x;
-                }
-            } else if x <= lo {
-                human += mu * (hi - lo);
-            } else {
-                let length = match carried {
-                    Some(one_minus_x) if s == top => one_minus_x,
-                    _ => hi - x,
-                };
-                human += mu * length;
-                machine += mu * (j_x - je[s]);
-            }
-        }
-        (human, machine)
+        tasks(
+            &self.params.edges,
+            &self.integral_at_edges,
+            &category.density,
+            x,
+            j_x,
+            carried,
+        )
     }
 
     /// Prices and quantities at a candidate threshold x in [0, 1] (docs/unit-1b.md §4.1-4.3),
@@ -421,9 +467,7 @@ impl<S: Schedule> CategoryEconomy<S> {
 
     /// The segment holding x: e_s ≤ x < e_{s+1}, and the top segment for x ≥ 1.
     fn segment_of(&self, x: f64) -> usize {
-        let edges = &self.params.edges;
-        let above = edges.partition_point(|&e| e <= x);
-        above.clamp(1, edges.len() - 1) - 1
+        segment_of(&self.params.edges, x)
     }
 
     /// docs/unit-1b.md §4.2-4.4 and §5.1 step 5 at x*.

@@ -1,11 +1,11 @@
 # rustyecon-oracle
 
 Dated 2026-09-25; joined the workspace on 2026-09-26 (P1.1); unit 1b added on 2026-09-27
-(P1.2).
+(P1.2), and unit 1c the same day (P1.4).
 
 The oracle is a static equilibrium solver for the pinning paper's economy (PLAN §3.4).
 It shares types but not logic with the agents, and no agent may read it (PLAN R13).
-It is built outward in units 1a-1f. This package holds two:
+It is built outward in units 1a-1f. This package holds three:
 
 - **Unit 1a**: one category, one machine type, one land input, with durability and
   interest through the scalar user cost u = (ρ + δ)(1 + ρ)^(J_b − 1). At
@@ -17,6 +17,16 @@ It is built outward in units 1a-1f. This package holds two:
   one-category economy solves to 1a's equilibrium bit for bit. On its own, without an
   equilibrium, it prices categories given as task cells (`cell_cost`), and gives SSRN eq
   26's CES share (`ces_share`).
+- **Unit 1c**: many machine types and the Leontief inverse. Each type has an operating
+  recipe and a build recipe over machine services, labour and land, its own depreciation and
+  build lag, and so its own user cost, at one interest rate (check_dynamics R1-R6); categories
+  may use each other as intermediate inputs. The cheapest task type takes the machine tasks
+  (SSRN A.1), switching along the line; an equilibrium on a switch is a tie, solved by the
+  share of tasks each type takes, and more than one equilibrium is refused
+  (`SolveError::MultipleEquilibria`). Every Leontief identity over categories and types, and
+  the income identity with interest, hold at every equilibrium, and a one-type economy
+  solves to 1b's (and so 1a's) equilibrium bit for bit. The machine block alone, at any
+  margin, is `MachineBlock`, which reproduces check_dynamics' steady-state price blocks.
 
 The package is `rustyecon-oracle`, its library `oracle`, a member of the rustyecon
 workspace. Its one dependency is `rustyecon-core`, for `core::num`: the power, `ln1p` and
@@ -24,11 +34,14 @@ the fused multiply-add go through the pure-Rust `libm` crate there, so every out
 same double on every platform (R8, ADDENDUM A5). Nothing on the engine path depends on
 the oracle (R13; docs/ENGINE.md §1).
 
-The specifications, with every equation and golden, are [docs/unit-1a.md](docs/unit-1a.md)
-and [docs/unit-1b.md](docs/unit-1b.md). Unit 1b's open questions (its §11: the shared task
-line, cells in the equilibrium, gaps as a regime, bitwise nesting, viability at the top of
-the line, the generic `Regime`, the CES parameters) are not ruled; the build takes the
-first draft's choice on each.
+The specifications, with every equation and golden, are [docs/unit-1a.md](docs/unit-1a.md),
+[docs/unit-1b.md](docs/unit-1b.md) and [docs/unit-1c.md](docs/unit-1c.md). Unit 1b's open
+questions (its §11: the shared task line, cells in the equilibrium, gaps as a regime, bitwise
+nesting, viability at the top of the line, the generic `Regime`, the CES parameters) and unit
+1c's (its §11: machines built from categories, one capability shape per line, ties inside
+`Interior`, refusing multiple equilibria, bitwise nesting, physical productivity, the changes
+to 1a's module, the random draws) are not ruled; the build takes the draft's choice on each,
+and unit 1c's §12 records where the build departed from its draft.
 
 ## The gate
 
@@ -84,6 +97,29 @@ one-category case exactly":
   split categories and segments, permutation, rescaling), the regime rows and validation;
 - **C8**, `goldens_1b.txt`'s three digests and the Rust constants.
 
+Unit 1c's tests, per docs/unit-1c.md §8, cover the PLAN's "check_dynamics' targets", "1a and
+1b as the one-type case, exactly", "the income identity to 1e-12 with interest" and "random
+instances satisfying the Leontief identities":
+
+- **m1**, nesting: 1a's G1 and 27 golden instances, 1b's C3, C3d, C3z, C4, gap, near-edge
+  and on-edge roots, 1a's G5 and 1b's C5 random draws with every skipped one, 1a's and 1b's
+  regime rows and rejections, and `at(x)` on a grid, all bit for bit in one-type form; a
+  flow-only type is 1a's flow economy bit for bit at any (ρ, δ, J);
+- **m2**, the machine block alone: check_dynamics' sloped and flat targets (the price block
+  and the quantities per unit of the good; the JSON's doubles within 2e-15), U1-U6, R1-R6,
+  S1-S6 and L1-L4, the closure per type, the Leontief totals and the envelope;
+- **m3**, check_dynamics' machine in Appendix B's closure, with and without interest: goldens,
+  the income identity with interest, and its corners as 1a economies;
+- **m4**, three types (loom, engine, power) on 1b's fork economy with intermediate inputs:
+  goldens, the automation path, the Leontief identities by multiplication, the fork through
+  the chain, and the tie at the switch as N moves across it;
+- **m5**, interest selecting the technique, uniqueness at ρ = 0, and three equilibria refused;
+- **m6**, 240 random interior economies in four sets (ρ = 0, ρ > 0, with intermediate inputs,
+  and a set built to switch mid-line, with ties and multiple equilibria);
+- **m7**, M4's regime rows, every validation rule, an unused type, a duplicate type,
+  permutation, unit rescaling (bit for bit at c = 4), and the envelope's edge cases;
+- **m8**, `goldens_1c.txt`'s four digests and the Rust constants.
+
 The goldens are pinned to laborformal `31b3482`.
 
 ## Layout
@@ -96,13 +132,18 @@ The goldens are pinned to laborformal `31b3482`.
 | `src/closure.rs` | `closure(a, λ, γ*, b, r, u)`, the price block alone |
 | `src/categories.rs` | unit 1b: `Category`, `CategoryParams`, `CategoryEconomy`, `Eq1b` and its outputs |
 | `src/fork.rs` | unit 1b's price block alone: `Cell`, `cell_cost`, `ces_share` |
+| `src/leontief.rs` | Gaussian elimination without pivoting, in index order, on unit 1c's M-matrices (crate-private) |
+| `src/machine_block.rs` | unit 1c's machine block alone: `Recipe`, `MachineType`, `MachineBlock` (totals, closure, envelope, gross services) |
+| `src/machines.rs` | unit 1c: `MachineParams`, `MachineEconomy`, `Eq1c` and its outputs, ties and the sign-change count |
 | `src/dump.rs` | the one-line text interface behind `examples/dump.rs` |
 | `examples/dump.rs` | reads economies on stdin, writes one result line each |
-| `tests/gate/` | the gate: one test crate, one module per golden group (1a's `g*`, 1b's `c*`) |
+| `tests/gate/` | the gate: one test crate, one module per golden group (1a's `g*`, 1b's `c*`, 1c's `m*`) |
 | `goldens/generate.py` | computes every golden with mpmath at 70 digits |
 | `goldens/goldens.txt` | its output, 30 significant digits |
 | `goldens/generate_1b.py` | unit 1b's goldens, at 70 digits; imports `generate.py` to assert the nesting |
 | `goldens/goldens_1b.txt` | its output, 273 goldens |
+| `goldens/generate_1c.py` | unit 1c's goldens, at 70 digits; imports `generate_1b.py` (and so `generate.py`) to assert the nesting |
+| `goldens/goldens_1c.txt` | its output, 210 goldens |
 
 ## Running the tests
 
@@ -126,7 +167,8 @@ On 2026-09-25, after the final verification round, both gave 114 tests: 42 unit 
 71 gate tests and 1 doc test. In the workspace (P1.1, 2026-09-26) the same 114 pass on
 both. With unit 1b (P1.2, 2026-09-27) there are 169: 46 unit tests (42 + 4), 122 gate
 tests (71 + 51) and 1 doc test; after its verification the same day, 173: 47 unit tests
-(42 + 5), 125 gate tests (71 + 54) and 1 doc test.
+(42 + 5), 125 gate tests (71 + 54) and 1 doc test. With unit 1c (P1.4, 2026-09-27) there are
+232: 56 unit tests (47 + 9), 175 gate tests (125 + 50) and 1 doc test.
 
 ## The dump example
 
@@ -201,6 +243,24 @@ near-edge goldens, the three N are inputs, the 15 full-precision outputs match w
 1.9e-16, and the six outputs made of the sliver by the edge miss by up to 7.5e-8, within
 the bound of docs/unit-1b.md §5.4.
 
+Unit 1c's goldens work the same way, with four digests (`generate_1c.py`, `generate_1b.py`,
+`generate.py` and its own goldens), checked by `m8_goldens_file`:
+
+```sh
+python goldens/generate_1c.py           # writes goldens/goldens_1c.txt
+python goldens/generate_1c.py --check   # exits 1 if goldens_1c.txt is not what it writes
+```
+
+It asserts as it goes that the one-type form of 1b's instances equals `generate_1b.py`'s solve
+and M3's corners equal `generate.py`'s (within 6.1e-71), that check_dynamics' targets match the
+JSON's doubles within 2e-15, every identity of docs/unit-1c.md §4 at 1e-65, the envelope
+against a scan of 10^4 points, and f nonincreasing in every technique region. On 2026-09-27
+the oracle's f64 values matched 191 of the 207 goldens it computes within 1.2e-15 relative
+and 199 within 1e-14; the rest are where docs/unit-1c.md §5.6 says precision goes: the switch
+points (up to 2.8e-14, from the cancellation in γ_i's closed form), a least pivot near 0
+(1.7e-14), and the excess demand at M5m's switch, evaluated at the double below it where f is
+steep (4.8e-13).
+
 ## Numerics
 
 - The root is found by bisection on [1e-12, 1] until lo and hi are adjacent doubles.
@@ -255,6 +315,15 @@ the bound of docs/unit-1b.md §5.4.
   (`core::num::fma`, correctly rounded), and 1 − aδ likewise, so neither loses precision
   near the viability edge or as aδ → 1.
 - Interest is computed as ρ·W_K, not (u − δ)·V_m·K, which cancels when ρ is small.
+- Unit 1c's Leontief systems (the categories' I − A_cc, the machine block's I − Â and
+  I − A^q, and the (O, V) system at each x) are solved by Gaussian elimination without
+  pivoting, in index order. On these M-matrices it is stable, its pivots being positive is
+  the productivity or viability test itself (the least pivot generalises 1a's D), and its
+  fixed order makes one type repeat 1a's and 1b's operations bit for bit
+  (`src/leontief.rs`; docs/unit-1c.md §5.1).
+- A switch of the cheapest type is a closed-form γ_i; its point on the line is the largest
+  double with γ(x) < γ_i, found by bisection, so γ is never inverted. γ_i carries the totals'
+  rounding amplified by the cancellation in its numerator, up to 2.8e-14 on M5's switch.
 - The power x^k, ln(1 + z) and the fused multiply-add come from `core::num`, that is from
   the `libm` crate, so the outputs do not depend on the platform (docs/unit-1a.md §8).
   On 2026-09-26, 5000 random economies (every regime, J_b up to 12) gave byte-identical

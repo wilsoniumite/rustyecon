@@ -101,7 +101,7 @@ const RECURSIVE: [(f64, f64, f64, [f64; 4], f64); 2] = [
     ),
 ];
 
-fn with_eta(eta: f64) -> CategoryParams {
+pub(crate) fn with_eta(eta: f64) -> CategoryParams {
     let base = fork_economy();
     CategoryParams {
         schedule: PowerSchedule {

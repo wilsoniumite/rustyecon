@@ -420,6 +420,24 @@ pub enum SolveError {
         /// names it.
         what: &'static str,
     },
+    /// A per-type output of a unit-1c interior solve overflowed or became NaN.
+    NonFiniteInType {
+        /// The type's position in
+        /// [`MachineParams::machine_types`](crate::MachineParams::machine_types).
+        machine_type: usize,
+        /// The output's key within the type, as [`Eq1c::outputs`](crate::Eq1c::outputs)
+        /// names it.
+        what: &'static str,
+    },
+    /// Unit 1c: the excess demand changes sign more than once along the bracket, across the
+    /// switches of the cheapest machine type, so there is more than one equilibrium
+    /// (docs/unit-1c.md §2.5 and §5.3). The oracle refuses rather than choose.
+    MultipleEquilibria {
+        /// The changes of side in the sequence of docs/unit-1c.md §5.3 step 3: odd, at least 3.
+        sign_changes: usize,
+        /// The switch points x_i, the largest double below each switch.
+        switches: Vec<f64>,
+    },
     /// Bisection hit [`MAX_BISECTION_STEPS`].
     NoConvergence {
         /// The steps taken.
@@ -445,6 +463,16 @@ impl fmt::Display for SolveError {
             SolveError::NonFiniteInCategory { category, what } => {
                 write!(f, "{what} of category {category} is not finite")
             }
+            SolveError::NonFiniteInType { machine_type, what } => {
+                write!(f, "{what} of machine type {machine_type} is not finite")
+            }
+            SolveError::MultipleEquilibria {
+                sign_changes,
+                switches,
+            } => write!(
+                f,
+                "the excess demand changes sign {sign_changes} times across the technique                  switches at x = {switches:?}: more than one equilibrium"
+            ),
             SolveError::NoConvergence { steps } => {
                 write!(f, "bisection did not converge in {steps} steps")
             }
@@ -628,16 +656,18 @@ fn first_non_finite(eq: &Eq1a) -> Option<&'static str> {
         })
 }
 
-/// Spec §4 steps 2-4, shared by units 1a and 1b: the regime tests in the spec's order,
-/// then bisection. `d_at_1` and `f_at_1` are D(1) and f(1) from the evaluation at
-/// [`BRACKET_HI`]; `f` evaluates f = n_D − n_S at any x.
+/// Spec §4 steps 2-3, shared by units 1a, 1b and 1c: the regime tests in the spec's order.
+/// `d_at_1` and `f_at_1` are D(1) and f(1) from the evaluation at [`BRACKET_HI`] (for unit 1c,
+/// the least pivot and f under the technique at x = 1); `f_lo` evaluates f at
+/// [`BRACKET_LO`], and is called only when the first two tests pass.
 ///
-/// Returns the root, or the boundary regime that holds instead.
-pub(crate) fn classify<E>(
+/// Returns (f(lo), f(1)) when both ends pass, so that f(lo) > 0 > f(1), or the boundary
+/// regime that holds instead.
+pub(crate) fn regime_tests<E>(
     d_at_1: f64,
     f_at_1: f64,
-    f: impl Fn(f64) -> f64,
-) -> Result<Result<Root, Regime<E>>, SolveError> {
+    f_lo: impl FnOnce() -> f64,
+) -> Result<Result<(f64, f64), Regime<E>>, SolveError> {
     // D = (1 − u·a) − u·λγ with u finite and a < 1: 1 − u·a is finite, so D is finite
     // or −∞ (u·λγ overflowed), and −∞ is not viable. NaN would be undecidable.
     if d_at_1.is_nan() {
@@ -650,10 +680,26 @@ pub(crate) fn classify<E>(
     if f_hi >= 0.0 {
         return Ok(Err(Regime::BoundaryNoMargin { f_at_1: f_hi }));
     }
-    let f_lo = finite("n_D - n_S at BRACKET_LO", f(BRACKET_LO))?;
+    let f_lo = finite("n_D - n_S at BRACKET_LO", f_lo())?;
     if f_lo <= 0.0 {
         return Ok(Err(Regime::NoInteriorAtZero { f_at_0: f_lo }));
     }
+    Ok(Ok((f_lo, f_hi)))
+}
+
+/// Spec §4 steps 2-4, shared by units 1a and 1b: [`regime_tests`], then bisection on the
+/// whole bracket. `f` evaluates f = n_D − n_S at any x.
+///
+/// Returns the root, or the boundary regime that holds instead.
+pub(crate) fn classify<E>(
+    d_at_1: f64,
+    f_at_1: f64,
+    f: impl Fn(f64) -> f64,
+) -> Result<Result<Root, Regime<E>>, SolveError> {
+    let (f_lo, f_hi) = match regime_tests(d_at_1, f_at_1, || f(BRACKET_LO))? {
+        Ok(ends) => ends,
+        Err(regime) => return Ok(Err(regime)),
+    };
     bisect(f, (BRACKET_LO, f_lo), (BRACKET_HI, f_hi)).map(Ok)
 }
 
@@ -696,7 +742,7 @@ impl Root {
     }
 
     /// An exact zero of f at x.
-    fn exact(x: f64, steps: u32) -> Root {
+    pub(crate) fn exact(x: f64, steps: u32) -> Root {
         Root {
             x,
             one_minus_x: 1.0 - x,
@@ -710,7 +756,7 @@ impl Root {
 /// Stops when the floating midpoint equals an endpoint, so lo and hi are adjacent
 /// doubles (see [`Root::between`]). There is no tolerance to tune, and the result is the
 /// same on every run. An exact zero at a midpoint is returned at once.
-fn bisect(
+pub(crate) fn bisect(
     f: impl Fn(f64) -> f64,
     (mut lo, mut f_lo): (f64, f64),
     (mut hi, mut f_hi): (f64, f64),

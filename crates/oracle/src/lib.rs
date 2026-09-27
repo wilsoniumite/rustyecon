@@ -11,6 +11,15 @@
 //! 1a's equilibrium bit for bit. The price block alone, for categories given as task cells
 //! at any prices, and the CES share of SSRN eq 26, are [`cell_cost`] and [`ces_share`].
 //!
+//! Unit 1c (docs/unit-1c.md) adds many machine types, each with an operating recipe and a
+//! build recipe over machine services, labour and land, its own depreciation and build lag,
+//! and so its own user cost, and lets categories use each other as intermediate inputs:
+//! [`MachineEconomy`], with the Leontief identities over every produced good and the income
+//! identity with interest at every equilibrium ([`Eq1c`]). The cheapest task type takes the
+//! machine tasks; an equilibrium on a switch between types is a tie, and more than one
+//! equilibrium is refused. One type with no operating recipe solves to 1b's equilibrium bit
+//! for bit. The machine block alone, at any margin, is [`MachineBlock`].
+//!
 //! Every price is in units of the land rent r = 1, so v = w/r.
 //!
 //! The oracle shares types but not logic with the agents. No agent may read it
@@ -40,6 +49,9 @@ mod categories;
 mod closure;
 pub mod dump;
 mod fork;
+mod leontief;
+mod machine_block;
+mod machines;
 mod params;
 mod schedule;
 mod solve;
@@ -50,6 +62,13 @@ pub use categories::{
 };
 pub use closure::{closure, Closure, ClosureError};
 pub use fork::{cell_cost, ces_share, CategoryCost, Cell};
+pub use machine_block::{
+    BlockPrices, BlockTotals, Envelope, MachineBlock, MachineType, Recipe, Switch,
+};
+pub use machines::{
+    CategoryEq1c, Eq1c, Item, MachineEconomy, MachineParams, MachinePoint, OutputKey1c,
+    Residuals1c, SwitchPoint, Tie, TypeEq,
+};
 pub use params::{
     user_cost, Economy, ParamError, Params, Requirement, UniformWorkCost, SCALE_CEIL, SCALE_FLOOR,
 };

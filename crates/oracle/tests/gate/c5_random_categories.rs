@@ -8,7 +8,7 @@ use crate::g5_random_economies::{SplitMix64, MAX_DRAWS, MAX_LAG, SEED, WANTED};
 use crate::support_1b::*;
 
 #[derive(Clone, Copy, Debug)]
-enum Set {
+pub(crate) enum Set {
     /// (ρ, δ, J_b) = (0, 1, 1).
     Flow,
     /// ρ ~ U(0, 0.12), δ ~ U(0.03, 1), J_b = 1.
@@ -19,7 +19,7 @@ enum Set {
 
 /// The first seed of unit 1b's sets: 1a's G5 seed, check_macro.py's 923 (docs/unit-1b.md
 /// §8). The draws are 1b's own, so they share nothing with 1a's but the generator.
-const SEED_1B: u64 = SEED;
+pub(crate) const SEED_1B: u64 = SEED;
 
 /// True with probability `p`.
 fn chance(rng: &mut SplitMix64, p: f64) -> bool {
@@ -27,7 +27,7 @@ fn chance(rng: &mut SplitMix64, p: f64) -> bool {
 }
 
 /// One draw from docs/unit-1b.md §8's table. Fields are drawn in the order written.
-fn draw(rng: &mut SplitMix64, set: Set) -> CategoryParams {
+pub(crate) fn draw(rng: &mut SplitMix64, set: Set) -> CategoryParams {
     // 1a's G5 ranges for the scalars, without h.
     let workers = rng.uniform(1.0, 5.0);
     let land = rng.uniform(2.0, 20.0);

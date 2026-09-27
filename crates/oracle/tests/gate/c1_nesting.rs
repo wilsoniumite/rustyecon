@@ -173,7 +173,7 @@ fn appendix_b_is_bit_identical() {
 }
 
 /// Every interior instance of 1a's gate (docs/unit-1a.md §6), as 1a's tests build it.
-fn golden_instances() -> Vec<(String, Params)> {
+pub(crate) fn golden_instances() -> Vec<(String, Params)> {
     let base = appendix_b();
     let with_schedule = |eta: f64, g0: f64, g1: f64, lam: f64| Params {
         lam,
