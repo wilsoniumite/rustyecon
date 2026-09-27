@@ -45,6 +45,7 @@ impl Host {
         let mut queue: VecDeque<Effect> = effects.into();
         while let Some(e) = queue.pop_front() {
             let answer = match e {
+                Effect::PickTape => platform::pick_tape().map(Intent::Open),
                 Effect::ReadTape(path) => Some(Intent::TapeRead {
                     text: platform::read_text(&path),
                     path,

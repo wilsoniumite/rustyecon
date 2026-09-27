@@ -56,7 +56,7 @@ impl Sync {
                     self.runners.remove(&run);
                 }
                 Effect::SaveSession => self.saves += 1,
-                Effect::ReadTape(_) | Effect::SetAsideSession => {}
+                Effect::ReadTape(_) | Effect::SetAsideSession | Effect::PickTape => {}
             }
         }
         self.settle(m);
@@ -380,9 +380,14 @@ fn speed_breakpoints_plots_and_pins_live_in_the_session() {
     assert_eq!(reduce(&mut m, Intent::Pin(pin.clone())).len(), 1);
     assert!(reduce(&mut m, Intent::Pin(pin.clone())).is_empty());
     assert_eq!(m.session.pins, std::slice::from_ref(&pin));
-    // Selection, cursor and focus change the model and ask for nothing.
-    assert!(reduce(&mut m, Intent::Select(Some(pin.clone()))).is_empty());
-    assert_eq!(m.selection(), Some(&pin));
+    // Selection, cursor and focus change the model and ask for nothing, but for an actor's
+    // snapshot (a_selected_actor_asks_for_the_snapshot_its_cursor_reads).
+    let market = Entity::Market {
+        node: key("town"),
+        good: key("bread"),
+    };
+    assert!(reduce(&mut m, Intent::Select(Some(market.clone()))).is_empty());
+    assert_eq!(m.selection(), Some(&market));
     assert!(reduce(&mut m, Intent::Cursor(Cursor::At(9))).is_empty());
     assert_eq!(m.cursor(), Cursor::At(9));
     assert!(reduce(&mut m, Intent::Focus(RunId(0))).is_empty());
@@ -468,4 +473,134 @@ fn a_session_that_does_not_read_is_set_aside() {
     };
     assert!(reduce(&mut m, Intent::SessionRead(Ok(s.to_ron()))).is_empty());
     assert_eq!(m.session, s);
+}
+
+#[test]
+fn a_selected_actor_asks_for_the_snapshot_its_cursor_reads() {
+    // The actor inspector reads the lots and the actor's state from a snapshot of the state the
+    // cursor's tick left (docs/GUI.md §4). The model asks the focused run for one when an actor
+    // is selected and the run is not running, once for each state tick.
+    let mut m = Model::default();
+    let mut h = Sync::new(8);
+    open(&mut h, &mut m, "gate.ron", GATE);
+    h.act(&mut m, Intent::Step(5));
+    h.sent();
+    let market = Entity::Market {
+        node: key("town"),
+        good: key("bread"),
+    };
+    assert!(reduce(&mut m, Intent::Select(Some(market))).is_empty());
+    // Live, the cursor reads the state tick 5.
+    let mill = Entity::Actor(key("mill"));
+    let e = h.act(&mut m, Intent::Select(Some(mill.clone())));
+    assert!(
+        matches!(
+            &e[..],
+            [Effect::Send {
+                cmd: Cmd::Snapshot(5),
+                ..
+            }]
+        ),
+        "{e:?}"
+    );
+    assert!(m.focused().unwrap().store.snapshot(5).is_some());
+    assert!(reduce(&mut m, Intent::Select(Some(mill.clone()))).is_empty());
+    // A cursor at report tick 2 reads the state tick 3, and one past the record the last.
+    let e = h.act(&mut m, Intent::Cursor(Cursor::At(2)));
+    assert!(matches!(
+        &e[..],
+        [Effect::Send {
+            cmd: Cmd::Snapshot(3),
+            ..
+        }]
+    ));
+    assert!(reduce(&mut m, Intent::Cursor(Cursor::At(90))).is_empty());
+    // A pause asks for the state it left.
+    h.act(&mut m, Intent::Cursor(Cursor::Live));
+    h.sent();
+    h.act(&mut m, Intent::Step(2));
+    let sent: Vec<String> = h.sent().into_iter().map(|x| x.1).collect();
+    assert_eq!(sent, ["Step(2)", "Snapshot(7)"]);
+    // A running run is not asked; the record holds its holdings every tick.
+    reduce(
+        &mut m,
+        Intent::Observed {
+            run: RunId(0),
+            obs: Obs::Running { tick: 7 },
+        },
+    );
+    reduce(&mut m, Intent::Select(None));
+    assert!(reduce(&mut m, Intent::Select(Some(Entity::Actor(key("oven"))))).is_empty());
+    // The toolbar's Open asks the host for a file dialog.
+    assert!(matches!(
+        &reduce(&mut m, Intent::PickTape)[..],
+        [Effect::PickTape]
+    ));
+}
+
+#[test]
+fn rationing_onsets_are_logged_once_a_class_line() {
+    // docs/GUI.md §4, the log: rationing onset by class. The first tick each class line is
+    // filled below its request is one line, once a load; the reference is found here from the
+    // recorded series alone. The gate's sellers are rationed on and off, so a line an episode
+    // would log hundreds; this logs one each.
+    let mut m = Model::default();
+    let mut h = Sync::new(7);
+    open(&mut h, &mut m, "gate.ron", GATE);
+    h.act(&mut m, Intent::Step(700));
+    let store = &m.focused().unwrap().store;
+    let mut want: Vec<(u64, String)> = Vec::new();
+    for k in store.catalogue() {
+        let At::Class {
+            node,
+            good,
+            class,
+            side,
+        } = &k.at
+        else {
+            continue;
+        };
+        if k.measure != Measure::Requested {
+            continue;
+        }
+        let req = store.series(k).unwrap();
+        let filled = store
+            .series(&SeriesKey {
+                measure: Measure::Filled,
+                at: k.at.clone(),
+            })
+            .unwrap();
+        let first = req
+            .ticks()
+            .iter()
+            .zip(req.values())
+            .find(|(&t, &r)| filled.at(t).expect("a line has both") < r);
+        if let Some((&t, _)) = first {
+            let side = if *side == SideTag::Buy { "buy" } else { "sell" };
+            want.push((
+                t,
+                format!("rationing onset: {class} ({side}) at {node}/{good}, "),
+            ));
+        }
+    }
+    let got: Vec<(u64, String)> = m
+        .log()
+        .iter()
+        .filter(|l| l.level == rustyecon_gui::run::log::Level::Rationing)
+        .map(|l| (l.tick.unwrap(), l.text.clone()))
+        .collect();
+    assert!(want.len() >= 2, "the gate rations: {want:?}");
+    assert_eq!(got.len(), want.len(), "{got:#?}\n{want:#?}");
+    let mut got_sorted = got.clone();
+    got_sorted.sort();
+    let mut want_sorted = want.clone();
+    want_sorted.sort();
+    for ((gt, gtext), (wt, wtext)) in got_sorted.iter().zip(&want_sorted) {
+        assert_eq!(gt, wt);
+        assert!(gtext.starts_with(wtext.as_str()), "{gtext} / {wtext}");
+    }
+    // Bread rations from tick 0: the pensioners' coin buys less than they ask for.
+    assert!(got
+        .iter()
+        .any(|(t, s)| *t == 0 && s.contains("pensioners (buy) at") && s.contains("/bread")));
 }

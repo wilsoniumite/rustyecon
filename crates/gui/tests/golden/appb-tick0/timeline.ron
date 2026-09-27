@@ -1,0 +1,18 @@
+Some((
+    start: 0,
+    now: 1,
+    end: 1,
+    ticks_per_year: 52,
+    cursor: Some((
+        tick: 0,
+        date: "1750-01-01",
+        live: true,
+    )),
+    years: [
+        (tick: 0, year: 1750),
+    ],
+    events: [],
+    ring: [
+        0,
+    ],
+))

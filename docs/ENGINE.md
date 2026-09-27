@@ -632,6 +632,11 @@ changed, so no hash, `prefix_id` or `world_id` moved.
    engine change that breaks it is fixed at the next G-stage at the latest (GUI.md §8.2).
    `scripts/gui.sh` is the GUI's own gate.
 4. §13: the GUI's row is under way, from G0.1.
+5. §1, at G0.1's second part (the panels, the same day): the GUI also depends on core, for
+   `core::num` alone, since its inspector shows ln(p′/p) and the engine re-exports no `num`. A
+   scan of the GUI (`the_gui_names_core_for_num_alone`) holds every other path into core out, so
+   core's writer stays out of the GUI's reach (E1). No engine-path crate changed, and the
+   lockfile gained only the GUI's own edge to core.
 
 ## 0. Engine invariants
 
@@ -697,8 +702,9 @@ crates/worldgen rustyecon-worldgen empty until Phase 4; nothing depends on it ye
 crates/probe    rustyecon-probe    the Phase 2 probe's harness (P2.0.1); lib `probe`; reads certify's
                                    oracle-free measures, Parquet-free (S2.5); nothing depends on it
 crates/gui      rustyecon-gui      the interactive frontend, egui (docs/GUI.md; G0.1); depends on the
-                                   engine and on certify without `parquet`; nothing depends on it,
-                                   and the workspace's `default-members` leave it out (D1)
+                                   engine, on certify without `parquet`, and on core for `num`
+                                   alone; nothing depends on it, and the workspace's
+                                   `default-members` leave it out (D1)
 tapes/appb.ron                     the probe's Appendix B world, generated (docs/probe/RULES.md §4)
 tapes/gate.ron                     the gate world (§10)
 ```

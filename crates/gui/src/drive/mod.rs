@@ -5,11 +5,13 @@
 //! and calls `advance` in slices of about 8 ms. `InlineDriver` (G2, the web) calls `advance`
 //! inside `poll` instead. [`Host`] carries out the model's effects: it keeps one driver per run,
 //! reads and writes files through [`platform`](crate::platform), and pumps observations back
-//! into [`reduce`].
+//! into [`reduce`]. [`Frames`] keeps the smoke mode's CPU per frame.
 
+mod frames;
 mod host;
 mod pace;
 
+pub use frames::{FrameSummary, Frames};
 pub use host::Host;
 
 use crate::run::{Cmd, Obs, Runner};

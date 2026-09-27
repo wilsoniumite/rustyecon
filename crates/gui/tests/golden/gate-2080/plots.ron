@@ -1,0 +1,29 @@
+Some((
+    start: 0,
+    now: 2080,
+    cursor: Some(2079),
+    ticks_per_year: 52,
+    panels: [
+        (
+            unit: "coin per bread",
+            lines: [
+                (key: (measure: Price, at: Market(node: "town", good: "bread")), label: "price at town/bread", points: 2080, first: Some((0, 2.0)), last: Some((2079, 36.623107961492245)), min: Some((0, 2.0)), max: Some((2042, 36.65808254355695)), at_cursor: Some(36.623107961492245)),
+                (key: (measure: Price, at: Market(node: "village", good: "bread")), label: "price at village/bread", points: 2080, first: Some((0, 2.2)), last: Some((2079, 0.7541992796065496)), min: Some((49, 0.21904954319804998)), max: Some((1048, 2.8309429362538374)), at_cursor: Some(0.7541992796065496)),
+            ],
+        ),
+        (
+            unit: "coin per fuel",
+            lines: [
+                (key: (measure: Price, at: Market(node: "town", good: "fuel")), label: "price at town/fuel", points: 2080, first: Some((0, 2.0)), last: Some((2079, 12.079953736886075)), min: Some((0, 2.0)), max: Some((958, 12.615648030810025)), at_cursor: Some(12.079953736886075)),
+                (key: (measure: Price, at: Market(node: "village", good: "fuel")), label: "price at village/fuel", points: 2080, first: Some((0, 2.0)), last: Some((2079, 12.068968335692288)), min: Some((21, 1.9613809863493905)), max: Some((1062, 30.662776803368317)), at_cursor: Some(12.068968335692288)),
+            ],
+        ),
+        (
+            unit: "coin per grain",
+            lines: [
+                (key: (measure: Price, at: Market(node: "town", good: "grain")), label: "price at town/grain", points: 2080, first: Some((0, 1.0)), last: Some((2079, 6.039976868443038)), min: Some((0, 1.0)), max: Some((958, 6.3078240154050125)), at_cursor: Some(6.039976868443038)),
+                (key: (measure: Price, at: Market(node: "village", good: "grain")), label: "price at village/grain", points: 2080, first: Some((0, 1.0)), last: Some((2079, 6.034484167846142)), min: Some((21, 0.9806904931746955)), max: Some((2050, 6.048714404545652)), at_cursor: Some(6.034484167846142)),
+            ],
+        ),
+    ],
+))

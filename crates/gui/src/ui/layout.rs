@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 /// A panel in the tile layout. The toolbar sits above the tiles; the editor and compare join
 /// at G0.2.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum Pane {
     /// Tape entities by key.
     Outliner,

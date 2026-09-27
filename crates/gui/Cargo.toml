@@ -20,9 +20,13 @@ path = "src/main.rs"
 # leave it out, so the GUI never gates engine work. It depends on the engine alone for the run
 # and on certify, without its `parquet` feature, for the run key and the manifest (§3.2).
 # model/, run/, vm/ and edit/ use no egui (tests/scans.rs); only ui/ and app.rs draw.
+# Core is named for `core::num` alone, the libm-backed logs the display takes (U6, U9); the
+# engine re-exports no `num`, and a scan holds every other path into core out (tests/scans.rs,
+# the_gui_names_core_for_num_alone), so core's writer stays out of reach (U1, E1).
 [dependencies]
 rustyecon-engine.workspace = true
 rustyecon-certify.workspace = true
+rustyecon-core.workspace = true
 serde.workspace = true
 ron.workspace = true
 eframe.workspace = true

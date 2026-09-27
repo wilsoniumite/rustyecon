@@ -201,8 +201,8 @@ impl fmt::Display for PauseReason {
     }
 }
 
-/// The state at one tick, read without changing it (E4): every holder's totals and every
-/// actor's own state. Ids are dense, read against the run's `World`.
+/// The state at one tick, read without changing it (E4): every holder's totals and lots, and
+/// every actor's own state. Ids are dense, read against the run's `World`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Snapshot {
     /// The state's tick.
@@ -211,6 +211,9 @@ pub struct Snapshot {
     pub hash: u64,
     /// Every holder's total of every good it holds.
     pub holdings: HoldingTotals,
+    /// The lots behind each total, in the same (holder, good) order, as the inventory keeps
+    /// them.
+    pub lots: Vec<(Holder, GoodId, Vec<Lot>)>,
     /// Every actor's own state, in `ActorId` order.
     pub actors: Vec<(ActorId, ActorState)>,
 }
@@ -275,6 +278,8 @@ pub enum Obs {
     Loaded {
         /// The run's key: build, `tape_hash` and `world_id` (certify's `RunKey`).
         run: RunKey,
+        /// The tape the run loaded, for the registry listing and the events' bases.
+        tape: Box<Tape>,
         /// The run's world, for key lookups on this side of the channel.
         world: Box<World>,
         /// The state's tick: 0 from genesis, the checkpoint's on a resume.

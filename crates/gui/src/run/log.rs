@@ -1,9 +1,17 @@
-//! The log's lines (docs/GUI.md §4, the log panel): loads, runs, pauses, fired events, refusals
-//! and errors, made from what a run reports. A failed run's lines give its ledger line and its
-//! last good tick, as the cli's stderr does.
+//! The log's lines (docs/GUI.md §4, the log panel): loads, runs, pauses, fired events, rationing
+//! onsets by class, refusals and errors, made from what a run reports. A failed run's lines give
+//! its ledger line and its last good tick, as the cli's stderr does.
+//!
+//! A rationing onset is the first tick of a load in which a class's line in a market (R12) was
+//! filled below what it requested: the report's own numbers, compared exactly, so the GUI
+//! defines no tolerance, and one line for each class line, so a market at rest whose fills
+//! differ from its requests by rounding does not fill the log. Later episodes are in the class
+//! lines' series, which the inspector shows and plots. A tolerance on a fill is a criterion's
+//! registered bar (certify's `rationed_below`), not the log's.
 
-use super::{Obs, RunId};
+use super::{At, Measure, Obs, ObsBatch, RunId, SeriesKey};
 use serde::Serialize;
+use std::collections::{BTreeMap, BTreeSet};
 
 /// How a line reads.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -12,8 +20,81 @@ pub enum Level {
     Info,
     /// A tape event that fired.
     Event,
+    /// A class's line began to be rationed.
+    Rationing,
     /// An error: a failed step, a refusal, a file that could not be read or written.
     Error,
+}
+
+/// Watches every class line of a run for the onset of rationing. One per run, fed each batch
+/// before the store records it, and started afresh by a load.
+#[derive(Debug, Clone, Default)]
+pub struct RationWatch {
+    /// The class lines already filled below their request once.
+    rationed: BTreeSet<At>,
+}
+
+impl RationWatch {
+    /// The onset lines of a batch of run `run`, whose series `batch.known..` are the batch's
+    /// new ones and whose earlier ones are `catalogue`'s.
+    pub fn onsets(&mut self, run: RunId, batch: &ObsBatch, catalogue: &[SeriesKey]) -> Vec<Entry> {
+        let key = |i: u32| -> Option<&SeriesKey> {
+            let i = i as usize;
+            let known = batch.known as usize;
+            if i < known {
+                catalogue.get(i)
+            } else {
+                batch.new_series.get(i - known)
+            }
+        };
+        let mut out = Vec::new();
+        for row in &batch.rows {
+            let mut lines: BTreeMap<&At, (Option<f64>, Option<f64>)> = BTreeMap::new();
+            for &(i, v) in &row.cells {
+                let Some(k) = key(i) else { continue };
+                match k.measure {
+                    Measure::Requested => lines.entry(&k.at).or_default().0 = Some(v),
+                    Measure::Filled => lines.entry(&k.at).or_default().1 = Some(v),
+                    _ => {}
+                }
+            }
+            for (at, line) in lines {
+                let (Some(requested), Some(filled)) = line else {
+                    continue;
+                };
+                if filled < requested && self.rationed.insert(at.clone()) {
+                    out.push(Entry {
+                        run: Some(run),
+                        tick: Some(row.tick),
+                        level: Level::Rationing,
+                        text: onset_text(at, requested, filled),
+                    });
+                }
+            }
+        }
+        out
+    }
+}
+
+fn onset_text(at: &At, requested: f64, filled: f64) -> String {
+    match at {
+        At::Class {
+            node,
+            good,
+            class,
+            side,
+        } => {
+            let side = match side {
+                rustyecon_engine::prelude::SideTag::Buy => "buy",
+                rustyecon_engine::prelude::SideTag::Sell => "sell",
+            };
+            format!(
+                "rationing onset: {class} ({side}) at {node}/{good}, filled {filled} of {requested} \
+                 requested"
+            )
+        }
+        other => format!("rationing onset at {other:?}: filled {filled} of {requested} requested"),
+    }
 }
 
 /// One line of the log.
@@ -56,6 +137,7 @@ pub fn entries(run: RunId, obs: &Obs) -> Vec<Entry> {
             world,
             tick,
             hash,
+            ..
         } => vec![line(
             Some(*tick),
             Level::Info,

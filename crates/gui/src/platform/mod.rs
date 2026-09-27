@@ -1,5 +1,5 @@
-//! Files (docs/GUI.md §3.2): tapes, `session.ron` and `layout.ron` natively, through std::fs.
-//! File dialogs (rfd) join with the toolbar's Open, and the Parquet spill at G3.
+//! Files (docs/GUI.md §3.2): tapes, `session.ron` and `layout.ron` natively, through std::fs,
+//! and the toolbar's Open through rfd's native file dialog. The Parquet spill joins at G3.
 //!
 //! The session's directory is `$RUSTYECON_GUI_DIR` when set, else the platform's configuration
 //! directory: `%APPDATA%\rustyecon\gui` on Windows, `$XDG_CONFIG_HOME/rustyecon/gui` or
@@ -17,6 +17,24 @@ pub const LAYOUT: &str = "layout.ron";
 /// A tape's text, or why it could not be read.
 pub fn read_text(path: &str) -> Result<String, String> {
     std::fs::read_to_string(path).map_err(|e| e.to_string())
+}
+
+/// Ask the user for a tape file: the native dialog, filtered to `.ron`. `None` if the user
+/// chose none. It blocks the frame while it is open, which a native G0 accepts; the web build's
+/// `AsyncFileDialog` waits for W1.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn pick_tape() -> Option<String> {
+    rfd::FileDialog::new()
+        .set_title("Open a tape")
+        .add_filter("tape", &["ron"])
+        .pick_file()
+        .map(|p| p.display().to_string())
+}
+
+/// No dialog on the web until W1.
+#[cfg(target_arch = "wasm32")]
+pub fn pick_tape() -> Option<String> {
+    None
 }
 
 /// Where the session lives.

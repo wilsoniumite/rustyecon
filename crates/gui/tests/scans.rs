@@ -373,3 +373,54 @@ fn no_hashed_collections() {
     }
     assert!(found.is_empty(), "hashed collections: {found:#?}");
 }
+
+/// Every path into core that is not `rustyecon_core::num::…`: core's writer (`apply`,
+/// `resolve`, the ledgers) and everything else a frontend reaches through the engine.
+fn core_paths(toks: &[Tok]) -> Vec<String> {
+    let mut found = Vec::new();
+    for (i, t) in toks.iter().enumerate() {
+        if !ident(t, "rustyecon_core") {
+            continue;
+        }
+        let into_num = toks.get(i + 1).is_some_and(|n| punct(n, ':'))
+            && toks.get(i + 2).is_some_and(|n| punct(n, ':'))
+            && toks.get(i + 3).is_some_and(|n| ident(n, "num"));
+        if !into_num {
+            let next: Vec<String> = toks[i + 1..(i + 4).min(toks.len())]
+                .iter()
+                .map(|t| format!("{t:?}"))
+                .collect();
+            found.push(format!("rustyecon_core {}", next.join(" ")));
+        }
+    }
+    found
+}
+
+#[test]
+fn the_gui_names_core_for_num_alone() {
+    // U1, U9, E1: the GUI reaches the run through the engine, whose API holds no writer of the
+    // state. It names core for `core::num` alone, the libm-backed logs a display takes (U6), since
+    // the engine re-exports no `num`; any other path into core, a group import included, would
+    // put core's writer in its reach. Every source file of the crate is read.
+    let fx = fixture(
+        "use rustyecon_core::num; let v = rustyecon_core::num::ln(x); use rustyecon_core::apply; \
+         use rustyecon_core::{num, Ledger}; use rustyecon_core as core;",
+    );
+    assert_eq!(core_paths(&fx).len(), 3, "{:?}", core_paths(&fx));
+    let mut found = Vec::new();
+    let mut named = 0;
+    for (path, toks) in shipped_tokens(&all_sources()) {
+        named += toks.iter().filter(|t| ident(t, "rustyecon_core")).count();
+        for p in core_paths(&toks) {
+            found.push(format!("{path}: {p}"));
+        }
+    }
+    assert!(found.is_empty(), "paths into core beyond num: {found:#?}");
+    assert!(named > 0, "the inspector's ln(p′/p) names core::num");
+    let manifest = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml"))
+        .expect("the manifest");
+    assert!(
+        manifest.contains("rustyecon-core.workspace = true"),
+        "the manifest names core as the scan assumes"
+    );
+}

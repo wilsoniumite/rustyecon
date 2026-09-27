@@ -5,10 +5,14 @@
 //! A non-finite value stops ingestion (U10). The row that holds it is dropped whole, so every
 //! series ends at the same last good tick, and the error names the series and the tick; every
 //! later observation is refused with the same error.
+//!
+//! A load also keeps the tape and `engine::registry`'s listing of it, made once, so the
+//! registry panel and the inspector read every param's uses and bases as the cli prints them.
 
 use super::{Obs, PauseReason, Refusal, RingCheckpoint, SeriesKey, Snapshot};
 use certify::RunKey;
 use rustyecon_engine::prelude::*;
+use rustyecon_engine::RegistryLine;
 use std::collections::BTreeMap;
 use std::fmt;
 
@@ -179,8 +183,11 @@ pub enum RunStatus {
 /// Everything one run has reported.
 #[derive(Debug, Clone)]
 pub struct Store {
+    generation: u64,
     run: Option<RunKey>,
+    tape: Option<Box<Tape>>,
     world: Option<Box<World>>,
+    registry: Result<Vec<RegistryLine>, String>,
     start: u64,
     tick: u64,
     hash: u64,
@@ -202,8 +209,11 @@ pub struct Store {
 impl Default for Store {
     fn default() -> Store {
         Store {
+            generation: 0,
             run: None,
+            tape: None,
             world: None,
+            registry: Ok(Vec::new()),
             start: 0,
             tick: 0,
             hash: 0,
@@ -243,15 +253,21 @@ impl Store {
         match obs {
             Obs::Loaded {
                 run,
+                tape,
                 world,
                 tick,
                 hash,
             } => {
-                // A load starts the record afresh; refusals that led to it are kept.
+                // A load starts the record afresh; refusals that led to it are kept. The
+                // registry listing is the cli's, made once from the tape the run loaded.
                 let refusals = std::mem::take(&mut self.refusals);
+                let registry = rustyecon_engine::registry(&tape).map_err(|e| e.to_string());
                 *self = Store {
+                    generation: self.generation + 1,
                     run: Some(run),
+                    tape: Some(tape),
                     world: Some(world),
+                    registry,
                     start: tick,
                     tick,
                     hash,
@@ -343,7 +359,9 @@ impl Store {
                 if matches!(r, Refusal::Load(_)) {
                     self.status = RunStatus::Empty;
                     self.run = None;
+                    self.tape = None;
                     self.world = None;
+                    self.registry = Ok(Vec::new());
                 }
                 self.refusals.push(r);
             }
@@ -368,6 +386,50 @@ impl Store {
     /// The run's world, once loaded.
     pub fn world(&self) -> Option<&World> {
         self.world.as_deref()
+    }
+
+    /// The tape the run loaded.
+    pub fn tape(&self) -> Option<&Tape> {
+        self.tape.as_deref()
+    }
+
+    /// `engine::registry`'s listing of the tape, the cli's `rustyecon registry`: every param
+    /// with each of its uses, then the inline numbers. Empty before a load.
+    pub fn registry(&self) -> Result<&[RegistryLine], &str> {
+        match &self.registry {
+            Ok(lines) => Ok(lines),
+            Err(e) => Err(e),
+        }
+    }
+
+    /// How many loads this store has recorded. A load starts the record afresh, so a reader
+    /// that keeps something derived from a series (the plot cache) starts again when it
+    /// changes.
+    pub fn generation(&self) -> u64 {
+        self.generation
+    }
+
+    /// The report ticks recorded: `start..tick`. Empty before any tick ran.
+    pub fn reports(&self) -> std::ops::Range<u64> {
+        self.start..self.tick
+    }
+
+    /// The report tick a cursor reads: its own, brought inside the record, or with no cursor
+    /// (live) the latest tick that ran. `None` before any tick ran. Report tick `t` is the tick
+    /// that ran: its report's values, and the state it left, whose tick is `t + 1`.
+    pub fn report_at(&self, cursor: Option<u64>) -> Option<u64> {
+        let r = self.reports();
+        if r.is_empty() {
+            return None;
+        }
+        let last = r.end - 1;
+        Some(cursor.map_or(last, |t| t.clamp(r.start, last)))
+    }
+
+    /// The state tick a cursor reads, for a snapshot: the state its report tick left, or the
+    /// state at the load before any tick ran.
+    pub fn state_at(&self, cursor: Option<u64>) -> u64 {
+        self.report_at(cursor).map_or(self.start, |t| t + 1)
     }
 
     /// The state's tick at the load: 0 from genesis.

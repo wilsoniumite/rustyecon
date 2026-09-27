@@ -1,0 +1,30 @@
+(
+    identity: Some((
+        name: "appb",
+        commit: "golden",
+        dirty: false,
+        world_id: "0x26f12f8a0bc27540",
+        tape_hash: "0x8973b237f4c00029",
+        origin: Run,
+    )),
+    clock: Some((
+        tick: 1,
+        date: "1750-01-09",
+        ticks_per_year: 52,
+    )),
+    controls: (
+        can_run: true,
+        running: false,
+    ),
+    health: (
+        status: Paused,
+        paused: Some("stepped at tick 1"),
+        max_margin: Some(0.000010330486076531706),
+        run_margin: Some(0.000010330486076531706),
+        hash: Some("0xf2cfff21c0b82910"),
+        ledger_line: None,
+        last_good_tick: None,
+        stopped: None,
+        ledger_changed: false,
+    ),
+)

@@ -289,7 +289,25 @@ fn snapshots_read_the_state_of_their_tick() {
         assert_eq!(s.hash, sim.hash(), "tick {}", s.tick);
         assert_eq!(s.holdings, sim.observe_holdings(), "tick {}", s.tick);
         assert_eq!(s.actors.len(), sim.world().actors.len());
+        // The lots behind each total, as the state holds them (the actor inspector reads them).
+        assert_eq!(s.lots.len(), s.holdings.0.len());
+        for ((h, g, lots), (h2, g2, _)) in s.lots.iter().zip(&s.holdings.0) {
+            assert_eq!((h, g), (h2, g2));
+            assert_eq!(
+                lots.as_slice(),
+                sim.holding(*h).unwrap().lots(*g),
+                "tick {}",
+                s.tick
+            );
+        }
     }
+    // Bread spoils, so some holding has lots of more than one life by tick 300.
+    let s300 = &snaps[1];
+    assert!(
+        s300.lots.iter().any(|(_, _, l)| l.len() > 1),
+        "{:?}",
+        s300.lots
+    );
     let got: Vec<u64> = hashes(&o).into_iter().map(|x| x.1).collect();
     assert_eq!(got, reference_hashes(&t, 420));
 }

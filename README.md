@@ -31,8 +31,8 @@ certify PASS, and their certificates are in `results/`. A Phase 2 probe found th
 at the paper's margins reach the oracle's equilibrium of the SSRN Appendix B economy
 ([docs/probe/REPORT.md](docs/probe/REPORT.md)). Oracle unit 1a, the first of Phase 1, has
 landed. The GUI is designed ([docs/GUI.md](docs/GUI.md)), and its shell, G0, is under way:
-G0.1's first part laid the crate's seams, and its panels come next. The crates fill in phase
-by phase:
+G0.1, the viewer, is built, its seams and its panels; G0.2, the editor, comes next. The crates
+fill in phase by phase:
 
 | Crate | What it holds | Fills in |
 |---|---|---|
@@ -121,7 +121,13 @@ worlds against the cli's. The window opens with
 cargo run --release -p rustyecon-gui -- tapes/gate.ron
 ```
 
-and keeps its session in `$RUSTYECON_GUI_DIR`, or else the platform's configuration directory.
+paused at tick 0 with every price plotted: Space runs and pauses it, `.` steps a tick. It keeps
+its session in `$RUSTYECON_GUI_DIR`, or else the platform's configuration directory. The smoke
+mode runs a tape to a tick, prints the CPU each frame took, and closes:
+
+```sh
+cargo run --release -p rustyecon-gui -- --smoke 2080 tapes/gate.ron
+```
 
 `clippy.toml` enforces two standing rules: no std hash containers (R8, no unordered
 iteration on the delta path), and no platform transcendentals (`exp`, `ln`, `powf` and

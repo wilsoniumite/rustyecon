@@ -10,12 +10,12 @@ mod session;
 
 pub use session::{Base, Session, SESSION_FORMAT};
 
-use crate::run::log::{self, Entry, Level};
+use crate::run::log::{self, Entry, Level, RationWatch};
 use crate::run::{At, RunStatus};
 use crate::run::{Breakpoint, Cmd, Entity, Measure, Obs, Origin, RunId, SeriesKey, Store};
 use certify::{tape_hash, Hex};
 use rustyecon_engine::prelude::*;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 /// Where the panels look in time.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -44,11 +44,17 @@ pub struct Run {
     pub store: Store,
     /// The `until` of the last `Run` command, which a change of speed repeats.
     until: Option<u64>,
+    /// The state ticks a snapshot was asked for since the last load, so each is asked once.
+    asked: BTreeSet<u64>,
+    /// The class lines being rationed, for the log's onsets.
+    watch: RationWatch,
 }
 
 /// What the model is told.
 #[derive(Debug, Clone)]
 pub enum Intent {
+    /// Ask the user for a tape file to open (the toolbar's Open).
+    PickTape,
     /// Open a tape file.
     Open(String),
     /// A tape file's text, or why it could not be read.
@@ -116,6 +122,8 @@ pub enum Intent {
 /// What the model asks for.
 #[derive(Debug, Clone)]
 pub enum Effect {
+    /// Ask the user for a tape file, and answer with [`Intent::Open`] if one is chosen.
+    PickTape,
     /// Read a tape file and answer with [`Intent::TapeRead`].
     ReadTape(String),
     /// Start a driver for a new run.
@@ -201,6 +209,7 @@ impl Model {
 /// back to the caller; nothing else changes the model.
 pub fn reduce(m: &mut Model, i: Intent) -> Vec<Effect> {
     match i {
+        Intent::PickTape => vec![Effect::PickTape],
         Intent::Open(path) => vec![Effect::ReadTape(path)],
         Intent::TapeRead { path, text } => open(m, path, text),
         Intent::SessionRead(Ok(text)) => match Session::from_ron(&text) {
@@ -280,15 +289,15 @@ pub fn reduce(m: &mut Model, i: Intent) -> Vec<Effect> {
             if m.runs.contains_key(&id) {
                 m.focus = Some(id);
             }
-            Vec::new()
+            snapshot_wanted(m)
         }
         Intent::Select(e) => {
             m.selection = e;
-            Vec::new()
+            snapshot_wanted(m)
         }
         Intent::Cursor(c) => {
             m.cursor = c;
-            Vec::new()
+            snapshot_wanted(m)
         }
         Intent::Plot(k) => {
             if m.session.plots.contains(&k) {
@@ -324,6 +333,36 @@ pub fn reduce(m: &mut Model, i: Intent) -> Vec<Effect> {
             Vec::new()
         }
     }
+}
+
+/// The actor inspector reads the lots and the actor's own state from a snapshot of the state at
+/// the cursor (docs/GUI.md §4). Ask the focused run for one when an actor is selected, the run
+/// is not running and its record has none of that state; each state tick is asked once per
+/// load. A running run is not asked: its holdings come from the record every tick.
+fn snapshot_wanted(m: &mut Model) -> Vec<Effect> {
+    if !matches!(m.selection, Some(Entity::Actor(_))) {
+        return Vec::new();
+    }
+    let cursor = match m.cursor {
+        Cursor::Live => None,
+        Cursor::At(t) => Some(t),
+    };
+    let Some(r) = m.focus.and_then(|id| m.runs.get_mut(&id)) else {
+        return Vec::new();
+    };
+    let s = &r.store;
+    let idle = !matches!(s.status(), RunStatus::Running { .. } | RunStatus::Empty);
+    if s.run().is_none() || s.stopped().is_some() || !idle {
+        return Vec::new();
+    }
+    let tick = s.state_at(cursor);
+    if s.snapshot(tick).is_some() || !r.asked.insert(tick) {
+        return Vec::new();
+    }
+    vec![Effect::Send {
+        run: r.id,
+        cmd: Cmd::Snapshot(tick),
+    }]
 }
 
 /// `SaveSession` if the session changed.
@@ -410,6 +449,8 @@ fn open(m: &mut Model, path: String, text: Result<String, String>) -> Vec<Effect
         tape: tape.clone(),
         store: Store::default(),
         until: None,
+        asked: BTreeSet::new(),
+        watch: RationWatch::default(),
     };
     m.runs.insert(id, run);
     m.focus = Some(id);
@@ -457,7 +498,22 @@ fn observed(m: &mut Model, id: RunId, obs: Obs) -> Vec<Effect> {
     }
     let run = m.runs.get_mut(&id).expect("checked above");
     let was_stopped = run.store.stopped().is_some();
-    if let Err(e) = run.store.ingest(obs) {
+    // A pause or a load may leave the actor inspector without its snapshot.
+    let settles = matches!(obs, Obs::Paused { .. } | Obs::Loaded { .. });
+    if matches!(obs, Obs::Loaded { .. }) {
+        run.asked.clear();
+        run.watch = RationWatch::default();
+    }
+    // Rationing onsets by class, read before the store takes the batch and logged once it has.
+    let onsets = match &obs {
+        Obs::Batch(b) if !was_stopped => run.watch.onsets(id, b, run.store.catalogue()),
+        _ => Vec::new(),
+    };
+    let ingested = run.store.ingest(obs);
+    if ingested.is_ok() {
+        m.log.extend(onsets);
+    }
+    if let Err(e) = ingested {
         if !was_stopped {
             m.log.push(Entry {
                 run: Some(id),
@@ -471,6 +527,9 @@ fn observed(m: &mut Model, id: RunId, obs: Obs) -> Vec<Effect> {
                 cmd: Cmd::Pause,
             });
         }
+    }
+    if settles && m.focus == Some(id) {
+        out.extend(snapshot_wanted(m));
     }
     out
 }

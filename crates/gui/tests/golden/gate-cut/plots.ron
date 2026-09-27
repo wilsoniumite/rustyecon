@@ -1,0 +1,29 @@
+Some((
+    start: 0,
+    now: 529,
+    cursor: Some(528),
+    ticks_per_year: 52,
+    panels: [
+        (
+            unit: "coin per bread",
+            lines: [
+                (key: (measure: Price, at: Market(node: "town", good: "bread")), label: "price at town/bread", points: 529, first: Some((0, 2.0)), last: Some((528, 24.93646840993424)), min: Some((0, 2.0)), max: Some((41, 26.3843775524289)), at_cursor: Some(24.93646840993424)),
+                (key: (measure: Price, at: Market(node: "village", good: "bread")), label: "price at village/bread", points: 529, first: Some((0, 2.2)), last: Some((528, 0.5831410266070247)), min: Some((49, 0.21904954319804998)), max: Some((0, 2.2)), at_cursor: Some(0.5831410266070247)),
+            ],
+        ),
+        (
+            unit: "coin per fuel",
+            lines: [
+                (key: (measure: Price, at: Market(node: "town", good: "fuel")), label: "price at town/fuel", points: 529, first: Some((0, 2.0)), last: Some((528, 8.15684387065821)), min: Some((0, 2.0)), max: Some((55, 8.804533232338839)), at_cursor: Some(8.15684387065821)),
+                (key: (measure: Price, at: Market(node: "village", good: "fuel")), label: "price at village/fuel", points: 529, first: Some((0, 2.0)), last: Some((528, 8.152173066545599)), min: Some((21, 1.9613809863493905)), max: Some((56, 8.238013158619847)), at_cursor: Some(8.152173066545599)),
+            ],
+        ),
+        (
+            unit: "coin per grain",
+            lines: [
+                (key: (measure: Price, at: Market(node: "town", good: "grain")), label: "price at town/grain", points: 529, first: Some((0, 1.0)), last: Some((528, 4.078421935329105)), min: Some((0, 1.0)), max: Some((55, 4.4022666161694195)), at_cursor: Some(4.078421935329105)),
+                (key: (measure: Price, at: Market(node: "village", good: "grain")), label: "price at village/grain", points: 529, first: Some((0, 1.0)), last: Some((528, 4.0760865332728)), min: Some((21, 0.9806904931746955)), max: Some((56, 4.119006579309925)), at_cursor: Some(4.0760865332728)),
+            ],
+        ),
+    ],
+))

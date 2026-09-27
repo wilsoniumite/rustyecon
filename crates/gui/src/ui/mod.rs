@@ -2,70 +2,132 @@
 //! Nothing here changes the model: every act is an [`Intent`] for `reduce`.
 //!
 //! Drawing trigonometry is allowed here and nowhere else (D12), under
-//! `#[expect(clippy::disallowed_methods, reason = "display only")]`.
+//! `#[expect(clippy::disallowed_methods, reason = "display only")]`. G0.1 needs none.
 //!
-//! G0.1's first part draws the seams only: a status line from the toolbar's view-model, the
-//! keys Space (run or pause) and `.` (step one tick), and the tile layout with each panel's
-//! place. The panels fill in with G0.1's second part.
+//! The toolbar sits above the tiles; the tiles hold the outliner, the plots, the inspector and
+//! the registry, the timeline and the log (§4). Space runs or pauses the focused run and `.`
+//! steps it one tick, unless a text field has the keyboard. Every panel reads the focused run
+//! at the model's cursor.
 
+pub mod inspector;
 pub mod layout;
+pub mod log;
+pub mod outliner;
+pub mod plots;
+pub mod registry;
+pub mod timeline;
+pub mod toolbar;
 
-use crate::model::{Intent, Model};
+use crate::model::{Cursor, Intent, Model};
 use crate::vm;
 use layout::Pane;
+use std::collections::BTreeSet;
+
+/// What the panels keep between frames: the plot cache, the toolbar's text, and which panes
+/// the last frame drew.
+#[derive(Default)]
+pub struct State {
+    /// The plot cache: one decimator per plotted series.
+    pub plots: plots::PlotCache,
+    toolbar: toolbar::ToolbarState,
+    drawn: BTreeSet<Pane>,
+}
+
+impl State {
+    /// The panes the last frame drew.
+    pub fn panes_drawn(&self) -> &BTreeSet<Pane> {
+        &self.drawn
+    }
+}
+
+/// The model's cursor as the view-models take it: a report tick, `None` for live.
+pub fn cursor(m: &Model) -> Option<u64> {
+    match m.cursor() {
+        Cursor::Live => None,
+        Cursor::At(t) => Some(t),
+    }
+}
+
+/// A number for display: six significant digits, in exponent form outside [1e-3, 1e6). The
+/// full value is on hover wherever this is used.
+pub fn fmt(v: f64) -> String {
+    if v == 0.0 || !v.is_finite() {
+        return format!("{v}");
+    }
+    let a = v.abs();
+    if !(1e-3..1e6).contains(&a) {
+        return format!("{v:.5e}");
+    }
+    let mut decimals = 5_usize;
+    let mut x = a;
+    while x >= 10.0 && decimals > 0 {
+        x /= 10.0;
+        decimals -= 1;
+    }
+    while x < 1.0 {
+        x *= 10.0;
+        decimals += 1;
+    }
+    let s = format!("{v:.decimals$}");
+    if s.contains('.') {
+        s.trim_end_matches('0').trim_end_matches('.').to_string()
+    } else {
+        s
+    }
+}
+
+/// A number and its unit as one label, the full value on hover.
+pub fn value_label(ui: &mut egui::Ui, v: Option<f64>, unit: &str) -> egui::Response {
+    match v {
+        Some(v) => ui
+            .label(format!("{} {unit}", fmt(v)))
+            .on_hover_text(format!("{v}")),
+        None => ui.weak(format!("– {unit}")),
+    }
+}
 
 /// Draw the model into `ui` and return what the user did.
-pub fn draw(ui: &mut egui::Ui, m: &Model, tree: &mut egui_tiles::Tree<Pane>) -> Vec<Intent> {
+pub fn draw(
+    ui: &mut egui::Ui,
+    m: &Model,
+    tree: &mut egui_tiles::Tree<Pane>,
+    state: &mut State,
+) -> Vec<Intent> {
     let mut intents = Vec::new();
-    ui.input(|i| {
-        if i.key_pressed(egui::Key::Space) {
-            intents.push(Intent::RunPause);
-        }
-        if i.key_pressed(egui::Key::Period) {
-            intents.push(Intent::Step(1));
-        }
-    });
+    if !ui.ctx().egui_wants_keyboard_input() {
+        ui.input(|i| {
+            if i.key_pressed(egui::Key::Space) {
+                intents.push(Intent::RunPause);
+            }
+            if i.key_pressed(egui::Key::Period) {
+                intents.push(Intent::Step(1));
+            }
+        });
+    }
+    state.drawn.clear();
+    state.plots.begin_frame();
     egui::Panel::top("toolbar").show(ui, |ui| {
-        ui.label(status_line(m));
+        toolbar::show(ui, m, &mut state.toolbar, &mut intents);
     });
     egui::CentralPanel::default().show(ui, |ui| {
-        tree.ui(&mut Panes, ui);
+        let mut panes = Panes {
+            m,
+            state,
+            intents: &mut intents,
+        };
+        tree.ui(&mut panes, ui);
     });
     intents
 }
 
-/// One line from the focused run's toolbar view-model.
-fn status_line(m: &Model) -> String {
-    let Some(run) = m.focused() else {
-        return "no tape open: rustyecon-gui <tape.ron>".to_string();
-    };
-    let t = vm::toolbar::build(&run.store, run.origin);
-    let mut parts = Vec::new();
-    if let Some(id) = &t.identity {
-        let state = if id.dirty { "dirty" } else { "clean" };
-        let commit: String = id.commit.chars().take(10).collect();
-        parts.push(format!(
-            "{} · {commit} {state} · world {} · tape {} · {}",
-            id.name, id.world_id, id.tape_hash, id.origin
-        ));
-    }
-    if let Some(c) = &t.clock {
-        parts.push(format!(
-            "{} · tick {} · {} ticks/year",
-            c.date, c.tick, c.ticks_per_year
-        ));
-    }
-    parts.push(format!("{:?}", t.health.status));
-    if let Some(line) = &t.health.ledger_line {
-        parts.push(line.clone());
-    }
-    parts.join(" · ")
+/// The tiles' behaviour: each pane draws its view-model.
+struct Panes<'a> {
+    m: &'a Model,
+    state: &'a mut State,
+    intents: &'a mut Vec<Intent>,
 }
 
-/// Each panel's place, until the panels arrive.
-struct Panes;
-
-impl egui_tiles::Behavior<Pane> for Panes {
+impl egui_tiles::Behavior<Pane> for Panes<'_> {
     fn tab_title_for_pane(&mut self, pane: &Pane) -> egui::WidgetText {
         pane.title().into()
     }
@@ -76,7 +138,71 @@ impl egui_tiles::Behavior<Pane> for Panes {
         _tile: egui_tiles::TileId,
         pane: &mut Pane,
     ) -> egui_tiles::UiResponse {
-        ui.label(pane.title());
+        self.state.drawn.insert(*pane);
+        let m = self.m;
+        let Some(run) = m.focused() else {
+            ui.weak("no tape open: Open, or rustyecon-gui <tape.ron>");
+            return egui_tiles::UiResponse::None;
+        };
+        let store = &run.store;
+        let at = cursor(m);
+        let out = &mut *self.intents;
+        match pane {
+            Pane::Outliner => {
+                match vm::outliner::build(store, m.selection(), &m.session.pins, &m.session.plots) {
+                    Some(v) => outliner::show(ui, &v, out),
+                    None => loading(ui),
+                }
+            }
+            Pane::Plots => match vm::plots::build(store, &m.session.plots, at) {
+                Some(v) => plots::show(ui, run.id, store, &v, &mut self.state.plots, out),
+                None => loading(ui),
+            },
+            Pane::Inspector => match m.selection() {
+                None => {
+                    ui.weak("select an entity in the outliner");
+                }
+                Some(sel) => match vm::inspector::build(store, sel, at) {
+                    Some(v) => inspector::show(ui, &v, &m.session.plots, out),
+                    None => loading(ui),
+                },
+            },
+            Pane::Registry => match vm::registry::build(store, at) {
+                Some(v) => registry::show(ui, &v, out),
+                None => loading(ui),
+            },
+            Pane::Timeline => match vm::timeline::build(store, at) {
+                Some(v) => timeline::show(ui, &v, out),
+                None => loading(ui),
+            },
+            Pane::Log => {
+                let on = m
+                    .session
+                    .breakpoints
+                    .contains(&crate::run::Breakpoint::OnError);
+                log::show(ui, &vm::log::build(m.log()), on, out);
+            }
+        }
         egui_tiles::UiResponse::None
+    }
+}
+
+fn loading(ui: &mut egui::Ui) {
+    ui.weak("the tape is loading");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::fmt;
+
+    #[test]
+    fn numbers_show_six_significant_digits() {
+        assert_eq!(fmt(0.0), "0");
+        assert_eq!(fmt(2.0), "2");
+        assert_eq!(fmt(18.345678), "18.3457");
+        assert_eq!(fmt(-0.0123456789), "-0.0123457");
+        assert_eq!(fmt(123456.7), "123457");
+        assert_eq!(fmt(3.6e-5), "3.60000e-5");
+        assert_eq!(fmt(2.5e7), "2.50000e7");
     }
 }

@@ -37,7 +37,9 @@ export RUSTDOCFLAGS="${RUSTDOCFLAGS:-} -D warnings"
 
 step() { printf '\n== gui: %s\n' "$*"; }
 
-# The tests G0's gate names (docs/GUI.md §9), as each part of G0 lands.
+# The tests G0's gate names (docs/GUI.md §9), as each part of G0 lands. G0.1's second part
+# adds every_drawn_vertex_is_recorded, the view-model goldens, G0's kittest scripts, and the scan
+# that holds the GUI's use of core to `num`.
 named=(
     gui_equals_cli
     failed_run_shows_its_ledger_line
@@ -47,6 +49,13 @@ named=(
     no_trig_outside_ui
     no_raw_transcendentals
     no_hashed_collections
+    every_drawn_vertex_is_recorded
+    gate_view_models_equal_their_goldens
+    appb_view_models_equal_their_goldens
+    one_key_press_gives_a_live_price_plot
+    the_gate_script_runs_pauses_steps_and_inspects
+    the_appb_script_runs_pauses_steps_and_inspects
+    the_gui_names_core_for_num_alone
 )
 
 step "toolchain (rust-toolchain.toml)"

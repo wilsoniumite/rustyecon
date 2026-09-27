@@ -265,6 +265,7 @@ impl Runner {
         };
         out.push(Obs::Loaded {
             run: key.clone(),
+            tape: Box::new(tape.clone()),
             world: Box::new(sim.world().clone()),
             tick: sim.tick(),
             hash: sim.hash(),
@@ -349,7 +350,7 @@ impl Live {
     }
 }
 
-/// Every holding and every actor's state of `sim`, read without changing it.
+/// Every holding, its lots, and every actor's state of `sim`, read without changing it.
 fn snapshot_of(sim: &Sim) -> Snapshot {
     let actors = sim
         .world()
@@ -357,10 +358,20 @@ fn snapshot_of(sim: &Sim) -> Snapshot {
         .iter()
         .filter_map(|a| sim.actor_state(a.id).map(|s| (a.id, *s)))
         .collect();
+    let holdings = sim.observe_holdings();
+    let lots = holdings
+        .0
+        .iter()
+        .map(|&(h, g, _)| {
+            let lots = sim.holding(h).map(|inv| inv.lots(g).to_vec());
+            (h, g, lots.unwrap_or_default())
+        })
+        .collect();
     Snapshot {
         tick: sim.tick(),
         hash: sim.hash(),
-        holdings: sim.observe_holdings(),
+        holdings,
+        lots,
         actors,
     }
 }
