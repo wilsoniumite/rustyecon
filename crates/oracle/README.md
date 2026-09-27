@@ -4,7 +4,8 @@ Dated 2026-09-25; joined the workspace on 2026-09-26 (P1.1). Units 1b and 1c wer
 2026-09-27, on branch `phase1`: 1b at P1.2, verified at P1.3; 1c at P1.4, verified at P1.5
 and P1.6. Both were closed at P1.7, the same day. Unit 1d was added at P1.8 and verified at
 P1.9, unit 1e at P1.10, verified at P1.11, and unit 1f at P1.12, verified at P1.13, the same
-day. Unit 1f completes Phase 1's oracle.
+day. Unit 1f completes Phase 1's oracle. Phase 1 was closed at P1.14, also on 2026-09-27: its
+gate is met item by item ("Phase 1's gate" below) and green on WSL and on Windows.
 
 The oracle is a static equilibrium solver for the pinning paper's economy (PLAN §3.4).
 It shares types but not logic with the agents, and no agent may read it (PLAN R13).
@@ -78,7 +79,8 @@ It is built outward in units 1a-1f. This package holds all six:
   `Government::none()` it is 1e's equilibrium bit for bit.
 
 Phase 1's gate is complete with 1f: `tests/gate/p1_gate.rs` names each item of PLAN Phase 1's
-gate in one test and lists every test that covers it (docs/unit-1f.md §13).
+gate in one test and lists every test that covers it (docs/unit-1f.md §13). It was checked item
+by item at the close (P1.14); "Phase 1's gate" below has the result.
 
 The package is `rustyecon-oracle`, its library `oracle`, a member of the rustyecon
 workspace. Its one dependency is `rustyecon-core`, for `core::num`: the power, `ln1p` and
@@ -114,15 +116,36 @@ the rent base, 1e's accounts kept in `Eq1f::base`, the random draws, no governme
 debt; and from its verification, 119: a CES basket's numerics, the direct sum of the power mean
 where ln1p would cancel, the corners bisected in v, a point beyond every double read +∞). The
 build takes the draft's choice on each, and the repository's STATE.md lists them as decisions
-open to veto.
-Each spec's §12 records where its build and its verification departed from the draft.
+59-119, open to veto, and flags those that bind Phase 2.
+Each spec's §12 (1f's §14) records where its build and its verification departed from the
+draft.
+
+## Phase 1's gate
+
+PLAN Phase 1's gate, checked item by item at the close (P1.14, 2026-09-27). `p1_gate` has one
+test per item, which checks the item on its own instances, and a table in its module comment that
+names every test covering the item in full; `p1_gate::the_checklist_names_real_tests` fails if a
+test the table names is renamed or removed. Every test the table names passed in
+`scripts/gate.sh` on WSL and on Windows, on `44d7909` (P1.13) and again on the committed tree at
+P1.14, and all six generators passed `--check`. The counts are the tests the table names for the
+item, `p1_gate`'s own included, each passing on both machines.
+
+| gate item | how it is met | tests |
+|---|---|---|
+| the SSRN Appendix B instance: the published values (x* 0.86315, v 0.54344, Y 7.88061, N_a 1.34338) to 5e-6, and ADDENDUM §5's full-precision values to 1e-12 relative | the published figures, the two kinds of hours and N·P_s within 5e-6; x* and Y the golden's own double, v within 2.0e-16 and N_a within 1.7e-16 of the 70-digit values; the same economy in 1b's, 1e's and 1f's forms bit for bit | 12: `appendix_b_instance`, `g1_appendix_b::*`, and the nesting of c1, m1, d1, e1 and f1 |
+| the replacement closure's worked instance (c = 1, w = 3; at λ = 0, c = 0.4 and w = 1.2) | to 1e-12 as a price block (1a), per machine type (1c), and inside the full closure at TX, under every tax, and TX3 (1f) | 9: `replacement_closure_worked_instance`, `g6_closure::*`, `m2_machine_block::closure_per_type`, f2 |
+| the fork identity and the category bounds on random instances | both forms of the identity and the bounds at 1e-12: 1b's 180 random economies and check_interior's batteries, 1c's 240, and every equilibrium of 1d's 300, 1e's 480 and 1f's 341 draws; 20 of 1b's draws in household form, and a CES economy | 19: `fork_identity_and_category_bounds`, `c5_random_categories::*`, `c6_price_block::*`, `m6_random_leontief::fork_and_bounds`, and d7's, e8's and f9's `identities` |
+| the income identity to 1e-12 | I = Y·P = W + R + interest at every equilibrium of every unit's random draws (1a's with interest and build lags), and with a government, (I1)-(I4), at every 1f golden instance | 12: `income_identity`, `g5_random_economies::*`, c5's, m6's, d7's, e8's and f9's `identities`, `m3_two_recipe::income_with_interest` |
+| three-taxes' resolution ledger, (φ_w, φ_r) = (0.6, 0.4) on its worked instance | (3/5, 2/5) to 1e-12 in the price block, for TX's machine service and for its basket inside the full closure, under every tax, with T6's legs and T5's circular flow | 9: `three_taxes_ledger`, `g7_three_taxes::*`, `m2_machine_block::ledger`, f2 |
+| constructed wall and interior cases recognised correctly | the line, the wall, the all-human corner, a root below 10^-12, idle land, the edge of a reserved shortage, an enclosure tie, a wall with land scarce under CES, and the refusals (`NotViable`, `MultipleEquilibria`, 1d's `LaborShort`, `NoMarket`, `SurplusLabour`), each on a constructed economy against its goldens, with exact zeros at every junction | 77: `wall_and_interior_cases`, `g8_regimes::*`, `c7_gaps_and_regimes::regimes`, `m7_regimes_and_validation::regimes`, d2-d8, e5, `e9_regimes_and_validation::exact_zeros`, and f5's and f8's cases |
+| each exit form on its own gate: the dependence form in 1a, s(q) in 1e; the 1d and 1e gates constructed (ADDENDUM §5 item 4) | the dependence form on 1a's Appendix B, Figure 3 and automation path, and on 1d's constructed gate (check_kset P9-i, check_pinning D1's limits, SSRN Prop E.1); s(q) on 1e's (check_pinning P3; check_enclosure N-i to N-iii, with q_enc = 1.5, N_crit = 60, κ = 1 at N 60 and 0.75 at N 80); both nest with the exit option switched off, and keep their gates under a government | 91: `each_exit_form_on_its_gate`, g1-g3, d2-d9, e1-e5, e10, f1, f4-f6 |
 
 ## The gate
 
 The oracle is green when the workspace's gate is (`scripts/gate.sh`): `cargo test --workspace
 --release` passes on WSL and on Windows, and `cargo clippy --workspace --all-targets -- -D
 warnings` and `cargo fmt --all --check` are clean, under the workspace's lints and
-`clippy.toml`. The three generators' `--check` (below) are run by hand before any commit
+`clippy.toml`. The six generators' `--check` (below) are run by hand before any commit
 that touches a generator or its goldens. Unit 1a's tests cover, per docs/unit-1a.md §6:
 
 - **G1**, the SSRN Appendix B instance: the published figures to 5e-6 (x* 0.86315,
@@ -311,7 +334,9 @@ The goldens are pinned to laborformal `31b3482`.
 
 Each unit was checked after its build by an adversarial pass, an independent derivation
 that does not read the crate and mutation testing, then one fix round, each fix with a test
-that fails without it. Where the pass found nothing wrong in the code, the fix is a test.
+that fails without it, then one re-check of exactly the fixed items. Where the pass found
+nothing wrong in the code, the fix is a test. The verification is bounded there: a mutant that
+still survives is recorded in STATE.md (O19 for 1b and 1c, O20 for 1d-1f), not fixed.
 
 - **1b** (P1.3): the build's own mutation check caught 44 of 45 mutants; the survivor
   reassociates p_j = v·H_j + (p_m·M_j + b_j), which changes only the rounding. The pass found
@@ -333,6 +358,9 @@ that fails without it. Where the pass found nothing wrong in the code, the fix i
   mutants that survived the gate as it was are now killed, and six of the eight made of the
   fix; three survivors are equivalent on every economy the gate can build (§12 items 12
   and 17).
+- **1d** (P1.8, the build's own check): 61 mutants; one survives, a wall switch's wage taken
+  from the type above rather than below, equal in exact arithmetic (docs/unit-1d.md §12 item
+  14).
 - **1d** (P1.9): an independent derivation found a blocker. Where a type's reserved demand
   reaches its workers, its supply is vertical, and a wage above its own clearing wage clears
   the pool: an equilibrium, which P1.8 had refused as `LaborShort`. It is now solved (seven of
@@ -341,22 +369,38 @@ that fails without it. Where the pass found nothing wrong in the code, the fix i
   efficiencies, a corner's φ and closure wage, d, lemma B.1's support, the first short type,
   `human_required`'s length and four rules at exact equality; each now has a test, and the fix
   round's 20 mutants are all killed (docs/unit-1d.md §12 items 16-18).
+- **1d, the re-check** (on `2856982`, 2026-09-27): its derivation agreed with the oracle on 850
+  economies, 33 of them at the edge of a reserved shortage and 66 ties, within 1.2e-13 (a tie's
+  σ within 8.9e-12, where §5.5 puts it); with the fix taken out, 13 of those edges are refused.
+  Its mutation run killed all eleven survivors of the first pass. Of six variants of them and
+  seven mutants of the fix, seven survive, and the re-check's own probe tests kill four of these
+  (another type's closure wage at a corner, lemma B.1's flag at the base price, the wall's last
+  piece started from f(1), and f_∞ = 0 after a positive start): the gate has no economy that
+  tells them apart. Seven other survivors of the first pass, which the fix round did not take,
+  still survive (STATE.md O20).
 - **1e** (P1.10, the build's own check, before its verification): 49 mutants of the new code,
   of which the first run left nine; seven now have a test, and two are equivalent (the idle
   end's side where S_∞ cannot be 0, and a technique tie's closed form scaled by T/T_m)
   (docs/unit-1e.md §12 item 14).
-- **1f** (P1.12, the build's own check, before its verification): 57 mutants of the new code
-  (the participation rule, the CES basket, the evaluation, the path, the report and the
-  validation). The first run killed 56; the survivor, the scan at ρ > 0 switched off, now has a
-  test (`f10::the_scan_where_monotonicity_is_not_proved`). The 22 that the unit tests caught
-  first were run again against the gate alone, which kills each; it kills the survivor now too
-  (docs/unit-1f.md §14 item 14).
 - **1e** (P1.11): the derivation found that an exit good made of land alone, free at r = 0,
   put its plot-takers on the floor there while they rented on the wall, so the idle stretch
   did not start where the wall ends and an economy with one equilibrium was refused; such a
   good's plots are now decided at the wall's end (L1, L2). It also found free plots on idle
   land labelled `Enclosed`; they are `Idle`. Thirteen of the pass's 30 mutants survived; each
   now has a test, and six mutants of the fixes are killed (docs/unit-1e.md §12 items 16-19).
+- **1e, the re-check** (on `a680dd4`): its derivation agreed on 1,092 draws (836 on the line,
+  the wall or the all-human corner, 189 on idle land, 120 of them decided in the wall's-end
+  frame, 15 ties, 52 `NotViable`) within 5.1e-14, with 48 invalid in both. Its mutation run
+  killed all thirteen survivors of the first pass and 11 of 13 mutants of the fix. The two left
+  set the frame's price b̃_g to 1 or invert it, which no gate economy can tell, since every free
+  exit good the gate builds has b̃_g = 1; the re-check's probe with space's b at 0.5, 2 and 3
+  kills both (STATE.md O20).
+- **1f** (P1.12, the build's own check, before its verification): 57 mutants of the new code
+  (the participation rule, the CES basket, the evaluation, the path, the report and the
+  validation). The first run killed 56; the survivor, the scan at ρ > 0 switched off, now has a
+  test (`f10::the_scan_where_monotonicity_is_not_proved`). The 22 that the unit tests caught
+  first were run again against the gate alone, which kills each; it kills the survivor now too
+  (docs/unit-1f.md §14 item 14).
 - **1f** (P1.13): the derivation agreed on 566 equilibria within 1.8e-13 and found two
   blockers under a CES basket. At the all-human corner a bisection midpoint near v = 1e-154
   overflowed Y = T/B_s (σ ≥ 2), and the solve refused economies with one equilibrium; such a
@@ -367,8 +411,16 @@ that fails without it. Where the pass found nothing wrong in the code, the fix i
   direct sum where 1 + S < 1/2. Nine of the mutation pass's 30 mutants survived, two
   equivalent; the other seven each have a test, and seven mutants of the fixes are killed
   (docs/unit-1f.md §14 items 16-20).
+- **1f, the re-check** (on `44d7909`): its derivation agreed on 593 economies of the three fixed
+  items within 5.7e-13 (a provider's receipts on a wall at v 9e8; walls out to v 1.4e46), and
+  its six mutants of the fixes are killed. Six more, at σ = 64 with eq 26's weights, were
+  refused as invalid: a weight 0.3^64 = 3.4e-34 is below the scale floor (STATE.md O21). Its
+  mutation run killed 16 of 18 mutants of the seven new tests; the two left are CES required
+  hours taken from final content rather than gross outputs (the same without intermediate
+  inputs, which no CES instance has) and the exit-free scan's sides not passed to the count
+  (STATE.md O20).
 
-Each spec's §12 has the details.
+Each spec's §12 (1f's §14) has the details.
 
 ## Layout
 
@@ -439,6 +491,7 @@ The counts, the same on WSL and on Windows at each step:
 | P1.11, 1e's verification | 2026-09-27 | 77 | 283 | 1 | 361 |
 | P1.12, unit 1f | 2026-09-27 | 83 | 348 | 1 | 432 |
 | P1.13, 1f's verification | 2026-09-27 | 84 | 353 | 1 | 438 |
+| P1.14, Phase 1 closed | 2026-09-27 | 84 | 353 | 1 | 438 |
 
 Of the 438, 1a has 114, 1b 59 (5 unit, 54 gate), 1c 69 (10 unit, 59 gate), 1d 56 (10 unit,
 46 gate), 1e 63 (10 unit, 53 gate) and 1f 77 (7 unit, 62 gate, and `p1_gate`'s 8).
@@ -475,9 +528,10 @@ end is at most 3.8e-16, where the regime is not decidable in f64 (docs/unit-1a.m
 The largest value gaps are where 1 − x* is small: there both macro.py's brentq xtol and
 the f64 conditioning of 1 − x* matter.
 
-The dump is unit 1a's only. Units 1b to 1e have none, since there is no other
-multi-category, multi-type, multi-worker or parcel solver to compare against (docs/unit-1b.md
-§9 to docs/unit-1e.md §9); their independent checks are the verifications' derivations.
+The dump is unit 1a's only. Units 1b to 1f have none, since there is no other
+multi-category, multi-type, multi-worker, parcel or household solver to compare against
+(docs/unit-1b.md §9 to docs/unit-1e.md §9, docs/unit-1f.md §10); their independent checks are
+the verifications' derivations.
 
 ## Regenerating the goldens
 
@@ -607,6 +661,16 @@ again on WSL: the largest errors are as above, 1.0e-15 on 1b's goldens away from
 cells of `c6::cells_approach_the_line` are compared with the line's closed forms at the
 midpoint rule's error, up to 3.5e-9, by design) and 4.8e-13 on 1c's, then 4.4e-13 on M5m's
 tie share and 2.8e-14 on the switch points.
+
+At Phase 1's close (P1.14) all six `--check` passed under laborformal's venv (`generate_1c.py`
+and `generate_1d.py` in about 15 s each, `generate_1e.py` in 49 s, `generate_1f.py` in 28 s),
+and the gate's golden comparisons were logged again on Windows, a comparison counting for a unit
+when its expected value is, bit for bit, one of that unit's constants. The largest errors are
+as above: on 1d's, 8.0e-14 on J2's trained wage (its κ 6.1e-14, σ
+3.6e-14) and 3.1e-15 without J2; on 1e's, 2.4e-14 on Q5's provider baskets, then 2.1e-14 and
+1.8e-14 on Q6's f below its enclosure point, T_p and ψ (L1's f far up the wall is compared with
+the wall's limit at 1e-8, by design, and is 1.3e-10 from it); on 1f's, 3.7e-15 on CF3's P,
+with the three finite differences within their 1e-8.
 
 ## Numerics
 

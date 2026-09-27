@@ -29,11 +29,12 @@ Phase 0, the reboot, is done: both its sessions are closed and its gate is green
 the run's manifest and Parquet telemetry. The gate world and the Appendix B world both
 certify PASS, and their certificates are in `results/`. A Phase 2 probe found that agents
 at the paper's margins reach the oracle's equilibrium of the SSRN Appendix B economy
-([docs/probe/REPORT.md](docs/probe/REPORT.md)). Phase 1's oracle units 1a, 1b (many
-categories and the fork) and 1c (many machine types and the Leontief inverse) have landed;
-1d–1f are next. The GUI is designed ([docs/GUI.md](docs/GUI.md)); its shell, G0, is being
-built on its own branch. The
-crates fill in phase by phase:
+([docs/probe/REPORT.md](docs/probe/REPORT.md)). Phase 1, the oracle, is closed (P1.14): units
+1a to 1f have landed, among them 1d (worker types and the wall), 1e (parcels, the idle margin
+and the priced exit s(q)) and 1f (households and government), and PLAN Phase 1's gate is met
+item by item ([crates/oracle/README.md](crates/oracle/README.md)). The GUI is designed
+([docs/GUI.md](docs/GUI.md)); its shell, G0, was built on its own branch, `g0`, and G1, the
+oracle lab, may follow it. The crates fill in phase by phase:
 
 | Crate | What it holds | Fills in |
 |---|---|---|
@@ -43,7 +44,7 @@ crates fill in phase by phase:
 | `crates/engine` | `Sim`: the tick loop, checkpoints, resume, the replay audit, the read-only per-tick report a frontend drives and reads | Phase 0 |
 | `crates/cli` | the `rustyecon` binary (`run`, `resume`, `replay`, `registry`, `certify`): arguments, files, exit codes, the build stamp | Phase 0 |
 | `crates/certify` | dated criteria, the batteries and the kick check, sealed certificates, the run's manifest, and Parquet telemetry behind the feature `parquet` ([docs/CERTIFY.md](docs/CERTIFY.md)) | Phase 0, second session |
-| `crates/oracle` | the equilibrium solver (library `oracle`): unit 1a, one category with durability and interest, reproduces the SSRN Appendix B; 1b adds many categories and the fork, 1c many machine types and the Leontief inverse ([its README](crates/oracle/README.md)) | Phase 1: 1a–1c landed; 1d–1f to come |
+| `crates/oracle` | the equilibrium solver (library `oracle`): unit 1a, one category with durability and interest, reproduces the SSRN Appendix B; 1b adds many categories and the fork, 1c many machine types and the Leontief inverse, 1d worker types and the wall, 1e parcels, the idle margin and the priced exit, 1f households and government ([its README](crates/oracle/README.md)) | Phase 1: 1a–1f landed, closed at P1.14 |
 | `crates/worldgen` | the tape compiler | Phase 4 |
 | `crates/probe` | the Phase 2 probe's harness: the Appendix B tape's generator, named perturbations, per-tick observables against the oracle ([docs/probe/RULES.md](docs/probe/RULES.md)); its oracle-free measures are certify's | the probe, P2.0.1 |
 | `crates/gui` | the interactive frontend, in egui: live runs, plots, lenses, the tape editor, and a county map ([docs/GUI.md](docs/GUI.md)) | from G0, after Phase 0's second session; one stage beside each phase |
