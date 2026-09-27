@@ -4,7 +4,7 @@
 
 use rustyecon_core::num;
 
-use crate::params::{self, ParamError, Requirement};
+use crate::params::{self, ParamError};
 
 /// One task cell of a category (SSRN A.3 with a discrete measure; check_interior.py at
 /// laborformal 31b3482). "0 or scale" means 0, or finite and in
@@ -150,14 +150,7 @@ pub fn cell_cost(
 /// positive; q is not bounded by the scale bounds, since along an automation path it grows
 /// without bound (SSRN p.31).
 pub fn ces_share(alpha: f64, sigma: f64, q: f64) -> Result<f64, ParamError> {
-    let alpha = params::finite("alpha", alpha)?;
-    if !(alpha > 0.0 && alpha < 1.0) {
-        return Err(ParamError::OutOfRange {
-            name: "alpha",
-            value: alpha,
-            requirement: Requirement::OpenUnit,
-        });
-    }
+    let alpha = params::open_unit("alpha", alpha)?;
     let sigma = params::nonnegative("sigma", sigma)?;
     let q = params::positive("q", q)?;
     let ratio = (1.0 - alpha) / alpha;

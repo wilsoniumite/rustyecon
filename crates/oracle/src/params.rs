@@ -320,6 +320,11 @@ pub(crate) fn machine_share(name: &'static str, value: f64) -> Result<f64, Param
     check(name, value, Requirement::MachineShare)
 }
 
+/// 0 < value < 1: the CES weight α of [`ces_share`](crate::ces_share).
+pub(crate) fn open_unit(name: &'static str, value: f64) -> Result<f64, ParamError> {
+    check(name, value, Requirement::OpenUnit)
+}
+
 /// The scalar user-cost factor u = (ρ + δ)(1 + ρ)^(J_b − 1) (spec §3.0).
 ///
 /// It is derived from free entry in laborformal `dynamics/checks/check_dynamics.py`
@@ -1000,6 +1005,37 @@ mod tests {
             );
         }
         assert_eq!(wealth_factor(0.07, 0.4, 1), 1.0);
+    }
+
+    #[test]
+    fn open_unit_excludes_both_ends() {
+        // The CES weight alpha (docs/unit-1b.md §4.5): 0 and 1 are out, the doubles next to
+        // them are in, and -0.0 is 0.
+        for (value, admitted) in [
+            (0.0, false),
+            (-0.0, false),
+            (f64::from_bits(1), true),
+            (0.5, true),
+            (1.0f64.next_down(), true),
+            (1.0, false),
+            (-0.2, false),
+            (1.5, false),
+        ] {
+            assert_eq!(Requirement::OpenUnit.admits(value), admitted, "{value:e}");
+            assert_eq!(open_unit("alpha", value).is_ok(), admitted, "{value:e}");
+        }
+        assert!(matches!(
+            open_unit("alpha", 0.0),
+            Err(ParamError::OutOfRange {
+                name: "alpha",
+                requirement: Requirement::OpenUnit,
+                ..
+            })
+        ));
+        assert!(matches!(
+            open_unit("alpha", f64::NAN),
+            Err(ParamError::NotFinite { name: "alpha", .. })
+        ));
     }
 
     #[test]

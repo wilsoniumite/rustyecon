@@ -137,7 +137,8 @@ relative capability. The cell price block (§4.5) covers that fully, and cells i
 equilibrium are open question 2.
 
 The margin is **active** when some basket category (z_j > 0) has tasks at x*
-(Σ_j z_j·μ_{j,s(x*)} > 0, with s(x*) the segment holding x*). Otherwise x* lies in a
+(Σ_j z_j·μ_{j,s(x*)} > 0, with s(x*) the segment holding x*: e_s ≤ x* < e_{s+1}, so an
+edge belongs to the segment above it, and x* = 1 to the top one). Otherwise x* lies in a
 **gap**: no produced task is at parity, and labour clearing, not a task, sets w/p_m =
 γ(x*). The equilibrium is still unique and competitive. 1b solves it and flags it (open
 question 3).
@@ -203,6 +204,12 @@ middle segment unused: manufactures (z 0.3, b 0, μ (2, 0, 0)), food (1, 0.6,
 (0.5, 0, 0.2)), care (0.2, 0.1, (0, 0, 0.3)), shelter (0.8, 1, (0, 0, 0.1)). For N between
 about 4.25 and 5.3 the root lies in [0.4, 0.6): at N 4.25 it is 0.593, and at N 5.4 it has
 left the gap (0.39979).
+
+**The sliver economy** (constructed 2026-09-27, in the verification; C7's near-edge
+goldens). G1's scalars with (ρ, δ, J_b) = (0.05, 0.2, 2), edges (0, 0.5, 1), a service
+(z 1, b 0.5, μ (0, 1)) and a site (1, 1, (0, 0)). With the root just above 0.5, all
+machine use is in the sliver [0.5, x*]. It and the gap economy are solved with N set so
+that x* lies 1e-9 below 0.4, 1e-9 above 0.6 and 1e-6 above 0.5 (§5.4).
 
 **C6, the price-block batteries.** check_interior's two random batteries and its parity
 instance (§8).
@@ -441,17 +448,43 @@ Everything in unit-1a.md §4 step 4 carries over: the conditioning at the ends o
 bracket, near the viability edge, and u's error. What is new:
 - **Thin segments.** J(e_s) − J(e_{s−1}) loses about log10(J(e_s)/(J(e_s) − J(e_{s−1})))
   digits. The instances keep widths at least 0.2, and the random draws at least 1/12.
-- **Interior edges.** When x* lies in an interior segment, e_s − x* carries x*'s spacing of
-  doubles, about 1e-16 absolute. A category's H_j loses relative precision only if most of
-  its hours are in that sliver. Only the top segment carries 1 − x*.
+- **Interior edges.** Only the top segment carries its offset from x* (1 − x*). When x*
+  lies a distance d = |x* − e| from an interior edge e, the part of H_j and M_j in the
+  sliver between them is computed from the double x*: e − x* is exact, but x* is off the
+  root by up to half its spacing, about 2^-54·x* (more where f's rounding noise over |f'|
+  exceeds that, the conditioning of unit-1a.md §4 step 4), and J(x*) − J(e) cancels. An
+  output made mostly of the sliver is therefore good to about 2^-53·x*/d relative if it is
+  hours (H_j), and 2^-53·(x* + 2·J(x*)/γ(x*))/d if it is machine services (M_j). So is
+  what is built from them: L_j*, λ̃_j, λ̃_j^q and the final hours of a category with most
+  of its hours in the sliver, its machine services, and, when all of the basket's machine
+  use is in the sliver, M_s, K, machine hours, interest and the capital share. Prices, v,
+  x*, P_s, Y and N_a take the sliver as a small part of a sum and keep full precision.
+  Near an edge the sliver outputs cannot be held to the gate's 1e-12: at d = 1e-6 the
+  loss is already about 2e-11. C7's near-edge goldens (§7), with every input the double
+  the oracle reads, measure it (`c7::precision_near_an_interior_edge`): 2.1e-8 on H of
+  manufactures at 1e-9 below 0.4, 7.5e-8 on M of care and of shelter at 1e-9 above 0.6,
+  and 1.9e-11 on K, M_s and interest at 1e-6 above 0.5 in the sliver economy, each within
+  twice the bound, while x*, v, P_s, Y and N_a are within 1.9e-16 there. Carrying an
+  offset from each edge, as the top segment does, would not recover it. Interpolating
+  between the two doubles that bracket the root resolves the offset only where f's
+  rounding noise is small beside its change over one spacing. That holds near 1 on G3's
+  path, where n_D and n_S vanish with 1 − x* and their noise with them, but not at an
+  interior edge: at x* = 0.4 − 1e-9 in the gap economy f is +4.4e-16 and −2.2e-16 at the
+  two doubles, a few ulps of n_D ≈ 0.98, and the interpolated offset is off by 2.3e-9
+  instead of 2.1e-8. A cancellation-free J(x*) − J(e) would remove only the 2·J/γ term,
+  and would need a new `Schedule` method. Only more working precision would help, and 1b
+  does not use it.
 - **Gaps.** When x* is in a gap, f's slope is n_S's alone. x* is resolved to about
   eps·n_S/|n_S'|, and the quantities do not depend on x* at all (§8, C5).
 - **Nesting.** For the one-category case the evaluation is 1a's, so every 1a precision
   statement, including G3's 1 − x* = 4.6e-21, holds unchanged.
-- **Measured.** On 2026-09-27 the oracle's f64 values matched all 245 numeric goldens within
-  1.0e-15 relative (C6's parity cost; 9.0e-16 on D(1) = −0.1 and 8.8e-16 on food's H in C3,
-  where 0.75 − x* carries x*'s spacing). The midpoint cells of `c6::cells_approach_the_line`
-  miss the line's closed forms by up to 3.5e-9, the midpoint rule's error at 2^-12.
+- **Measured.** On 2026-09-27 the oracle's f64 values matched all 245 numeric goldens away
+  from an interior edge within 1.0e-15 relative (C6's parity cost; 9.0e-16 on D(1) = −0.1
+  and 8.8e-16 on food's H in C3, where 0.75 − x* carries x*'s spacing). Of the 24 near-edge
+  goldens, the three N are inputs, the 15 full-precision outputs match within 1.9e-16, and
+  the six sliver outputs miss by what the bullet above states. The midpoint cells of
+  `c6::cells_approach_the_line` miss the line's closed forms by up to 3.5e-9, the midpoint
+  rule's error at 2^-12.
 
 ## 6. Result type
 
@@ -506,13 +539,13 @@ As built (P1.2). The proposal's names mostly stand; §12 lists the departures.
 ## 7. Goldens
 
 `goldens/generate_1b.py` computes every 1b golden with mpmath at 70 digits from §4's
-equations and writes `goldens/goldens_1b.txt`: 249 goldens with 30 significant digits. The
+equations and writes `goldens/goldens_1b.txt`: 273 goldens with 30 significant digits. The
 Rust constants in `tests/gate/goldens_1b.rs` carry 20. The keys are `C1_*` (the fork at
 G1), `C2_*` (G3's path and the CES share), `C3_*`, `C3D_*` and `C3Z_*` (the fork economy's
 three versions), `C4_ETA_*` and `C4_LAM_*` (the paths), `C6_PARITY_*`, and `C7_*` (the gap
-economy and the regime rows). Run it with laborformal's venv or any Python with mpmath:
-`python goldens/generate_1b.py`, then `--check`, which exits 1 if `goldens_1b.txt` is not
-its output. It imports the 1a generator (`generate.py`) only to assert the nesting, so
+economy, the roots near an interior edge and the regime rows). Run it with laborformal's
+venv or any Python with mpmath: `python goldens/generate_1b.py`, then `--check`, which
+exits 1 if `goldens_1b.txt` is not its output. It imports the 1a generator (`generate.py`) only to assert the nesting, so
 `goldens_1b.txt`'s header records FNV-1a digests of `generate_1b.py`, of `generate.py` and
 of its own body, and the gate recomputes all three.
 
@@ -527,7 +560,12 @@ The generator asserts as it goes:
   the user cost and the basket count; and every bound of §4.2 holds;
 - C3z equals the flow economy with (δa, δλ, δb) to 1e-65 (the prototype found 0);
 - n_D is nonincreasing, v/P_s increasing and f single-crossing on the 1a grid, for C3 and
-  the gap economy.
+  the gap economy;
+- each near-edge root lies within 1/1000 of its offset from the target; these instances
+  take every input as the double the oracle reads, since near an edge the decimal 0.4 and
+  the double 0.4 (0.4 + 2.2e-17) differ by 2.2e-8 of a 1e-9 sliver;
+- at λ = 0.7 on the gap economy without its top segment's tasks, D(1) is 0 exactly for
+  the decimal inputs and +1.7e-17 for the doubles (γ(1) = 0.2 + 0.8 is 1 + 5.6e-17).
 
 All values below are the generator's, to 20 significant digits.
 
@@ -628,6 +666,15 @@ hands in the gap. p_j = (0.17148313027926081201, 0.66974962254471836081,
 0.50165836362805285931, 2.3944531508331794588, 0.33152992972234063069). At N = 4.5 the
 root moves to 0.5417 and N_a and Y are unchanged.
 
+**C7, roots near an interior edge** (every input the double the oracle reads; §5.4): the
+gap economy at N 5.3901519305605711807, x* 0.39999999900000002966 (1e-9 below 0.4), H of
+manufactures 1.9999999850911775771e-9; the gap economy at N 4.2195653430021993202, x*
+0.60000000099999997125 (1e-9 above 0.6), M of care 2.0399999878451169096e-10 and of
+shelter 6.799999959483723661e-11; the sliver economy at N 75.810948777333209136, x*
+0.50000099999999998617 (1e-6 above 0.5), K 4.2553218408946403243e-6, M_s
+6.0000039999170273806e-7, interest 1.1647247542939867354e-7. v, P_s, Y and N_a are pinned
+for each.
+
 **C6, check_interior's parity instance** (:50-58): (a, λ, b) = (0.2, 0.1, 0.4), γ̄ = 0.35,
 v = 0.14/0.765 = 0.18300653594771241830, p_m = 0.52287581699346405229, 321 cells with
 γ_L = 0.2 + i·0.008125 (i = 0…320, weight 1/321), L̄ = 1.0202569012788672440. The cost is
@@ -664,7 +711,8 @@ for bit (§5.1 step 5).
   for bit. [R1; §5.1]
 - `c1::every_1a_golden_instance_is_bit_identical`: 27 instances: G1, G2's two cases, G3's
   five points and its two near-full-automation points (1 − x* = 4.6e-21 included, where
-  x* rounds to 1.0 and the good's hours are the carried 1 − x*), G4 cases A-G and the two
+  x* rounds to 1.0 and the good's hours, final hours, λ̃^q and L_s^q are the carried
+  1 − x* bit for bit, and the identities and bounds hold), G4 cases A-G and the two
   extra lags of G4's ρ·W_K test, G5's two general instances and its saturated-supply draw,
   and G8's `Interior` rows (N 8, N 7.35, the funded tie, the lemma tie, the curvature
   ceiling). [R1]
@@ -703,6 +751,12 @@ for bit (§5.1 step 5).
 - `c3::manufactures_is_fully_automated`: H = 0 exactly, L* = M/γ(x*). [§4.1]
 - `c3::durable_price_and_clearing_totals_differ`: λ̃^q < λ̃ and b̃^q < b̃ for every category
   with M_j > 0, and the bounds chain holds. [§4.2-4.3]
+- `c3::hours_carry_one_minus_x_near_full_automation`: the fork economy with λ = 0 on G3's
+  schedule at η ∈ {1e-9, 1e-12, 1e-16, 1e-20}, 1 − x* from 2.3e-9 down to 2.3e-20 (x* is
+  1.0 at the last) in the top segment, where care alone has tasks. The carried value
+  differs from 1.0 − x_star by more than 1e-10 relative at each point; care's H, λ̃^q and
+  final hours take it bit for bit; it equals the first-order 16η/7 = N·v(1)/(T·z_care)
+  at 1e-16 and 1e-20; the identities and bounds hold. [§5.1 step 5]
 - `c3::single_crossing_on_a_grid`. [§5.3]
 - `c3::cost_system_rows_hold`: p = Ap + λv + b by multiplication, at C3 and C3d; at C3z,
   f = (I − Aᵀ)y and pᵀf = v·N_a + T. [SSRN eq 3; A.1; App. C]
@@ -793,6 +847,13 @@ check_interior's, 20260905 and 20260921, in SplitMix64.
   30, x* < 0.5: K = M_s = 0, the services residual is 0, and every identity holds. [§5.1]
 - `c7::gap_quantities_do_not_move`: N 4.5 and N 5 give different x* and v, but bit-equal Y,
   K, N_a, H_s and M_s. [§5.4]
+- `c7::margin_on_an_edge`: the gap economy's root exactly on 0.6 (N 4.219565357117047,
+  `margin_active` true, the top segment) and on 0.4 (N 5.39015188299268, false, the gap),
+  each x* asserted bit for bit first; the flag equals its recomputation, and the
+  identities and bounds hold. [§2.3]
+- `c7::precision_near_an_interior_edge`: C7's near-edge goldens. x*, v, P_s, Y and N_a at
+  1e-12; the sliver outputs within twice §5.4's bound, and beyond 1e-12, so the stated loss
+  is real; the identities and bounds hold. [§5.4]
 - `c7::unused_category_changes_nothing`: adding a category with z = 0, last or first, in
   the flow and the durable version, leaves every aggregate output bit for bit unchanged,
   except `res_fork` and `res_totals`, which are maxima over all categories, bought or not.
@@ -809,7 +870,9 @@ check_interior's, 20260905 and 20260921, in SplitMix64.
   exact and the solve is the same bit for bit, with p_j = 4·p_j exactly; at c = 3 the
   aggregates agree within 1e-12, p_j scales by c and v/p_j by 1/c.
 - `c7::regimes`: the C7 rows, and viability decided at the top of the line when no basket
-  category uses the top segment (§3.2; D(1) = 0 exactly at λ = 0.7 gives `NotViable`).
+  category uses the top segment (§3.2; at λ = 0.7, D(1) computes to 0.0 in f64 and gives
+  `NotViable` by the convention at zero; it is exactly 0 for the decimal inputs, and the
+  doubles give +1.7e-17).
 - `c7::validation`: edges not starting at 0.0 or ending at 1.0, not increasing, or
   containing NaN; a density of the wrong length; no categories; B_d = 0; L̄_s = 0; a
   category with neither tasks nor land; out-of-range weights, densities and land. Each is
@@ -826,6 +889,16 @@ under at least one. One of the 44, L_j* from the carried hours, was caught only 
 bit-for-bit check of p_j and L_j* at `at(x*)` was added. The survivor reassociates
 p_j = v·H_j + (p_m·M_j + b_j), which changes nothing for one category (the good has b = 0)
 and only the rounding for many.
+
+After the verification (2026-09-27) there are 173 tests: 47 unit tests (42 of 1a, 5 of
+1b), 125 gate tests (71 of 1a, 54 of 1b) and 1 doc test. The verification's mutation pass
+found four more survivors, each now caught: a category's final hours and its λ̃_j^q from
+the hours at the double x* instead of the carried ones
+(`c1::every_1a_golden_instance_is_bit_identical` and
+`c3::hours_carry_one_minus_x_near_full_automation`), a strict comparison in the segment
+lookup behind `margin_active` (`c7::margin_on_an_edge`), and
+`Requirement::OpenUnit` admitting 0 (`c2::rejects_bad_arguments`, now that `ces_share`
+checks α through it, and `params::tests::open_unit_excludes_both_ends`).
 
 ## 9. Out of scope, and where each goes
 
@@ -933,3 +1006,23 @@ As built, 1b takes the first draft's choice on each; none is ruled here.
     `classify` and `labor_net`; its test files only make `SplitMix64`, G5's draw, G8's
     helpers and the goldens-file helpers visible to 1b's tests.
 
+### Verification (2026-09-27)
+
+11. **Carried hours pinned.** At C1's x* = 1.0 instance the good's final hours, λ̃^q and
+    L_s^q are asserted equal to the carried 1 − x*, and the identities and bounds run
+    there; `c3::hours_carry_one_minus_x_near_full_automation` does the same with four
+    categories (§8). Before, a category's final hours and λ̃_j^q could have used the hours
+    at the double x* and every test passed.
+12. **The edge convention.** §2.3 states that an edge belongs to the segment above it, as
+    `Eq1b::margin_active` does, and `c7::margin_on_an_edge` puts the root exactly on two
+    edges.
+13. **Precision near interior edges** is stated with its bound (§5.4) and measured by 24
+    new goldens (273 in all) whose inputs are the doubles the oracle reads, in the gap
+    economy and the new sliver economy (§3.3), in `c7::precision_near_an_interior_edge`.
+    Carrying an offset from each edge was measured and does not recover the precision,
+    so the code is unchanged.
+14. **`ces_share` checks α through `Requirement::OpenUnit`**, which gains a unit test, so the
+    public `admits` arm is the one in use.
+15. **The λ = 0.7 row** (§8, `c7::regimes`): D(1) computes to 0.0 in f64 and is exactly 0
+    only for the decimal inputs; for the doubles it is +1.7e-17, which the generator
+    asserts. The regime follows the convention at zero.

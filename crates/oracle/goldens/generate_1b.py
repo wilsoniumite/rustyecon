@@ -293,6 +293,25 @@ def interior(edges, categories, **changes):
     return q
 
 
+def as_doubles(edges, categories, **changes):
+    """The economy the oracle solves when it reads these decimals: every input the double
+    nearest its decimal, held exactly (mpf of a Python float is exact). Elsewhere the
+    difference is about 1e-16 relative and the goldens take the decimals; near an interior
+    edge it is not: the double 0.4 is 0.4 + 2.2e-17, which is 2.2e-8 of a 1e-9 sliver."""
+    p = dict(SCALARS)
+    p.update(changes)
+    scalars = {k: (v if k == "build_lag" else float(v)) for k, v in p.items()}
+    cats = [(n, float(z), float(b), tuple(float(m) for m in mu)) for n, z, b, mu in categories]
+    return Economy([float(e) for e in edges], cats, **scalars)
+
+
+def workers_near(economy, x):
+    """The double N nearest n_D(x)/F(x): with it the root lies at x, to within what one
+    rounding of N moves it."""
+    q = economy.at(x)
+    return float(q["nD"] / min(max(mp.log1p(q["v"] / q["Ps"]) / economy.chi_max, 0), 1))
+
+
 def ces_share(alpha, sigma, q):
     """SSRN eq 26 (p.31): the expenditure share of a directly rented service with CES weight
     alpha, elasticity sigma and relative price q = r/p."""
@@ -589,6 +608,38 @@ def build():
     left = interior(GAP_EDGES, GAP, workers="5.4")
     assert left["x"] < mp.mpf("0.4") and left["margin_active"]
 
+    section("C7: roots near an interior edge (constructed 2026-09-27; docs/unit-1b.md section 5.4), every "
+            "input the double the oracle reads: the gap economy with x* 1e-9 below 0.4 and 1e-9 above 0.6, "
+            "and the sliver economy (edges (0, 0.5, 1), a service (1, 0.5, (0, 1)) and a site (1, 1, (0, 0)), "
+            "rho 0.05, delta 0.2, J_b 2) with x* 1e-6 above 0.5")
+    sliver_edges = ("0", "0.5", "1")
+    sliver = (("SERVICE", "1", "0.5", ("0", "1")), ("SITE", "1", "1", ("0", "0")))
+    sliver_scalars = dict(rho="0.05", delta="0.2", build_lag=2)
+    for label, what, edges, cats, scalars, edge, offset, outputs in (
+            ("EDGE_BELOW", "the gap economy, x* 1e-9 below 0.4", GAP_EDGES, GAP, dict(), "0.4", "-1e-9",
+             (("MANUFACTURES_H", lambda q: q["H"][0], "H of manufactures, all of it in the sliver"),)),
+            ("EDGE_ABOVE", "the gap economy, x* 1e-9 above 0.6", GAP_EDGES, GAP, dict(), "0.6", "1e-9",
+             (("CARE_M", lambda q: q["M"][2], "M of care, all of it in the sliver"),
+              ("SHELTER_M", lambda q: q["M"][3], "M of shelter, all of it in the sliver"))),
+            ("SLIVER", "the sliver economy, x* 1e-6 above 0.5", sliver_edges, sliver, sliver_scalars,
+             "0.5", "1e-6",
+             (("K", lambda q: q["K"], "K, all machine use in the sliver"),
+              ("M_S", lambda q: q["Ms"], "M_s, all of it in the sliver"),
+              ("INTEREST", lambda q: q["interest"], "interest, rho W_K with K in the sliver")))):
+        e = mp.mpf(float(edge))
+        target = e + mp.mpf(offset)
+        workers = workers_near(as_doubles(edges, cats, workers="1", **scalars), target)
+        econ = as_doubles(edges, cats, workers=workers, **scalars)
+        regime, q = econ.solve()
+        assert regime == "Interior" and q["margin_active"], label
+        assert abs(q["x"] - target) < abs(mp.mpf(offset)) / 1000, (label, q["x"])
+        put(f"C7_{label}_N", mp.mpf(workers), f"N, a double: {what}")
+        for key, name, text in (("X_STAR", "x", "x*"), ("V", "v", "v"), ("P_S", "Ps", "P_s"),
+                                ("Y", "Y", "Y"), ("N_A", "n", "N_a")):
+            put(f"C7_{label}_{key}", q[name], f"{text}, {what}")
+        for key, get, text in outputs:
+            put(f"C7_{label}_{key}", get(q), f"{text}, {what}")
+
     section("C7: regimes on the fork economy")
     regime, d = Economy(FORK_EDGES, FORK, workers="0.2").solve()
     assert regime == "BoundaryNoMargin"
@@ -607,6 +658,16 @@ def build():
     put("C7_N6_X_STAR", q6["x"], "x* at N = 6: Interior, with funded and lemma_b1 both false")
     put("C7_N6_FUNDED", q6["funded"], "funded at N = 6")
     put("C7_N6_LEMMA_B1", q6["lemma_b1"], "lemma_b1 at N = 6")
+    # Viability at the top of the line with no top-segment tasks, at lambda 0.7 (the gap
+    # economy without its top segment's tasks): D(1) is 0 exactly for the decimal inputs, and
+    # +1.7e-17 for the doubles the oracle reads, where gamma(1) = 0.2 + 0.8 is 1 + 5.6e-17.
+    # In f64 D(1) rounds to 0.0, and the regime is NotViable by the convention at zero.
+    no_top = tuple((n, z, b, (m[0], m[1], "0")) for n, z, b, m in GAP)
+    regime, d = Economy(GAP_EDGES, no_top, workers="5", lam="0.7").solve()
+    assert regime == "NotViable" and d["d_at_1"] == 0
+    doubles = as_doubles(GAP_EDGES, no_top, workers="5", lam="0.7")
+    d_at_1 = 1 - doubles.u * (doubles.a + doubles.lam * doubles.gamma(mp.mpf(1)))
+    assert mp.mpf("1.6e-17") < d_at_1 < mp.mpf("1.7e-17"), d_at_1
 
     body = "\n".join(LINES) + "\n"
     header = [

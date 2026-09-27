@@ -3,7 +3,7 @@
 //! manufactures (no direct land, tasks low on the line), food, care (tasks high on the line)
 //! and shelter (mostly land).
 
-use oracle::{CategoryParams, BRACKET_HI, BRACKET_LO};
+use oracle::{CategoryParams, PowerSchedule, BRACKET_HI, BRACKET_LO};
 
 use crate::goldens_1b::*;
 use crate::support::*;
@@ -392,6 +392,71 @@ fn durable_price_and_clearing_totals_differ() {
         }
     }
     assert!(eq.l_s_q < eq.l_s - 1e-3 && eq.b_s_q < eq.b_s - 1e-3);
+}
+
+#[test]
+fn hours_carry_one_minus_x_near_full_automation() {
+    // docs/unit-1b.md §5.1 step 5 with four categories: the fork economy with lambda = 0 and
+    // gamma = eta (1 + x) (G3's schedule). As eta -> 0, x* -> 1 in the top segment, where
+    // care alone has tasks (density 1). There n_D = Y z_care (1 - x*), and n_S = N v/P_s to
+    // first order, with Y -> T/B_d, P_s -> B_d and v -> 2 eta b/(1 - a), so
+    // 1 - x* = N v(1) / (T z_care) (1 + O(eta)) = 16 eta/7.
+    for (eta, first_order) in [(1e-9, false), (1e-12, false), (1e-16, true), (1e-20, true)] {
+        let params = CategoryParams {
+            lam: 0.0,
+            schedule: PowerSchedule {
+                eta: 1.0,
+                g0: eta,
+                g1: eta,
+                k: 1.0,
+            },
+            ..fork_economy()
+        };
+        let e = economy_1b(params.clone());
+        let eq = interior_1b(params.clone());
+        let tag = |what: &str| format!("{what} at eta = {eta:e}");
+        let omx = eq.one_minus_x_star;
+        // The carried value is not the double's 1 - x*: at these eta a field that used
+        // 1.0 - x_star instead would be off by more than 1e-10 relative (100% at 1e-20,
+        // where x_star is 1.0), far beyond the identities' 1e-12.
+        assert!(
+            ((1.0 - eq.x_star) - omx).abs() > 1e-10 * omx,
+            "{}",
+            tag("teeth")
+        );
+        if first_order {
+            let care = &params.categories[2];
+            let v_at_1 = 2.0 * eta * params.b / (1.0 - params.a);
+            close(
+                &tag("1 - x* = N v(1)/(T z_care)"),
+                omx,
+                params.workers * v_at_1 / (params.land * care.weight * care.density[2]),
+            );
+        }
+        // Care's hours are all in the top segment: every hours-type field takes the carried
+        // value, bit for bit (lambda = 0, so the clearing row adds 0).
+        let care = &eq.categories[2];
+        assert_eq!(care.human, omx, "{}", tag("H of care"));
+        assert_eq!(
+            care.lambda_tilde_q,
+            omx,
+            "{}",
+            tag("lambda-tilde^q of care")
+        );
+        assert_eq!(
+            care.final_hours.to_bits(),
+            (care.output * omx).to_bits(),
+            "{}",
+            tag("final hours of care")
+        );
+        for (name, c) in FORK_NAMES.iter().zip(&eq.categories) {
+            if *name != "care" {
+                assert_eq!(c.human, 0.0, "{}", tag(name));
+            }
+        }
+        check_identities_1b(&e, &eq);
+        check_fork_and_bounds(&e, &eq);
+    }
 }
 
 #[test]

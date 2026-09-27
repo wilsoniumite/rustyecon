@@ -71,8 +71,8 @@ one-category case exactly":
 - **C2**, SSRN eq 26's CES share: goldens on G3's path and at q = 1, σ = 1, limits,
   monotonicity, extreme prices, bad arguments;
 - **C3**, the fork economy (manufactures, food, care, shelter on three segments) in flow,
-  durable and ρ = 0 versions, pinned field by field, with care on its human bound and
-  manufactures fully automated;
+  durable and ρ = 0 versions, pinned field by field, with care on its human bound,
+  manufactures fully automated, and near full automation, where the hours carry 1 − x*;
 - **C4**, task and recursive automation on it: the wage in manufactures rises 27% while
   the wage in shelter falls 96%;
 - **C5**, 180 random multi-category economies: every identity, the fork identity in both
@@ -80,8 +80,8 @@ one-category case exactly":
   crossing;
 - **C6**, check_interior.py's price-block batteries on task cells, its parity instance,
   the flat case at four user costs, and cells against the line;
-- **C7**, the gap economy, reductions (an unbought category, split categories and
-  segments, permutation, rescaling), the regime rows and validation;
+- **C7**, the gap economy, roots on and near its edges, reductions (an unbought category,
+  split categories and segments, permutation, rescaling), the regime rows and validation;
 - **C8**, `goldens_1b.txt`'s three digests and the Rust constants.
 
 The goldens are pinned to laborformal `31b3482`.
@@ -102,7 +102,7 @@ The goldens are pinned to laborformal `31b3482`.
 | `goldens/generate.py` | computes every golden with mpmath at 70 digits |
 | `goldens/goldens.txt` | its output, 30 significant digits |
 | `goldens/generate_1b.py` | unit 1b's goldens, at 70 digits; imports `generate.py` to assert the nesting |
-| `goldens/goldens_1b.txt` | its output, 249 goldens |
+| `goldens/goldens_1b.txt` | its output, 273 goldens |
 
 ## Running the tests
 
@@ -125,7 +125,8 @@ In PowerShell, set `$env:CARGO_TARGET_DIR` instead. To drive WSL from Windows, u
 On 2026-09-25, after the final verification round, both gave 114 tests: 42 unit tests,
 71 gate tests and 1 doc test. In the workspace (P1.1, 2026-09-26) the same 114 pass on
 both. With unit 1b (P1.2, 2026-09-27) there are 169: 46 unit tests (42 + 4), 122 gate
-tests (71 + 51) and 1 doc test.
+tests (71 + 51) and 1 doc test; after its verification the same day, 173: 47 unit tests
+(42 + 5), 125 gate tests (71 + 54) and 1 doc test.
 
 ## The dump example
 
@@ -195,7 +196,10 @@ and of its own goldens, and `c8_goldens_file` recomputes all three: a change to
 `generate.py` means rerunning both. The constants in `tests/gate/goldens_1b.rs` are
 `goldens_1b.txt` rounded to 20 significant digits (`c8_goldens_file::
 constants_match_goldens_1b_txt`). On 2026-09-27 the oracle's f64 values matched all 245
-numeric goldens of unit 1b within 1.0e-15 relative.
+numeric goldens of unit 1b away from an interior edge within 1.0e-15 relative. Of the 24
+near-edge goldens, the three N are inputs, the 15 full-precision outputs match within
+1.9e-16, and the six outputs made of the sliver by the edge miss by up to 7.5e-8, within
+the bound of docs/unit-1b.md §5.4.
 
 ## Numerics
 
@@ -240,6 +244,13 @@ numeric goldens of unit 1b within 1.0e-15 relative.
   the two doubles that bracket the root, and every output proportional to 1 − x*
   (final hours, N_a, participation, the labour share) uses it, so they keep full relative
   precision however close x* is to 1.
+- In unit 1b only the top segment carries its offset. Within a distance d of an interior
+  edge of the task line, an output made mostly of the sliver between x* and the edge is
+  good to about 2^-53·x*/d relative (hours) or 2^-53·(x* + 2J(x*)/γ(x*))/d (machine
+  services, and K, M_s and interest when all machine use is in the sliver): 2.1e-8 on a
+  category's hours at d = 1e-9, 1.9e-11 on K at d = 1e-6. Prices, v, x*, P_s, Y and N_a
+  keep full precision. Interpolating an offset from each edge would not recover it
+  (docs/unit-1b.md §5.4).
 - D = 1 − u(a + λγ) is computed as (1 − u·a) − u·λγ with a fused multiply-add
   (`core::num::fma`, correctly rounded), and 1 − aδ likewise, so neither loses precision
   near the viability edge or as aδ → 1.

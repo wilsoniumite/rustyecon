@@ -308,7 +308,7 @@ fn every_1a_golden_instance_is_bit_identical() {
     // The deepest point of the automation path: x* rounds to 1.0, and 1 - x* = 4.6e-21 is
     // carried in the top segment (docs/unit-1b.md §5.1 step 5).
     let base = appendix_b();
-    let eq = interior_1b(CategoryParams::from_one_category(Params {
+    let params = CategoryParams::from_one_category(Params {
         lam: 0.0,
         schedule: PowerSchedule {
             eta: 1.0,
@@ -317,11 +317,25 @@ fn every_1a_golden_instance_is_bit_identical() {
             k: 1.0,
         },
         ..base
-    }));
+    });
+    let eq = interior_1b(params.clone());
     assert_eq!(eq.x_star, 1.0);
     assert!(eq.one_minus_x_star > 4e-21 && eq.one_minus_x_star < 5e-21);
-    assert_eq!(eq.categories[0].human, eq.one_minus_x_star);
+    let good = &eq.categories[0];
+    assert_eq!(good.human, eq.one_minus_x_star);
     assert_eq!(eq.h_s, eq.one_minus_x_star);
+    // Every hours-type output carries it (§5.1 step 5), not only H and H_s: the good's
+    // final hours, and at lambda = 0 its clearing-side row and L_s^q, which are its hours.
+    // From the double x* = 1.0 each of them would be 0.
+    assert_eq!(
+        good.final_hours.to_bits(),
+        (good.output * eq.one_minus_x_star).to_bits()
+    );
+    assert_eq!(good.lambda_tilde_q, eq.one_minus_x_star);
+    assert_eq!(eq.l_s_q, eq.one_minus_x_star);
+    let economy = economy_1b(params);
+    check_identities_1b(&economy, &eq);
+    check_fork_and_bounds(&economy, &eq);
 }
 
 #[test]

@@ -3,9 +3,9 @@
 # Each line is KEY = value  # note. Values carry 30 significant digits.
 # Equations: docs/unit-1b.md section 4. laborformal references are at 31b3482.
 # The category form nests generate.py's 1a solves within 0.0 (1e-65 asserted).
-# fnv1a64 generate_1b.py = 5caff80206f5b32a
+# fnv1a64 generate_1b.py = 909520ffb1f41ee9
 # fnv1a64 generate.py = cf9d71a6ac25699d
-# fnv1a64 body = d38c47f5b1dda742
+# fnv1a64 body = f4f85a4aad2f6e69
 
 # C1: the fork at G1, SSRN Appendix B in category form (docs/unit-1b.md section 3.3): the good (z 1, b 0, mu 1) and space (z = h = 1, b 1, mu 0) on one segment
 C1_GOOD_L_STAR = 0.665351316310033838484188748534  # L* = (1 - x*) + J(x*)/gamma(x*), main.tex eq effective-hours
@@ -260,6 +260,32 @@ C7_GAP_CARE_REAL_WAGE = 2.39445315083317945877922620038  # v/p_j of care, the ga
 C7_GAP_SHELTER_P = 1.01343941998745157890566959238  # p_j of shelter, the gap economy, N 5
 C7_GAP_SHELTER_REAL_WAGE = 0.331529929722340630686409954572  # v/p_j of shelter, the gap economy, N 5
 C7_GAP_N4_5_X_STAR = 0.54168278552109559195691037351  # x*, the gap economy at N 4.5: N_a, Y and K as at N 5
+
+# C7: roots near an interior edge (constructed 2026-09-27; docs/unit-1b.md section 5.4), every input the double the oracle reads: the gap economy with x* 1e-9 below 0.4 and 1e-9 above 0.6, and the sliver economy (edges (0, 0.5, 1), a service (1, 0.5, (0, 1)) and a site (1, 1, (0, 0)), rho 0.05, delta 0.2, J_b 2) with x* 1e-6 above 0.5
+C7_EDGE_BELOW_N = 5.390151930560571180706119776  # N, a double: the gap economy, x* 1e-9 below 0.4
+C7_EDGE_BELOW_X_STAR = 0.399999999000000029658871703951  # x*, the gap economy, x* 1e-9 below 0.4
+C7_EDGE_BELOW_V = 0.308605340753198541222658370248  # v, the gap economy, x* 1e-9 below 0.4
+C7_EDGE_BELOW_P_S = 1.55597626105495694878463073398  # P_s, the gap economy, x* 1e-9 below 0.4
+C7_EDGE_BELOW_Y = 6.62026178549852056612050704355  # Y, the gap economy, x* 1e-9 below 0.4
+C7_EDGE_BELOW_N_A = 0.975259143184099391896318676756  # N_a, the gap economy, x* 1e-9 below 0.4
+C7_EDGE_BELOW_MANUFACTURES_H = 0.000000001999999985091177577105234697  # H of manufactures, all of it in the sliver, the gap economy, x* 1e-9 below 0.4
+C7_EDGE_ABOVE_N = 4.21956534300219932021036584047  # N, a double: the gap economy, x* 1e-9 above 0.6
+C7_EDGE_ABOVE_X_STAR = 0.600000000999999971249028203981  # x*, the gap economy, x* 1e-9 above 0.6
+C7_EDGE_ABOVE_V = 0.408408408913417948786794803244  # v, the gap economy, x* 1e-9 above 0.6
+C7_EDGE_ABOVE_P_S = 1.57067867875307384403201737629  # P_s, the gap economy, x* 1e-9 above 0.6
+C7_EDGE_ABOVE_Y = 6.6202617834869467500554510336  # Y, the gap economy, x* 1e-9 above 0.6
+C7_EDGE_ABOVE_N_A = 0.975259133734402803849723332202  # N_a, the gap economy, x* 1e-9 above 0.6
+C7_EDGE_ABOVE_CARE_M = 0.000000000203999998784511690957338115822  # M of care, all of it in the sliver, the gap economy, x* 1e-9 above 0.6
+C7_EDGE_ABOVE_SHELTER_M = 0.000000000067999999594837236610376473998  # M of shelter, all of it in the sliver, the gap economy, x* 1e-9 above 0.6
+C7_SLIVER_N = 75.8109487773332091364864027128  # N, a double: the sliver economy, x* 1e-6 above 0.5
+C7_SLIVER_X_STAR = 0.500000999999999986171193035408  # x*, the sliver economy, x* 1e-6 above 0.5
+C7_SLIVER_V = 0.0689750482816346151913983312796  # v, the sliver economy, x* 1e-6 above 0.5
+C7_SLIVER_P_S = 1.53448752414077132429149041996  # P_s, the sliver economy, x* 1e-6 above 0.5
+C7_SLIVER_Y = 6.66666643971616848561915750533  # Y, the sliver economy, x* 1e-6 above 0.5
+C7_SLIVER_N_A = 3.33332659574486302777954439342  # N_a, the sliver economy, x* 1e-6 above 0.5
+C7_SLIVER_K = 0.0000042553218408946403243394255798  # K, all machine use in the sliver, the sliver economy, x* 1e-6 above 0.5
+C7_SLIVER_M_S = 0.000000600000399991702738064912091923  # M_s, all of it in the sliver, the sliver economy, x* 1e-6 above 0.5
+C7_SLIVER_INTEREST = 0.000000116472475429398673536474892942  # interest, rho W_K with K in the sliver, the sliver economy, x* 1e-6 above 0.5
 
 # C7: regimes on the fork economy
 C7_N0_2_F_AT_1 = 0.192122197454485919979677457349  # f(1) at N = 0.2: BoundaryNoMargin

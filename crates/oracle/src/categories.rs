@@ -710,6 +710,14 @@ pub struct Residuals1b {
 /// thing, and the same precision notes apply: 1a's `j_star` is `m_s` here, 1a's `p` is the
 /// first category's `price`, and 1a's cost-system rows are the categories' `lambda_tilde` and
 /// `b_tilde` with the machine row's `lambda_tilde_machine` and `b_tilde_machine`.
+///
+/// **Interior edges.** Only the top segment carries its offset from x*
+/// ([`one_minus_x_star`](Eq1b::one_minus_x_star)). Within a distance d of an interior edge,
+/// an output made mostly of the sliver between x* and the edge is good to about
+/// 2^-53·x*/d relative for hours (H_j) and 2^-53·(x* + 2·J(x*)/γ(x*))/d for machine
+/// services (M_j), and so are the outputs built from them, K, M_s and interest included
+/// when all machine use is in the sliver. Prices, v, x*, P_s, Y and N_a keep full
+/// precision (docs/unit-1b.md §5.4).
 #[derive(Clone, Debug, PartialEq)]
 pub struct Eq1b {
     /// x*, as [`Eq1a::x_star`](crate::Eq1a::x_star).

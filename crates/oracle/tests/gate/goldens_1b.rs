@@ -518,6 +518,56 @@ goldens! {
     /// goldens/generate_1b.py: x*, the gap economy at N 4.5: N_a, Y and K as at N 5.
     C7_GAP_N4_5_X_STAR: f64 = 0.54168278552109559196;
 
+    // C7: roots near an interior edge (constructed 2026-09-27; docs/unit-1b.md section 5.4), every input the double the oracle reads: the gap economy with x* 1e-9 below 0.4 and 1e-9 above 0.6, and the sliver economy (edges (0, 0.5, 1), a service (1, 0.5, (0, 1)) and a site (1, 1, (0, 0)), rho 0.05, delta 0.2, J_b 2) with x* 1e-6 above 0.5
+    /// goldens/generate_1b.py: N, a double: the gap economy, x* 1e-9 below 0.4.
+    C7_EDGE_BELOW_N: f64 = 5.3901519305605711807;
+    /// goldens/generate_1b.py: x*, the gap economy, x* 1e-9 below 0.4.
+    C7_EDGE_BELOW_X_STAR: f64 = 0.39999999900000002966;
+    /// goldens/generate_1b.py: v, the gap economy, x* 1e-9 below 0.4.
+    C7_EDGE_BELOW_V: f64 = 0.30860534075319854122;
+    /// goldens/generate_1b.py: P_s, the gap economy, x* 1e-9 below 0.4.
+    C7_EDGE_BELOW_P_S: f64 = 1.5559762610549569488;
+    /// goldens/generate_1b.py: Y, the gap economy, x* 1e-9 below 0.4.
+    C7_EDGE_BELOW_Y: f64 = 6.6202617854985205661;
+    /// goldens/generate_1b.py: N_a, the gap economy, x* 1e-9 below 0.4.
+    C7_EDGE_BELOW_N_A: f64 = 0.9752591431840993919;
+    /// goldens/generate_1b.py: H of manufactures, all of it in the sliver, the gap economy, x* 1e-9 below 0.4.
+    C7_EDGE_BELOW_MANUFACTURES_H: f64 = 1.9999999850911775771e-9;
+    /// goldens/generate_1b.py: N, a double: the gap economy, x* 1e-9 above 0.6.
+    C7_EDGE_ABOVE_N: f64 = 4.2195653430021993202;
+    /// goldens/generate_1b.py: x*, the gap economy, x* 1e-9 above 0.6.
+    C7_EDGE_ABOVE_X_STAR: f64 = 0.60000000099999997125;
+    /// goldens/generate_1b.py: v, the gap economy, x* 1e-9 above 0.6.
+    C7_EDGE_ABOVE_V: f64 = 0.40840840891341794879;
+    /// goldens/generate_1b.py: P_s, the gap economy, x* 1e-9 above 0.6.
+    C7_EDGE_ABOVE_P_S: f64 = 1.570678678753073844;
+    /// goldens/generate_1b.py: Y, the gap economy, x* 1e-9 above 0.6.
+    C7_EDGE_ABOVE_Y: f64 = 6.6202617834869467501;
+    /// goldens/generate_1b.py: N_a, the gap economy, x* 1e-9 above 0.6.
+    C7_EDGE_ABOVE_N_A: f64 = 0.97525913373440280385;
+    /// goldens/generate_1b.py: M of care, all of it in the sliver, the gap economy, x* 1e-9 above 0.6.
+    C7_EDGE_ABOVE_CARE_M: f64 = 2.0399999878451169096e-10;
+    /// goldens/generate_1b.py: M of shelter, all of it in the sliver, the gap economy, x* 1e-9 above 0.6.
+    C7_EDGE_ABOVE_SHELTER_M: f64 = 6.799999959483723661e-11;
+    /// goldens/generate_1b.py: N, a double: the sliver economy, x* 1e-6 above 0.5.
+    C7_SLIVER_N: f64 = 75.810948777333209136;
+    /// goldens/generate_1b.py: x*, the sliver economy, x* 1e-6 above 0.5.
+    C7_SLIVER_X_STAR: f64 = 0.50000099999999998617;
+    /// goldens/generate_1b.py: v, the sliver economy, x* 1e-6 above 0.5.
+    C7_SLIVER_V: f64 = 0.068975048281634615191;
+    /// goldens/generate_1b.py: P_s, the sliver economy, x* 1e-6 above 0.5.
+    C7_SLIVER_P_S: f64 = 1.5344875241407713243;
+    /// goldens/generate_1b.py: Y, the sliver economy, x* 1e-6 above 0.5.
+    C7_SLIVER_Y: f64 = 6.6666664397161684856;
+    /// goldens/generate_1b.py: N_a, the sliver economy, x* 1e-6 above 0.5.
+    C7_SLIVER_N_A: f64 = 3.3333265957448630278;
+    /// goldens/generate_1b.py: K, all machine use in the sliver, the sliver economy, x* 1e-6 above 0.5.
+    C7_SLIVER_K: f64 = 4.2553218408946403243e-6;
+    /// goldens/generate_1b.py: M_s, all of it in the sliver, the sliver economy, x* 1e-6 above 0.5.
+    C7_SLIVER_M_S: f64 = 6.0000039999170273806e-7;
+    /// goldens/generate_1b.py: interest, rho W_K with K in the sliver, the sliver economy, x* 1e-6 above 0.5.
+    C7_SLIVER_INTEREST: f64 = 1.1647247542939867354e-7;
+
     // C7: regimes on the fork economy
     /// goldens/generate_1b.py: f(1) at N = 0.2: BoundaryNoMargin.
     C7_N0_2_F_AT_1: f64 = 0.19212219745448591998;

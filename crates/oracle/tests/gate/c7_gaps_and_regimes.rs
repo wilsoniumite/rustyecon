@@ -128,6 +128,170 @@ fn gap_quantities_do_not_move() {
     assert!(left.x_star < 0.4 && left.margin_active);
 }
 
+#[test]
+fn margin_on_an_edge() {
+    // margin_active reads x* on an edge as in the segment above it, e_s <= x* < e_{s+1}
+    // (Eq1b::margin_active; docs/unit-1b.md §2.3). These N put the gap economy's root
+    // exactly on its edges; they were found on 2026-09-27 by stepping N a double at a time
+    // near n_D(e)/F(e). At 0.6 the segment above is the top one, which the basket uses; at
+    // 0.4 it is the gap.
+    for (workers, edge, active) in [
+        (4.219565357117047, 0.6f64, true),
+        (5.39015188299268, 0.4, false),
+    ] {
+        let params = gap_economy(workers);
+        let eq = interior_1b(params.clone());
+        assert_eq!(eq.x_star.to_bits(), edge.to_bits(), "N {workers}: x* moved");
+        assert_eq!(eq.margin_active, active, "x* = {edge}");
+        assert_eq!(eq.margin_active, margin_is_active(&params, eq.x_star));
+        let e = economy_1b(params);
+        check_identities_1b(&e, &eq);
+        check_fork_and_bounds(&e, &eq);
+    }
+}
+
+/// The sliver economy (constructed 2026-09-27; docs/unit-1b.md §5.4): a service with tasks
+/// on [0.5, 1] only (z 1, b 0.5) and a site (z 1, b 1), durable (ρ 0.05, δ 0.2, J_b 2).
+/// With the root just above 0.5, all machine use is in the sliver [0.5, x*].
+fn sliver_economy(workers: f64) -> CategoryParams {
+    CategoryParams {
+        workers,
+        rho: 0.05,
+        delta: 0.2,
+        build_lag: 2,
+        ..g1_scalars(
+            &[0.0, 0.5, 1.0],
+            vec![
+                category(1.0, 0.5, &[0.0, 1.0]),
+                category(1.0, 1.0, &[0.0, 0.0]),
+            ],
+        )
+    }
+}
+
+/// An output read from an equilibrium.
+type Field = fn(&Eq1b) -> f64;
+
+/// One root near an interior edge: the outputs that keep full precision against their
+/// goldens at the gate's 1e-12, and those made of the sliver (with whether they are machine
+/// quantities) against the bound of docs/unit-1b.md §5.4. Returns the worst sliver error.
+fn near_edge(
+    what: &str,
+    params: CategoryParams,
+    edge: f64,
+    full: &[(&str, Field, f64)],
+    sliver: &[(&str, Field, f64, bool)],
+) -> f64 {
+    // 2^-53, the unit roundoff; the bound's factor 2 is slack for the few roundings that
+    // add to the root's.
+    const UNIT: f64 = f64::EPSILON / 2.0;
+    const SLACK: f64 = 2.0;
+    let e = economy_1b(params.clone());
+    let eq = interior_1b(params.clone());
+    assert!(eq.margin_active, "{what}");
+    for (name, field, want) in full {
+        close(&format!("{name}, {what}"), field(&eq), *want);
+    }
+    let d = (eq.x_star - edge).abs();
+    let j_over_gamma = params.schedule.integral(eq.x_star) / eq.gamma_star;
+    let mut worst: f64 = 0.0;
+    for (name, field, want, machine) in sliver {
+        let error = (field(&eq) - want).abs() / want;
+        let reach = if *machine {
+            eq.x_star + 2.0 * j_over_gamma
+        } else {
+            eq.x_star
+        };
+        let bound = SLACK * UNIT * reach / d;
+        assert!(
+            error <= bound,
+            "{name}, {what}: {error:e} beyond the bound {bound:e}"
+        );
+        worst = worst.max(error);
+    }
+    check_identities_1b(&e, &eq);
+    check_fork_and_bounds(&e, &eq);
+    worst
+}
+
+#[test]
+fn precision_near_an_interior_edge() {
+    // docs/unit-1b.md §5.4: x* is a double, and only the top segment carries its offset, so
+    // an output made of the sliver between x* and an interior edge loses relative precision
+    // as the sliver narrows; the prices, v, P_s, Y and N_a keep it. The goldens take every
+    // input as the double the oracle reads (goldens/generate_1b.py).
+    let below = near_edge(
+        "x* 1e-9 below 0.4",
+        gap_economy(C7_EDGE_BELOW_N),
+        0.4,
+        &[
+            ("x*", |q| q.x_star, C7_EDGE_BELOW_X_STAR),
+            ("v", |q| q.v, C7_EDGE_BELOW_V),
+            ("P_s", |q| q.p_s, C7_EDGE_BELOW_P_S),
+            ("Y", |q| q.y, C7_EDGE_BELOW_Y),
+            ("N_a", |q| q.n_a, C7_EDGE_BELOW_N_A),
+        ],
+        &[(
+            "H of manufactures",
+            |q| q.categories[0].human,
+            C7_EDGE_BELOW_MANUFACTURES_H,
+            false,
+        )],
+    );
+    let above = near_edge(
+        "x* 1e-9 above 0.6",
+        gap_economy(C7_EDGE_ABOVE_N),
+        0.6,
+        &[
+            ("x*", |q| q.x_star, C7_EDGE_ABOVE_X_STAR),
+            ("v", |q| q.v, C7_EDGE_ABOVE_V),
+            ("P_s", |q| q.p_s, C7_EDGE_ABOVE_P_S),
+            ("Y", |q| q.y, C7_EDGE_ABOVE_Y),
+            ("N_a", |q| q.n_a, C7_EDGE_ABOVE_N_A),
+        ],
+        &[
+            (
+                "M of care",
+                |q| q.categories[2].machine,
+                C7_EDGE_ABOVE_CARE_M,
+                true,
+            ),
+            (
+                "M of shelter",
+                |q| q.categories[3].machine,
+                C7_EDGE_ABOVE_SHELTER_M,
+                true,
+            ),
+        ],
+    );
+    let sliver = near_edge(
+        "x* 1e-6 above 0.5",
+        sliver_economy(C7_SLIVER_N),
+        0.5,
+        &[
+            ("x*", |q| q.x_star, C7_SLIVER_X_STAR),
+            ("v", |q| q.v, C7_SLIVER_V),
+            ("P_s", |q| q.p_s, C7_SLIVER_P_S),
+            ("Y", |q| q.y, C7_SLIVER_Y),
+            ("N_a", |q| q.n_a, C7_SLIVER_N_A),
+        ],
+        &[
+            ("K", |q| q.k, C7_SLIVER_K, true),
+            ("M_s", |q| q.m_s, C7_SLIVER_M_S, true),
+            ("interest", |q| q.interest, C7_SLIVER_INTEREST, true),
+        ],
+    );
+    // The loss is real, not only allowed: on 2026-09-27 the errors were 2.1e-8, 7.5e-8 and
+    // 1.9e-11, all beyond the gate's 1e-12, so these outputs cannot be held to it here.
+    for (what, worst) in [
+        ("below 0.4", below),
+        ("above 0.6", above),
+        ("above 0.5", sliver),
+    ] {
+        assert!(worst > FULL, "{what}: {worst:e}");
+    }
+}
+
 /// Every economy-level number of an equilibrium, by key, as bits, without the two residuals
 /// that are maxima over categories.
 fn aggregates(eq: &Eq1b) -> Vec<(&'static str, u64)> {
@@ -383,7 +547,9 @@ fn regimes() {
     check_identities_1b(&economy_1b(six.clone()), &eq);
     // Viability is decided at the top of the line even when no basket category uses the top
     // segment (docs/unit-1b.md §3.2, 1a's convention): the gap economy without its top
-    // segment's tasks, at lambda 0.7, where D(1) = 0 exactly.
+    // segment's tasks, at lambda 0.7, where D(1) computes to 0.0 and is NotViable by the
+    // convention at zero. It is exactly 0 for the decimal inputs; for the doubles it is
+    // +1.7e-17, as goldens/generate_1b.py asserts (docs/unit-1b.md §8).
     let mut no_top = gap_economy(5.0);
     for c in &mut no_top.categories {
         c.density[2] = 0.0;
