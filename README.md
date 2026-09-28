@@ -25,43 +25,47 @@ What it is for, in order:
 
 Phase 0, the reboot, is done: both its sessions are closed and its gate is green (see
 [STATE.md](STATE.md)). The second session built the certification stack
-([docs/CERTIFY.md](docs/CERTIFY.md)): dated criteria, sealed verdict-first certificates,
-the run's manifest and Parquet telemetry. The gate world and the Appendix B world both
-certify PASS, and their certificates are in `results/`. A Phase 2 probe found that agents
-at the paper's margins reach the oracle's equilibrium of the SSRN Appendix B economy
-([docs/probe/REPORT.md](docs/probe/REPORT.md)). Phase 1, the oracle, is closed (P1.14): units
-1a to 1f have landed, among them 1d (worker types and the wall), 1e (parcels, the idle margin
-and the priced exit s(q)) and 1f (households and government), and PLAN Phase 1's gate is met
-item by item ([crates/oracle/README.md](crates/oracle/README.md)). On branch `oracle-goods`
-(2026-09-27, P1g.1–P1g.7) the oracle gained unit 1g, machines as goods: durable goods built from
-and run on goods, productivity checked per period (D-G10), a chain of goods mapped to unit 1c,
-and plants as machine types ([crates/oracle/docs/unit-1g.md](crates/oracle/docs/unit-1g.md)),
-verified with one fix round (P1g.6). The GUI is designed ([docs/GUI.md](docs/GUI.md)), and its
-shell, G0, is closed: G0.1, the viewer, and G0.2, the editor (see "Running the GUI" below). G1,
-the oracle lab, is built on branch `g1` (2026-09-27, G1.1–G1.10, and verified once, its findings
-fixed at G1.11): the oracle's units 1a–1f solved beside their goldens, the price-step explainer,
-log axes, a watchlist, event and date breakpoints and snapshots, with its window checked by hand
-still to come. On branch `demo-world` (2026-09-27, D.1–D.5), the GUI's county map and its
-lenses came forward over an illustrative world of the United Kingdom's 93 historic counties,
-1750–1901 (see "The demo world's map" below). The crates fill in phase by phase:
+([docs/CERTIFY.md](docs/CERTIFY.md)): dated criteria, sealed verdict-first certificates, the
+run's manifest and Parquet telemetry. The gate world and the Appendix B world both certify PASS,
+and their certificates are in `results/`. A Phase 2 probe found that agents at the paper's
+margins reach the oracle's equilibrium of the SSRN Appendix B economy
+([docs/probe/REPORT.md](docs/probe/REPORT.md)). Phase 1, the oracle, is closed (P1.14): units 1a
+to 1f have landed, among them 1d (worker types and the wall), 1e (parcels, the idle margin and
+the priced exit s(q)) and 1f (households and government), and PLAN Phase 1's gate is met item by
+item ([crates/oracle/README.md](crates/oracle/README.md)). On branch `oracle-goods` (2026-09-27,
+P1g.1–P1g.7) the oracle gained unit 1g, machines as goods: durable goods built from and run on
+goods, productivity checked per period (D-G10), a chain of goods mapped to unit 1c, and plants as
+machine types ([crates/oracle/docs/unit-1g.md](crates/oracle/docs/unit-1g.md)), verified with one
+fix round (P1g.6). On branch `phase2-goods` (2026-09-28, P2.2.1–P2.2.4) the stocks probe put the
+horse into the engine as a durable good, bred by a maker and hired out by a wet capacity desk,
+and found unit 1g's equilibrium from displaced prices, costs, stocks and coins: GO for stage
+v2a.1 at 52 ticks a year ([docs/probe/HORSES.md](docs/probe/HORSES.md)). The GUI is designed
+([docs/GUI.md](docs/GUI.md)), and its shell, G0, is closed: G0.1, the viewer, and G0.2, the
+editor (see "Running the GUI" below). G1, the oracle lab, is built on branch `g1` (2026-09-27,
+G1.1–G1.10, and verified once, its findings fixed at G1.11): the oracle's units 1a–1f solved
+beside their goldens, the price-step explainer, log axes, a watchlist, event and date breakpoints
+and snapshots, with its window checked by hand still to come. On branch `demo-world` (2026-09-27,
+D.1–D.5), the GUI's county map and its lenses came forward over an illustrative world of the
+United Kingdom's 93 historic counties, 1750–1901 (see "The demo world's map" below). The crates
+fill in phase by phase:
 
 | Crate | What it holds | Fills in |
 |---|---|---|
 | `crates/core` | ids and keys, goods, the clock and time units, inventories, deltas, state, the conservation ledger, the state hash, checkpoints, the tape's schema and runtime form, the `libm`-backed maths | Phase 0 |
 | `crates/markets` | orders and admission, clearing, settlement, the price update | Phase 0 |
-| `crates/agents` | the behaviour seam and the scripted actor; the agent rules | Phase 0; rules in Phase 2 (the probe's four Appendix B roles since P2.0.1, and four many-market roles since P2.1.1) |
+| `crates/agents` | the behaviour seam and the scripted actor; the agent rules | Phase 0; rules in Phase 2 (the probe's four Appendix B roles since P2.0.1, four many-market roles since P2.1.1, and three stock roles since P2.2.1) |
 | `crates/engine` | `Sim`: the tick loop, checkpoints, resume, the replay audit, the read-only per-tick report a frontend drives and reads | Phase 0 |
 | `crates/cli` | the `rustyecon` binary (`run`, `resume`, `replay`, `registry`, `certify`, `worldgen`, `licences`): arguments, files, exit codes, the build stamp | Phase 0 |
 | `crates/certify` | dated criteria, the batteries and the kick check, sealed certificates, the run's manifest, and Parquet telemetry behind the feature `parquet` ([docs/CERTIFY.md](docs/CERTIFY.md)) | Phase 0, second session |
 | `crates/oracle` | the equilibrium solver (library `oracle`): unit 1a, one category with durability and interest, reproduces the SSRN Appendix B; 1b adds many categories and the fork, 1c many machine types and the Leontief inverse, 1d worker types and the wall, 1e parcels, the idle margin and the priced exit, 1f households and government, 1g machines as goods ([its README](crates/oracle/README.md)) | Phase 1: 1a–1f landed, closed at P1.14; 1g on `oracle-goods` (P1g) |
 | `crates/worldgen` | the tape compiler: the county atlas (D.1), and a first compiler for the illustrative demo world, `worlds/demo-gb` ([docs/demo/WORLD.md](docs/demo/WORLD.md), D.2), and that world's lens measures, which the GUI's map shows (D.3) | Phase 4; the demo world's form on branch `demo-world` |
-| `crates/probe` | the Phase 2 probe's harness: the Appendix B tape's generator, named perturbations, per-tick observables against the oracle ([docs/probe/RULES.md](docs/probe/RULES.md)); its oracle-free measures are certify's; the markets probe's harness, tapes and kick sets ([docs/probe/MARKETS-RULES.md](docs/probe/MARKETS-RULES.md)) | the probe, P2.0.1; the markets probe, P2.1.1 |
+| `crates/probe` | the Phase 2 probe's harness: the Appendix B tape's generator, named perturbations, per-tick observables against the oracle ([docs/probe/RULES.md](docs/probe/RULES.md)); its oracle-free measures are certify's; the markets probe's harness, tapes and kick sets ([docs/probe/MARKETS-RULES.md](docs/probe/MARKETS-RULES.md)); the stocks probe's ([docs/probe/HORSES-RULES.md](docs/probe/HORSES-RULES.md)) | the probe, P2.0.1; the markets probe, P2.1.1; the stocks probe, P2.2.1 |
 | `crates/gui` | the interactive frontend, in egui: live runs, plots, lenses, the tape editor, a county map, and the oracle lab ([docs/GUI.md](docs/GUI.md)); the binary `rustyecon-gui` | from G0, after Phase 0's second session; one stage beside each phase (G0 closed at G0.3; G1 built on `g1`) |
 
 Packages are named `rustyecon-<crate>`. `tapes/gate.ron` is the Phase 0 gate world,
 `tapes/appb.ron` the probe's Appendix B world, `tapes/markets-<id>.ron` the markets probe's
-worlds, and `tapes/demo-gb.ron` the illustrative demo world, 93 historic counties of the United
-Kingdom from 1750 to 1901, compiled by
+worlds, `tapes/horses-<id>.ron` the stocks probe's, and `tapes/demo-gb.ron` the illustrative
+demo world, 93 historic counties of the United Kingdom from 1750 to 1901, compiled by
 `rustyecon worldgen worlds/demo-gb --out tapes/demo-gb.ron`; nothing from it may be scored or
 cited (`certify` seals any run of it UNSCORED; citation is kept out by hand). The county atlas
 in `data/atlas/` is under the ODbL 1.0, with its own LICENSE and ATTRIBUTION, which
@@ -82,7 +86,8 @@ manifests they gave.
   amendments: certification, the manifest, telemetry and the GUI's engine asks.
 - [docs/TAPE.md](docs/TAPE.md): the tape's schema, with the gate tape as its example.
 - [docs/probe/](docs/probe/): the Phase 2 probe's rules (RULES.md) and report (REPORT.md), and
-  the markets probe's rules (MARKETS-RULES.md) and report (MARKETS.md).
+  the markets probe's rules (MARKETS-RULES.md) and report (MARKETS.md), and the stocks probe's
+  rules (HORSES-RULES.md) and report (HORSES.md).
 - [docs/spine/](docs/spine/): the data spine's notes (DATA_NOTES.md) and Breakpoint B's
   pre-look (EYEBALL.md).
 - [docs/GUI.md](docs/GUI.md): the GUI's design (A14): its rules, architecture, panels, editor,
