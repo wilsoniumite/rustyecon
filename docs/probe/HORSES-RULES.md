@@ -547,7 +547,31 @@ P5), reported.
 
 ### 6.9 Determinism, platforms, the gate
 
-- The gate at P2.2.1: GATE_P221.
+- **The gate at P2.2.1** (`d636b76`). `scripts/gate.sh` is green in WSL
+  (`CARGO_TARGET_DIR=/root/scratch/target-p2g-build`) and on Windows under Git Bash
+  (`D:/rustyecon-targets/p2g-build`, a fresh target). On each machine 865 tests pass in the
+  workspace (the 846 before P2.2.1 and the 19 of §6: 7 in agents' `tests/stock.rs`, 12 in
+  probe's `tests/horses.rs`; the seam's sites test reads three horses tapes too), with 3 ignored
+  and run by name, and zero warnings; certify alone, Parquet-free, passes 67 with 1 ignored. The gate
+  hash is `0x61f9c8529131ff17`, the stamp matches the clean checkout, both certificates
+  recompute, the probe's pins hold (`probe_battery_csv_unchanged`), the demo world runs to 1901,
+  and telemetry is identical from two processes. The GUI's recorded check passes in WSL.
+  Logs: `D:/rustyecon-p2g/build/gate/`.
+- **The GUI's gate.** `scripts/gui.sh` is green in WSL and on Windows: 117 tests pass with 4
+  ignored, its 87 named tests among them, and the cli's hashes equal the GUI's for gate (2,080
+  ticks, final `0x61f9c8529131ff17`), appb (20,000, final `0xe1fa082b26995867`), demo-gb (7,852,
+  final `0xfad880fe08d06645`) and the two branch tapes (finals `0x9fc2f964a8510756`,
+  `0xd057e3ea708da495`).
+- **The markets probe's pins.** `markets_i0_nests_appb` and
+  `markets_tapes_are_their_generators_output` pass in the gate, and the cli's per-tick hashes of
+  the seven markets tapes over 2,000 ticks end where MARKETS-RULES §6.8 recorded them (I0
+  `0x6c5bf916f3b69d35`, I1 `0x8e3f1bc77c0e5a91`, I2 `0x958d5fb01a4847b5`, I3
+  `0x6749dd3193ba1712`, L2 `0xf45a65d427f9f629`, L3 `0x010ae4da4eecfef5`, G1
+  `0xe71ac0e96df39297`).
+- **Platforms (recorded).** The cli's per-tick hashes of the six horses tapes over 2,000 ticks are
+  byte-identical on WSL and Windows (finals: H1 `0x1fd71d01a36007e2`, H2 `0x2ed5d1f6af357256`,
+  H3 `0x975cff07e2f45faa`, H4 `0x4af24f45e5cd1473`, R1a `0xb096a7fd8cc5d349`, P7
+  `0xd5e3b838be169840`), as are I0's and G1's. `D:/rustyecon-p2g/build/hashes/`.
 
 ## 7. Where a result depends on a binding decision
 
@@ -607,10 +631,12 @@ P5), reported.
 
 ## 9. Registration
 
-The run's registration is `D:/rustyecon-p2g/run/registration.md`, with its sha256 in
-`registration.sha256` beside it, copied into the repository as
-`docs/probe/results/horses/registration.md` in the P2.2.2 commit, before any mode-B run. It
-names P2.2.1's commit and freezes the frame (with its prediction, §6, and protocol, §7), this
-file at P2.2.1, the roles', the harness's and the tapes' sources by sha256, the dials, the
-tolerance, L per instance and tick length (§6.7), the kick, the battery, the verdict rules and
-the families, with §6's checks made before it.
+The run's registration is `D:/rustyecon-p2g/run/registration.md` (sha256
+`2baaa34d93fa1ba154abf11c1d07521a53493f16ea7e0395a3c8acf2c75af4c6`, in `registration.sha256`
+beside it), written at P2.2.2 before any mode-B run and committed with it as
+`docs/probe/results/horses/registration.md`, beside its sha256 and its run lists. It names P2.2.1
+(`d636b76`, clean) and freezes the frame by sha256 with its prediction (§6) and protocol (§7)
+copied unedited, this file at P2.2.1, the roles', the harness's and the tapes' sources by sha256,
+the instances and targets, the dials, the tolerance, L per instance and tick length (§6.7), the
+kick, the battery and its lists, the verdict rules and the families, with §6's checks made
+before it.
