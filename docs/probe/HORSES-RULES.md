@@ -49,7 +49,7 @@ checked before registration:
 - **Hashes.** Every committed tape keeps its canonical form, `tape_hash` and `world_id`; the gate
   world's, appb's and the demo tape's per-tick hash streams are unchanged (finals
   `0x61f9c8529131ff17`, `0xe1fa082b26995867`, `0xfad880fe08d06645`), and the markets probe's
-  pins hold (§6.8).
+  pins hold (§6.9).
 
 ## 2. The economies on the engine
 
@@ -238,8 +238,10 @@ For H1 they are 29.9428245725549 (good desk), 23.78417887464776 (capacity desk),
 15.989223641720331 (maker), 11.135650332753471 (fodder desk), 26.03270836105176 (provider),
 27.922094099033625 (workers), with the capacity desk holding 3.7089403312974114 heads and as
 many horse-days and the maker 1.6270824183032815 heads (own 1.5863284366674937). Every value but
-the good desk's equals HORSES-SPEC §5.3's to every digit printed; the good desk's differs in the
-last digit, since the frame's came from its Python oracle and these from the Rust chain. R1a's
+two equals HORSES-SPEC §5.3's to every digit printed; the good desk's and the capacity desk's
+coins differ in the last digit (the frame's 29.94282457255491 and 23.78417887464777), since the
+frame's came from its Python oracle and these from the Rust chain. The capacity desk's equals
+I0's machine desk's to the bit, as §5.3 expects of it within an ulp. R1a's
 genesis is P2.1's I0 genesis bit for bit (`horses_r1a_genesis_is_i0s`): the generator calls the
 markets probe's genesis on the county's flow economy.
 
