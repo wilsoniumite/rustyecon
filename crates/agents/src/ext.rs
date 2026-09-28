@@ -6,7 +6,8 @@
 //! with the rest of `SimState`. Phases 2 and 3 grow it by adding variants; core does not reopen.
 //! The four Appendix B roles added theirs at P2.0, after `Scripted`, so the scripted state keeps
 //! its encoding and every existing hash (docs/ENGINE.md, amended at P2.0). The four many-market
-//! roles of P2.1 add none: each keeps its Appendix B role's state.
+//! roles of P2.1 add none: each keeps its Appendix B role's state. The three stock roles of P2.2
+//! add three, `Maker`, `Capacity` and `Owner`, appended after `MachDesk` for the same reason.
 
 use crate::spec::{self, RawSpec, Spec};
 use rustyecon_core::num::is_clean;
@@ -31,6 +32,12 @@ pub enum ActorState {
     GoodDesk(GoodDeskState),
     /// A machine desk's state (P2.0).
     MachDesk(MachDeskState),
+    /// A maker's state (P2.2).
+    Maker(MakerState),
+    /// A capacity desk's state (P2.2).
+    Capacity(CapacityState),
+    /// An owner desk's state (P2.2).
+    Owner(OwnerState),
 }
 
 /// A scripted actor's state.
@@ -85,6 +92,58 @@ pub struct MachDeskState {
     pub output: f64,
 }
 
+/// A maker's state (P2.2, HORSES-SPEC §2.6): the cash rule's record, its last output, and its
+/// serving stock, which is part of what it holds of its output; the rest is its finished stock.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct MakerState {
+    /// The scale, as for the machine desk.
+    pub scale: f64,
+    /// What its last production made. 0 before the first tick.
+    pub output: f64,
+    /// Its serving stock after the last tick's wear, which serves again from the next decide:
+    /// its record, since a holding does not say which units serve. The genesis value is the
+    /// tape's.
+    pub own: f64,
+    /// Its serving stock this tick, `own` and the finished units it moved into service, whose
+    /// hours it builds with and which wear at upkeep. 0 before the first tick.
+    pub serving: f64,
+}
+
+/// A capacity desk's state (P2.2, HORSES-SPEC §2.7): the cash rule's record, its last output,
+/// and its records of this tick's decision.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct CapacityState {
+    /// The scale: the cash rule's outlay over the full cost of an hour, a record.
+    pub scale: f64,
+    /// The hours its last production made. 0 before the first tick.
+    pub output: f64,
+    /// The stock it held when this tick's decide ran: the machines that make hours and wear
+    /// this tick. 0 before the first tick.
+    pub held: f64,
+    /// K\*, the stock the cash rule at the full cost would hold. 0 before the first tick.
+    pub target: f64,
+    /// The units of stock it ordered. 0 before the first tick.
+    pub order: f64,
+    /// The hours it planned to run, the cash rule at the running cost. 0 before the first tick.
+    pub run: f64,
+}
+
+/// An owner desk's state (P2.2, HORSES-SPEC §2.8): the good desk's, and its serving stock.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct OwnerState {
+    /// The planned human share 1 − x, in [0, 1], as the good desk's.
+    pub share: f64,
+    /// The human share its last production used, in [0, 1], as the good desk's.
+    pub used: f64,
+    /// The scale, as the good desk's.
+    pub scale: f64,
+    /// What its last production made. 0 before the first tick.
+    pub output: f64,
+    /// The stock that served in its last production, and wears at upkeep. 0 before the first
+    /// tick, and always under the flow path.
+    pub serving: f64,
+}
+
 impl ActorState {
     /// The state's values, each with its name, for the checks `apply` and `validate` make.
     fn values(&self) -> Vec<(&'static str, f64)> {
@@ -99,6 +158,27 @@ impl ActorState {
                 ("output", s.output),
             ],
             ActorState::MachDesk(s) => vec![("scale", s.scale), ("output", s.output)],
+            ActorState::Maker(s) => vec![
+                ("scale", s.scale),
+                ("output", s.output),
+                ("own", s.own),
+                ("serving", s.serving),
+            ],
+            ActorState::Capacity(s) => vec![
+                ("scale", s.scale),
+                ("output", s.output),
+                ("held", s.held),
+                ("target", s.target),
+                ("order", s.order),
+                ("run", s.run),
+            ],
+            ActorState::Owner(s) => vec![
+                ("share", s.share),
+                ("used", s.used),
+                ("scale", s.scale),
+                ("output", s.output),
+                ("serving", s.serving),
+            ],
         }
     }
 
@@ -107,6 +187,7 @@ impl ActorState {
         match self {
             ActorState::Workers(s) => vec![("share", s.share)],
             ActorState::GoodDesk(s) => vec![("share", s.share), ("used", s.used)],
+            ActorState::Owner(s) => vec![("share", s.share), ("used", s.used)],
             _ => Vec::new(),
         }
     }
@@ -205,6 +286,29 @@ pub(crate) fn genesis_state(spec: &Spec) -> ActorState {
         Spec::TypeDesk(d) => ActorState::MachDesk(MachDeskState {
             scale: d.scale.genesis(),
             output: 0.0,
+        }),
+        // The stock roles (P2.2) have states of their own, appended after `MachDesk`, so every
+        // existing encoding and hash stays.
+        Spec::Maker(d) => ActorState::Maker(MakerState {
+            scale: d.scale.genesis(),
+            output: 0.0,
+            own: d.own,
+            serving: 0.0,
+        }),
+        Spec::CapacityDesk(d) => ActorState::Capacity(CapacityState {
+            scale: d.scale.genesis(),
+            output: 0.0,
+            held: 0.0,
+            target: 0.0,
+            order: 0.0,
+            run: 0.0,
+        }),
+        Spec::OwnerDesk(d) => ActorState::Owner(OwnerState {
+            share: d.share,
+            used: d.share,
+            scale: d.scale.genesis(),
+            output: 0.0,
+            serving: 0.0,
         }),
     }
 }

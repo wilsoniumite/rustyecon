@@ -773,12 +773,16 @@ fn each_site_converts_as_registered() {
     // actor reads through its view is the registry line's, `method.per_tick` of the value
     // (engine's `registry_names_each_use` pins those lines to the Clock). After a dated
     // SetParam the view reads the new value through the same method. The markets probe's
-    // tapes (P2.1) carry the four many-market kinds, whose lists name their paths by key.
+    // tapes (P2.1) carry the four many-market kinds, whose lists name their paths by key, and
+    // the stocks probe's (P2.2) the three stock kinds, with flows, fractions and whole ticks.
     const APPB: &str = include_str!("../../../tapes/appb.ron");
-    const MARKETS: [&str; 3] = [
+    const MARKETS: [&str; 6] = [
         include_str!("../../../tapes/markets-i2.ron"),
         include_str!("../../../tapes/markets-l3.ron"),
         include_str!("../../../tapes/markets-g1.ron"),
+        include_str!("../../../tapes/horses-h1.ron"),
+        include_str!("../../../tapes/horses-p7.ron"),
+        include_str!("../../../tapes/horses-r1a.ron"),
     ];
     for text in [GATE, APPB].into_iter().chain(MARKETS) {
         let (w, mut s) = load_text(text).expect("the tape loads");

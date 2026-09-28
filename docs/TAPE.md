@@ -26,6 +26,7 @@ whose raw types are documented the same way in `rustyecon_agents::spec` (which a
 | 1 | 2026-09-26 | P2.0.1 | The agents' spec gains four variants, `Provider`, `Workers`, `GoodDesk` and `MachDesk` (see below). No existing field or variant changes, and every schema-1 tape loads and means what it did, so the number stays 1: ENGINE §5 has the spec an enum so that Phase 2's kinds are new variants, not a new schema shape. |
 | 1 | 2026-09-26 | S2.2 | No field changes, so the number stays 1, and every tape loads and means what it did. A registered param that becomes a `SetParam`'s source keeps the world (see Params), and each use of a param now carries the conversion it takes, so every `world_id` changed once (ENGINE, amended at S2.2). `rustyecon registry` lists each use of a param with its method, per-tick value and path. |
 | 1 | 2026-09-27 | P2.1.1 | The agents' spec gains four variants, `BasketProvider`, `BasketWorkers`, `CategoryDesk` and `TypeDesk` (see below). No existing field or variant changes, and every schema-1 tape loads and means what it did, so the number stays 1, as at P2.0.1. |
+| 1 | 2026-09-28 | P2.2.1 | The agents' spec gains three variants, `Maker`, `CapacityDesk` and `OwnerDesk` (see below). No existing field or variant changes, and every schema-1 tape loads and means what it did, so the number stays 1, as at P2.0.1 and P2.1.1. |
 | 1 | 2026-09-26 | S2.3 | Core's actions gain `ScalePrice(node, good, by)`, appended last, a dated price shock: the posted price times a `Dimensionless` param the schedule reads (see Actions). No existing field or variant changes, and every tape loads and means what it did, so the number stays 1. Certify's kick is this action (docs/CERTIFY.md §2.4, §7). |
 
 The loader reads its own version only; anything else is refused as a schema error before any
@@ -228,6 +229,35 @@ param, live. Their lists are evaluation order, and the canonical form keeps them
   `share` is its genesis human share, an inline number in [0, 1].
 - `TypeDesk((output, labour, land, recipe: (own, inputs: [(good, coef), ...], labour, land),
   scale))`: a Desk whose recipe keeps `own` of its output and buys each input's `good`.
+- `scale` is the Appendix B roles'.
+
+## The stock roles (P2.2.1)
+
+The stocks probe's three kinds hold a durable good as a stock (the horse), documented field by
+field in the rustdoc of `rustyecon_agents::roles::stock::spec`; the rules are
+docs/probe/HORSES-RULES.md, and `tapes/horses-<id>.ron` are the worked examples (generated:
+`cargo run -p rustyecon-probe --bin horses-tape -- --inst <id> tapes/horses-<id>.ron`). Every
+field is required and none has a default; every key but a good or an actor names a registered
+param, live. Their lists (running and build goods) are evaluation order, and the canonical form
+keeps them as written.
+
+- `Maker((output, labour, land, own_hours, kappa, running: (goods: [(good, coef), ...], labour),
+  build: (goods: [..], labour, land), delta, adjust, cover, own, scale))`: a Desk that builds
+  `output`, a durable good, from `own_hours` (`Dimensionless`) of its own serving stock's hours
+  per unit, the running recipe of those hours and the build recipe. `kappa` is a `FlowPerYear`
+  (hours a unit a year), `delta` a `FractionPerYear`, `adjust` a `RatePerYear`; `cover` is
+  `None` or `Some` of a `Years` param read as whole ticks (at least one); `own` is its genesis
+  serving stock after wear, an inline number.
+- `CapacityDesk((stock, hours, labour, kappa, running, delta, adjust, order, scale))`: a Desk
+  that holds `stock`, buys its running inputs and sells its `hours`; `order` is `Target` or
+  `Held`.
+- `OwnerDesk((output, labour, stock, schedule: (eta, g0, g1, k), technique: (adjust, share),
+  assign, kappa, running: [(good, coef), ...], delta, adjust, scale))`: the good desk holding its
+  own `stock`, whose hours run on the listed goods.
+- A durable good is `Indefinite`, and it wears by δ < 1 a tick; or, for the maker and the owner
+  desk, it lives one tick at δ = 1, the flow path (the stocks layer off), with no cover and no
+  running recipe. A good that lives more than one tick is bought only by a capacity or owner
+  desk. `Cast::new` refuses any other.
 - `scale` is the Appendix B roles'.
 
 A complete tape with no behaviour (every actor's spec is `()`) is core's test fixture,

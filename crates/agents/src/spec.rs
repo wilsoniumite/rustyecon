@@ -3,8 +3,10 @@
 //!
 //! A spec is an enum, so Phase 2's behaviour kinds are new variants and not a new schema shape:
 //! `Scripted(..)` since P0.5, the four Appendix B roles since P2.0 (`Provider`, `Workers`,
-//! `GoodDesk`, `MachDesk`; [`crate::roles::spec`]), and the four many-market roles since P2.1
-//! (`BasketProvider`, `BasketWorkers`, `CategoryDesk`, `TypeDesk`; [`crate::roles::many`]).
+//! `GoodDesk`, `MachDesk`; [`crate::roles::spec`]), the four many-market roles since P2.1
+//! (`BasketProvider`, `BasketWorkers`, `CategoryDesk`, `TypeDesk`; [`crate::roles::many`]), and
+//! the three stock roles since P2.2 (`Maker`, `CapacityDesk`, `OwnerDesk`;
+//! [`crate::roles::stock`]).
 //! This module holds the scripted actor's.
 //!
 //! Every rate, flow and capacity is a registered param referenced by key and read at use time,
@@ -22,6 +24,10 @@ use crate::roles::many::spec::{
 use crate::roles::spec::{
     resolve_good_desk, resolve_mach_desk, resolve_provider, resolve_workers, scale_numbers,
     GoodDesk, MachDesk, Provider, RawGoodDesk, RawMachDesk, RawProvider, RawWorkers, Workers,
+};
+use crate::roles::stock::spec::{
+    resolve_capacity_desk, resolve_maker, resolve_owner_desk, CapacityDesk, Maker, OwnerDesk,
+    RawCapacityDesk, RawMaker, RawOwnerDesk,
 };
 use rustyecon_core::tape::raw::required;
 use rustyecon_core::{
@@ -52,6 +58,12 @@ pub enum RawSpec {
     CategoryDesk(RawCategoryDesk),
     /// A machine type's desk, buying other types' services (a Desk; P2.1).
     TypeDesk(RawTypeDesk),
+    /// The maker of a durable good, which serves in part as its own stock (a Desk; P2.2, M2).
+    Maker(RawMaker),
+    /// A desk that holds a durable good and sells its hours (a Desk; P2.2, M3 wet).
+    CapacityDesk(RawCapacityDesk),
+    /// The good desk holding its own machines (a Desk; P2.2, M1).
+    OwnerDesk(RawOwnerDesk),
 }
 
 /// A scripted actor, as the tape writes it.
@@ -171,6 +183,12 @@ pub enum Spec {
     CategoryDesk(CategoryDesk),
     /// A type desk.
     TypeDesk(TypeDesk),
+    /// A maker.
+    Maker(Maker),
+    /// A capacity desk.
+    CapacityDesk(CapacityDesk),
+    /// An owner desk.
+    OwnerDesk(OwnerDesk),
 }
 
 /// A scripted actor, resolved. Lists are in canonical order.
@@ -456,6 +474,9 @@ impl Spec {
             Spec::BasketWorkers(p) => p.sites(w, &mut out),
             Spec::CategoryDesk(d) => d.sites(&mut out),
             Spec::TypeDesk(d) => d.sites(w, &mut out),
+            Spec::Maker(d) => d.sites(w, &mut out),
+            Spec::CapacityDesk(d) => d.sites(w, &mut out),
+            Spec::OwnerDesk(d) => d.sites(w, &mut out),
         }
         out.sort_by(|a, b| a.0.cmp(&b.0));
         out
@@ -511,13 +532,17 @@ pub fn resolve(raw: &RawSpec, r: &mut Resolver<'_>) -> Result<Spec, LoadError> {
         RawSpec::BasketWorkers(p) => resolve_basket_workers(p, r).map(Spec::BasketWorkers),
         RawSpec::CategoryDesk(d) => resolve_category_desk(d, r).map(Spec::CategoryDesk),
         RawSpec::TypeDesk(d) => resolve_type_desk(d, r).map(Spec::TypeDesk),
+        RawSpec::Maker(d) => resolve_maker(d, r).map(Spec::Maker),
+        RawSpec::CapacityDesk(d) => resolve_capacity_desk(d, r).map(Spec::CapacityDesk),
+        RawSpec::OwnerDesk(d) => resolve_owner_desk(d, r).map(Spec::OwnerDesk),
     }
 }
 
 /// Put a raw spec's own lists in canonical order, for `Tape::to_ron`: recipe goods by key,
 /// lines by (node, good) key, payout recipients by key. The Appendix B roles hold no lists. The
-/// many-market roles' lists (basket items, segments, bought services) keep the order written,
-/// which is their evaluation order (`roles::many::spec`).
+/// many-market roles' lists (basket items, segments, bought services) and the stock roles'
+/// (running and build goods) keep the order written, which is their evaluation order
+/// (`roles::many::spec`, `roles::stock::spec`).
 pub fn canonical(raw: &mut RawSpec) {
     match raw {
         RawSpec::Provider(_)
@@ -527,7 +552,10 @@ pub fn canonical(raw: &mut RawSpec) {
         | RawSpec::BasketProvider(_)
         | RawSpec::BasketWorkers(_)
         | RawSpec::CategoryDesk(_)
-        | RawSpec::TypeDesk(_) => {}
+        | RawSpec::TypeDesk(_)
+        | RawSpec::Maker(_)
+        | RawSpec::CapacityDesk(_)
+        | RawSpec::OwnerDesk(_) => {}
         RawSpec::Scripted(s) => {
             if let Some(rec) = &mut s.recipe {
                 rec.inputs.sort_by(|a, b| a.0.cmp(&b.0));
@@ -559,6 +587,15 @@ pub fn inline_numbers(raw: &RawSpec) -> Vec<(String, f64)> {
             scale_numbers(&d.scale, &mut out);
         }
         RawSpec::TypeDesk(d) => scale_numbers(&d.scale, &mut out),
+        RawSpec::Maker(d) => {
+            out.push(("own".to_string(), d.own));
+            scale_numbers(&d.scale, &mut out);
+        }
+        RawSpec::CapacityDesk(d) => scale_numbers(&d.scale, &mut out),
+        RawSpec::OwnerDesk(d) => {
+            out.push(("technique.share".to_string(), d.technique.share));
+            scale_numbers(&d.scale, &mut out);
+        }
         RawSpec::GoodDesk(d) => {
             out.push(("technique.share".to_string(), d.technique.share));
             scale_numbers(&d.scale, &mut out);

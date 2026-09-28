@@ -341,7 +341,7 @@ fn largest_where(holds: impl Fn(f64) -> bool) -> f64 {
 /// s = 1 − x_u is resolved in its own right, as the largest s with fl(m·s) < fl(l·J(1 − s)),
 /// so that a small s keeps its relative precision instead of inheriting the spacing of the
 /// doubles near 1.
-fn assign_ex_post(t: &Tasks, l: f64, m: f64, planned: f64) -> (f64, f64) {
+pub(crate) fn assign_ex_post(t: &Tasks, l: f64, m: f64, planned: f64) -> (f64, f64) {
     let one: f64 = 1.0;
     if l == 0.0 && m == 0.0 {
         return (planned, t.j(one - planned));

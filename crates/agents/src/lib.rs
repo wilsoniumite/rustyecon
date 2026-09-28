@@ -5,9 +5,10 @@
 //! during Phase 2 as new behaviour kinds. Phase 0 has the scripted actor, whose lines and recipe
 //! are registered params read at use time; the probe (P2.0) adds the provider, the workers, the
 //! good desk and the machine desk of the SSRN Appendix B economy ([`roles`]), and the markets
-//! probe (P2.1) carries them to many categories and machine types ([`roles::many`]). The crate
-//! implements core's extension seam ([`Agents`]): the actors' specs on the tape, their own state
-//! (hashed and checkpointed), their own deltas and the tape actions on them.
+//! probe (P2.1) carries them to many categories and machine types ([`roles::many`]), and the
+//! stocks probe (P2.2) adds machines held as stocks of a durable good ([`roles::stock`]). The
+//! crate implements core's extension seam ([`Agents`]): the actors' specs on the tape, their own
+//! state (hashed and checkpointed), their own deltas and the tape actions on them.
 //!
 //! Agents read posted prices, their own holding and state, and the current params, through a
 //! [`View`] that reaches nothing else, so no agent reads another's orders or state (R13); this
@@ -25,8 +26,8 @@ pub mod spec;
 pub use behaviour::{AgentError, Behaviour, Decision, Hook, Posted, View};
 pub use cast::Cast;
 pub use ext::{
-    ActorState, AgentDelta, Agents, GoodDeskState, MachDeskState, ProviderState, RawAgentAction,
-    ScriptState, WorkersState,
+    ActorState, AgentDelta, Agents, CapacityState, GoodDeskState, MachDeskState, MakerState,
+    OwnerState, ProviderState, RawAgentAction, ScriptState, WorkersState,
 };
 pub use roles::many::spec::{
     BasketProvider, BasketWorkers, CategoryDesk, Input, Item, RawBasketProvider, RawBasketWorkers,
@@ -36,6 +37,10 @@ pub use roles::spec::{
     Assign, Basket, Ceiling, GoodDesk, MachDesk, MachRecipe, Provider, RawBasket, RawCash,
     RawCeiling, RawGoodDesk, RawMachDesk, RawMachRecipe, RawPayoutTo, RawProvider, RawScale,
     RawSchedule, RawStep, RawTechnique, RawTransfer, RawWorkers, Scale, Schedule, Workers,
+};
+pub use roles::stock::spec::{
+    Build, CapacityDesk, Maker, OrderRule, OwnerDesk, RawBuild, RawCapacityDesk, RawMaker,
+    RawOwnerDesk, RawRunning, Running,
 };
 pub use spec::{
     BuyLine, Payout, RawBuy, RawPayout, RawRecipe, RawScript, RawSell, RawSellQty, RawSpec, Recipe,

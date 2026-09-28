@@ -19,8 +19,10 @@
 //! is a tape param (R4); nothing here reads the oracle (R13).
 //!
 //! [`many`] carries these roles to many categories and many machine types (P2.1), as four new
-//! kinds beside these four.
+//! kinds beside these four, and [`stock`] adds machines held as stocks of a durable good (P2.2),
+//! as three more.
 
 pub mod many;
 pub mod rules;
 pub mod spec;
+pub mod stock;

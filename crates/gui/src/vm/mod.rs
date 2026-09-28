@@ -82,6 +82,11 @@ pub fn unit_of(w: &World, key: &SeriesKey) -> String {
         (Measure::State(f), At::Actor(a)) => match f {
             StateField::Share | StateField::Used => "share".to_string(),
             StateField::Scale | StateField::Output => "of its output per tick".to_string(),
+            StateField::Own | StateField::Serving | StateField::Held | StateField::Target => {
+                "units of the durable good".to_string()
+            }
+            StateField::Order => "units of the durable good per tick".to_string(),
+            StateField::Run => "hours per tick".to_string(),
             StateField::Due | StateField::Paid => w
                 .id_of::<ActorId>(a.as_str())
                 .and_then(|id| w.actor(id))

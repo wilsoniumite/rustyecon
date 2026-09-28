@@ -679,6 +679,7 @@ fn role_specs_round_trip_in_canonical_form() {
                 | RawSpec::BasketWorkers(_)
                 | RawSpec::CategoryDesk(_)
                 | RawSpec::TypeDesk(_) => "many",
+                RawSpec::Maker(_) | RawSpec::CapacityDesk(_) | RawSpec::OwnerDesk(_) => "stock",
             })
             .collect();
         assert_eq!(kinds.len(), 4);

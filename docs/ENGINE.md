@@ -732,6 +732,59 @@ as before, and no `world_id` or `prefix_id` moved.
    (`kore = { package = "rustyecon-core", … }`). The lockfile's only change is the GUI's own
    entry.
 
+**Amended at P2.2.1** (2026-09-28, branch `phase2-goods`: the stocks probe's agents,
+docs/probe/HORSES-RULES.md), the same way as at P2.1.1. The frame is HORSES-SPEC
+(`D:/rustyecon-p2g/frame/`). Core, markets and engine did not change; the agents crate grew three
+kinds and three states, `crates/probe` grew the stocks probe's harness and two binaries, and the
+GUI names the new kinds and states. Every older kind is untouched, so every committed tape keeps
+its canonical form, `tape_hash` and `world_id`, and the gate world's, appb's and the demo tape's
+per-tick hash streams are unchanged (finals `0x61f9c8529131ff17`, `0xe1fa082b26995867`,
+`0xfad880fe08d06645`).
+
+1. Three behaviour kinds (§4, §5): `Maker` (M2), `CapacityDesk` (M3, wet) and `OwnerDesk` (M1),
+   new variants of `RawSpec` and `Spec` after `TypeDesk`, resolved in `agents::roles::stock::spec`
+   and run by `agents::roles::stock::rules`. They hold a durable good as a stock: κ hours a unit
+   a tick (a `FlowPerYear` read by `Clock::flow`), worn by δ a tick (a `FractionPerYear` read by
+   `Clock::fraction`), ordered by a stock rule whose adjustment is a `RatePerYear` read as a
+   share; the maker's cover is a `Years` span read as whole ticks, `None` for no cover. Every
+   coefficient is a registered param read at use time (R4); the only inline numbers are genesis
+   state (the maker's serving stock after wear, the owner desk's human share, a step rule's
+   scale). Their lists (running and build goods) are evaluation order and keep the order written.
+2. Their state (§4): `ActorState` gains `Maker { scale, output, own, serving }`, `Capacity {
+   scale, output, held, target, order, run }` and `Owner { share, used, scale, output, serving }`
+   after `MachDesk`, so every existing encoding and hash stays. A stock needs a record a holding
+   cannot give: which of the maker's units serve and which are finished, and what the capacity
+   desk held when it decided. `apply` and `validate` check them as the older states: every value
+   finite with a clear sign bit, the owner desk's shares at most 1.
+3. Wear is an upkeep burn (§7.3's list as it stood: `Depreciation` burns of the actor's own
+   holding in upkeep), of δ times the stock the kind recorded as serving, at most what it holds.
+   A durable good is `Indefinite` (§2), so it leaves a holding only by sale, production's burns
+   or wear; it does not age.
+4. The flow path, chosen by the durable good's life: where it lives one tick at δ = 1 (R1, the
+   stocks layer off) the maker runs P2.1's `TypeDesk` code and the owner desk P2.0's `GoodDesk`
+   code on their own params, their states read as those kinds', so they make those kinds'
+   operations exactly (`stock_roles_nest_the_flow_roles`; in probe, `horses_r1a_nests_i0`).
+5. Load checks (§4), each a `LoadError` with its path. At resolve: a stock kind's goods are
+   distinct and not currencies, and a running or build good is none of them and named once. In
+   `Cast::new`, which sees the goods: a capacity desk's durable good is `Indefinite` and wears
+   less than all of it a tick; a maker's or owner desk's is that, or lives one tick at δ = 1 with
+   no cover and no running recipe (the flow path); any other life is refused; and a good that
+   lives more than one tick is bought only by a kind that nets its holding, the capacity and
+   owner desks (M6), checked once every actor's own checks have passed, so every older error is
+   reported as it was.
+6. The tape schema stays 1 (§5; docs/TAPE.md), as at P2.0.1 and P2.1.1.
+7. Tests (§11). In agents (`tests/stock.rs`): `stock_roles_nest_the_flow_roles`,
+   `stock_roles_never_overbudget_or_overdraw`, `capacity_desk_replaces_wear_at_rest_and_stops_in_a_glut`,
+   `stock_specs_are_checked_at_load`, `stock_specs_round_trip_in_canonical_form`,
+   `stock_roles_read_only_their_view` and `stock_role_sites_name_their_methods`; the seam's
+   `each_site_converts_as_registered` reads three stocks tapes too. In probe (`tests/horses.rs`):
+   `horses_tapes_are_their_generators_output`, `horses_r1a_genesis_is_i0s`, `horses_r1a_nests_i0`,
+   `horses_r1a_expost_nests_appb_expost`, `horses_tapes_load_and_run_deterministically`,
+   `horses_conserve_every_tick` (every wear burn δ times the recorded stock),
+   `horses_rest_point_is_the_oracles`, `horses_oracle_is_the_flow_county_at_rho_zero`,
+   `horses_hold_at_the_oracle_point`, `horses_batteries_are_registered`,
+   `horses_shocks_and_stocks_apply_as_named` and `horses_kick_set_decays_at_a_stable_point`.
+
 ## 0. Engine invariants
 
 Numbered so tests and reviews can cite them. Each has at least one test in §11.
@@ -798,7 +851,8 @@ crates/worldgen rustyecon-worldgen the county atlas (D.1) and the tape compiler 
                                    oracle, which it solves outside any Sim (R13); reads no file
 crates/probe    rustyecon-probe    the Phase 2 probe's harness (P2.0.1); lib `probe`; reads certify's
                                    oracle-free measures, Parquet-free (S2.5); the markets probe's
-                                   harness (P2.1.1); nothing depends on it
+                                   harness (P2.1.1) and the stocks probe's (P2.2.1); nothing
+                                   depends on it
 crates/gui      rustyecon-gui      the interactive frontend, egui (docs/GUI.md; G0.1); depends on the
                                    engine, on certify without `parquet` and on worldgen, with no
                                    edge to core since G1.1; nothing depends on it, and the
@@ -1466,9 +1520,10 @@ impl Cast { pub fn new(w: &World<Agents>) -> Result<Cast, LoadError>;
 `Cast` dispatches each actor to its kind's `Behaviour`, and checks that its `ActorState` variant
 matches (`AgentError::Mismatch` otherwise). Since P2.0.1 the kinds are the scripted actor and the
 four Appendix B roles (`Provider`, `Workers`, `GoodDesk`, `MachDesk`; docs/probe/RULES.md), whose
-state a `SetState` delta replaces, and since P2.1.1 the four many-market roles (`BasketProvider`,
+state a `SetState` delta replaces, since P2.1.1 the four many-market roles (`BasketProvider`,
 `BasketWorkers`, `CategoryDesk`, `TypeDesk`; docs/probe/MARKETS-RULES.md), which keep those
-states. `Cast::new` makes the load checks that need the
+states, and since P2.2.1 the three stock roles (`Maker`, `CapacityDesk`, `OwnerDesk`;
+docs/probe/HORSES-RULES.md), with states of their own (`Maker`, `Capacity`, `Owner`). `Cast::new` makes the load checks that need the
 whole world: every buy line's node quotes in the actor's home currency, and no payout names the
 payer; each is a `LoadError` with its tape path. R13 holds by construction: a `View` cannot reach
 another actor's holdings, orders or state, nor the cleared volumes, and agents never depends on

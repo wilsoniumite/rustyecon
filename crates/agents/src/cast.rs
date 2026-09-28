@@ -6,18 +6,25 @@
 //! home currency, so it buys only at nodes that quote in it, and it never pays itself. An
 //! Appendix B role (P2.0), or a many-market role (P2.1), trades at its home node only; a desk role must be a Desk and a
 //! household role a Pop; what it is endowed with must be `Instant`, since `decide` may mint only
-//! that; and it never transfers to or pays itself.
+//! that; and it never transfers to or pays itself. A stock role (P2.2) holds a durable good that
+//! is `Indefinite` and wears by less than all of it a tick, or, for the maker and the owner desk,
+//! one that lives one tick at δ = 1, the flow path, with no cover and no running recipe; and a
+//! good that lives more than one tick is bought only by the capacity and owner desks, which net
+//! their holding (M6).
 
 use crate::behaviour::{AgentError, Behaviour, Decision, Posted, View};
 use crate::ext::{
-    ActorState, Agents, GoodDeskState, MachDeskState, ProviderState, ScriptState, WorkersState,
+    ActorState, Agents, CapacityState, GoodDeskState, MachDeskState, MakerState, OwnerState,
+    ProviderState, ScriptState, WorkersState,
 };
 use crate::roles::many::spec::{BasketProvider, BasketWorkers, CategoryDesk, TypeDesk};
 use crate::roles::spec::{GoodDesk, MachDesk, Provider, Workers};
+use crate::roles::stock::rules::{MakerRole, OwnerRole};
+use crate::roles::stock::spec::CapacityDesk;
 use crate::spec::{Script, Spec};
 use rustyecon_core::{
     ActorDecl, ActorId, ActorKind, GoodId, Holder, Key, Life, LoadError, LoadErrorKind, SimState,
-    StateDelta, World,
+    Site, StateDelta, World,
 };
 
 /// One actor's behaviour.
@@ -32,6 +39,9 @@ enum Member {
     BasketWorkers(BasketWorkers),
     CategoryDesk(CategoryDesk),
     TypeDesk(TypeDesk),
+    Maker(MakerRole),
+    CapacityDesk(CapacityDesk),
+    OwnerDesk(OwnerRole),
 }
 
 /// Every declared actor's behaviour, in `ActorId` order.
@@ -117,6 +127,125 @@ fn check_role(
     Ok(())
 }
 
+fn invalid(decl: &ActorDecl<Spec>, field: &str, why: &str) -> LoadError {
+    LoadError::new(
+        format!("actors[{}].spec.{field}", decl.key),
+        LoadErrorKind::Invalid(why.to_string()),
+    )
+}
+
+/// A live param's per-tick value at genesis, converted by its site's method.
+fn at_genesis(
+    w: &World<Agents>,
+    decl: &ActorDecl<Spec>,
+    site: Site,
+    field: &str,
+) -> Result<f64, LoadError> {
+    let v = w
+        .registry
+        .get(site.param)
+        .map(|p| p.genesis)
+        .ok_or_else(|| invalid(decl, field, "an unregistered param"))?;
+    site.convert(&w.clock, v)
+        .map_err(|e| invalid(decl, field, &e.to_string()))
+}
+
+/// Whether a stock role's durable good takes the flow path (HORSES-SPEC §3, SG6 and SG7): an
+/// `Indefinite` good is a stock worn by δ < 1 a tick; a good that lives one tick is the probe's
+/// flow service, at δ = 1 a tick exactly; any other life is refused.
+fn flow_path(
+    w: &World<Agents>,
+    decl: &ActorDecl<Spec>,
+    good: GoodId,
+    field: &str,
+    delta: Site,
+) -> Result<bool, LoadError> {
+    let d = at_genesis(w, decl, delta, "delta")?;
+    match w.good(good).map(|g| g.life) {
+        Some(Life::Indefinite) if d < 1.0 => Ok(false),
+        Some(Life::Indefinite) => Err(invalid(
+            decl,
+            "delta",
+            "a durable good held as a stock wears by less than all of it a tick",
+        )),
+        Some(Life::Ticks(1)) if d == 1.0 => Ok(true),
+        Some(Life::Ticks(1)) => Err(invalid(
+            decl,
+            "delta",
+            "a good that lives one tick is the flow path, which wears all of it a tick",
+        )),
+        _ => Err(invalid(
+            decl,
+            field,
+            "a stock role's durable good is Indefinite (a stock) or lives one tick (the flow \
+             path)",
+        )),
+    }
+}
+
+/// The goods a kind buys and does not net against a holding, each with its field: the goods
+/// whose leftovers must die at the tick's ageing (M6). The capacity and owner desks net their
+/// holding of the durable good, and a scripted actor's lines are its own affair.
+fn bought(s: &Spec) -> Vec<(GoodId, &'static str)> {
+    match s {
+        Spec::Scripted(_) | Spec::CapacityDesk(_) | Spec::OwnerDesk(_) => Vec::new(),
+        Spec::Provider(p) => vec![
+            (p.basket.good, "basket.good"),
+            (p.basket.space, "basket.space"),
+        ],
+        Spec::Workers(p) => vec![
+            (p.basket.good, "basket.good"),
+            (p.basket.space, "basket.space"),
+        ],
+        Spec::GoodDesk(d) => vec![(d.labour, "labour"), (d.mach, "mach")],
+        Spec::MachDesk(d) => vec![(d.labour, "labour"), (d.land, "land")],
+        Spec::BasketProvider(p) => p.basket.iter().map(|i| (i.good, "basket")).collect(),
+        Spec::BasketWorkers(p) => p.basket.iter().map(|i| (i.good, "basket")).collect(),
+        Spec::CategoryDesk(d) => vec![
+            (d.labour, "labour"),
+            (d.service, "service"),
+            (d.land, "land"),
+        ],
+        Spec::TypeDesk(d) => {
+            let mut v: Vec<(GoodId, &'static str)> =
+                d.inputs.iter().map(|i| (i.good, "recipe.inputs")).collect();
+            v.extend([(d.labour, "labour"), (d.land, "land")]);
+            v
+        }
+        Spec::Maker(d) => {
+            let mut v: Vec<(GoodId, &'static str)> = d
+                .running
+                .goods
+                .iter()
+                .map(|i| (i.good, "running.goods"))
+                .collect();
+            v.extend(d.build.goods.iter().map(|i| (i.good, "build.goods")));
+            v.extend([(d.labour, "labour"), (d.land, "land")]);
+            v
+        }
+    }
+}
+
+/// M6 (HORSES-SPEC §3, SG7): a good that lives more than one tick is bought only by a kind that
+/// nets its holding. Any other kind would carry what it did not use into the next tick as if
+/// it were new.
+fn check_bought(w: &World<Agents>, decl: &ActorDecl<Spec>) -> Result<(), LoadError> {
+    for (g, field) in bought(&decl.spec) {
+        match w.good(g).map(|d| d.life) {
+            Some(Life::Instant | Life::Ticks(1)) => {}
+            _ => {
+                return Err(invalid(
+                    decl,
+                    field,
+                    "a good that lives more than one tick is bought only by a kind that nets \
+                     its holding (a capacity or owner desk)",
+                ))
+            }
+        }
+    }
+    Ok(())
+}
+
 impl Cast {
     /// The cast of a world, after the checks that need the whole world.
     pub fn new(w: &World<Agents>) -> Result<Cast, LoadError> {
@@ -165,8 +294,59 @@ impl Cast {
                     check_role(w, decl, ActorKind::Desk, None, pays)?;
                     Member::TypeDesk(d.clone())
                 }
+                Spec::Maker(d) => {
+                    let pays = d.scale.pays().map(|a| (a, "scale.payout.to"));
+                    check_role(w, decl, ActorKind::Desk, None, pays)?;
+                    let flow = flow_path(w, decl, d.output, "output", d.delta)?;
+                    // The flow path is the type desk's: no cover and no running recipe.
+                    if flow && d.cover.is_some() {
+                        return Err(invalid(decl, "cover", "the flow path holds no cover"));
+                    }
+                    if flow
+                        && (!d.running.goods.is_empty()
+                            || at_genesis(w, decl, d.running.labour, "running.labour")? != 0.0)
+                    {
+                        return Err(invalid(
+                            decl,
+                            "running",
+                            "the flow path has no running recipe: its own input is its kept \
+                             output",
+                        ));
+                    }
+                    Member::Maker(MakerRole::new(d, flow))
+                }
+                Spec::CapacityDesk(d) => {
+                    let pays = d.scale.pays().map(|a| (a, "scale.payout.to"));
+                    check_role(w, decl, ActorKind::Desk, None, pays)?;
+                    if flow_path(w, decl, d.stock, "stock", d.delta)? {
+                        return Err(invalid(
+                            decl,
+                            "stock",
+                            "a capacity desk holds a durable good: at δ = 1 it would hold none \
+                             when it decides",
+                        ));
+                    }
+                    Member::CapacityDesk(d.clone())
+                }
+                Spec::OwnerDesk(d) => {
+                    let pays = d.scale.pays().map(|a| (a, "scale.payout.to"));
+                    check_role(w, decl, ActorKind::Desk, None, pays)?;
+                    let flow = flow_path(w, decl, d.stock, "stock", d.delta)?;
+                    if flow && !d.running.is_empty() {
+                        return Err(invalid(
+                            decl,
+                            "running",
+                            "the flow path has no running recipe: it is the good desk's",
+                        ));
+                    }
+                    Member::OwnerDesk(OwnerRole::new(d, flow))
+                }
             };
             members.push((decl.id, member));
+        }
+        // M6, once every actor's own checks have passed.
+        for decl in &w.actors {
+            check_bought(w, decl)?;
         }
         members.sort_by_key(|(a, _)| *a);
         Ok(Cast { members })
@@ -201,6 +381,9 @@ impl Cast {
             Member::BasketWorkers(b) => b.decide(&role_view(a, s, w, workers)?),
             Member::CategoryDesk(b) => b.decide(&role_view(a, s, w, good_desk)?),
             Member::TypeDesk(b) => b.decide(&role_view(a, s, w, mach_desk)?),
+            Member::Maker(b) => b.decide(&role_view(a, s, w, maker)?),
+            Member::CapacityDesk(b) => b.decide(&role_view(a, s, w, capacity)?),
+            Member::OwnerDesk(b) => b.decide(&role_view(a, s, w, owner)?),
         }
     }
 
@@ -221,6 +404,9 @@ impl Cast {
             Member::BasketWorkers(b) => b.produce(&role_view(a, s, w, workers)?),
             Member::CategoryDesk(b) => b.produce(&role_view(a, s, w, good_desk)?),
             Member::TypeDesk(b) => b.produce(&role_view(a, s, w, mach_desk)?),
+            Member::Maker(b) => b.produce(&role_view(a, s, w, maker)?),
+            Member::CapacityDesk(b) => b.produce(&role_view(a, s, w, capacity)?),
+            Member::OwnerDesk(b) => b.produce(&role_view(a, s, w, owner)?),
         }
     }
 
@@ -241,6 +427,9 @@ impl Cast {
             Member::BasketWorkers(b) => b.upkeep(&role_view(a, s, w, workers)?),
             Member::CategoryDesk(b) => b.upkeep(&role_view(a, s, w, good_desk)?),
             Member::TypeDesk(b) => b.upkeep(&role_view(a, s, w, mach_desk)?),
+            Member::Maker(b) => b.upkeep(&role_view(a, s, w, maker)?),
+            Member::CapacityDesk(b) => b.upkeep(&role_view(a, s, w, capacity)?),
+            Member::OwnerDesk(b) => b.upkeep(&role_view(a, s, w, owner)?),
         }
     }
 }
@@ -276,6 +465,27 @@ fn good_desk(s: &ActorState) -> Option<&GoodDeskState> {
 fn mach_desk(s: &ActorState) -> Option<&MachDeskState> {
     match s {
         ActorState::MachDesk(st) => Some(st),
+        _ => None,
+    }
+}
+
+fn maker(s: &ActorState) -> Option<&MakerState> {
+    match s {
+        ActorState::Maker(st) => Some(st),
+        _ => None,
+    }
+}
+
+fn capacity(s: &ActorState) -> Option<&CapacityState> {
+    match s {
+        ActorState::Capacity(st) => Some(st),
+        _ => None,
+    }
+}
+
+fn owner(s: &ActorState) -> Option<&OwnerState> {
+    match s {
+        ActorState::Owner(st) => Some(st),
         _ => None,
     }
 }

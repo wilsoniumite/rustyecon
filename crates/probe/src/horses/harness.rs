@@ -1,26 +1,27 @@
-//! The markets harness (MARKETS-SPEC §7): runs a setup on the engine, reads §7.1's observables
-//! every tick from the `TickReport` and the actors' own state, scores them against the oracle's
-//! values for the same tick (solved here, outside the Sim, at the coefficients in force), and
-//! classifies the run as PROBE-SPEC §4.5 does. It keeps §7.11's transient statistics (O14) as it
-//! goes, so a run of any length holds a fixed amount of memory.
+//! The stocks probe's harness (HORSES-SPEC §7): runs a setup on the engine, reads §7.1's
+//! observables every tick from the `TickReport` and the actors' own state, scores them against
+//! the oracle's values for the same tick (unit 1g, solved here, outside the Sim, at the
+//! coefficients in force), and classifies the run as PROBE-SPEC §4.5 does, with the markets
+//! probe's streaming classifier. It keeps §7.11's transient and stock statistics as it goes, so
+//! a run of any length holds a fixed amount of memory.
 //!
-//! The observables are v = w/r, each type's and each category's price over r, each category
-//! desk's human share, the cleared volume of every market, and each desk's output (§7.1). No
-//! dial is a band, so tol_o is the floor, 1e-3, on every one (§7.3). The oracle-free measures
-//! are certify's, as P2.0's harness reads them (C11): `Obs` for the tick, the runaway bound,
-//! rationed fills, the NaN-keeping folds and troughs, and the dead-share rule.
-//!
-//! On I0 the observables, their order, the targets, D̂ and the classes are P2.0's
-//! (`crate::harness`), which stays as it was and pinned to docs/probe/results/.
+//! The observables are v = w/r; fodder's, the horse's, the horse-day's and the good's prices
+//! over r; the good desk's human share; the cleared volume of every market; each desk's output;
+//! and the two horse stocks, the heads that do the tasks (the capacity desk's at the tick's
+//! start, or the owner desk's serving) and the maker's serving stock (§7.1). No dial is a band,
+//! so tol_o is the floor, 1e-3, on every one (§7.3). The horse market is judged idle, not dead,
+//! when it clears less than half its oracle volume (§7.2). On the flow path (R1a) the
+//! observables, targets, dead ticks and start distances are P2.1's I0's, which are P2.0's.
 
-use super::instance::{Instance, Point};
+use super::instance::{Config, Instance, Point, HOURS};
 use super::perturb::Perturbation;
-use super::setup::{genesis, tape_ron, Genesis, Setup};
-use crate::harness::{Class, Stop, Summary};
+use super::setup::{genesis, stocks, tape_ron, Genesis, Setup};
+use crate::harness::{Stop, Summary};
+use crate::markets::harness::{Classifier, Ration};
 use crate::perturb::Start;
-use crate::protocol::{DEAD_SHARE, HOLD_TOL, LIVE_FLOOR, RUNAWAY, TOL_FLOOR};
-use certify::battery::{dead_share_ok, rationed, within_bound};
-use certify::fold::{max2, min2};
+use crate::protocol::{HOLD_TOL, LIVE_FLOOR, RUNAWAY, TOL_FLOOR};
+use certify::battery::{rationed, within_bound};
+use certify::fold::min2;
 use certify::Obs;
 use rustyecon_core::num;
 use rustyecon_core::num::ln;
@@ -31,18 +32,70 @@ use rustyecon_engine::prelude::{
 use rustyecon_engine::rustyecon_agents::ActorState;
 use std::collections::BTreeMap;
 
-/// The observables of an instance, in order (MARKETS-SPEC §7.1): `v`, `pi.<type>`,
-/// `pi.<category>`, `s.<category>`, `vol.<market>` in market order, `y.<category>`, `y.<type>`.
-/// On I0 this is P2.0's set O in P2.0's order.
+/// The observables of an instance, in order (HORSES-SPEC §7.1): `v`, `pi.<market>` for every
+/// market but labour and land, `s.good`, `vol.<market>` in market order, `y.<output>` for each
+/// desk in desk order, and, off the flow path, `heads.capacity` (or `heads.good` under M1) and
+/// `heads.<maker>`. On R1a this is P2.1's I0's set of ten, in its order.
 pub fn observables(inst: &Instance) -> Vec<String> {
+    let markets = inst.markets();
     let mut o = vec!["v".to_string()];
-    o.extend(inst.types.iter().map(|t| format!("pi.{}", t.key)));
-    o.extend(inst.categories.iter().map(|c| format!("pi.{}", c.key)));
-    o.extend(inst.categories.iter().map(|c| format!("s.{}", c.key)));
-    o.extend(inst.markets().iter().map(|m| format!("vol.{m}")));
-    o.extend(inst.categories.iter().map(|c| format!("y.{}", c.key)));
-    o.extend(inst.types.iter().map(|t| format!("y.{}", t.key)));
+    o.extend(markets[2..].iter().map(|m| format!("pi.{m}")));
+    o.push("s.good".into());
+    o.extend(markets.iter().map(|m| format!("vol.{m}")));
+    o.extend(outputs(inst).iter().map(|g| format!("y.{g}")));
+    if !inst.is_flow() {
+        o.push(match inst.config {
+            Config::Wet => "heads.capacity".into(),
+            Config::Owner => "heads.good".into(),
+        });
+        o.push(format!("heads.{}", inst.keys.maker));
+    }
     o
+}
+
+/// Each desk's output good, in desk order.
+pub fn outputs(inst: &Instance) -> Vec<String> {
+    let mut v = vec!["good".to_string()];
+    if inst.config == Config::Wet {
+        v.push(HOURS.into());
+    }
+    v.push(inst.keys.horse.clone());
+    if inst.has_fodder() {
+        v.push("fodder".into());
+    }
+    v
+}
+
+/// The basket's items by good: the good, then land (space).
+pub fn items() -> Vec<String> {
+    vec!["good".into(), "land".into()]
+}
+
+/// GOODS-CHAIN's nine observables (HORSES-SPEC §7.11): v, the horse-day's price (the machine
+/// services' on the flow path), the good's, 1 − x, cleared labour, land and goods, the good's
+/// output and the total stock, as indices into [`observables`], the total stock last (its
+/// index is `None`: it is summed).
+fn nine(inst: &Instance) -> Vec<usize> {
+    let o = observables(inst);
+    let at = |k: &str| o.iter().position(|x| x == k);
+    let hours = if inst.config == Config::Wet {
+        format!("pi.{HOURS}")
+    } else {
+        format!("pi.{}", inst.keys.horse)
+    };
+    [
+        "v",
+        hours.as_str(),
+        "pi.good",
+        "s.good",
+        "vol.labour",
+        "vol.land",
+        "vol.good",
+        "y.good",
+    ]
+    .iter()
+    .filter_map(|k| at(k))
+    .collect()
 }
 
 /// The oracle's values at one set of coefficients, per tick, relative to r = 1.
@@ -56,73 +109,138 @@ pub struct Target {
     pub baskets: f64,
     /// The provider's and the workers' baskets.
     pub households: [f64; 2],
-    /// Each basket item's quantity eaten, z_j·Y, in item order (space last).
+    /// Each basket item's quantity eaten, in item order.
     pub items: Vec<f64>,
     /// Each desk's output, in desk order.
     pub output: Vec<f64>,
+    /// Every installed head: the tasks' and the maker's serving stock.
+    pub heads: f64,
+    /// The maker's finished stock at rest: q_b and its cover.
+    pub finished: f64,
     /// The point.
     pub point: Point,
 }
 
 impl Target {
-    /// The target of an equilibrium with land services `land` per tick: land clears T, each
-    /// category's good z_j·Y, and each type's market what the category desks and the other
-    /// types buy of it (a type's own input is kept, not traded; MARKETS-SPEC §1.4).
-    pub fn of(inst: &Instance, e: &Point, land: f64) -> Target {
+    /// The target of an equilibrium with land services `land` per tick and a cover of `cover`
+    /// ticks of sales.
+    pub fn of(inst: &Instance, e: &Point, land: f64, cover: f64) -> Target {
+        if let Some(f) = &e.flow {
+            // P2.1's I0, as its harness builds the target (crate::markets::harness::Target).
+            let mut volume = vec![f.n_a, land];
+            volume.extend(f.type_traded.iter().copied());
+            volume.extend(f.cat_output.iter().copied());
+            let mut output = f.cat_output.clone();
+            output.extend(f.type_services.iter().copied());
+            let mut obs = vec![f.v];
+            obs.extend(f.type_price.iter().copied());
+            obs.extend(f.cat_price.iter().copied());
+            obs.push(f.one_minus_x);
+            obs.extend(volume.iter().copied());
+            obs.extend(output.iter().copied());
+            let mut items = f.cat_output.clone();
+            items.push(inst.county.space * f.y);
+            return Target {
+                obs,
+                volume,
+                baskets: f.y,
+                households: [f.provider_baskets, f.worker_baskets],
+                items,
+                output,
+                heads: f64::NAN,
+                finished: f64::NAN,
+                point: e.clone(),
+            };
+        }
+        let wet = inst.config == Config::Wet;
+        let mut prices = vec![e.v];
         let mut volume = vec![e.n_a, land];
-        volume.extend(e.type_traded.iter().copied());
-        volume.extend(e.cat_output.iter().copied());
-        let mut output = e.cat_output.clone();
-        output.extend(e.type_services.iter().copied());
-        let mut obs = vec![e.v];
-        obs.extend(e.type_price.iter().copied());
-        obs.extend(e.cat_price.iter().copied());
-        obs.extend(inst.categories.iter().map(|_| e.one_minus_x));
+        if inst.has_fodder() {
+            prices.push(e.pf);
+            volume.push(e.qf);
+        }
+        prices.push(e.pk);
+        volume.push(e.sold);
+        if wet {
+            prices.push(e.ph);
+            volume.push(e.task_hours);
+        }
+        prices.push(e.p);
+        volume.push(e.good);
+        let mut output = vec![e.good];
+        if wet {
+            output.push(e.task_hours);
+        }
+        output.push(e.made);
+        if inst.has_fodder() {
+            output.push(e.qf);
+        }
+        let mut obs = prices;
+        obs.push(e.one_minus_x);
         obs.extend(volume.iter().copied());
         obs.extend(output.iter().copied());
-        let mut items = e.cat_output.clone();
-        if let Some(h) = inst.space {
-            items.push(h * e.y);
-        }
+        obs.push(e.capacity);
+        obs.push(e.serving);
         Target {
             obs,
             volume,
             baskets: e.y,
             households: [e.provider_baskets, e.worker_baskets],
-            items,
+            items: vec![e.good, inst.county.space * e.y],
             output,
+            heads: e.capacity + e.serving,
+            finished: e.made + cover * e.sold,
             point: e.clone(),
         }
     }
 }
 
-/// The distance between two oracle points (MARKETS-SPEC §1.5): the largest |ln| over 1 − x,
-/// v, every price, Y, every type's services and N_a, over the tolerance.
+/// The distance between two oracle points (HORSES-SPEC §1.5): the largest |ln| over 1 − x, v,
+/// Y, N_a, every price and the heads made, over the tolerance.
 pub fn shock_distance(a: &Point, b: &Point) -> f64 {
-    let mut pairs = vec![
+    let pairs = [
         (a.one_minus_x, b.one_minus_x),
         (a.v, b.v),
         (a.y, b.y),
         (a.n_a, b.n_a),
+        (a.p, b.p),
+        (a.pf, b.pf),
+        (a.pk, b.pk),
+        (a.ph, b.ph),
+        (a.made, b.made),
+        (a.hours, b.hours),
     ];
-    pairs.extend(
-        a.type_price
-            .iter()
-            .copied()
-            .zip(b.type_price.iter().copied()),
-    );
-    pairs.extend(a.cat_price.iter().copied().zip(b.cat_price.iter().copied()));
-    pairs.extend(
-        a.type_services
-            .iter()
-            .copied()
-            .zip(b.type_services.iter().copied()),
-    );
     pairs
         .iter()
+        .filter(|(x, y)| x.is_finite() && y.is_finite())
         .map(|(x, y)| ln(x / y).abs())
         .fold(0.0, f64::max)
         / TOL_FLOOR
+}
+
+/// The stock records of a tick (HORSES-SPEC §7.1, §7.11): read from the actors' own state and
+/// holdings after the tick, and the costs at the tick's posted prices.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Stocks {
+    /// The heads that did the tasks: the capacity desk's holding when it decided, or the owner
+    /// desk's serving stock.
+    pub tasks: f64,
+    /// The maker's serving stock.
+    pub maker: f64,
+    /// The maker's serving stock after wear, its record.
+    pub own: f64,
+    /// The maker's finished heads after the tick: its holding less its record.
+    pub finished: f64,
+    /// The capacity desk's target stock K\* (NaN under M1).
+    pub target: f64,
+    /// The capacity desk's order (NaN under M1).
+    pub order: f64,
+    /// The hours the capacity desk planned to run (NaN under M1).
+    pub run: f64,
+    /// A horse-day's running cost at posted prices, O.
+    pub running: f64,
+    /// Its full cost at posted prices, O + δ·p_K/κ.
+    pub full: f64,
 }
 
 /// One tick's row: what the engine reported, the agents' own records, and the target.
@@ -140,6 +258,9 @@ pub struct Row {
     pub gap: Vec<f64>,
     /// D̂: the largest gap over its tolerance.
     pub dhat: f64,
+    /// D̂ over every observable but the horse market's cleared volume, which is zero whenever
+    /// its orders stop (§7.11).
+    pub dhat_ex: f64,
     /// Supply per market.
     pub supply: Vec<f64>,
     /// Feasible demand per market.
@@ -158,22 +279,28 @@ pub struct Row {
     pub eaten: Vec<f64>,
     /// Each actor's coin after the tick, in actor order.
     pub coin: Vec<f64>,
-    /// Each category desk's planned human share after the tick.
+    /// The good desk's planned human share after the tick.
     pub planned: Vec<f64>,
     /// Each desk's output this tick, in desk order.
     pub output: Vec<f64>,
     /// The provider's transfer this tick: due and paid.
     pub transfer: [f64; 2],
-    /// The baskets each household ate (provider, workers): min_j of what it bought of each
-    /// item over z_j, as its rule eats them.
+    /// The baskets each household ate (provider, workers).
     pub baskets: [f64; 2],
     /// The item that bound each household's baskets, if it bought any item.
     pub binding: [Option<usize>; 2],
     /// The tick's ledger margin.
     pub margin: f64,
-    /// Whether the tick is dead: some market did not trade, or cleared less than the live
-    /// floor of its oracle volume.
+    /// Whether the tick is dead: a market but the horse's did not trade, or cleared less than
+    /// the live floor of its oracle volume (on the flow path, any market).
     pub dead: bool,
+    /// Whether the horse market is idle: it cleared less than the live floor of its oracle
+    /// volume (off the flow path).
+    pub idle: bool,
+    /// Whether no one ordered horses: the horse market's demand is 0.
+    pub no_order: bool,
+    /// The stock records.
+    pub stocks: Stocks,
 }
 
 /// The CSV header of [`Row::csv`], for an instance.
@@ -186,21 +313,20 @@ pub fn csv_header(inst: &Instance) -> String {
     h.extend(obs.iter().map(|o| format!("{o}_star")));
     h.extend(obs.iter().map(|o| format!("gap_{o}")));
     h.push("dhat".into());
+    h.push("dhat_ex".into());
     for m in &markets {
         for f in ["S", "D", "bfill", "sfill", "spoiled"] {
             h.push(format!("{m}_{f}"));
         }
     }
-    for it in items(inst) {
+    for it in items() {
         h.push(format!("eaten_{it}"));
     }
     for a in inst.actors() {
         h.push(format!("coin_{a}"));
     }
-    for c in &inst.categories {
-        h.push(format!("s_planned_{}", c.key));
-    }
     for f in [
+        "s_planned_good",
         "transfer_due",
         "transfer_paid",
         "baskets_provider",
@@ -209,25 +335,26 @@ pub fn csv_header(inst: &Instance) -> String {
         "bound_workers",
         "ledger_margin",
         "dead",
+        "idle",
+        "no_order",
+        "stock_tasks",
+        "stock_maker",
+        "maker_own",
+        "maker_finished",
+        "capacity_target",
+        "capacity_order",
+        "capacity_run",
+        "running_cost",
+        "full_cost",
     ] {
         h.push(f.to_string());
     }
     h.join(",")
 }
 
-/// The basket's items by good, in item order: each category's good, then land if households
-/// buy space.
-pub fn items(inst: &Instance) -> Vec<String> {
-    let mut v: Vec<String> = inst.categories.iter().map(|c| c.key.clone()).collect();
-    if inst.space.is_some() {
-        v.push("land".into());
-    }
-    v
-}
-
 impl Row {
     /// The row as a CSV line, every float in Rust's shortest round-trip form.
-    pub fn csv(&self, inst: &Instance) -> String {
+    pub fn csv(&self) -> String {
         let mut v = vec![self.tick.to_string()];
         let mut push = |x: f64| v.push(format!("{x:?}"));
         self.price.iter().for_each(|&x| push(x));
@@ -235,6 +362,7 @@ impl Row {
         self.target.iter().for_each(|&x| push(x));
         self.gap.iter().for_each(|&x| push(x));
         push(self.dhat);
+        push(self.dhat_ex);
         for m in 0..self.supply.len() {
             push(self.supply[m]);
             push(self.demand[m]);
@@ -249,12 +377,20 @@ impl Row {
         push(self.transfer[1]);
         push(self.baskets[0]);
         push(self.baskets[1]);
-        let names = items(inst);
+        let names = items();
         for b in self.binding {
             v.push(b.map_or("-".to_string(), |i| names[i].clone()));
         }
         v.push(format!("{:?}", self.margin));
         v.push(u8::from(self.dead).to_string());
+        v.push(u8::from(self.idle).to_string());
+        v.push(u8::from(self.no_order).to_string());
+        let s = &self.stocks;
+        for x in [
+            s.tasks, s.maker, s.own, s.finished, s.target, s.order, s.run, s.running, s.full,
+        ] {
+            v.push(format!("{x:?}"));
+        }
         v.join(",")
     }
 }
@@ -284,10 +420,7 @@ impl Ids {
                 .iter()
                 .map(|m| good(m))
                 .collect::<Result<_, _>>()?,
-            items: items(inst)
-                .iter()
-                .map(|m| good(m))
-                .collect::<Result<_, _>>()?,
+            items: items().iter().map(|m| good(m)).collect::<Result<_, _>>()?,
             coin: good("coin")?,
             actors: inst
                 .actors()
@@ -299,6 +432,14 @@ impl Ids {
     }
 }
 
+/// The per-tick coefficients the harness reads of an instance, for the costs it reports.
+#[derive(Debug, Clone, Copy)]
+struct Coefs {
+    kappa: f64,
+    delta: f64,
+}
+
+#[allow(clippy::too_many_arguments)]
 fn row(
     sim: &Sim,
     inst: &Instance,
@@ -306,6 +447,8 @@ fn row(
     r: &TickReport,
     o: &Obs,
     target: &Target,
+    k: Coefs,
+    horse_market: Option<usize>,
 ) -> Result<Row, String> {
     let n = ids.goods.len();
     let line = |g: GoodId| {
@@ -340,18 +483,55 @@ fn row(
         .iter()
         .map(|g| o.consumed.get(g.idx()).copied().unwrap_or(f64::NAN))
         .collect();
-    let nc = inst.categories.len();
-    let mut planned = Vec::with_capacity(nc);
-    let mut used = Vec::with_capacity(nc);
-    let mut output = Vec::with_capacity(ids.actors.len() - 2);
-    for (d, &a) in ids.actors.iter().take(ids.actors.len() - 2).enumerate() {
-        match sim.actor_state(a) {
-            Some(ActorState::GoodDesk(s)) if d < nc => {
+    let desks = inst.desks();
+    let horse = ids.goods[inst
+        .markets()
+        .iter()
+        .position(|m| *m == inst.keys.horse)
+        .ok_or("no horse market")?];
+    let held = |a: ActorId, g: GoodId| sim.holding(Holder::Actor(a)).map_or(0.0, |inv| inv.get(g));
+    let mut planned = Vec::with_capacity(1);
+    let mut used = Vec::with_capacity(1);
+    let mut output = Vec::with_capacity(desks.len());
+    let mut st = Stocks {
+        tasks: 0.0,
+        maker: 0.0,
+        own: 0.0,
+        finished: 0.0,
+        target: f64::NAN,
+        order: f64::NAN,
+        run: f64::NAN,
+        running: f64::NAN,
+        full: f64::NAN,
+    };
+    for (d, &a) in ids.actors.iter().take(desks.len()).enumerate() {
+        match (desks[d].as_str(), sim.actor_state(a)) {
+            ("good", Some(ActorState::GoodDesk(s))) => {
                 planned.push(s.share);
                 used.push(s.used);
                 output.push(s.output);
             }
-            Some(ActorState::MachDesk(s)) if d >= nc => output.push(s.output),
+            ("good", Some(ActorState::Owner(s))) => {
+                planned.push(s.share);
+                used.push(s.used);
+                output.push(s.output);
+                st.tasks = s.serving;
+            }
+            ("capacity", Some(ActorState::Capacity(s))) => {
+                output.push(s.output);
+                st.tasks = s.held;
+                st.target = s.target;
+                st.order = s.order;
+                st.run = s.run;
+            }
+            ("fodder", Some(ActorState::MachDesk(s))) => output.push(s.output),
+            (_, Some(ActorState::Maker(s))) => {
+                output.push(s.output);
+                st.maker = s.serving;
+                st.own = s.own;
+                let h = held(a, horse) - s.own;
+                st.finished = if h > 0.0 { h } else { 0.0 };
+            }
             _ => return Err(format!("actor {a} is not the desk its instance says")),
         }
     }
@@ -360,24 +540,10 @@ fn row(
         Some(&(_, due, paid)) => [due, paid],
         None => return Err("provider is not a provider".into()),
     };
-    let coin: Vec<f64> = ids
-        .actors
-        .iter()
-        .map(|&a| {
-            sim.holding(Holder::Actor(a))
-                .map_or(0.0, |inv| inv.get(ids.coin))
-        })
-        .collect();
-    // Each household's baskets, from what its class bought of each item this tick: it holds
-    // nothing else of them when it eats (every item lives one tick), and its rule eats
-    // min_j max_scale(held_j, z_j).
-    let weights: Vec<f64> = {
-        let mut z: Vec<f64> = inst.categories.iter().map(|c| c.weight).collect();
-        if let Some(h) = inst.space {
-            z.push(h);
-        }
-        z
-    };
+    let coin: Vec<f64> = ids.actors.iter().map(|&a| held(a, ids.coin)).collect();
+    // Each household's baskets, from what its class bought of each item this tick, as P2.1's
+    // harness reads them.
+    let weights = [1.0, inst.county.space];
     let mut baskets = [0.0; 2];
     let mut binding = [None; 2];
     for (h, &class) in ids.classes.iter().enumerate() {
@@ -403,11 +569,29 @@ fn row(
         }
     }
     let [w, rr] = [price[0], price[1]];
+    // A horse-day's running cost and full cost at posted prices (rule A: one unit of fodder).
+    if !inst.is_flow() {
+        let markets = inst.markets();
+        let pk = price[markets
+            .iter()
+            .position(|m| *m == inst.keys.horse)
+            .unwrap_or(0)];
+        let o_run = markets
+            .iter()
+            .position(|m| m == "fodder")
+            .map_or(0.0, |i| price[i]);
+        st.running = o_run;
+        st.full = o_run + k.delta * pk / k.kappa;
+    }
     let mut obs = vec![w / rr];
     obs.extend(price[2..].iter().map(|p| p / rr));
     obs.extend(used.iter().copied());
     obs.extend(cleared.iter().copied());
     obs.extend(output.iter().copied());
+    if !inst.is_flow() {
+        obs.push(st.tasks);
+        obs.push(st.maker);
+    }
     let gap: Vec<f64> = obs
         .iter()
         .zip(&target.obs)
@@ -420,7 +604,21 @@ fn row(
         })
         .collect();
     let dhat = gap.iter().fold(0.0, |a: f64, &g| a.max(g)) / TOL_FLOOR;
-    let dead = (0..n).any(|m| !trades[m] || cleared[m] < LIVE_FLOOR * target.volume[m]);
+    // vol.<horse>'s index: v, the n − 2 prices, s.good, then the volumes in market order.
+    let vol_horse = horse_market.map(|m| n + m);
+    let dhat_ex = gap
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| Some(*i) != vol_horse)
+        .fold(0.0, |a: f64, (_, &g)| a.max(g))
+        / TOL_FLOOR;
+    let dead = (0..n).any(|m| {
+        Some(m) != horse_market && (!trades[m] || cleared[m] < LIVE_FLOOR * target.volume[m])
+    });
+    let (idle, no_order) = match horse_market {
+        Some(m) => (cleared[m] < LIVE_FLOOR * target.volume[m], demand[m] == 0.0),
+        None => (false, false),
+    };
     Ok(Row {
         tick: r.tick,
         price,
@@ -428,6 +626,7 @@ fn row(
         target: target.obs.clone(),
         gap,
         dhat,
+        dhat_ex,
         supply,
         demand,
         cleared,
@@ -444,12 +643,15 @@ fn row(
         binding,
         margin: o.margin,
         dead,
+        idle,
+        no_order,
+        stocks: st,
     })
 }
 
-/// Mode A's per-tick check (PROBE-SPEC §4.6, MARKETS-SPEC §7.6), with fills and spoilage read
-/// relative to volume, as P2.0's: every gap at most 1e-9, every market trading with both fills
-/// at least 1 − 1e-9, and no produced good spoiling beyond 1e-9 of its volume.
+/// Mode A's per-tick check (PROBE-SPEC §4.6, HORSES-SPEC §7.6): every gap at most 1e-9, every
+/// market trading (the horse market too) with both fills at least 1 − 1e-9, and no produced good
+/// spoiling beyond 1e-9 of its volume.
 fn hold_check(row: &Row, names: &[String], markets: &[String]) -> Option<String> {
     if let Some(i) = (0..row.gap.len()).find(|&i| row.gap[i].is_nan() || row.gap[i] > HOLD_TOL) {
         return Some(format!(
@@ -477,196 +679,43 @@ fn hold_check(row: &Row, names: &[String], markets: &[String]) -> Option<String>
     None
 }
 
-/// The streaming classifier: what PROBE-SPEC §4.5's classes read, kept tick by tick over the
-/// scored run, with P2.0's definitions (`crate::harness::classify`). The stocks probe's harness
-/// (`crate::horses::harness`) classifies with it too.
-#[derive(Debug, Clone)]
-pub(crate) struct Classifier {
-    l: usize,
-    seen: usize,
-    envelope: [f64; 4],
-    max_w: f64,
-    max_f: f64,
-    dead: u64,
-    dead_w: u64,
-    dead_f: u64,
-    /// Per observable, the NaN-keeping (min, max) of ln o over F.
-    rest: Vec<Option<(f64, f64)>>,
-    /// For v and each price over r, the (min, max) of ln o over W.
-    band: Vec<(f64, f64)>,
-    last_out: Option<usize>,
-    first_out_in_w: Option<usize>,
-    last: f64,
+/// The stock statistics of HORSES-SPEC §7.11 (D-G14, the glut), over the scored run against the
+/// oracle's values at the coefficients in force. Reported, never scored.
+#[derive(Debug, Clone, PartialEq)]
+pub struct StockStats {
+    /// The largest D̂ without the horse market's volume, and its tick.
+    pub peak_ex: (f64, u64),
+    /// The installed heads' lowest and highest over their target.
+    pub heads_range: (f64, f64),
+    /// The scored tick from which the installed heads stay within 5% of their target, if they
+    /// do.
+    pub in_five: Option<u64>,
+    /// The paper's time: 1 tick for an expansion, ln(K′/K)/ln(1 − δ) ticks of zero builds for a
+    /// contraction, K and K′ the installed heads at the genesis point and at the target.
+    pub paper: f64,
+    /// The quasi-rent p_h/(O + δ·p_K/κ) − 1 at posted prices, 3 ticks and 1/δ ticks after the
+    /// scored clock starts.
+    pub quasi: (f64, f64),
+    /// Scored ticks on which no one ordered horses, and on which the horse market was idle.
+    pub no_order: u64,
+    /// Idle ticks of the horse market.
+    pub idle: u64,
+    /// The horse's lowest price over its target.
+    pub pk_low: f64,
+    /// The maker's highest finished stock over its rest value.
+    pub finished_high: f64,
+    /// The capacity desk's lowest utilisation, z/(κ·held).
+    pub utilisation_low: f64,
+    /// The hour price's lowest over its running cost at posted prices.
+    pub hour_over_o_low: f64,
+    /// Horses bought, trough and peak over their oracle volume.
+    pub investment: (f64, f64),
+    /// The scored tick from which GOODS-CHAIN's nine stay within tolerance, if they do.
+    pub nine_in_tol: Option<u64>,
 }
 
-impl Classifier {
-    pub(crate) fn new(l: u64, n_obs: usize, n_prices: usize) -> Classifier {
-        Classifier {
-            l: l as usize,
-            seen: 0,
-            envelope: [0.0; 4],
-            max_w: 0.0,
-            max_f: 0.0,
-            dead: 0,
-            dead_w: 0,
-            dead_f: 0,
-            rest: vec![None; n_obs],
-            band: vec![(f64::INFINITY, f64::NEG_INFINITY); n_prices],
-            last_out: None,
-            first_out_in_w: None,
-            last: f64::NAN,
-        }
-    }
-
-    pub(crate) fn push(&mut self, dhat: f64, ln_obs: &[f64], dead: bool) {
-        let i = self.seen;
-        self.seen += 1;
-        let l = self.l;
-        for (j, e) in self.envelope.iter_mut().enumerate() {
-            if j * l / 4 <= i && i < (j + 1) * l / 4 {
-                *e = e.max(dhat);
-            }
-        }
-        let (w0, f0) = (l / 2, l * 9 / 10);
-        if i < l {
-            if i >= w0 {
-                self.max_w = self.max_w.max(dhat);
-                if dead {
-                    self.dead_w += 1;
-                }
-                if dhat > 1.0 && self.first_out_in_w.is_none() {
-                    self.first_out_in_w = Some(i);
-                }
-                for (b, &x) in self.band.iter_mut().zip(ln_obs) {
-                    *b = (b.0.min(x), b.1.max(x));
-                }
-            }
-            if i >= f0 {
-                self.max_f = self.max_f.max(dhat);
-                if dead {
-                    self.dead_f += 1;
-                }
-                for (r, &x) in self.rest.iter_mut().zip(ln_obs) {
-                    *r = Some(match *r {
-                        None => (x, x),
-                        Some((lo, hi)) => (min2(lo, x), max2(hi, x)),
-                    });
-                }
-            }
-        }
-        if dead {
-            self.dead += 1;
-        }
-        if dhat > 1.0 {
-            self.last_out = Some(i);
-        }
-        self.last = dhat;
-    }
-
-    pub(crate) fn summary(&self, stop: &Stop, d0: f64, start: Start, r_end: f64) -> Summary {
-        let l = self.l;
-        let complete = self.seen >= l;
-        let quarter = |j: usize| {
-            let (a, b) = (j * l / 4, ((j + 1) * l / 4).min(self.seen));
-            if a < b {
-                self.envelope[j]
-            } else {
-                f64::NAN
-            }
-        };
-        let envelope = [quarter(0), quarter(1), quarter(2), quarter(3)];
-        let (w0, _) = (l / 2, l * 9 / 10);
-        let max_w = if complete { self.max_w } else { f64::NAN };
-        let max_f = if complete { self.max_f } else { f64::NAN };
-        let kappa = if d0 > 0.0 { max_f / d0 } else { f64::NAN };
-        let (dead_w, dead_f) = if complete {
-            (self.dead_w, self.dead_f)
-        } else {
-            (0, 0)
-        };
-        let at_rest = complete
-            && self
-                .rest
-                .iter()
-                .all(|r| r.is_some_and(|(lo, hi)| hi - lo <= TOL_FLOOR / 10.0));
-        let band = if complete {
-            let mut b = [f64::NAN; 3];
-            for (i, bi) in b.iter_mut().enumerate() {
-                if let Some(&(lo, hi)) = self.band.get(i) {
-                    *bi = num::exp(hi - lo);
-                }
-            }
-            b
-        } else {
-            [f64::NAN; 3]
-        };
-        let in_tol_from = match self.last_out {
-            None if self.seen > 0 => Some(0),
-            None => None,
-            Some(k) if k + 1 < self.seen => Some((k + 1) as u64),
-            Some(_) => None,
-        };
-        let nominal = matches!(start, Start::Nominal | Start::Hold);
-        let (class, why) = match stop {
-            Stop::Error(e) => (Class::Error, e.clone()),
-            Stop::Runaway(e) => (Class::Diverged, e.clone()),
-            Stop::Ran => {
-                let [_, e2, e3, e4] = envelope;
-                if e4 > e3 && e3 > e2 && e4 > d0.max(1.0) {
-                    (
-                        Class::Diverged,
-                        "the envelope grows: E4 > E3 > E2".to_string(),
-                    )
-                } else if !dead_share_ok(dead_w, (l - w0) as u64, dead_f, DEAD_SHARE) {
-                    (Class::Dead, String::new())
-                } else if !nominal && d0 <= 1.0 {
-                    (Class::Vacuous, String::new())
-                } else if max_w <= 1.0 && at_rest && (nominal || kappa < 1.0) {
-                    (Class::Converged, String::new())
-                } else if at_rest {
-                    (Class::Stuck, String::new())
-                } else {
-                    (Class::Orbiting, String::new())
-                }
-            }
-        };
-        Summary {
-            class,
-            why,
-            d0,
-            envelope,
-            kappa,
-            max_w,
-            last: self.last,
-            in_tol_from,
-            dead: [self.dead, dead_w, dead_f],
-            band,
-            r_end,
-            first_out_in_w: if complete {
-                self.first_out_in_w.map(|i| i as u64)
-            } else {
-                None
-            },
-        }
-    }
-}
-
-/// A per-(market, class, side) rationing record (MARKETS-SPEC §7.11; CERTIFY §6's reports).
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Ration {
-    /// The worst filled/feasible over lines with something feasible.
-    pub worst: f64,
-    /// Ticks with that fill below 1 − 1e-9.
-    pub ticks: u64,
-    /// Σ(requested − feasible): budget rationing.
-    pub budget: f64,
-    /// Σ(feasible − filled): market rationing.
-    pub market: f64,
-}
-
-/// The transient statistics of MARKETS-SPEC §7.11 (O14), over the scored run (from the shock
-/// for a dated shock), against the oracle's values at the coefficients in force. Reported, never
-/// scored.
+/// The transient statistics of HORSES-SPEC §7.11 (O14), with P2.1's set (MARKETS-SPEC §7.11)
+/// and the stocks'. Reported, never scored.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Stats {
     /// The largest D̂ and its tick.
@@ -691,16 +740,18 @@ pub struct Stats {
     pub spoilage: Vec<(f64, f64)>,
     /// The provider's Σ(due − paid) and its ticks short.
     pub transfer: (f64, u64),
-    /// Buyer fills: the worst buyer and seller fill over every market (sides that exist).
+    /// The worst buyer and seller fill over every market (sides that exist).
     pub worst_fill: f64,
     /// For a cost shock: ln(Y′/Y) of the equilibrium change, and the trough of baskets eaten
     /// in log against Y and against Y′.
     pub depth: Option<(f64, f64, f64)>,
+    /// The stocks' statistics (off the flow path).
+    pub stock: StockStats,
 }
 
 impl Stats {
     fn new(inst: &Instance) -> Stats {
-        let (nm, nd, ni) = (inst.markets().len(), inst.desks().len(), items(inst).len());
+        let (nm, nd, ni) = (inst.markets().len(), inst.desks().len(), items().len());
         Stats {
             peak: (f64::NEG_INFINITY, 0),
             dead_market: vec![[0; 4]; nm],
@@ -714,6 +765,21 @@ impl Stats {
             transfer: (0.0, 0),
             worst_fill: 1.0,
             depth: None,
+            stock: StockStats {
+                peak_ex: (f64::NEG_INFINITY, 0),
+                heads_range: (f64::INFINITY, f64::NEG_INFINITY),
+                in_five: None,
+                paper: f64::NAN,
+                quasi: (f64::NAN, f64::NAN),
+                no_order: 0,
+                idle: 0,
+                pk_low: f64::INFINITY,
+                finished_high: f64::NEG_INFINITY,
+                utilisation_low: f64::INFINITY,
+                hour_over_o_low: f64::INFINITY,
+                investment: (f64::INFINITY, f64::NEG_INFINITY),
+                nine_in_tol: None,
+            },
         }
     }
 
@@ -801,6 +867,93 @@ impl Stats {
     }
 }
 
+/// The streaming stock statistics' state, beside [`StockStats`].
+struct StockTrack {
+    last_out_five: Option<u64>,
+    last_out_nine: Option<u64>,
+    seen: u64,
+    one_over_delta: u64,
+    horse: Option<usize>,
+    wet: bool,
+    kappa: f64,
+    nine: Vec<usize>,
+}
+
+impl StockTrack {
+    fn push(&mut self, st: &mut StockStats, row: &Row, t: &Target, scored: u64) {
+        self.seen += 1;
+        if !st.peak_ex.0.is_nan() && (row.dhat_ex.is_nan() || row.dhat_ex > st.peak_ex.0) {
+            st.peak_ex = (row.dhat_ex, row.tick);
+        }
+        // GOODS-CHAIN's nine: its eight observables and the total stock.
+        let heads = row.stocks.tasks + row.stocks.maker;
+        let mut nine_out = self
+            .nine
+            .iter()
+            .any(|&i| row.gap[i].is_nan() || row.gap[i] > TOL_FLOOR);
+        let Some(m) = self.horse else {
+            if nine_out {
+                self.last_out_nine = Some(scored);
+            }
+            return;
+        };
+        let gap_heads = if heads > 0.0 {
+            ln(heads / t.heads).abs()
+        } else {
+            f64::INFINITY
+        };
+        nine_out |= gap_heads.is_nan() || gap_heads > TOL_FLOOR;
+        if nine_out {
+            self.last_out_nine = Some(scored);
+        }
+        let rel = heads / t.heads;
+        st.heads_range = (min2(st.heads_range.0, rel), st.heads_range.1.max(rel));
+        let within = (rel - 1.0).abs() <= 0.05;
+        if !within {
+            self.last_out_five = Some(scored);
+        }
+        let pk = row.price[m] / row.price[1];
+        let q = if self.wet {
+            let ph = row.price[m + 1];
+            ph / row.stocks.full - 1.0
+        } else {
+            f64::NAN
+        };
+        if scored == 3 {
+            st.quasi.0 = q;
+        }
+        if scored == self.one_over_delta {
+            st.quasi.1 = q;
+        }
+        st.no_order += u64::from(row.no_order);
+        st.idle += u64::from(row.idle);
+        st.pk_low = min2(st.pk_low, pk / t.point.pk);
+        st.finished_high = st.finished_high.max(row.stocks.finished / t.finished);
+        if self.wet {
+            let cap = self.kappa * row.stocks.tasks;
+            let u = if cap > 0.0 { row.output[1] / cap } else { 1.0 };
+            st.utilisation_low = min2(st.utilisation_low, u);
+            let ph = row.price[m + 1];
+            if row.stocks.running > 0.0 {
+                st.hour_over_o_low = min2(st.hour_over_o_low, ph / row.stocks.running);
+            }
+        }
+        let inv = row.cleared[m] / t.volume[m];
+        st.investment = (min2(st.investment.0, inv), st.investment.1.max(inv));
+    }
+
+    fn finish(&self, st: &mut StockStats) {
+        let settle = |last: Option<u64>| match last {
+            None if self.seen > 0 => Some(0),
+            None => None,
+            Some(k) if k + 1 < self.seen => Some(k + 1),
+            Some(_) => None,
+        };
+        st.in_five = settle(self.last_out_five);
+        st.nine_in_tol = settle(self.last_out_nine);
+    }
+}
+
 /// A run's record: what the classifier and the reports read.
 #[derive(Debug, Clone)]
 pub struct Record {
@@ -849,9 +1002,20 @@ pub fn run(
     let mut sim = Sim::new(&tape).map_err(|e| format!("the tape does not load: {e}"))?;
     let ids = Ids::of(&sim, &inst)?;
     let g = genesis(&setup)?;
-    let land = sim.world().clock.flow(FlowPerYear(setup.instance.land));
+    let land = sim
+        .world()
+        .clock
+        .flow(FlowPerYear(setup.instance.county.land));
     let names = observables(&inst);
     let markets = inst.markets();
+    let (kappa, delta) = inst.per_tick(setup.tpy)?;
+    let k = Coefs { kappa, delta };
+    let horse_market = if inst.is_flow() {
+        None
+    } else {
+        markets.iter().position(|m| *m == inst.keys.horse)
+    };
+    let cover = setup.cover_ticks()?;
     let class_names: Vec<String> = sim.world().classes.iter().map(|k| k.to_string()).collect();
     let engine_markets: Vec<String> = {
         let w = sim.world();
@@ -859,30 +1023,31 @@ pub fn run(
             .map(|(_, g)| w.key_of(g).map_or_else(|| g.to_string(), |k| k.to_string()))
             .collect()
     };
-    // The target for each set of coefficients in force.
-    let mut targets: Vec<(Vec<(String, f64)>, Target)> = Vec::new();
+    // The target for each b in force.
+    let mut targets: Vec<(u64, Target)> = Vec::new();
     let mut target_at = |tick: u64| -> Result<Target, String> {
-        let key = setup.changes_at(tick);
-        if let Some((_, t)) = targets.iter().find(|(k, _)| *k == key) {
+        let b = setup.b_at(tick);
+        if let Some((_, t)) = targets.iter().find(|(k, _)| *k == b.to_bits()) {
             return Ok(t.clone());
         }
-        let i = setup.instance_at(tick)?;
-        let t = Target::of(&i, &i.point(setup.tpy)?, land);
-        targets.push((key, t.clone()));
+        let i = setup.instance_at(tick);
+        let t = Target::of(&i, &i.point(setup.tpy)?, land, cover);
+        targets.push((b.to_bits(), t.clone()));
         Ok(t)
     };
     let clock_start = pert.clock_start(ticks);
     let start = pert.start();
     let t0 = target_at(clock_start)?;
-    let nt = inst.types.len();
-    let nc = inst.categories.len();
-    let n_prices = 1 + nt + nc;
-    let d0 = match start {
+    let n_prices = markets.len() - 1;
+    // D̂_0 (PROBE-SPEC §4.5; HORSES-SPEC §7.5): a stock or coin displacement off the flow path
+    // reads its first year's largest D̂, set below.
+    let first_year = !inst.is_flow() && matches!(start, Start::Stocks);
+    let mut d0 = match start {
         Start::Hold | Start::Nominal => 0.0,
         Start::Prices => {
             let mut genesis_obs = vec![g.prices[0] / g.prices[1]];
             genesis_obs.extend(g.prices[2..].iter().map(|p| p / g.prices[1]));
-            genesis_obs.extend(g.shares.iter().copied());
+            genesis_obs.push(g.share);
             genesis_obs
                 .iter()
                 .zip(&t0.obs)
@@ -890,6 +1055,7 @@ pub fn run(
                 .fold(0.0, f64::max)
                 / TOL_FLOOR
         }
+        Start::Stocks if first_year => 0.0,
         Start::Stocks => {
             pert.stock_factors()
                 .iter()
@@ -899,9 +1065,26 @@ pub fn run(
         }
         Start::Shock => shock_distance(&t0.point, &g.point),
     };
+    let year = u64::from(setup.tpy);
     let total = clock_start + ticks;
     let mut classifier = Classifier::new(ticks, names.len(), n_prices);
     let mut stats = Stats::new(&inst);
+    let mut track = StockTrack {
+        last_out_five: None,
+        last_out_nine: None,
+        seen: 0,
+        one_over_delta: (1.0 / delta).round() as u64,
+        horse: horse_market,
+        wet: inst.config == Config::Wet,
+        kappa,
+        nine: nine(&inst),
+    };
+    let (k0, k1) = (g.point.capacity + g.point.serving, t0.heads);
+    stats.stock.paper = if k1 >= k0 {
+        1.0
+    } else {
+        ln(k1 / k0) / num::ln1p(-delta)
+    };
     let mut stop = Stop::Ran;
     let mut last: Option<Row> = None;
     let mut hold_failure = None;
@@ -921,18 +1104,23 @@ pub fn run(
             }
         };
         let o = Obs::of(&report, &sim);
-        let row = row(&sim, &inst, &ids, &report, &o, &target)?;
+        let row = row(&sim, &inst, &ids, &report, &o, &target, k, horse_market)?;
         each(&row);
         if hold_failure.is_none() {
             hold_failure = hold_check(&row, &names, &markets);
         }
         if row.tick >= clock_start {
+            let scored = row.tick - clock_start;
+            if first_year && scored < year {
+                d0 = d0.max(row.dhat);
+            }
             let logs: Vec<f64> = row.obs.iter().map(|&x| ln(x)).collect();
             classifier.push(row.dhat, &logs, row.dead);
             stats.push(&row, &o, &target, &class_names);
+            track.push(&mut stats.stock, &row, &target, scored);
         }
         // The runaway bound (PROBE-SPEC §4.5): every posted price within [1e-6, 1e6] times its
-        // genesis value, by certify's relative bound (A12).
+        // genesis value.
         let away = ids.goods.iter().enumerate().find_map(|(m, &gid)| {
             let l = report.markets.iter().find(|l| l.good == gid)?;
             let rel = l.next_price / g.prices[m];
@@ -949,6 +1137,7 @@ pub fn run(
             break;
         }
     }
+    track.finish(&mut stats.stock);
     if matches!(start, Start::Shock) {
         let y1 = target_at(total.saturating_sub(1))?.baskets;
         let y0 = g.point.y;
@@ -972,4 +1161,10 @@ pub fn run(
         hold_failure,
         engine_markets,
     })
+}
+
+/// The stocks a setup's genesis holds, by name, for the reports.
+pub fn genesis_stocks(s: &Setup) -> Result<Vec<(String, f64)>, String> {
+    let g = genesis(s)?;
+    Ok(stocks(&s.instance).into_iter().zip(g.stock).collect())
 }

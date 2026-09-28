@@ -35,6 +35,18 @@ pub enum StateField {
     Due,
     /// What it paid.
     Paid,
+    /// A maker's serving stock after the last tick's wear (P2.2).
+    Own,
+    /// A maker's or an owner desk's serving stock this tick (P2.2).
+    Serving,
+    /// The stock a capacity desk held when this tick's decide ran (P2.2).
+    Held,
+    /// A capacity desk's target stock, K\* (P2.2).
+    Target,
+    /// The units of stock a capacity desk ordered (P2.2).
+    Order,
+    /// The hours a capacity desk planned to run (P2.2).
+    Run,
 }
 
 impl StateField {
@@ -47,6 +59,12 @@ impl StateField {
             StateField::Output => "output",
             StateField::Due => "due",
             StateField::Paid => "paid",
+            StateField::Own => "own",
+            StateField::Serving => "serving",
+            StateField::Held => "held",
+            StateField::Target => "target",
+            StateField::Order => "order",
+            StateField::Run => "run",
         }
     }
 }
@@ -67,6 +85,27 @@ pub fn state_fields(s: &ActorState) -> Vec<(StateField, f64)> {
         ActorState::MachDesk(d) => {
             vec![(StateField::Scale, d.scale), (StateField::Output, d.output)]
         }
+        ActorState::Maker(d) => vec![
+            (StateField::Scale, d.scale),
+            (StateField::Output, d.output),
+            (StateField::Own, d.own),
+            (StateField::Serving, d.serving),
+        ],
+        ActorState::Capacity(d) => vec![
+            (StateField::Scale, d.scale),
+            (StateField::Output, d.output),
+            (StateField::Held, d.held),
+            (StateField::Target, d.target),
+            (StateField::Order, d.order),
+            (StateField::Run, d.run),
+        ],
+        ActorState::Owner(d) => vec![
+            (StateField::Share, d.share),
+            (StateField::Used, d.used),
+            (StateField::Scale, d.scale),
+            (StateField::Output, d.output),
+            (StateField::Serving, d.serving),
+        ],
     }
 }
 
