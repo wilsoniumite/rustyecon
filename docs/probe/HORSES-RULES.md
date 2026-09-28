@@ -642,3 +642,14 @@ copied unedited, this file at P2.2.1, the roles', the harness's and the tapes' s
 the instances and targets, the dials, the tolerance, L per instance and tick length (§6.7), the
 kick, the battery and its lists, the verdict rules and the families, with §6's checks made
 before it.
+
+**Runs read before registration, disclosed** (R5; HORSES-SPEC §5.4's forking path). Beside
+§7.8's checks, the harness was smoke-tested while it was built, at the frame's L: seven H1 runs
+(`w*2`, `JB(0.5)`, `b*2@genesis`, `b*0.5@genesis`, `heads.capacity*2`, `finished.maker*2`,
+`coin.desk.capacity*0.5`, 24,000 ticks each), all CONVERGED, with the b ×2 trough of baskets at
+0.645, 11 dead ticks and 29.1 years to 5% (the frame's 0.646, 11 and 29.1), the b ×0.5 quasi-rent
++0.004 and +0.415 (the frame's) and the glut's 53 years to 5%; and P7's `b*0.5@genesis` (40,000
+ticks), trough 0.425 and 322 dead ticks (the frame's), CONVERGED where the frame registers STUCK.
+No rule, dial, instance or scoring choice was made or changed after them; the one change to the
+harness after them is the reading of the engine's g (§6.6, §8 item 8), made on the base kick set's
+envelope, which moves no L.
