@@ -1,0 +1,5 @@
+set,run,class,d0,in_tol_from,dead,peak_dhat_ex_horse,low_baskets,transfer_short,depth_eq,depth_trough_y0,heads_low,heads_high,in_5pct_from,paper_ticks,quasi_3,quasi_1_over_delta,no_order_ticks,idle_ticks,pk_low,finished_high,utilisation_low,hour_over_o_low,max_W,last,stop,why
+m1/p7-c2,hold,CONVERGED,0,0,0,4.3965e-11,1,0,-,-,1,1,0,1,NaN,NaN,0,0,1,1,inf,inf,1.2768e-11,1.2768e-11,ran,
+m1/p7-c2,b*0.5@genesis,CONVERGED,775.4,12467,322,33799,0.4252,4256.4,0.095053,-0.76014,0.79464,2.6667,5952,1,NaN,NaN,0,770,0.68644,5.7817,inf,inf,0.0027016,4.2166e-10,ran,
+m1/p7-c2g,hold,CONVERGED,0,0,0,4.5186e-11,1,0,-,-,1,1,0,1,NaN,NaN,0,0,1,1,inf,inf,1.9984e-11,1.9984e-11,ran,
+m1/p7-c2g,b*0.5@genesis,CONVERGED,775.4,11818,250,37119,0.35774,719.25,0.095053,-0.93291,0.79464,2.0242,5926,1,NaN,NaN,0,469,0.95732,3.8346,inf,inf,0.0016237,2.8733e-10,ran,

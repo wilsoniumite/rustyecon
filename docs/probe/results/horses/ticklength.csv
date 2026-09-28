@@ -1,0 +1,17 @@
+inst,tpy,mode_a,kicks,T12,classes,years_med,years_max
+h1,12,FAIL: tick 709: pi.horse is 1.0956595624770987e-9 from the oracle in log,"hold:FAIL,b*1.1@dated:FAIL,b*0.9@dated:FAIL",0/44,DIVERGED:8 ORBITING:36,,
+h1,24,PASS,"hold:PASS,b*1.1@dated:PASS,b*0.9@dated:PASS",44/44,CONVERGED:44,48,83.0417
+h1,52,PASS,"hold:PASS,b*1.1@dated:PASS,b*0.9@dated:PASS",44/44,CONVERGED:44,45.2308,82.6154
+h1,365,PASS,"hold:PASS,b*1.1@dated:PASS,b*0.9@dated:PASS",44/44,CONVERGED:44,44.8247,82.8192
+h2,12,FAIL: tick 222: pi.horse is 1.0370937436783403e-9 from the oracle in log,"hold:FAIL,b*1.1@dated:FAIL,b*0.9@dated:FAIL",0/44,DEAD:44,,
+h2,24,PASS,"hold:FAIL,b*1.1@dated:FAIL,b*0.9@dated:FAIL",0/44,DIVERGED:10 ORBITING:34,,
+h2,52,PASS,"hold:PASS,b*1.1@dated:PASS,b*0.9@dated:PASS",44/44,CONVERGED:44,45.6538,75.7692
+h2,365,PASS,"hold:PASS,b*1.1@dated:PASS,b*0.9@dated:PASS",44/44,CONVERGED:44,42.7233,75.1233
+h3,12,FAIL: tick 746: horse filled 9.999999989547238e-1 (buyers) and 1e0 (sellers),"hold:FAIL,b*1.1@dated:FAIL,b*0.9@dated:FAIL",0/44,DIVERGED:8 ORBITING:36,,
+h3,24,PASS,"hold:PASS,b*1.1@dated:PASS,b*0.9@dated:PASS",44/44,CONVERGED:44,54.5,99.2917
+h3,52,PASS,"hold:PASS,b*1.1@dated:PASS,b*0.9@dated:PASS",44/44,CONVERGED:44,51.1538,99.6154
+h3,365,PASS,"hold:PASS,b*1.1@dated:PASS,b*0.9@dated:PASS",44/44,CONVERGED:44,50.5589,99.5562
+h4,12,FAIL: tick 213: horse filled 1e0 (buyers) and 9.999999988848928e-1 (sellers),"hold:FAIL,b*1.1@dated:FAIL,b*0.9@dated:FAIL",0/44,DEAD:44,,
+h4,24,PASS,"hold:FAIL,b*1.1@dated:FAIL,b*0.9@dated:FAIL",0/44,CONVERGED:2 DIVERGED:7 ORBITING:35,,
+h4,52,PASS,"hold:PASS,b*1.1@dated:PASS,b*0.9@dated:PASS",44/44,CONVERGED:44,56.1154,94.8462
+h4,365,PASS,"hold:PASS,b*1.1@dated:PASS,b*0.9@dated:PASS",44/44,CONVERGED:44,52.7589,94.0904
