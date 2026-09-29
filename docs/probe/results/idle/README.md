@@ -251,3 +251,6 @@ d23f946e4fb6b4b36bb0c3b9522b46eea91d386e150888a3d256ffa92ce147fb  build/mutants/
 
 Waves 3–5 were started beside wave 2's last part, to use idle cores. They are the same scripts
 under the names `wave3p.sh`–`wave5p.sh`. The whole run took 99 minutes on 48 cores.
+
+IDLE-SPEC-A1.md says its sha256 is in `SHA256SUMS` beside it; that was true in the scratch
+directory. Here it is in `IDLE-SPEC-A1.sha256` (L0.10).

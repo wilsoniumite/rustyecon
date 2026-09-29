@@ -2967,6 +2967,24 @@ registered with the carry at L0.8 (LOOP-SPEC-A1).
 283. **The report of the remedy and M6 is `docs/probe/IDLE.md`**, in HORSES.md's shape, with the
      results where L0.6 put them. Alternative: a §8 of HORSES.md.
 
+Decisions 284 and 285 are the two calls STATE's step 6 left to you, taken by Claude on
+2026-09-29 on your word of 2026-09-26 ("I leave all those calls up to you") and 2026-09-27 ("You
+can keep going beyond the gates"), so that P2.2b can run. Both are open to veto.
+
+284. **Decision 120 is amended: a loop of produced inputs may enter Phase 2 when every loop desk
+     holds a plant** (CAPACITY's y = K^(1−θ)·z^θ, built from its own recipe and worn at δ) and
+     the instance passes P2.2b's registered battery in the engine. 120's reason stands: the
+     absorbing zero needs a stock to draw on, and the plant is that stock. It holds for no other
+     loop; a loop without plants stays in Phase 3. Alternative: 120 as written, with P2.2b run
+     as a probe whose verdict waits on a ruling before any Phase 2 instance carries a loop.
+285. **D-G11 is taken: machine stocks come forward from Phase 3 for the goods chain's
+     instances** (GOODS-CHAIN §6, "What changes" item 2): stocks, geometric wear, the maker and
+     its band, wet capacity desks at s_K = 2δ, the maker's reservation and plants, at J_b 1 tick
+     and ρ 0, with capital's time an unscored departure (D-G14). Entry, build lags, ρ > 0,
+     versions and scored path windows stay in Phase 3. PLAN §3.2's fixed free-entry capacity
+     still holds for every instance that is not a goods chain. Alternative: machine stocks stay
+     in Phase 3, and the goods chain's 1750-like instance waits for it.
+
 ## Open — your calls
 
 - **The GUI's decisions**, 22–34 (D1–D13): G0 carried them out, none vetoed; a veto now reopens
@@ -3069,6 +3087,9 @@ registered with the carry at L0.8 (LOOP-SPEC-A1).
   plant on every loop desk, beside the horses on the capacity desk (260–263) with no further
   damper for the pass-through (264); the genesis carry in the loop mirror and its convention
   for planted desks (272, 273); per-market dead ticks (274); and S1 out of P2.2b (276).
+  Decisions 284 and 285, taken by Claude on 2026-09-29 so that P2.2b can run: loops enter
+  Phase 2 on plants (284, amending 120), and machine stocks come forward for the goods chain
+  (285, D-G11).
   `phase2-loops` (L0.1–L0.9) starts at `401f7b1`, where `reboot` and `phase2-goods` both stand,
   and touches `crates/agents`, `crates/probe`, docs/ENGINE.md, docs/TAPE.md, docs/probe/ and
   this file; while `reboot` stays at `401f7b1`, it lands by a fast-forward, on your word.
@@ -3752,8 +3773,8 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
       LOOP-SPEC-A1 §8 at LB1–LB3, the flow controls LW1–LW3 and the negative controls, with the
       same bounded reviews as P2.2a, and the report.
 
-   Loops in Phase 2 need your ruling against decision 120, and machine stocks brought forward
-   from Phase 3 your ruling on D-G11.
+   Loops enter Phase 2 on plants (decision 284, amending 120) and machine stocks come forward
+   for the goods chain (decision 285, D-G11), both taken by Claude on your word and open to veto.
 7. **Phase 2 proper** (PLAN Phase 2), after your rulings on the decisions that bind it: 61, 67
    and 70 from 1b and 1c, 118–123 from the markets probe, and 135, 137, 139, 140, 147, 149, 151,
    153–155, 158, 160–162, 164, 165, 167–169 and 173 from 1d–1f, and 179 and 186 from 1g for the

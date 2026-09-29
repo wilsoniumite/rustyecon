@@ -856,7 +856,8 @@ L0.6 run moves; every change is off on every committed tape.
    0; that was wrong.
 2. The agents crate exposes the maker's reservation readout, `maker_reservation` (its markup, ψ
    and whether it withholds, from a param reader and a price reader), formed by the same code
-   `MakerRole::decide` runs (`bought_per_unit`, `labour_land_per_unit`, `unit_cost`), so an
+   `MakerRole::decide` runs (`bought_per_unit`, `labour_land_per_unit`, `unit_cost`, and since
+   L0.10 `net_of_wear`, `reserve_of` and `withholds`), so an
    observer outside the Sim reads what the rule acts on. It reads no state and changes nothing;
    the rule's arithmetic and order are unchanged.
 3. Tests (§11). In agents (`tests/stock.rs`): `a_maker_without_a_reservation_offers_at_any_markup`

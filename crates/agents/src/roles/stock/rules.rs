@@ -135,6 +135,21 @@ fn unit_cost(
     Ok((prices, c))
 }
 
+/// The net price of a unit built: what it earns once the wear of the machines that built it is
+/// kept, p_K·(1 − δ·a/κ). The rule and [`maker_reservation`] both form it here.
+fn net_of_wear(pk: f64, d: f64, a: f64, kappa: f64) -> f64 {
+    pk * (1.0 - d * a / kappa)
+}
+
+/// The maker's reservation ψ at its param's site, 0 without one. The rule and
+/// [`maker_reservation`] both read it here.
+fn reserve_of(m: &Maker, par: &ParamAt<'_>) -> Result<f64, AgentError> {
+    match m.reserve {
+        Some(site) => par(site),
+        None => Ok(0.0),
+    }
+}
+
 /// Whether a maker with reservation ψ withholds its finished stock at net markup `markup`: only
 /// a reservation above 0 acts (L0.7), so a maker without one offers what P2.2a's offered at any
 /// markup, a negative one included (δ·a/κ > 1, which no load check rules out).
@@ -172,12 +187,9 @@ pub fn maker_reservation(
     let goods = bought_per_unit(m, a, par)?;
     let (lam, b) = labour_land_per_unit(m, a, par)?;
     let (_, c) = unit_cost(&goods, lam, b, w, r, pr)?;
-    let net = pk * (1.0 - d * a / kappa);
+    let net = net_of_wear(pk, d, a, kappa);
     let markup = net / c;
-    let psi = match m.reserve {
-        Some(site) => par(site)?,
-        None => 0.0,
-    };
+    let psi = reserve_of(m, par)?;
     Ok(Reservation {
         markup,
         psi,
@@ -273,7 +285,7 @@ impl Behaviour for MakerRole {
         let finished = sign(held - own);
         // The net markup: what a unit earns once the wear of the machines that built it is
         // kept, p_K·(1 − δ·a/κ), over its cost. 1 at rest.
-        let net = pk * (1.0 - d * a / kappa);
+        let net = net_of_wear(pk, d, a, kappa);
         let margin = Margin {
             cost: c,
             markup: net / c,
@@ -294,10 +306,7 @@ impl Behaviour for MakerRole {
             Some(site) => param(v, site)?,
             None => 0.0,
         };
-        let psi = match m.reserve {
-            Some(site) => param(v, site)?,
-            None => 0.0,
-        };
+        let psi = reserve_of(m, &|s| param(v, s))?;
         // The reservation (IDLE-SPEC, L0.4): below ψ it offers none of its finished stock; it
         // holds it, unworn, and still buys and breeds on the whole q by its cash rule. Off (ψ 0
         // or absent) is structural (L0.7): the markup's sign also rests on 1 − δ·a/κ, which no
