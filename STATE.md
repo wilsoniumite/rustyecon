@@ -10,9 +10,14 @@ the tape's schema is [docs/TAPE.md](docs/TAPE.md), and the GUI's design is
 **Collaboration:** as in laborformal. Sequencing, engineering and drafting are delegated to
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
-**State as of:** 2026-09-29, on branch `phase2-loops` from `reboot` at `401f7b1`, not pushed or
-merged. **The loop stage's groundwork (L0) is done** (L0.1–L0.9, "Where things stand"; decisions
-240–283; O51–O68). L0.1 closes O48, M6 narrowed to the durable good and M5 checked at load.
+**State as of:** 2026-09-30, on branch `phase2-plants` from `reboot` at `8b07c8a`, not pushed or
+merged. **P2.2b's frame is written** (P2.2b.0, docs only): the build's spec,
+[docs/probe/LOOPS-RULES.md](docs/probe/LOOPS-RULES.md), and one dated amendment before any code,
+[docs/probe/loops/LOOP-SPEC-A2.md](docs/probe/loops/LOOP-SPEC-A2.md) (LN5 waits for O51, as LF4
+does); decisions 286–296, O69–O72. The build (P2.2b.1) is next. Before it, on `phase2-loops`
+from `reboot` at `401f7b1`: **the loop stage's groundwork (L0) is done** (L0.1–L0.9, "Where
+things stand"; decisions 240–283; O51–O68). L0.1 closes O48, M6 narrowed to the durable good and
+M5 checked at load.
 **L0.3–L0.6 close O47, the idle machine market**: the maker's reservation at ψ 0.25, registered
 before it was built, converges every heads × 10 run and P8, changes no class in P2.2a's 1,980
 battery runs, and meets its registered predictions with five explained misses and no refutation;
@@ -21,7 +26,7 @@ its engine review found no refutation, and L0.7 fixes its five minor findings
 rule-B county, chain8 (O41 closed), and the mirror's loop step with CAPACITY's plant on every loop
 desk, registered again with the engine's genesis carry after the mirror review
 ([docs/probe/results/loops/registration.md](docs/probe/results/loops/registration.md)). P2.2b's
-frame and build are next (next step 6).
+frame is written (P2.2b.0) and its build is next (next step 6).
 **The stocks probe (P2.2a) is closed** (P2.2.1–P2.2.4, on branch `phase2-goods` from `reboot` at `92ba68e`;
 "Where things stand"): the horse as a durable good, bred by a maker and hired out by a wet
 capacity desk, finds unit 1g's
@@ -96,13 +101,33 @@ Next, in order: your look at the windows (the G0 gate's item and G1's p90, both 
 and at the demo's map; G1's remainder (what G0 moved to it, O36; the five majors its re-check
 left, O37; unit 1g in the lab, O38); your rulings on 1g's decisions and its re-check (O35); the
 goods chain's loops (P2.2b), whose groundwork L0 laid and whose predictions L0.8 registered: its
-frame, its build with CAPACITY's plant on every loop desk, then its trace diff and runs; Phase 2
-proper on loop-free wall and commons instances, after your rulings on the
+build with CAPACITY's plant on every loop desk (its frame written at P2.2b.0), then its trace
+diff and runs; Phase 2 proper on loop-free wall and commons instances, after your rulings on the
 decisions that bind it; the demo's second pass, with goods, machine types and carriers, on the
 many-market roles (O27), which may now start from the goods chain's stage v2a.1 on your ruling
 on D-G12. "Next steps" has each.
 
 ## Where things stand
+
+**P2.2b's frame (P2.2b.0; 2026-09-30).** Branch `phase2-plants` from `reboot` at `8b07c8a`
+(worktree `D:/rustyecon-wt/p2b`, scratch `D:/rustyecon-p2b/`). Docs only; no code, so no gate ran.
+- **The spec:** [docs/probe/LOOPS-RULES.md](docs/probe/LOOPS-RULES.md), in HORSES-RULES' shape,
+  written from LOOP-SPEC §2–§5 as A1 amends it, FUNDED, and the registered mirror read line by
+  line (`lm_carry.py`, `lm_mirror.py`, `lm_run.py`, `lm_inst.py`; their sha256s checked). It names
+  every new field, state, load check, readout and test, and how E0–E11 are run and scored.
+- **What the build must add beyond the plant.** Core refuses a good that is not a currency and has
+  no price rate, and LOOP-SPEC §2.2 gives the plant no market. So core gets an untraded good
+  (decision 286). A plant market that no one trades would not do: certify's kick set kicks every
+  market, and a kicked plant price never moves back, so every kick set would fail.
+- **One departure, registered before any code:**
+  [docs/probe/loops/LOOP-SPEC-A2.md](docs/probe/loops/LOOP-SPEC-A2.md) (sha256 `95de4411…c6b8a9`,
+  in `SHA256SUMS`). LN5 needs storable fodder's seller and buyer netting (O51), which P2.2b does
+  not build, so E9's LN5 items are withdrawn, as E10 already conditions LF4.
+- **A readout to fix on the way.** P2.2a's harness forms a horse-day's running cost as rule A's
+  one unit of fodder, so under rule B its quasi-rent and hour-over-O readouts would be wrong.
+  The build reads the tape's running recipe, P2.2a's value bit for bit on P2.2a's instances
+  (LOOPS-RULES §8.3; reported readouts, not scored).
+- **Decisions 286–296 and O69–O72**, below.
 
 **The loop stage's groundwork (L0; 2026-09-29).** Branch `phase2-loops` from `reboot` at
 `401f7b1` (worktree `D:/rustyecon-wt/p2l`, scratch `D:/rustyecon-p2l/`). Its decisions are
@@ -2985,6 +3010,43 @@ can keep going beyond the gates"), so that P2.2b can run. Both are open to veto.
      still holds for every instance that is not a goods chain. Alternative: machine stocks stay
      in Phase 3, and the goods chain's 1750-like instance waits for it.
 
+286–296 are P2.2b.0's (`docs/probe/LOOPS-RULES.md` §12), taken by Claude on your standing word and
+open to veto.
+
+286. **The plant good is core's new untraded good**: `untraded: true`, `Indefinite`, no price
+     rate, no market, no genesis price, and no order may name it. LOOP-SPEC §2.2 gives the plant
+     no market, and core refuses a plain good without a price rate. Alternative: a plant market
+     at price rate 0 that no one trades, with the kick set restricted to the instance's markets;
+     certify's kick set kicks every market, and a kicked plant price never decays.
+287. **Planted states nest the kind's state**: `PlantedType`, `PlantedMaker` and
+     `PlantedCapacity`, each {desk, plant}, appended after `Owner`, with one `PlantState` {held,
+     target, order, run, built}. Alternative: flat structs per kind.
+288. **Budgets**: the planted TypeDesk and maker cut theirs from outlay + P_K·I, the capacity desk
+     from its coin, as now. At I = 0 each is the plant-free chain bit for bit. Alternative: every
+     planted desk from its coin, which parts by an ulp where the chain binds at the outlay and so
+     breaks θ = 1's value-for-value.
+289. **One burn per bundle good in produce**, the running and the build bundles together, the
+     build at most what the bundles held leave, the capacity desk's used bundles at most its
+     share. Alternative: two burns per good, which can overdraw by an ulp on a carried holding.
+290. **P2.2b extends `probe::horses`**: loop ids, the flow control as a config, the land factor as
+     the instance's b, the binaries `horses` and `horses-tape`, and `tapes/loops-<id>.ron` for
+     LB1–LB3 and LW1–LW3. Alternative: a new module `probe::loops` with binaries of its own.
+291. **LN5 and LF4 wait for O51** (LOOP-SPEC-A2). Alternative: build O51's seller and netting in
+     P2.2b, after their own mirror scan.
+292. **The new readouts are appended**: nine `summary.tsv` columns with the same names and order
+     for every instance, and CSV and `stats.tsv` additions; P2.2a's columns keep their place and
+     meaning. Alternative: columns for loop instances only.
+293. **E4's engine g is P2.2a's reading** (HORSES-RULES §6.6), the mirror's reported beside it.
+     Alternative: score the mirror's reading (to 1e-4 of the envelope's peak).
+294. **E1's fixed plant is a plant at δ_p 0**, started from the design's plants
+     (`--fixed-plants`). Alternative: an order rule `Fixed`.
+295. **A planted desk's margin reads the bundle cost c, not c_full**, and so do its tilt and the
+     maker's reservation, as in the mirror. Alternative: c_full, at which the maker's markup rests
+     at θ (0.8) and ψ 0.25 acts where the markup on c is below 0.3125.
+296. **Planted desks take the cash rule only, and no own input**: the step rule, a TypeDesk's own
+     input and a maker's own horse-days are refused with a plant. Alternative: allow them,
+     untested.
+
 ## Open — your calls
 
 - **The GUI's decisions**, 22–34 (D1–D13): G0 carried them out, none vetoed; a veto now reopens
@@ -3678,7 +3740,24 @@ renumbered (FUNDED-A1 §A1.4, LOOP-SPEC-A1 §A1.6), and the fix round's.
   say whether the bound or the loop did it.
 - **O68. The planted desk's genesis carry is a convention no engine has run** (decision 273). The
   mirror sets it; E0's trace diff at tick 1 tests it. If the engine's build does otherwise, the
-  registration must be amended before any scored run, not after.
+  registration must be amended before any scored run, not after. LOOPS-RULES §5 (P2.2b.0): the
+  engine needs no carry code, since a planted desk reads its bundles over every unit it holds;
+  the test `loops_carry_meets_the_mirror_at_tick_one` holds it in the gate.
+
+O69 on are P2.2b's (`docs/probe/LOOPS-RULES.md` §12).
+
+- **O69. The untraded good has no valuation.** A plant shows in holdings, but no lens or report
+  values it; at replacement cost a unit is worth P_K, about 99 weeks of its desk's revenue at
+  θ 0.8 and δ_p 10%. GOODS-CHAIN's work in progress (its E5) should reuse the untraded good.
+- **O70. Two readings of the lowest baskets.** The engine's is the sum of each household's
+  baskets (P2.2a's); the mirror's the smaller of the goods and the space eaten over both
+  households. They agree when both bind on the same item; the report names any row where they
+  part.
+- **O71. LN5 and LF4 are registered and unrun** (LOOP-SPEC-A2; decision 291). They run when O51's
+  roles exist, against A1's numbers.
+- **O72. The run's cost.** L is 202,000–232,000 ticks and Tier 3 and 3S run again at 10·L: about
+  2.3 million ticks for each of 53 runs per verdict instance, beside E4's kick sets at H = L. One
+  LB1 run at 10·L should be timed on WSL before the waves are planned.
 
 ## Corrections logged (A3; ADDENDUM §1.4)
 
@@ -3753,11 +3832,11 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
    family needs.
 
    **P2.2b, the loops**, in order:
-   1. **The frame** (P2.2b.0): a `LOOPS-RULES`-style build spec from LOOP-SPEC §2 as amended,
-      naming each new field, `ActorState` variant, load check and test, and the harness's plant
-      observables, per-market dead ticks and ticks at labour's bound (O65). No new registration
-      unless the build must depart from LOOP-SPEC-A1; a departure is a dated amendment before
-      any scored run (decision 282).
+   1. **The frame** (P2.2b.0): **done**, 2026-09-30.
+      [docs/probe/LOOPS-RULES.md](docs/probe/LOOPS-RULES.md) is the build's spec: each new field,
+      `ActorState` variant, load check, readout and test, and how E0–E11 are run and scored.
+      One departure, LOOP-SPEC-A2 (LN5 waits for O51), dated and hashed before any code. The
+      build must also add an untraded good to core (decision 286).
    2. **The build** (P2.2b.1): CAPACITY's plant on the TypeDesk, the capacity desk and the maker,
       an optional `plant` field with appended `ActorState` variants so every committed tape keeps
       its hashes; a plant good per loop desk, held and never traded (D-G2's `Indefinite` good, worn
@@ -3852,7 +3931,10 @@ docs/probe/results/idle/ the idle market's remedy on the engine (L0.3–L0.6): i
 docs/probe/IDLE.md       the report of the remedy and M6 (L0.1–L0.7)
 docs/probe/loops/        P2.2b's frame inputs, byte for byte as registered (L0.8): LOOP-SPEC.md
                          (the mirror's loop step) and FUNDED.md with instances.json (chain8),
-                         each with its dated amendment (-A1), and SHA256SUMS
+                         each with its dated amendment (-A1), LOOP-SPEC-A2 (P2.2b.0), and
+                         SHA256SUMS
+docs/probe/LOOPS-RULES.md P2.2b's build spec (P2.2b.0): the plant, the planted roles, the
+                         untraded good, load checks, instances, harness readouts, E0-E11, tests
 docs/probe/results/loops/ the loop step's registration (L0.8), quoting LOOP-SPEC-A1's
                          predictions and FUNDED's county, with its sha256
 crates/engine            Sim, the tick, reports, resume, the replay audit, the registry listing
@@ -4008,6 +4090,11 @@ scripts/gui.sh           the GUI's gate, run at each G-stage (G0.1); diffs the e
   rerun as LOOP-SPEC-A1 §A1.7 says (about 70 minutes on 47 cores); the loop registration is
   rewritten by `D:/rustyecon-p2l/fix-report/make_registration.py WORKTREE`, which quotes and
   hashes the frame inputs in `docs/probe/loops/`.
+- P2.2b runs from a worktree, `D:/rustyecon-wt/p2b` (`/mnt/d/rustyecon-wt/p2b` in WSL), on branch
+  `phase2-plants`, with one shared target a machine, `/root/scratch/target-p2b` and
+  `D:/rustyecon-targets/p2b`, and scratch in `D:/rustyecon-p2b/<label>/`. The frame's step
+  (`rules`) keeps a read-only copy of the registered loop mirror in
+  `D:/rustyecon-p2b/rules/mirror/`.
 - The oracle's goldens: from `crates/oracle`, run `goldens/generate.py`, `generate_1b.py`, …,
   `generate_1f.py` and `generate_1g.py` with `--check` under laborformal's venv
   (`C:/Users/wilso/Documents/GitHub/laborformal/venv/Scripts/python.exe`,
