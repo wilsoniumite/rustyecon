@@ -8,9 +8,10 @@
 //! household role a Pop; what it is endowed with must be `Instant`, since `decide` may mint only
 //! that; and it never transfers to or pays itself. A stock role (P2.2) holds a durable good that
 //! is `Indefinite` and wears by less than all of it a tick, or, for the maker and the owner desk,
-//! one that lives one tick at δ = 1, the flow path, with no cover and no running recipe; and a
-//! good that lives more than one tick is bought only by the capacity and owner desks, which net
-//! their holding (M6).
+//! one that lives one tick at δ = 1, the flow path, with no cover and no running recipe. A good
+//! that lives more than one tick is bought only as the durable good a capacity or owner desk
+//! holds, which it nets (M6), and no role offers one in full: the maker sells its durable good
+//! under its cover (M5).
 
 use crate::behaviour::{AgentError, Behaviour, Decision, Posted, View};
 use crate::ext::{
@@ -185,10 +186,12 @@ fn flow_path(
 
 /// The goods a kind buys and does not net against a holding, each with its field: the goods
 /// whose leftovers must die at the tick's ageing (M6). The capacity and owner desks net their
-/// holding of the durable good, and a scripted actor's lines are its own affair.
+/// holding of the durable good they hold and of nothing else, so their running goods and labour
+/// are listed (O48: they were once exempt for every good they buy). A scripted actor's lines are
+/// its own affair.
 fn bought(s: &Spec) -> Vec<(GoodId, &'static str)> {
     match s {
-        Spec::Scripted(_) | Spec::CapacityDesk(_) | Spec::OwnerDesk(_) => Vec::new(),
+        Spec::Scripted(_) => Vec::new(),
         Spec::Provider(p) => vec![
             (p.basket.good, "basket.good"),
             (p.basket.space, "basket.space"),
@@ -223,24 +226,83 @@ fn bought(s: &Spec) -> Vec<(GoodId, &'static str)> {
             v.extend([(d.labour, "labour"), (d.land, "land")]);
             v
         }
+        Spec::CapacityDesk(d) => {
+            let mut v: Vec<(GoodId, &'static str)> = d
+                .running
+                .goods
+                .iter()
+                .map(|i| (i.good, "running.goods"))
+                .collect();
+            v.push((d.labour, "labour"));
+            v
+        }
+        Spec::OwnerDesk(d) => {
+            let mut v: Vec<(GoodId, &'static str)> =
+                d.running.iter().map(|i| (i.good, "running")).collect();
+            v.push((d.labour, "labour"));
+            v
+        }
     }
 }
 
+/// The goods a kind offers in full, every unit it holds beyond its own use, each with its field:
+/// the goods whose unsold units must die at the tick's ageing (M5). The maker offers its durable
+/// good under its cover (M2's band, D-G5; `None` is P3 (v)'s control), and on the flow path that
+/// good lives one tick (`flow_path`), so it is not listed. A scripted actor's lines are its own
+/// affair.
+fn sold_in_full(s: &Spec) -> Vec<(GoodId, &'static str)> {
+    match s {
+        Spec::Scripted(_) | Spec::Maker(_) => Vec::new(),
+        Spec::Provider(p) => vec![(p.land, "land")],
+        Spec::Workers(p) => vec![(p.labour, "labour")],
+        Spec::BasketProvider(p) => vec![(p.land, "land")],
+        Spec::BasketWorkers(p) => vec![(p.labour, "labour")],
+        Spec::GoodDesk(d) => vec![(d.output, "output")],
+        Spec::MachDesk(d) => vec![(d.output, "output")],
+        Spec::CategoryDesk(d) => vec![(d.output, "output")],
+        Spec::TypeDesk(d) => vec![(d.output, "output")],
+        Spec::CapacityDesk(d) => vec![(d.hours, "hours")],
+        Spec::OwnerDesk(d) => vec![(d.output, "output")],
+    }
+}
+
+/// Whether a good lives at most one tick: `Instant` or one tick. Any other life stores it.
+fn dies_within_a_tick(w: &World<Agents>, g: GoodId) -> bool {
+    matches!(
+        w.good(g).map(|d| d.life),
+        Some(Life::Instant | Life::Ticks(1))
+    )
+}
+
 /// M6 (HORSES-SPEC §3, SG7): a good that lives more than one tick is bought only by a kind that
-/// nets its holding. Any other kind would carry what it did not use into the next tick as if
-/// it were new.
+/// nets its holding of it. Any other kind would carry what it did not use into the next tick as
+/// if it were new.
 fn check_bought(w: &World<Agents>, decl: &ActorDecl<Spec>) -> Result<(), LoadError> {
     for (g, field) in bought(&decl.spec) {
-        match w.good(g).map(|d| d.life) {
-            Some(Life::Instant | Life::Ticks(1)) => {}
-            _ => {
-                return Err(invalid(
-                    decl,
-                    field,
-                    "a good that lives more than one tick is bought only by a kind that nets \
-                     its holding (a capacity or owner desk)",
-                ))
-            }
+        if !dies_within_a_tick(w, g) {
+            return Err(invalid(
+                decl,
+                field,
+                "a good that lives more than one tick is bought only as the durable good a \
+                 capacity or owner desk holds, which it nets",
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// M5 (GOODS-CHAIN §3.1, §3.2 fact 1): a good that lives more than one tick is not offered in
+/// full. A seller that offers every unit it holds keeps what did not sell and offers it again,
+/// a unit root in its stock; the share rule, I/(1 + b_G), or the maker's cover, damps it.
+fn check_sold(w: &World<Agents>, decl: &ActorDecl<Spec>) -> Result<(), LoadError> {
+    for (g, field) in sold_in_full(&decl.spec) {
+        if !dies_within_a_tick(w, g) {
+            return Err(invalid(
+                decl,
+                field,
+                "a good that lives more than one tick is not offered in full: a stock offered \
+                 in full is a unit root (M5)",
+            ));
         }
     }
     Ok(())
@@ -344,9 +406,13 @@ impl Cast {
             };
             members.push((decl.id, member));
         }
-        // M6, once every actor's own checks have passed.
+        // M6, once every actor's own checks have passed; then M5, so that a tape an older check
+        // refuses reports the older error.
         for decl in &w.actors {
             check_bought(w, decl)?;
+        }
+        for decl in &w.actors {
+            check_sold(w, decl)?;
         }
         members.sort_by_key(|(a, _)| *a);
         Ok(Cast { members })

@@ -119,12 +119,12 @@ and the report (P2.2.3, `c361b9e`, tables and plots; P2.2.4, `98534fe`).
   gives stocks about a quarter of the claimed softening of a cost shock's trough, and 2.3–2.8
   times the years, not 6–7. At ω 1 the GO passes through horse-price falls of 96–99.7%. P1's kick
   rates at ω 1 and P2's miss on the fast side, the slowest mode being wear, 1 − δ. M6's load
-  check has a hole (O48), and v2a.1 is a partial base for v2a.1b (O49).
+  check had a hole (O48, closed at L0.1), and v2a.1 is a partial base for v2a.1b (O49).
 - **What follows** (decisions 234–239; O41–O50): stage v2a.1 may enter the demo's second pass on
   funded counties, after your ruling on D-G12; before P2.2b's frame come a remedy for the idle
   machine market (O47), the mirror's loop step with CAPACITY's plant composed with M3's horse
-  holding, a funded rule-B county (O41) and M6 narrowed (O48); Phase 2 proper opens as planned on
-  loop-free instances, and its goods-chain 1750-like instance waits for O47.
+  holding, a funded rule-B county (O41) and M6 narrowed (O48, done at L0.1); Phase 2 proper
+  opens as planned on loop-free instances, and its goods-chain 1750-like instance waits for O47.
 - **The gates at `98534fe`** (P2.2.4's report; this record changes docs only), logs in
   `D:/rustyecon-p2g/report/gate/`. `scripts/gate.sh` is green in WSL
   (`CARGO_TARGET_DIR=/root/scratch/target-p2g-build`, the build step's target, warm, 122 s: WSL has
@@ -2622,6 +2622,30 @@ D-G11 and D-G13 to D-G15 were taken as proposed, not ruled; they stay yours (nex
      reviews' corrections are in the report (the count, R1a by construction, O14 like for like,
      the 1 − δ mode). Alternative: amend HORSES-RULES as well.
 
+240–244 are the loop stage's groundwork (L0, branch `phase2-loops`, 2026-09-29).
+
+240. **M6 is narrowed to the durable good** (L0.1; O48, carrying out decision 238). The capacity
+     and owner desks' running goods and labour are checked as every other kind's buys are: a
+     good that lives more than one tick is bought only as the durable good a capacity or owner
+     desk holds. Every committed tape loads; the fidelity review's tape is refused at
+     `actors[desk.capacity].spec.running.goods`. Alternative: build netting of running goods
+     into M3 and M1 now (238's alternative), which no v2a.1 tape needs.
+241. **M5 is a load check on every role that offers a good in full** (L0.1): the households'
+     labour and land, the output of the good, machine, category, type and owner desks, and the
+     capacity desk's hours each live at most one tick (`Instant` or one tick), the line M6 draws.
+     No role yet offers I/(1 + b_G). Alternative: check the type desk alone, the seller that
+     v2a.4 and v2a.6 would give a storable good; or build the share-rule seller now.
+242. **The maker is not held to M5.** It offers its durable good under its cover, M2's band
+     (D-G5), and `cover: None` stays loadable as P3 (v)'s control, which HORSES found stable
+     under the capacity desk (decision 231); a test holds the exemption. Alternative: refuse a
+     stock-path maker without a cover, which retires that control.
+243. **M5 runs after M6, over every actor**, so a tape an older check refuses reports the older
+     error, as M6 runs after each actor's own checks (HORSES-RULES §8 item 5). On the review's
+     tape both would fire, and M6 reports first, at the capacity desk. Alternative: M6 and M5 per
+     actor, whose first error would follow the order the actors are declared in.
+244. **HORSES-RULES.md stays as registered** (decision 239): ENGINE.md (amended at L0.1) and
+     TAPE.md say what the checks are now. Alternative: amend HORSES-RULES' SG7 paragraph as well.
+
 ## Open — your calls
 
 - **The GUI's decisions**, 22–34 (D1–D13): G0 carried them out, none vetoed; a veto now reopens
@@ -3175,12 +3199,17 @@ O41–O46 are HORSES-SPEC §9's, each with what the run found.
   ω 1 verdict runs reach 0.3–4% of target (0.1% at δ 4%) before recovering. The remedy (a maker's
   reservation at replacement cost, or P2.1's one-sided fix) is chosen by a mirror scan, then run
   on heads × 10, P8 and the ω 1 battery, before P2.2b and the goods-chain 1750-like instance.
-- **O48. M6's load check has a hole** (decision 238). `cast.rs:191` exempts the capacity and owner
-  desks from every good they buy, but they net only their durable good; a tape whose storable
-  fodder only the capacity desk buys loads and runs, and its fodder desk piles up 50 times its
-  stock in 520 ticks (`D:/rustyecon-p2g/review-fidelity/m6/`). No check refuses a `TypeDesk`
-  selling a storable good in full either (the seller's unit root). Latent until fodder or fuel
-  gets a life above a tick (v2a.4, v2a.6); each fix wants a test that fails without it.
+- **O48. M6's load check had a hole: closed at L0.1 (2026-09-29).** `cast.rs` exempted the
+  capacity and owner desks from M6 for every good they buy; now only for the durable good they
+  hold (decision 240). No check refused a seller offering a storable good in full; M5 now does
+  (decisions 241–243). The review's tape (`D:/rustyecon-p2g/review-fidelity/m6/`, H1 with fodder
+  `Indefinite`, bought by the capacity desk alone) reproduced at `401f7b1`: it loads and runs
+  520 ticks to the review's final hash, `0xb2b4c91c24a1006e`, the fodder desk holding 260.4
+  fodder against 5.3 at genesis (49 times) and fodder's price at 3.6e-6 against 0.2, while the
+  capacity desk holds none. So the pile-up is the seller's unit root, which M5 refuses; the
+  buyer's hole let the tape in. It is now refused at `actors[desk.capacity].spec.running.goods`.
+  Tests: `m6_nets_only_the_durable_good` and `m5_refuses_a_stored_good_offered_in_full`, each
+  failing with its check undone (scratch `D:/rustyecon-p2l/m6/`).
 - **O49. What v2a.1b needs beyond v2a.1** (HORSES §6). CAPACITY's plant is unbuilt: the form
   y = K^(1−θ)·z^θ, a plant each loop desk builds and never trades, and its nesting at θ 1 and at a
   fixed plant. How the plant composes with an M3 horse holding is untested, and the capacity desk
@@ -3194,6 +3223,14 @@ O41–O46 are HORSES-SPEC §9's, each with what the run found.
   year, so a kick set of stock and coin kicks, with horizons from 1 − δ, would measure what they
   miss. D̂₀ is infinite for Tier-3S runs whose orders stop in year one, so the vacuity test cannot
   fire there. P7 converged where the frame registered STUCK, on the mirror's path.
+
+O51 on are the loop stage's groundwork's (L0, branch `phase2-loops`).
+
+- **O51. No role handles a storable running good yet** (decisions 240, 241). Since L0.1 a tape
+  whose fodder or fuel lives more than a tick is refused at load twice over: its seller offers it
+  in full (M5) and its buyers do not net it (M6). v2a.4 and v2a.6 need a seller that offers
+  I/(1 + b_G) (GOODS-CHAIN E1's seller with `post: Share` and a cover) and netting of storable
+  running goods wherever they are bought, each with a mirror scan and a test before its stage.
 
 ## Corrections logged (A3; ADDENDUM §1.4)
 
@@ -3263,7 +3300,8 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
    sides of the loop at θ 0.8 and δ 10% a year under C2g, composed with M3's horse holding and
    its one-for-one pass-through of a fodder shortfall, with makers from bought inputs and a
    like-for-like flow control (O49, decision 235), its predictions registered; a funded county
-   for rule B (O41); and M6 narrowed (O48). Then the loops (P2.2b): rule B's horse, fodder
+   for rule B (O41); and M6 narrowed, done at L0.1 with M5 beside it (O48 closed; decisions
+   240–244). Then the loops (P2.2b): rule B's horse, fodder
    raised with horse-days, with CAPACITY's plant on every loop desk, both sides: a plant good
    for each loop desk, held and never traded (D-G2's `Indefinite` good, worn by `Depreciation`
    burns), s1 bundles of the desk's own recipe per plant unit, ordered by M3's rule with s_K =

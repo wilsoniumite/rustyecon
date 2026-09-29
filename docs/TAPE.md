@@ -256,8 +256,9 @@ keeps them as written.
   own `stock`, whose hours run on the listed goods.
 - A durable good is `Indefinite`, and it wears by δ < 1 a tick; or, for the maker and the owner
   desk, it lives one tick at δ = 1, the flow path (the stocks layer off), with no cover and no
-  running recipe. A good that lives more than one tick is bought only by a capacity or owner
-  desk. `Cast::new` refuses any other.
+  running recipe. A good that lives more than one tick is bought only as the durable good a
+  capacity or owner desk holds, and no role offers it in full: the maker sells its durable good
+  under its cover (amended at L0.1, 2026-09-29). `Cast::new` refuses any other.
 - `scale` is the Appendix B roles'.
 
 A complete tape with no behaviour (every actor's spec is `()`) is core's test fixture,

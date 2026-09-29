@@ -651,6 +651,129 @@ fn stock_specs_are_checked_at_load() {
     }
 }
 
+/// `text` with `from` replaced by `to` everywhere, `from` present.
+fn edit_all(text: &str, from: &str, to: &str) -> String {
+    assert!(text.contains(from), "{from:?}");
+    text.replace(from, to)
+}
+
+/// Fodder that lives indefinitely, the life v2a.4 gives it.
+fn fodder_stored(text: &str) -> String {
+    edit_all(
+        text,
+        r#"(key: "fodder", life: Years("life.one_tick"),"#,
+        r#"(key: "fodder", life: Indefinite,"#,
+    )
+}
+
+/// The maker's horses fed on nothing it buys.
+fn maker_unfed(text: &str) -> String {
+    edit_all(
+        text,
+        r#"kappa: "inst.horse.kappa", running: (goods: [(good: "fodder", coef: "inst.horse.run.fodder")],"#,
+        r#"kappa: "inst.horse.kappa", running: (goods: [],"#,
+    )
+}
+
+fn refusal(text: &str) -> LoadError {
+    match load_text(text) {
+        Err(e) => e,
+        Ok((w, _)) => Cast::new(&w).expect_err("the cast refuses it"),
+    }
+}
+
+#[test]
+fn m6_nets_only_the_durable_good() {
+    // O48 (decision 238): the capacity and owner desks net their holding of the durable good they
+    // hold and of nothing else, so a storable running good they buy is refused at load, with its
+    // path. The first tape is the fidelity review's (D:/rustyecon-p2g/review-fidelity/m6/): H1
+    // with fodder stored and bought by the capacity desk alone. Before the fix it loaded and ran,
+    // and its fodder desk held 49 times its genesis fodder at tick 520 as the price fell from 0.2
+    // to 3.6e-6. The second is P7's owner desk, its fodder stored. The durable good itself stays
+    // exempt: H1 and P7, whose horses live indefinitely, load.
+    for text in [H1, P7] {
+        let (w, _) = load_text(text).unwrap();
+        Cast::new(&w).expect("the durable good is netted");
+    }
+    let cases = [
+        (
+            maker_unfed(&fodder_stored(H1)),
+            "actors[desk.capacity].spec.running.goods",
+        ),
+        (
+            maker_unfed(&fodder_stored(P7)),
+            "actors[desk.good].spec.running",
+        ),
+    ];
+    for (text, path) in cases {
+        let err = refusal(&text);
+        assert_eq!(err.path, path, "{err}");
+    }
+}
+
+#[test]
+fn m5_refuses_a_stored_good_offered_in_full() {
+    // GOODS-CHAIN M5 and §3.2 fact 1: a seller of a storable good offers I/(1 + b_G); offered in
+    // full, its stock has a unit root. So a kind that offers every unit it holds sells only a good
+    // that lives at most one tick, each refusal with its path, in tapes where no buyer is refused
+    // first: the fodder desk (a type desk) with fodder stored and bought by no one, every horse
+    // fed on the good instead; the capacity desk with its horse-days stored and the good desk
+    // working fodder in their place; and the good desk and the owner desk with the good stored and
+    // the households buying fodder in its place. The maker, which offers its durable good under
+    // its cover, is not held to it, its cover off included (P3 (v)'s control).
+    let fed_on_the_good = |text: &str| {
+        edit_all(
+            text,
+            r#"(good: "fodder", coef: "inst.horse.run.fodder")"#,
+            r#"(good: "good", coef: "inst.horse.run.fodder")"#,
+        )
+    };
+    let good_stored = |text: &str| {
+        edit_all(
+            &edit_all(
+                text,
+                r#"(key: "good", life: Years("life.one_tick"),"#,
+                r#"(key: "good", life: Indefinite,"#,
+            ),
+            r#"basket: [(good: "good", weight: "inst.good.weight"),"#,
+            r#"basket: [(good: "fodder", weight: "inst.good.weight"),"#,
+        )
+    };
+    let cases = [
+        (
+            fed_on_the_good(&fodder_stored(H1)),
+            "actors[desk.fodder].spec.output",
+        ),
+        (
+            edit_all(
+                &edit_all(
+                    H1,
+                    r#"(key: "traction", life: Years("life.one_tick"),"#,
+                    r#"(key: "traction", life: Indefinite,"#,
+                ),
+                r#"output: "good", labour: "labour", mach: "traction","#,
+                r#"output: "good", labour: "labour", mach: "fodder","#,
+            ),
+            "actors[desk.capacity].spec.hours",
+        ),
+        (good_stored(H1), "actors[desk.good].spec.output"),
+        (good_stored(P7), "actors[desk.good].spec.output"),
+    ];
+    for (text, path) in cases {
+        let err = refusal(&text);
+        assert_eq!(err.path, path, "{err}");
+    }
+    // Its cover off, and the cover's param, which nothing reads then, dropped.
+    let uncovered: String = edit_all(H1, r#"cover: Some("cover.maker"),"#, "cover: None,")
+        .lines()
+        .filter(|l| !l.trim_start().starts_with(r#"(key: "cover.maker","#))
+        .map(|l| format!("{l}\n"))
+        .collect();
+    assert!(!uncovered.contains("cover.maker"));
+    let (w, _) = load_text(&uncovered).unwrap();
+    Cast::new(&w).expect("the maker sells under its own rule");
+}
+
 #[test]
 fn stock_specs_round_trip_in_canonical_form() {
     // Every stocks-probe tape survives to_ron and a parse with the same world; its new kinds'

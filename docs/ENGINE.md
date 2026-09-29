@@ -785,6 +785,38 @@ per-tick hash streams are unchanged (finals `0x61f9c8529131ff17`, `0xe1fa082b269
    `horses_hold_at_the_oracle_point`, `horses_batteries_are_registered`,
    `horses_shocks_and_stocks_apply_as_named` and `horses_kick_set_decays_at_a_stable_point`.
 
+**Amended at L0.1** (2026-09-29, branch `phase2-loops`: the loop stage's groundwork; O48,
+decision 238), the same way. Two load checks in `Cast::new` changed, and nothing else: no rule,
+state or delta. Every committed tape keeps its canonical form, `tape_hash` and `world_id` and
+still loads, and every pinned hash stream is unchanged (finals `0x61f9c8529131ff17`,
+`0xe1fa082b26995867`, `0xfad880fe08d06645`).
+
+1. M6 is narrowed (P2.2.1's item 5). The capacity and owner desks net their holding of the
+   durable good they hold, and of nothing else. So their running goods and labour are checked as
+   every other kind's buys are: a good that lives more than one tick is bought only as the
+   durable good a capacity or owner desk holds. Before, they were exempt for every good they
+   bought. The fidelity review's tape (H1 with fodder `Indefinite` and bought by the capacity
+   desk alone) loaded and ran: at `401f7b1` it runs 520 ticks to the review's final hash,
+   `0xb2b4c91c24a1006e`, with the fodder desk holding 49 times its genesis fodder (260.4 against
+   5.3) and fodder's price at 3.6e-6 against 0.2. It is now refused at
+   `actors[desk.capacity].spec.running.goods`.
+2. M5 is new (GOODS-CHAIN §3.1, §3.2 fact 1). A kind that offers every unit it holds beyond its
+   own use sells only a good that dies within a tick, `Instant` or one tick: the households'
+   labour and land, the output of the good, machine, category and type desks and of the owner
+   desk, and the capacity desk's hours. A stock offered in full keeps what did not sell and
+   offers it again, a unit root; GOODS-CHAIN's seller of a storable good offers I/(1 + b_G), and
+   no kind does yet. The maker is not held to it: it offers its durable good under its cover
+   (M2's band, D-G5), and `cover: None` stays the P3 (v) control. A scripted actor's lines stay
+   its own affair. M5 runs after M6, over every actor, so a tape an older check refuses reports
+   the older error.
+3. Tests (§11), in agents (`tests/stock.rs`): `m6_nets_only_the_durable_good` (the review's tape
+   and P7's owner desk with fodder stored, each refused with its path; H1 and P7 load) and
+   `m5_refuses_a_stored_good_offered_in_full` (a type desk, the capacity desk, a good desk and an
+   owner desk, each selling a stored good in a tape where no buyer is refused first; the maker
+   without a cover loads). Each fails with its check undone: with the old exemption the first
+   tape is refused at the fodder desk's output, and without M5 the second test's first tape
+   loads.
+
 ## 0. Engine invariants
 
 Numbered so tests and reviews can cite them. Each has at least one test in §11.
@@ -1525,7 +1557,9 @@ state a `SetState` delta replaces, since P2.1.1 the four many-market roles (`Bas
 states, and since P2.2.1 the three stock roles (`Maker`, `CapacityDesk`, `OwnerDesk`;
 docs/probe/HORSES-RULES.md), with states of their own (`Maker`, `Capacity`, `Owner`). `Cast::new` makes the load checks that need the
 whole world: every buy line's node quotes in the actor's home currency, and no payout names the
-payer; each is a `LoadError` with its tape path. R13 holds by construction: a `View` cannot reach
+payer; each is a `LoadError` with its tape path. Since P2.2.1 a good that lives more than one
+tick is bought only as the durable good a capacity or owner desk holds (M6, narrowed at L0.1),
+and since L0.1 no role offers it in full (M5; the maker sells its durable good under its cover). R13 holds by construction: a `View` cannot reach
 another actor's holdings, orders or state, nor the cleared volumes, and agents never depends on
 the oracle. The engine enforces the rest (§7.3).
 
