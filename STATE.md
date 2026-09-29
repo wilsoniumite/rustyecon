@@ -12,8 +12,12 @@ Claude; checks gate absolutely; direct critique over validation. The numbered de
 are a veto window for your one-word calls.
 **State as of:** 2026-09-29, on branch `phase2-loops` from `reboot` at `401f7b1`, not pushed or
 merged. **The loop stage's groundwork (L0) has begun** ("Where things stand"): L0.1 closes O48,
-M6 narrowed to the durable good and M5 checked at load (decisions 240–244; O51). **The stocks
-probe (P2.2a) is closed** (P2.2.1–P2.2.4, on branch `phase2-goods` from `reboot` at `92ba68e`;
+M6 narrowed to the durable good and M5 checked at load (decisions 240–244; O51). **L0.3–L0.6
+close O47, the idle machine market**: the maker's reservation at ψ 0.25, registered before it was
+built, converges every heads × 10 run and P8, changes no class in P2.2a's 1,980 battery runs, and
+meets its registered predictions with five explained misses and no refutation (decisions
+245–253; O52–O57; [docs/probe/results/idle/README.md](docs/probe/results/idle/README.md)).
+**The stocks probe (P2.2a) is closed** (P2.2.1–P2.2.4, on branch `phase2-goods` from `reboot` at `92ba68e`;
 "Where things stand"): the horse as a durable good, bred by a maker and hired out by a wet
 capacity desk, finds unit 1g's
 equilibrium of the goods chain's first stage, v2a.1: GO at 52 ticks a year, narrowed by its two
@@ -86,8 +90,8 @@ docs/spine/EYEBALL.md; decision 35).
 Next, in order: your look at the windows (the G0 gate's item and G1's p90, both checked by hand)
 and at the demo's map; G1's remainder (what G0 moved to it, O36; the five majors its re-check
 left, O37; unit 1g in the lab, O38); your rulings on 1g's decisions and its re-check (O35); the
-goods chain's next steps after the stocks probe: a remedy for the idle machine market (O47), the
-mirror's loop step with CAPACITY's plant, a funded county for rule B (O41), then the loops
+goods chain's next steps after the stocks probe and the idle market's remedy (O47, closed at
+L0.6): the mirror's loop step with CAPACITY's plant, a funded county for rule B (O41), then the loops
 (P2.2b); Phase 2 proper on loop-free wall and commons instances, after your rulings on the
 decisions that bind it; the demo's second pass, with goods, machine types and carriers, on the
 many-market roles (O27), which may now start from the goods chain's stage v2a.1 on your ruling
@@ -116,6 +120,59 @@ on D-G12. "Next steps" has each.
   `0xe1fa082b26995867`, `0xfad880fe08d06645`); G1's sweep takes 0.73 ms, median of 20, in WSL.
   At `ba6938d`, `scripts/gate.sh` green again on both (175 s and 168 s, warm), its stamp
   `ba6938d`, clean.
+- **L0.3–L0.6: the idle machine market's remedy** (O47 closed; decisions 245–253; O52–O57;
+  [docs/probe/results/idle/README.md](docs/probe/results/idle/README.md)). The mirror scan
+  (`D:/rustyecon-p2l/idle-scan/IDLE-SPEC.md`, sha256 `c5c6527a…`) chose the maker's reservation:
+  the maker offers no finished heads while its net markup p_K·(1 − δ·a/κ)/c_m at posted prices is
+  below ψ = 0.25. Four commits:
+  - **L0.3 (`96cba59`), the registration**, written before the rule existed in the engine: the
+    spec's §8 unedited, the protocol E1–E8 at P2.2a's L, and the tolerances.
+  - **L0.4 (`882e9f8`), the build** (HORSES-RULES §10; ENGINE and TAPE amended): an optional
+    `reserve` param on the maker, absent on every committed tape. It is refused on the flow path
+    and under `Hold`, and set by `--reserve PSI` on both binaries. The harness reads the markup
+    outside the Sim. Six tests, each failing with its change undone.
+  - **L0.5 (`fac7db4`), a fix before any scored run.** `world_id` hashes the resolved actors, so
+    L0.4's resolved `reserve: None` moved the `world_id` of every tape with a maker. Their text,
+    `tape_hash` and hash streams did not move. E1's hash check found it. The resolved field is now
+    left out when `None`, and a test pins the six P2.2 `world_id`s.
+  - **L0.6, the runs and this record.** Release, WSL, 99 minutes on 48 cores; raw runs in
+    `D:/rustyecon-p2l/idle-engine/runs/`.
+- **The verdict: the registered predictions hold, and none of the refutations occurred.**
+  - E3: heads × 10 is CONVERGED at all 14 instances, where P2.2a ran away at ticks 138–167. The
+    ticks to tolerance equal the mirror's to the tick at 12 instances and differ by 1 at two. The
+    lowest horse price is 0.135–0.193 of target, within 0.4% of the mirror's.
+  - E4: P8 is STUCK at 40,000 ticks and CONVERGED at 400,000, in tolerance from tick 24,601
+    (473 years). Its lowest horse price is 0.2146 of target.
+  - E5: all 1,980 battery runs converge, as in P2.2a. The rule acts in 85 runs at L and the same
+    85 at 10·L; the 85th, F3 x\*/2, was registered as free to flip. The other 1,810 runs equal
+    P2.2a's to every CSV row. The battery's lowest horse price at ω 1 rises from 0.001–0.009 of
+    target to 0.187–0.214.
+  - E6, E7: in the stocks, tick-length, P7 and P3 families, only the 14 heads × 10 runs change
+    class.
+  - E1, E2: every committed tape and pin is unchanged. Mode A, the slowest mode and the base kick
+    set equal P2.2a's at all 14 instances.
+  - The trace diff against the scan's mirror, carried as P2.2a's was, agrees within 1.6e-12 on
+    H2 r × 2. On P8 it agrees to rounding against the oracle's volumes and outputs. On H2's glut it
+    parts once orders resume against the withheld pile, where the mirror parts from itself by
+    0.11 one ulp apart (O55). The withheld ticks agree tick for tick in all three runs.
+- **Five misses, none on the refutation list** (the README's §"The misses"):
+  - H2 r × 2's lowest horse price is 0.220 of target against the mirror's 0.204. The scan's mirror
+    has no genesis carry (O57).
+  - The rule acts in 85 battery runs at L against 84, and in 87 stocks runs against 88. Both
+    differences are runs at the step.
+  - E8's ψ 1 kicks are classed VACUOUS where the mirror said ORBITING, though they orbit exactly
+    as the mirror's do (O56).
+  - F2's post-glut horse price reaches 119.7 of target, against the spec's range of 8–112.
+  - Not fixed, as the spec said (O52, O53): after a long glut, a shortage. Installed heads fall to
+    0.40–0.53 of target and the horse price rises to 8–120 times it. P8 still needs 473 years.
+- **The gates**, logs in `D:/rustyecon-p2l/idle-engine/gate/`.
+  - Before L0.4 and again before L0.5, `scripts/gate.sh` and `scripts/gui.sh` were green in WSL
+    and on Windows. The tests: 873 and then 874 workspace tests, 3 ignored; certify alone 67; the
+    GUI's 117.
+  - At `fac7db4`, `scripts/gate.sh` was green on both with a clean stamp (96 s and 139 s).
+  - The gate hash is `0x61f9c8529131ff17`, appb `0xe1fa082b26995867`, demo-gb
+    `0xfad880fe08d06645`. The six horses tapes' and seven markets tapes' 2,000-tick hash streams
+    and headers equal P2.2's (`D:/rustyecon-p2l/idle-engine/runs/e1/tapes-bit.log`).
 
 **The stocks probe (P2.2a; 2026-09-28; P2.2.1–P2.2.4).** You asked on 2026-09-27 for a
 production chain where goods use other goods, and delegated the design; GOODS-CHAIN §6 put a
@@ -2671,6 +2728,45 @@ D-G11 and D-G13 to D-G15 were taken as proposed, not ruled; they stay yours (nex
 244. **HORSES-RULES.md stays as registered** (decision 239): ENGINE.md (amended at L0.1) and
      TAPE.md say what the checks are now. Alternative: amend HORSES-RULES' SG7 paragraph as well.
 
+245–250 are IDLE-SPEC §9's 240–245 (the scan numbered them before L0.1 took 240–244), taken as the
+registration froze them (L0.3) and borne out by the run (L0.6); 251–253 are the build's and the
+run's.
+
+245. **O47's remedy is the maker's reservation** (IDLE-SPEC's 240; L0.3–L0.6). It is candidate
+     (a), a step on M2's offer, chosen by the mirror scan and registered before it was built. On
+     the engine every heads × 10 run and P8 converges, and no class changes in P2.2a's 1,980
+     battery runs or its families. The idle horse price stays within one step of ψ times
+     replacement cost whatever the bids (0.135–0.193 of target at heads × 10). Alternative: the
+     world's one-sided rule `Hold` (candidate (c)), with no code, which bounds the fall only while
+     no bid stands.
+246. **ψ = 0.25, not 1** (IDLE-SPEC's 241). At ψ 1 the engine orbits from mode A at all six
+     instances run: its genesis markup is 1 to an ulp, so rounding puts it on the step.
+     Alternative: ψ 0.4, which the scan found gives the same classes, 127 acting runs and a lowest
+     price of 0.30.
+247. **The maker keeps its cash rule while it withholds** (IDLE-SPEC's 242; tilt 0).
+     Alternative: tilt 1 with the reservation, which brings P8 to tolerance 2.4 times faster but
+     moves every local root (O53).
+248. **The reservation is refused at load on the flow path and under `Hold`** (IDLE-SPEC's 243).
+     Alternative: allow both and document each as a market that is dead by construction.
+249. **`reserve` is the one optional field of a stock kind** (IDLE-SPEC's 244). It is left out
+     when absent in both the raw and the resolved spec (L0.5), so every committed tape keeps its
+     text, `tape_hash`, `world_id` and hash stream. Alternative: a required field, with every
+     horses tape regenerated with `reserve: None` and new hashes.
+250. **The engine run was IDLE-SPEC §8's list** (IDLE-SPEC's 245), at P2.2a's registered L, with
+     E8's ψ 1 runs at the mirror's lengths. Alternative: decision 236's list alone (heads × 10,
+     P8 and the ω 1 battery).
+251. **The registration came before the build** (L0.3 before L0.4). The trace diff came after
+     both and before any scored run. The spec asked for build, trace diff, registration; this
+     order is stricter, since nothing of the rule on the engine was seen before registering.
+     Alternative: the spec's order, as P2.2a registered after its build.
+252. **The param is `reserve.<maker>`** (`reserve.maker`), as `cover.<maker>` is. The spec's
+     "(at A0 `reserve.desk.maker`)" was read as a slip at registration. Alternative:
+     `reserve.desk.maker`.
+253. **The reservation is on in every later stocks or loops instance by default**, at ψ 0.25:
+     P2.2b, the goods-chain 1750-like instance and the demo's second pass. Each frame registers it
+     as a dial, and P2.2a's tapes keep it off (R1). Alternative: opt in per registration, each
+     frame arguing for it.
+
 ## Open — your calls
 
 - **The GUI's decisions**, 22–34 (D1–D13): G0 carried them out, none vetoed; a veto now reopens
@@ -3218,12 +3314,14 @@ O41–O46 are HORSES-SPEC §9's, each with what the run found.
   b × 0.5, which the paper fills in a tick, 34–44 years, overshooting 39–83%; the quasi-rent is
   +0.4% (ω ½) and +6.2% (ω 1) three ticks on. The departure stands, nothing in P2.2a scores it,
   and its candidate fix stays Phase 3's entry rule.
-- **O47. The idle machine market** (decision 236; GOODS-CHAIN open question 4; HORSES §3–§4).
-  When orders stop the horse's price falls at its full rate with no floor: heads.capacity × 10
-  crosses the runaway bound at every one of 14 instances (ticks 138–167), P8 at tick 138, and the
-  ω 1 verdict runs reach 0.3–4% of target (0.1% at δ 4%) before recovering. The remedy (a maker's
-  reservation at replacement cost, or P2.1's one-sided fix) is chosen by a mirror scan, then run
-  on heads × 10, P8 and the ω 1 battery, before P2.2b and the goods-chain 1750-like instance.
+- **O47. The idle machine market: closed at L0.6 (2026-09-29)** (decision 236; GOODS-CHAIN open
+  question 4; HORSES §3–§4; decisions 245–253). When orders stopped, the horse's price fell at its
+  full rate with no floor. heads.capacity × 10 crossed the runaway bound at all 14 instances
+  (ticks 138–167), and P8 at tick 138. The ω 1 verdict runs fell to 0.1–0.9% of target. The
+  maker's reservation at ψ 0.25 now withholds the finished heads while the markup is below ψ. So
+  the price falls at most one step below ψ times replacement cost. Every heads × 10 run and P8
+  converge, and the battery's lowest horse price is 0.187–0.251 of target
+  (docs/probe/results/idle/). What it leaves is O52–O55.
 - **O48. M6's load check had a hole: closed at L0.1 (2026-09-29).** `cast.rs` exempted the
   capacity and owner desks from M6 for every good they buy; now only for the durable good they
   hold (decision 240). No check refused a seller offering a storable good in full; M5 now does
@@ -3256,6 +3354,42 @@ O51 on are the loop stage's groundwork's (L0, branch `phase2-loops`).
   in full (M5) and its buyers do not net it (M6). v2a.4 and v2a.6 need a seller that offers
   I/(1 + b_G) (GOODS-CHAIN E1's seller with `post: Share` and a cover) and netting of storable
   running goods wherever they are bought, each with a mirror scan and a test before its stage.
+- **O52. The maker's collapse through a long glut** (IDLE-SPEC's O51; decision 245).
+  - The reservation bounds the price, not the maker. Through years without sales the maker spends
+    its coin on heads it cannot sell, and its own herd wears. The glut then ends in a shortage.
+  - Engine, heads × 10: the horse price reaches 8.1–120 times target, and installed heads fall to
+    0.40–0.53. Horse-days are dead for 309–1,452 ticks, and at ω ½ labour for a further 998–2,706.
+  - In the mirror, the unconditional floor order (IDLE-SPEC candidate (d), 0.5·δK\*) avoids it,
+    at the cost of every glut path and a P8 fall to 0.049.
+  - Entry and exit (Phase 3) is the other route. The 1750-like instance's switch of technique is
+    where it will bind.
+- **O53. P8's slow mode stays** (IDLE-SPEC's O52). It is 0.999986 a tick at b × 2. So P8 is STUCK
+  at 40,000 ticks and reaches tolerance only after 473 years (tick 24,601). The mirror has tilt 1
+  on the maker's reservation move it to 0.9992 a tick, and P8 to 199 years. That belongs with O44
+  and the loop mirror.
+- **O54. A market that never reopens is argued, not run** (IDLE-SPEC's O53). At a switch of
+  technique (the 1750-like instance's horse to steam), the old machine's price should rest within
+  one step of ψ·p_rep, with neither offer nor bid. That instance's frame must run it and score the
+  price as an idle market's.
+- **O55. The chatter after a glut, and the engine's sensitivity there** (IDLE-SPEC's O54).
+  - When orders resume against a withheld pile, the offer switches on and off: 82–200 switches at
+    heads × 10.
+  - The step makes the path ulp-sensitive from that point. At H2 heads × 10 the mirror against
+    itself, one ulp apart, parts by 0.11 in log, and the engine by 0.09 on the horse volume and
+    1e-2 on prices.
+  - The run's summary statistics still matched the mirror's to the tick. A scored path window,
+    or a lens on the price, would read rounding there.
+- **O56. Price-kick negative controls and D̂₀.** The harness takes a price displacement's D̂₀ as
+  its genesis gap (PROBE-SPEC §4.5), 1e-6 for a 1e-9 kick. So such a run is VACUOUS unless it
+  diverges or dies, however it orbits. The scan's `i_run.py` takes the first tick's D̂. E8's ψ 1
+  kicks therefore missed their registered label (ORBITING), though their orbits match the
+  mirror's tick for tick. A future control should register its label in the harness's reading, or
+  the harness should report the first tick's D̂ beside D̂₀.
+- **O57. The scan's mirror has no genesis carry.** P2.2a's `h_mirror.py`, and the scan built on
+  it, leave out the one-tick goods' genesis carry (HORSES-SPEC §6.1). So an early transient can
+  miss the engine by more than the tolerances: H2 r × 2's lowest horse price is 0.204 of target in
+  the mirror and 0.220 in the engine. The trace diff's `i_carry.py` agrees with the engine within
+  1.6e-12 on that run. A mirror that registers predictions for the engine should carry genesis.
 
 ## Corrections logged (A3; ADDENDUM §1.4)
 
@@ -3318,15 +3452,18 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
    §3–§6, staged as its §5 and §6 set out; CAPACITY.md for the loop damper). **P2.2a is
    closed**: stage v2a.1, rule A's horse held as a stock and hired out wet, with fodder from
    land alone, is GO at C2g and 52 ticks a year, read narrower by its reviews
-   ([docs/probe/HORSES.md](docs/probe/HORSES.md); decisions 220–239). Before P2.2b's frame, in
-   order: a remedy for the idle machine market (O47, decision 236), chosen by a mirror scan and
-   run in the engine on heads × 10, P8 and the ω 1 battery; the mirror's own next step in Python
+   ([docs/probe/HORSES.md](docs/probe/HORSES.md); decisions 220–239). The idle machine market's
+   remedy is done: the maker's reservation at ψ 0.25 (O47 closed at L0.6; decisions 245–253;
+   [docs/probe/results/idle/README.md](docs/probe/results/idle/README.md)). It is on by default in
+   every later stocks or loops frame (decision 253), and it leaves the long glut's shortage (O52)
+   and P8's slow mode (O53). Before P2.2b's frame, in order: the mirror's own next step in Python
    (GOODS-CHAIN §6 step 3), the fodder–horse-days loop with stocks and CAPACITY's plant on both
    sides of the loop at θ 0.8 and δ 10% a year under C2g, composed with M3's horse holding and
    its one-for-one pass-through of a fodder shortfall, with makers from bought inputs and a
-   like-for-like flow control (O49, decision 235), its predictions registered; a funded county
-   for rule B (O41); and M6 narrowed, done at L0.1 with M5 beside it (O48 closed; decisions
-   240–244). Then the loops (P2.2b): rule B's horse, fodder
+   like-for-like flow control (O49, decision 235), with the reservation on and the engine's
+   genesis carry in the mirror (O57), its predictions registered; a funded county for rule B
+   (O41); and M6 narrowed, done at L0.1 with M5 beside it (O48 closed; decisions 240–244). Then
+   the loops (P2.2b): rule B's horse, fodder
    raised with horse-days, with CAPACITY's plant on every loop desk, both sides: a plant good
    for each loop desk, held and never traded (D-G2's `Indefinite` good, worn by `Depreciation`
    burns), s1 bundles of the desk's own recipe per plant unit, ordered by M3's rule with s_K =
@@ -3405,7 +3542,11 @@ docs/probe/MARKETS*.md   the markets probe's rules as built (MARKETS-RULES.md) a
                          (MARKETS.md), with figs/markets/ and results/markets/ (six CSVs)
 docs/probe/HORSES*.md    the stocks probe's rules as built (HORSES-RULES.md) and its report
                          (HORSES.md), with figs/horses/ and results/horses/ (the registration,
-                         its run lists and fifteen CSVs)
+                         its run lists and fifteen CSVs); HORSES-RULES §10 is the maker's
+                         reservation (L0.4, L0.5)
+docs/probe/results/idle/ the idle market's remedy on the engine (L0.3–L0.6): its registration,
+                         README (the verdict, prediction by prediction), seven CSVs and the trace
+                         diff; its plots in docs/probe/figs/idle/
 crates/engine            Sim, the tick, reports, resume, the replay audit, the registry listing
 crates/cli               the rustyecon binary: run, resume, replay, registry, certify, worldgen,
                          licences
@@ -3544,6 +3685,13 @@ scripts/gui.sh           the GUI's gate, run at each G-stage (G0.1); diffs the e
   and `D:/rustyecon-p2g/report/make_results.py` (WSL's python3, which has matplotlib) remakes
   docs/probe/results/horses/ and figs/horses/ from `D:/rustyecon-p2g/runs/` and the fidelity
   review's flow controls.
+- The idle market's remedy (L0.3–L0.6) on branch `phase2-loops`. Any `horses` or `horses-tape`
+  command takes `--reserve PSI`; without it the tape is P2.2a's. The run's waves are
+  `D:/rustyecon-p2l/idle-engine/runs/wave*.sh`, with the binary copied to
+  `/root/scratch/idle-bin/`, about 99 minutes on 48 cores. `analysis/analyze.py` (WSL python3,
+  `JOBS=40`) scores them against P2.2a's runs and the scan's mirror into `runs/tables/`, and
+  `analysis/plots.py` draws `runs/figs/`. The trace diff is `tracediff/tracediff.py BIN OUT`,
+  after `make_i_carry.py`.
 - The oracle's goldens: from `crates/oracle`, run `goldens/generate.py`, `generate_1b.py`, …,
   `generate_1f.py` and `generate_1g.py` with `--check` under laborformal's venv
   (`C:/Users/wilso/Documents/GitHub/laborformal/venv/Scripts/python.exe`,

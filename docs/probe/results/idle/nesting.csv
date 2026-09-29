@@ -1,0 +1,7 @@
+set,run,class_p22a,class_on,withheld,switches,markup_low,tol_p22a,tol_on,pk_low_p22a,pk_low_on,dead_p22a,dead_on,stop_p22a,stop_on,why_on,summary_same,stats_same,csv_rows,csv_same
+modea-h1,hold,CONVERGED,CONVERGED,0,0,1.0,0,0,1.0,1.0,0,0,ran,ran,,True,True,78001,True
+modea-h2,hold,CONVERGED,CONVERGED,0,0,1.0,0,0,1.0,1.0,0,0,ran,ran,,True,True,75001,True
+modea-h3,hold,CONVERGED,CONVERGED,0,0,1.0,0,0,1.0,1.0,0,0,ran,ran,,True,True,78001,True
+modea-h4,hold,CONVERGED,CONVERGED,0,0,1.0,0,0,1.0,1.0,0,0,ran,ran,,True,True,75001,True
+x10-h2,heads.capacity*10,DIVERGED,DIVERGED,0,0,1.023538e-06,,,9.498753e-07,9.498753e-07,0,0,runaway,runaway,the price of horse left the runaway bound at tick 138: 9.189813578979497e-7 of g,True,True,3,True
+p8,heads.capacity*2,DIVERGED,DIVERGED,0,0,1.066352e-06,,,1.004468e-06,1.004468e-06,0,0,runaway,runaway,the price of horse left the runaway bound at tick 138: 9.189813578979497e-7 of g,True,True,140,True

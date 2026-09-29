@@ -1,0 +1,6 @@
+IDLE-SPEC §6 trace diff: the L0.5 build against i_carry.py, 2000 ticks, C2g, 52 a year
+run	psi	ticks	worst |ln(build/mirror)|	at (tick, observable, build, mirror)	first above 1e-12	worst but volumes	volumes, absolute	the mirror against itself	prices, technique and stocks	outputs, absolute	markup, worst |ln|	withheld ticks (build, mirror)	disagree	first disagreement (tick, build, mirror, markup build, mirror)
+h2 heads.capacity*10	0.25	2000	8.894e-02	(1328, 'vol.horse', 0.0004140657282515462, 0.0004525790987167965)	(936, 'vol.horse', 7.855392529864617e-05, 7.85539252992221e-05)	9.830e-03	6.983e-03	1.110e-01	9.830e-03	3.363e-04	9.814e-03	977, 977	0	None
+p8 heads.capacity*2	0.25	2000	8.801e-11	(395, 'y.horse', 5.2726326481929206e-08, 5.272632647728857e-08)	(393, 'vol.horse', 2.389831915035768e-06, 2.3898319148254327e-06)	8.801e-11	8.069e-12	1.090e-12	2.730e-12	3.112e-12	2.596e-12	473, 473	0	None
+h2 r*2	0.25	2000	1.583e-12	(152, 'vol.horse', 0.0004300276467522348, 0.00043002764675155415)	(145, 'vol.horse', 0.0004045691764916076, 0.0004045691764920285)	1.704e-13	3.720e-13	7.115e-13	1.704e-13	1.123e-13	2.015e-13	65, 65	0	None
+h2 heads.capacity*10	off	139	4.663e-15	(138, 'heads.capacity', 28.042485643493567, 28.04248564349344)	None	4.663e-15	2.254e-15	4.774e-15	4.663e-15	2.479e-15	1.443e-15	0, 0	0	None

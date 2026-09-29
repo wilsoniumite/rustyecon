@@ -1,0 +1,5 @@
+length,run,class_on,class_mirror,stop,tol,tol_mirror,pk_low,pk_low_mirror,pk_low_y,pk_low_y_mirror,pk5_y,pk5_y_mirror,dead,withheld,withheld_mirror,switches,pk_high,pk_high_mirror,heads_low,heads_low_mirror,baskets_low,baskets_low_mirror,last,max_W,why
+40000,hold,CONVERGED,,ran,0,,1.0,,,,,,0,0,,0,,,1.0,,1.0,,6.328271e-12,6.328271e-12,
+40000,heads.capacity*2,STUCK,STUCK,ran,24601,24601,0.2146301,0.215,10.25,10.2,245.92307692307693,245.9,0,473,473,192,4.392700036739005,4.39,0.9539593,0.954,0.8867548,0.887,1.721958e-3,5.139656e0,
+400000,hold,CONVERGED,,ran,0,,1.0,,,,,,0,0,,0,,,1.0,,1.0,,6.328271e-12,6.328271e-12,
+400000,heads.capacity*2,CONVERGED,CONVERGED,ran,24601,24601,0.2146301,0.215,7.6923076923076925,10.2,245.78846153846155,245.9,0,473,473,192,4.392114973293409,4.39,0.9539593,0.954,0.8867548,0.887,1.803002e-10,1.803002e-10,
