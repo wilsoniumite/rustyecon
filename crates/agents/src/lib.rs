@@ -38,6 +38,7 @@ pub use roles::spec::{
     RawCeiling, RawGoodDesk, RawMachDesk, RawMachRecipe, RawPayoutTo, RawProvider, RawScale,
     RawSchedule, RawStep, RawTechnique, RawTransfer, RawWorkers, Scale, Schedule, Workers,
 };
+pub use roles::stock::rules::{maker_reservation, withholds, Reservation};
 pub use roles::stock::spec::{
     Build, CapacityDesk, Maker, OrderRule, OwnerDesk, RawBuild, RawCapacityDesk, RawMaker,
     RawOwnerDesk, RawRunning, Running,

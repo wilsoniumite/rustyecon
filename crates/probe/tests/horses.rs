@@ -771,3 +771,71 @@ fn horses_tapes_keep_their_world_ids() {
     let with = sim(&tape_ron(&reserved("h1", 0.25)).unwrap());
     assert_ne!(with.world().world_id, 0xc92f_78b1_7dd4_9bb6);
 }
+
+#[test]
+fn harness_reads_the_reservation_the_maker_acts_on() {
+    // The engine review of L0.4 (2026-09-29): the harness once formed the maker's markup from
+    // rule A's running recipe written into its code (fodder a·1 + 0, labour a·0 + λ), not from
+    // the tape's params, so a frame with another running recipe would have read wrong markups
+    // and withheld ticks, and nothing would have flagged it. Now it reads the tape's own recipes
+    // through the rule's own code (`maker_readout`). H1 with the horses' running labour raised
+    // from 0 to X, so that a unit costs twice what it does at rest and the markup at genesis
+    // prices is about 0.5: at ψ 0.75 the engine's maker offers no head at tick 0 and the harness
+    // reads it as withheld; at ψ 0.25 it offers and the harness reads it as offering. Both read
+    // the markup a hand computation from the tape's numbers gives, with X in it. With the old
+    // readout the markup read 1 and the first case read as offering.
+    let base = registered("h1");
+    let rule = base.instance.rule_a(52).unwrap();
+    let (kappa, delta) = base.instance.per_tick(52).unwrap();
+    let g = probe::horses::setup::genesis(&base).unwrap();
+    let markets = base.instance.markets();
+    let at = |m: &str| markets.iter().position(|x| x == m).unwrap();
+    let (w, r, pf, pk) = (
+        g.prices[at("labour")],
+        g.prices[at("land")],
+        g.prices[at("fodder")],
+        g.prices[at("horse")],
+    );
+    let a = rule.own_hours;
+    let c0 = (a * 1.0 + 0.0) * pf + (a * 0.0 + rule.labour) * w + rule.pasture * r;
+    let x = c0 / (a * w);
+    let hand = pk * (1.0 - delta * a / kappa)
+        / ((a * 1.0 + 0.0) * pf + (a * x + rule.labour) * w + rule.pasture * r);
+    assert!((hand - 0.5).abs() < 1e-9, "{hand}");
+    let line = "(key: \"inst.horse.run.labour\", value: 0.0,";
+    let mut read = Vec::new();
+    for (psi, withholds) in [(0.75, true), (0.25, false)] {
+        let text = tape_ron(&reserved("h1", psi)).unwrap();
+        assert!(text.matches(line).count() == 1);
+        let text = text.replace(
+            line,
+            &format!("(key: \"inst.horse.run.labour\", value: {x:?},"),
+        );
+        let mut s = sim(&text);
+        let maker = probe::horses::harness::the_maker(&s).expect("a maker");
+        let horse = s.world().id_of::<GoodId>("horse").unwrap();
+        let report = s.step().unwrap();
+        let price_of = |g: GoodId| report.markets.iter().find(|l| l.good == g).map(|l| l.price);
+        let res = probe::horses::harness::maker_readout(&s, &maker, &price_of).unwrap();
+        let offered = report
+            .markets
+            .iter()
+            .find(|l| l.good == horse)
+            .unwrap()
+            .supply;
+        assert_eq!(res.psi, psi);
+        assert!(
+            (res.markup / hand - 1.0).abs() < 1e-12,
+            "{} {hand}",
+            res.markup
+        );
+        assert_eq!(res.withholds, withholds, "ψ {psi}: markup {}", res.markup);
+        assert_eq!(
+            offered == 0.0,
+            withholds,
+            "ψ {psi}: the engine offered {offered}"
+        );
+        read.push(res.markup.to_bits());
+    }
+    assert_eq!(read[0], read[1]);
+}

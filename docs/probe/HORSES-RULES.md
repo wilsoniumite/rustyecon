@@ -737,3 +737,26 @@ meaning.
 horses tapes and their per-tick hash streams (§6.9), and the tape schema, 1 (docs/TAPE.md).
 
 **The runs** are in `docs/probe/results/idle/` (its README), against the registration.
+
+**Amended at L0.7 (2026-09-29): the engine review's findings.**
+- **Off is structural.** The claim above that `μ < 0` is false for every markup the maker can
+  form does not hold. p_K > 0 and c_m > 0 are not enough: μ's sign also rests on 1 − δ·a/κ,
+  which no load check bounds, and a dated `SetParam` can move it. With δ·a/κ > 1 L0.4's maker
+  withheld its whole finished stock at ψ 0 or with `reserve` absent, where P2.2a's offered it
+  (H1 with 1,000 finished heads and a = 1,000: 999.96 heads against 0). The rule now withholds
+  only when ψ > 0 and μ < ψ (`withholds`). No committed tape and no L0.6 run has δ·a/κ > 1, so
+  none moves.
+- **The harness reads the tape's own recipes.** `harness::MakerCost` formed μ from rule A's
+  running recipe written into its code (fodder a·1 + 0, labour a·0 + λ), not from the tape's
+  `inst.<h>.run.*` params. It matched every instance run so far, but a frame with another running
+  recipe would have read wrong markups and withheld ticks. It is gone. Each tick the harness now
+  reads the maker's resolved spec, the params in force (the tick's events apply before its
+  decisions) and the tick's posted prices, and forms μ, ψ and the withheld flag with the agents
+  crate's `maker_reservation`, the same code the rule runs (`harness::maker_readout`). On every
+  instance run so far it reads what `MakerCost` read (the rerun below).
+- **Tests**, each failing with its change undone (`D:/rustyecon-p2l/fix-report/mutants/`):
+  `a_maker_without_a_reservation_offers_at_any_markup` and
+  `m6_refuses_a_stored_good_no_role_offers_in_full` (agents), and
+  `harness_reads_the_reservation_the_maker_acts_on` (probe: H1 with the horses' running labour
+  raised so that μ is 0.5 at genesis; at ψ 0.75 the engine offers no head and the harness reads
+  it as withheld, at ψ 0.25 it offers and the harness reads it as offering).

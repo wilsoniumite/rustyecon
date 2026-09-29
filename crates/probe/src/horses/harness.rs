@@ -25,11 +25,13 @@ use certify::fold::min2;
 use certify::Obs;
 use rustyecon_core::num;
 use rustyecon_core::num::ln;
-use rustyecon_core::FlowPerYear;
+use rustyecon_core::{CoreError, FlowPerYear, Site};
 use rustyecon_engine::prelude::{
     ActorId, ClassId, GoodId, Holder, PriceError, RunErrorKind, SideTag, Sim, Tape, TickReport,
 };
-use rustyecon_engine::rustyecon_agents::ActorState;
+use rustyecon_engine::rustyecon_agents::{
+    maker_reservation, ActorState, AgentError, Maker, Reservation, Spec,
+};
 use std::collections::BTreeMap;
 
 /// The observables of an instance, in order (HORSES-SPEC §7.1): `v`, `pi.<market>` for every
@@ -301,11 +303,12 @@ pub struct Row {
     pub no_order: bool,
     /// The stock records.
     pub stocks: Stocks,
-    /// The maker's net markup p_K·(1 − δ·a/κ)/c_m at the tick's posted prices and the
-    /// coefficients in force, summed in its rule's order (IDLE-SPEC §6; NaN on the flow path).
-    /// Read here, outside the Sim; no agent sees it.
+    /// The maker's net markup p_K·(1 − δ·a/κ)/c_m at the tick's posted prices and the params
+    /// in force, formed by its rule's own code from the tape's recipes ([`maker_readout`];
+    /// IDLE-SPEC §6; NaN on the flow path). Read here, outside the Sim; no agent sees it.
     pub markup: f64,
-    /// Whether the maker withheld its finished heads: its markup below its reservation ψ.
+    /// Whether the maker withheld its finished heads: a reservation ψ above 0 and its markup
+    /// below it, as its rule decides.
     pub withheld: bool,
 }
 
@@ -405,57 +408,38 @@ impl Row {
     }
 }
 
-/// The maker's coefficients as its rule reads them, for its net markup (IDLE-SPEC §6), with
-/// the horse's and fodder's places in market order.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct MakerCost {
-    a: f64,
-    labour: f64,
-    pasture: f64,
-    kappa: f64,
-    delta: f64,
-    horse: usize,
-    fodder: Option<usize>,
+/// The first maker among a world's actors, as the tape resolved it; `None` if it has none. On
+/// the flow path (R1a) it holds no reservation, and the harness reads none.
+pub fn the_maker(sim: &Sim) -> Option<Maker> {
+    sim.world().actors.iter().find_map(|a| match &a.spec {
+        Spec::Maker(m) => Some(m.clone()),
+        _ => None,
+    })
 }
 
-impl MakerCost {
-    /// The maker's coefficients at `inst`'s b and `tpy`; `None` on the flow path, which holds
-    /// no reservation.
-    pub fn of(inst: &Instance, tpy: u32) -> Result<Option<MakerCost>, String> {
-        if inst.is_flow() {
-            return Ok(None);
-        }
-        let markets = inst.markets();
-        let at = |m: &str| markets.iter().position(|x| x == m);
-        let rule = inst.rule_a(tpy)?;
-        let (kappa, delta) = inst.per_tick(tpy)?;
-        Ok(Some(MakerCost {
-            a: rule.own_hours,
-            labour: rule.labour,
-            pasture: rule.pasture,
-            kappa,
-            delta,
-            horse: at(&inst.keys.horse).ok_or("no horse market")?,
-            fodder: at("fodder"),
-        }))
-    }
-
-    /// Its net markup at posted prices `price` (in market order): p_K·(1 − δ·a/κ)/c_m, with c_m
-    /// summed as the maker's rule sums it, its bought goods (fodder, a·run_f + build_f) from
-    /// 0.0, then labour (a·run_lab + build_lab)·w, then land.
-    pub fn markup(&self, price: &[f64]) -> f64 {
-        let a = self.a;
-        let (w, r) = (price[0], price[1]);
-        let pk = price[self.horse];
-        let mut c = 0.0;
-        if let Some(i) = self.fodder {
-            c += (a * 1.0 + 0.0) * price[i];
-        }
-        c += (a * 0.0 + self.labour) * w;
-        c += self.pasture * r;
-        let net = pk * (1.0 - self.delta * a / self.kappa);
-        net / c
-    }
+/// The maker's reservation as its rule read it on a tick (IDLE-SPEC §6; L0.7): its net markup
+/// p_K·(1 − δ·a/κ)/c_m, its ψ and whether it withheld, formed by the agents crate's own
+/// [`maker_reservation`] from the resolved spec, the params in force after the tick's step
+/// (the tick's events apply before its decisions) and the tick's posted prices, `price_of` by
+/// good. So the readout reads the tape's own recipes, whatever they are, and cannot part from
+/// the rule. Read here, outside the Sim; no agent sees it.
+pub fn maker_readout(
+    sim: &Sim,
+    maker: &Maker,
+    price_of: &dyn Fn(GoodId) -> Option<f64>,
+) -> Result<Reservation, String> {
+    let clock = &sim.world().clock;
+    let par = |s: Site| -> Result<f64, AgentError> {
+        let v = sim
+            .param(s.param)
+            .ok_or(AgentError::Core(CoreError::UnknownParam(s.param)))?;
+        s.convert(clock, v).map_err(AgentError::Core)
+    };
+    let pr = |g: GoodId| -> Result<f64, AgentError> {
+        price_of(g)
+            .ok_or_else(|| AgentError::Core(CoreError::Shape(format!("no posted price for {g}"))))
+    };
+    maker_reservation(maker, &par, &pr).map_err(|e| e.to_string())
 }
 
 /// The ids a run reads.
@@ -1163,9 +1147,12 @@ pub fn run(
         nine: nine(&inst),
         last_withheld: None,
     };
-    let psi = setup.psi();
-    // The maker's coefficients for each b in force, for its markup.
-    let mut coefs: Vec<(u64, Option<MakerCost>)> = Vec::new();
+    // The maker whose reservation the rows read (none on the flow path).
+    let maker = if inst.is_flow() {
+        None
+    } else {
+        the_maker(&sim)
+    };
     let (k0, k1) = (g.point.capacity + g.point.serving, t0.heads);
     stats.stock.paper = if k1 >= k0 {
         1.0
@@ -1192,18 +1179,11 @@ pub fn run(
         };
         let o = Obs::of(&report, &sim);
         let mut row = row(&sim, &inst, &ids, &report, &o, &target, k, horse_market)?;
-        let b = setup.b_at(tick).to_bits();
-        let cost = match coefs.iter().find(|(k, _)| *k == b) {
-            Some(&(_, c)) => c,
-            None => {
-                let c = MakerCost::of(&setup.instance_at(tick), setup.tpy)?;
-                coefs.push((b, c));
-                c
-            }
-        };
-        if let Some(c) = cost {
-            row.markup = c.markup(&row.price);
-            row.withheld = row.markup < psi;
+        if let Some(m) = &maker {
+            let price_of = |g: GoodId| ids.goods.iter().position(|x| *x == g).map(|i| row.price[i]);
+            let res = maker_readout(&sim, m, &price_of)?;
+            row.markup = res.markup;
+            row.withheld = res.withholds;
         }
         each(&row);
         if hold_failure.is_none() {

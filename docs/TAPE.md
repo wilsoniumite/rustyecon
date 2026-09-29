@@ -250,7 +250,7 @@ order, and the canonical form keeps them as written.
   (hours a unit a year), `delta` a `FractionPerYear`, `adjust` a `RatePerYear`; `cover` is
   `None` or `Some` of a `Years` param read as whole ticks (at least one); `reserve`, which may be
   absent, is `None` or `Some` of a `Dimensionless` param, ψ: while its net markup
-  p_K·(1 − δ·a/κ)/c at posted prices is below ψ the maker offers none of its finished stock (absent
+  p_K·(1 − δ·a/κ)/c at posted prices is below ψ > 0 the maker offers none of its finished stock (absent
   or `None`, off; refused on the flow path and under `Hold`; L0.4); `own` is its genesis serving
   stock after wear, an inline number.
 - `CapacityDesk((stock, hours, labour, kappa, running, delta, adjust, order, scale))`: a Desk

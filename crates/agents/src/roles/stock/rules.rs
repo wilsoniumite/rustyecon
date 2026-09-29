@@ -32,7 +32,7 @@ use crate::roles::rules::{
 use crate::roles::spec::{Assign, GoodDesk};
 use crate::roles::stock::spec::{CapacityDesk, Maker, OrderRule, OwnerDesk};
 use rustyecon_core::num;
-use rustyecon_core::{GoodId, Holder, Provenance, StateDelta};
+use rustyecon_core::{GoodId, Holder, Provenance, Site, StateDelta};
 
 /// `x` when it is positive, else 0: the sign of an order or a transfer into service, which is
 /// never negative (R3: a sign, not a cap). A NaN is 0.
@@ -81,6 +81,110 @@ fn wear(me: Holder, good: GoodId, worn: f64, out: &mut Vec<Delta>) {
     burn(me, good, worn, Provenance::Depreciation, out);
 }
 
+/// A param's per-tick value at one of its sites, as a rule reads it.
+type ParamAt<'a> = dyn Fn(Site) -> Result<f64, AgentError> + 'a;
+/// A good's posted price at the actor's home node.
+type PriceOf<'a> = dyn Fn(GoodId) -> Result<f64, AgentError> + 'a;
+
+/// The goods a maker buys per unit built, in list order: the running recipe's goods, then the
+/// build's not already listed, each with a·run_g + build_g.
+fn bought_per_unit(m: &Maker, a: f64, par: &ParamAt<'_>) -> Result<Vec<(GoodId, f64)>, AgentError> {
+    let mut out: Vec<(GoodId, f64, f64)> = Vec::with_capacity(m.running.goods.len());
+    for i in &m.running.goods {
+        out.push((i.good, par(i.coef)?, 0.0));
+    }
+    for i in &m.build.goods {
+        let b = par(i.coef)?;
+        match out.iter_mut().find(|x| x.0 == i.good) {
+            Some(x) => x.2 = b,
+            None => out.push((i.good, 0.0, b)),
+        }
+    }
+    Ok(out
+        .into_iter()
+        .map(|(g, run, b)| (g, a * run + b))
+        .collect())
+}
+
+/// A maker's labour per unit built, a·run_lab + build_lab, and land per unit.
+fn labour_land_per_unit(m: &Maker, a: f64, par: &ParamAt<'_>) -> Result<(f64, f64), AgentError> {
+    let lam = a * par(m.running.labour)? + par(m.build.labour)?;
+    Ok((lam, par(m.build.land)?))
+}
+
+/// The cost of a unit built at posted prices, bought goods first in list order, then labour and
+/// land, with the bought goods' prices: its own machines' running inputs included, their hours
+/// not.
+fn unit_cost(
+    goods: &[(GoodId, f64)],
+    lam: f64,
+    b: f64,
+    w: f64,
+    r: f64,
+    pr: &PriceOf<'_>,
+) -> Result<(Vec<f64>, f64), AgentError> {
+    let mut prices = Vec::with_capacity(goods.len());
+    let mut c = 0.0;
+    for &(g, coef) in goods {
+        let pg = pr(g)?;
+        c += coef * pg;
+        prices.push(pg);
+    }
+    c += lam * w;
+    c += b * r;
+    Ok((prices, c))
+}
+
+/// Whether a maker with reservation ψ withholds its finished stock at net markup `markup`: only
+/// a reservation above 0 acts (L0.7), so a maker without one offers what P2.2a's offered at any
+/// markup, a negative one included (δ·a/κ > 1, which no load check rules out).
+pub fn withholds(psi: f64, markup: f64) -> bool {
+    psi > 0.0 && markup < psi
+}
+
+/// A maker's reservation as its rule reads it on the stock path (IDLE-SPEC §6): its net markup
+/// p_K·(1 − δ·a/κ)/c at posted prices, its reservation ψ (0 without one), and whether it
+/// withholds. The rule forms these with the same code, from `par`, a param's per-tick value at
+/// one of its sites, and `pr`, a good's posted price; an observer outside the Sim (the probe's
+/// harness) reads them through [`maker_reservation`], so the two cannot part (L0.7).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Reservation {
+    /// The net markup.
+    pub markup: f64,
+    /// ψ, 0 without a reservation.
+    pub psi: f64,
+    /// Whether it offers none of its finished stock.
+    pub withholds: bool,
+}
+
+/// [`Reservation`] for the maker `m`, from `par` and `pr` as its rule reads them.
+pub fn maker_reservation(
+    m: &Maker,
+    par: &ParamAt<'_>,
+    pr: &PriceOf<'_>,
+) -> Result<Reservation, AgentError> {
+    let w = pr(m.labour)?;
+    let r = pr(m.land)?;
+    let pk = pr(m.output)?;
+    let a = par(m.own_hours)?;
+    let kappa = par(m.kappa)?;
+    let d = par(m.delta)?;
+    let goods = bought_per_unit(m, a, par)?;
+    let (lam, b) = labour_land_per_unit(m, a, par)?;
+    let (_, c) = unit_cost(&goods, lam, b, w, r, pr)?;
+    let net = pk * (1.0 - d * a / kappa);
+    let markup = net / c;
+    let psi = match m.reserve {
+        Some(site) => par(site)?,
+        None => 0.0,
+    };
+    Ok(Reservation {
+        markup,
+        psi,
+        withholds: withholds(psi, markup),
+    })
+}
+
 /// The maker (M2) as the cast runs it: its spec, and the type desk it is on the flow path.
 #[derive(Debug, Clone)]
 pub struct MakerRole {
@@ -111,29 +215,12 @@ impl MakerRole {
     /// The goods it buys per unit built, in list order: the running recipe's goods, then the
     /// build's not already listed, each with a·run_g + build_g.
     fn bought<S>(&self, v: &View<'_, S>, a: f64) -> Result<Vec<(GoodId, f64)>, AgentError> {
-        let m = &self.spec;
-        let mut out: Vec<(GoodId, f64, f64)> = Vec::with_capacity(m.running.goods.len());
-        for i in &m.running.goods {
-            out.push((i.good, param(v, i.coef)?, 0.0));
-        }
-        for i in &m.build.goods {
-            let b = param(v, i.coef)?;
-            match out.iter_mut().find(|x| x.0 == i.good) {
-                Some(x) => x.2 = b,
-                None => out.push((i.good, 0.0, b)),
-            }
-        }
-        Ok(out
-            .into_iter()
-            .map(|(g, run, b)| (g, a * run + b))
-            .collect())
+        bought_per_unit(&self.spec, a, &|s| param(v, s))
     }
 
     /// Labour per unit built, a·run_lab + build_lab, and land per unit.
     fn labour_land<S>(&self, v: &View<'_, S>, a: f64) -> Result<(f64, f64), AgentError> {
-        let m = &self.spec;
-        let lam = a * param(v, m.running.labour)? + param(v, m.build.labour)?;
-        Ok((lam, param(v, m.build.land)?))
+        labour_land_per_unit(&self.spec, a, &|s| param(v, s))
     }
 
     fn mach_state(s: &MakerState) -> MachDeskState {
@@ -178,15 +265,7 @@ impl Behaviour for MakerRole {
         let (lam, b) = self.labour_land(v, a)?;
         // The cost of a unit built at posted prices, bought goods first in list order, then
         // labour and land: its own machines' running inputs included, their hours not.
-        let mut prices = Vec::with_capacity(goods.len());
-        let mut c = 0.0;
-        for &(g, coef) in &goods {
-            let pg = price(v, g)?;
-            c += coef * pg;
-            prices.push(pg);
-        }
-        c += lam * w;
-        c += b * r;
+        let (prices, c) = unit_cost(&goods, lam, b, w, r, &|g| price(v, g))?;
         // Its finished stock is what it holds beyond its serving stock; 0 where rounding puts
         // the record an ulp above the holding (a sign).
         let held = v.own.get(m.output);
@@ -221,9 +300,10 @@ impl Behaviour for MakerRole {
         };
         // The reservation (IDLE-SPEC, L0.4): below ψ it offers none of its finished stock; it
         // holds it, unworn, and still buys and breeds on the whole q by its cash rule. Off (ψ 0
-        // or absent), `markup < 0.0` is false for every markup it can form, so the offer is
-        // P2.2a's bit for bit.
-        let want = if margin.markup < psi {
+        // or absent) is structural (L0.7): the markup's sign also rests on 1 − δ·a/κ, which no
+        // load check bounds, so `markup < 0.0` alone would withhold where δ·a/κ > 1. Off, the
+        // offer is P2.2a's bit for bit at any markup.
+        let want = if withholds(psi, margin.markup) {
             0.0
         } else {
             sign(finished - keep - cover * q * c / pk)

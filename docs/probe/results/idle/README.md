@@ -26,7 +26,7 @@ refutation list, and each has a cause (below). So O47 is closed with the reserva
 | item | registered | engine | |
 |---|---|---|---|
 | E1 nesting | tapes, hashes, pins unchanged; ψ 0 is P2.2a | six horses tapes' 2,000-tick hash streams and headers equal P2.2's (after L0.5); ψ 0 at H1–H4 mode A, H2 heads × 10 and P8 heads × 2 equal P2.2a's to every CSV row, summary and statistic | holds |
-| E2 mode A, local map | P2.2a's bit for bit | mode A PASS at all 14, every row P2.2a's; `slowest hold` envelope and g P2.2a's at 14/14; base kick set P2.2a's at 14/14 | holds |
+| E2 mode A, local map | P2.2a's bit for bit | mode A PASS at all 14, every row P2.2a's; `slowest hold` envelope and g P2.2a's at 14/14; base kick set P2.2a's at 14/14; at b × 2@dated every kick set PASS but not P2.2a's bit for bit (L0.7 below) | holds |
 | E3 heads × 10 | no runaway; CONVERGED ×14; ticks and prices as tabled | 14/14 CONVERGED; ticks to tolerance equal at 12, off by 1 tick at H4 and F2; lowest price within 0.4% | holds |
 | E4 P8 | STUCK at 40,000, CONVERGED at 400,000; low 0.215; tol from 24,601 | the same, low 0.2146 at year 10.25, tol from tick 24,601 | holds |
 | E5 battery | 1,980/1,980 CONVERGED; acts in 84 at L and the same at 10·L | 1,980/1,980; acts in 85 at L and the same 85 at 10·L (F3 x\*/2, named as free to flip); the other 1,810 are P2.2a's | holds, one miss |
@@ -172,9 +172,49 @@ horse price is within 3% of the spec's (F1 +2.6%, F2 +2.1%, F4 −1.9%).
   [fig2](../../figs/idle/fig2_x10_glut_and_shortage.png) and
   [fig3](../../figs/idle/fig3_p8.png).
 
+## Amended at L0.7 (2026-09-29): what the engine review found
+
+The review rebuilt `15b05af` on both machines and reproduced every check it tried, with no
+refutation. It found five minor issues. Each is answered here, and the code ones are fixed at
+L0.7 (docs/probe/HORSES-RULES.md §10, "Amended at L0.7").
+
+1. **The dated-target kick sets are not P2.2a's bit for bit.** At b × 2@dated the rule acts on the
+   way to the new target (46 withheld ticks at H2), so the kicks start from another end state. At
+   the 10 instances with that target, 30 kick and slowest-mode files differ from P2.2a's and 234
+   are equal. Every kick set passes. The slowest mode a year, rule on against P2.2a:
+
+   | H1 | H2 | H3 | H4 | F1 | F2 | F3 | F4 | F8 | F10 |
+   |---|---|---|---|---|---|---|---|---|---|
+   | 0.9013 / 0.9007 | 0.8546 / 0.8540 | 0.9132 / 0.9132 | 0.8824 / 0.8824 | 0.9449 / 0.9449 | 0.9313 / 0.9305 | 0.8802 / 0.8812 | 0.8917 / 0.8983 | 0.8729 / 0.8756 | 0.8936 / 0.8936 |
+
+   The largest move is F4's, 0.0066 a year. E2's row above now says so. IDLE-SPEC §0's "mode A and
+   every kick set" is a claim about the mirror (its dated amendment,
+   [IDLE-SPEC-A1.md](IDLE-SPEC-A1.md), sha256 in `IDLE-SPEC-A1.sha256`).
+2. **The bound on the price is one step below ψ times the replacement cost at the maker's last
+   offer**, not at current costs. The price never falls on a withheld tick, but the wage and
+   fodder keep moving while the maker withholds. So its markup at current costs goes lower: 0.144
+   to 0.206 at heads × 10, up to about five steps below ψ. At H1 the last offer is at tick 39 (markup
+   0.2502); the price falls one step, 49.98 to 45.22, and holds, while the markup falls to 0.1506
+   at tick 903. The lowest horse price is still 0.135–0.193 of target.
+3. **Off was not structural.** With ψ 0 or absent, L0.4's maker withheld wherever δ·a/κ > 1,
+   which makes the markup negative. No committed tape and no run here has that. L0.7 withholds
+   only when ψ > 0.
+4. **The harness read rule A's running recipe from its own code.** It now reads the tape's
+   recipes through the rule's own code. Rerun from L0.7's build on WSL, the review's sample of
+   17 runs (H2 r × 2, N(2), JA(0.8) and hold; H1 r × 2 and b × 0.5@dated; H2 and F2 heads × 10;
+   F3 x\*/2; P8 heads × 2; E8's ψ 1 at H1, hold and the downward kick; P3 (iv) at H2; H4 r × 1.2
+   at 12 a year; H2 r × 2 at 10·L; ψ 0 heads × 10; the F2 path) equals this README's evidence in
+   every CSV row, summary line and statistic, the `markup` and `withheld` columns included
+   (`D:/rustyecon-p2l/fix-report/rerun/`; H2's hold against mode A's run, on the 2,887 ticks both
+   wrote). Windows gives the same on H2 heads × 10, H2 r × 2 and hold, and P8 heads × 2. So no
+   result here moves.
+5. **L0.1's M6 test could not fail on M6 alone**, since M5 refuses the same tapes. A new test
+   has a scripted seller of stored fodder, which M5 does not check, so only M6 refuses it.
+
 ## Files
 
 - `registration.md`, `registration.sha256`: the registration (L0.3).
+- `IDLE-SPEC-A1.md`, `IDLE-SPEC-A1.sha256`: the spec's amendment after the engine review (L0.7).
 - `battery.csv`: the 1,980 battery runs. For each: the class (P2.2a, on, the mirror's), the
   withheld ticks, switches and lowest markup, and the ticks to tolerance, lowest horse price and
   dead ticks (P2.2a, on, the mirror's). Also whether the summary, the statistics and every CSV

@@ -846,6 +846,25 @@ when it is `None`, as the raw one does, and every committed tape has its P2.2 `w
 The resolved kinds are hashed and never read back. Test (§11), in probe (`tests/horses.rs`):
 `horses_tapes_keep_their_world_ids` pins the six; it fails with the attribute removed.
 
+**Amended at L0.7** (2026-09-29; the engine review of L0.1–L0.6). No committed tape, pin or
+L0.6 run moves; every change is off on every committed tape.
+
+1. The reservation's off is structural. The maker withholds only when ψ > 0 and its markup is
+   below ψ (`roles::stock::rules::withholds`). L0.4's `markup < ψ` alone withheld at ψ 0, or with
+   `reserve` absent, wherever δ·a/κ > 1: the markup's sign rests on 1 − δ·a/κ, which no load check
+   bounds, and a dated `SetParam` can move it. L0.4's item 1 above said no markup could be below
+   0; that was wrong.
+2. The agents crate exposes the maker's reservation readout, `maker_reservation` (its markup, ψ
+   and whether it withholds, from a param reader and a price reader), formed by the same code
+   `MakerRole::decide` runs (`bought_per_unit`, `labour_land_per_unit`, `unit_cost`), so an
+   observer outside the Sim reads what the rule acts on. It reads no state and changes nothing;
+   the rule's arithmetic and order are unchanged.
+3. Tests (§11). In agents (`tests/stock.rs`): `a_maker_without_a_reservation_offers_at_any_markup`
+   (fails without item 1) and `m6_refuses_a_stored_good_no_role_offers_in_full` (a scripted
+   seller of stored fodder, so only M6 can refuse the tape; fails with L0.1's narrowing undone).
+   In probe (`tests/horses.rs`): `harness_reads_the_reservation_the_maker_acts_on` (fails with the
+   readout on rule A's running recipe, as L0.4's harness had it).
+
 ## 0. Engine invariants
 
 Numbered so tests and reviews can cite them. Each has at least one test in §11.

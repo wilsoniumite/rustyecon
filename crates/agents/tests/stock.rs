@@ -774,6 +774,105 @@ fn m5_refuses_a_stored_good_offered_in_full() {
     Cast::new(&w).expect("the maker sells under its own rule");
 }
 
+/// Fodder sold by a scripted actor that makes none and offers what it holds, in place of the
+/// fodder desk, and the params only the fodder desk read dropped. A script is its own affair, so
+/// neither M5 nor M6 looks at its lines.
+fn fodder_scripted(text: &str) -> String {
+    let desk = r#"         spec: TypeDesk((
+            output: "fodder", labour: "labour", land: "land",
+            recipe: (own: "inst.fodder.own", inputs: [], labour: "inst.fodder.labour", land: "inst.fodder.land"),
+            scale: Cash((turnover: "buffer.desk.fodder.cash", tilt: "tilt.desk.fodder", payout: None)),
+         ))),"#;
+    let script = r#"         spec: Scripted((
+            active: true, recipe: None, buy: [],
+            sell: [(node: "home", good: "fodder", qty: AllHeld)],
+            spend: None, payout: None,
+         ))),"#;
+    let dropped = [
+        "inst.fodder.own",
+        "inst.fodder.labour",
+        "inst.fodder.land",
+        "buffer.desk.fodder.cash",
+        "tilt.desk.fodder",
+    ];
+    edit_all(text, desk, script)
+        .lines()
+        .filter(|l| {
+            let t = l.trim_start();
+            !dropped
+                .iter()
+                .any(|k| t.starts_with(&format!("(key: \"{k}\",")))
+        })
+        .map(|l| format!("{l}\n"))
+        .collect()
+}
+
+#[test]
+fn m6_refuses_a_stored_good_no_role_offers_in_full() {
+    // The engine review of L0.1 (2026-09-29): the fidelity review's tape is refused by M5 as
+    // well as by M6, so `m6_nets_only_the_durable_good` alone cannot show M6 at work. Here no
+    // role offers the stored fodder in full: a scripted seller holds it, and the capacity desk
+    // (H1) or the owner desk (P7) buys it as a running good, the maker's own fodder removed. M5
+    // has nothing to refuse, so these tapes loaded before O48's fix and are refused only by M6,
+    // at the buyer's running path. With fodder one tick, the scripted seller's tapes load.
+    for text in [H1, P7] {
+        let (w, _) = load_text(&maker_unfed(&fodder_scripted(text))).unwrap();
+        Cast::new(&w).expect("a scripted seller of a one-tick good loads");
+    }
+    let cases = [
+        (
+            maker_unfed(&fodder_scripted(&fodder_stored(H1))),
+            "actors[desk.capacity].spec.running.goods",
+        ),
+        (
+            maker_unfed(&fodder_scripted(&fodder_stored(P7))),
+            "actors[desk.good].spec.running",
+        ),
+    ];
+    for (text, path) in cases {
+        let err = refusal(&text);
+        assert_eq!(err.path, path, "{err}");
+        assert!(err.to_string().contains("nets"), "M6's refusal: {err}");
+    }
+}
+
+#[test]
+fn a_maker_without_a_reservation_offers_at_any_markup() {
+    // The engine review of L0.4 (2026-09-29): a maker's net markup p_K·(1 − δ·a/κ)/c is
+    // negative where δ·a/κ > 1, which no load check rules out (a dated SetParam can set it), and
+    // L0.4's `markup < ψ` then withheld with ψ 0 or absent. Off must be structural (L0.7). H1,
+    // the maker holding 1,000 finished heads and its own horse-days a head raised to 1,000
+    // (δ·a/κ about 2): without a reservation, and at ψ 0, it offers heads, as P2.2a's maker did
+    // (999.96); with L0.4's rule it offered 0. At ψ 0.25 it withholds.
+    for (text, psi) in [
+        (H1.to_string(), None),
+        (h1_reserved(0.0), Some(0.0)),
+        (h1_reserved(0.25), Some(0.25)),
+    ] {
+        let (w, s, cast) = load(&text);
+        let dm = actor(&w, "desk.maker");
+        let horse = good(&w, "horse");
+        let ActorState::Maker(m) = state(&s, dm) else {
+            panic!("a maker state")
+        };
+        let mut s = s.clone();
+        set_param(&mut s, &w, "inst.horse.own_hours", 1000.0);
+        set_holding(&mut s, &w, dm, horse, m.own + 1000.0);
+        let d = cast.decide(dm, &s, &w).unwrap();
+        let sold: f64 = d
+            .orders
+            .iter()
+            .filter(|o| o.good == horse && matches!(o.side, Side::Sell))
+            .map(|o| o.qty)
+            .sum();
+        if psi == Some(0.25) {
+            assert_eq!(sold, 0.0);
+        } else {
+            assert!(sold > 900.0, "{psi:?}: sold {sold}");
+        }
+    }
+}
+
 #[test]
 fn stock_specs_round_trip_in_canonical_form() {
     // Every stocks-probe tape survives to_ron and a parse with the same world; its new kinds'
