@@ -750,3 +750,24 @@ fn reserve_conserves_every_tick() {
     }
     assert!(withheld > 100, "the maker withheld on {withheld} ticks");
 }
+
+#[test]
+fn horses_tapes_keep_their_world_ids() {
+    // R1 for L0.4's optional field: `world_id` hashes the resolved actors, so a field added to a
+    // kind moves it unless it is left out when absent. Each committed horses tape keeps the
+    // world_id P2.2 recorded (D:/rustyecon-p2g/report/hashes/wsl-horses-<id>.txt). L0.4 as first
+    // committed moved all six; L0.5 restored them. With the reservation the world is another.
+    let p7 = include_str!("../../../tapes/horses-p7.ron");
+    for (id, text, want) in [
+        ("h1", TAPES[0].1, 0xc92f_78b1_7dd4_9bb6_u64),
+        ("h2", TAPES[1].1, 0x386a_e50b_a941_4be3),
+        ("h3", TAPES[2].1, 0x1562_9782_d6e4_b359),
+        ("h4", TAPES[3].1, 0x5059_ba9b_2ff1_b015),
+        ("r1a", TAPES[4].1, 0xddc8_6dbc_11b7_24f3),
+        ("p7", p7, 0xc9e4_2f5f_b078_f10f),
+    ] {
+        assert_eq!(sim(text).world().world_id, want, "{id}");
+    }
+    let with = sim(&tape_ron(&reserved("h1", 0.25)).unwrap());
+    assert_ne!(with.world().world_id, 0xc92f_78b1_7dd4_9bb6);
+}

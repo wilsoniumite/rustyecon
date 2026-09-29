@@ -658,9 +658,9 @@ envelope, which moves no L.
 
 ## 10. The maker's reservation (L0.4, 2026-09-29)
 
-Step L0.4 on branch `phase2-loops`. O47, the idle machine market: in a glut the capacity desk
-orders nothing for years, the maker still offers its finished heads, and the horse market has
-an offer and no bid. Under `Saturate` its price falls by e^(−k) a tick (0.1 at C2g) until the
+Steps L0.4 and L0.5 on branch `phase2-loops`. O47, the idle machine market: in a glut the
+capacity desk orders nothing for years, the maker still offers its finished heads, and the horse
+market has an offer and no bid. Under `Saturate` its price falls by e^(−k) a tick (0.1 at C2g) until the
 runaway bound, which heads.capacity × 10 reached at every instance and P8 at A0 (HORSES §3–§4).
 The remedy is the one the mirror scan chose, `D:/rustyecon-p2l/idle-scan/IDLE-SPEC.md` (sha256
 `c5c6527a…`), registered before it was built (`docs/probe/results/idle/registration.md`, L0.3).
@@ -684,8 +684,11 @@ quantity. It is the one field of a stock kind that may be absent (`#[serde(defau
 skip_serializing_if = "Option::is_none")]`, as criteria's `price_shocks`): absent or at ψ 0 the
 rule is off, since `μ < 0` is false for every markup the maker can form (p_K > 0, c_m > 0, and a
 NaN compares false). Every committed tape keeps its canonical text, `tape_hash` and `world_id`,
-and no state changes. The capacity desk, the owner desk, the markets and the engine are
-unchanged.
+and no state changes. The resolved `Maker` leaves the field out when it is `None` too, since
+`world_id` hashes the resolved actors by bincode: L0.4 as first committed wrote a `None` there,
+and every tape with a maker kept its text, `tape_hash` and per-tick hash stream but took a new
+`world_id`. The registration's check of the hashes found it before any scored run, and L0.5 put
+it back. The capacity desk, the owner desk, the markets and the engine are unchanged.
 
 **The value.** ψ = 0.25 (IDLE-SPEC §5), the param `reserve.<maker>` (`reserve.maker` at every
 stock instance, as `cover.<maker>`; the spec's parenthesis `reserve.desk.maker` was read as a
@@ -726,7 +729,8 @@ meaning.
   ticks; at ψ 1.01 it withholds from tick 0 and parts) and `reserve_conserves_every_tick` (H2's
   glut at ψ 0.25 for 2,000 ticks: each tick's ledger, the money stock, every wear burn δ times the
   recorded stock, and on each tick the maker offers nothing its heads move only by what it made
-  and what wore).
+  and what wore), and, at L0.5, `horses_tapes_keep_their_world_ids` (the six committed horses
+  tapes keep the `world_id` P2.2 recorded; with the reservation the world is another).
 
 **What does not move.** The gate `0x61f9c8529131ff17`, appb `0xe1fa082b26995867`, demo-gb
 `0xfad880fe08d06645` (stream `0xdb63cc96f769fb3e`), the probe's pin, the markets probe's pins, the

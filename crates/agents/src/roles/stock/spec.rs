@@ -209,7 +209,11 @@ pub struct Maker {
     pub adjust: Site,
     /// b_K, a live `Years` param read as whole `Ticks`; `None` is no cover.
     pub cover: Option<Site>,
-    /// ψ, the reservation, a live `Dimensionless` param; `None` is off.
+    /// ψ, the reservation, a live `Dimensionless` param; `None` is off. `world_id` hashes the
+    /// resolved actors by bincode, so the field is left out when it is `None`, and a world
+    /// without it keeps the `world_id` it had before the field existed (L0.5). The resolved
+    /// kinds are hashed, never read back.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reserve: Option<Site>,
     /// The genesis serving stock after wear.
     pub own: f64,

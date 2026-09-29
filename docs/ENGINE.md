@@ -839,6 +839,13 @@ changed.
    `reserve_absent_or_zero_is_p22a`, `reserve_leaves_the_rest_point` and
    `reserve_conserves_every_tick`. Each fails with its change undone.
 
+**Amended at L0.5** (2026-09-29). `world_id` hashes the resolved actors by bincode, so L0.4's
+resolved field, written as `None`, moved the `world_id` of every tape with a maker; their text,
+`tape_hash` and per-tick hash streams did not move. The resolved `Maker` now leaves `reserve` out
+when it is `None`, as the raw one does, and every committed tape has its P2.2 `world_id` again.
+The resolved kinds are hashed and never read back. Test (§11), in probe (`tests/horses.rs`):
+`horses_tapes_keep_their_world_ids` pins the six; it fails with the attribute removed.
+
 ## 0. Engine invariants
 
 Numbered so tests and reviews can cite them. Each has at least one test in §11.
