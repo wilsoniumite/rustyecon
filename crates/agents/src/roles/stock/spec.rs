@@ -10,7 +10,8 @@
 //! the maker's cover a `Years` span read as whole ticks. The only inline numbers are genesis
 //! state: the owner desk's genesis human share 1 − x, the maker's genesis serving stock after
 //! wear, and a step rule's genesis scale. Every field is required and none has a default but
-//! the maker's `reserve` (L0.4), whose absence is off.
+//! the maker's `reserve` (L0.4) and the maker's and the capacity desk's `plant` (P2.2b), whose
+//! absence is off.
 //!
 //! **Lists keep the order written**, as the many-market roles' do: a running recipe's goods and
 //! a build's goods are evaluation order (costs are summed in list order), so the canonical form
@@ -18,6 +19,7 @@
 #![deny(missing_docs)]
 
 use crate::roles::many::spec::{Input, RawInput};
+use crate::roles::plant::spec::{resolve_plant, Plant, RawPlant};
 use crate::roles::spec::{
     distinct, live, scale, share, traded, Assign, RawScale, RawSchedule, RawTechnique, Scale,
     Schedule,
@@ -95,6 +97,10 @@ pub struct RawMaker {
     pub own: f64,
     /// The scale rule. Required, no default.
     pub scale: RawScale,
+    /// `Option<RawPlant>`: CAPACITY's plant over its build's bundle (P2.2b; LOOPS-RULES §4.3).
+    /// `None` or absent is off; absent is not written, as `reserve`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub plant: Option<RawPlant>,
 }
 
 /// The capacity desk's investment order, as the tape writes it.
@@ -133,6 +139,10 @@ pub struct RawCapacityDesk {
     pub order: OrderRule,
     /// The scale rule. Required, no default.
     pub scale: RawScale,
+    /// `Option<RawPlant>`: CAPACITY's plant beside its stock, over the running recipe's bundle
+    /// (P2.2b; LOOPS-RULES §4.2; decision 261). `None` or absent is off; absent is not written.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub plant: Option<RawPlant>,
 }
 
 /// The owner desk (a Desk, M1), as the tape writes it: the good desk holding its own machines,
@@ -219,6 +229,9 @@ pub struct Maker {
     pub own: f64,
     /// The scale rule.
     pub scale: Scale,
+    /// Its plant, if any (P2.2b), left out when `None`, as `reserve`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub plant: Option<Plant>,
 }
 
 /// The resolved capacity desk.
@@ -242,6 +255,9 @@ pub struct CapacityDesk {
     pub order: OrderRule,
     /// The scale rule.
     pub scale: Scale,
+    /// Its plant, if any (P2.2b), left out when `None`, as the maker's `reserve`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub plant: Option<Plant>,
 }
 
 /// The resolved owner desk.
@@ -314,6 +330,9 @@ impl Maker {
             site(out, "reserve".into(), p);
         }
         self.scale.sites(out);
+        if let Some(p) = &self.plant {
+            p.sites(out);
+        }
     }
 }
 
@@ -330,6 +349,9 @@ impl CapacityDesk {
         site(out, "delta".into(), self.delta);
         site(out, "adjust".into(), self.adjust);
         self.scale.sites(out);
+        if let Some(p) = &self.plant {
+            p.sites(out);
+        }
     }
 }
 
@@ -422,6 +444,7 @@ pub fn resolve_maker(raw: &RawMaker, r: &mut Resolver<'_>) -> Result<Maker, Load
     };
     let own = r.quantity(raw.own, "own")?;
     let scale = scale(r, &raw.scale)?;
+    let plant = resolve_plant(&raw.plant, r)?;
     Ok(Maker {
         output,
         labour,
@@ -436,6 +459,7 @@ pub fn resolve_maker(raw: &RawMaker, r: &mut Resolver<'_>) -> Result<Maker, Load
         reserve,
         own,
         scale,
+        plant,
     })
 }
 
@@ -453,6 +477,7 @@ pub fn resolve_capacity_desk(
     let delta = live(r, &raw.delta, ClockMethod::Fraction, "delta")?;
     let adjust = live(r, &raw.adjust, ClockMethod::Share, "adjust")?;
     let scale = scale(r, &raw.scale)?;
+    let plant = resolve_plant(&raw.plant, r)?;
     Ok(CapacityDesk {
         stock,
         hours,
@@ -463,6 +488,7 @@ pub fn resolve_capacity_desk(
         adjust,
         order: raw.order,
         scale,
+        plant,
     })
 }
 

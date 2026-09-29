@@ -23,11 +23,12 @@ pub enum CoreError {
     UnknownParam(ParamId),
     /// An actor id outside the world (an extension's delta, for example).
     UnknownActor(ActorId),
-    /// A book write to a (node, currency) slot: a currency has no market.
+    /// A book write to a (node, currency) slot, or to an untraded good's (amended at P2.2b.1):
+    /// neither has a market.
     NoMarket {
         /// The node.
         node: NodeId,
-        /// The currency.
+        /// The currency or untraded good.
         good: GoodId,
     },
     /// A value that is not finite, has its sign bit set (`-0.0` included), or is zero where a
@@ -85,7 +86,10 @@ impl fmt::Display for CoreError {
             CoreError::UnknownParam(p) => write!(f, "undefined {p}"),
             CoreError::UnknownActor(a) => write!(f, "undefined actor {a}"),
             CoreError::NoMarket { node, good } => {
-                write!(f, "{good} is a currency and has no market at {node}")
+                write!(
+                    f,
+                    "{good} is a currency or untraded, and has no market at {node}"
+                )
             }
             CoreError::BadValue { what, value } => write!(
                 f,
@@ -241,11 +245,15 @@ pub enum LoadErrorKind {
     },
     /// Anything else, described.
     Invalid(String),
-    /// A price shock on a good with no market: a currency (amended at S2.3).
+    /// A price shock, a genesis price or an order line on a good with no market: a currency
+    /// (amended at S2.3), or an untraded good (amended at P2.2b.1).
     NoMarket,
     /// A `ScalePrice` in a recurring entry: a periodic price nudge would be an exogenous
     /// stabiliser (R3), so a price shock is a dated event only (amended at S2.3).
     RecurringPriceShock,
+    /// An untraded good that is not `Indefinite`, has a `price_rate` or is a node's currency
+    /// (amended at P2.2b.1).
+    UntradedGood,
 }
 
 impl fmt::Display for LoadError {
@@ -312,11 +320,20 @@ impl fmt::Display for LoadErrorKind {
                 "weights fold to {sum:e}, not exactly 1 (add them in canonical order)"
             ),
             Invalid(m) => write!(f, "{m}"),
-            NoMarket => write!(f, "a currency has no market, so no price to shock"),
+            NoMarket => write!(
+                f,
+                "a currency or an untraded good has no market: no price to shock, post or \
+                 trade at"
+            ),
             RecurringPriceShock => write!(
                 f,
                 "a ScalePrice cannot recur: a periodic price nudge would be an exogenous \
                  stabiliser (R3), so a price shock is a dated event"
+            ),
+            UntradedGood => write!(
+                f,
+                "an untraded good must be Indefinite, have no price_rate and be no node's \
+                 currency"
             ),
         }
     }

@@ -56,7 +56,9 @@ impl<'de> Deserialize<'de> for Hex {
 }
 
 /// The tape hash (N10, C2): FNV-1a 64 over the canonical `to_ron` text. The parsed tape is
-/// everything the loader reads (unknown fields are refused and nothing has a default), and
+/// everything the loader reads (unknown fields are refused, and the few fields that may be
+/// absent, the maker's `reserve`, a good's `untraded` and a desk's `plant`, mean off when absent
+/// and are written when on), and
 /// `to_ron` writes all of it in canonical order, so this covers everything `world_id` and every
 /// `prefix_id` cover (the name, every basis, the schedule and the inline numbers too) and ignores
 /// only what the loader ignores: comments, whitespace, line endings and list order.

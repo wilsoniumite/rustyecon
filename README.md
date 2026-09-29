@@ -64,7 +64,8 @@ fill in phase by phase:
 
 Packages are named `rustyecon-<crate>`. `tapes/gate.ron` is the Phase 0 gate world,
 `tapes/appb.ron` the probe's Appendix B world, `tapes/markets-<id>.ron` the markets probe's
-worlds, `tapes/horses-<id>.ron` the stocks probe's, and `tapes/demo-gb.ron` the illustrative
+worlds, `tapes/horses-<id>.ron` the stocks probe's, `tapes/loops-<id>.ron` the loop step's
+(rule B with CAPACITY's plants, P2.2b), and `tapes/demo-gb.ron` the illustrative
 demo world, 93 historic counties of the United Kingdom from 1750 to 1901, compiled by
 `rustyecon worldgen worlds/demo-gb --out tapes/demo-gb.ron`; nothing from it may be scored or
 cited (`certify` seals any run of it UNSCORED; citation is kept out by hand). The county atlas

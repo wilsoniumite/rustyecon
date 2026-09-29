@@ -56,7 +56,7 @@ pub struct Order {
     pub class: ClassId,
     /// The node. In Phase 0 an actor may post at any node (docs/ENGINE.md §3.1).
     pub node: NodeId,
-    /// The good; never a currency.
+    /// The good; never a currency or an untraded good.
     pub good: GoodId,
     /// The quantity asked for or offered this tick.
     pub qty: f64,
@@ -93,11 +93,11 @@ pub enum OrderError {
     UnknownNode(NodeId),
     /// The good is not in the world.
     UnknownGood(GoodId),
-    /// The good is a currency, which has no market.
+    /// The good has no market: a currency, or an untraded good (amended at P2.2b.1).
     NoMarket {
         /// The node.
         node: NodeId,
-        /// The currency.
+        /// The currency or untraded good.
         good: GoodId,
     },
     /// The order's class is not the actor's registered class.
@@ -176,7 +176,10 @@ impl fmt::Display for OrderError {
             OrderError::UnknownNode(n) => write!(f, "order at undefined {n}"),
             OrderError::UnknownGood(g) => write!(f, "order for undefined {g}"),
             OrderError::NoMarket { node, good } => {
-                write!(f, "order for {good} at {node}: a currency has no market")
+                write!(
+                    f,
+                    "order for {good} at {node}: a currency or an untraded good has no market"
+                )
             }
             OrderError::WrongClass {
                 actor,
@@ -290,7 +293,7 @@ fn check<E: Ext>(o: &Order, w: &World<E>) -> Result<(), OrderError> {
     }
     w.node(o.node).ok_or(OrderError::UnknownNode(o.node))?;
     w.good(o.good).ok_or(OrderError::UnknownGood(o.good))?;
-    if w.is_currency(o.good) {
+    if !w.has_market(o.good) {
         return Err(OrderError::NoMarket {
             node: o.node,
             good: o.good,

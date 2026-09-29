@@ -122,6 +122,8 @@ fn entities(w: &World) -> Vec<(&'static str, Vec<Named>)> {
         .map(|g| {
             let detail = if w.is_currency(g.id) {
                 "currency".to_string()
+            } else if w.is_untraded(g.id) {
+                format!("{:?}, untraded", g.life)
             } else {
                 format!("{:?}", g.life)
             };

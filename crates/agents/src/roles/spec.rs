@@ -504,11 +504,15 @@ pub(crate) fn live(
     r.param(key, method, ParamUse::Live, field)
 }
 
-/// A traded good: not a currency, since a currency has no market.
+/// A traded good: not a currency, since a currency has no market, and not an untraded good (a
+/// plant, P2.2b.1), which has none either.
 pub(crate) fn traded(r: &mut Resolver<'_>, key: &Key, field: &str) -> Result<GoodId, LoadError> {
     let g = r.good(key, field)?;
     if r.is_currency(g) {
         return Err(r.error(field, LoadErrorKind::CurrencyOrder));
+    }
+    if r.is_untraded(g) {
+        return Err(r.error(field, LoadErrorKind::NoMarket));
     }
     Ok(g)
 }

@@ -1338,3 +1338,44 @@ fn render_prints_only_serialised_numbers() {
         }
     }
 }
+
+#[test]
+fn kick_skips_untraded_goods() {
+    // LOOPS-RULES §10 (P2.2b.1; E4): a planted tape's kick set has two runs, + and −, for each
+    // market it trades, and none for a plant. An untraded good has no market, so
+    // `World::markets()` leaves it out; a kicked plant price, which nothing would move back,
+    // would fail every kick set.
+    let lb1 = tape(include_str!("../../../tapes/loops-lb1.ron"));
+    let mut s = sim(&lb1);
+    s.run_until(10, &mut |_| {}).unwrap();
+    let cp = s.checkpoint().unwrap();
+    let w = s.world().clone();
+    let plants = w
+        .goods
+        .iter()
+        .filter(|g| g.key.as_str().starts_with("plant."))
+        .count();
+    assert_eq!((w.goods.len(), plants), (10, 3));
+    let bars = battery::KickBars {
+        size: KICK,
+        horizon: 3,
+        tail: 2,
+        max_gain: MAX_GAIN,
+        max_peak: MAX_PEAK,
+    };
+    let ks = kick_segment(&lb1, &w, &cp, 0, &bars, "loops-lb1.ron");
+    let (base, runs) = ks.runs.as_ref().unwrap();
+    let markets: Vec<String> = w
+        .markets()
+        .map(|(_, g)| w.key_of(g).unwrap().to_string())
+        .collect();
+    assert_eq!(
+        markets,
+        ["fodder", "good", "horse", "labour", "land", "traction"]
+    );
+    assert_eq!(base[0].len(), 6);
+    assert_eq!(runs.len(), 2 * 6, "± each of six markets, no plant");
+    for m in 0..6 {
+        assert_eq!(runs.iter().filter(|r| r.market == m).count(), 2, "{m}");
+    }
+}

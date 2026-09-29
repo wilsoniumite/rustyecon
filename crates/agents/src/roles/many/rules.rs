@@ -21,8 +21,11 @@
 //! `max_scale` over the inputs whose coefficient is not zero.
 
 use crate::behaviour::{AgentError, Behaviour, Decision, View};
-use crate::ext::{ActorState, GoodDeskState, MachDeskState, ProviderState, WorkersState};
+use crate::ext::{
+    ActorState, GoodDeskState, MachDeskState, PlantState, ProviderState, WorkersState,
+};
 use crate::roles::many::spec::{BasketProvider, BasketWorkers, CategoryDesk, Item, TypeDesk};
+use crate::roles::plant::rules::{built, burned, mint_plant, sign, split, Plan, PlantNow};
 use crate::roles::rules::{
     burn, buy, leontief, offer, param, price, scale_outlay, sell, set, take, Delta, Margin, Tasks,
 };
@@ -383,10 +386,16 @@ impl Behaviour for CategoryDesk {
     }
 }
 
-impl Behaviour for TypeDesk {
-    type Own = MachDeskState;
-
-    fn decide(&self, v: &View<'_, MachDeskState>) -> Result<Decision, AgentError> {
+impl TypeDesk {
+    /// Its decision, with its plant if it has one (P2.2b; LOOPS-RULES §4.1): the orders and the
+    /// deltas but its own state, which comes back apart with the plant's plan. Without a plant it
+    /// is P2.1's type desk to the bit.
+    pub(crate) fn plan<S>(
+        &self,
+        v: &View<'_, S>,
+        st: &MachDeskState,
+        plant: Option<&PlantNow>,
+    ) -> Result<(Decision, MachDeskState, Option<Plan>), AgentError> {
         let mut out = Decision::default();
         let mut dry = v.own.clone();
         let w = price(v, self.labour)?;
@@ -397,6 +406,7 @@ impl Behaviour for TypeDesk {
         let b = param(v, self.land_coef)?;
         // The cash cost of one unit made, its bought services first, in list order, then
         // hours and land; and its markup in the net form, p_k(1 − a_kk)/c_k, 1 at rest (M1k).
+        // With a plant, c is the bundle's cost, and the margin reads it (decision 295).
         let mut bought = Vec::with_capacity(self.inputs.len());
         let mut c = 0.0;
         for i in &self.inputs {
@@ -413,46 +423,64 @@ impl Behaviour for TypeDesk {
             markup: net / c,
             worth: net * held,
         };
-        let (outlay, scale) = scale_outlay(
-            v,
-            &self.scale,
-            v.own_state.scale,
-            &margin,
-            &mut dry,
-            &mut out,
-        )?;
-        let q = outlay / c;
+        let (outlay, scale) = scale_outlay(v, &self.scale, st.scale, &margin, &mut dry, &mut out)?;
+        // The plan: the cash rule at the full cost c_full = c + (u·P_K)·kr, which is c without
+        // a plant, at θ = 1 and at u = 0.
+        let ratios = plant.map(|p| p.ratios(c));
+        let q = match &ratios {
+            Some(x) => outlay / x.full,
+            None => outlay / c,
+        };
         // It keeps a_kk·q of what it made last tick for its own use and offers the rest; every
         // input it buys is ordered on the whole q (RULES' graft 4).
         let keep = (a * q).min(held);
         let offered = offer(&mut dry, self.output, held - keep)?;
         out.orders.push(sell(v, self.output, offered));
+        // The plant: K*_p = kr·q, ordered by M3's rule, at most the coin left after the running
+        // bundle buys, sign(C − c·q)/P_K. Its bundles are bought on the same lines, a_g·(q + s·I),
+        // from a total of outlay + P_K·I, which is the outlay at I = 0.
+        let (n, total, rec) = match (plant, ratios) {
+            (Some(p), Some(x)) => {
+                let held_p = v.own.get(p.good);
+                let target = x.kr * q;
+                let coin = v.own.get(v.currency);
+                let order = p.order_of(target, held_p).min(sign(coin - c * q) / x.pk);
+                let rec = Plan {
+                    held: held_p,
+                    target,
+                    order,
+                    run: q,
+                };
+                (q + p.s * order, outlay + x.pk * order, Some(rec))
+            }
+            _ => (q, outlay, None),
+        };
         let mut lines: Vec<(GoodId, f64)> = Vec::with_capacity(bought.len() + 2);
         let mut wants = Vec::with_capacity(bought.len() + 2);
         for (g, coef, pl) in bought {
-            let qty = coef * q;
+            let qty = coef * n;
             lines.push((g, qty));
             wants.push((g, pl * qty));
         }
-        lines.push((self.labour, lam * q));
-        wants.push((self.labour, w * (lam * q)));
-        lines.push((self.land, b * q));
-        wants.push((self.land, r * (b * q)));
-        let budgets = budget_chain(outlay, &wants, &mut dry, v.currency)?;
+        lines.push((self.labour, lam * n));
+        wants.push((self.labour, w * (lam * n)));
+        lines.push((self.land, b * n));
+        wants.push((self.land, r * (b * n)));
+        let budgets = budget_chain(total, &wants, &mut dry, v.currency)?;
         for ((g, qty), bud) in lines.into_iter().zip(budgets) {
             out.orders.push(buy(v, g, qty, bud));
         }
-        out.deltas.push(set(
-            v,
-            ActorState::MachDesk(MachDeskState {
-                scale,
-                ..*v.own_state
-            }),
-        ));
-        Ok(out)
+        Ok((out, MachDeskState { scale, ..*st }, rec))
     }
 
-    fn produce(&self, v: &View<'_, MachDeskState>) -> Result<Vec<Delta>, AgentError> {
+    /// Its production, with its plant if it has one (LOOPS-RULES §3.6): the burns and mints
+    /// but its own state, which comes back apart with the plant units built.
+    pub(crate) fn run<S>(
+        &self,
+        v: &View<'_, S>,
+        st: &MachDeskState,
+        plant: Option<(&PlantNow, &PlantState)>,
+    ) -> Result<(Vec<Delta>, MachDeskState, f64), AgentError> {
         let a = param(v, self.own)?;
         let lam = param(v, self.labour_coef)?;
         let b = param(v, self.land_coef)?;
@@ -466,18 +494,37 @@ impl Behaviour for TypeDesk {
         }
         inputs.push((v.own.get(self.labour), lam));
         inputs.push((v.own.get(self.land), b));
-        let y = leontief(&inputs)?;
+        // B, the bundles held, read over every unit held (carried units included, decision
+        // 273). Without a plant it is the output.
+        let bundles = leontief(&inputs)?;
+        let (y, total, made) = match plant {
+            None => (bundles, bundles, 0.0),
+            Some((p, rec)) => {
+                let (z, i) = split(bundles, rec.run, rec.order, p.s);
+                let y = p.make(rec.held, z);
+                let made = built(bundles, z, i, p.s)?;
+                (y, burned(z, made, p.s), made)
+            }
+        };
         let me = Holder::Actor(v.me);
         let mut out = Vec::new();
-        if y > 0.0 {
+        if total > 0.0 {
             // The own-input burn comes first, so it takes the lots made last tick; the mint
             // makes a lot that sells next tick.
-            burn(me, self.output, a * y, Provenance::Production, &mut out);
+            burn(me, self.output, a * total, Provenance::Production, &mut out);
             for (g, coef) in coefs {
-                burn(me, g, coef * y, Provenance::Production, &mut out);
+                burn(me, g, coef * total, Provenance::Production, &mut out);
             }
-            burn(me, self.labour, lam * y, Provenance::Production, &mut out);
-            burn(me, self.land, b * y, Provenance::Production, &mut out);
+            burn(
+                me,
+                self.labour,
+                lam * total,
+                Provenance::Production,
+                &mut out,
+            );
+            burn(me, self.land, b * total, Provenance::Production, &mut out);
+        }
+        if y > 0.0 {
             out.push(StateDelta::Mint {
                 to: me,
                 good: self.output,
@@ -485,13 +532,25 @@ impl Behaviour for TypeDesk {
                 prov: Provenance::Production,
             });
         }
-        out.push(set(
-            v,
-            ActorState::MachDesk(MachDeskState {
-                output: y,
-                ..*v.own_state
-            }),
-        ));
+        if let Some((p, _)) = plant {
+            mint_plant(me, p, made, &mut out);
+        }
+        Ok((out, MachDeskState { output: y, ..*st }, made))
+    }
+}
+
+impl Behaviour for TypeDesk {
+    type Own = MachDeskState;
+
+    fn decide(&self, v: &View<'_, MachDeskState>) -> Result<Decision, AgentError> {
+        let (mut out, state, _) = self.plan(v, v.own_state, None)?;
+        out.deltas.push(set(v, ActorState::MachDesk(state)));
+        Ok(out)
+    }
+
+    fn produce(&self, v: &View<'_, MachDeskState>) -> Result<Vec<Delta>, AgentError> {
+        let (mut out, state, _) = self.run(v, v.own_state, None)?;
+        out.push(set(v, ActorState::MachDesk(state)));
         Ok(out)
     }
 

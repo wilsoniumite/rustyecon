@@ -27,12 +27,15 @@ pub use behaviour::{AgentError, Behaviour, Decision, Hook, Posted, View};
 pub use cast::Cast;
 pub use ext::{
     ActorState, AgentDelta, Agents, CapacityState, GoodDeskState, MachDeskState, MakerState,
-    OwnerState, ProviderState, RawAgentAction, ScriptState, WorkersState,
+    OwnerState, PlantState, PlantedCapacityState, PlantedMakerState, PlantedTypeState,
+    ProviderState, RawAgentAction, ScriptState, WorkersState,
 };
 pub use roles::many::spec::{
     BasketProvider, BasketWorkers, CategoryDesk, Input, Item, RawBasketProvider, RawBasketWorkers,
     RawCategoryDesk, RawInput, RawItem, RawLine, RawTypeDesk, RawTypeRecipe, TypeDesk,
 };
+pub use roles::plant::rules::{PlantedCapacity, PlantedMaker, PlantedType};
+pub use roles::plant::spec::{Plant, PlantOrder, PlantTarget, RawPlant};
 pub use roles::spec::{
     Assign, Basket, Ceiling, GoodDesk, MachDesk, MachRecipe, Provider, RawBasket, RawCash,
     RawCeiling, RawGoodDesk, RawMachDesk, RawMachRecipe, RawPayoutTo, RawProvider, RawScale,

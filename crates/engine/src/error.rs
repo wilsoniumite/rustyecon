@@ -43,8 +43,9 @@ pub enum RunErrorKind {
         actor: ActorId,
         /// The hook.
         hook: Hook,
-        /// The delta.
-        delta: StateDelta<Agents>,
+        /// The delta, boxed (amended at P2.2b.1): the planted desks' states made a delta the
+        /// largest thing an error carries, and every step returns this error type.
+        delta: Box<StateDelta<Agents>>,
     },
     /// `decide` returned an order for another actor or another class (E7, R13).
     ForeignOrder {

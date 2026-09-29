@@ -109,7 +109,7 @@ pub(crate) fn canonical(lines: &[Line]) -> Vec<&Line> {
 
 /// The flat book index of a market of `w`.
 fn slot<E: Ext>(w: &World<E>, node: NodeId, good: GoodId) -> Result<usize, OrderError> {
-    if w.node(node).is_none() || w.good(good).is_none() || w.is_currency(good) {
+    if w.node(node).is_none() || !w.has_market(good) {
         return Err(OrderError::UnknownMarket { node, good });
     }
     Ok(node.idx() * w.n_goods() + good.idx())

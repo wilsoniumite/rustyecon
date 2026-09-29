@@ -14,6 +14,8 @@
 //! - [`kick`]: the kick set at a run's end (§7.5), and the engine's slowest mode for L (§7.4).
 //! - [`cli`]: the options the two binaries share.
 //! - [`probes`]: §7.8's one-tick elasticity probe and the open-loop probe.
+//! - [`loops`]: the loop step's instances (P2.2b; docs/probe/LOOPS-RULES.md §7): rule B at
+//!   chain8 with CAPACITY's plants, the flow control, their oracle point and their tapes.
 //!
 //! The markets probe's harness (`crate::markets`) is unchanged but for its classifier, which
 //! this harness shares; on R1a this harness nests it (`horses_r1a_nests_i0`).
@@ -22,6 +24,7 @@ pub mod cli;
 pub mod harness;
 pub mod instance;
 pub mod kick;
+pub mod loops;
 pub mod perturb;
 pub mod probes;
 pub mod setup;

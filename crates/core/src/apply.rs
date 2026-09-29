@@ -267,7 +267,8 @@ fn good_def<E: Ext>(w: &World<E>, g: GoodId) -> Result<&GoodDef, CoreError> {
     w.good(g).ok_or(CoreError::UnknownGood(g))
 }
 
-/// The book index of a market: the node and good exist and the good is not a currency.
+/// The book index of a market: the node and good exist and the good has a market (neither a
+/// currency nor untraded, amended at P2.2b.1).
 fn market<E: Ext>(
     s: &SimState<E>,
     w: &World<E>,
@@ -276,7 +277,7 @@ fn market<E: Ext>(
 ) -> Result<usize, CoreError> {
     w.node(node).ok_or(CoreError::UnknownNode(node))?;
     good_def(w, good)?;
-    if w.is_currency(good) {
+    if !w.has_market(good) {
         return Err(CoreError::NoMarket { node, good });
     }
     s.book

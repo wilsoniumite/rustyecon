@@ -354,3 +354,50 @@ fn feasible_quantity_is_what_the_budget_buys() {
     assert_eq!(lines.len(), 1);
     assert_eq!(lines[0].order.node, node(&w, "village"));
 }
+
+#[test]
+fn admission_refuses_orders_on_an_untraded_good() {
+    // P2.2b.1 (decision 286): an untraded good has no market at any node, as a currency has
+    // none. A buy and a sell of it are `NoMarket`, even when the seller holds it and the buyer's
+    // budget fits, and clearing walks no market of it.
+    let text = edit(
+        r#"(key: "grain", life: Indefinite, price_rate: Some("rate.grain")),"#,
+        "(key: \"grain\", life: Indefinite, price_rate: Some(\"rate.grain\")),\n        (key: \
+         \"plant\", life: Indefinite, price_rate: None, untraded: true),",
+    );
+    let text = edit_text(
+        &text,
+        r#"(holder: "farm", goods: [("coin", 100.0), ("grain", 16.0)]),"#,
+        r#"(holder: "farm", goods: [("coin", 100.0), ("grain", 16.0), ("plant", 4.0)]),"#,
+    );
+    let (w, s) = load_text(&text);
+    let plant = good(&w, "plant");
+    for at in ["town", "port"] {
+        let refused = |o: Order| admit(vec![o], &s, &w).unwrap_err();
+        assert_eq!(
+            refused(sell(&w, "farm", at, "plant", 1.0)),
+            OrderError::NoMarket {
+                node: node(&w, at),
+                good: plant
+            }
+        );
+        assert_eq!(
+            refused(buy(&w, "mill", at, "plant", 1.0, 1.0)),
+            OrderError::NoMarket {
+                node: node(&w, at),
+                good: plant
+            }
+        );
+    }
+    assert!(w.markets().all(|(_, g)| g != plant));
+    // Its orders fail beside good ones: nothing is admitted.
+    assert!(admit(
+        vec![
+            sell(&w, "farm", "town", "grain", 1.0),
+            sell(&w, "farm", "town", "plant", 1.0),
+        ],
+        &s,
+        &w
+    )
+    .is_err());
+}

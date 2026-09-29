@@ -22,9 +22,14 @@
 use crate::behaviour::{AgentError, Behaviour, Decision, View};
 use crate::ext::{
     ActorState, AgentDelta, CapacityState, GoodDeskState, MachDeskState, MakerState, OwnerState,
+    PlantState,
 };
 use crate::roles::many::rules::budget_chain;
 use crate::roles::many::spec::TypeDesk;
+use crate::roles::plant::rules::{
+    built, bundles_held, burned, mint_plant, sign, split, Plan, PlantNow,
+};
+use crate::roles::plant::spec::PlantTarget;
 use crate::roles::rules::{
     assign_ex_post, burn, buy, leontief, offer, param, price, scale_outlay, sell, set, Delta,
     Margin, Tasks,
@@ -33,16 +38,6 @@ use crate::roles::spec::{Assign, GoodDesk};
 use crate::roles::stock::spec::{CapacityDesk, Maker, OrderRule, OwnerDesk};
 use rustyecon_core::num;
 use rustyecon_core::{GoodId, Holder, Provenance, Site, StateDelta};
-
-/// `x` when it is positive, else 0: the sign of an order or a transfer into service, which is
-/// never negative (R3: a sign, not a cap). A NaN is 0.
-fn sign(x: f64) -> f64 {
-    if x > 0.0 {
-        x
-    } else {
-        0.0
-    }
-}
 
 /// The same view of the actor with another state, for running an older kind's code on it.
 fn with<'a, S, T>(v: &View<'a, S>, own_state: &'a T) -> View<'a, T> {
@@ -217,6 +212,7 @@ impl MakerRole {
             labour_coef: spec.build.labour,
             land_coef: spec.build.land,
             scale: spec.scale,
+            plant: None,
         });
         MakerRole {
             spec: spec.clone(),
@@ -254,16 +250,16 @@ impl MakerRole {
     }
 }
 
-impl Behaviour for MakerRole {
-    type Own = MakerState;
-
-    fn decide(&self, v: &View<'_, MakerState>) -> Result<Decision, AgentError> {
-        if let Some(t) = &self.flow {
-            let st = MakerRole::mach_state(v.own_state);
-            let mut d = t.decide(&with(v, &st))?;
-            d.deltas = restate(d.deltas, MakerRole::from_mach(v.own_state));
-            return Ok(d);
-        }
+impl MakerRole {
+    /// Its decision on the stock path, with its plant if it has one (P2.2b; LOOPS-RULES §4.3):
+    /// the orders and the deltas but its own state, which comes back apart with the plant's plan.
+    /// Without a plant it is P2.2a's maker, with L0.4's reservation, to the bit.
+    pub(crate) fn plan_stock<S>(
+        &self,
+        v: &View<'_, S>,
+        st: &MakerState,
+        plant: Option<&PlantNow>,
+    ) -> Result<(Decision, MakerState, Option<Plan>), AgentError> {
         let m = &self.spec;
         let mut out = Decision::default();
         let mut dry = v.own.clone();
@@ -276,12 +272,14 @@ impl Behaviour for MakerRole {
         let goods = self.bought(v, a)?;
         let (lam, b) = self.labour_land(v, a)?;
         // The cost of a unit built at posted prices, bought goods first in list order, then
-        // labour and land: its own machines' running inputs included, their hours not.
+        // labour and land: its own machines' running inputs included, their hours not. With a
+        // plant it is the bundle's cost c_m, which the margin and the reservation read
+        // (decision 295).
         let (prices, c) = unit_cost(&goods, lam, b, w, r, &|g| price(v, g))?;
         // Its finished stock is what it holds beyond its serving stock; 0 where rounding puts
         // the record an ulp above the holding (a sign).
         let held = v.own.get(m.output);
-        let own = v.own_state.own;
+        let own = st.own;
         let finished = sign(held - own);
         // The net markup: what a unit earns once the wear of the machines that built it is
         // kept, p_K·(1 − δ·a/κ), over its cost. 1 at rest.
@@ -291,9 +289,12 @@ impl Behaviour for MakerRole {
             markup: net / c,
             worth: net * finished,
         };
-        let (outlay, scale) =
-            scale_outlay(v, &m.scale, v.own_state.scale, &margin, &mut dry, &mut out)?;
-        let q = outlay / c;
+        let (outlay, scale) = scale_outlay(v, &m.scale, st.scale, &margin, &mut dry, &mut out)?;
+        // The plan: the cash rule at the full cost c_full = c + (u·P_K)·kr, which is c without
+        // a plant, at θ = 1 and at u = 0.
+        let ratios = plant.map(|p| p.ratios(c));
+        let full = ratios.map_or(c, |x| x.full);
+        let q = outlay / full;
         // Its own stock: K*_m = a·q/κ serves the plan; it moves δ·K*_m of its finished units
         // into service, and s_Km of its gap beyond, at most what is finished.
         let target = a * q / kappa;
@@ -302,6 +303,7 @@ impl Behaviour for MakerRole {
         let serving = own + keep;
         // The offer: what is finished and not moved into service, less a cover of b_K ticks of
         // sales at cost over price (the reservation band, D-G5); finished units do not wear.
+        // With a plant the cover is at the full cost (`lm_mirror:390`).
         let cover = match m.cover {
             Some(site) => param(v, site)?,
             None => 0.0,
@@ -315,34 +317,144 @@ impl Behaviour for MakerRole {
         let want = if withholds(psi, margin.markup) {
             0.0
         } else {
-            sign(finished - keep - cover * q * c / pk)
+            sign(finished - keep - cover * q * full / pk)
         };
         let offered = offer(&mut dry, m.output, want)?;
         out.orders.push(sell(v, m.output, offered));
-        // Every input it buys, on the whole q.
+        // The plant: K*_p = kr·q, ordered by M3's rule, at most the coin left after the running
+        // bundle buys, sign(C − c·q)/P_K. Its bundles are bought on the same lines, from a
+        // total of outlay + P_K·I, which is the outlay at I = 0.
+        let (n, total, rec) = match (plant, ratios) {
+            (Some(p), Some(x)) => {
+                let held_p = v.own.get(p.good);
+                let target_p = x.kr * q;
+                let coin = v.own.get(v.currency);
+                let order = p.order_of(target_p, held_p).min(sign(coin - c * q) / x.pk);
+                let rec = Plan {
+                    held: held_p,
+                    target: target_p,
+                    order,
+                    run: q,
+                };
+                (q + p.s * order, outlay + x.pk * order, Some(rec))
+            }
+            _ => (q, outlay, None),
+        };
+        // Every input it buys, on the whole q (and the plant's bundles).
         let mut lines: Vec<(GoodId, f64)> = Vec::with_capacity(goods.len() + 2);
         let mut wants = Vec::with_capacity(goods.len() + 2);
         for (&(g, coef), &pg) in goods.iter().zip(&prices) {
-            let qty = coef * q;
+            let qty = coef * n;
             lines.push((g, qty));
             wants.push((g, pg * qty));
         }
-        lines.push((m.labour, lam * q));
-        wants.push((m.labour, w * (lam * q)));
-        lines.push((m.land, b * q));
-        wants.push((m.land, r * (b * q)));
-        let budgets = budget_chain(outlay, &wants, &mut dry, v.currency)?;
+        lines.push((m.labour, lam * n));
+        wants.push((m.labour, w * (lam * n)));
+        lines.push((m.land, b * n));
+        wants.push((m.land, r * (b * n)));
+        let budgets = budget_chain(total, &wants, &mut dry, v.currency)?;
         for ((g, qty), bud) in lines.into_iter().zip(budgets) {
             out.orders.push(buy(v, g, qty, bud));
         }
-        out.deltas.push(set(
-            v,
-            ActorState::Maker(MakerState {
-                scale,
-                serving,
-                ..*v.own_state
-            }),
-        ));
+        let state = MakerState {
+            scale,
+            serving,
+            ..*st
+        };
+        Ok((out, state, rec))
+    }
+
+    /// Its production on the stock path, with its plant if it has one (LOOPS-RULES §3.6): the
+    /// burns and mints but its own state, which comes back apart with the plant units built.
+    pub(crate) fn run_stock<S>(
+        &self,
+        v: &View<'_, S>,
+        st: &MakerState,
+        plant: Option<(&PlantNow, &PlantState)>,
+    ) -> Result<(Vec<Delta>, MakerState, f64), AgentError> {
+        let m = &self.spec;
+        let a = param(v, m.own_hours)?;
+        let kappa = param(v, m.kappa)?;
+        let goods = self.bought(v, a)?;
+        let (lam, b) = self.labour_land(v, a)?;
+        // Leontief over its serving stock's hours and what it bought; its machines are not
+        // burned, and the units it makes join its finished stock, sold from the next tick.
+        // With a plant these are the bundles held, B, read over every unit held (decision 273).
+        let serving = st.serving;
+        let mut inputs = Vec::with_capacity(goods.len() + 3);
+        inputs.push((kappa * serving, a));
+        for &(g, coef) in &goods {
+            inputs.push((v.own.get(g), coef));
+        }
+        inputs.push((v.own.get(m.labour), lam));
+        inputs.push((v.own.get(m.land), b));
+        let bundles = leontief(&inputs)?;
+        let (y, total, made) = match plant {
+            None => (bundles, bundles, 0.0),
+            Some((p, rec)) => {
+                let (z, i) = split(bundles, rec.run, rec.order, p.s);
+                let y = p.make(rec.held, z);
+                let made = built(bundles, z, i, p.s)?;
+                (y, burned(z, made, p.s), made)
+            }
+        };
+        let me = Holder::Actor(v.me);
+        let mut out = Vec::new();
+        if total > 0.0 {
+            for &(g, coef) in &goods {
+                burn(me, g, coef * total, Provenance::Production, &mut out);
+            }
+            burn(me, m.labour, lam * total, Provenance::Production, &mut out);
+            burn(me, m.land, b * total, Provenance::Production, &mut out);
+        }
+        if y > 0.0 {
+            out.push(StateDelta::Mint {
+                to: me,
+                good: m.output,
+                qty: y,
+                prov: Provenance::Production,
+            });
+        }
+        if let Some((p, _)) = plant {
+            mint_plant(me, p, made, &mut out);
+        }
+        Ok((out, MakerState { output: y, ..*st }, made))
+    }
+
+    /// Its serving stock's wear on the stock path: the burn, and its state after it.
+    pub(crate) fn wear_stock<S>(
+        &self,
+        v: &View<'_, S>,
+        st: &MakerState,
+    ) -> Result<(Vec<Delta>, MakerState), AgentError> {
+        let m = &self.spec;
+        // Its serving stock wears by δ; what is left serves again from the next decide.
+        let serving = st.serving;
+        let worn = (param(v, m.delta)? * serving).min(v.own.get(m.output));
+        let mut out = Vec::new();
+        wear(Holder::Actor(v.me), m.output, worn, &mut out);
+        Ok((
+            out,
+            MakerState {
+                own: serving - worn,
+                ..*st
+            },
+        ))
+    }
+}
+
+impl Behaviour for MakerRole {
+    type Own = MakerState;
+
+    fn decide(&self, v: &View<'_, MakerState>) -> Result<Decision, AgentError> {
+        if let Some(t) = &self.flow {
+            let st = MakerRole::mach_state(v.own_state);
+            let mut d = t.decide(&with(v, &st))?;
+            d.deltas = restate(d.deltas, MakerRole::from_mach(v.own_state));
+            return Ok(d);
+        }
+        let (mut out, state, _) = self.plan_stock(v, v.own_state, None)?;
+        out.deltas.push(set(v, ActorState::Maker(state)));
         Ok(out)
     }
 
@@ -352,44 +464,8 @@ impl Behaviour for MakerRole {
             let out = t.produce(&with(v, &st))?;
             return Ok(restate(out, MakerRole::from_mach(v.own_state)));
         }
-        let m = &self.spec;
-        let a = param(v, m.own_hours)?;
-        let kappa = param(v, m.kappa)?;
-        let goods = self.bought(v, a)?;
-        let (lam, b) = self.labour_land(v, a)?;
-        // Leontief over its serving stock's hours and what it bought; its machines are not
-        // burned, and the units it makes join its finished stock, sold from the next tick.
-        let serving = v.own_state.serving;
-        let mut inputs = Vec::with_capacity(goods.len() + 3);
-        inputs.push((kappa * serving, a));
-        for &(g, coef) in &goods {
-            inputs.push((v.own.get(g), coef));
-        }
-        inputs.push((v.own.get(m.labour), lam));
-        inputs.push((v.own.get(m.land), b));
-        let y = leontief(&inputs)?;
-        let me = Holder::Actor(v.me);
-        let mut out = Vec::new();
-        if y > 0.0 {
-            for &(g, coef) in &goods {
-                burn(me, g, coef * y, Provenance::Production, &mut out);
-            }
-            burn(me, m.labour, lam * y, Provenance::Production, &mut out);
-            burn(me, m.land, b * y, Provenance::Production, &mut out);
-            out.push(StateDelta::Mint {
-                to: me,
-                good: m.output,
-                qty: y,
-                prov: Provenance::Production,
-            });
-        }
-        out.push(set(
-            v,
-            ActorState::Maker(MakerState {
-                output: y,
-                ..*v.own_state
-            }),
-        ));
+        let (mut out, state, _) = self.run_stock(v, v.own_state, None)?;
+        out.push(set(v, ActorState::Maker(state)));
         Ok(out)
     }
 
@@ -397,19 +473,8 @@ impl Behaviour for MakerRole {
         if self.flow.is_some() {
             return Ok(Vec::new());
         }
-        let m = &self.spec;
-        // Its serving stock wears by δ; what is left serves again from the next decide.
-        let serving = v.own_state.serving;
-        let worn = (param(v, m.delta)? * serving).min(v.own.get(m.output));
-        let mut out = Vec::new();
-        wear(Holder::Actor(v.me), m.output, worn, &mut out);
-        out.push(set(
-            v,
-            ActorState::Maker(MakerState {
-                own: serving - worn,
-                ..*v.own_state
-            }),
-        ));
+        let (mut out, state) = self.wear_stock(v, v.own_state)?;
+        out.push(set(v, ActorState::Maker(state)));
         Ok(out)
     }
 }
@@ -445,10 +510,16 @@ fn hours_run(cap: f64, inputs: &[(f64, f64)]) -> Result<f64, AgentError> {
     Ok(z)
 }
 
-impl Behaviour for CapacityDesk {
-    type Own = CapacityState;
-
-    fn decide(&self, v: &View<'_, CapacityState>) -> Result<Decision, AgentError> {
+impl CapacityDesk {
+    /// Its decision, with its plant if it has one (P2.2b; LOOPS-RULES §4.2): the orders and the
+    /// deltas but its own state, which comes back apart with the plant's plan. Without a plant it
+    /// is P2.2a's capacity desk to the bit.
+    pub(crate) fn plan<S>(
+        &self,
+        v: &View<'_, S>,
+        st: &CapacityState,
+        plant: Option<&PlantNow>,
+    ) -> Result<(Decision, CapacityState, Option<Plan>), AgentError> {
         let mut out = Decision::default();
         let mut dry = v.own.clone();
         let w = price(v, self.labour)?;
@@ -468,64 +539,103 @@ impl Behaviour for CapacityDesk {
             markup: ph / full,
             worth: ph * v.own.get(self.hours),
         };
-        let (outlay, scale) = scale_outlay(
-            v,
-            &self.scale,
-            v.own_state.scale,
-            &margin,
-            &mut dry,
-            &mut out,
-        )?;
+        let (outlay, scale) = scale_outlay(v, &self.scale, st.scale, &margin, &mut dry, &mut out)?;
         // Use: every installed unit's hours while the outlay covers their running cost, the
-        // cash rule at the running cost, so sunk capital competes at its operating cost.
+        // cash rule at the running cost, so sunk capital competes at its operating cost. With a
+        // plant, the bundles that make κ·H on the plant held (`p_inverse`).
         let cap = kappa * held;
-        let z = if o > 0.0 { cap.min(outlay / o) } else { cap };
-        // Investment: K* = B/(κ·O + δ·p_K), the cash rule at the full cost; the order replaces
+        let planted = plant.map(|p| {
+            let x = p.ratios(o);
+            let held_p = v.own.get(p.good);
+            // The bundle's and the plant's user cost at the target ratio, (ζ·O) + ((u·P_K)·κ_p):
+            // O at s1, and O itself where the plant's cost formulas do not run.
+            let o_f = if p.costs() {
+                (x.zeta * o) + ((p.u * x.pk) * x.kap)
+            } else {
+                o
+            };
+            (p, x, held_p, o_f, p.inverse(held_p, cap))
+        });
+        // No plant bounds the bundles on no plant (the mirror's +∞): then the running cost
+        // alone does, and a bundle that costs nothing is not run.
+        let (o_f, zcap) = planted.map_or((o, Some(cap)), |(_, _, _, o_f, zcap)| (o_f, zcap));
+        let z = match zcap {
+            Some(zcap) if o > 0.0 => zcap.min(outlay / o),
+            Some(zcap) => zcap,
+            None if o > 0.0 => outlay / o,
+            None => 0.0,
+        };
+        // Investment: K* = B/(κ·O_f + δ·p_K), the cash rule at the full cost; the order replaces
         // wear and closes s_K of the gap, at most what the coin left after the running inputs
-        // buys. In a glut the order stops (a sign).
-        let target = outlay / (kappa * o + d * pk);
+        // (and the plant's order) buys. In a glut the order stops (a sign).
+        let target = outlay / (kappa * o_f + d * pk);
         let s = param(v, self.adjust)?;
         let base = match self.order {
             OrderRule::Target => d * target,
             OrderRule::Held => d * held,
         };
         let want = sign(base + s * (target - held));
-        let order = want.min(sign(coin - o * z) / pk);
+        let rest = coin - o * z;
+        // The plant: K*_p = (κ_p·κ)·K* (the herd's, decision 262) or kr·z (LF6), ordered by
+        // M3's rule, at most the coin left after the running bundle; the horses take what is
+        // left after that (`lm_mirror:326–336`).
+        let (order, n, rec) = match planted {
+            None => (want.min(sign(rest) / pk), z, None),
+            Some((p, x, held_p, _, _)) => {
+                let target_p = match p.target {
+                    PlantTarget::Herd => (x.kap * kappa) * target,
+                    PlantTarget::Bundles => x.kr * z,
+                };
+                let i = p.order_of(target_p, held_p).min(sign(rest) / x.pk);
+                let order = want.min(sign(rest - x.pk * i) / pk);
+                let rec = Plan {
+                    held: held_p,
+                    target: target_p,
+                    order: i,
+                    run: z,
+                };
+                (order, z + p.s * i, Some(rec))
+            }
+        };
         // Every hour it holds is offered: they were made last tick.
         let offered = offer(&mut dry, self.hours, v.own.get(self.hours))?;
         out.orders.push(sell(v, self.hours, offered));
         let mut lines: Vec<(GoodId, f64)> = Vec::with_capacity(run.len() + 2);
         let mut wants = Vec::with_capacity(run.len() + 2);
         for &(g, coef, pg) in &run {
-            let qty = coef * z;
+            let qty = coef * n;
             lines.push((g, qty));
             wants.push((g, pg * qty));
         }
-        lines.push((self.labour, run_lab * z));
-        wants.push((self.labour, w * (run_lab * z)));
+        lines.push((self.labour, run_lab * n));
+        wants.push((self.labour, w * (run_lab * n)));
         lines.push((self.stock, order));
         wants.push((self.stock, pk * order));
-        // Their wants sum to at most the coin: the running inputs from the outlay, the order
-        // from what is left.
+        // Their wants sum to at most the coin: the running inputs from the outlay, the plant's
+        // and the horses' orders from what is left.
         let budgets = budget_chain(coin, &wants, &mut dry, v.currency)?;
         for ((g, qty), bud) in lines.into_iter().zip(budgets) {
             out.orders.push(buy(v, g, qty, bud));
         }
-        out.deltas.push(set(
-            v,
-            ActorState::Capacity(CapacityState {
-                scale,
-                held,
-                target,
-                order,
-                run: z,
-                ..*v.own_state
-            }),
-        ));
-        Ok(out)
+        let state = CapacityState {
+            scale,
+            held,
+            target,
+            order,
+            run: z,
+            ..*st
+        };
+        Ok((out, state, rec))
     }
 
-    fn produce(&self, v: &View<'_, CapacityState>) -> Result<Vec<Delta>, AgentError> {
+    /// Its production, with its plant if it has one (LOOPS-RULES §3.6): the burns and mints
+    /// but its own state, which comes back apart with the plant units built.
+    pub(crate) fn run<S>(
+        &self,
+        v: &View<'_, S>,
+        st: &CapacityState,
+        plant: Option<(&PlantNow, &PlantState)>,
+    ) -> Result<(Vec<Delta>, CapacityState, f64), AgentError> {
         // Hours from the stock held when decide ran (units bought this tick serve from the
         // next), with the running inputs held.
         let kappa = param(v, self.kappa)?;
@@ -536,43 +646,85 @@ impl Behaviour for CapacityDesk {
             .map(|&(g, coef, _)| (v.own.get(g), coef))
             .collect();
         held_inputs.push((v.own.get(self.labour), run_lab));
-        let z = hours_run(kappa * v.own_state.held, &held_inputs)?;
+        let cap = kappa * st.held;
+        let (y, total, made) = match plant {
+            None => {
+                let z = hours_run(cap, &held_inputs)?;
+                (z, z, 0.0)
+            }
+            Some((p, rec)) => {
+                // B over the running goods and labour held, carried units included (decision
+                // 273), split by the plan; the hours at most κ·H, and the bundles used those
+                // that make them on the plant held (`p_inverse`), at most the share run.
+                // With no coefficient binding the bundle is free, and κ·H bounds it as it does
+                // the plain desk's hours.
+                let bundles = bundles_held(&held_inputs)?.unwrap_or(cap);
+                let (z, i) = split(bundles, rec.run, rec.order, p.s);
+                let y = cap.min(p.make(rec.held, z));
+                let used = p.inverse(rec.held, y).map_or(z, |u| u.min(z));
+                let made = built(bundles, used, i, p.s)?;
+                (y, burned(used, made, p.s), made)
+            }
+        };
         let me = Holder::Actor(v.me);
         let mut out = Vec::new();
-        if z > 0.0 {
+        if total > 0.0 {
             for &(g, coef, _) in &run {
-                burn(me, g, coef * z, Provenance::Production, &mut out);
+                burn(me, g, coef * total, Provenance::Production, &mut out);
             }
             burn(
                 me,
                 self.labour,
-                run_lab * z,
+                run_lab * total,
                 Provenance::Production,
                 &mut out,
             );
+        }
+        if y > 0.0 {
             out.push(StateDelta::Mint {
                 to: me,
                 good: self.hours,
-                qty: z,
+                qty: y,
                 prov: Provenance::Production,
             });
         }
-        out.push(set(
-            v,
-            ActorState::Capacity(CapacityState {
-                output: z,
-                ..*v.own_state
-            }),
-        ));
+        if let Some((p, _)) = plant {
+            mint_plant(me, p, made, &mut out);
+        }
+        Ok((out, CapacityState { output: y, ..*st }, made))
+    }
+
+    /// Its stock's wear at upkeep: the stock held when decide ran wears by δ; units bought this
+    /// tick do not.
+    pub(crate) fn wear<S>(
+        &self,
+        v: &View<'_, S>,
+        st: &CapacityState,
+    ) -> Result<Vec<Delta>, AgentError> {
+        let worn = (param(v, self.delta)? * st.held).min(v.own.get(self.stock));
+        let mut out = Vec::new();
+        wear(Holder::Actor(v.me), self.stock, worn, &mut out);
+        Ok(out)
+    }
+}
+
+impl Behaviour for CapacityDesk {
+    type Own = CapacityState;
+
+    fn decide(&self, v: &View<'_, CapacityState>) -> Result<Decision, AgentError> {
+        let (mut out, state, _) = self.plan(v, v.own_state, None)?;
+        out.deltas.push(set(v, ActorState::Capacity(state)));
+        Ok(out)
+    }
+
+    fn produce(&self, v: &View<'_, CapacityState>) -> Result<Vec<Delta>, AgentError> {
+        let (mut out, state, _) = self.run(v, v.own_state, None)?;
+        out.push(set(v, ActorState::Capacity(state)));
         Ok(out)
     }
 
     fn upkeep(&self, v: &View<'_, CapacityState>) -> Result<Vec<Delta>, AgentError> {
-        // The stock held when decide ran wears by δ; units bought this tick do not.
-        let worn = (param(v, self.delta)? * v.own_state.held).min(v.own.get(self.stock));
-        let mut out = Vec::new();
-        wear(Holder::Actor(v.me), self.stock, worn, &mut out);
-        Ok(out)
+        self.wear(v, v.own_state)
     }
 }
 

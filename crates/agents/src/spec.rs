@@ -340,12 +340,16 @@ fn recipe(r: &mut Resolver<'_>, raw: &RawRecipe) -> Result<Recipe, LoadError> {
     })
 }
 
-/// The (node, good) of an order line, which must not be a currency.
+/// The (node, good) of an order line, which must have a market: not a currency, and not an
+/// untraded good (P2.2b.1).
 fn market(r: &mut Resolver<'_>, node: &Key, good: &Key) -> Result<(NodeId, GoodId), LoadError> {
     let n = r.node(node, "node")?;
     let g = r.good(good, "good")?;
     if r.is_currency(g) {
         return Err(r.error("good", LoadErrorKind::CurrencyOrder));
+    }
+    if r.is_untraded(g) {
+        return Err(r.error("good", LoadErrorKind::NoMarket));
     }
     Ok((n, g))
 }

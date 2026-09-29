@@ -29,17 +29,20 @@ whose raw types are documented the same way in `rustyecon_agents::spec` (which a
 | 1 | 2026-09-28 | P2.2.1 | The agents' spec gains three variants, `Maker`, `CapacityDesk` and `OwnerDesk` (see below). No existing field or variant changes, and every schema-1 tape loads and means what it did, so the number stays 1, as at P2.0.1 and P2.1.1. |
 | 1 | 2026-09-26 | S2.3 | Core's actions gain `ScalePrice(node, good, by)`, appended last, a dated price shock: the posted price times a `Dimensionless` param the schedule reads (see Actions). No existing field or variant changes, and every tape loads and means what it did, so the number stays 1. Certify's kick is this action (docs/CERTIFY.md §2.4, §7). |
 | 1 | 2026-09-29 | L0.4 | The maker gains an optional field, `reserve` (`Option` of a `Dimensionless` param, the reservation; see below), after `cover`. Absent, it is off and the canonical form omits it, so every tape keeps its text, `tape_hash`, `world_id` and meaning, and the number stays 1. It is the agents' spec's one field with a default, as criteria's `price_shocks` is certify's (docs/probe/HORSES-RULES.md §10). |
+| 1 | 2026-09-30 | P2.2b.1 | A good gains an optional field, `untraded` (a `bool`, absent `false`; see Currencies and untraded goods), and the type desk, the maker and the capacity desk an optional `plant` (see below), each last. Absent, each is off and the canonical form omits it, so every tape keeps its text, `tape_hash`, `world_id` and meaning, and the number stays 1. `untraded` is core's one field with a default (docs/probe/LOOPS-RULES.md §1). |
 
 The loader reads its own version only; anything else is refused as a schema error before any
 other field is looked at. Since no field has a default, every change to the schema bumps the
 number and adds a row here; the one exception is a field whose absence is the older meaning, the
-maker's `reserve` (L0.4), which adds a row and keeps the number.
+maker's `reserve` (L0.4), a good's `untraded` and a desk's `plant` (P2.2b.1), which add a row
+and keep the number.
 
 ## Rules
 
-- **Every field is required, and none has a default.** An `Option` field is written as `None` or
-  `Some(..)`; leaving it out is an error, as leaving out any other field is. Unknown fields are
-  errors.
+- **Every field is required, and none has a default**, but the three whose absence is the older
+  meaning: the maker's `reserve`, a good's `untraded` and a desk's `plant`. An `Option` field is
+  written as `None` or `Some(..)`; leaving it out is an error, as leaving out any other field is.
+  Unknown fields are errors.
 - **Keys.** Every entity has a key of one or more of `a-z`, `0-9`, `_`, `.` and `-`. A key is unique
   within its kind; desks and pops share one namespace, and so do events and recurring entries. A
   rename is a new entity. Keyed data is always a list of entries carrying a `key`, never a RON
@@ -78,9 +81,14 @@ maker's `reserve` (L0.4), which adds a row and keeps the number.
   Events that fall in one tick fire in date order, and events of one date in key order; a
   recurring entry's occurrence counts as dated the first day of its tick. So the order of two
   events, and what a tape means, does not change with `ticks_per_year` (since P0.9).
-- **Currencies.** A node's `currency` good is a currency: `Indefinite`, with `price_rate: None`, no
-  market and no genesis price. Every other good has a `price_rate` and a genesis price at every
-  node.
+- **Currencies and untraded goods.** A node's `currency` good is a currency: `Indefinite`, with
+  `price_rate: None`, no market and no genesis price. A good marked `untraded: true` (amended at
+  P2.2b.1) is held, minted and burned but never traded: `Indefinite`, with `price_rate: None`,
+  no node's currency, no market and no genesis price; no order, role good or `ScalePrice` may name
+  it, and its book slot stays 1 and is never written. Each refusal names its path
+  (`goods[<key>].life`, `.price_rate` or `.untraded`, `genesis.prices[<node>/<key>].good`). Every
+  other good has a `price_rate` and a genesis price at every node; a good with neither a price
+  rate nor the flag is still refused (`NoPriceRate`), so a typo is caught.
 
 ## Units
 
@@ -265,6 +273,26 @@ order, and the canonical form keeps them as written.
   capacity or owner desk holds, and no role offers it in full: the maker sells its durable good
   under its cover (amended at L0.1, 2026-09-29). `Cast::new` refuses any other.
 - `scale` is the Appendix B roles'.
+
+## The plant (P2.2b.1)
+
+The loop step's desks carry CAPACITY's plant, y = P^(1−θ)·z^θ over their own Leontief bundle z
+(docs/probe/LOOPS-RULES.md §3, §4), documented field by field in the rustdoc of
+`rustyecon_agents::roles::plant::spec`. `tapes/loops-<id>.ron` are the worked examples
+(generated: `cargo run -p rustyecon-probe --bin horses-tape -- --inst <id>
+tapes/loops-<id>.ron`).
+
+- `plant: Some((good, theta, delta, size, adjust, order, target))`, the last field of
+  `TypeDesk`, `Maker` and `CapacityDesk`, and absent (off) where not written. `good` names an
+  untraded good no other desk's plant names; `theta` (θ, in (0, 1]) and `size` (s, bundles a
+  plant unit, positive) are `Dimensionless`, `delta` (the plant's wear, less than all of it a
+  tick) a `FractionPerYear` and `adjust` (s_Kp) a `RatePerYear`, each live; `order` is `Target`
+  (M3's rule) or `Gap`; `target` is `Bundles`, or `Herd` on a capacity desk alone.
+- A planted desk takes the cash rule; a planted type desk keeps no own input and a planted maker
+  is on the stock path with no hours of its own stock, each at genesis. `Cast::new` refuses any
+  other, naming the path (docs/probe/LOOPS-RULES.md §6).
+- A planted desk's state is the planted variant of its kind's (`PlantedType`, `PlantedMaker`,
+  `PlantedCapacity`): the kind's record and the plant's, `{held, target, order, run, built}`.
 
 A complete tape with no behaviour (every actor's spec is `()`) is core's test fixture,
 `crates/core/testdata/core.ron`; it loads with the empty extension, `rustyecon_core::NoExt`.

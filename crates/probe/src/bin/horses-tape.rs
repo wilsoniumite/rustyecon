@@ -12,14 +12,54 @@
 //! named run, with `--ticks L` dating a dated shock at L/4. With no option but `--inst` the text
 //! is the registered tape, `tapes/horses-<id>.ron`; with any other, it opens with a comment
 //! naming them.
+//!
+//! A loop instance (P2.2b; docs/probe/LOOPS-RULES.md §7), `--inst lb1` and the rest of §7.1's
+//! ids, writes `tapes/loops-<id>.ron` for the registered setup, with the options of
+//! `probe::horses::cli::parse_loops`: `--tpy N`, `--dials c2g|c2g13`, `--one-sided
+//! saturate|hold`, `--reserve PSI|none`, `--theta X`, `--plant-delta D` and `--fixed-plants`.
 
-use probe::horses::cli::parse;
+use probe::horses::cli::{inst_of, parse, parse_loops};
+use probe::horses::loops::{tape_ron as loop_tape_ron, Instance as LoopInstance};
 use probe::horses::perturb::Perturbation;
 use probe::horses::setup::tape_ron;
 use probe::protocol::RUN_TICKS;
 use std::process::ExitCode;
 
+/// A loop instance's tape, and the path to write it to.
+fn loop_text(args: &[String]) -> Result<(String, Option<String>), String> {
+    let a = parse_loops(args, &[])?;
+    let given: Vec<String> = a
+        .given
+        .iter()
+        .enumerate()
+        .filter(|(i, x)| *x != "--inst" && !(*i > 0 && a.given[*i - 1] == "--inst"))
+        .map(|(_, x)| x.clone())
+        .collect();
+    let mut path = None;
+    for x in &a.rest {
+        if x.starts_with("--") {
+            return Err(format!("unknown option {x}"));
+        }
+        path = Some(x.clone());
+    }
+    let tape = loop_tape_ron(&a.setup)?;
+    if given.is_empty() {
+        return Ok((tape, path));
+    }
+    Ok((
+        format!(
+            "// Written by `horses-tape --inst {} {}` (crates/probe).\n{tape}",
+            a.setup.instance.id,
+            given.join(" ")
+        ),
+        path,
+    ))
+}
+
 fn text(args: &[String]) -> Result<(String, Option<String>), String> {
+    if inst_of(args).is_some_and(LoopInstance::is_loop) {
+        return loop_text(args);
+    }
     let a = parse(args, &["--perturb", "--ticks"])?;
     let mut setup = a.setup;
     let mut ticks = RUN_TICKS;

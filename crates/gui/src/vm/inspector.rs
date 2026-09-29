@@ -426,8 +426,11 @@ fn spec_kind(s: &Spec) -> &'static str {
         Spec::BasketProvider(_) => "BasketProvider",
         Spec::BasketWorkers(_) => "BasketWorkers",
         Spec::CategoryDesk(_) => "CategoryDesk",
+        Spec::TypeDesk(d) if d.plant.is_some() => "TypeDesk, planted",
         Spec::TypeDesk(_) => "TypeDesk",
+        Spec::Maker(d) if d.plant.is_some() => "Maker, planted",
         Spec::Maker(_) => "Maker",
+        Spec::CapacityDesk(d) if d.plant.is_some() => "CapacityDesk, planted",
         Spec::CapacityDesk(_) => "CapacityDesk",
         Spec::OwnerDesk(_) => "OwnerDesk",
     }
@@ -709,6 +712,9 @@ fn other(store: &Store, w: &World, e: &Entity, cursor: Option<u64>) -> Option<Ot
             if w.is_currency(g.id) {
                 facts.push(fact("currency", "yes".to_string()));
             }
+            if w.is_untraded(g.id) {
+                facts.push(fact("untraded", "yes: held, never traded".to_string()));
+            }
             if let Some(site) = g.price_rate {
                 facts.push(fact(
                     "price rate",
@@ -832,4 +838,73 @@ pub fn build(store: &Store, selection: &Entity, cursor: Option<u64>) -> Option<I
         }
     };
     Some(vm.unwrap_or_else(|| InspectorVm::Unknown(selection.clone())))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::spec_kind;
+    use crate::run::{state_fields, StateField};
+    use rustyecon_engine::prelude::*;
+
+    #[test]
+    fn inspector_reads_planted_states() {
+        // LOOPS-RULES §10 (P2.2b.1): the inspector names the three planted kinds, and
+        // `state_fields` lists each planted state's desk fields, as its kind's, then its plant
+        // record.
+        let tape = Tape::from_ron(include_str!("../../../../tapes/loops-lb1.ron")).unwrap();
+        let mut sim = Sim::new(&tape).unwrap();
+        sim.step().unwrap();
+        let w = sim.world().clone();
+        let plant = [
+            StateField::PlantHeld,
+            StateField::PlantTarget,
+            StateField::PlantOrder,
+            StateField::PlantRun,
+            StateField::PlantBuilt,
+        ];
+        for (key, kind, desk) in [
+            (
+                "desk.fodder",
+                "TypeDesk, planted",
+                vec![StateField::Scale, StateField::Output],
+            ),
+            (
+                "desk.maker",
+                "Maker, planted",
+                vec![
+                    StateField::Scale,
+                    StateField::Output,
+                    StateField::Own,
+                    StateField::Serving,
+                ],
+            ),
+            (
+                "desk.capacity",
+                "CapacityDesk, planted",
+                vec![
+                    StateField::Scale,
+                    StateField::Output,
+                    StateField::Held,
+                    StateField::Target,
+                    StateField::Order,
+                    StateField::Run,
+                ],
+            ),
+        ] {
+            let id = w.id_of::<ActorId>(key).unwrap();
+            assert_eq!(spec_kind(&w.actor(id).unwrap().spec), kind);
+            let fields: Vec<StateField> = state_fields(sim.actor_state(id).unwrap())
+                .into_iter()
+                .map(|(f, _)| f)
+                .collect();
+            let mut want = desk.clone();
+            want.extend(plant);
+            assert_eq!(fields, want, "{key}");
+            let values = state_fields(sim.actor_state(id).unwrap());
+            assert!(values[desk.len()].1 > 0.0, "{key}: the plant held");
+        }
+        let good = w.id_of::<ActorId>("desk.good").unwrap();
+        assert_eq!(spec_kind(&w.actor(good).unwrap().spec), "GoodDesk");
+        assert_eq!(StateField::PlantBuilt.name(), "plant.built");
+    }
 }

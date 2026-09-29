@@ -4,6 +4,10 @@ Dated 2026-09-30. Step P2.2b.0 on branch `phase2-plants` (worktree `D:/rustyecon
 `reboot` at `8b07c8a`). Written before any P2.2b code exists. The build (P2.2b.1) amends this
 file "as built", as HORSES-RULES was.
 
+**Amended at P2.2b.1 (2026-09-30): as built.** §14 says what the build made, where it departs
+from §1–§13, what it checked, and what it leaves to the harness step. The text above §14 is the
+spec as P2.2b.0 wrote it.
+
 P2.2b asks whether rule B's horse runs on the engine as the mirror registered it. Fodder is
 raised with horse-days (the loop). The horses are held by M3's wet capacity desk and bred by M2
 from bought fodder. CAPACITY's plant, y = K^(1−θ)·z^θ, sits on the fodder desk, on the capacity
@@ -41,7 +45,8 @@ This file says:
 - every test, with what it guards (§10);
 - where the build's arithmetic parts from the mirror's (§11);
 - decisions 286–296 and open items O69–O72 (§12);
-- the files and the order of work (§13).
+- the files and the order of work (§13);
+- the build as built (§14, P2.2b.1).
 
 ## 1. What changes, and what does not
 
@@ -876,3 +881,165 @@ after `D:/rustyecon-p2l/idle-engine/tracediff/tracediff.py`:
 
 Scratch is `D:/rustyecon-p2b/<label>/`; this step's is `D:/rustyecon-p2b/rules/` (the mirror's
 read-only copy is in `mirror/`).
+
+## 14. As built (P2.2b.1, 2026-09-30)
+
+Label `build-plant`, scratch `D:/rustyecon-p2b/build-plant/`. The build is core's untraded good,
+markets' admission, the agents' plant, the GUI's fields, the loop instances and their six tapes,
+and ENGINE.md and TAPE.md amended ("Amended at P2.2b.1" in each). The harness (§8) is not built
+(item 4).
+
+### 14.1 What was built
+
+- **Core** (`crates/core`). `RawGood.untraded` (absent `false`, not written when `false`). The
+  goods' load checks of §6, with the new `LoadErrorKind::UntradedGood`. `World::has_market` and
+  `World::is_untraded`; `World::markets()` walks the goods with a market only. `apply` refuses a
+  book write to an untraded good (`NoMarket`), `validate` refuses a state whose untraded slot was
+  written, and no escrow of one is a holder. The resolver's `has_market` and `is_untraded`.
+- **Markets.** Admission and clearing's slot refuse an untraded good, as a currency.
+- **Agents** (`crates/agents/src/roles/plant/`). `spec.rs`: `RawPlant`, `Plant`, `PlantOrder`,
+  `PlantTarget`, `resolve_plant`. `rules.rs`: the plant's arithmetic (`PlantNow`, `Ratios`,
+  `Plan`, `split`, `built`, `burned`, `bundles_held`, the wear) and the three planted roles,
+  `PlantedType`, `PlantedCapacity` and `PlantedMaker`. The kinds' own rules take the plant as an
+  option, so a desk without one runs its kind's code: `TypeDesk::plan`/`run`,
+  `CapacityDesk::plan`/`run`/`wear`, `MakerRole::plan_stock`/`run_stock`/`wear_stock`. The states
+  (`PlantState` and the three planted variants after `Owner`), the cast's members and §6's
+  checks.
+- **Engine.** One change (item 1).
+- **Probe** (`crates/probe/src/horses/loops.rs`). §7.1's instances (all but LF4 and LN5), the
+  oracle point (§7.5), the dials (§7.3), genesis (§7.4), the params (§7.2) and the tape.
+  `horses-tape --inst <loop id>` writes them, with `--tpy`, `--dials c2g|c2g13`, `--one-sided`,
+  `--reserve PSI|none`, `--theta X`, `--plant-delta D` and `--fixed-plants`
+  (`probe::horses::cli::parse_loops`). `tapes/loops-{lb1,lb2,lb3,lw1,lw2,lw3}.ron`.
+- **GUI.** `state_fields` lists a planted state's desk fields, then `plant.held`, `.target`,
+  `.order`, `.run`, `.built`; the inspector names the planted kinds (`TypeDesk, planted` and so
+  on) and an untraded good; the outliner marks one.
+
+### 14.2 Where the build departs from §1–§13
+
+1. **The engine changed in one place** (§1 said nothing would). `RunErrorKind::ForeignWrite`
+   carries its delta boxed. The capacity desk's planted state holds 11 numbers, so `ActorState`
+   and every `StateDelta` grew, and clippy's `result_large_err` refused every step's `Result`. No
+   run, hash or message changes (decision 297).
+2. **The flow control's horse-day desk reads its own input from `inst.traction.own`**, a new
+   param at 0 (§2.2 and §7.2 listed `inst.traction.fodder`, `.labour` and `.land` only; the
+   type desk needs a param for `recipe.own`). Decision 298.
+3. **No float constant on the engine path.** The engine's scan refuses a named float constant,
+   so `p_inverse` on no plant is "none", not +∞: the capacity desk's z is then outlay/O, or 0
+   where O is 0 (§4.2's zcap). And a capacity desk whose running recipe has no coefficient above
+   0 bounds its bundles by κ·H, the plain desk's bound, not +∞ (§3.6 step 1). The first arises
+   only where a capacity desk at θ < 1 holds no plant, and there its output is 0 whatever it
+   runs; the second only where a dated `SetParam` zeroes every running coefficient, which §6
+   refuses at genesis. Decision 299.
+4. **The loop instances are a module of their own, and the harness is not built** (decision 290
+   extended `probe::horses`; decision 300). `probe::horses::loops` has its own `Instance`,
+   `Point`, `Setup`, `Displacement`, genesis and tape, so P2.2a's `Instance` and harness are
+   untouched. The harness's rule-B observables (§8.1), dead ticks, idle and classes (§8.2), new
+   readouts (§8.3, the running cost read from the tape included), run grammar and families
+   (§8.4), outputs (§8.5) and run lengths (§8.6) come with the harness step, which folds these
+   instances into the harness or reads them from this module (O73). Until then `horses` reads
+   rule A's instances alone; only `horses-tape` knows the loop ids.
+5. **Tests.** Built as §10 lists them, with these differences:
+   - `loops_rest_point_is_the_oracles` reads the fixed point from the Sim, not the harness's
+     observables: every price (posted and next), both fills, every coin, stock and plant, each
+     plant's target and order, against genesis. LN6's bar is 1e-11, not 1e-12: its order takes
+     the whole gap K*_p − P each tick, so it passes the plant's rounding to its order at 1/u
+     (about 500) times the order's size, and s (about 40) times that into its bundles' demand.
+     Its worst gap is 3.0e-12 (fodder's buyer fill at b × 0.5, tick 2). Every other instance and
+     target is within 1e-12. Decision 301.
+   - §10's `a_planted_maker_reads_its_reservation_at_c_m` is worded backwards. c_full > c_m, so
+     the markup on c_full is always the smaller, and "below ψ on c_m but above it on c_full"
+     cannot happen. The test takes a markup above ψ on c_m and below it on c_full (the planted
+     maker offers, as it reads c_m) and half ψ on c_m (it offers nothing).
+   - `planted_rules_are_the_spec` binds the coin cap with s_Kp at 1e4 a year and under `Gap`. At
+     the registered s_Kp the cap does not bind near the rest: the coin left after the running
+     bundle buys about 0.1·K*_p of plant, some fifty times the order u·K*_p. A fourth case sets
+     every plant at twice s1, where O_f parts from O (the mutant O_f = O, §14.4).
+   - Added: `loops_tapes_name_their_plants_untraded` (each plant untraded, held by its desk
+     alone, its slot never written), and `horses_tapes_keep_their_world_ids` now pins the
+     `world_id` and `tape_hash` of all 13 horses and markets tapes.
+   - Not built, since they need the harness or E0: `loops_batteries_are_registered`,
+     `loops_runs_apply_as_named`, `loops_harness_readouts_are_the_rows`,
+     `harness_reads_the_running_cost_from_the_tape` and `loops_carry_meets_the_mirror_at_tick_one`
+     (O73).
+6. **The agents crate gains `bincode` as a dev-dependency**, for `old_states_keep_their_encoding`
+   (the lockfile's one change is that edge).
+
+The arithmetic parts from the mirror only where §11 says. The genesis plant on the capacity desk
+is κ_p·(κ·H), as §7.4 writes it; the mirror writes (κ_p·κ)·K_c.
+
+### 14.3 What was checked
+
+- **R1.** The 13 horses and markets tapes' 2,000-tick hash streams equal the P2.2 report's on WSL
+  and on Windows (`D:/rustyecon-p2b/build-plant/tapes-bit.sh`, after l010's). The gate world's
+  final hash is `0x61f9c8529131ff17`; appb's and demo-gb's pins pass in the gate and the GUI's
+  gate. Every committed tape keeps its `tape_hash` and `world_id` (the extended pin).
+- **The rest point** (E2): every built instance at every funded target (b × 1, 1.1, 0.9, 2, 0.5;
+  all 115 funded), three ticks, within 1e-12 but LN6 (item 5); LB1 at 12, 24 and 365 ticks a
+  year.
+- **θ = 1** (E1): LB1 against LN1 and LW1 against LW0, at hold, from w × 2 and from r × 2: every
+  market line, every holding but the plants, and every state read as its kind's, bit for bit
+  over 2,000 ticks. And from 3,000 random states per tape, each planted kind's decide, produce
+  and upkeep are its kind's bit for bit (`planted_at_theta_one_is_the_kind`).
+- **The fixed plant** (E1): LB1 with `--fixed-plants`, 2,000 ticks: every plant at Q bit for bit,
+  no plant minted, burned or ordered. And from 200 random states per tape, output
+  P^(1−θ)·B^θ, at most κ·H on the capacity desk (`fixed_plant_is_drs`).
+- **Conservation**: the six tapes at rest and from w × 2 with every desk's coin × 0.1 and every
+  plant × 2, 2,000 ticks: the ledger each tick, the money stock within 1e-12, every
+  `Depreciation` burn in upkeep and exactly δ·H of heads or u·P of a plant, every plant mint in
+  produce.
+- **FUNDED**: the generator's params equal `instances.json`'s `tape_params` bit for bit; the 45
+  points (B, B-cut and the flow control at three δ and five land factors) within 1e-15 relative
+  (the good's price within the rounding of P_s, since the file writes it as P_s − h); s1 is
+  40.47205917167808; and the 80 plant rows' K* equal κ_p·X within 1e-12
+  (`loops_instances_are_fundeds`).
+- **The build's mutants**: see §14.4.
+
+### 14.4 The build's mutants
+
+Each change was undone, one at a time, in a copy of the tree
+(`D:/rustyecon-p2b/build-plant/mutants/mutants.py`), and the named tests run.
+
+28 mutants, each killed by at least one named test (the log is
+`D:/rustyecon-p2b/build-plant/mut/mutants.log`). Two survived the first pass and a test was
+strengthened for each: the split's cap at B (`planted_desks_take_carried_goods` now holds B an ulp
+from its share, where fl(B·z)/z rounds above B) and O_f = O (`planted_rules_are_the_spec` now has
+a case off s1, where O_f parts from O).
+
+| mutant | killed by |
+|---|---|
+| `World::markets()` keeps untraded goods | `untraded_goods_load_without_a_market`, `kick_skips_untraded_goods` |
+| `apply` writes an untraded slot | `untraded_slots_are_never_written` |
+| `validate` passes a written untraded slot | `untraded_slots_are_never_written` |
+| admission takes an untraded good | `admission_refuses_orders_on_an_untraded_good` |
+| a genesis price on an untraded good loads | `untraded_goods_are_checked` |
+| an untraded good may be perishable | `untraded_goods_are_checked` |
+| a `ScalePrice` of an untraded good loads | `untraded_slots_are_never_written` |
+| `untraded: false` is written | `untraded_flag_keeps_canonical_text`, `horses_tapes_keep_their_world_ids` |
+| a role may name an untraded good | `plants_are_checked_at_load` |
+| a scripted line may name an untraded good | `plants_are_checked_at_load` |
+| the resolved type desk writes `plant: None` | `horses_tapes_keep_their_world_ids` |
+| the raw capacity desk writes `plant: None` | `horses_tapes_keep_their_world_ids` |
+| the planted variants inserted before `Owner` | `old_states_keep_their_encoding` |
+| the type desk's budgets from the outlay alone | `planted_rules_are_the_spec` |
+| the plan at c, not c_full | `planted_rules_are_the_spec`, `loops_rest_point_is_the_oracles` |
+| the horses ignore the plant's cost | `planted_rules_are_the_spec` |
+| the maker's cover at c, not c_full | `planted_rules_are_the_spec` |
+| the maker's reservation at c_full | `a_planted_maker_reads_its_reservation_at_c_m` |
+| the plant wears what it holds now | `plant_wears_what_it_held_at_decide`, `loops_conserve_every_tick` |
+| the build unbounded by B | `planted_arithmetic_never_fails` |
+| the split without its cap at B | `planted_desks_take_carried_goods` (second pass) |
+| B over the plan's bundles only | `planted_desks_take_carried_goods` |
+| θ out of range loads | `plants_are_checked_at_load` |
+| two desks share a plant | `plants_are_checked_at_load` |
+| the herd's plant on a type desk | `plants_are_checked_at_load` |
+| the plant order's coin cap dropped | `planted_rules_are_the_spec` |
+| the herd's target without κ | `planted_rules_are_the_spec`, `loops_rest_point_is_the_oracles` |
+| O_f = O always | `planted_rules_are_the_spec` (second pass) |
+
+Not mutated: clearing's slot check, which no path reaches with an untraded good (admission
+refuses its orders first), and the engine's boxed delta, which clippy guards.
+
+### 14.5 Decisions and open items
+
+Decisions 297–301 and open items O73–O74 are in STATE.md.

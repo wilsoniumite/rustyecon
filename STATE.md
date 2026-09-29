@@ -11,10 +11,14 @@ the tape's schema is [docs/TAPE.md](docs/TAPE.md), and the GUI's design is
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
 **State as of:** 2026-09-30, on branch `phase2-plants` from `reboot` at `8b07c8a`, not pushed or
-merged. **P2.2b's frame is written** (P2.2b.0, docs only): the build's spec,
+merged. **P2.2b's plant layer is built** (P2.2b.1; "Where things stand"): core's untraded good,
+CAPACITY's plant on the type desk, the maker and the capacity desk, the loop instances and their
+six tapes, with every committed tape's text, hashes and streams unchanged; decisions 297–301,
+O73–O74. The harness's rule-B readouts and E0's trace diff are next. **P2.2b's frame is
+written** (P2.2b.0, docs only): the build's spec,
 [docs/probe/LOOPS-RULES.md](docs/probe/LOOPS-RULES.md), and one dated amendment before any code,
 [docs/probe/loops/LOOP-SPEC-A2.md](docs/probe/loops/LOOP-SPEC-A2.md) (LN5 waits for O51, as LF4
-does); decisions 286–296, O69–O72. The build (P2.2b.1) is next. Before it, on `phase2-loops`
+does); decisions 286–296, O69–O72. Before it, on `phase2-loops`
 from `reboot` at `401f7b1`: **the loop stage's groundwork (L0) is done** (L0.1–L0.9, "Where
 things stand"; decisions 240–283; O51–O68). L0.1 closes O48, M6 narrowed to the durable good and
 M5 checked at load.
@@ -108,6 +112,41 @@ many-market roles (O27), which may now start from the goods chain's stage v2a.1 
 on D-G12. "Next steps" has each.
 
 ## Where things stand
+
+**P2.2b's plant layer (P2.2b.1; 2026-09-30).** Branch `phase2-plants` (worktree
+`D:/rustyecon-wt/p2b`, scratch `D:/rustyecon-p2b/build-plant/`). As built:
+[docs/probe/LOOPS-RULES.md](docs/probe/LOOPS-RULES.md) §14; ENGINE.md and TAPE.md, "Amended at
+P2.2b.1".
+- **Core's untraded good** (decision 286): `untraded: true` on a good, absent `false`. It is
+  `Indefinite`, has no price rate, market or genesis price, and no order, role good or price shock
+  may name it. `World::markets()` walks the goods with a market only, so clearing, the price rule,
+  the report, certify's kick set and the GUI never see a plant.
+- **The plant** on the type desk, the maker and the capacity desk, an optional last field
+  (`plant: Some((good, theta, delta, size, adjust, order, target))`), with three `ActorState`
+  variants after `Owner`. The kinds' own rules take the plant as an option, so a desk without one
+  runs its kind's code; a planted desk at θ = 1 is its kind bit for bit.
+- **The loop instances** (`probe::horses::loops`): LOOPS-RULES §7.1's rows but LF4 and LN5,
+  FUNDED's point, genesis at the price-free rest ratio, and `tapes/loops-{lb1,lb2,lb3,lw1,lw2,
+  lw3}.ron`, written by `horses-tape --inst <id>`. Their params equal `instances.json`'s bit for
+  bit, their points FUNDED's within 1e-15, and each genesis plant κ_p·X its K* within 1e-12.
+- **R1 held:** the 13 horses and markets tapes' 2,000-tick streams equal the P2.2 report's on WSL
+  and Windows; the gate world's final is `0x61f9c8529131ff17`; every committed tape keeps its
+  `tape_hash` and `world_id` (now pinned for all 13).
+- **What the tests show:** the oracle's point is a fixed point at all 23 built instances and 5
+  targets within 1e-12, but LN6 (its whole-gap order, 3.0e-12; decision 301); LB1 at θ = 1 is LN1
+  and LW1 at θ = 1 is LW0 bit for bit over 2,000 ticks, at hold and from w × 2 and r × 2; a fixed
+  plant stays at Q with no order; every tape conserves, each wear exactly δ·H or u·P. Each of the
+  build's 28 mutants is killed by a named test, two after a test was strengthened (LOOPS-RULES
+  §14.4).
+- **One engine change** (decision 297): `RunErrorKind::ForeignWrite` boxes its delta, since the
+  planted states grew every delta. No run, hash or message moved.
+- **The gates**, logs in `D:/rustyecon-p2b/build-plant/`: `scripts/gate.sh` and `scripts/gui.sh`
+  green in WSL (`/root/scratch/target-p2b`) and on Windows (`D:/rustyecon-targets/p2b`) on the
+  tree committed as P2.2b.1. 900 workspace tests pass on each (L0.8's 877 and 23 new), 3 ignored
+  and run by name; certify alone 68; the GUI's 118, its 87 named ones among them; zero warnings.
+- **Not built:** the harness's rule-B readouts (LOOPS-RULES §8) and the five tests that need them
+  or E0 (O73).
+- **Decisions 297–301 and O73–O74**, below.
 
 **P2.2b's frame (P2.2b.0; 2026-09-30).** Branch `phase2-plants` from `reboot` at `8b07c8a`
 (worktree `D:/rustyecon-wt/p2b`, scratch `D:/rustyecon-p2b/`). Docs only; no code, so no gate ran.
@@ -3047,6 +3086,30 @@ open to veto.
      input and a maker's own horse-days are refused with a plant. Alternative: allow them,
      untested.
 
+297–301 are P2.2b.1's (`docs/probe/LOOPS-RULES.md` §14.2), taken by Claude on your standing word
+and open to veto.
+
+297. **The engine's `RunErrorKind::ForeignWrite` boxes its delta.** The capacity desk's planted
+     state holds 11 numbers, so every `StateDelta` grew and clippy's `result_large_err` refused
+     every step's `Result`. No run, hash or message moves. Alternative: allow the lint on the
+     engine, or keep the plant's record outside `ActorState`.
+298. **The flow control's horse-day desk reads its own input from `inst.traction.own`**, a new
+     param at 0. Alternative: reuse `inst.fodder.own`, which names another desk's recipe.
+299. **No float constant on the engine path for the plant**: `p_inverse` on no plant is "none"
+     (the mirror's +∞), so the capacity desk's z is outlay/O, or 0 where O is 0; a capacity desk
+     whose running recipe has no coefficient above 0 bounds its bundles by κ·H. The first arises
+     only where a capacity desk at θ < 1 holds no plant (its output is then 0 whatever it runs),
+     the second only after a dated `SetParam` zeroes every running coefficient. Alternative: +∞,
+     which needs an exception in the engine's literal scan.
+300. **The loop instances are a module of their own, `probe::horses::loops`**, with their own
+     instance, point, setup, genesis and tape; `horses-tape` knows the loop ids, and the harness
+     step decides how `horses` reads them. Alternative (decision 290's letter): fold rule B into
+     P2.2a's `Instance` now, which moves every harness readout in this step.
+301. **LN6's rest-point bar is 1e-11**, not §10's 1e-12: its order takes the whole gap each tick
+     and passes the plant's rounding to its order at 1/u times the order's size (measured
+     3.0e-12). Every other instance is held to 1e-12. Alternative: 1e-12 everywhere, which LN6
+     fails by rounding alone.
+
 ## Open — your calls
 
 - **The GUI's decisions**, 22–34 (D1–D13): G0 carried them out, none vetoed; a veto now reopens
@@ -3759,6 +3822,21 @@ O69 on are P2.2b's (`docs/probe/LOOPS-RULES.md` §12).
   2.3 million ticks for each of 53 runs per verdict instance, beside E4's kick sets at H = L. One
   LB1 run at 10·L should be timed on WSL before the waves are planned.
 
+O73 on are P2.2b.1's (`docs/probe/LOOPS-RULES.md` §14).
+
+- **O73. The harness's rule-B readouts are not built.** LOOPS-RULES §8 (observables with the
+  plants, per-market dead ticks, labour's bound, horse-days by buyer, `pk_high`, the plants' 5%
+  readouts, the running cost read from the tape, the run grammar's plant stocks and `b*F`, the
+  families and the outputs) and five §10 tests (`loops_batteries_are_registered`,
+  `loops_runs_apply_as_named`, `loops_harness_readouts_are_the_rows`,
+  `harness_reads_the_running_cost_from_the_tape`, `loops_carry_meets_the_mirror_at_tick_one`).
+  `horses` reads rule A's instances alone until then. E0's trace diff needs only the tapes, which
+  exist.
+- **O74. §10's reservation test was worded backwards.** Since c_full > c_m, "a markup below ψ on
+  c_m but above it on c_full" cannot happen; the test takes the case that tells the two apart,
+  above ψ on c_m and below it on c_full (LOOPS-RULES §14.2 item 5). Nothing to do but read §10
+  with §14.
+
 ## Corrections logged (A3; ADDENDUM §1.4)
 
 REVIEW.md is kept as written; these of its claims do not hold.
@@ -3837,7 +3915,8 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
       `ActorState` variant, load check, readout and test, and how E0–E11 are run and scored.
       One departure, LOOP-SPEC-A2 (LN5 waits for O51), dated and hashed before any code. The
       build must also add an untraded good to core (decision 286).
-   2. **The build** (P2.2b.1): CAPACITY's plant on the TypeDesk, the capacity desk and the maker,
+   2. **The build** (P2.2b.1): **built**, 2026-09-30 (LOOPS-RULES §14), but the harness's rule-B
+      readouts (O73). CAPACITY's plant on the TypeDesk, the capacity desk and the maker,
       an optional `plant` field with appended `ActorState` variants so every committed tape keeps
       its hashes; a plant good per loop desk, held and never traded (D-G2's `Indefinite` good, worn
       by `Depreciation` burns); s1 bundles of the desk's own recipe per plant unit, ordered by M3's
@@ -3848,9 +3927,10 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
       no plant every committed tape's text, `world_id` and hash stream. The oracle needs no new
       solve at ρ = 0: 1g's plants give K\*, V and the user cost per plant desk (decision 184); the
       tape's goods need O32's schema and builder.
-   3. **E0, the trace diff** against `lm_carry.py`, before any scored run; then E1–E11 of
-      LOOP-SPEC-A1 §8 at LB1–LB3, the flow controls LW1–LW3 and the negative controls, with the
-      same bounded reviews as P2.2a, and the report.
+   3. **The harness's rule-B readouts** (LOOPS-RULES §8; O73), and **E0, the trace diff**
+      against `lm_carry.py`, before any scored run; then E1–E11 of LOOP-SPEC-A1 §8 at LB1–LB3,
+      the flow controls LW1–LW3 and the negative controls, with the same bounded reviews as
+      P2.2a, and the report.
 
    Loops enter Phase 2 on plants (decision 284, amending 120) and machine stocks come forward
    for the goods chain (decision 285, D-G11), both taken by Claude on your word and open to veto.
@@ -3912,10 +3992,11 @@ crates/core              ids, clock, inventory, deltas, apply, ledgers, hash, ch
 crates/markets           admission, clearing, settlement, prices
 crates/agents            the behaviour seam, the scripted actor, the Appendix B roles (P2.0.1),
                          the many-market roles in roles/many/ (P2.1.1), the stock roles in
-                         roles/stock/ (P2.2.1)
+                         roles/stock/ (P2.2.1), CAPACITY's plant in roles/plant/ (P2.2b.1)
 crates/probe             the Phase 2 probe's harness and tape generator (P2.0.1); reads certify's
                          measures (S2.5); the markets probe's harness, probe::markets (P2.1.1);
-                         the stocks probe's, probe::horses (P2.2.1)
+                         the stocks probe's, probe::horses (P2.2.1); the loop step's instances
+                         and tapes, probe::horses::loops (P2.2b.1)
 docs/probe/RULES.md      the probe's rules, dials and lineage, as built
 docs/probe/REPORT.md     the probe's report: verdict, battery, dial map, reviews, what it means
 docs/probe/figs/         the report's plots; docs/probe/results/ its three summary tables (CSV)
@@ -3962,6 +4043,8 @@ tapes/gate.ron           the gate world
 tapes/appb.ron           the probe's Appendix B world, generated from the oracle
 tapes/markets-<id>.ron   the markets probe's seven worlds (I0–I3, L2, L3, G1), from the oracle
 tapes/horses-<id>.ron    the stocks probe's six worlds (H1–H4, R1a, P7), from 1g's ChainEconomy
+tapes/loops-<id>.ron     the loop step's six worlds (LB1–LB3, LW1–LW3), rule B at chain8 with
+                         CAPACITY's plants, from 1g's ChainEconomy (P2.2b.1)
 tapes/demo-gb.ron        the illustrative demo world, compiled from worlds/demo-gb (D.2)
 worlds/demo-gb/          the demo world's tables and derive.py
 data/atlas/              the county atlas, gb.atlas.ron, under the ODbL: LICENSE, ATTRIBUTION,

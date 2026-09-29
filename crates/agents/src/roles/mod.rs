@@ -20,9 +20,11 @@
 //!
 //! [`many`] carries these roles to many categories and many machine types (P2.1), as four new
 //! kinds beside these four, and [`stock`] adds machines held as stocks of a durable good (P2.2),
-//! as three more.
+//! as three more. [`plant`] puts CAPACITY's plant on the type desk, the maker and the capacity
+//! desk (P2.2b), as an optional field of each.
 
 pub mod many;
+pub mod plant;
 pub mod rules;
 pub mod spec;
 pub mod stock;

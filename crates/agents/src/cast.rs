@@ -12,15 +12,22 @@
 //! that lives more than one tick is bought only as the durable good a capacity or owner desk
 //! holds, which it nets (M6), and no role offers one in full: the maker sells its durable good
 //! under its cover (M5). A maker's reservation (L0.4) is a stock's, never the flow path's, and
-//! needs a world whose one-sided markets `Saturate`.
+//! needs a world whose one-sided markets `Saturate`. A planted desk (P2.2b; LOOPS-RULES §6) has a
+//! θ in (0, 1], a plant that wears by less than all of it a tick, a positive size, the cash rule,
+//! a bundle that costs something, and a plant good of its own; the herd's target is a capacity
+//! desk's only; a planted type desk has no own input, and a planted maker is on the stock path
+//! and uses no hours of its own horses.
 
 use crate::behaviour::{AgentError, Behaviour, Decision, Posted, View};
 use crate::ext::{
     ActorState, Agents, CapacityState, GoodDeskState, MachDeskState, MakerState, OwnerState,
-    ProviderState, ScriptState, WorkersState,
+    PlantedCapacityState, PlantedMakerState, PlantedTypeState, ProviderState, ScriptState,
+    WorkersState,
 };
 use crate::roles::many::spec::{BasketProvider, BasketWorkers, CategoryDesk, TypeDesk};
-use crate::roles::spec::{GoodDesk, MachDesk, Provider, Workers};
+use crate::roles::plant::rules::{PlantedCapacity, PlantedMaker, PlantedType};
+use crate::roles::plant::spec::{Plant, PlantTarget};
+use crate::roles::spec::{GoodDesk, MachDesk, Provider, Scale, Workers};
 use crate::roles::stock::rules::{MakerRole, OwnerRole};
 use crate::roles::stock::spec::CapacityDesk;
 use crate::spec::{Script, Spec};
@@ -44,6 +51,9 @@ enum Member {
     Maker(MakerRole),
     CapacityDesk(CapacityDesk),
     OwnerDesk(OwnerRole),
+    PlantedType(PlantedType),
+    PlantedMaker(PlantedMaker),
+    PlantedCapacity(PlantedCapacity),
 }
 
 /// Every declared actor's behaviour, in `ActorId` order.
@@ -309,10 +319,84 @@ fn check_sold(w: &World<Agents>, decl: &ActorDecl<Spec>) -> Result<(), LoadError
     Ok(())
 }
 
+/// The checks on a planted desk that need the genesis values (LOOPS-RULES §6): θ in (0, 1], a wear
+/// below all of the plant a tick (δ_p 0 allowed, the fixed plant), a positive size, the herd's
+/// target on a capacity desk only (`herd`), the cash rule (decision 296), a bundle with a
+/// coefficient above 0 (else its cost is 0 and kr is 0/0), and a plant good no other desk's
+/// plant names (`seen`).
+fn check_plant(
+    w: &World<Agents>,
+    decl: &ActorDecl<Spec>,
+    p: &Plant,
+    scale: &Scale,
+    herd: bool,
+    bundle: &[(Site, &str)],
+    seen: &mut Vec<GoodId>,
+) -> Result<(), LoadError> {
+    let theta = at_genesis(w, decl, p.theta, "plant.theta")?;
+    if !(theta > 0.0 && theta <= 1.0) {
+        return Err(invalid(decl, "plant.theta", "a plant's θ is in (0, 1]"));
+    }
+    if at_genesis(w, decl, p.delta, "plant.delta")? >= 1.0 {
+        return Err(invalid(
+            decl,
+            "plant.delta",
+            "a plant wears by less than all of it a tick",
+        ));
+    }
+    if at_genesis(w, decl, p.size, "plant.size")? <= 0.0 {
+        return Err(invalid(
+            decl,
+            "plant.size",
+            "a plant unit is built from a positive number of bundles",
+        ));
+    }
+    if p.target == PlantTarget::Herd && !herd {
+        return Err(invalid(
+            decl,
+            "plant.target",
+            "the herd's plant is a capacity desk's target: a type desk's or a maker's plant \
+             targets its bundles",
+        ));
+    }
+    if !matches!(scale, Scale::Cash { .. }) {
+        return Err(invalid(
+            decl,
+            "scale",
+            "a planted desk takes the cash rule: the step rule sizes its own state, and the \
+             mirror ran no plant on it (decision 296)",
+        ));
+    }
+    let mut costs = false;
+    for &(site, field) in bundle {
+        if at_genesis(w, decl, site, field)? > 0.0 {
+            costs = true;
+        }
+    }
+    if !costs {
+        return Err(invalid(
+            decl,
+            "plant",
+            "a plant's bundle has a coefficient above 0: a bundle that costs nothing has no \
+             cheapest plant",
+        ));
+    }
+    if seen.contains(&p.good) {
+        return Err(invalid(
+            decl,
+            "plant.good",
+            "a plant good belongs to one desk: another desk's plant names it",
+        ));
+    }
+    seen.push(p.good);
+    Ok(())
+}
+
 impl Cast {
     /// The cast of a world, after the checks that need the whole world.
     pub fn new(w: &World<Agents>) -> Result<Cast, LoadError> {
         let mut members = Vec::with_capacity(w.actors.len());
+        let mut plants: Vec<GoodId> = Vec::new();
         for decl in &w.actors {
             let member = match &decl.spec {
                 Spec::Scripted(s) => {
@@ -355,7 +439,26 @@ impl Cast {
                 Spec::TypeDesk(d) => {
                     let pays = d.scale.pays().map(|a| (a, "scale.payout.to"));
                     check_role(w, decl, ActorKind::Desk, None, pays)?;
-                    Member::TypeDesk(d.clone())
+                    match &d.plant {
+                        None => Member::TypeDesk(d.clone()),
+                        Some(p) => {
+                            // The bundle: the bought inputs, labour and land (LOOPS-RULES §4.1).
+                            let mut bundle: Vec<(Site, &str)> =
+                                d.inputs.iter().map(|i| (i.coef, "recipe.inputs")).collect();
+                            bundle.push((d.labour_coef, "recipe.labour"));
+                            bundle.push((d.land_coef, "recipe.land"));
+                            check_plant(w, decl, p, &d.scale, false, &bundle, &mut plants)?;
+                            if at_genesis(w, decl, d.own, "recipe.own")? != 0.0 {
+                                return Err(invalid(
+                                    decl,
+                                    "recipe.own",
+                                    "a planted type desk keeps no own input: LOOP-SPEC runs \
+                                     none (decision 296)",
+                                ));
+                            }
+                            Member::PlantedType(PlantedType::new(d, p))
+                        }
+                    }
                 }
                 Spec::Maker(d) => {
                     let pays = d.scale.pays().map(|a| (a, "scale.payout.to"));
@@ -396,7 +499,39 @@ impl Cast {
                             ));
                         }
                     }
-                    Member::Maker(MakerRole::new(d, flow))
+                    match &d.plant {
+                        None => Member::Maker(MakerRole::new(d, flow)),
+                        Some(p) => {
+                            // LOOP-SPEC §2.5: a maker from bought inputs, on the stock path, its
+                            // bundle the build's goods, labour and land.
+                            if flow {
+                                return Err(invalid(
+                                    decl,
+                                    "plant",
+                                    "a planted maker holds its durable good as a stock: the \
+                                     flow path has no plant",
+                                ));
+                            }
+                            if at_genesis(w, decl, d.own_hours, "own_hours")? != 0.0 {
+                                return Err(invalid(
+                                    decl,
+                                    "own_hours",
+                                    "a planted maker builds from bought inputs alone, with no \
+                                     hours of its own stock (LOOP-SPEC §2.5; decision 296)",
+                                ));
+                            }
+                            let mut bundle: Vec<(Site, &str)> = d
+                                .build
+                                .goods
+                                .iter()
+                                .map(|i| (i.coef, "build.goods"))
+                                .collect();
+                            bundle.push((d.build.labour, "build.labour"));
+                            bundle.push((d.build.land, "build.land"));
+                            check_plant(w, decl, p, &d.scale, false, &bundle, &mut plants)?;
+                            Member::PlantedMaker(PlantedMaker::new(d, p))
+                        }
+                    }
                 }
                 Spec::CapacityDesk(d) => {
                     let pays = d.scale.pays().map(|a| (a, "scale.payout.to"));
@@ -409,7 +544,21 @@ impl Cast {
                              when it decides",
                         ));
                     }
-                    Member::CapacityDesk(d.clone())
+                    match &d.plant {
+                        None => Member::CapacityDesk(d.clone()),
+                        Some(p) => {
+                            // Its bundle is the running recipe (decision 261).
+                            let mut bundle: Vec<(Site, &str)> = d
+                                .running
+                                .goods
+                                .iter()
+                                .map(|i| (i.coef, "running.goods"))
+                                .collect();
+                            bundle.push((d.running.labour, "running.labour"));
+                            check_plant(w, decl, p, &d.scale, true, &bundle, &mut plants)?;
+                            Member::PlantedCapacity(PlantedCapacity::new(d, p))
+                        }
+                    }
                 }
                 Spec::OwnerDesk(d) => {
                     let pays = d.scale.pays().map(|a| (a, "scale.payout.to"));
@@ -471,6 +620,9 @@ impl Cast {
             Member::Maker(b) => b.decide(&role_view(a, s, w, maker)?),
             Member::CapacityDesk(b) => b.decide(&role_view(a, s, w, capacity)?),
             Member::OwnerDesk(b) => b.decide(&role_view(a, s, w, owner)?),
+            Member::PlantedType(b) => b.decide(&role_view(a, s, w, planted_type)?),
+            Member::PlantedMaker(b) => b.decide(&role_view(a, s, w, planted_maker)?),
+            Member::PlantedCapacity(b) => b.decide(&role_view(a, s, w, planted_capacity)?),
         }
     }
 
@@ -494,6 +646,9 @@ impl Cast {
             Member::Maker(b) => b.produce(&role_view(a, s, w, maker)?),
             Member::CapacityDesk(b) => b.produce(&role_view(a, s, w, capacity)?),
             Member::OwnerDesk(b) => b.produce(&role_view(a, s, w, owner)?),
+            Member::PlantedType(b) => b.produce(&role_view(a, s, w, planted_type)?),
+            Member::PlantedMaker(b) => b.produce(&role_view(a, s, w, planted_maker)?),
+            Member::PlantedCapacity(b) => b.produce(&role_view(a, s, w, planted_capacity)?),
         }
     }
 
@@ -517,6 +672,9 @@ impl Cast {
             Member::Maker(b) => b.upkeep(&role_view(a, s, w, maker)?),
             Member::CapacityDesk(b) => b.upkeep(&role_view(a, s, w, capacity)?),
             Member::OwnerDesk(b) => b.upkeep(&role_view(a, s, w, owner)?),
+            Member::PlantedType(b) => b.upkeep(&role_view(a, s, w, planted_type)?),
+            Member::PlantedMaker(b) => b.upkeep(&role_view(a, s, w, planted_maker)?),
+            Member::PlantedCapacity(b) => b.upkeep(&role_view(a, s, w, planted_capacity)?),
         }
     }
 }
@@ -573,6 +731,27 @@ fn capacity(s: &ActorState) -> Option<&CapacityState> {
 fn owner(s: &ActorState) -> Option<&OwnerState> {
     match s {
         ActorState::Owner(st) => Some(st),
+        _ => None,
+    }
+}
+
+fn planted_type(s: &ActorState) -> Option<&PlantedTypeState> {
+    match s {
+        ActorState::PlantedType(st) => Some(st),
+        _ => None,
+    }
+}
+
+fn planted_maker(s: &ActorState) -> Option<&PlantedMakerState> {
+    match s {
+        ActorState::PlantedMaker(st) => Some(st),
+        _ => None,
+    }
+}
+
+fn planted_capacity(s: &ActorState) -> Option<&PlantedCapacityState> {
+    match s {
+        ActorState::PlantedCapacity(st) => Some(st),
         _ => None,
     }
 }

@@ -218,6 +218,8 @@ impl ParamInfo {
 pub struct Resolver<'a> {
     keys: &'a KeyIndex,
     currency: &'a [bool],
+    /// Whether each good, by id, is marked `untraded` on the tape (amended at P2.2b.1).
+    untraded: &'a [bool],
     clock: Clock,
     params: Vec<ParamInfo>,
     /// The params only the schedule reads, by key; not in `params`.
@@ -485,6 +487,18 @@ impl<'a> Resolver<'a> {
         self.currency.get(g.idx()).copied().unwrap_or(false)
     }
 
+    /// Whether the tape marks `g` untraded (amended at P2.2b.1): a good with no market, which no
+    /// order, genesis price or price shock may name.
+    pub fn is_untraded(&self, g: GoodId) -> bool {
+        self.untraded.get(g.idx()).copied().unwrap_or(false)
+    }
+
+    /// Whether `g` has a market: a good of the tape that is neither a currency nor untraded
+    /// (amended at P2.2b.1). The roles' checks read it: every good a role trades has a market.
+    pub fn has_market(&self, g: GoodId) -> bool {
+        g.idx() < self.keys.goods.len() && !self.is_currency(g) && !self.is_untraded(g)
+    }
+
     /// The run's clock.
     pub fn clock(&self) -> &Clock {
         &self.clock
@@ -621,7 +635,7 @@ fn resolve_act<E: Ext>(
             }
             let node = r.node(node, "act.node")?;
             let good = r.good(good, "act.good")?;
-            if r.is_currency(good) {
+            if !r.has_market(good) {
                 return Err(r.error("act.good", LoadErrorKind::NoMarket));
             }
             let (unit, factor) = r.schedule_ref(by, ScheduleRead::Factor, "act.by")?;
@@ -795,6 +809,7 @@ fn resolve_with<E: Ext>(t: &Tape<E>, schedule: &[Key]) -> Result<Pass<E>, LoadEr
         let mut r = Resolver {
             keys: &keys,
             currency: &[],
+            untraded: &[],
             clock,
             params: Vec::new(),
             schedule: &[],
@@ -815,9 +830,15 @@ fn resolve_with<E: Ext>(t: &Tape<E>, schedule: &[Key]) -> Result<Pass<E>, LoadEr
         }
     }
 
+    // Which goods the tape marks untraded (amended at P2.2b.1), by id: the goods in key order.
+    let mut raw_goods: Vec<&RawGood> = t.goods.iter().collect();
+    raw_goods.sort_by(|a, b| a.key.cmp(&b.key));
+    let untraded: Vec<bool> = raw_goods.iter().map(|g| g.untraded).collect();
+
     let mut r = Resolver {
         keys: &keys,
         currency: &currency,
+        untraded: &untraded,
         clock,
         params: infos,
         schedule: &sched,
@@ -868,9 +889,7 @@ fn resolve_with<E: Ext>(t: &Tape<E>, schedule: &[Key]) -> Result<Pass<E>, LoadEr
     }
     r.leave();
 
-    // Goods.
-    let mut raw_goods: Vec<&RawGood> = t.goods.iter().collect();
-    raw_goods.sort_by(|a, b| a.key.cmp(&b.key));
+    // Goods, in key order (`raw_goods`, sorted above).
     let mut goods = Vec::with_capacity(raw_goods.len());
     for (i, g) in raw_goods.iter().enumerate() {
         let id = GoodId(i as u32);
@@ -884,7 +903,20 @@ fn resolve_with<E: Ext>(t: &Tape<E>, schedule: &[Key]) -> Result<Pass<E>, LoadEr
             Some(k) => Some(r.param(k, ClockMethod::LogStep, ParamUse::Live, "price_rate")?),
             None => None,
         };
-        if r.is_currency(id) {
+        if g.untraded {
+            // An untraded good (amended at P2.2b.1): held, never traded. It is no currency, it
+            // lasts, and it has no price to move. So `GoodDef` needs no flag: a good that is no
+            // currency and has no price rate is untraded.
+            if r.is_currency(id) {
+                return Err(r.error("untraded", LoadErrorKind::UntradedGood));
+            }
+            if life != Life::Indefinite {
+                return Err(r.error("life", LoadErrorKind::UntradedGood));
+            }
+            if price_rate.is_some() {
+                return Err(r.error("price_rate", LoadErrorKind::UntradedGood));
+            }
+        } else if r.is_currency(id) {
             if life != Life::Indefinite {
                 return Err(r.error("life", LoadErrorKind::CurrencyGood));
             }
@@ -1105,7 +1137,8 @@ fn resolve_genesis<A>(
     nodes: &[NodeDef],
     actors: &[ActorDecl<A>],
 ) -> Result<Genesis, LoadError> {
-    // Prices: exactly one per (node, non-currency good), finite and positive; EMA = price.
+    // Prices: exactly one per (node, good with a market), finite and positive; EMA = price. A
+    // currency or an untraded good (amended at P2.2b.1) takes none: its slot stays 1.
     let mut prices: BTreeMap<(NodeId, GoodId), f64> = BTreeMap::new();
     for p in &g.prices {
         r.enter(format!("genesis.prices[{}/{}]", p.node, p.good));
@@ -1113,6 +1146,9 @@ fn resolve_genesis<A>(
         let good = r.good(&p.good, "good")?;
         if r.is_currency(good) {
             return Err(r.error("good", LoadErrorKind::PriceOnCurrency));
+        }
+        if r.is_untraded(good) {
+            return Err(r.error("good", LoadErrorKind::NoMarket));
         }
         if !(is_clean(p.price) && p.price > 0.0) {
             return Err(r.error("price", LoadErrorKind::BadValue(p.price)));
@@ -1130,7 +1166,7 @@ fn resolve_genesis<A>(
     }
     let mut book = MarketBook::new(nodes.len(), goods.len());
     for n in nodes {
-        for good in goods.iter().filter(|good| !r.is_currency(good.id)) {
+        for good in goods.iter().filter(|good| r.has_market(good.id)) {
             let Some(&p) = prices.get(&(n.id, good.id)) else {
                 return Err(LoadError::new(
                     format!("genesis.prices[{}/{}]", n.key, good.key),
@@ -2411,5 +2447,177 @@ mod tests {
         assert_ne!(w.prefix_id(52), w0.prefix_id(52));
         // Nothing has fired before tick 0.
         assert_eq!(w0.prefix_id(0), crate::hash::fnv1a_64(b""));
+    }
+
+    /// The fixture with an untraded good `plant`, held by the farm (amended at P2.2b.1).
+    fn untraded_text() -> String {
+        let t = edit(
+            r#"(key: "labour", life: Instant, price_rate: Some("rate.labour")),"#,
+            "(key: \"labour\", life: Instant, price_rate: Some(\"rate.labour\")),\n        \
+             (key: \"plant\", life: Indefinite, price_rate: None, untraded: true),",
+        );
+        let from =
+            r#"(holder: "farm", goods: [("bread", 4.0), ("coin", 100.0), ("grain", 16.0)]),"#;
+        assert_eq!(t.matches(from).count(), 1);
+        t.replacen(
+            from,
+            r#"(holder: "farm", goods: [("bread", 4.0), ("coin", 100.0), ("grain", 16.0), ("plant", 3.0)]),"#,
+            1,
+        )
+    }
+
+    #[test]
+    fn untraded_goods_load_without_a_market() {
+        // P2.2b.1 (decision 286): an untraded good loads with a genesis holding and no price. It
+        // has no market at any node, so `World::markets()` leaves it out, no escrow of it is a
+        // holder, and its book slot stays as a currency's: price 1, EMA 1, no volumes.
+        let (w, s) = load_text(&untraded_text()).unwrap();
+        let plant = testkit::good(&w, "plant");
+        assert!(w.is_untraded(plant) && !w.has_market(plant) && !w.is_currency(plant));
+        assert!(w.has_market(testkit::good(&w, "grain")));
+        assert!(!w.has_market(testkit::good(&w, "coin")));
+        assert_eq!(
+            w.good(plant).map(|g| (g.life, g.price_rate)),
+            Some((Life::Indefinite, None))
+        );
+        assert!(w.markets().all(|(_, g)| g != plant));
+        assert_eq!(w.markets().count(), 2 * 3);
+        let farm = testkit::holder(&w, "farm");
+        assert_eq!(testkit::held(&s, farm, plant), 3.0);
+        for n in &w.nodes {
+            let q = s.book().quote(n.id, plant).unwrap();
+            assert_eq!((q.price, q.ema, q.supply, q.demand), (1.0, 1.0, 0.0, 0.0));
+            assert!(!w.is_holder(Holder::Escrow(n.id, plant)));
+        }
+        s.validate(&w).unwrap();
+    }
+
+    #[test]
+    fn untraded_goods_are_checked() {
+        // P2.2b.1: an untraded good is Indefinite, has no price rate, is no node's currency, and
+        // takes no genesis price; each refusal names its path. A good with no price rate and no
+        // flag is still a typo (`currencies_and_prices_rates_are_checked`).
+        let base = untraded_text();
+        let e = load_err_text(&base.replace(
+            "(key: \"plant\", life: Indefinite, price_rate: None, untraded: true)",
+            "(key: \"plant\", life: Indefinite, price_rate: Some(\"rate.grain\"), untraded: true)",
+        ));
+        assert_eq!(
+            e,
+            LoadError::new("goods[plant].price_rate", LoadErrorKind::UntradedGood)
+        );
+        let e = load_err_text(&base.replace(
+            "(key: \"plant\", life: Indefinite, price_rate: None, untraded: true)",
+            "(key: \"plant\", life: Instant, price_rate: None, untraded: true)",
+        ));
+        assert_eq!(
+            e,
+            LoadError::new("goods[plant].life", LoadErrorKind::UntradedGood)
+        );
+        let e = load_err_text(&base.replace(
+            r#"(key: "coin", life: Indefinite, price_rate: None),"#,
+            r#"(key: "coin", life: Indefinite, price_rate: None, untraded: true),"#,
+        ));
+        assert_eq!(
+            e,
+            LoadError::new("goods[coin].untraded", LoadErrorKind::UntradedGood)
+        );
+        let e = load_err_text(&base.replace(
+            r#"(node: "town", good: "labour", price: 1.0),"#,
+            "(node: \"town\", good: \"labour\", price: 1.0),\n            (node: \"town\", good: \
+             \"plant\", price: 1.0),",
+        ));
+        assert_eq!(
+            e,
+            LoadError::new("genesis.prices[town/plant].good", LoadErrorKind::NoMarket)
+        );
+        let e = load_err_text(&base.replace(
+            "(key: \"plant\", life: Indefinite, price_rate: None, untraded: true)",
+            "(key: \"plant\", life: Indefinite, price_rate: None)",
+        ));
+        assert_eq!(
+            e,
+            LoadError::new("goods[plant].price_rate", LoadErrorKind::NoPriceRate)
+        );
+    }
+
+    fn load_err_text(text: &str) -> LoadError {
+        match load_text(text) {
+            Ok(_) => panic!("the variant was expected to fail to load"),
+            Err(e) => e,
+        }
+    }
+
+    #[test]
+    fn untraded_flag_keeps_canonical_text() {
+        // R1 (P2.2b.1): the flag is absent from a tape without it and from its canonical text, so
+        // every committed tape keeps its text, its `tape_hash` and its `world_id`; `false`
+        // written out is the same tape. A tape with the flag round-trips through its canonical
+        // text.
+        let plain = testkit::tape().to_ron();
+        assert!(!plain.contains("untraded"));
+        let written = edit(
+            r#"(key: "coin", life: Indefinite, price_rate: None),"#,
+            r#"(key: "coin", life: Indefinite, price_rate: None, untraded: false),"#,
+        );
+        let t = Tape::<NoExt>::from_ron(&written).unwrap();
+        assert_eq!(t.to_ron(), plain);
+        let (w0, _) = testkit::load();
+        assert_eq!(resolve(&t).unwrap().0.world_id, w0.world_id);
+        let flagged = Tape::<NoExt>::from_ron(&untraded_text()).unwrap().to_ron();
+        assert!(flagged.contains("untraded: true"));
+        assert_eq!(Tape::<NoExt>::from_ron(&flagged).unwrap().to_ron(), flagged);
+    }
+
+    #[test]
+    fn untraded_slots_are_never_written() {
+        // P2.2b.1: no price shock, price or volume is written to an untraded good's slot, and a
+        // state whose slot was written fails validation, as a currency's does.
+        let e = load_err_text(&untraded_text().replace(
+            "act: SetParam(param: \"rate.grain\", to: \"rate.grain.high\")),",
+            "act: SetParam(param: \"rate.grain\", to: \"rate.grain.high\")),\n        (key: \
+             \"shock\", at: \"1751-01-01\", basis: Assumed(\"test\"), act: ScalePrice(node: \
+             \"town\", good: \"plant\", by: \"pension.period\")),",
+        ));
+        assert_eq!(
+            e,
+            LoadError::new("events[shock].act.good", LoadErrorKind::NoMarket)
+        );
+        let (w, mut s) = load_text(&untraded_text()).unwrap();
+        let plant = testkit::good(&w, "plant");
+        let town = w.id_of::<NodeId>("town").unwrap();
+        for d in [
+            StateDelta::ScalePrice {
+                node: town,
+                good: plant,
+                factor: 2.0,
+            },
+            StateDelta::SetPrice {
+                node: town,
+                good: plant,
+                price: 2.0,
+            },
+            StateDelta::SetVolumes {
+                node: town,
+                good: plant,
+                supply: 1.0,
+                demand: 1.0,
+            },
+        ] {
+            let mut l = crate::Ledger::open(&s, &w).unwrap();
+            assert_eq!(
+                crate::apply(&mut s, &w, crate::Phase::Prices, &[d], &mut l),
+                Err(crate::error::CoreError::NoMarket {
+                    node: town,
+                    good: plant
+                })
+            );
+        }
+        let i = s.book.index(town, plant).unwrap();
+        s.book.set_price(i, 2.0);
+        assert!(matches!(
+            s.validate(&w),
+            Err(crate::error::CoreError::Shape(m)) if m.contains("untraded slot")
+        ));
     }
 }

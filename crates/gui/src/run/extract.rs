@@ -16,6 +16,7 @@
 
 use super::Row;
 use rustyecon_engine::prelude::*;
+use rustyecon_engine::rustyecon_agents::PlantState;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::fmt;
@@ -47,6 +48,16 @@ pub enum StateField {
     Order,
     /// The hours a capacity desk planned to run (P2.2).
     Run,
+    /// The plant a planted desk held when this tick's decide ran (P2.2b).
+    PlantHeld,
+    /// A planted desk's plant target, K\*_p (P2.2b).
+    PlantTarget,
+    /// The plant units a planted desk ordered (P2.2b).
+    PlantOrder,
+    /// The bundles a planted desk planned to run (P2.2b).
+    PlantRun,
+    /// The plant units a planted desk's last production built (P2.2b).
+    PlantBuilt,
 }
 
 impl StateField {
@@ -65,13 +76,29 @@ impl StateField {
             StateField::Target => "target",
             StateField::Order => "order",
             StateField::Run => "run",
+            StateField::PlantHeld => "plant.held",
+            StateField::PlantTarget => "plant.target",
+            StateField::PlantOrder => "plant.order",
+            StateField::PlantRun => "plant.run",
+            StateField::PlantBuilt => "plant.built",
         }
     }
 }
 
 /// An actor state's numbers, by field, in the order the state's type lists them. A scripted
-/// actor's state holds none.
+/// actor's state holds none. A planted desk's (P2.2b) are its kind's, then its plant's record.
 pub fn state_fields(s: &ActorState) -> Vec<(StateField, f64)> {
+    let planted = |desk: ActorState, p: &PlantState| {
+        let mut v = state_fields(&desk);
+        v.extend([
+            (StateField::PlantHeld, p.held),
+            (StateField::PlantTarget, p.target),
+            (StateField::PlantOrder, p.order),
+            (StateField::PlantRun, p.run),
+            (StateField::PlantBuilt, p.built),
+        ]);
+        v
+    };
     match s {
         ActorState::Scripted(_) => Vec::new(),
         ActorState::Provider(p) => vec![(StateField::Due, p.due), (StateField::Paid, p.paid)],
@@ -106,6 +133,9 @@ pub fn state_fields(s: &ActorState) -> Vec<(StateField, f64)> {
             (StateField::Output, d.output),
             (StateField::Serving, d.serving),
         ],
+        ActorState::PlantedType(d) => planted(ActorState::MachDesk(d.desk), &d.plant),
+        ActorState::PlantedMaker(d) => planted(ActorState::Maker(d.desk), &d.plant),
+        ActorState::PlantedCapacity(d) => planted(ActorState::Capacity(d.desk), &d.plant),
     }
 }
 

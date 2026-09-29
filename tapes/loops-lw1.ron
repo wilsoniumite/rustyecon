@@ -1,0 +1,148 @@
+// The loop step's LW1 world (LOOP-SPEC §4; docs/probe/LOOPS-RULES.md): the flow control at δ 8%, plants on the fodder and horse-day desks,
+// for P2.2b (2026-09-30).
+//
+// Generated: do not edit. `cargo run -p rustyecon-probe --bin horses-tape -- --inst
+// lw1 <path>` writes it, and the test `loops_tapes_are_their_generators_output` checks
+// this file against the generator.
+//
+// Genesis is the oracle's equilibrium (LOOPS-RULES §7.4, §7.5): crates/oracle unit 1g's ChainEconomy on FUNDED's chain8 under rule B (the horse's hours at J = 2), at N = 8.0 and T = 10.0 a tick, 52 ticks a year,
+// δ = 0.0016022075724025087 and κ = 4.8076923076923075 a tick, land factor 1.0: x* = 0.7470390416580641, v = w/r = 0.02276607195182097, P_s/r = 1.0163947061113316, Y = 9.918084987225372, N_a = 3.5442686796783422,
+//   the good 0.016394706111331748, fodder 1.2392127794436407, a head 13.369023674585545, a horse-day 0.028542101914536447 (running cost 0.024086752113390175); heads made 0.001283697966176543 a tick,
+//   every horse-day 3.851950860607206 (3.6958230228550075 the tasks', 0.15612783775219835 the fodder desk's), fodder 0.07806391887609918.
+// The flow control (LOOPS-RULES §2.2): no horse; a horse-day desk makes horse-days from its running
+// recipe with δ/κ of a head's folded in, and the point is rule B's (FUNDED §4.2).
+// The genesis prices are those ratios with r = 1 coin; the good desk's human share is 1 - x*; each desk
+// holds its stock at rest; each plant is κ_p·X of its desk, κ_p = 2.44140625 from the price-free rest ratio
+// (θ 0.8, s 40.47205917167808). Each coin is the actor's stationary balance, giving [1.7086977380901194, 1.1553151644706519, 1.0165529758457852, 16.579841948313938, 37.124212457405065] in actor order
+// (desk.good, desk.traction, desk.fodder, provider, workers).
+// No agent reads the oracle at run time (R13): it seeds genesis here and scores runs in the harness
+// (crates/probe), outside the Sim.
+Tape(
+    schema: 1,
+    header: (
+        name: "loops-lw1",
+        start: "1750-01-01",
+        ticks_per_year: 52,
+        market: (rule: Imbalance, one_sided: Saturate, ema_time_constant: "price.ema_tc"),
+        ledger: (rel_flow: "ledger.rel_flow", rel_stock: "ledger.rel_stock"),
+    ),
+    params: [
+        // The ledger's tolerances, as in the gate world (A12).
+        (key: "ledger.rel_flow", value: 1e-12, unit: Dimensionless, basis: Assumed("July REL_FLOW, as the gate world")),
+        (key: "ledger.rel_stock", value: 1e-11, unit: Dimensionless, basis: Assumed("July REL_STOCK, as the gate world")),
+        // The instance (LOOPS-RULES §7.2; FUNDED §4.1): chain8 and rule B.
+        (key: "inst.workers", value: 416.0, unit: FlowPerYear, basis: Assumed("funded 2026-09-29: 1g's HORSE county at N 8 (O41)")),
+        (key: "inst.land", value: 520.0, unit: FlowPerYear, basis: Assumed("funded 2026-09-29: 1g's HORSE county at N 8 (O41)")),
+        (key: "inst.chi_max", value: 0.05, unit: Dimensionless, basis: Assumed("funded 2026-09-29: 1g's HORSE county at N 8 (O41)")),
+        (key: "inst.eta", value: 1.0, unit: Dimensionless, basis: Assumed("funded 2026-09-29: 1g's HORSE county at N 8 (O41)")),
+        (key: "inst.g0", value: 0.2, unit: Dimensionless, basis: Assumed("funded 2026-09-29: 1g's HORSE county at N 8 (O41)")),
+        (key: "inst.g1", value: 0.8, unit: Dimensionless, basis: Assumed("funded 2026-09-29: 1g's HORSE county at N 8 (O41)")),
+        (key: "inst.k", value: 1.0, unit: Dimensionless, basis: Assumed("funded 2026-09-29: 1g's HORSE county at N 8 (O41)")),
+        (key: "inst.good.weight", value: 1.0, unit: Dimensionless, basis: Assumed("funded 2026-09-29: 1g's HORSE county at N 8 (O41)")),
+        (key: "inst.space.weight", value: 1.0, unit: Dimensionless, basis: Assumed("funded 2026-09-29: 1g's HORSE county at N 8 (O41)")),
+        (key: "inst.fodder.own", value: 0.0, unit: Dimensionless, basis: Assumed("CHAIN.md §1.3-1.4 via unit-1g.md §3.3; funded 2026-09-29")),
+        (key: "inst.fodder.traction", value: 2.0, unit: Dimensionless, basis: Assumed("CHAIN.md §1.3-1.4 via unit-1g.md §3.3; funded 2026-09-29")),
+        (key: "inst.fodder.labour", value: 8.0, unit: Dimensionless, basis: Assumed("CHAIN.md §1.3-1.4 via unit-1g.md §3.3; funded 2026-09-29")),
+        (key: "inst.fodder.land", value: 1.0, unit: Dimensionless, basis: Assumed("CHAIN.md §1.3-1.4 via unit-1g.md §3.3; funded 2026-09-29")),
+        (key: "inst.traction.own", value: 0.0, unit: Dimensionless, basis: Assumed("FUNDED §4.2: the horse-day's running recipe with delta/kappa of a head's folded in; funded 2026-09-29")),
+        (key: "inst.traction.fodder", value: 0.020266073400477775, unit: Dimensionless, basis: Assumed("FUNDED §4.2: the horse-day's running recipe with delta/kappa of a head's folded in; funded 2026-09-29")),
+        (key: "inst.traction.labour", value: 0.10666518350119444, unit: Dimensionless, basis: Assumed("FUNDED §4.2: the horse-day's running recipe with delta/kappa of a head's folded in; funded 2026-09-29")),
+        (key: "inst.traction.land", value: 0.0009997775251791654, unit: Dimensionless, basis: Assumed("FUNDED §4.2: the horse-day's running recipe with delta/kappa of a head's folded in; funded 2026-09-29")),
+        // Structure: fodder, horse-days and the good last one tick.
+        (key: "life.one_tick", value: 0.019230769230769232, unit: Years, basis: Assumed("one tick: J = 1 (PROBE-SPEC §1.2)")),
+        // The dials (c2g; LOOPS-RULES §7.3) and the stock rules' and plants' (§7.2).
+        (key: "rate.labour", value: 5.2, unit: RatePerYear, basis: Assumed("GOODS-CHAIN C2g (D-G13); HORSES-SPEC §5")),
+        (key: "rate.land", value: 0.1625, unit: RatePerYear, basis: Assumed("GOODS-CHAIN C2g (D-G13); HORSES-SPEC §5")),
+        (key: "rate.fodder", value: 5.2, unit: RatePerYear, basis: Assumed("GOODS-CHAIN C2g (D-G13); HORSES-SPEC §5")),
+        (key: "rate.traction", value: 5.2, unit: RatePerYear, basis: Assumed("GOODS-CHAIN C2g (D-G13); HORSES-SPEC §5")),
+        (key: "rate.good", value: 2.6, unit: RatePerYear, basis: Assumed("GOODS-CHAIN C2g (D-G13); HORSES-SPEC §5")),
+        (key: "adjust.technique.good", value: 2.6, unit: RatePerYear, basis: Assumed("GOODS-CHAIN C2g (D-G13); HORSES-SPEC §5")),
+        (key: "buffer.desk.good.cash", value: 5.2, unit: RatePerYear, basis: Assumed("GOODS-CHAIN C2g (D-G13); HORSES-SPEC §5")),
+        (key: "buffer.desk.traction.cash", value: 5.2, unit: RatePerYear, basis: Assumed("GOODS-CHAIN C2g (D-G13); HORSES-SPEC §5")),
+        (key: "buffer.desk.fodder.cash", value: 5.2, unit: RatePerYear, basis: Assumed("GOODS-CHAIN C2g (D-G13); HORSES-SPEC §5")),
+        (key: "spend.workers", value: 13.0, unit: RatePerYear, basis: Assumed("GOODS-CHAIN C2g (D-G13); HORSES-SPEC §5")),
+        (key: "spend.provider", value: 13.0, unit: RatePerYear, basis: Assumed("GOODS-CHAIN C2g (D-G13); HORSES-SPEC §5")),
+        (key: "tilt.desk.good", value: 0.0, unit: Dimensionless, basis: Assumed("GOODS-CHAIN C2g (D-G13); HORSES-SPEC §5")),
+        (key: "tilt.desk.traction", value: 0.0, unit: Dimensionless, basis: Assumed("GOODS-CHAIN C2g (D-G13); HORSES-SPEC §5")),
+        (key: "tilt.desk.fodder", value: 0.0, unit: Dimensionless, basis: Assumed("GOODS-CHAIN C2g (D-G13); HORSES-SPEC §5")),
+        (key: "price.ema_tc", value: 0.5, unit: Years, basis: Approximate("the gate world's value; no rule reads the EMA")),
+        (key: "adjust.plant.traction", value: 0.2, unit: RatePerYear, basis: Assumed("CAPACITY 2026-09-27; LOOP-SPEC 2026-09-29, mirror scan")),
+        (key: "adjust.plant.fodder", value: 0.2, unit: RatePerYear, basis: Assumed("CAPACITY 2026-09-27; LOOP-SPEC 2026-09-29, mirror scan")),
+        // The plants (LOOPS-RULES §3.2): θ, δ_p a year, and s1 at (θ, u = 0.0020241124785003953).
+        (key: "plant.traction.theta", value: 0.8, unit: Dimensionless, basis: Assumed("CAPACITY 2026-09-27; LOOP-SPEC 2026-09-29, mirror scan")),
+        (key: "plant.traction.delta", value: 0.1, unit: FractionPerYear, basis: Assumed("CAPACITY 2026-09-27; LOOP-SPEC 2026-09-29, mirror scan")),
+        (key: "plant.traction.size", value: 40.47205917167808, unit: Dimensionless, basis: Assumed("CAPACITY 2026-09-27; LOOP-SPEC 2026-09-29, mirror scan")),
+        (key: "plant.fodder.theta", value: 0.8, unit: Dimensionless, basis: Assumed("CAPACITY 2026-09-27; LOOP-SPEC 2026-09-29, mirror scan")),
+        (key: "plant.fodder.delta", value: 0.1, unit: FractionPerYear, basis: Assumed("CAPACITY 2026-09-27; LOOP-SPEC 2026-09-29, mirror scan")),
+        (key: "plant.fodder.size", value: 40.47205917167808, unit: Dimensionless, basis: Assumed("CAPACITY 2026-09-27; LOOP-SPEC 2026-09-29, mirror scan")),
+    ],
+    goods: [
+        (key: "coin", life: Indefinite, price_rate: None),
+        (key: "labour", life: Instant, price_rate: Some("rate.labour")),
+        (key: "land", life: Instant, price_rate: Some("rate.land")),
+        (key: "fodder", life: Years("life.one_tick"), price_rate: Some("rate.fodder")),
+        (key: "traction", life: Years("life.one_tick"), price_rate: Some("rate.traction")),
+        (key: "good", life: Years("life.one_tick"), price_rate: Some("rate.good")),
+        (key: "plant.traction", life: Indefinite, price_rate: None, untraded: true),
+        (key: "plant.fodder", life: Indefinite, price_rate: None, untraded: true),
+    ],
+    nodes: [(key: "home", currency: "coin")],
+    channels: [],
+    classes: ["good_desks", "traction_desks", "fodder_desks", "owners", "workers"],
+    actors: [
+        (key: "desk.good", kind: Desk, class: "good_desks", home: "home", basis: Assumed("design-analytic-first with the judges' grafts (docs/probe/RULES.md)"),
+         spec: GoodDesk((
+            output: "good", labour: "labour", mach: "traction",
+            schedule: (eta: "inst.eta", g0: "inst.g0", g1: "inst.g1", k: "inst.k"),
+            technique: (adjust: "adjust.technique.good", share: 0.2529609583419359),
+            assign: ExPost,
+            scale: Cash((turnover: "buffer.desk.good.cash", tilt: "tilt.desk.good", payout: None)),
+         ))),
+        (key: "desk.traction", kind: Desk, class: "traction_desks", home: "home", basis: Assumed("LOOP-SPEC §2.2: CAPACITY's plant on a loop desk (docs/probe/LOOPS-RULES.md)"),
+         spec: TypeDesk((
+            output: "traction", labour: "labour", land: "land",
+            recipe: (own: "inst.traction.own", inputs: [(good: "fodder", coef: "inst.traction.fodder")], labour: "inst.traction.labour", land: "inst.traction.land"),
+            scale: Cash((turnover: "buffer.desk.traction.cash", tilt: "tilt.desk.traction", payout: None)),
+            plant: Some((good: "plant.traction", theta: "plant.traction.theta", delta: "plant.traction.delta", size: "plant.traction.size", adjust: "adjust.plant.traction", order: Target, target: Bundles)),
+         ))),
+        (key: "desk.fodder", kind: Desk, class: "fodder_desks", home: "home", basis: Assumed("LOOP-SPEC §2.2: CAPACITY's plant on a loop desk (docs/probe/LOOPS-RULES.md)"),
+         spec: TypeDesk((
+            output: "fodder", labour: "labour", land: "land",
+            recipe: (own: "inst.fodder.own", inputs: [(good: "traction", coef: "inst.fodder.traction")], labour: "inst.fodder.labour", land: "inst.fodder.land"),
+            scale: Cash((turnover: "buffer.desk.fodder.cash", tilt: "tilt.desk.fodder", payout: None)),
+            plant: Some((good: "plant.fodder", theta: "plant.fodder.theta", delta: "plant.fodder.delta", size: "plant.fodder.size", adjust: "adjust.plant.fodder", order: Target, target: Bundles)),
+         ))),
+        (key: "provider", kind: Pop, class: "owners", home: "home", basis: Assumed("MARKETS-SPEC §2: the probe's rules carried to many markets (docs/probe/MARKETS-RULES.md)"),
+         spec: BasketProvider((
+            land: "land", endowment: "inst.land",
+            transfer: (to: "workers", heads: "inst.workers"),
+            basket: [(good: "good", weight: "inst.good.weight"), (good: "land", weight: "inst.space.weight")],
+            spend: "spend.provider",
+         ))),
+        (key: "workers", kind: Pop, class: "workers", home: "home", basis: Assumed("MARKETS-SPEC §2: the probe's rules carried to many markets (docs/probe/MARKETS-RULES.md)"),
+         spec: BasketWorkers((
+            labour: "labour", heads: "inst.workers", chi_max: "inst.chi_max",
+            basket: [(good: "good", weight: "inst.good.weight"), (good: "land", weight: "inst.space.weight")],
+            spend: "spend.workers",
+         ))),
+    ],
+    genesis: (
+        basis: Approximate("oracle unit 1g (crates/oracle) at LOOPS-RULES' LW1, N = 8.0 and T = 10.0 per tick; stationary coins, stocks and plants per LOOPS-RULES §7.4; written by rustyecon-probe's horses-tape"),
+        prices: [
+            (node: "home", good: "labour", price: 0.02276607195182097),
+            (node: "home", good: "land", price: 1.0),
+            (node: "home", good: "fodder", price: 1.2392127794436407),
+            (node: "home", good: "traction", price: 0.028542101914536447),
+            (node: "home", good: "good", price: 0.016394706111331748),
+        ],
+        holdings: [
+            (holder: "desk.good", goods: [("coin", 1.7086977380901194), ("good", 9.918084987225372)]),
+            (holder: "desk.traction", goods: [("coin", 1.1553151644706519), ("traction", 3.851950860607206), ("plant.traction", 9.40417690577931)]),
+            (holder: "desk.fodder", goods: [("coin", 1.0165529758457852), ("fodder", 0.07806391887609918), ("plant.fodder", 0.1905857394436015)]),
+            (holder: "provider", goods: [("coin", 16.579841948313938)]),
+            (holder: "workers", goods: [("coin", 37.124212457405065)]),
+        ],
+    ),
+    events: [],
+    recurring: [],
+)

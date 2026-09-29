@@ -87,6 +87,9 @@ pub fn unit_of(w: &World, key: &SeriesKey) -> String {
             }
             StateField::Order => "units of the durable good per tick".to_string(),
             StateField::Run => "hours per tick".to_string(),
+            StateField::PlantHeld | StateField::PlantTarget => "plant units".to_string(),
+            StateField::PlantOrder | StateField::PlantBuilt => "plant units per tick".to_string(),
+            StateField::PlantRun => "bundles per tick".to_string(),
             StateField::Due | StateField::Paid => w
                 .id_of::<ActorId>(a.as_str())
                 .and_then(|id| w.actor(id))

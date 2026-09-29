@@ -15,7 +15,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 /// Price, EMA and cleared volumes per (node, good), flat at `node·n_goods + good`. A currency's
-/// slots hold price 1 and EMA 1 by definition and volumes 0, and never change.
+/// slots hold price 1 and EMA 1 by definition and volumes 0, and never change; so do an untraded
+/// good's (amended at P2.2b.1), since it has no market.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(try_from = "BookRepr")]
 pub struct MarketBook {
@@ -278,11 +279,16 @@ impl<E: Ext> SimState<E> {
                     .book
                     .quote(n.id, g.id)
                     .ok_or(CoreError::UnknownGood(g.id))?;
-                if w.is_currency(g.id)
+                if !w.has_market(g.id)
                     && (q.price != 1.0 || q.ema != 1.0 || q.supply != 0.0 || q.demand != 0.0)
                 {
+                    let what = if w.is_currency(g.id) {
+                        "currency"
+                    } else {
+                        "untraded"
+                    };
                     return shape(format!(
-                        "the currency slot of ({}, {}) was written",
+                        "the {what} slot of ({}, {}) was written",
                         n.key, g.key
                     ));
                 }

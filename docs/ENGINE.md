@@ -866,6 +866,79 @@ L0.6 run moves; every change is off on every committed tape.
    In probe (`tests/horses.rs`): `harness_reads_the_reservation_the_maker_acts_on` (fails with the
    readout on rule A's running recipe, as L0.4's harness had it).
 
+**Amended at P2.2b.1** (2026-09-30, branch `phase2-plants`: the loop step's build,
+docs/probe/LOOPS-RULES.md; decisions 286–296). Core gains an untraded good and the agents crate
+CAPACITY's plant on three kinds, each behind a field that is absent on every committed tape.
+Every committed tape keeps its canonical form, `tape_hash` and `world_id`, and every pinned hash
+stream is unchanged (finals `0x61f9c8529131ff17`, `0xe1fa082b26995867`, `0xfad880fe08d06645`;
+the six horses and seven markets tapes' 2,000-tick streams equal P2.2's on both machines). The
+engine's tick did not change: it walks `World::markets()`. Its one change is item 7's boxed delta.
+
+1. An untraded good (§2.1, §2.6; decision 286). `RawGood` gains `untraded: bool`, absent
+   `false` and not written when `false`, core's one raw field with a default (docs/TAPE.md). An
+   untraded good is `Indefinite`, has no price rate, is no node's currency and takes no genesis
+   price; each refusal is a `LoadError` at its path, the new kind `UntradedGood` or `NoMarket`.
+   The resolved `GoodDef` gains no field: a good that is no currency and has no price rate is
+   untraded, since nothing else loads so. `World::has_market` and `World::is_untraded` say which,
+   and `World::markets()` walks the goods with a market only, so clearing, the price rule, the
+   report, certify's kick set and the GUI never see an untraded good. Its book slot stays as a
+   currency's: price and EMA 1, no volumes. `apply` refuses a `SetPrice`, `SetEma`,
+   `SetVolumes` or `ScalePrice` of it (`NoMarket`), `validate` refuses a state whose slot was
+   written, and no escrow of it is a holder. The resolver's `has_market` and `is_untraded` let a
+   role refuse it.
+2. Markets (§3.1): admission refuses an order on an untraded good (`OrderError::NoMarket`), as
+   on a currency, and clearing's slot does too.
+3. The plant (§4, §5; decisions 287–289, 294–296). `RawTypeDesk`, `RawMaker` and
+   `RawCapacityDesk`, and their resolved kinds, gain `plant: Option<..>` as their last field,
+   left out of the raw and the resolved form when `None` (L0.5's lesson), resolved in
+   `agents::roles::plant::spec`: an untraded plant good and four live params, θ and s
+   (`Dimensionless`), δ_p (`FractionPerYear`, read as a `Fraction`) and s_Kp (`RatePerYear`,
+   read as a `Share`), with `order` (`Target` or `Gap`) and `target` (`Herd` or `Bundles`). The
+   kinds' own rules take the plant as an option (`TypeDesk::plan`/`run`, `CapacityDesk::plan`/
+   `run`/`wear`, `MakerRole::plan_stock`/`run_stock`/`wear_stock`), so a desk without a plant
+   runs its kind's code, and a planted desk runs the same code with the plant's lines: the plan
+   at the full cost c_full, the plant's target and M3's order capped by the coin left after the
+   running bundle, one buy line per bundle good on z + s·I, budgets from outlay + P_K·I (the
+   type desk and the maker) or the coin (the capacity desk, whose horse order takes what the
+   plant leaves), and in produce the bundles B read over every unit held (the genesis carry,
+   decision 273), split by the plan, y = P^(1−θ)·z_got^θ, the build I′ at most what B leaves
+   after the running bundles, one `Production` burn per good of a_g·(used + s·I′), and mints of
+   y and I′. The plant wears at upkeep by u·P, P the plant recorded at decide (`Depreciation`).
+   At θ = 1 or u = 0 the cost formulas are not evaluated: kr 0, c_full = c, κ_p 0, no order, and
+   a planted desk at θ = 1 makes its kind's orders, budgets and produce bit for bit.
+4. Its state (§4): `ActorState` gains `PlantedType`, `PlantedMaker` and `PlantedCapacity` after
+   `Owner`, each the kind's state and a `PlantState { held, target, order, run, built }`, so the
+   eight older encodings stay. A desk has the planted variant exactly when its spec has a plant.
+   `apply` and `validate` check them as the older states: every value finite with a clear sign
+   bit.
+5. Load checks (§4; LOOPS-RULES §6), each a `LoadError` with its path. At resolve: the plant's
+   good is untraded, its params have their units, and every role good has a market (`traded`
+   refuses an untraded good, and so does a scripted actor's line). In `Cast::new`, among each
+   actor's own checks and before M6 and M5: θ in (0, 1], u below 1, s above 0 at genesis; `Herd`
+   on a capacity desk only; the cash rule; a bundle coefficient above 0; no plant good named by
+   two desks; a planted type desk's own input 0 and a planted maker on the stock path with
+   `own_hours` 0, each at genesis.
+6. The tape schema stays 1 (§5; docs/TAPE.md).
+7. The engine's `RunErrorKind::ForeignWrite` carries its delta boxed. The planted states made
+   `ActorState`, and so a `StateDelta`, larger (the capacity desk's 11 numbers), and every step's
+   `Result` carried one unboxed; clippy's `result_large_err` refused it. No run, hash or message
+   changes.
+8. Tests (§11). In core (`tape::tests`): `untraded_goods_load_without_a_market`,
+   `untraded_goods_are_checked`, `untraded_flag_keeps_canonical_text` and
+   `untraded_slots_are_never_written`. In markets (`tests/admission.rs`):
+   `admission_refuses_orders_on_an_untraded_good`. In certify (`tests/runs.rs`):
+   `kick_skips_untraded_goods`. In agents (`tests/plant.rs`): `plants_are_checked_at_load`,
+   `old_states_keep_their_encoding`, `planted_at_theta_one_is_the_kind`,
+   `planted_rules_are_the_spec`, `planted_arithmetic_never_fails`,
+   `planted_desks_take_carried_goods`, `plant_wears_what_it_held_at_decide`,
+   `fixed_plant_is_drs` and `a_planted_maker_reads_its_reservation_at_c_m`. In probe
+   (`tests/loops.rs`): `loops_tapes_are_their_generators_output`,
+   `loops_tapes_load_and_run_deterministically`, `loops_rest_point_is_the_oracles`,
+   `loops_theta_one_is_the_plain_tape`, `loops_fixed_plant_is_drs`, `loops_conserve_every_tick`
+   and `loops_tapes_name_their_plants_untraded`; `horses_tapes_keep_their_world_ids` now pins the
+   `world_id` and `tape_hash` of all thirteen horses and markets tapes. In the GUI
+   (`vm::inspector::tests`): `inspector_reads_planted_states`.
+
 ## 0. Engine invariants
 
 Numbered so tests and reviews can cite them. Each has at least one test in §11.

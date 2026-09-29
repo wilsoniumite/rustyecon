@@ -11,5 +11,10 @@ rustyecon-core.workspace = true
 rustyecon-markets.workspace = true
 serde.workspace = true
 
+[dev-dependencies]
+# The planted states' test pins the old `ActorState` variants' bincode bytes, the encoding core
+# hashes (tests/plant.rs, old_states_keep_their_encoding).
+bincode.workspace = true
+
 [lints]
 workspace = true

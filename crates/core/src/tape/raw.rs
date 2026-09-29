@@ -1,8 +1,9 @@
 //! The tape's raw schema, version 1: what a tape file holds, before resolution
 //! (docs/ENGINE.md §2.6 and §5; `docs/TAPE.md`).
 //!
-//! Every field is required and none has a default: nothing here carries `#[serde(default)]`,
-//! and each `Option` field goes through a `deserialize_with` helper so that serde treats it as
+//! Every field is required and none has a default: nothing here carries `#[serde(default)]` but
+//! a good's `untraded` flag (amended at P2.2b.1), and each `Option` field goes through a
+//! `deserialize_with` helper so that serde treats it as
 //! required too (it would otherwise read a missing `Option` as `None`). Unknown fields are
 //! rejected. Keyed data is always a list of entries carrying a `key`, never a RON map, and any
 //! list may be in any order: the loader sorts it. Units are named on each field; a key that
@@ -91,9 +92,21 @@ pub struct RawGood {
     /// `RawLife`. The shelf life. Required, no default. A currency must be `Indefinite`.
     pub life: RawLife,
     /// `Option<Key>`, a param of unit `RatePerYear`, live. The rate the good's price moves at.
-    /// `None` exactly for a currency. Required (write `None` or `Some(..)`), no default.
+    /// `None` exactly for a currency or an untraded good. Required (write `None` or `Some(..)`),
+    /// no default.
     #[serde(deserialize_with = "required")]
     pub price_rate: Option<Key>,
+    /// `bool`. An untraded good (amended at P2.2b.1): held, minted and burned, never traded. It
+    /// is `Indefinite`, has no `price_rate`, is no node's currency, has no market and takes no
+    /// genesis price. The one field of core's raw schema that may be absent: absent is `false`,
+    /// and `false` is not written, so every tape written before the field keeps its canonical
+    /// text, `tape_hash` and `world_id`.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub untraded: bool,
+}
+
+fn is_false(b: &bool) -> bool {
+    !*b
 }
 
 /// A good's shelf life.

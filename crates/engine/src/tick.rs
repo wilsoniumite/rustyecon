@@ -112,7 +112,7 @@ pub(crate) fn check(hook: Hook, out: &HookOutput, w: &World<Agents>) -> Result<(
         return Err(RunErrorKind::ForeignWrite {
             actor,
             hook,
-            delta: delta.clone(),
+            delta: Box::new(delta.clone()),
         });
     }
     let class = w.actor(actor).map(|a| a.class);
@@ -576,7 +576,7 @@ mod tests {
             for d in everywhere.iter().cloned().chain(own) {
                 match check(hook, &out(vec![d.clone()], Vec::new()), &w) {
                     Err(RunErrorKind::ForeignWrite { actor, delta, .. }) => {
-                        assert_eq!((actor, delta), (mill, d));
+                        assert_eq!((actor, *delta), (mill, d));
                     }
                     other => panic!("{hook}: {d:?} was {other:?}"),
                 }

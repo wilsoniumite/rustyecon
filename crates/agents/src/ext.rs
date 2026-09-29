@@ -7,7 +7,10 @@
 //! The four Appendix B roles added theirs at P2.0, after `Scripted`, so the scripted state keeps
 //! its encoding and every existing hash (docs/ENGINE.md, amended at P2.0). The four many-market
 //! roles of P2.1 add none: each keeps its Appendix B role's state. The three stock roles of P2.2
-//! add three, `Maker`, `Capacity` and `Owner`, appended after `MachDesk` for the same reason.
+//! add three, `Maker`, `Capacity` and `Owner`, appended after `MachDesk` for the same reason. The
+//! three planted desks of P2.2b add three more, `PlantedType`, `PlantedMaker` and
+//! `PlantedCapacity`, appended after `Owner`: each nests its kind's state beside one
+//! [`PlantState`] (decision 287), and a desk without a plant keeps its old variant.
 
 use crate::spec::{self, RawSpec, Spec};
 use rustyecon_core::num::is_clean;
@@ -38,6 +41,12 @@ pub enum ActorState {
     Capacity(CapacityState),
     /// An owner desk's state (P2.2).
     Owner(OwnerState),
+    /// A planted type desk's state (P2.2b).
+    PlantedType(PlantedTypeState),
+    /// A planted maker's state (P2.2b).
+    PlantedMaker(PlantedMakerState),
+    /// A planted capacity desk's state (P2.2b).
+    PlantedCapacity(PlantedCapacityState),
 }
 
 /// A scripted actor's state.
@@ -144,9 +153,71 @@ pub struct OwnerState {
     pub serving: f64,
 }
 
+/// A plant's record (P2.2b; LOOPS-RULES §3.8): what its desk decided about it at decide, and what
+/// it built at produce. All 0 before the first tick.
+#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
+pub struct PlantState {
+    /// P, the plant its desk held when this tick's decide ran: the units that serve this tick and
+    /// wear at upkeep.
+    pub held: f64,
+    /// K\*_p, the plant its rule targets.
+    pub target: f64,
+    /// I, the plant units it ordered as bundles of its own recipe.
+    pub order: f64,
+    /// z, the bundles it planned to run: the type desk's and the maker's plan q, the capacity
+    /// desk's z (its desk record's `run`).
+    pub run: f64,
+    /// I′, the plant units its last produce built, which serve from the next tick.
+    pub built: f64,
+}
+
+impl PlantState {
+    fn values(&self) -> [(&'static str, f64); 5] {
+        [
+            ("plant.held", self.held),
+            ("plant.target", self.target),
+            ("plant.order", self.order),
+            ("plant.run", self.run),
+            ("plant.built", self.built),
+        ]
+    }
+}
+
+/// A planted type desk's state (P2.2b): the type desk's, and its plant's.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct PlantedTypeState {
+    /// The type desk's state.
+    pub desk: MachDeskState,
+    /// The plant's record.
+    pub plant: PlantState,
+}
+
+/// A planted maker's state (P2.2b): the maker's, and its plant's.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct PlantedMakerState {
+    /// The maker's state.
+    pub desk: MakerState,
+    /// The plant's record.
+    pub plant: PlantState,
+}
+
+/// A planted capacity desk's state (P2.2b): the capacity desk's, and its plant's.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct PlantedCapacityState {
+    /// The capacity desk's state.
+    pub desk: CapacityState,
+    /// The plant's record.
+    pub plant: PlantState,
+}
+
 impl ActorState {
     /// The state's values, each with its name, for the checks `apply` and `validate` make.
     fn values(&self) -> Vec<(&'static str, f64)> {
+        let planted = |desk: ActorState, plant: &PlantState| {
+            let mut v = desk.values();
+            v.extend(plant.values());
+            v
+        };
         match self {
             ActorState::Scripted(_) => Vec::new(),
             ActorState::Provider(s) => vec![("due", s.due), ("paid", s.paid)],
@@ -179,6 +250,9 @@ impl ActorState {
                 ("output", s.output),
                 ("serving", s.serving),
             ],
+            ActorState::PlantedType(s) => planted(ActorState::MachDesk(s.desk), &s.plant),
+            ActorState::PlantedMaker(s) => planted(ActorState::Maker(s.desk), &s.plant),
+            ActorState::PlantedCapacity(s) => planted(ActorState::Capacity(s.desk), &s.plant),
         }
     }
 
@@ -283,26 +357,54 @@ pub(crate) fn genesis_state(spec: &Spec) -> ActorState {
             scale: d.scale.genesis(),
             output: 0.0,
         }),
-        Spec::TypeDesk(d) => ActorState::MachDesk(MachDeskState {
-            scale: d.scale.genesis(),
-            output: 0.0,
-        }),
+        // A planted desk (P2.2b) has the planted variant exactly when its spec has a plant.
+        Spec::TypeDesk(d) => {
+            let desk = MachDeskState {
+                scale: d.scale.genesis(),
+                output: 0.0,
+            };
+            match d.plant {
+                None => ActorState::MachDesk(desk),
+                Some(_) => ActorState::PlantedType(PlantedTypeState {
+                    desk,
+                    plant: PlantState::default(),
+                }),
+            }
+        }
         // The stock roles (P2.2) have states of their own, appended after `MachDesk`, so every
         // existing encoding and hash stays.
-        Spec::Maker(d) => ActorState::Maker(MakerState {
-            scale: d.scale.genesis(),
-            output: 0.0,
-            own: d.own,
-            serving: 0.0,
-        }),
-        Spec::CapacityDesk(d) => ActorState::Capacity(CapacityState {
-            scale: d.scale.genesis(),
-            output: 0.0,
-            held: 0.0,
-            target: 0.0,
-            order: 0.0,
-            run: 0.0,
-        }),
+        Spec::Maker(d) => {
+            let desk = MakerState {
+                scale: d.scale.genesis(),
+                output: 0.0,
+                own: d.own,
+                serving: 0.0,
+            };
+            match d.plant {
+                None => ActorState::Maker(desk),
+                Some(_) => ActorState::PlantedMaker(PlantedMakerState {
+                    desk,
+                    plant: PlantState::default(),
+                }),
+            }
+        }
+        Spec::CapacityDesk(d) => {
+            let desk = CapacityState {
+                scale: d.scale.genesis(),
+                output: 0.0,
+                held: 0.0,
+                target: 0.0,
+                order: 0.0,
+                run: 0.0,
+            };
+            match d.plant {
+                None => ActorState::Capacity(desk),
+                Some(_) => ActorState::PlantedCapacity(PlantedCapacityState {
+                    desk,
+                    plant: PlantState::default(),
+                }),
+            }
+        }
         Spec::OwnerDesk(d) => ActorState::Owner(OwnerState {
             share: d.share,
             used: d.share,

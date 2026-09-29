@@ -8,7 +8,7 @@
 //! Every coefficient and dial is a registered param referenced by key and read at use time (R4,
 //! E1), so a dated `SetParam` retargets the actor. The only inline number is genesis state: the
 //! category desk's genesis human share 1 − x, and a step rule's genesis scale. Every field is
-//! required and none has a default.
+//! required and none has a default but the type desk's `plant` (P2.2b), whose absence is off.
 //!
 //! **Lists keep the order written.** A basket's items, a category's segments and a type's bought
 //! services are evaluated in list order: P_s is summed from 0.0 in item order, a desk's budgets
@@ -18,6 +18,7 @@
 #![deny(missing_docs)]
 
 use crate::ext::Agents;
+use crate::roles::plant::spec::{resolve_plant, Plant, RawPlant};
 use crate::roles::spec::{
     distinct, live, scale, share, traded, RawScale, RawSchedule, RawTransfer,
 };
@@ -169,6 +170,11 @@ pub struct RawTypeDesk {
     pub recipe: RawTypeRecipe,
     /// The scale rule. Required, no default.
     pub scale: RawScale,
+    /// `Option<RawPlant>`: CAPACITY's plant over its recipe's bundle (P2.2b; LOOPS-RULES §3,
+    /// §4.1). `None` or absent is off; absent is not written, so every tape written before the
+    /// field keeps its canonical text, `tape_hash` and `world_id`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub plant: Option<RawPlant>,
 }
 
 /// A resolved basket item.
@@ -269,6 +275,10 @@ pub struct TypeDesk {
     pub land_coef: Site,
     /// The scale rule.
     pub scale: Scale,
+    /// Its plant, if any (P2.2b). `world_id` hashes the resolved actors by bincode, so the field
+    /// is left out when it is `None`, and a world without it keeps its `world_id` (L0.5).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub plant: Option<Plant>,
 }
 
 fn site(out: &mut Vec<(String, Site)>, path: String, site: Site) {
@@ -344,6 +354,9 @@ impl TypeDesk {
         site(out, "recipe.labour".into(), self.labour_coef);
         site(out, "recipe.land".into(), self.land_coef);
         self.scale.sites(out);
+        if let Some(p) = &self.plant {
+            p.sites(out);
+        }
     }
 }
 
@@ -524,6 +537,7 @@ pub fn resolve_type_desk(raw: &RawTypeDesk, r: &mut Resolver<'_>) -> Result<Type
     let land_coef = value(r, &raw.recipe.land, "land")?;
     r.leave();
     let scale = scale(r, &raw.scale)?;
+    let plant = resolve_plant(&raw.plant, r)?;
     Ok(TypeDesk {
         output,
         labour,
@@ -533,5 +547,6 @@ pub fn resolve_type_desk(raw: &RawTypeDesk, r: &mut Resolver<'_>) -> Result<Type
         labour_coef,
         land_coef,
         scale,
+        plant,
     })
 }

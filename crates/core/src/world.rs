@@ -47,7 +47,7 @@ pub struct GoodDef {
     /// Its shelf life.
     pub life: Life,
     /// The registered `RatePerYear` its price moves at, a `LogStep` site; `None` exactly for a
-    /// currency.
+    /// currency or an untraded good (amended at P2.2b.1).
     pub price_rate: Option<Site>,
 }
 
@@ -464,12 +464,27 @@ impl<E: Ext> World<E> {
         self.currency.get(g.idx()).copied().unwrap_or(false)
     }
 
-    /// Every market, (node, non-currency good), in (node, good) order.
+    /// Whether `g` has a market at every node: a good of the world that is no currency and has a
+    /// price rate. A good that is no currency and has none is untraded (amended at P2.2b.1): the
+    /// loader lets such a good load only when the tape marks it `untraded`, so the resolved
+    /// [`GoodDef`] needs no flag of its own and a world without one keeps its `world_id`.
+    pub fn has_market(&self, g: GoodId) -> bool {
+        !self.is_currency(g) && self.good(g).is_some_and(|d| d.price_rate.is_some())
+    }
+
+    /// Whether `g` is an untraded good: held, minted and burned, never traded (P2.2b.1).
+    pub fn is_untraded(&self, g: GoodId) -> bool {
+        !self.is_currency(g) && self.good(g).is_some_and(|d| d.price_rate.is_none())
+    }
+
+    /// Every market, (node, good with a market), in (node, good) order: no currency and no
+    /// untraded good (amended at P2.2b.1). Everything that walks the markets (clearing, the price
+    /// rule, the report, certify's kick set, the GUI) walks this.
     pub fn markets(&self) -> impl Iterator<Item = (NodeId, GoodId)> + '_ {
         self.nodes.iter().flat_map(move |n| {
             self.goods
                 .iter()
-                .filter(move |g| !self.is_currency(g.id))
+                .filter(move |g| self.has_market(g.id))
                 .map(move |g| (n.id, g.id))
         })
     }
@@ -478,9 +493,7 @@ impl<E: Ext> World<E> {
     pub fn is_holder(&self, h: Holder) -> bool {
         match h {
             Holder::Actor(a) => self.actor(a).is_some(),
-            Holder::Escrow(n, g) => {
-                n.idx() < self.nodes.len() && g.idx() < self.goods.len() && !self.is_currency(g)
-            }
+            Holder::Escrow(n, g) => n.idx() < self.nodes.len() && self.has_market(g),
         }
     }
 
