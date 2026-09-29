@@ -11,12 +11,17 @@ the tape's schema is [docs/TAPE.md](docs/TAPE.md), and the GUI's design is
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
 **State as of:** 2026-09-29, on branch `phase2-loops` from `reboot` at `401f7b1`, not pushed or
-merged. **The loop stage's groundwork (L0) has begun** ("Where things stand"): L0.1 closes O48,
-M6 narrowed to the durable good and M5 checked at load (decisions 240–244; O51). **L0.3–L0.6
-close O47, the idle machine market**: the maker's reservation at ψ 0.25, registered before it was
-built, converges every heads × 10 run and P8, changes no class in P2.2a's 1,980 battery runs, and
-meets its registered predictions with five explained misses and no refutation (decisions
-245–253; O52–O57; [docs/probe/results/idle/README.md](docs/probe/results/idle/README.md)).
+merged. **The loop stage's groundwork (L0) is done** (L0.1–L0.9, "Where things stand"; decisions
+240–283; O51–O68). L0.1 closes O48, M6 narrowed to the durable good and M5 checked at load.
+**L0.3–L0.6 close O47, the idle machine market**: the maker's reservation at ψ 0.25, registered
+before it was built, converges every heads × 10 run and P8, changes no class in P2.2a's 1,980
+battery runs, and meets its registered predictions with five explained misses and no refutation;
+its engine review found no refutation, and L0.7 fixes its five minor findings
+([docs/probe/IDLE.md](docs/probe/IDLE.md)). **L0.8 registers the loop step for P2.2b**: a funded
+rule-B county, chain8 (O41 closed), and the mirror's loop step with CAPACITY's plant on every loop
+desk, registered again with the engine's genesis carry after the mirror review
+([docs/probe/results/loops/registration.md](docs/probe/results/loops/registration.md)). P2.2b's
+frame and build are next (next step 6).
 **The stocks probe (P2.2a) is closed** (P2.2.1–P2.2.4, on branch `phase2-goods` from `reboot` at `92ba68e`;
 "Where things stand"): the horse as a durable good, bred by a maker and hired out by a wet
 capacity desk, finds unit 1g's
@@ -90,9 +95,9 @@ docs/spine/EYEBALL.md; decision 35).
 Next, in order: your look at the windows (the G0 gate's item and G1's p90, both checked by hand)
 and at the demo's map; G1's remainder (what G0 moved to it, O36; the five majors its re-check
 left, O37; unit 1g in the lab, O38); your rulings on 1g's decisions and its re-check (O35); the
-goods chain's next steps after the stocks probe and the idle market's remedy (O47, closed at
-L0.6): the mirror's loop step with CAPACITY's plant, a funded county for rule B (O41), then the loops
-(P2.2b); Phase 2 proper on loop-free wall and commons instances, after your rulings on the
+goods chain's loops (P2.2b), whose groundwork L0 laid and whose predictions L0.8 registered: its
+frame, its build with CAPACITY's plant on every loop desk, then its trace diff and runs; Phase 2
+proper on loop-free wall and commons instances, after your rulings on the
 decisions that bind it; the demo's second pass, with goods, machine types and carriers, on the
 many-market roles (O27), which may now start from the goods chain's stage v2a.1 on your ruling
 on D-G12. "Next steps" has each.
@@ -100,8 +105,8 @@ on D-G12. "Next steps" has each.
 ## Where things stand
 
 **The loop stage's groundwork (L0; 2026-09-29).** Branch `phase2-loops` from `reboot` at
-`401f7b1` (worktree `D:/rustyecon-wt/p2l`, scratch `D:/rustyecon-p2l/`). Its decisions start at
-240 and its open items at O51.
+`401f7b1` (worktree `D:/rustyecon-wt/p2l`, scratch `D:/rustyecon-p2l/`). Its decisions are
+240–283 and its open items O51–O68.
 - **L0.1 (`ba6938d`): M6 narrowed, M5 checked** (O48 closed; decisions 240–244; ENGINE,
   amended at L0.1). The capacity and owner desks are exempt from M6 only for the durable good
   they hold, and a role that offers a good in full sells only one that lives at most a tick; the
@@ -173,6 +178,74 @@ on D-G12. "Next steps" has each.
   - The gate hash is `0x61f9c8529131ff17`, appb `0xe1fa082b26995867`, demo-gb
     `0xfad880fe08d06645`. The six horses tapes' and seven markets tapes' 2,000-tick hash streams
     and headers equal P2.2's (`D:/rustyecon-p2l/idle-engine/runs/e1/tapes-bit.log`).
+- **Beside the engine work, in scratch: a funded county and the mirror's loop step.**
+  - **FUNDED** (`D:/rustyecon-p2l/funded/`, now `docs/probe/loops/FUNDED.md` and
+    `instances.json`; decisions 254–259; O41 closed): `chain8`, 1g's HORSE county at N 8. 1g's
+    county can never be funded, since a basket is a good plus h = 1 of space, so N·P_s ≥ 12 > T.
+    At N 8 coverage is 1.215–1.240 at every cost target and δ 4–10%, and the point is unique and
+    interior with the loop live (x\* 0.747). A 50-digit solve that reads no oracle code agrees
+    with the oracle within 9.5e-16 at 105 points (the good's price within 1.4e-14).
+  - **LOOP-SPEC** (`D:/rustyecon-p2l/loop-mirror/`, sha256 `e16e0be2…`, now
+    `docs/probe/loops/LOOP-SPEC.md`; decisions 260–271): GOODS-CHAIN §6 step 3 in the mirror.
+    GO for one design only: rule B's horse on chain8 with CAPACITY's plant on all three loop
+    desks (fodder, capacity, maker; θ 0.8, plant δ 10% a year, s1), beside the horses on the
+    capacity desk, and the reservation on. NO-GO for every other arrangement tried: no plant
+    (1.0147 a tick), the fodder plant alone, no maker plant (the reservation's relay cycle), the
+    reservation off (runaway at ticks 155–173), a 4-week fodder store, 12 ticks a year. The
+    instability starts in CHAIN's maker, which buys fodder at C2g's 5.2 a year, not in the loop;
+    the capacity plant stops the pass-through into horse-days (146–150 dead ticks to 1–2).
+- **The two reviews** (2026-09-29, `D:/rustyecon-p2l/review-engine/`, `review-mirror/`).
+  - **Engine** (L0.1–L0.6): holds. It rebuilt `15b05af` on both machines and reproduced every
+    check it tried; no refutation, five minor findings.
+  - **Mirror** (FUNDED and LOOP-SPEC): the funded county holds, reproduced by a third,
+    independent 60-digit solve; the mirror holds on composition, nestings, rest point and
+    reproducibility. One major finding: the mirror had no genesis carry, and with it registered
+    values moved past the registration's own tolerances (33 values at LB1 and 34 at LB3 in its
+    sample). Eight minor.
+- **L0.7 (`ea8e246`): the engine review's fixes** (decisions 278, 279; ENGINE, HORSES-RULES §10
+  and the results' README amended; IDLE-SPEC-A1). Off is structural (ψ > 0); the harness reads
+  the maker's reservation through the rule's own code; M6 gets a test only M6 can pass; the
+  dated-target kick sets and the price bound are restated. Three tests, each failing with its fix
+  undone (`D:/rustyecon-p2l/fix-report/mutants/`). The review's 17-run sample, rerun from this
+  build, is L0.6's evidence row for row (4 of them on Windows too), and the 13 tapes give P2.2's
+  hash streams (`D:/rustyecon-p2l/fix-report/`).
+- **L0.8 (`452c0e7`): the loop step's registration, with the carry** (decisions 272–277, 280–282;
+  O57 done for the loop step;
+  [docs/probe/results/loops/registration.md](docs/probe/results/loops/registration.md)).
+  - `lm_carry.py` adds the engine's genesis carry to the registered mirror. With every new layer
+    off it is the trace diff's `i_carry.py` bit for bit over 6,000 ticks in 22 runs; at θ 1 its
+    plant layer is plant-free bit for bit in 94 runs; from tick 2 it is `lm_mirror.py` bit for
+    bit. A second map with the plant live, written from LOOP-SPEC's text, meets `lm_mirror.py`
+    within 4.8e-12 over 2,000 ticks in 110 runs.
+  - The loop battery ran again on it (3,794 runs, about 70 minutes on 47 cores). No class
+    changes at any verdict, family or flow-control instance, and each tier's years move by at
+    most 0.1 year. Registered values move past §8's tolerances in 9–12 runs per verdict instance
+    at L, the one-tick goods' stock displacements most (ticks to tolerance up 11–38%, the lowest
+    horse price down 6–46%). 29 runs flip class among the unstable negative controls, each
+    keeping its verdict.
+  - LOOP-SPEC-A1 (sha256 `8815d865…`) registers §8 again as its §A1.5, E0–E11: the design GO at
+    LB1–LB3 and LW1–LW3, with every tier's years, lowest baskets, dead ticks by market and lowest
+    horse price; after r × 2 at LB1 no dead horse-day tick (fodder 175); a b × 2 trough 0.036
+    higher in log than the like-for-like flow control's, at 1.36 times its years; E0, the trace
+    diff against `lm_carry.py`, before any scored run.
+  - The review's minor findings: per-market dead ticks with labour reported (274); every
+    negative control registered (275); S1 with pumping out of P2.2b (276); labour's bound
+    registered run by run (277; chain8 reaches it in 5 of LB1's 125 runs, the χ_max 1/30
+    alternative in 9); the good's price in FUNDED's check; the numbering.
+  - LOOP-SPEC, FUNDED and instances.json are in `docs/probe/loops/` byte for byte, with
+    LOOP-SPEC-A1 and FUNDED-A1 beside them, each with its sha256.
+- **L0.9: the report, [docs/probe/IDLE.md](docs/probe/IDLE.md), and this record**
+  (decision 283). O47 and O48 in one place: GO for the reservation at ψ 0.25, as registered and
+  no wider; M6 and M5.
+- **The gates for L0.7**, logs in `D:/rustyecon-p2l/fix-report/gate/`. On the tree committed as
+  L0.7, before the commit: `scripts/gate.sh` and `scripts/gui.sh` green in WSL
+  (`/root/scratch/target-p2l`, 306 s and 169 s) and on Windows (`D:/rustyecon-targets/p2l`, 300 s
+  and 187 s). 877 workspace tests pass on each (L0.6's 874 and the three new), 3 ignored and run
+  by name; certify alone 67; the GUI's 117; zero warnings. The gate hash is `0x61f9c8529131ff17`,
+  appb `0xe1fa082b26995867`, demo-gb `0xfad880fe08d06645`. At `452c0e7` (L0.8), `scripts/gate.sh`
+  green again on both with a clean stamp (97 s and 99 s, warm), 877 workspace tests each. The
+  six horses and seven markets tapes give P2.2's 2,000-tick hash streams
+  (`D:/rustyecon-p2l/fix-report/tapes-bit/tapes-bit.log`).
 
 **The stocks probe (P2.2a; 2026-09-28; P2.2.1–P2.2.4).** You asked on 2026-09-27 for a
 production chain where goods use other goods, and delegated the design; GOODS-CHAIN §6 put a
@@ -2735,10 +2808,12 @@ run's.
 245. **O47's remedy is the maker's reservation** (IDLE-SPEC's 240; L0.3–L0.6). It is candidate
      (a), a step on M2's offer, chosen by the mirror scan and registered before it was built. On
      the engine every heads × 10 run and P8 converges, and no class changes in P2.2a's 1,980
-     battery runs or its families. The idle horse price stays within one step of ψ times
-     replacement cost whatever the bids (0.135–0.193 of target at heads × 10). Alternative: the
-     world's one-sided rule `Hold` (candidate (c)), with no code, which bounds the fall only while
-     no bid stands.
+     battery runs or its families. Whatever the bids, the idle horse price falls at most one
+     step below ψ times the replacement cost at the maker's last offer (reworded at L0.7, after
+     the engine review): costs keep moving while the maker withholds, so its markup at current
+     costs can go lower, 0.144–0.206 at heads × 10. The lowest horse price there is 0.135–0.193
+     of target. Alternative: the world's one-sided rule `Hold` (candidate (c)), with no code,
+     which bounds the fall only while no bid stands.
 246. **ψ = 0.25, not 1** (IDLE-SPEC's 241). At ψ 1 the engine orbits from mode A at all six
      instances run: its genesis markup is 1 to an ulp, so rounding puts it on the step.
      Alternative: ψ 0.4, which the scan found gives the same classes, 127 acting runs and a lowest
@@ -2766,6 +2841,131 @@ run's.
      P2.2b, the goods-chain 1750-like instance and the demo's second pass. Each frame registers it
      as a dial, and P2.2a's tapes keep it off (R1). Alternative: opt in per registration, each
      frame arguing for it.
+
+254–259 are FUNDED's 240–245 (`docs/probe/loops/FUNDED.md` §10, which numbered them before L0.1
+took 240; its amendment FUNDED-A1 §A1.4 maps them), taken as proposed; 254's reason is FUNDED-A1's.
+
+254. **The funded rule-B county is `chain8`: 1g's HORSE county at N 8** (FUNDED's 240; O41
+     closed). Only N moves, 12 → 8: T 10, h 1, χ_max 1/20 and γ stay 1g's, and CHAIN's horse is
+     unchanged. Coverage T/(N·P_s) is 1.215–1.240 at every P2.2a cost target and δ 4–10%, rent
+     still covers the transfer by 20.9% at the worst genesis displacement, and the point is
+     unique and interior with the loop live. The reason over its alternative is headroom on
+     labour supply, weighed over the run as well as at genesis (FUNDED-A1 §A1.1): over LB1's 125
+     battery runs chain8 reaches the bound in 5 runs and 649 ticks, none at genesis. Alternative:
+     N 8 with χ_max 1/30, exactly 1g's HORSE point, which reaches it in 9 runs and 1,189 ticks, 4
+     of them from genesis.
+255. **P2.2b's verdict δ is CHAIN's 8% a year**, J_b 1 tick, M3's hours at J 2 (FUNDED's 241).
+     δ 10% and 4% are further verdict instances in the loop step (LB2, LB3), each its own oracle
+     point. Alternative: δ 10% as the verdict δ, P2.2a's H1.
+256. **Rule B's cost shock b × f multiplies every land coefficient**, fodder's farmland and the
+     head's pasture together (FUNDED's 242). Alternative: fodder's land alone.
+257. **The like-for-like flow control is the operating form** (FUNDED's 243): two flow types on
+     the loop, a head's wear folded into the horse-day at δ/κ heads, run by a flow desk; M1's
+     δ = 1 form is the same point for the owner path. Alternative: the δ = 1 form for both.
+258. **The capacity desk's plant readouts are tabled under both bundles** (FUNDED's 244), the
+     running recipe and the full one; the mirror's loop step chose the running recipe (261).
+     Alternative: choose the running recipe in FUNDED.
+259. **Rule B's recipes are per unit made at every tick length** (FUNDED's 245): only N, T, κ
+     and δ go through `Clock`, so rule B's tape params need no per-tick restatement. Untested at
+     other tick lengths. Alternative: restate per tick as rule A does.
+
+260–271 are LOOP-SPEC §9's L1–L12 (`docs/probe/loops/LOOP-SPEC.md`), taken as proposed and
+registered with the carry at L0.8 (LOOP-SPEC-A1).
+
+260. **The plant sits on every loop desk: the fodder desk, the capacity desk and the maker**
+     (L1). CAPACITY's plant, θ 0.8, plant δ 10% a year, s1 bundles of the desk's own recipe,
+     ordered by M3's rule at s_K = 2δ_p, installed next tick. Alternative: the fodder and capacity
+     desks only (LN2), which orbits under the reservation in 16 of 25 Tier-3 runs.
+261. **On the capacity desk the plant sits beside the horses, built from the running recipe**
+     (L2; the plant's composition with M3). Horse-days are min(κ·H, P^(1−θ)·z^θ); use stays M3's
+     at the running cost, the targets use O_f, which is O at s1. Alternative: FUNDED's full-recipe
+     reading, which buys heads twice and fits only the flow form.
+262. **The capacity plant's target is the herd's plant, κ_p·κ·K\*** (L3). Alternative: CAPACITY's
+     kr·z at the bundles in use (LF6): 0.9996 a tick, and most runs orbit.
+263. **M3's horse stock is not the plant** (L4): it is a Leontief cap that damps an upswing and
+     passes a shortfall one for one. Alternative: the horses as a Cobb-Douglas factor, which would
+     move the long run 2% off the oracle at b × 2 and needs a scale-dependent oracle.
+264. **No damper beyond the plant for the pass-through** (L5). The capacity plant alone takes
+     dead horse-day ticks after r × 2 from 146–150 to 1–2; fodder's 156–261 are the county's, not
+     the loop's (the flow control has them too). A 13-week fodder store is a family (LF4), a
+     4-week one a negative control. Alternative: the 13-week store in the default, which lifts the
+     b × 2 trough from 0.70 to 0.96 but needs O51's roles first.
+265. **The reservation stays on in every loop run** (L6; decision 253). Without it rule B's
+     gluts run away at ticks 155–173. Alternative: the world's `Hold`, not run in the loop step.
+266. **The instances** (L7): LB1–LB3 (horse δ 8%, 10%, 4%) carry the verdict; LF1–LF8 and LC1 are
+     families; LW1–LW3 the like-for-like flow controls; LN1–LN9, LF6 and LW0 the negative
+     controls. Alternative: LB1 alone as the verdict instance.
+267. **L follows HORSES-RULES §6.7's rule** (L8): the good's τ of about 1,000 ticks sets it at
+     202,000–232,000 ticks. Alternative: L from land's τ, 56,000 ticks.
+268. **Weekly ticks stay the floor for the loop** (L9; decision 237): at 12 a year LB1 grows
+     1.0053 a tick. Alternative: 24 a year, which passes 40/40.
+269. **CHAIN's maker from bought fodder is the tested maker from bought inputs** (L10). S1
+     without pumping waits for a funded steam county. Alternative: frame S1 on M3's unfunded
+     county.
+270. **Fodder's price rate stays C2g's 5.2 a year** (L11), 1.3 a family. Alternative: 1.3 as rule
+     B's default; it does not replace the plants (LN8, LN9).
+271. **P2.2b's O14 reference is the flow control with the same plants** (L12; decision 235).
+     Alternative: the flow control without plants (LW0), which is itself NO-GO.
+
+272 on are L0.7–L0.9's (the fix round after the reviews, the loop registration and the report).
+
+272. **The loop mirror carries genesis, and the loop step is registered again from it**
+     (LOOP-SPEC-A1; O57; the mirror review's major finding). `lm_carry.py` is the registered
+     `lm_mirror.py` with the engine's genesis carry: unsold genesis lots of a one-tick good are
+     offered again at tick 1, and a buyer's unused genesis purchases are used at tick 1. With
+     every new layer off it is the trace diff's `i_carry.py` bit for bit, and from tick 2 it is
+     `lm_mirror.py` bit for bit. The carry changes no class at any verdict, family or
+     flow-control instance, but it moves registered values past §8's tolerances in 9–12 runs per
+     verdict instance at L, the one-tick goods' stock displacements most (ticks to tolerance up
+     11–38%, the lowest horse price down 6–46%). So A1's §A1.5 replaces §8 for P2.2b's scoring.
+     Alternative: keep §8 and treat the carry's differences as explained misses, as L0.6 did for
+     H2 r × 2, which would leave those runs outside the tolerances before P2.2b is built.
+273. **A planted desk takes carried goods into its bundles as it takes any it holds**
+     (LOOP-SPEC-A1 §A1.1): B = max_scale over the bundle's goods held, split between running and
+     build in proportion to its plan (LOOP-SPEC §2.2). It is a convention the engine's build must
+     follow for E0 to hold at tick 1. Alternative: carried goods to the running bundle only (the
+     review's `lm_carry`), which leaves a plant order's unused lots idle at tick 1.
+274. **Dead ticks are scored per market; labour's are reported, not scored** (LOOP-SPEC-A1 §A1.5;
+     O66). Fodder, horse-days, the good and land each against their registered largest count per
+     tier, at the harness's bar (half the oracle volume). Labour's and the union's are reported.
+     After r × 2 and N(2) chain8's labour sits within 2% of the bar, so its count flips between 0
+     and about 240 on rounding. Alternative: labour's bar at 0.45 on this county, which moves the
+     bar every probe since P2.0 has used.
+275. **Every negative control has a registered engine outcome** (LOOP-SPEC-A1 E9): LN1–LN9, LF6
+     and LW0, each with its classes by tier from the carry battery, at L. Alternative: the
+     controls as mirror-only, scored by nobody.
+276. **S1 with its pumping loop is out of P2.2b** (GOODS-CHAIN §6 step 5 names it with rule B's
+     horse). M3's county is unfunded at S1's point, as it is for S1 without pumping (269, O62). It
+     waits for a funded steam county, found and checked as FUNDED did the horse's. Alternative:
+     frame it on M3's unfunded county, its transfer shortfall reported.
+277. **Labour supply's bound is registered run by run, not avoided** (LOOP-SPEC-A1 E11;
+     FUNDED-A1 §A1.1). At each of LB1–LB3 five runs put every head to work, for 18–273 ticks (r ×
+     0.5, N(0.5), the workers' coin × 2, heads × 0.1, JB(2); peaks 1.03–2.13), none from genesis,
+     and all converge; four or five at the flow controls. The engine is scored on the same runs.
+     Alternative: a county that never reaches it, which would need N or χ_max moved far from 1g's
+     point.
+278. **The reservation's off is structural** (L0.7): the maker withholds only when ψ > 0.
+     L0.4's `markup < ψ` withheld at ψ 0 wherever δ·a/κ > 1. Alternative: refuse δ·a/κ ≥ 1 at
+     load, which a dated `SetParam` could still reach.
+279. **The harness reads the maker's reservation through the rule's own code** (L0.7,
+     `maker_reservation`), so it reads the tape's recipes, rule B's maker from bought fodder
+     included. Alternative: keep `MakerCost` and add a test tying it to the engine's sell orders,
+     which rule B would still have broken.
+280. **The plant's dynamic lines have a second implementation before the engine build**
+     (`lm_drs2.py`, written from LOOP-SPEC §2.2–§2.5 on the independent `lm_drs.py`): against
+     `lm_mirror.py` within 4.8e-12 in log over 2,000 ticks in 110 runs at eight instances, and
+     1.4e-11 over 6,000 (the map against itself one ulp apart: 6.4e-11). Alternative: CAPACITY's
+     own mirror on a shared case, which has no horse holding.
+281. **The loop step's registration is committed before P2.2b's build** (L0.8): LOOP-SPEC.md,
+     FUNDED.md and instances.json byte for byte in `docs/probe/loops/`, their amendments beside
+     them, and `docs/probe/results/loops/registration.md`. Alternative: keep them in scratch until
+     P2.2b's frame, as IDLE-SPEC stayed.
+282. **A spec fixed after registration gets a dated amendment with its own sha256**
+     (IDLE-SPEC-A1, FUNDED-A1, LOOP-SPEC-A1); the registered file stays byte for byte and its
+     sha256 keeps meaning what it meant. Alternative: a new version of each spec under a new
+     sha256.
+283. **The report of the remedy and M6 is `docs/probe/IDLE.md`**, in HORSES.md's shape, with the
+     results where L0.6 put them. Alternative: a §8 of HORSES.md.
 
 ## Open — your calls
 
@@ -2863,19 +3063,26 @@ run's.
   before the loops and the goods-chain 1750-like instance (236), and weekly ticks as the floor
   for machine stocks (237). D-G12, the demo's second pass starting at stage v2a.1, is the ruling
   the demo waits on.
+- **Decisions 240–283** (the loop stage's groundwork, branch `phase2-loops`), open to veto. The
+  ones that shape later work: M6 and M5 (240, 241); the maker's reservation at ψ 0.25 and on by
+  default (245, 246, 253) with its structural off (278); the funded county chain8 (254); the
+  plant on every loop desk, beside the horses on the capacity desk (260–263) with no further
+  damper for the pass-through (264); the genesis carry in the loop mirror and its convention
+  for planted desks (272, 273); per-market dead ticks (274); and S1 out of P2.2b (276).
+  `phase2-loops` (L0.1–L0.9) starts at `401f7b1`, where `reboot` and `phase2-goods` both stand,
+  and touches `crates/agents`, `crates/probe`, docs/ENGINE.md, docs/TAPE.md, docs/probe/ and
+  this file; while `reboot` stays at `401f7b1`, it lands by a fast-forward, on your word.
 - **Landing the branches.** `phase0-s2`, `phase1`'s P1.2–P1.7, the `g0` merge (`708167f`),
   `phase2-markets` (P2.1.1–P2.1.4, `b2a55e3`), the `demo-world` merge (`2398b6a`) and the
   `phase1` merge (`16eb728`) are in the local `reboot` by fast-forwards. `oracle-goods`
   (P1g.1–P1g.7) and `g1` (G1.1–G1.11) are merged at `43ad8c5`, on `merge-og-g1`, and `reboot`
-  took the merge by a fast-forward; it is now at `92ba68e`. Nothing is renumbered: the two
-  tracks numbered apart (179–199 and O31–O35; 200–219 and O36–O40). `phase2-goods`
-  (P2.2.1–P2.2.4, `d636b76` to this record) starts at `92ba68e` and touches `crates/agents`,
-  `crates/probe`, three files of `crates/gui`, `tapes/horses-*.ron`, docs/ENGINE.md,
-  docs/TAPE.md, docs/probe/, README.md and this file; while `reboot` stays at `92ba68e`, it
-  lands by a fast-forward, on your word.
-- **Pushing `reboot`** (locally at `92ba68e`, with session 2, Phase 1, G0, the many-markets
-  probe, the demo world, unit 1g and G1; `origin/reboot` is at `cf3c0ff`), and `phase2-goods`
-  once it has landed.
+  took the merge by a fast-forward. Nothing is renumbered: the two tracks numbered apart
+  (179–199 and O31–O35; 200–219 and O36–O40). `phase2-goods` (P2.2.1–P2.2.4, `d636b76` to
+  `401f7b1`) started at `92ba68e` and is in the local `reboot` by a fast-forward too: `reboot`
+  is at `401f7b1` (amended at L0.9; this line said it would land on your word).
+- **Pushing `reboot`** after `phase2-loops` has landed. `reboot` is at `401f7b1` locally and on
+  `origin` (with session 2, Phase 1, G0, the many-markets probe, the demo world, unit 1g, G1 and
+  the stocks probe; amended at L0.9, since this line said `origin/reboot` was at `cf3c0ff`).
 - **The Phase 2 session budget** that A11's kill condition needs (PLAN Phase 2), now for Phase 2
   proper's other instances.
 - **The decisions above**, especially 10 (the engine crate, not in PLAN's crate list), 11, 15
@@ -3289,11 +3496,13 @@ O36–O40 are G1's (branch `g1`), numbered after O30 and apart from track 1g's O
 O41–O50 are the stocks probe's (P2.2a, branch `phase2-goods`), numbered after G1's O36–O40;
 O41–O46 are HORSES-SPEC §9's, each with what the run found.
 
-- **O41. CHAIN's horse county is unfunded** (decision 221; HORSES-SPEC §1.1). Provider baskets
-  are −2.1476 at 1g's HORSE point and −2.1419 with the loop cut: rent does not cover N·P_s, so no
-  agent run can rest at its oracle point under the probe's transfer. P2.2b's rule-B horse needs a
-  funded county, chosen and checked by the oracle, before its frame. 1g's goldens are unaffected
-  (the oracle reports `funded`, it does not require it).
+- **O41. CHAIN's horse county is unfunded: closed at L0.8 (2026-09-29)** (decision 221;
+  HORSES-SPEC §1.1; decision 254). Provider baskets are −2.1476 at 1g's HORSE point and −2.1419
+  with the loop cut: rent does not cover N·P_s, and it never can, since a basket is 1 good plus
+  h = 1 of space, so P_s ≥ 1, while N·h = 12 exceeds T = 10. `chain8`, the same county at N 8,
+  is funded with coverage 1.215–1.240 at every cost target and δ 4–10%, checked by the oracle and
+  by a 50-digit solve that reads no oracle code (docs/probe/loops/FUNDED.md, amended by
+  FUNDED-A1). 1g's goldens are unaffected.
 - **O42. An ex-post category desk for v2a.2** (decision 222). P2.1's `CategoryDesk` is planned
   only, and D-G6 asks for ex-post assignment wherever machine-hours are used. With several
   segments the cutoff that uses up hours and services is not 1a's quadratic; it needs a rule, its
@@ -3319,9 +3528,13 @@ O41–O46 are HORSES-SPEC §9's, each with what the run found.
   full rate with no floor. heads.capacity × 10 crossed the runaway bound at all 14 instances
   (ticks 138–167), and P8 at tick 138. The ω 1 verdict runs fell to 0.1–0.9% of target. The
   maker's reservation at ψ 0.25 now withholds the finished heads while the markup is below ψ. So
-  the price falls at most one step below ψ times replacement cost. Every heads × 10 run and P8
-  converge, and the battery's lowest horse price is 0.187–0.251 of target
-  (docs/probe/results/idle/). What it leaves is O52–O55.
+  the price falls at most one step below ψ times the replacement cost at the maker's last offer;
+  the markup at current costs can go lower, 0.144–0.206 at heads × 10 (reworded at L0.7, after
+  the engine review). Every heads × 10 run and P8 converge, and the battery's lowest horse price
+  is 0.187–0.251 of target (docs/probe/results/idle/; the report, docs/probe/IDLE.md). The engine
+  review found no refutation; its five minor findings are answered at L0.7, and the review's
+  17-run sample, rerun from L0.7's build, is L0.6's evidence row for row. What it leaves is
+  O52–O55.
 - **O48. M6's load check had a hole: closed at L0.1 (2026-09-29).** `cast.rs` exempted the
   capacity and owner desks from M6 for every good they buy; now only for the durable good they
   hold (decision 240). No check refused a seller offering a storable good in full; M5 now does
@@ -3332,14 +3545,20 @@ O41–O46 are HORSES-SPEC §9's, each with what the run found.
   capacity desk holds none. So the pile-up is the seller's unit root, which M5 refuses; the
   buyer's hole let the tape in. It is now refused at `actors[desk.capacity].spec.running.goods`.
   Tests: `m6_nets_only_the_durable_good` and `m5_refuses_a_stored_good_offered_in_full`, each
-  failing with its check undone (scratch `D:/rustyecon-p2l/m6/`).
-- **O49. What v2a.1b needs beyond v2a.1** (HORSES §6). CAPACITY's plant is unbuilt: the form
-  y = K^(1−θ)·z^θ, a plant each loop desk builds and never trades, and its nesting at θ 1 and at a
-  fixed plant. How the plant composes with an M3 horse holding is untested, and the capacity desk
-  passes a fodder shortfall one for one into horse-days (H2 after r × 2: 120 fodder ticks, 38 on
-  horse-days, 21 on the good). The chain's maker from bought inputs ran only as P8, and S1
-  without its pumping loop (GOODS-CHAIN §6 step 4) was not framed. The mirror's loop step
-  (GOODS-CHAIN §6 step 3) takes these first, its predictions registered.
+  failing with its check undone (scratch `D:/rustyecon-p2l/m6/`). The engine review found that
+  the review's tape is refused by M5 as well as M6, so the first test could not show M6 alone;
+  L0.7 adds `m6_refuses_a_stored_good_no_role_offers_in_full`, a scripted seller of stored fodder
+  that M5 does not check, which loads with the old exemption and is refused with M6.
+- **O49. What v2a.1b needs beyond v2a.1: its mirror half done at L0.8 (2026-09-29)** (HORSES §6;
+  decisions 260–271). CAPACITY's plant was unbuilt, how it composes with an M3 horse holding was
+  untested, and the capacity desk passed a fodder shortfall one for one into horse-days (H2 after
+  r × 2: 120 fodder ticks, 38 on horse-days, 21 on the good). The mirror's loop step
+  (docs/probe/loops/LOOP-SPEC.md, re-registered with the engine's genesis carry by LOOP-SPEC-A1)
+  settles each in the mirror: the plant on all three loop desks, beside the horses on the
+  capacity desk, built from the running recipe (261); the capacity desk's plant takes the
+  pass-through into horse-days from 146–150 dead ticks to 1–2; CHAIN's maker from bought fodder is
+  the tested maker from bought inputs (269). Its engine half is P2.2b (next step 6). S1, with and
+  without its pumping loop, waits for a funded steam county (269, 276).
 - **O50. The kick with stocks** (HORSES §3, §5). At 365 a year the kick sits on its rounding
   floor (passing tails 3.0e-4 to 5.6e-4 against 1e-3), and at δ 4% it would likely fail on the
   floor alone. Price kicks read faster than the stock's slowest mode, which is exactly 1 − δ a
@@ -3390,6 +3609,55 @@ O51 on are the loop stage's groundwork's (L0, branch `phase2-loops`).
   miss the engine by more than the tolerances: H2 r × 2's lowest horse price is 0.204 of target in
   the mirror and 0.220 in the engine. The trace diff's `i_carry.py` agrees with the engine within
   1.6e-12 on that run. A mirror that registers predictions for the engine should carry genesis.
+  Done for the loop step at L0.8 (decisions 272, 273): its mirror carries genesis
+  (`lm_carry.py`), and its predictions are registered again from it (LOOP-SPEC-A1).
+
+O58 on are the loop registration's (L0.8): FUNDED's O51 and O52 and LOOP-SPEC's O-L1–O-L7,
+renumbered (FUNDED-A1 §A1.4, LOOP-SPEC-A1 §A1.6), and the fix round's.
+
+- **O58. The funded rule-B county is space-heavy** (FUNDED's O51; decision 254). The good is 1.6%
+  of income and the horse chain 0.8% of the land, since CHAIN's labour-heavy horse sits at the
+  task margin only where labour is cheap against land (v 0.023 of r). Funding is robust for that
+  reason, but the loop's markets are small against land and the provider, and the good's price
+  response sets L at 202,000–232,000 ticks. A county where the goods side weighs more needs γ's
+  line or h moved, with its own funding and uniqueness check.
+- **O59. The corner below land × 0.35** (FUNDED's O52). chain8's horse takes the whole line at
+  land factors of 0.33 and below. At b × 0.5 the human share is 0.060–0.092. A P2.2b target below
+  × 0.4 must be registered as a corner.
+- **O60. The loop still shows under frozen prices** (LOOP-SPEC's O-L1). LB1's quantities grow
+  1.0616 a tick with every price held (1.19 without plants). The plant's damping needs live
+  prices, as CAPACITY found; the engine's open-loop probe will read the fodder market at order
+  10^3 per unit of log price at lag 200.
+- **O61. The absorbing zero is kept** (O-L2). heads × 0.1 takes the tasks' horse-days to 0.033 of
+  target and comes back; without the fodder desk's plant the fodder desk's coin × 0.02 does not
+  (LN4).
+- **O62. S1 is not framed, with or without its pumping loop** (O-L3; decisions 269, 276). M3's
+  county is unfunded at S1's point (P_s 4.749, N·P_s 19.0 against T 10). It needs a funded steam
+  county first.
+- **O63. Why the maker's plant removes the reservation's relay cycle** (O-L4). Shown, not
+  derived: without it large displacements orbit though a 1e-8 kick decays (0.9973). A scan of ψ
+  with and without the maker's plant would settle it.
+- **O64. GOODS-CHAIN's stage table, v2a.1b's R1 row** (O-L5). "Fodder without horse-days is
+  v2a.1" does not hold on rule B's numbers: the loop cut is CHAIN's maker on v2a.1's roles,
+  NO-GO without plants (LN7), GO with them (LC1). The row should read "fodder without horse-days
+  is LC1". GOODS-CHAIN is outside the repository and is not edited here.
+- **O65. P2.2b's engine build** (O-L6; next step 6): the plant on three kinds as an optional
+  field with appended `ActorState` variants; the genesis carry of a planted desk's bundles as
+  decision 273 sets it; rule-B instances in `probe::horses` from `docs/probe/loops/instances.json`
+  (the TypeDesk's horse-day input and the maker's fodder build need no new code); the plant
+  observables, the 5% readouts, per-market dead ticks and ticks at labour's bound in the harness;
+  and the trace diff first (E0).
+- **O66. Labour's knife-edge dead counts** (O-L7; decision 274). After r × 2 chain8's labour
+  supply opens at 0.508 of target and after N(2) the desks' coin buys half the labour, both
+  within 2% of the dead bar. Labour's count is reported, not scored; a county with headroom there
+  would let it be scored.
+- **O67. Labour supply at its bound** (decision 277). Five runs at each of LB1–LB3 put every head
+  to work for 18–273 ticks, and four or five at the flow controls (LOOP-SPEC-A1 §A1.4). No probe
+  has scored runs in that regime. If P2.2b's engine parts from the mirror there, the frame must
+  say whether the bound or the loop did it.
+- **O68. The planted desk's genesis carry is a convention no engine has run** (decision 273). The
+  mirror sets it; E0's trace diff at tick 1 tests it. If the engine's build does otherwise, the
+  registration must be amended before any scored run, not after.
 
 ## Corrections logged (A3; ADDENDUM §1.4)
 
@@ -3448,29 +3716,42 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
    agents against the goods chain; the mapping's call where tapes are built (O32); and the rest
    of the addendum when its instances need it (O31). Machine recipes stay on pool labour
    (decision 140).
-6. **The goods chain in the engine: the stocks probe is done, the loops next** (GOODS-CHAIN
-   §3–§6, staged as its §5 and §6 set out; CAPACITY.md for the loop damper). **P2.2a is
-   closed**: stage v2a.1, rule A's horse held as a stock and hired out wet, with fodder from
-   land alone, is GO at C2g and 52 ticks a year, read narrower by its reviews
-   ([docs/probe/HORSES.md](docs/probe/HORSES.md); decisions 220–239). The idle machine market's
-   remedy is done: the maker's reservation at ψ 0.25 (O47 closed at L0.6; decisions 245–253;
-   [docs/probe/results/idle/README.md](docs/probe/results/idle/README.md)). It is on by default in
-   every later stocks or loops frame (decision 253), and it leaves the long glut's shortage (O52)
-   and P8's slow mode (O53). Before P2.2b's frame, in order: the mirror's own next step in Python
-   (GOODS-CHAIN §6 step 3), the fodder–horse-days loop with stocks and CAPACITY's plant on both
-   sides of the loop at θ 0.8 and δ 10% a year under C2g, composed with M3's horse holding and
-   its one-for-one pass-through of a fodder shortfall, with makers from bought inputs and a
-   like-for-like flow control (O49, decision 235), with the reservation on and the engine's
-   genesis carry in the mirror (O57), its predictions registered; a funded county for rule B
-   (O41); and M6 narrowed, done at L0.1 with M5 beside it (O48 closed; decisions 240–244). Then
-   the loops (P2.2b): rule B's horse, fodder
-   raised with horse-days, with CAPACITY's plant on every loop desk, both sides: a plant good
-   for each loop desk, held and never traded (D-G2's `Indefinite` good, worn by `Depreciation`
-   burns), s1 bundles of the desk's own recipe per plant unit, ordered by M3's rule with s_K =
-   2δ, the form y = K^(1−θ)·z^θ, and a plan that reads only the desk's own coin, plant and
-   recipe and the posted prices (R13); at θ = 1 it must be the flow run bit for bit. The oracle
-   needs no new solve at ρ = 0, only closed-form readouts per plant desk (K\*, V and the user
-   cost), which 1g's plants give (decision 184); the tape's goods need O32's schema and builder.
+6. **The goods chain in the engine: P2.2b's frame and build are next** (GOODS-CHAIN §3–§6,
+   staged as its §5 and §6 set out; CAPACITY.md for the loop damper). **P2.2a is closed**: stage
+   v2a.1, rule A's horse held as a stock and hired out wet, with fodder from land alone, is GO at
+   C2g and 52 ticks a year, read narrower by its reviews
+   ([docs/probe/HORSES.md](docs/probe/HORSES.md); decisions 220–239). **The loop stage's
+   groundwork (L0) is done**: the idle market's remedy, the maker's reservation at ψ 0.25, on by
+   default from here (O47; decisions 245–253, 278, 279; [docs/probe/IDLE.md](docs/probe/IDLE.md));
+   M6 narrowed and M5 checked (O48; decisions 240–244); a funded rule-B county, chain8 (O41;
+   decisions 254–259); and the mirror's loop step, registered with the engine's genesis carry
+   (O49, O57; decisions 260–277; the registration
+   [docs/probe/results/loops/registration.md](docs/probe/results/loops/registration.md), the
+   frame inputs in `docs/probe/loops/`). What it leaves on the way: the long glut's shortage
+   (O52), P8's slow mode (O53), and storable running goods (O51), which only the 13-week fodder
+   family needs.
+
+   **P2.2b, the loops**, in order:
+   1. **The frame** (P2.2b.0): a `LOOPS-RULES`-style build spec from LOOP-SPEC §2 as amended,
+      naming each new field, `ActorState` variant, load check and test, and the harness's plant
+      observables, per-market dead ticks and ticks at labour's bound (O65). No new registration
+      unless the build must depart from LOOP-SPEC-A1; a departure is a dated amendment before
+      any scored run (decision 282).
+   2. **The build** (P2.2b.1): CAPACITY's plant on the TypeDesk, the capacity desk and the maker,
+      an optional `plant` field with appended `ActorState` variants so every committed tape keeps
+      its hashes; a plant good per loop desk, held and never traded (D-G2's `Indefinite` good, worn
+      by `Depreciation` burns); s1 bundles of the desk's own recipe per plant unit, ordered by M3's
+      rule with s_K = 2δ_p, installed next tick; on the capacity desk beside the horses, from the
+      running recipe (261), its target the herd's plant (262); the genesis carry of a planted
+      desk's bundles as decision 273 sets it (O68); rule-B tapes from `instances.json` at chain8
+      (254), the reservation on (265). At θ = 1 it must be the plant-free run bit for bit, and with
+      no plant every committed tape's text, `world_id` and hash stream. The oracle needs no new
+      solve at ρ = 0: 1g's plants give K\*, V and the user cost per plant desk (decision 184); the
+      tape's goods need O32's schema and builder.
+   3. **E0, the trace diff** against `lm_carry.py`, before any scored run; then E1–E11 of
+      LOOP-SPEC-A1 §8 at LB1–LB3, the flow controls LW1–LW3 and the negative controls, with the
+      same bounded reviews as P2.2a, and the report.
+
    Loops in Phase 2 need your ruling against decision 120, and machine stocks brought forward
    from Phase 3 your ruling on D-G11.
 7. **Phase 2 proper** (PLAN Phase 2), after your rulings on the decisions that bind it: 61, 67
@@ -3546,7 +3827,13 @@ docs/probe/HORSES*.md    the stocks probe's rules as built (HORSES-RULES.md) and
                          reservation (L0.4, L0.5)
 docs/probe/results/idle/ the idle market's remedy on the engine (L0.3–L0.6): its registration,
                          README (the verdict, prediction by prediction), seven CSVs and the trace
-                         diff; its plots in docs/probe/figs/idle/
+                         diff, and IDLE-SPEC-A1 (L0.7); its plots in docs/probe/figs/idle/
+docs/probe/IDLE.md       the report of the remedy and M6 (L0.1–L0.7)
+docs/probe/loops/        P2.2b's frame inputs, byte for byte as registered (L0.8): LOOP-SPEC.md
+                         (the mirror's loop step) and FUNDED.md with instances.json (chain8),
+                         each with its dated amendment (-A1), and SHA256SUMS
+docs/probe/results/loops/ the loop step's registration (L0.8), quoting LOOP-SPEC-A1's
+                         predictions and FUNDED's county, with its sha256
 crates/engine            Sim, the tick, reports, resume, the replay audit, the registry listing
 crates/cli               the rustyecon binary: run, resume, replay, registry, certify, worldgen,
                          licences
@@ -3692,6 +3979,14 @@ scripts/gui.sh           the GUI's gate, run at each G-stage (G0.1); diffs the e
   `JOBS=40`) scores them against P2.2a's runs and the scan's mirror into `runs/tables/`, and
   `analysis/plots.py` draws `runs/figs/`. The trace diff is `tracediff/tracediff.py BIN OUT`,
   after `make_i_carry.py`.
+- The loop stage's groundwork (L0) ran from a worktree, `D:/rustyecon-wt/p2l`
+  (`/mnt/d/rustyecon-wt/p2l` in WSL), on branch `phase2-loops`, with one shared target a
+  machine, `/root/scratch/target-p2l` and `D:/rustyecon-targets/p2l`, and scratch in
+  `D:/rustyecon-p2l/<label>/` (`m6`, `idle-scan`, `idle-engine`, `funded`, `loop-mirror`, the two
+  reviews, `fix-report`). The loop mirror with the genesis carry, its checks and its battery are
+  rerun as LOOP-SPEC-A1 §A1.7 says (about 70 minutes on 47 cores); the loop registration is
+  rewritten by `D:/rustyecon-p2l/fix-report/make_registration.py WORKTREE`, which quotes and
+  hashes the frame inputs in `docs/probe/loops/`.
 - The oracle's goldens: from `crates/oracle`, run `goldens/generate.py`, `generate_1b.py`, …,
   `generate_1f.py` and `generate_1g.py` with `--check` under laborformal's venv
   (`C:/Users/wilso/Documents/GitHub/laborformal/venv/Scripts/python.exe`,

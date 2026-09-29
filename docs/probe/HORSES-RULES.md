@@ -753,7 +753,8 @@ horses tapes and their per-tick hash streams (§6.9), and the tape schema, 1 (do
   reads the maker's resolved spec, the params in force (the tick's events apply before its
   decisions) and the tick's posted prices, and forms μ, ψ and the withheld flag with the agents
   crate's `maker_reservation`, the same code the rule runs (`harness::maker_readout`). On every
-  instance run so far it reads what `MakerCost` read (the rerun below).
+  instance run so far it reads what `MakerCost` read: the review's 17-run sample, rerun from
+  L0.7's build, is L0.6's evidence row for row (the results' README, "Amended at L0.7").
 - **Tests**, each failing with its change undone (`D:/rustyecon-p2l/fix-report/mutants/`):
   `a_maker_without_a_reservation_offers_at_any_markup` and
   `m6_refuses_a_stored_good_no_role_offers_in_full` (agents), and
