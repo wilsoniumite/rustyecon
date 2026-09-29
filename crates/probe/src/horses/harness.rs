@@ -301,6 +301,12 @@ pub struct Row {
     pub no_order: bool,
     /// The stock records.
     pub stocks: Stocks,
+    /// The maker's net markup p_K·(1 − δ·a/κ)/c_m at the tick's posted prices and the
+    /// coefficients in force, summed in its rule's order (IDLE-SPEC §6; NaN on the flow path).
+    /// Read here, outside the Sim; no agent sees it.
+    pub markup: f64,
+    /// Whether the maker withheld its finished heads: its markup below its reservation ψ.
+    pub withheld: bool,
 }
 
 /// The CSV header of [`Row::csv`], for an instance.
@@ -346,6 +352,8 @@ pub fn csv_header(inst: &Instance) -> String {
         "capacity_run",
         "running_cost",
         "full_cost",
+        "markup",
+        "withheld",
     ] {
         h.push(f.to_string());
     }
@@ -391,7 +399,62 @@ impl Row {
         ] {
             v.push(format!("{x:?}"));
         }
+        v.push(format!("{:?}", self.markup));
+        v.push(u8::from(self.withheld).to_string());
         v.join(",")
+    }
+}
+
+/// The maker's coefficients as its rule reads them, for its net markup (IDLE-SPEC §6), with
+/// the horse's and fodder's places in market order.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct MakerCost {
+    a: f64,
+    labour: f64,
+    pasture: f64,
+    kappa: f64,
+    delta: f64,
+    horse: usize,
+    fodder: Option<usize>,
+}
+
+impl MakerCost {
+    /// The maker's coefficients at `inst`'s b and `tpy`; `None` on the flow path, which holds
+    /// no reservation.
+    pub fn of(inst: &Instance, tpy: u32) -> Result<Option<MakerCost>, String> {
+        if inst.is_flow() {
+            return Ok(None);
+        }
+        let markets = inst.markets();
+        let at = |m: &str| markets.iter().position(|x| x == m);
+        let rule = inst.rule_a(tpy)?;
+        let (kappa, delta) = inst.per_tick(tpy)?;
+        Ok(Some(MakerCost {
+            a: rule.own_hours,
+            labour: rule.labour,
+            pasture: rule.pasture,
+            kappa,
+            delta,
+            horse: at(&inst.keys.horse).ok_or("no horse market")?,
+            fodder: at("fodder"),
+        }))
+    }
+
+    /// Its net markup at posted prices `price` (in market order): p_K·(1 − δ·a/κ)/c_m, with c_m
+    /// summed as the maker's rule sums it, its bought goods (fodder, a·run_f + build_f) from
+    /// 0.0, then labour (a·run_lab + build_lab)·w, then land.
+    pub fn markup(&self, price: &[f64]) -> f64 {
+        let a = self.a;
+        let (w, r) = (price[0], price[1]);
+        let pk = price[self.horse];
+        let mut c = 0.0;
+        if let Some(i) = self.fodder {
+            c += (a * 1.0 + 0.0) * price[i];
+        }
+        c += (a * 0.0 + self.labour) * w;
+        c += self.pasture * r;
+        let net = pk * (1.0 - self.delta * a / self.kappa);
+        net / c
     }
 }
 
@@ -646,6 +709,8 @@ fn row(
         idle,
         no_order,
         stocks: st,
+        markup: f64::NAN,
+        withheld: false,
     })
 }
 
@@ -712,6 +777,12 @@ pub struct StockStats {
     pub investment: (f64, f64),
     /// The scored tick from which GOODS-CHAIN's nine stay within tolerance, if they do.
     pub nine_in_tol: Option<u64>,
+    /// Scored ticks on which the maker withheld its finished heads (its markup below ψ).
+    pub withheld: u64,
+    /// Changes between withholding and offering over the scored ticks.
+    pub switches: u64,
+    /// The maker's lowest net markup over the scored ticks.
+    pub markup_low: f64,
 }
 
 /// The transient statistics of HORSES-SPEC §7.11 (O14), with P2.1's set (MARKETS-SPEC §7.11)
@@ -779,6 +850,9 @@ impl Stats {
                 hour_over_o_low: f64::INFINITY,
                 investment: (f64::INFINITY, f64::NEG_INFINITY),
                 nine_in_tol: None,
+                withheld: 0,
+                switches: 0,
+                markup_low: f64::INFINITY,
             },
         }
     }
@@ -877,6 +951,8 @@ struct StockTrack {
     wet: bool,
     kappa: f64,
     nine: Vec<usize>,
+    /// Whether the maker withheld on the last scored tick.
+    last_withheld: Option<bool>,
 }
 
 impl StockTrack {
@@ -940,6 +1016,13 @@ impl StockTrack {
         }
         let inv = row.cleared[m] / t.volume[m];
         st.investment = (min2(st.investment.0, inv), st.investment.1.max(inv));
+        // The idle market's readouts (IDLE-SPEC §6, "The harness").
+        st.withheld += u64::from(row.withheld);
+        if self.last_withheld.is_some_and(|w| w != row.withheld) {
+            st.switches += 1;
+        }
+        self.last_withheld = Some(row.withheld);
+        st.markup_low = min2(st.markup_low, row.markup);
     }
 
     fn finish(&self, st: &mut StockStats) {
@@ -1078,7 +1161,11 @@ pub fn run(
         wet: inst.config == Config::Wet,
         kappa,
         nine: nine(&inst),
+        last_withheld: None,
     };
+    let psi = setup.psi();
+    // The maker's coefficients for each b in force, for its markup.
+    let mut coefs: Vec<(u64, Option<MakerCost>)> = Vec::new();
     let (k0, k1) = (g.point.capacity + g.point.serving, t0.heads);
     stats.stock.paper = if k1 >= k0 {
         1.0
@@ -1104,7 +1191,20 @@ pub fn run(
             }
         };
         let o = Obs::of(&report, &sim);
-        let row = row(&sim, &inst, &ids, &report, &o, &target, k, horse_market)?;
+        let mut row = row(&sim, &inst, &ids, &report, &o, &target, k, horse_market)?;
+        let b = setup.b_at(tick).to_bits();
+        let cost = match coefs.iter().find(|(k, _)| *k == b) {
+            Some(&(_, c)) => c,
+            None => {
+                let c = MakerCost::of(&setup.instance_at(tick), setup.tpy)?;
+                coefs.push((b, c));
+                c
+            }
+        };
+        if let Some(c) = cost {
+            row.markup = c.markup(&row.price);
+            row.withheld = row.markup < psi;
+        }
         each(&row);
         if hold_failure.is_none() {
             hold_failure = hold_check(&row, &names, &markets);

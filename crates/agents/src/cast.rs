@@ -11,7 +11,8 @@
 //! one that lives one tick at δ = 1, the flow path, with no cover and no running recipe. A good
 //! that lives more than one tick is bought only as the durable good a capacity or owner desk
 //! holds, which it nets (M6), and no role offers one in full: the maker sells its durable good
-//! under its cover (M5).
+//! under its cover (M5). A maker's reservation (L0.4) is a stock's, never the flow path's, and
+//! needs a world whose one-sided markets `Saturate`.
 
 use crate::behaviour::{AgentError, Behaviour, Decision, Posted, View};
 use crate::ext::{
@@ -24,8 +25,8 @@ use crate::roles::stock::rules::{MakerRole, OwnerRole};
 use crate::roles::stock::spec::CapacityDesk;
 use crate::spec::{Script, Spec};
 use rustyecon_core::{
-    ActorDecl, ActorId, ActorKind, GoodId, Holder, Key, Life, LoadError, LoadErrorKind, SimState,
-    Site, StateDelta, World,
+    ActorDecl, ActorId, ActorKind, GoodId, Holder, Key, Life, LoadError, LoadErrorKind, OneSided,
+    SimState, Site, StateDelta, World,
 };
 
 /// One actor's behaviour.
@@ -374,6 +375,26 @@ impl Cast {
                             "the flow path has no running recipe: its own input is its kept \
                              output",
                         ));
+                    }
+                    // The reservation (IDLE-SPEC §6, L0.4): a stock's, and only where a market
+                    // with a bid and no offer raises its price.
+                    if d.reserve.is_some() {
+                        if flow {
+                            return Err(invalid(
+                                decl,
+                                "reserve",
+                                "the flow path holds no reservation",
+                            ));
+                        }
+                        if w.market.one_sided == OneSided::Hold {
+                            return Err(invalid(
+                                decl,
+                                "reserve",
+                                "a reservation needs `Saturate`: under `Hold` a market with a \
+                                 bid and no offer keeps its price, so a maker that withholds \
+                                 would never see it rise",
+                            ));
+                        }
                     }
                     Member::Maker(MakerRole::new(d, flow))
                 }

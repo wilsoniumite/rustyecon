@@ -20,8 +20,9 @@ pub struct SetupArgs {
 /// The setup options: `--inst ID` (default h1), `--tpy N` (default 52), `--dials
 /// c2g|c2g13|c2` (default the instance's), `--set KEY=VALUE` (repeatable; `rate.*`, `buffer.*`
 /// and `adjust.*` scale a family, `tilt.*` sets every tilt), `--assign planned|expost`,
-/// `--order target|held`, `--cover yes|none`, `--one-sided saturate|hold`. Options in
-/// `takes_value` are kept, with their values, in `rest`.
+/// `--order target|held`, `--cover yes|none`, `--one-sided saturate|hold`, `--reserve PSI` (the
+/// maker's reservation, L0.4; absent, the tape is P2.2a's). Options in `takes_value` are kept,
+/// with their values, in `rest`.
 pub fn parse(args: &[String], takes_value: &[&str]) -> Result<SetupArgs, String> {
     let mut inst = "h1".to_string();
     let mut tpy = 52;
@@ -31,6 +32,7 @@ pub fn parse(args: &[String], takes_value: &[&str]) -> Result<SetupArgs, String>
     let mut assign: Option<Assign> = None;
     let mut order = OrderRule::Target;
     let mut cover = true;
+    let mut reserve: Option<f64> = None;
     let mut given = Vec::new();
     let mut rest = Vec::new();
     let mut it = args.iter();
@@ -42,7 +44,7 @@ pub fn parse(args: &[String], takes_value: &[&str]) -> Result<SetupArgs, String>
         };
         match a.as_str() {
             "--inst" | "--tpy" | "--dials" | "--set" | "--one-sided" | "--assign" | "--order"
-            | "--cover" => {
+            | "--cover" | "--reserve" => {
                 let v = val()?;
                 given.push(a.clone());
                 given.push(v.clone());
@@ -76,6 +78,12 @@ pub fn parse(args: &[String], takes_value: &[&str]) -> Result<SetupArgs, String>
                             x => return Err(format!("--cover {x}: yes or none")),
                         }
                     }
+                    "--reserve" => {
+                        let psi: f64 = v
+                            .parse()
+                            .map_err(|_| format!("--reserve {v}: not a number"))?;
+                        reserve = Some(psi);
+                    }
                     _ => {
                         one_sided = match v.as_str() {
                             "saturate" => OneSided::Saturate,
@@ -106,5 +114,6 @@ pub fn parse(args: &[String], takes_value: &[&str]) -> Result<SetupArgs, String>
     }
     setup.order = order;
     setup.cover = cover;
+    setup.reserve = reserve;
     Ok(SetupArgs { given, setup, rest })
 }

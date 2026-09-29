@@ -2,7 +2,7 @@
 //!
 //! A [`Setup`] names what a run is made from: the instance, the tick length, the dials, the
 //! rule variants (the good desk's task assignment, the capacity desk's order rule, the maker's
-//! cover), the displacement of genesis, the county's machine land from tick 0, and any dated
+//! cover and its reservation, L0.4), the displacement of genesis, the county's machine land from tick 0, and any dated
 //! shocks of it. [`tape_ron`] writes it as a tape of P2.1's households and fodder desk, P2.0's
 //! good desk and the three stock kinds. The oracle's equilibrium (unit 1g, solved here, outside
 //! any `Sim`) seeds genesis: its prices relative to r = 1 coin, 1 − x\* for the good desk, each
@@ -21,6 +21,7 @@ const C2G13: &str =
     "Assumed(\"HORSES-SPEC §5.1: C2g with fodder's price at C2m's type rate (F7-F10)\")";
 const C2: &str = "Assumed(\"MARKETS-SPEC C2m, design-analytic-first C2 per role\")";
 const STOCK: &str = "Assumed(\"GOODS-CHAIN D-G3, D-G5 (C2g); HORSES-SPEC §5.2\")";
+const RESERVE: &str = "Assumed(\"IDLE-SPEC 2026-09-29, mirror scan\")";
 
 fn rate(key: String, value: f64, basis: &str) -> Dial {
     Dial {
@@ -190,6 +191,10 @@ pub struct Setup {
     /// Whether the maker holds its cover (`true`, registered; `false`, the control that offers
     /// every finished head).
     pub cover: bool,
+    /// The maker's reservation ψ (IDLE-SPEC, L0.4): `Some` writes the param `reserve.<maker>`
+    /// and the maker's `reserve` field; `None`, registered, writes neither, so the tape is
+    /// P2.2a's byte for byte.
+    pub reserve: Option<f64>,
     /// The displacement of genesis.
     pub displace: Displacement,
     /// The county's machine land the tape registers from tick 0 (a cost shock at genesis);
@@ -216,6 +221,7 @@ impl Setup {
             },
             order: OrderRule::Target,
             cover: true,
+            reserve: None,
             displace: Displacement::none(&instance),
             b_genesis: None,
             shocks: Vec::new(),
@@ -257,6 +263,11 @@ impl Setup {
             .ticks(Years(years))
             .map_err(|e| e.to_string())?;
         Ok(f64::from(t))
+    }
+
+    /// The reservation ψ the maker reads: its param, or 0 (off) where it has none.
+    pub fn psi(&self) -> f64 {
+        self.reserve.unwrap_or(0.0)
     }
 }
 
@@ -779,6 +790,12 @@ pub fn tape_ron(s: &Setup) -> Result<String, String> {
         }
         o.param(&d.key, d.value, d.unit, &d.basis);
     }
+    if let Some(psi) = s.reserve {
+        if inst.is_flow() {
+            return Err("the flow path holds no reservation (--reserve)".into());
+        }
+        o.param(&format!("reserve.{maker}"), psi, "Dimensionless", RESERVE);
+    }
     if !s.shocks.is_empty() {
         o.line("        // The dated shocks' values: schedule params (HORSES-SPEC §7.7).");
         for (k, sh) in s.shocks.iter().enumerate() {
@@ -919,8 +936,12 @@ pub fn tape_ron(s: &Setup) -> Result<String, String> {
     o.line(format!(
         "            build: (goods: [], labour: \"inst.{h}.labour\", land: \"inst.{h}.land\"),"
     ));
+    let reserve = match s.reserve {
+        Some(_) => format!(" reserve: Some(\"reserve.{maker}\"),"),
+        None => String::new(),
+    };
     o.line(format!(
-        "            delta: \"inst.{h}.delta\", adjust: \"adjust.invest.{maker}\", cover: {cover}, own: {},",
+        "            delta: \"inst.{h}.delta\", adjust: \"adjust.invest.{maker}\", cover: {cover},{reserve} own: {},",
         f(own)
     ));
     o.line(scale(&maker));

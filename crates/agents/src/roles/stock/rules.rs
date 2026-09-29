@@ -215,7 +215,19 @@ impl Behaviour for MakerRole {
             Some(site) => param(v, site)?,
             None => 0.0,
         };
-        let want = sign(finished - keep - cover * q * c / pk);
+        let psi = match m.reserve {
+            Some(site) => param(v, site)?,
+            None => 0.0,
+        };
+        // The reservation (IDLE-SPEC, L0.4): below ψ it offers none of its finished stock; it
+        // holds it, unworn, and still buys and breeds on the whole q by its cash rule. Off (ψ 0
+        // or absent), `markup < 0.0` is false for every markup it can form, so the offer is
+        // P2.2a's bit for bit.
+        let want = if margin.markup < psi {
+            0.0
+        } else {
+            sign(finished - keep - cover * q * c / pk)
+        };
         let offered = offer(&mut dry, m.output, want)?;
         out.orders.push(sell(v, m.output, offered));
         // Every input it buys, on the whole q.

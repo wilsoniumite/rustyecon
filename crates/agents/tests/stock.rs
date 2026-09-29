@@ -870,3 +870,186 @@ fn stock_role_sites_name_their_methods() {
         assert!(seen.contains(&ClockMethod::Fraction) && seen.contains(&ClockMethod::Flow));
     }
 }
+
+/// `text` with the maker's reservation (IDLE-SPEC §6, L0.4): the param `reserve.<maker>` at
+/// `psi`, of `unit`, registered before `before`, and the maker's field after its cover `cover`.
+fn reserved(text: &str, maker: &str, cover: &str, before: &str, psi: f64, unit: &str) -> String {
+    let field = format!("cover: {cover},");
+    let with_field = edit_all(
+        text,
+        &field,
+        &format!("cover: {cover}, reserve: Some(\"reserve.{maker}\"),"),
+    );
+    let at = format!("        (key: \"{before}\",");
+    edit_all(
+        &with_field,
+        &at,
+        &format!(
+            "        (key: \"reserve.{maker}\", value: {psi:?}, unit: {unit}, basis: Assumed(\"IDLE-SPEC\")),\n{at}"
+        ),
+    )
+}
+
+/// H1 with the maker's reservation at `psi`.
+fn h1_reserved(psi: f64) -> String {
+    reserved(
+        H1,
+        "maker",
+        r#"Some("cover.maker")"#,
+        "life.one_tick",
+        psi,
+        "Dimensionless",
+    )
+}
+
+/// The maker's net markup as its rule forms it, p_K·(1 − δ·a/κ)/c, from the world's params at
+/// genesis and the state's posted prices (H1: fodder a·1 + 0, labour a·0 + λ, pasture).
+fn h1_markup(w: &W, s: &S) -> f64 {
+    let v = |k: &str| w.registry.params()[param(w, k).idx()].genesis;
+    let p = |k: &str| s.price(home(w), good(w, k)).expect("a posted price");
+    let (a, lam, b) = (
+        v("inst.horse.own_hours"),
+        v("inst.horse.labour"),
+        v("inst.horse.land"),
+    );
+    let kappa = w
+        .clock
+        .flow(rustyecon_core::FlowPerYear(v("inst.horse.kappa")));
+    let d = w.clock.fraction(FractionPerYear(v("inst.horse.delta")));
+    let mut c = 0.0;
+    c += (a * 1.0 + 0.0) * p("fodder");
+    c += (a * 0.0 + lam) * p("labour");
+    c += b * p("land");
+    p("horse") * (1.0 - d * a / kappa) / c
+}
+
+#[test]
+fn maker_withholds_below_its_reservation() {
+    // IDLE-SPEC §6, test 1: with ψ 0.25, at posted prices where its net markup is 0.2 the maker
+    // posts a sell of 0 heads and still orders every input on its whole q, and its state is
+    // P2.2a's; at a markup of 0.3 it posts P2.2a's offer; with `reserve` absent, or ψ set to 0 at
+    // run time, it posts P2.2a's offer at 0.2 too. Its finished stock is raised far above its
+    // cover, so that P2.2a's offer is positive at both prices: without the rule the first case
+    // offers more than 0.
+    let (w, s, cast) = load(&h1_reserved(0.25));
+    let (w0, s0, cast0) = load(H1);
+    let dm = actor(&w, "desk.maker");
+    assert_eq!(dm, actor(&w0, "desk.maker"));
+    let horse = good(&w, "horse");
+    let ActorState::Maker(m) = state(&s, dm) else {
+        panic!("a maker state")
+    };
+    let pk = s.price(home(&w), horse).unwrap();
+    let decide = |w: &W, s: &S, cast: &Cast, f: f64| {
+        let mut s = s.clone();
+        set_holding(&mut s, w, dm, horse, m.own + 2.0);
+        set_price(&mut s, w, horse, pk * f);
+        (h1_markup(w, &s), cast.decide(dm, &s, w).unwrap(), s)
+    };
+    let sold = |d: &Decision| -> f64 {
+        let v: Vec<f64> = d
+            .orders
+            .iter()
+            .filter(|o| o.good == horse && matches!(o.side, Side::Sell))
+            .map(|o| o.qty)
+            .collect();
+        assert_eq!(v.len(), 1, "one sell of heads");
+        v[0]
+    };
+    let bought = |d: &Decision| -> Vec<Order> {
+        d.orders
+            .iter()
+            .filter(|o| matches!(o.side, Side::Buy { .. }))
+            .cloned()
+            .collect()
+    };
+    // Markup 0.2: it withholds.
+    let (mu, on, at) = decide(&w, &s, &cast, 0.2);
+    let (mu0, off, _) = decide(&w0, &s0, &cast0, 0.2);
+    assert!(
+        (mu - 0.2).abs() < 1e-12 && mu.to_bits() == mu0.to_bits(),
+        "{mu}"
+    );
+    assert_eq!(sold(&on), 0.0);
+    assert!(sold(&off) > 0.0, "P2.2a's maker offers at 0.2");
+    assert_eq!(bought(&on), bought(&off));
+    assert!(bought(&on).len() == 3 && bought(&on).iter().all(|o| o.qty > 0.0));
+    assert_eq!(on.deltas, off.deltas);
+    // ψ set to 0 at run time: P2.2a's decision.
+    let mut zero = at.clone();
+    set_param(&mut zero, &w, "reserve.maker", 0.0);
+    assert_eq!(cast.decide(dm, &zero, &w).unwrap(), off);
+    // Markup 0.3: P2.2a's offer.
+    let (mu, on, _) = decide(&w, &s, &cast, 0.3);
+    let (_, off, _) = decide(&w0, &s0, &cast0, 0.3);
+    assert!((mu - 0.3).abs() < 1e-12, "{mu}");
+    assert!(sold(&off) > 0.0);
+    assert_eq!(on, off);
+}
+
+#[test]
+fn reserve_is_checked_at_load() {
+    // IDLE-SPEC §6, test 5: the reservation is refused on the flow path (R1a) and in a world
+    // whose one-sided markets `Hold`, each with its path, and a `reserve` param of any unit but
+    // `Dimensionless` is refused where the maker resolves it. H1 with it loads, lists the site
+    // as a value, and round-trips in canonical form with the field; without it, H1 under `Hold`
+    // loads.
+    let hold = |text: &str| edit_all(text, "one_sided: Saturate,", "one_sided: Hold,");
+    let flow = reserved(R1A, "mach", "None", "life.one_tick", 0.25, "Dimensionless");
+    let cases = [
+        (flow, "actors[desk.mach].spec.reserve"),
+        (hold(&h1_reserved(0.25)), "actors[desk.maker].spec.reserve"),
+    ];
+    for (text, path) in cases {
+        let err = refusal(&text);
+        assert_eq!(err.path, path, "{err}");
+        assert!(
+            matches!(err.kind, rustyecon_core::LoadErrorKind::Invalid(_)),
+            "{err}"
+        );
+    }
+    for unit in ["Years", "RatePerYear", "FractionPerYear"] {
+        let text = reserved(
+            H1,
+            "maker",
+            r#"Some("cover.maker")"#,
+            "life.one_tick",
+            0.25,
+            unit,
+        );
+        let err = load_text(&text).expect_err("a reservation is a value");
+        assert_eq!(err.path, "actors[desk.maker].spec.reserve", "{err}");
+        assert!(
+            matches!(err.kind, rustyecon_core::LoadErrorKind::UnitMismatch { .. }),
+            "{err}"
+        );
+    }
+    let (w, _) = load_text(&hold(H1)).unwrap();
+    Cast::new(&w).expect("Hold without a reservation loads");
+    // H1 with it.
+    let text = h1_reserved(0.25);
+    let (w, _, _) = load(&text);
+    let dm = w
+        .actors
+        .iter()
+        .find(|a| a.key.as_str() == "desk.maker")
+        .unwrap();
+    let sites = dm.spec.sites(&w);
+    let (_, site) = sites
+        .iter()
+        .find(|(p, _)| p == "reserve")
+        .expect("a reserve site");
+    assert_eq!(site.method, ClockMethod::Value);
+    let t = Tape::<Agents>::from_ron(&text).unwrap();
+    let ron = t.to_ron();
+    assert!(ron.contains(r#"reserve: Some("reserve.maker")"#), "{ron}");
+    let back = Tape::<Agents>::from_ron(&ron).unwrap();
+    assert_eq!(back, t.canonical());
+    let (w1, _) = resolve(&back).unwrap();
+    let (w0, _) = load_text(H1).unwrap();
+    assert_eq!(w1.world_id, w.world_id);
+    assert_ne!(w1.world_id, w0.world_id);
+    // Absent, the canonical form has no `reserve` at all: every older tape keeps its text.
+    let old = Tape::<Agents>::from_ron(H1).unwrap().to_ron();
+    assert!(!old.contains("reserve"));
+}

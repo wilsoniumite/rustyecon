@@ -817,6 +817,28 @@ still loads, and every pinned hash stream is unchanged (finals `0x61f9c8529131ff
    tape is refused at the fodder desk's output, and without M5 the second test's first tape
    loads.
 
+**Amended at L0.4** (2026-09-29, branch `phase2-loops`: the idle machine market's remedy, O47;
+docs/probe/HORSES-RULES.md §10), the same way. One rule changed, the maker's offer, behind a
+field that is absent on every committed tape. Every committed tape keeps its canonical form,
+`tape_hash` and `world_id`, and every pinned hash stream is unchanged (finals
+`0x61f9c8529131ff17`, `0xe1fa082b26995867`, `0xfad880fe08d06645`). No state, delta or core type
+changed.
+
+1. The maker's reservation (IDLE-SPEC, registered at L0.3). `RawMaker` and `Maker` gain
+   `reserve`, an optional live `Dimensionless` param ψ, the one field of a stock kind that may be
+   absent (absent is off, and the canonical form omits it; docs/TAPE.md, the row for L0.4).
+   While its net markup p_K·(1 − δ·a/κ)/c at posted prices is below ψ, the maker offers none of
+   its finished stock; it holds it, unworn, and still buys and breeds on its whole plan. The
+   markets' price rule is unchanged: with no bid the price holds, with a bid it rises. Off (absent
+   or ψ 0) the offer is P2.2a's bit for bit, since no markup the maker can form is below 0.
+2. Load checks (§4), each a `LoadError` at `actors[<maker>].spec.reserve`: not on the flow path,
+   and not in a world whose one-sided markets `Hold`, where a maker that withholds would never
+   see its price rise. A `reserve` param of another unit is a unit mismatch at the same path.
+3. Tests (§11). In agents (`tests/stock.rs`): `maker_withholds_below_its_reservation` and
+   `reserve_is_checked_at_load`. In probe (`tests/horses.rs`): `reserve_holds_the_idle_horse_price`,
+   `reserve_absent_or_zero_is_p22a`, `reserve_leaves_the_rest_point` and
+   `reserve_conserves_every_tick`. Each fails with its change undone.
+
 ## 0. Engine invariants
 
 Numbered so tests and reviews can cite them. Each has at least one test in §11.

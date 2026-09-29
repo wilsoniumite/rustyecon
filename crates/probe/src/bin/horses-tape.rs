@@ -7,7 +7,8 @@
 //!
 //! Options (`probe::horses::cli`): `--inst ID` (h1-h4, f1-f10, r1a, p7, p8; default h1),
 //! `--tpy N`, `--dials c2g|c2g13|c2`, `--set KEY=VALUE`, `--assign planned|expost`, `--order
-//! target|held`, `--cover yes|none`, `--one-sided saturate|hold`; `--perturb NAME` applies a
+//! target|held`, `--cover yes|none`, `--one-sided saturate|hold`, `--reserve PSI` (the maker's
+//! reservation, L0.4: the param `reserve.<maker>` and the maker's field); `--perturb NAME` applies a
 //! named run, with `--ticks L` dating a dated shock at L/4. With no option but `--inst` the text
 //! is the registered tape, `tapes/horses-<id>.ron`; with any other, it opens with a comment
 //! naming them.

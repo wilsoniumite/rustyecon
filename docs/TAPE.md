@@ -28,10 +28,12 @@ whose raw types are documented the same way in `rustyecon_agents::spec` (which a
 | 1 | 2026-09-27 | P2.1.1 | The agents' spec gains four variants, `BasketProvider`, `BasketWorkers`, `CategoryDesk` and `TypeDesk` (see below). No existing field or variant changes, and every schema-1 tape loads and means what it did, so the number stays 1, as at P2.0.1. |
 | 1 | 2026-09-28 | P2.2.1 | The agents' spec gains three variants, `Maker`, `CapacityDesk` and `OwnerDesk` (see below). No existing field or variant changes, and every schema-1 tape loads and means what it did, so the number stays 1, as at P2.0.1 and P2.1.1. |
 | 1 | 2026-09-26 | S2.3 | Core's actions gain `ScalePrice(node, good, by)`, appended last, a dated price shock: the posted price times a `Dimensionless` param the schedule reads (see Actions). No existing field or variant changes, and every tape loads and means what it did, so the number stays 1. Certify's kick is this action (docs/CERTIFY.md §2.4, §7). |
+| 1 | 2026-09-29 | L0.4 | The maker gains an optional field, `reserve` (`Option` of a `Dimensionless` param, the reservation; see below), after `cover`. Absent, it is off and the canonical form omits it, so every tape keeps its text, `tape_hash`, `world_id` and meaning, and the number stays 1. It is the agents' spec's one field with a default, as criteria's `price_shocks` is certify's (docs/probe/HORSES-RULES.md §10). |
 
 The loader reads its own version only; anything else is refused as a schema error before any
 other field is looked at. Since no field has a default, every change to the schema bumps the
-number and adds a row here.
+number and adds a row here; the one exception is a field whose absence is the older meaning, the
+maker's `reserve` (L0.4), which adds a row and keeps the number.
 
 ## Rules
 
@@ -237,17 +239,20 @@ The stocks probe's three kinds hold a durable good as a stock (the horse), docum
 field in the rustdoc of `rustyecon_agents::roles::stock::spec`; the rules are
 docs/probe/HORSES-RULES.md, and `tapes/horses-<id>.ron` are the worked examples (generated:
 `cargo run -p rustyecon-probe --bin horses-tape -- --inst <id> tapes/horses-<id>.ron`). Every
-field is required and none has a default; every key but a good or an actor names a registered
-param, live. Their lists (running and build goods) are evaluation order, and the canonical form
-keeps them as written.
+field is required and none has a default but the maker's `reserve` (L0.4); every key but a good
+or an actor names a registered param, live. Their lists (running and build goods) are evaluation
+order, and the canonical form keeps them as written.
 
 - `Maker((output, labour, land, own_hours, kappa, running: (goods: [(good, coef), ...], labour),
-  build: (goods: [..], labour, land), delta, adjust, cover, own, scale))`: a Desk that builds
-  `output`, a durable good, from `own_hours` (`Dimensionless`) of its own serving stock's hours
+  build: (goods: [..], labour, land), delta, adjust, cover, reserve, own, scale))`: a Desk that
+  builds `output`, a durable good, from `own_hours` (`Dimensionless`) of its own serving stock's hours
   per unit, the running recipe of those hours and the build recipe. `kappa` is a `FlowPerYear`
   (hours a unit a year), `delta` a `FractionPerYear`, `adjust` a `RatePerYear`; `cover` is
-  `None` or `Some` of a `Years` param read as whole ticks (at least one); `own` is its genesis
-  serving stock after wear, an inline number.
+  `None` or `Some` of a `Years` param read as whole ticks (at least one); `reserve`, which may be
+  absent, is `None` or `Some` of a `Dimensionless` param, ψ: while its net markup
+  p_K·(1 − δ·a/κ)/c at posted prices is below ψ the maker offers none of its finished stock (absent
+  or `None`, off; refused on the flow path and under `Hold`; L0.4); `own` is its genesis serving
+  stock after wear, an inline number.
 - `CapacityDesk((stock, hours, labour, kappa, running, delta, adjust, order, scale))`: a Desk
   that holds `stock`, buys its running inputs and sells its `hours`; `order` is `Target` or
   `Held`.

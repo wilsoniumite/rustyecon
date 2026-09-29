@@ -1,6 +1,7 @@
 # HORSES-RULES: the stocks probe's agents, as built
 
-Dated 2026-09-28. Steps P2.2.1 and P2.2.2 on branch `phase2-goods`, based on `92ba68e`.
+Dated 2026-09-28. Steps P2.2.1 and P2.2.2 on branch `phase2-goods`, based on `92ba68e`. Amended at
+L0.4 (2026-09-29, branch `phase2-loops`): the maker's reservation, §10.
 
 The goods chain's design (GOODS-CHAIN, `D:/rustyecon-goods/GOODS-CHAIN.md`) puts a registered
 probe of machine stocks without loops before its first demo stage (STATE next step 6). The
@@ -23,7 +24,8 @@ checked before registration:
   mode A and the run lengths (§6);
 - where a result depends on a binding decision (§7);
 - where the build departs from HORSES-SPEC, and what stays open (§8);
-- the registration (§9).
+- the registration (§9);
+- the maker's reservation, the idle market's remedy (§10, L0.4).
 
 ## 1. What changed, and what did not
 
@@ -653,3 +655,81 @@ ticks), trough 0.425 and 322 dead ticks (the frame's), CONVERGED where the frame
 No rule, dial, instance or scoring choice was made or changed after them; the one change to the
 harness after them is the reading of the engine's g (§6.6, §8 item 8), made on the base kick set's
 envelope, which moves no L.
+
+## 10. The maker's reservation (L0.4, 2026-09-29)
+
+Step L0.4 on branch `phase2-loops`. O47, the idle machine market: in a glut the capacity desk
+orders nothing for years, the maker still offers its finished heads, and the horse market has
+an offer and no bid. Under `Saturate` its price falls by e^(−k) a tick (0.1 at C2g) until the
+runaway bound, which heads.capacity × 10 reached at every instance and P8 at A0 (HORSES §3–§4).
+The remedy is the one the mirror scan chose, `D:/rustyecon-p2l/idle-scan/IDLE-SPEC.md` (sha256
+`c5c6527a…`), registered before it was built (`docs/probe/results/idle/registration.md`, L0.3).
+
+**The rule.** The maker offers none of its finished heads while its net markup at posted prices
+is below ψ:
+
+    μ = p_K·(1 − δ·a/κ)/c_m;   offered = 0 if μ < ψ, else the offer of §3.
+
+μ is the markup the maker already forms for its cash rule (§3), 1 at rest. Below ψ it holds its
+finished heads, unworn (they are not its serving stock), and it still buys and breeds on its
+whole q_b by its cash rule; its keep, serving stock and state are as they were. When it
+withholds, markets' `next_price` does the rest, unchanged: with no bid the imbalance is 0 and the
+price holds bit for bit; with a bid it is +1 and the price rises by e^k. So the price falls only
+on ticks when the maker offers, which needs μ ≥ ψ, and then by at most e^(−k).
+
+**Where.** `crates/agents/src/roles/stock/`: `RawMaker` and `Maker` gain `reserve`, an
+`Option<Key>` of a live `Dimensionless` param (a value, `ClockMethod::Value`), listed among the
+maker's sites as `reserve`; `MakerRole::decide` changes the one line that sets the offer's
+quantity. It is the one field of a stock kind that may be absent (`#[serde(default,
+skip_serializing_if = "Option::is_none")]`, as criteria's `price_shocks`): absent or at ψ 0 the
+rule is off, since `μ < 0` is false for every markup the maker can form (p_K > 0, c_m > 0, and a
+NaN compares false). Every committed tape keeps its canonical text, `tape_hash` and `world_id`,
+and no state changes. The capacity desk, the owner desk, the markets and the engine are
+unchanged.
+
+**The value.** ψ = 0.25 (IDLE-SPEC §5), the param `reserve.<maker>` (`reserve.maker` at every
+stock instance, as `cover.<maker>`; the spec's parenthesis `reserve.desk.maker` was read as a
+slip at registration), basis `Assumed("IDLE-SPEC 2026-09-29, mirror scan")`.
+
+**Load checks** (`Cast::new`, beside the maker's others), each a `LoadError` at
+`actors[<maker>].spec.reserve`:
+- on the flow path: "the flow path holds no reservation";
+- in a world whose `market.one_sided` is `Hold`: a market with a bid and no offer keeps its price
+  there, so a maker that withholds would never see it rise.
+
+A `reserve` param of any unit but `Dimensionless` is refused where the maker resolves it (a unit
+mismatch at the same path). Every param is finite and not negative (core), so ψ is too.
+
+**The harness.** `horses ... --reserve PSI` and `horses-tape --reserve PSI` write the param, after
+the dials, and the field on the maker; without the flag the tape is P2.2a's byte for byte.
+`Setup` carries it as `reserve: Option<f64>`; on the flow path the generator refuses it. Each tick
+the harness forms the maker's markup from the tick's posted prices (those the settlement used,
+which `decide` read) and the coefficients in force, summed in the rule's order
+(`harness::MakerCost`), outside the Sim. The CSV gains `markup` and `withheld` at the end of each
+row, and `summary.tsv` three columns after P2.2a's last: `withheld` (scored ticks with μ < ψ),
+`switches` (changes between withholding and offering over the scored ticks) and `markup_low`
+(μ's lowest over them); `stats.tsv` has them as `idle.*`. Every P2.2a column keeps its place and
+meaning.
+
+**Tests** (each fails with its change undone; `D:/rustyecon-p2l/idle-engine/build/mutants/`):
+- agents, `tests/stock.rs`: `maker_withholds_below_its_reservation` (at a markup of 0.2 with
+  ψ 0.25 a sell of 0 heads, every buy and the state as P2.2a's, and P2.2a's offer at 0.3, with
+  `reserve` absent, and with ψ set to 0 at run time) and `reserve_is_checked_at_load` (the two
+  refusals and the unit, each with its path; H1 with it loads, lists the site as a value and
+  round-trips in canonical form; without it the canonical text has no `reserve`);
+- probe, `tests/horses.rs`: `reserve_holds_the_idle_horse_price` (H2's glut at ψ 0.25 over 400
+  ticks keeps the horse price within [0.1, 1] of genesis, holds it bit for bit on every tick with
+  neither offer nor bid, offers nothing on every tick read as withheld; without the flag it
+  leaves the bound at tick 138), `reserve_absent_or_zero_is_p22a` (ψ 0 against no field at H1–H4
+  and H2's glut, every number bit for bit for 2,000 ticks or until P2.2a's runaway at 138),
+  `reserve_leaves_the_rest_point` (mode A at H1–H4 with ψ 0.25 is mode A, bit for bit, for 2,000
+  ticks; at ψ 1.01 it withholds from tick 0 and parts) and `reserve_conserves_every_tick` (H2's
+  glut at ψ 0.25 for 2,000 ticks: each tick's ledger, the money stock, every wear burn δ times the
+  recorded stock, and on each tick the maker offers nothing its heads move only by what it made
+  and what wore).
+
+**What does not move.** The gate `0x61f9c8529131ff17`, appb `0xe1fa082b26995867`, demo-gb
+`0xfad880fe08d06645` (stream `0xdb63cc96f769fb3e`), the probe's pin, the markets probe's pins, the
+horses tapes and their per-tick hash streams (§6.9), and the tape schema, 1 (docs/TAPE.md).
+
+**The runs** are in `docs/probe/results/idle/` (its README), against the registration.

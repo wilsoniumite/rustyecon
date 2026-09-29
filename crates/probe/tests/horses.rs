@@ -11,7 +11,7 @@
 //! `probe::protocol`.
 
 use probe::harness::{run as run_appb, Row as AppbRow, Stop};
-use probe::horses::harness::{observables, run, Row};
+use probe::horses::harness::{observables, run, Record, Row};
 use probe::horses::instance::{Instance, HOURS};
 use probe::horses::kick::{kick_set, slowest_mode, three_t6};
 use probe::horses::perturb::{battery, family, tier3s, Perturbation};
@@ -21,7 +21,7 @@ use probe::markets::setup::Setup as MarketsSetup;
 use probe::protocol::TOL_FLOOR;
 use probe::setup::{Assign as AppbAssign, Setup as AppbSetup};
 use rustyecon_core::{FractionPerYear, StateDelta};
-use rustyecon_engine::prelude::{GoodId, Holder, Phase, Provenance, Sim, Tape};
+use rustyecon_engine::prelude::{ActorId, GoodId, Holder, Phase, Provenance, Sim, Tape};
 use rustyecon_engine::rustyecon_agents::ActorState;
 
 const TAPES: [(&str, &str); 5] = [
@@ -540,4 +540,213 @@ fn horses_kick_set_decays_at_a_stable_point() {
     let (_, d) = registered("h1").instance.per_tick(52).unwrap();
     let c = probe::setup::clock(52).unwrap();
     assert_eq!(d, c.fraction(FractionPerYear(0.1)));
+}
+
+/// The registered setup of an instance with the maker's reservation at `psi` (L0.4).
+fn reserved(id: &str, psi: f64) -> Setup {
+    let mut s = registered(id);
+    s.reserve = Some(psi);
+    s
+}
+
+/// Every number of a row that the reservation could move: [`horses_numbers`], the stock
+/// records, the cleared volumes and the outputs.
+fn reserve_numbers(r: &Row) -> Vec<u64> {
+    let mut v = horses_numbers(r);
+    let s = &r.stocks;
+    for x in [
+        s.tasks, s.maker, s.own, s.finished, s.target, s.order, s.run, s.running, s.full,
+    ] {
+        v.push(x.to_bits());
+    }
+    v.extend(r.cleared.iter().map(|x| x.to_bits()));
+    v.extend(r.output.iter().map(|x| x.to_bits()));
+    v
+}
+
+/// A run's rows as [`reserve_numbers`], its record, and whether the maker withheld each tick.
+fn numbers_of(setup: &Setup, name: &str, ticks: u64) -> (Vec<Vec<u64>>, Record, Vec<bool>) {
+    let (mut rows, mut withheld) = (Vec::new(), Vec::new());
+    let rec = run(setup, name, ticks, &mut |r| {
+        rows.push(reserve_numbers(r));
+        withheld.push(r.withheld);
+    })
+    .unwrap();
+    (rows, rec, withheld)
+}
+
+#[test]
+fn reserve_holds_the_idle_horse_price() {
+    // IDLE-SPEC §6, test 2: at H2 with the capacity desk's heads ×10, P2.2a's glut, the maker's
+    // reservation at ψ 0.25 keeps the horse price within [0.1, 1] of genesis over 400 ticks. On
+    // every tick with neither an offer nor a bid the price is held bit for bit, and on every tick
+    // the harness reads as withheld no head is offered. Without the flag the run leaves the
+    // runaway bound at tick 138, as P2.2a's did.
+    let on = reserved("h2", 0.25);
+    let horse = on
+        .instance
+        .markets()
+        .iter()
+        .position(|m| m == "horse")
+        .unwrap();
+    let mut rows: Vec<Row> = Vec::new();
+    let rec = run(&on, "heads.capacity*10", 400, &mut |r| rows.push(r.clone())).unwrap();
+    assert_eq!(rec.stop, Stop::Ran);
+    let g = rows[0].price[horse];
+    for r in &rows {
+        let rel = r.price[horse] / g;
+        assert!((0.1..=1.0).contains(&rel), "tick {}: {rel}", r.tick);
+        if r.withheld {
+            assert_eq!(r.supply[horse], 0.0, "tick {}", r.tick);
+        }
+    }
+    let mut quiet = 0;
+    for p in rows.windows(2) {
+        if p[0].supply[horse] == 0.0 && p[0].demand[horse] == 0.0 {
+            quiet += 1;
+            assert_eq!(p[1].price[horse].to_bits(), p[0].price[horse].to_bits());
+        }
+    }
+    assert!(quiet > 0, "the market idles");
+    assert!(rows.iter().any(|r| r.withheld), "the maker withholds");
+    let off = run(&registered("h2"), "heads.capacity*10", 400, &mut |_| {}).unwrap();
+    match off.stop {
+        Stop::Runaway(why) => assert!(
+            why.contains("price of horse") && why.contains("at tick 138"),
+            "{why}"
+        ),
+        other => panic!("P2.2a's glut runs away: {other:?}"),
+    }
+}
+
+#[test]
+fn reserve_absent_or_zero_is_p22a() {
+    // IDLE-SPEC §6, test 3 (R1): at H1-H4, and at H2 with the heads ×10, a tape with the
+    // reservation at ψ 0 has every price, observable, target, volume, fill, coin, stock record
+    // and output equal, bit for bit, to the tape without it, for 2,000 ticks or until P2.2a's
+    // run stops. The tapes differ by the param and the field.
+    for (id, name) in [
+        ("h1", "hold"),
+        ("h2", "hold"),
+        ("h3", "hold"),
+        ("h4", "hold"),
+        ("h2", "heads.capacity*10"),
+    ] {
+        let zero = reserved(id, 0.0);
+        assert_ne!(tape_ron(&zero).unwrap(), tape_ron(&registered(id)).unwrap());
+        let (a, ra, _) = numbers_of(&registered(id), name, 2000);
+        let (b, rb, wb) = numbers_of(&zero, name, 2000);
+        assert_eq!(a, b, "{id} {name}");
+        assert_eq!(ra.stop, rb.stop, "{id} {name}");
+        assert!(wb.iter().all(|w| !w), "{id} {name}: ψ 0 never withholds");
+        // Both are P2.2a's: at rest they run, and the glut leaves the runaway bound at tick 138,
+        // its maker's markup down to 1e-6, so a reservation that acted at ψ 0 would show.
+        match (name, &rb.stop) {
+            ("hold", Stop::Ran) => {}
+            ("heads.capacity*10", Stop::Runaway(why)) if why.contains("at tick 138") => {
+                assert!(rb.stats.stock.markup_low < 1e-5, "{id} {name}");
+            }
+            (_, other) => panic!("{id} {name}: {other:?}"),
+        }
+    }
+}
+
+#[test]
+fn reserve_leaves_the_rest_point() {
+    // IDLE-SPEC §6, test 4, and §7: mode A at H1-H4 with ψ 0.25 is mode A without it, bit for
+    // bit, for 2,000 ticks, and never withholds: at rest the maker's markup is 1. The comparison
+    // can see a reservation: at ψ 1.01, above the rest's markup, the maker withholds from tick 0
+    // and the run parts from mode A.
+    for id in ["h1", "h2", "h3", "h4"] {
+        let (a, _, _) = numbers_of(&registered(id), "hold", 2000);
+        let (b, _, wb) = numbers_of(&reserved(id, 0.25), "hold", 2000);
+        assert_eq!(a, b, "{id}");
+        assert!(wb.iter().all(|w| !w), "{id}");
+        let (c, _, wc) = numbers_of(&reserved(id, 1.01), "hold", 2000);
+        assert!(wc[0], "{id}: at ψ 1.01 it withholds at genesis");
+        assert_ne!(a, c, "{id}");
+    }
+}
+
+#[test]
+fn reserve_conserves_every_tick() {
+    // R2 with the reservation acting: H2's glut (the capacity desk's heads ×10) at ψ 0.25 for
+    // 2,000 ticks. Every tick's ledger and the run's close are within their tolerances, the money
+    // stock stays put, every wear burn is δ times the recorded stock, and on each tick the maker
+    // offers nothing while it holds finished heads, it keeps them: its heads move only by what it
+    // made and what wore.
+    let setup = {
+        let mut s = reserved("h2", 0.25);
+        Perturbation::parse("heads.capacity*10")
+            .unwrap()
+            .apply(&mut s, 2000)
+            .unwrap();
+        s
+    };
+    let delta = setup.instance.per_tick(52).unwrap().1;
+    let mut s = sim(&tape_ron(&setup).unwrap());
+    let coin = s.world().id_of::<GoodId>("coin").unwrap();
+    let horse = s.world().id_of::<GoodId>("horse").unwrap();
+    let maker = s.world().id_of::<ActorId>("desk.maker").unwrap();
+    let money = |s: &Sim| {
+        s.world()
+            .actors
+            .iter()
+            .map(|a| s.holding(Holder::Actor(a.id)).map_or(0.0, |i| i.get(coin)))
+            .fold(0.0, |x, y| x + y)
+    };
+    let held = |s: &Sim| {
+        s.holding(Holder::Actor(maker))
+            .map_or(0.0, |i| i.get(horse))
+    };
+    let m0 = money(&s);
+    let mut withheld = 0;
+    for _ in 0..2000 {
+        let before = held(&s);
+        let finished = match s.actor_state(maker) {
+            Some(ActorState::Maker(m)) => before - m.own,
+            other => panic!("{other:?}"),
+        };
+        let (r, trace) = s.step_traced().expect("no breach stops the run");
+        assert!(r.audit.max_margin <= 1.0 && r.run.max_margin <= 1.0);
+        assert!((money(&s) - m0).abs() <= COIN * m0);
+        let line = r.markets.iter().find(|l| l.good == horse).unwrap();
+        let mut worn = 0.0;
+        for e in &trace.0 {
+            let StateDelta::Burn {
+                from: Holder::Actor(a),
+                amount,
+                prov: Provenance::Depreciation,
+                ..
+            } = &e.delta
+            else {
+                continue;
+            };
+            let recorded = match s.actor_state(*a) {
+                Some(ActorState::Capacity(c)) => c.held,
+                Some(ActorState::Maker(m)) => m.serving,
+                other => panic!("{other:?} wears"),
+            };
+            let rustyecon_engine::prelude::Amount::Qty(q) = amount else {
+                panic!("a wear burn of everything");
+            };
+            assert_eq!(q.to_bits(), (delta * recorded).to_bits());
+            if *a == maker {
+                worn += q;
+            }
+        }
+        if line.supply == 0.0 && finished > 0.0 {
+            withheld += 1;
+            let made = match s.actor_state(maker) {
+                Some(ActorState::Maker(m)) => m.output,
+                other => panic!("{other:?}"),
+            };
+            let after = held(&s);
+            assert!(
+                ((before + made - worn) - after).abs() <= 1e-12 * before,
+                "{before} {made} {worn} {after}"
+            );
+        }
+    }
+    assert!(withheld > 100, "the maker withheld on {withheld} ticks");
 }

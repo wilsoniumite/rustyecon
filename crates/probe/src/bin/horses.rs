@@ -18,6 +18,8 @@
 //!   --set KEY=VALUE        set a dial; rate.*, buffer.* and adjust.* scale a family, tilt.* sets
 //!   --assign planned|expost, --order target|held, --cover yes|none
 //!   --one-sided saturate|hold
+//!   --reserve PSI          the maker's reservation (L0.4; IDLE-SPEC): it offers no finished heads
+//!                          while its net markup is below PSI; absent, the tape is P2.2a's
 //! run options:
 //!   --ticks L              the scored length (default 20000; a dated shock adds L/4 before it)
 //!   --csv DIR              write DIR/<run>.csv, one row per tick, DIR/summary.tsv, DIR/stats.tsv
@@ -28,7 +30,9 @@
 //! ```
 //!
 //! Each run prints one summary line: its class (PROBE-SPEC §4.5) and the reported numbers, with
-//! §7.11's transient and stock statistics in long form in `stats.tsv`.
+//! §7.11's transient and stock statistics in long form in `stats.tsv`. The last three columns of
+//! `summary.tsv` are the idle market's (L0.4): the scored ticks the maker withheld, its switches
+//! between withholding and offering, and its lowest net markup.
 
 use probe::harness::{Class, Summary};
 use probe::horses::cli::parse;
@@ -97,7 +101,7 @@ fn file_name(run: &str) -> String {
         .collect()
 }
 
-const SUMMARY: [&str; 47] = [
+const SUMMARY: [&str; 50] = [
     "run",
     "class",
     "d0",
@@ -145,6 +149,9 @@ const SUMMARY: [&str; 47] = [
     "mode_a",
     "stop",
     "why",
+    "withheld",
+    "switches",
+    "markup_low",
 ];
 
 fn g(x: f64) -> String {
@@ -216,6 +223,9 @@ fn summary_line(rec: &Record, s: &Summary) -> String {
         probe::harness::Stop::Error(_) => "error".into(),
     });
     v.push(s.why.clone());
+    v.push(k.withheld.to_string());
+    v.push(k.switches.to_string());
+    v.push(g(k.markup_low));
     v.join("\t")
 }
 
@@ -301,6 +311,9 @@ fn stats_lines(rec: &Record) -> Vec<String> {
     put("investment.low", "-", g(k.investment.0));
     put("investment.high", "-", g(k.investment.1));
     put("nine.in_tol_from", "-", opt(k.nine_in_tol));
+    put("idle.withheld", "-", k.withheld.to_string());
+    put("idle.switches", "-", k.switches.to_string());
+    put("idle.markup_low", "-", g(k.markup_low));
     out
 }
 

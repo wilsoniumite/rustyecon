@@ -9,7 +9,8 @@
 //! year), δ a `FractionPerYear`, a stock rule's adjustment a `RatePerYear` read as a share, and
 //! the maker's cover a `Years` span read as whole ticks. The only inline numbers are genesis
 //! state: the owner desk's genesis human share 1 − x, the maker's genesis serving stock after
-//! wear, and a step rule's genesis scale. Every field is required and none has a default.
+//! wear, and a step rule's genesis scale. Every field is required and none has a default but
+//! the maker's `reserve` (L0.4), whose absence is off.
 //!
 //! **Lists keep the order written**, as the many-market roles' do: a running recipe's goods and
 //! a build's goods are evaluation order (costs are summed in list order), so the canonical form
@@ -82,6 +83,13 @@ pub struct RawMaker {
     /// its finished stock. Required (write `None` or `Some(..)`), no default.
     #[serde(deserialize_with = "required")]
     pub cover: Option<Key>,
+    /// `Option<Key>`: ψ, the reservation: a param of unit `Dimensionless`, live (so finite and
+    /// not negative, as every param is). While its net markup p_K·(1 − δ·a/κ)/c at posted
+    /// prices is below ψ, the maker offers none of its finished stock (IDLE-SPEC, L0.4). `None`
+    /// or absent is off. The one field of a stock kind that may be absent, so every tape
+    /// written before it keeps its canonical text, `tape_hash` and `world_id`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reserve: Option<Key>,
     /// `f64`, finite and non-negative: its genesis serving stock after wear, genesis state.
     /// Required, no default.
     pub own: f64,
@@ -201,6 +209,8 @@ pub struct Maker {
     pub adjust: Site,
     /// b_K, a live `Years` param read as whole `Ticks`; `None` is no cover.
     pub cover: Option<Site>,
+    /// ψ, the reservation, a live `Dimensionless` param; `None` is off.
+    pub reserve: Option<Site>,
     /// The genesis serving stock after wear.
     pub own: f64,
     /// The scale rule.
@@ -295,6 +305,9 @@ impl Maker {
         site(out, "adjust".into(), self.adjust);
         if let Some(c) = self.cover {
             site(out, "cover".into(), c);
+        }
+        if let Some(p) = self.reserve {
+            site(out, "reserve".into(), p);
         }
         self.scale.sites(out);
     }
@@ -399,6 +412,10 @@ pub fn resolve_maker(raw: &RawMaker, r: &mut Resolver<'_>) -> Result<Maker, Load
         Some(k) => Some(live(r, k, ClockMethod::Ticks, "cover")?),
         None => None,
     };
+    let reserve = match &raw.reserve {
+        Some(k) => Some(value(r, k, "reserve")?),
+        None => None,
+    };
     let own = r.quantity(raw.own, "own")?;
     let scale = scale(r, &raw.scale)?;
     Ok(Maker {
@@ -412,6 +429,7 @@ pub fn resolve_maker(raw: &RawMaker, r: &mut Resolver<'_>) -> Result<Maker, Load
         delta,
         adjust,
         cover,
+        reserve,
         own,
         scale,
     })
