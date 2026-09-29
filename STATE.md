@@ -10,9 +10,12 @@ the tape's schema is [docs/TAPE.md](docs/TAPE.md), and the GUI's design is
 **Collaboration:** as in laborformal. Sequencing, engineering and drafting are delegated to
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
-**State as of:** 2026-09-28, on branch `phase2-goods` from `reboot` at `92ba68e`, not pushed or
-merged. **The stocks probe (P2.2a) is closed** (P2.2.1–P2.2.4; "Where things stand"): the horse
-as a durable good, bred by a maker and hired out by a wet capacity desk, finds unit 1g's
+**State as of:** 2026-09-29, on branch `phase2-loops` from `reboot` at `401f7b1`, not pushed or
+merged. **The loop stage's groundwork (L0) has begun** ("Where things stand"): L0.1 closes O48,
+M6 narrowed to the durable good and M5 checked at load (decisions 240–244; O51). **The stocks
+probe (P2.2a) is closed** (P2.2.1–P2.2.4, on branch `phase2-goods` from `reboot` at `92ba68e`;
+"Where things stand"): the horse as a durable good, bred by a maker and hired out by a wet
+capacity desk, finds unit 1g's
 equilibrium of the goods chain's first stage, v2a.1: GO at 52 ticks a year, narrowed by its two
 reviews ([docs/probe/HORSES.md](docs/probe/HORSES.md)). Its decisions are 220–239 and its open
 items O41–O50. **`oracle-goods` and `g1` are merged** into `reboot` at `43ad8c5`, on branch
@@ -91,6 +94,28 @@ many-market roles (O27), which may now start from the goods chain's stage v2a.1 
 on D-G12. "Next steps" has each.
 
 ## Where things stand
+
+**The loop stage's groundwork (L0; 2026-09-29).** Branch `phase2-loops` from `reboot` at
+`401f7b1` (worktree `D:/rustyecon-wt/p2l`, scratch `D:/rustyecon-p2l/`). Its decisions start at
+240 and its open items at O51.
+- **L0.1 (`ba6938d`): M6 narrowed, M5 checked** (O48 closed; decisions 240–244; ENGINE,
+  amended at L0.1). The capacity and owner desks are exempt from M6 only for the durable good
+  they hold, and a role that offers a good in full sells only one that lives at most a tick; the
+  maker, selling under its cover, is exempt. The review's tape, which at `401f7b1` runs 520 ticks
+  to a fodder desk holding 49 times its genesis fodder, is refused at load. No rule or state
+  changed: the six horses tapes and the seven markets tapes give the P2.2 report's WSL hash
+  streams for 2,000 ticks bit for bit (`D:/rustyecon-p2l/m6/tapes-bit.log`). Storable running
+  goods now have no role that handles them (O51).
+- **The gates**, logs in `D:/rustyecon-p2l/m6/`. On the tree committed as L0.1, before the
+  commit: `scripts/gate.sh` and `scripts/gui.sh` green in WSL (`/root/scratch/target-p2l`) and on
+  Windows under Git Bash (`D:/rustyecon-targets/p2l`, fresh: gate 312 s, gui 279 s). 867
+  workspace tests pass on each (P2.2.4's 865 and the two new), 3 ignored and run by name;
+  certify alone, Parquet-free, 67 with 1 ignored; zero warnings; the gate hash is
+  `0x61f9c8529131ff17`; the probe's pin passes; the GUI's 87 named tests pass, and the cli's
+  hashes of gate, appb and demo-gb equal the GUI's (finals `0x61f9c8529131ff17`,
+  `0xe1fa082b26995867`, `0xfad880fe08d06645`); G1's sweep takes 0.73 ms, median of 20, in WSL.
+  At `ba6938d`, `scripts/gate.sh` green again on both (175 s and 168 s, warm), its stamp
+  `ba6938d`, clean.
 
 **The stocks probe (P2.2a; 2026-09-28; P2.2.1–P2.2.4).** You asked on 2026-09-27 for a
 production chain where goods use other goods, and delegated the design; GOODS-CHAIN §6 put a
