@@ -1,0 +1,124 @@
+== A1: O22's families on I1-I3 (C2m, 52 a year)
+set	inst	runs	classes	ticks to tol median (slowest), non-slack CONVERGED	most dead	lowest baskets/Y*	ticks with no baskets, most
+stocks	I1	41	CONVERGED 41	470 (586)	101	0.000	2
+stocks	I2	29	CONVERGED 29	1884 (2685)	136	0.010	0
+stocks	I3	50	CONVERGED 50	530 (801)	101	0.010	0
+joint2	I1	60	CONVERGED 60	566 (667)	154	0.000	7
+joint2	I2	60	CONVERGED 60	2416 (2726)	175	0.087	0
+joint2	I3	60	CONVERGED 60	690 (878)	188	0.009	0
+joint4	I1	40	CONVERGED 40	616 (821)	211	0.000	16
+joint4	I2	40	CONVERGED 40	2600 (2862)	284	0.005	0
+joint4	I3	40	CONVERGED 40	821 (1022)	308	0.000	0
+basin	I1	412	CONVERGED 412	539 (851)	259	0.000	24
+basin	I2	516	CONVERGED 516	2358 (2874)	307	0.006	0
+basin	I3	509	CONVERGED 509	668 (961)	263	0.000	0
+hold	I1	107	CONVERGED 107	464 (654)	145	0.000	3
+hold	I2	77	CONVERGED 77	1914 (2910)	154	0.077	0
+hold	I3	119	CONVERGED 119	574 (856)	168	0.025	0
+tilt1	I1	107	CONVERGED 107	355 (678)	256	0.000	25
+tilt1	I2	77	CONVERGED 77	655 (919)	96	0.047	0
+tilt1	I3	119	CONVERGED 119	380 (541)	176	0.016	0
+  hold I1 tier 1: 30 (4 slack) CONVERGED 30; ticks 324 (500)
+  hold I1 tier 2: 38 (3 slack) CONVERGED 38; ticks 381 (560)
+  hold I1 tier 3: 39 (3 slack) CONVERGED 39; ticks 526 (654)
+  hold I2 tier 1: 20 (0 slack) CONVERGED 20; ticks 1594 (1921)
+  hold I2 tier 2: 28 (0 slack) CONVERGED 28; ticks 1902 (2409)
+  hold I2 tier 3: 29 (0 slack) CONVERGED 29; ticks 2390 (2910)
+  hold I3 tier 1: 34 (6 slack) CONVERGED 34; ticks 396 (583)
+  hold I3 tier 2: 42 (6 slack) CONVERGED 42; ticks 574 (651)
+  hold I3 tier 3: 43 (4 slack) CONVERGED 43; ticks 630 (856)
+  tilt1 I1 tier 1: 30 (4 slack) CONVERGED 30; ticks 282 (407)
+  tilt1 I1 tier 2: 38 (3 slack) CONVERGED 38; ticks 335 (491)
+  tilt1 I1 tier 3: 39 (3 slack) CONVERGED 39; ticks 428 (678)
+  tilt1 I2 tier 1: 20 (0 slack) CONVERGED 20; ticks 458 (630)
+  tilt1 I2 tier 2: 28 (0 slack) CONVERGED 28; ticks 628 (711)
+  tilt1 I2 tier 3: 29 (0 slack) CONVERGED 29; ticks 731 (919)
+  tilt1 I3 tier 1: 34 (6 slack) CONVERGED 34; ticks 322 (395)
+  tilt1 I3 tier 2: 42 (6 slack) CONVERGED 42; ticks 373 (463)
+  tilt1 I3 tier 3: 43 (4 slack) CONVERGED 43; ticks 423 (541)
+
+== A1: the history, cycle(<first coefficient>,1500,80), 81 windows of 1,500 ticks
+I1 cycle(land.mach,1500,80): runaway None; 81/81 windows in tolerance at their end; ticks to tol median 514 slowest 577; most dead ticks 127
+   base: 1/1 in tol, slowest 0, most dead 0
+   x1.1: 16/16 in tol, slowest 513, most dead 0
+   x0.9: 16/16 in tol, slowest 303, most dead 0
+   x2: 16/16 in tol, slowest 573, most dead 127
+   x0.5: 16/16 in tol, slowest 514, most dead 2
+   x1: 16/16 in tol, slowest 577, most dead 113
+I2 cycle(land.power,1500,80): runaway None; 16/81 windows in tolerance at their end; ticks to tol median 1491.0 slowest 1491; most dead ticks 140
+   base: 1/1 in tol, slowest 0, most dead 0
+   x1.1: 15/16 in tol, slowest 1491, most dead 0
+   x0.9: 0/16 in tol, slowest -, most dead 0
+   x2: 0/16 in tol, slowest -, most dead 128
+   x0.5: 0/16 in tol, slowest -, most dead 0
+   x1: 0/16 in tol, slowest -, most dead 140
+I3 cycle(land.power,1500,80): runaway None; 81/81 windows in tolerance at their end; ticks to tol median 643 slowest 699; most dead ticks 124
+   base: 1/1 in tol, slowest 0, most dead 0
+   x1.1: 16/16 in tol, slowest 574, most dead 0
+   x0.9: 16/16 in tol, slowest 517, most dead 0
+   x2: 16/16 in tol, slowest 699, most dead 124
+   x0.5: 16/16 in tol, slowest 643, most dead 0
+   x1: 16/16 in tol, slowest 676, most dead 114
+
+== A1: I3's map cells (rates x fr, turnover x ft), L = 484,000/fr
+r0.5b0.5: mode A peak D-hat 1.17e-11; PL base 0.993364, largest 0.993527; T1 34/34 (6 slack), ticks 738 (1099); T2 42/42 (6 slack), ticks 934 (1236); T3 43/43 (4 slack), ticks 1182 (1366); most dead 324; lowest baskets 0.032
+r0.5b1: mode A peak D-hat 1.33e-12; PL base 0.991083, largest 0.992292; T1 34/34 (6 slack), ticks 581 (741); T2 42/42 (6 slack), ticks 706 (1078); T3 43/43 (4 slack), ticks 831 (1266); most dead 345; lowest baskets 0.000
+r0.5b2: mode A peak D-hat 1.67e-12; PL base 0.990009, largest 0.990894; T1 34/34 (6 slack), ticks 474 (794); T2 42/42 (6 slack), ticks 564 (847); T3 43/43 (4 slack), ticks 728 (1126); most dead 460; lowest baskets 0.000
+r1b0.5: mode A peak D-hat 2.89e-12; PL base 0.996518, largest 0.996940; T1 34/34 (6 slack), ticks 1227 (1560); T2 42/42 (6 slack), ticks 1528 (1895); T3 43/43 (4 slack), ticks 1881 (2215); most dead 166; lowest baskets 0.055
+r1b2: mode A peak D-hat 2.00e-12; PL base 0.983504, largest 0.985228; T1 34/34 (6 slack), ticks 336 (396); T2 42/42 (6 slack), ticks 386 (575); T3 43/43 (4 slack), ticks 430 (661); most dead 179; lowest baskets 0.000
+
+== A2: the dial neighbourhood (Tier 3 and Tier 3S at each setting)
+-- IW1
+rate.*=0.75	PL 0.990265	T3 CONVERGED 39; ticks 745 (951)	T3S CONVERGED 20; ticks 532 (737)	most dead 170	not converged: []
+rate.*=0.9	PL 0.988383	T3 CONVERGED 39; ticks 614 (773)	T3S CONVERGED 20; ticks 456 (599)	most dead 134	not converged: []
+rate.*=1.1	PL 0.985911	T3 CONVERGED 39; ticks 513 (620)	T3S CONVERGED 20; ticks 378 (513)	most dead 104	not converged: []
+rate.*=1.25	PL 0.984346	T3 CONVERGED 39; ticks 445 (556)	T3S CONVERGED 20; ticks 347 (438)	most dead 89	not converged: []
+buffer.*=0.75	PL 0.986890	T3 CONVERGED 39; ticks 560 (691)	T3S CONVERGED 20; ticks 416 (543)	most dead 111	not converged: []
+buffer.*=0.9	PL 0.986964	T3 CONVERGED 39; ticks 559 (684)	T3S CONVERGED 20; ticks 409 (556)	most dead 115	not converged: []
+buffer.*=1.1	PL 0.987026	T3 CONVERGED 39; ticks 556 (703)	T3S CONVERGED 20; ticks 402 (545)	most dead 119	not converged: []
+buffer.*=1.25	PL 0.986870	T3 CONVERGED 39; ticks 547 (697)	T3S CONVERGED 20; ticks 413 (539)	most dead 122	not converged: []
+adjust.*=0.75	PL 0.987132	T3 CONVERGED 39; ticks 561 (705)	T3S CONVERGED 20; ticks 404 (550)	most dead 117	not converged: []
+adjust.*=0.9	PL 0.987132	T3 CONVERGED 39; ticks 561 (705)	T3S CONVERGED 20; ticks 404 (550)	most dead 117	not converged: []
+adjust.*=1.1	PL 0.987132	T3 CONVERGED 39; ticks 561 (705)	T3S CONVERGED 20; ticks 404 (550)	most dead 117	not converged: []
+adjust.*=1.25	PL 0.987132	T3 CONVERGED 39; ticks 560 (705)	T3S CONVERGED 20; ticks 404 (550)	most dead 117	not converged: []
+tilt.*=0.05	PL 0.987044	T3 CONVERGED 39; ticks 555 (700)	T3S CONVERGED 20; ticks 400 (544)	most dead 116	not converged: []
+tilt.*=0.1	PL 0.986956	T3 CONVERGED 39; ticks 548 (695)	T3S CONVERGED 20; ticks 397 (541)	most dead 115	not converged: []
+tilt.*=0.25	PL 0.986640	T3 CONVERGED 39; ticks 521 (667)	T3S CONVERGED 20; ticks 388 (531)	most dead 113	not converged: []
+tilt.*=0.5	PL 0.986245	T3 CONVERGED 39; ticks 497 (653)	T3S CONVERGED 20; ticks 366 (497)	most dead 108	not converged: []
+tilt.*=1	PL 0.985464	T3 CONVERGED 39; ticks 457 (637)	T3S CONVERGED 20; ticks 328 (467)	most dead 97	not converged: []
+-- C1
+rate.*=0.75	PL 0.984868	T3 CONVERGED 40, DIVERGED 3; ticks 450 (820)	T3S CONVERGED 24; ticks 384 (499)	most dead 388	not converged: ['p[mach]*0.5 DIVERGED at 379', 'JA(0.5) DIVERGED at 380', 'JB(2) DIVERGED at 391']
+rate.*=0.9	PL 0.985302	T3 CONVERGED 41, DIVERGED 2; ticks 438 (908)	T3S CONVERGED 24; ticks 377 (569)	most dead 316	not converged: ['p[mach]*0.5 DIVERGED at 325', 'JB(2) DIVERGED at 335']
+rate.*=1.1	PL 0.986929	T3 CONVERGED 43; ticks 479 (916)	T3S CONVERGED 24; ticks 373 (557)	most dead 154	not converged: []
+rate.*=1.25	PL 0.987840	T3 CONVERGED 43; ticks 496 (862)	T3S CONVERGED 24; ticks 384 (595)	most dead 127	not converged: []
+buffer.*=0.75	PL 0.990214	T3 CONVERGED 43; ticks 600 (1175)	T3S CONVERGED 24; ticks 448 (737)	most dead 159	not converged: []
+buffer.*=0.9	PL 0.987825	T3 CONVERGED 43; ticks 522 (1012)	T3S CONVERGED 24; ticks 410 (605)	most dead 172	not converged: []
+buffer.*=1.1	PL 0.984279	T3 CONVERGED 42, DIVERGED 1; ticks 440 (814)	T3S CONVERGED 24; ticks 354 (515)	most dead 291	not converged: ['JB(2) DIVERGED at 309']
+buffer.*=1.25	PL 0.981505	T3 CONVERGED 40, DIVERGED 3; ticks 349 (677)	T3S CONVERGED 24; ticks 327 (485)	most dead 292	not converged: ['p[mach]*0.5 DIVERGED at 287', 'JA(0.5) DIVERGED at 287', 'JB(2) DIVERGED at 297']
+adjust.*=0.75	PL 0.985913	T3 CONVERGED 43; ticks 491 (949)	T3S CONVERGED 24; ticks 388 (533)	most dead 179	not converged: []
+adjust.*=0.9	PL 0.986080	T3 CONVERGED 43; ticks 491 (830)	T3S CONVERGED 24; ticks 380 (534)	most dead 182	not converged: []
+adjust.*=1.1	PL 0.986106	T3 CONVERGED 43; ticks 491 (826)	T3S CONVERGED 24; ticks 376 (535)	most dead 185	not converged: []
+adjust.*=1.25	PL 0.986150	T3 CONVERGED 43; ticks 502 (825)	T3S CONVERGED 24; ticks 369 (539)	most dead 187	not converged: []
+tilt.*=0.05	PL 0.984468	T3 CONVERGED 43; ticks 407 (820)	T3S CONVERGED 24; ticks 350 (519)	most dead 180	not converged: []
+tilt.*=0.1	PL 0.982817	T3 CONVERGED 43; ticks 357 (665)	T3S CONVERGED 24; ticks 343 (455)	most dead 183	not converged: []
+tilt.*=0.25	PL 0.979240	T3 CONVERGED 40, DIVERGED 3; ticks 338 (516)	T3S CONVERGED 24; ticks 228 (381)	most dead 304	not converged: ['p[mach]*0.5 DIVERGED at 295', 'JA(0.5) DIVERGED at 288', 'JB(2) DIVERGED at 317']
+tilt.*=0.5	PL 0.977136	T3 CONVERGED 40, DIVERGED 3; ticks 307 (449)	T3S CONVERGED 24; ticks 259 (349)	most dead 297	not converged: ['p[mach]*0.5 DIVERGED at 293', 'JA(0.5) DIVERGED at 287', 'JB(2) DIVERGED at 305']
+tilt.*=1	PL 0.983373	T3 CONVERGED 40, DIVERGED 3; ticks 412 (646)	T3S CONVERGED 24; ticks 338 (470)	most dead 300	not converged: ['p[mach]*0.5 DIVERGED at 295', 'JA(0.5) DIVERGED at 287', 'JB(2) DIVERGED at 297']
+-- C2
+rate.*=0.75	PL 0.984901	T3 CONVERGED 41, VACUOUS 2; ticks 474 (782)	T3S CONVERGED 24; ticks 394 (580)	most dead 230	not converged: []
+rate.*=0.9	PL 0.985419	T3 CONVERGED 41, VACUOUS 2; ticks 504 (667)	T3S CONVERGED 24; ticks 358 (570)	most dead 172	not converged: []
+rate.*=1.1	PL 0.986479	T3 CONVERGED 41, VACUOUS 2; ticks 497 (709)	T3S CONVERGED 24; ticks 430 (600)	most dead 137	not converged: []
+rate.*=1.25	PL 0.987080	T3 CONVERGED 41, VACUOUS 2; ticks 529 (655)	T3S CONVERGED 24; ticks 414 (587)	most dead 119	not converged: []
+buffer.*=0.75	PL 0.989421	T3 CONVERGED 41, VACUOUS 2; ticks 650 (820)	T3S CONVERGED 24; ticks 522 (737)	most dead 147	not converged: []
+buffer.*=0.9	PL 0.987444	T3 CONVERGED 41, VACUOUS 2; ticks 527 (776)	T3S CONVERGED 24; ticks 366 (567)	most dead 150	not converged: []
+buffer.*=1.1	PL 0.984465	T3 CONVERGED 41, VACUOUS 2; ticks 486 (601)	T3S CONVERGED 24; ticks 330 (519)	most dead 154	not converged: []
+buffer.*=1.25	PL 0.982223	T3 CONVERGED 41, VACUOUS 2; ticks 398 (589)	T3S CONVERGED 24; ticks 311 (495)	most dead 158	not converged: []
+adjust.*=0.75	PL 0.985893	T3 CONVERGED 41, VACUOUS 2; ticks 514 (637)	T3S CONVERGED 24; ticks 343 (543)	most dead 151	not converged: []
+adjust.*=0.9	PL 0.985902	T3 CONVERGED 41, VACUOUS 2; ticks 513 (639)	T3S CONVERGED 24; ticks 341 (543)	most dead 152	not converged: []
+adjust.*=1.1	PL 0.986018	T3 CONVERGED 41, VACUOUS 2; ticks 510 (641)	T3S CONVERGED 24; ticks 340 (543)	most dead 153	not converged: []
+adjust.*=1.25	PL 0.986027	T3 CONVERGED 41, VACUOUS 2; ticks 508 (642)	T3S CONVERGED 24; ticks 342 (543)	most dead 153	not converged: []
+tilt.*=0.05	PL 0.984159	T3 CONVERGED 41, VACUOUS 2; ticks 443 (609)	T3S CONVERGED 24; ticks 331 (527)	most dead 151	not converged: []
+tilt.*=0.1	PL 0.982341	T3 CONVERGED 41, VACUOUS 2; ticks 386 (605)	T3S CONVERGED 24; ticks 316 (494)	most dead 149	not converged: []
+tilt.*=0.25	PL 0.978552	T3 CONVERGED 41, VACUOUS 2; ticks 355 (481)	T3S CONVERGED 24; ticks 222 (394)	most dead 146	not converged: []
+tilt.*=0.5	PL 0.976482	T3 CONVERGED 41, VACUOUS 2; ticks 306 (464)	T3S CONVERGED 24; ticks 246 (333)	most dead 168	not converged: []
+tilt.*=1	PL 0.983217	T3 CONVERGED 41, VACUOUS 2; ticks 412 (640)	T3S CONVERGED 24; ticks 346 (456)	most dead 213	not converged: []

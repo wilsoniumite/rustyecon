@@ -10,8 +10,16 @@ the tape's schema is [docs/TAPE.md](docs/TAPE.md), and the GUI's design is
 **Collaboration:** as in laborformal. Sequencing, engineering and drafting are delegated to
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
-**State as of:** 2026-09-30, on branch `phase2-proper` from `reboot` at `f7d1eae`, not pushed or
-merged. **Phase 2 proper's first session is reported** (P2.3.16;
+**State as of:** 2026-09-30, on branch `phase2-s2` from `reboot` at `a483ed0`, not pushed or
+merged. **Phase 2 proper's second session has begun: wave A is registered** (P2.4.1; "Where
+things stand"; [docs/probe/results/families/registration.md](docs/probe/results/families/registration.md)):
+O22's families on I1–I3 and the dial neighbourhood of C1, C2 and IW1, predicted run by run on the
+mirrors before any run of the wave, with decisions 400–403 and O110–O112. The mirror predicts
+every family run on I1–I3 converges and I3's five map cells are GO; at the dials C2 and IW1
+converge everywhere, and C1 falls into the subsistence trap at every price rate × 0.9 and × 0.75,
+every buffer × 1.1 and × 1.25, and every tilt of 0.25 and above. The scorer is next (decision 311).
+Before it, on branch `phase2-proper` from `reboot` at `f7d1eae`:
+**Phase 2 proper's first session is reported** (P2.3.16;
 [docs/probe/PHASE2-S1.md](docs/probe/PHASE2-S1.md)): both reviews find the verdicts hold, and
 narrow them. C1's GO is a point result at C2m (at every price rate × 0.9 two of its Tier-3
 runs fall into the subsistence trap, and at every buffer × 1.1 one does), IW1's covers reserved-only types, and the zero-rent
@@ -185,6 +193,37 @@ types and carriers, on the many-market roles (O27), which may now start from the
 stage v2a.1 on your ruling on D-G12. "Next steps" has each.
 
 ## Where things stand
+
+**Wave A's registration: O22's families on I1–I3 and the dial neighbourhood (P2.4.1;
+2026-09-30).** Branch `phase2-s2` (worktree `D:/rustyecon-wt/p24`) from `reboot` at `a483ed0`,
+label `families`, scratch `D:/rustyecon-p24/families/`. Docs only:
+[docs/probe/results/families/registration.md](docs/probe/results/families/registration.md), the
+frame's files in [docs/probe/families/](docs/probe/families/), and this file.
+- **The frame** (`SPEC.md`, sha256 `23bb3f3d…dd50`; its `SHA256SUMS`, 111 entries, each checked).
+  PHASE2-S1 §6's first item. A1: O22's families on I1–I3 at C2m, 52 a year and P2.1's L, stocks
+  first: stocks (120 runs), joint2 (180), joint4 (120), basin (1,437), the history in 81 windows
+  of 1,500 ticks (3), the battery under `Hold` (303) and with every tilt 1 (303), and I3's five
+  unrun map cells (600 runs, 45 kick sets). A2: Tier 3 and Tier 3S of C1, C2 and IW1 at every
+  price rate, buffer and technique rate × 0.75, 0.9, 1.1 and 1.25 and every tilt at 0.05, 0.1,
+  0.25, 0.5 and 1 (3,281 runs, 51 base kick sets). 6,347 runs and 96 kick sets in all.
+- **The mirrors, checked against the engine first.** I1–I3 run on P2.1's `mm_carry.py` through a
+  new runner with the harness's grammar, draws and runaway reference: it gives P2.1's engine
+  battery class and tick for tick, 303 of 303. The dial family runs on the frames' own runners,
+  unedited: at C2m they give P2.3's engine Tier 3 and 3S, 193 of 193. The joint factors are the
+  harness's own (libm 0.2.16's `pow`), bit for bit in 300 of 300 draw sets; Python's `**` differs
+  in 174 of 300 (O110).
+- **The predictions.** A1: all 3,063 runs CONVERGED, no history runs away, all five map cells GO.
+  I2's history is slower than its window: 16 of 81 windows end in tolerance (O111). A2: C2 and
+  IW1 converge at all 17 settings; C1's Tier 3 loses two or three runs to the subsistence trap at
+  rate × 0.9 and × 0.75, buffer × 1.1 and × 1.25, and tilt 0.25, 0.5 and 1 (18 runs, always
+  from `p[mach]*0.5`, `JA(0.5)` and `JB(2)`), and none elsewhere; Tier 3S converges everywhere.
+  So C1's stable region at C2m ends within 10% on two dials: the phase diagram's first slice.
+- **Disclosed:** six of the dial family's 51 (instance, setting) cells overlap engine runs made
+  at P2.3.16 (the fidelity review and its recheck). The mirror gives their classes and runaway
+  ticks to the tick.
+- **No code changes**: every run is expressible in the grammar P2.1–P2.3 built (decision 400).
+- **Decisions 400–403 and O110–O112**, below. **Next:** the wave's machinery and scorer with its
+  self-test, committed before the wave (decision 311), then the wave.
 
 **Phase 2 proper's first session is reported: IW1, C1 and C2 GO, narrowed by two reviews (P2.3.16;
 2026-09-30).** Branch `phase2-proper`, label `fix-report`, scratch `D:/rustyecon-p23/fix-report/`.
@@ -3954,6 +3993,42 @@ named is the registered one (R6).
 Decisions 360–399 are this line's whole range, and P2.3.16 takes no new number: its rulings are
 the dated amendments of 397–399 above. A later session on this line needs a new range.
 
+Decisions 400–403 are P2.4.1's (2026-09-30, branch `phase2-s2` from `reboot` at `a483ed0`), the
+first of Phase 2 proper's second session, whose range is 400–449 and O110–O129: wave A's frame
+(`docs/probe/families/SPEC.md` §7), numbered at its registration. Claude's, on your delegation
+("I leave all those calls up to you"; "keep going"), each open to veto; the alternative named is
+the registered one (R6).
+
+400. **Wave A is one registration and one scorer: O22's families on I1–I3 and the dial
+     neighbourhood of C1, C2 and IW1.** A1 runs MARKETS-SPEC §7.10 items 4–9 as P2.1 left them,
+     stocks first, on I1–I3 at C2m and P2.1's L: stocks, joint2, joint4, basin, the history in
+     81 windows of 1,500 ticks, the whole battery under `Hold` and with every tilt 1, and I3's
+     five unrun map cells with mode A, the battery at L/fr and a kick set at each of their nine
+     targets, each cell read as MARKETS-SPEC §7.9. The families are reported, not verdicts. No
+     harness grammar is added: the grammar P2.1–P2.3 built expresses every run, so the wave adds
+     no code. Alternatives: the variants on Tiers 1–2, as the wall's; the history as the wall's;
+     the map cells without kick sets; a dial-family grammar with its test.
+401. **The dial neighbourhood: every price rate, every buffer and every technique rate × 0.75,
+     0.9, 1.1 and 1.25, and every tilt at 0.05, 0.1, 0.25, 0.5 and 1, over Tier 3 and Tier 3S
+     of C1, C2 and IW1, at each instance's registered L,** with the base kick set at each setting
+     reported beside the mirror's PL. It reads 399(4)'s "0.8" as the −25% PHASE2-S1 names and
+     keeps its five tilts. Alternatives: 399(4) as written; L by the elasticity rule at each
+     setting; kick sets at every target.
+402. **The mirrors and their runners.** I1–I3 on P2.1's `mm_carry.py` through `fam_i.py` with the
+     harness's grammar, joint draws (libm 0.2.16's `pow`) and runaway reference (O107); C1, C2
+     and IW1 on the frames' own runners, unedited, with Tier 3S's first-year start and the
+     harness's runaway reference read after them. Each checked against the engine's committed
+     runs before any prediction was read (SPEC §2: 303 of 303, 193 of 193, 185 of 190 runaway
+     ticks with 5 one tick apart, 300 of 300 draw sets). Alternatives: `cm.py` with the exit
+     absent for I1–I3; glibc's `pow` for the draws; the frames' undisplaced runaway reference.
+403. **The bands and the refutations, P2.3's.** Every class exactly; ticks to tolerance within
+     10%, three runs a set within 25%; runaway ticks within 5% on the harness's reference; dead
+     ticks within 10% or 5; the lowest baskets within 0.05 where the mirror's is above 0.1; every
+     CONVERGED run ending within 1e-12 in log of its point; the history window by window; I3's
+     map cells' mode A, kick sets and verdicts. The frame is refuted by a class not the mirror's,
+     a CONVERGED run ending off its point, or a scored kick set or map-cell verdict not as
+     registered. Alternative: classes only, the families being reported.
+
 ## Open — your calls
 
 - **The GUI's decisions**, 22–34 (D1–D13): G0 carried them out, none vetoed; a veto now reopens
@@ -3994,6 +4069,10 @@ the dated amendments of 397–399 above. A later session on this line needs a ne
   types; C1's GO a point result at C2m; the trap's remedy (O100) before PLAN's gate and the phase
   diagram for priced-exit instances; the dial-neighbourhood family in the next wave; what the
   commons answer covers (398). Each open to veto. The line's range 360–399 is used up.
+- **Decisions 400–403** (P2.4.1, branch `phase2-s2`, 2026-09-30): wave A's frame, the families
+  wave: its composition with no new grammar (400), the dial neighbourhood's settings, tiers and L,
+  which read 399(4)'s × 0.8 as × 0.75 (401), the mirrors and their runners (402), and P2.3's bands
+  (403). Each open to veto before the wave's scoring.
 - **Decisions 59–75 and 135–178** (Phase 1), open to veto. Those that bound Phase 2 proper (61,
   67, 70; 135, 137, 139, 140; 147, 149, 151, 153–155, 158, 160, 161; 162, 164, 165, 167–169,
   173) are ruled by Claude at P2.3.0 as 360–393, with the markets probe's advice: keep 67 (its
@@ -4919,7 +4998,30 @@ O95 on are Phase 2 proper's (P2.3.0, branch `phase2-proper`; this line's range i
   commons batteries). P2.3's wave ran the two frames' registered protocols only; the families
   there have no registered predictions and are reported. They are their own wave, stocks first.
   *Amended at P2.3.16:* first in next step 7, registered with their mirror predictions, beside the
-  dial-neighbourhood family on C1, C2 and IW1.
+  dial-neighbourhood family on C1, C2 and IW1. *Amended at P2.4.1:* registered as wave A
+  (decisions 400–403; docs/probe/families/SPEC.md), with I3's five unrun map cells; the mirror
+  predicts all 3,063 runs CONVERGED and no history runaway. Closed when the wave is scored.
+
+O110 on are Phase 2 proper's second session's (P2.4, branch `phase2-s2`; its range is O110–O129).
+
+- **O110. The frames' joint draws are glibc's; the harness's are libm's** (P2.4.1). At C1, C2
+  and IW1 the registered mirrors drew `joint(F,SEED)` with Python's `**` (glibc's `pow`); the
+  harness draws with libm 0.2.16's `pow`. Against the harness's tapes
+  (`docs/probe/families/registered/check_joint_c.out`), glibc's factors give its genesis bit for
+  bit in 43, 40 and 46 of 100 draw sets, libm's in 100 of 100; the rest differ by an ulp in one
+  factor or more. P2.3's per-seed classes and ticks matched regardless (the commons' E0 compared
+  seed 1 and found one 2.2e-16 difference). Wave A draws with the harness's generator
+  (`draws.json`); later registrations should too.
+- **O111. I2's history is slower than its window** (P2.4.1). In the mirror 65 of I2's 81 windows
+  of 1,500 ticks end out of tolerance, and the 15 × 1.1 windows that end within it get there at
+  tick 1,491; I2's median Tier-1 time is 1,594 ticks (P2.1). The family then measures I2's
+  slowness, a cycle of period five with no runaway, not its recovery from each step. A history
+  at a longer period would; it is not registered.
+- **O112. The dial family reads Tier 3 and 3S without their targets' kicks** (P2.4.1). Only the
+  base's kick set runs at each setting, and the mirror's PL is computed at the base only. A
+  setting that made a cost target slowly unstable could show as CONVERGED within L, as REPORT §5
+  found at P2.0 before the kick joined the classes. The phase diagram proper (next step 7 item 5)
+  should run each target's kick at each dial it maps.
 
 ## Corrections logged (A3; ADDENDUM §1.4)
 
@@ -5053,6 +5155,8 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
       dial-neighbourhood family on C1, C2 and IW1 (every rate, buffer and adjust × 0.9, 1.1, 0.8
       and 1.25; tilt 0.05 to 1), each with its mirror's predictions and its scorer committed
       first (311). It documents the stable region at the default dials as the roles stand.
+      *Registered at P2.4.1* as wave A (decisions 400–403; `docs/probe/families/SPEC.md`), with
+      × 0.75 for 0.8 and five tilts (401); its scorer next, then the wave.
    2. **The trap's remedy** (O100), chosen by a mirror scan over four candidates (participation
       at a rate, entry for food at zero output, a storable exit good, and home output sold, the
       last an oracle addendum, 1e's open question 6), measured on C1's dial neighbourhood; then
@@ -5160,6 +5264,10 @@ docs/probe/results/p23-wave/ Phase 2 proper's first scored wave (P2.3.11-P2.3.16
 docs/probe/PHASE2-S1.md  Phase 2 proper's first session's report (P2.3.16): the verdicts on
                          IW1, C1 and C2, the zero-rent remedy, the trap and C1's margin, the
                          reviews, what it means for the gate and the 1750-like instance
+docs/probe/families/     wave A's frame, as registered (P2.4.1): SPEC.md (O22's families on
+                         I1-I3 and the dial neighbourhood of C1, C2 and IW1), SHA256SUMS and
+                         registered/ (the run-by-run predictions the scorer reads, the checks)
+docs/probe/results/families/ wave A's registration (P2.4.1)
 docs/probe/results/loops/ the loop step's registration (L0.8), quoting LOOP-SPEC-A1's
                          predictions and FUNDED's county, with its sha256; E0-E2 (e0.md,
                          P2.2b.2); the scored runs' README and CSVs (P2.2b.3) with the reviews'
