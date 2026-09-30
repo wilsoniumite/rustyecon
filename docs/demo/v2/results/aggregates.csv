@@ -1,0 +1,45 @@
+what,registered (the mirror),engine
+classes,{'CONVERGED': 51260},{'CONVERGED': 51260}
+"ticks to tolerance: median, 90th percentile, largest (where)","(3010, 4526, 5661, 'West Riding of Yorkshire 1850, heads.capacity*2')","(3010, 4526, 5661, 'West Riding of Yorkshire 1850, heads.capacity*2')"
+Tier 1: median and largest ticks to tolerance,"(1770, 3798)","(1770, 3798)"
+Tier 2: median and largest ticks to tolerance,"(2852, 4629)","(2852, 4629)"
+Tier 3: median and largest ticks to tolerance,"(3793, 5519)","(3793, 5519)"
+Tier 3S: median and largest ticks to tolerance,"(3403, 5661)","(3403, 5661)"
+end gap: largest D-hat at the last tick of a CONVERGED run,2.41e-10,2.35e-10
+runs with a dead tick; their tiers,"(6479, ['3', '3S'])","(6638, ['3', '3S'])"
+most dead ticks in a run (where),"(277, 'Suffolk 1825, b*0.5@dated')","(277, 'Suffolk 1825, b*0.5@dated')"
+most dead ticks in one run by market,"{'L': 9, 'R': 21, 'Fo': 46, 'H': 277, 'G': 37}","{'L': 9, 'R': 21, 'Fo': 46, 'H': 277, 'G': 37}"
+runs with an idle horse market; most idle ticks (where); most ticks without an order,"(19589, 418, 'Lancashire 1900, heads.capacity*2', 88)","(19589, 418, 'Lancashire 1900, heads.capacity*2', 88)"
+runs where the reservation acts; most withheld ticks (where),"(2803, 49, 'Lanarkshire 1900, heads.capacity*2')","(2803, 49, 'Lanarkshire 1900, heads.capacity*2')"
+the horse's lowest price over its target (where),"(0.20025380438315402, 'West Riding of Yorkshire 1900, JB(0.5)')","(0.2002538, 'West Riding of Yorkshire 1900, JB(0.5)')"
+the maker's lowest markup (where),"(0.21199621387361434, 'Selkirkshire 1875, b*2@genesis')","(0.2119962, 'Selkirkshire 1875, b*2@genesis')"
+"runs with a shortfall; most shortfall ticks (where); b x 2 runs with one, of all","(5905, 2142, 'Clackmannanshire 1825, b*2@dated', 106, 482)","(5905, 2142, 'Clackmannanshire 1825, b*2@dated', 106, 482)"
+the lowest baskets over Y* (where),"(0.31102370260145157, 'Norfolk 1800, r*0.5')","(0.3110237, 'Norfolk 1800, r*0.5')"
+"heads over target: lowest (where), highest (where)","(0.5442372118156147, 'Norfolk 1800, b*0.5@dated', 1.8960043678607115, 'East Riding of Yorkshire 1800, b*2@dated')","(0.5442372, 'Norfolk 1800, b*0.5@dated', 1.896004, 'East Riding of Yorkshire 1800, b*2@dated')"
+"years to heads within 5% after b x 2 at genesis: least, median, most","(8.01923076923077, 9.5, 25.75)","(8.01923076923077, 9.5, 25.75)"
+"years to heads within 5% after b x 2 at dated: least, median, most","(8.0, 9.5, 25.75)","(8.0, 9.5, 25.75)"
+"years to heads within 5% after b x 0.5 at genesis: least, median, most","(34.65384615384615, 38.09615384615385, 40.92307692307692)","(34.65384615384615, 38.09615384615385, 40.92307692307692)"
+"years to heads within 5% after b x 0.5 at dated: least, median, most","(34.65384615384615, 38.09615384615385, 40.92307692307692)","(34.65384615384615, 38.09615384615385, 40.92307692307692)"
+"years to heads within 5% after b x 1.1 at genesis: least, median, most","(0.8076923076923077, 1.9615384615384615, 2.423076923076923)","(0.8076923076923077, 1.9615384615384615, 2.423076923076923)"
+"years to heads within 5% after b x 1.1 at dated: least, median, most","(0.8076923076923077, 1.9615384615384615, 2.423076923076923)","(0.8076923076923077, 1.9615384615384615, 2.423076923076923)"
+"years to heads within 5% after b x 0.9 at genesis: least, median, most","(5.019230769230769, 8.51923076923077, 9.538461538461538)","(5.019230769230769, 8.51923076923077, 9.538461538461538)"
+"years to heads within 5% after b x 0.9 at dated: least, median, most","(5.019230769230769, 8.51923076923077, 9.538461538461538)","(5.019230769230769, 8.51923076923077, 9.538461538461538)"
+base local growth a year (the mirror's linearisation; the engine's kick-set g),"(0.919706, 0.922657)","(0.855869, 0.87559)"
+long run: D-hat county medians: median,116.72,116.72
+long run: D-hat at 1901: median,60.43,60.43
+long run: highest county medians of D-hat,Lanarkshire 382.7; Lancashire 376.9; Glamorgan 361.9; Durham 330.8,Lanarkshire 382.7; Lancashire 376.9; Glamorgan 361.9; Durham 330.8
+long run: lowest county median of D-hat,Peeblesshire 38.2,Peeblesshire 38.2
+long run: largest D-hat,Glamorgan 543.5,Glamorgan 543.5
+long run: largest D-hat at 1901,Glamorgan 362.4,Glamorgan 362.4
+long run: lowest cleared volume over its oracle's,Glamorgan 0.606 H; Lanarkshire 0.614 H; Durham 0.623 H,Glamorgan 0.606 H; Lanarkshire 0.614 H; Durham 0.623 H
+"long run: heads over their equilibrium, lowest",Glamorgan 0.717,Glamorgan 0.717
+"long run: heads over their equilibrium, highest",Cornwall 1.115,Cornwall 1.115
+"long run: the capacity desk's heads over its own target, lowest",Lanarkshire 0.871,Lanarkshire 0.871
+"long run: the horse's price over its target, highest",Glamorgan 1.722,Glamorgan 1.722
+"long run: the maker's markup, lowest",Cheshire 0.982,Cheshire 0.981
+"long run: the horse-day's markup over full cost, highest",Glamorgan 0.233,Glamorgan 0.233
+"long run: shortfall ticks, all counties",14502 in 6 counties,14502 in 6 counties
+"long run: dead ticks, all counties",0,0
+"long run: idle_horse ticks, all counties",0,0
+"long run: zero_orders ticks, all counties",0,0
+"long run: withheld ticks, all counties",0,0

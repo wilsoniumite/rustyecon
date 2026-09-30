@@ -962,3 +962,27 @@ and computes nothing (U6). The map takes a tape's lens table by the tape's name 
   runs part after the maker's withholding, on the horse market's cancellation, and grow through
   the flip-flop of offer and order to 8.5e-2 on its volume and 7e-3 elsewhere, which the mirror
   itself reaches when moved 25 ulps (decision 357, O90).
+
+**D2.4b (2026-09-30): the battery and the long run on the engine, scored**
+([v2/results/](v2/results/README.md)). The wave ran D2.4's job list on its frozen build, 1,675 jobs
+on WSL in 3 hours 12 minutes, and the committed scorer read it unchanged.
+- **Every one of its 21 scored lines holds, and no refutation criterion is hit**, so all 558
+  county-dates are GO:
+  - E2: mode A PASSES at all 558 at their L, largest gap 8.4e-14;
+  - E3: all 51,260 runs CONVERGE, each class the mirror's. The ticks to tolerance are the mirror's
+    to the tick in 51,252 runs and one tick off in eight. Dead ticks differ in 625 runs by one or
+    two, each a tie at the dead bar. The baskets are within 7.6e-5;
+  - E4: every base kick set decays, the largest g 0.997448 a tick;
+  - E5: all 93 counties on every line.
+- **The long run is the mirror's to rounding.** Every county's registered row holds to its printed
+  precision: no dead, idle, no-order or withheld tick; the six thin-funded counties' 14,502
+  shortfall ticks; D̂'s median 116.7 across county medians and its largest 543.5 (Glamorgan).
+  The herd's ratio to its equilibrium matches the mirror's within 2.0e-14 every 13th tick.
+- **By class** (the world's tags): coal and textile 156 county-dates GO, London's ring 42, Highland
+  30, rural 330. The classes differ only in capital's lag. In the coal and textile counties the herd
+  falls to 0.72–0.74 of its equilibrium by 1851–1864, and 20 of the 26 are still more than 5% short
+  in 1901. No Highland county's herd falls below 0.9 (O81).
+- **Not as predicted, and not scored:**
+  - the kick sets' fitted g, 0.856–0.876 a year, reads the kick's early decay, not the mirror's
+    slowest mode (0.920–0.923): a 1e-9 kick meets the rounding floor after about 77 years (O91);
+  - the harness does not report the battery's highest horse price for these instances (O92).

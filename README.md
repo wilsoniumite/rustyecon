@@ -244,6 +244,11 @@ The second pass, `tapes/demo-gb-v2.ron` ([docs/demo/WORLD-V2.md](docs/demo/WORLD
 the same way: each county's land grows fodder, a maker breeds horses, a capacity desk hires out
 horse-days, and 36 lenses show the chain (the group "Horses and fodder") beside v1's. It runs to
 1901 in about 28 s (final hash `0x45b7c1201f8ae633`); `docs/demo/v2/` holds its map at four dates.
+Its agents are checked against their own oracle, with predictions registered before any of its
+code existed. All 51,260 battery runs at 558 county-dates converge as the mirror predicted, to the
+tick, and the long run to 1901 has no dead market
+([docs/demo/v2/results/](docs/demo/v2/results/README.md)). In the coal and cotton counties the herd
+lags its moving equilibrium by decades, and the map shows that lag beside its cause.
 
 - **The map.** It opens paused at 1750 on the lens "Wage in land" (w/r). Press Space to run,
   and the counties recolour as the history moves them. "Step a year" and "Run until" (a tick,

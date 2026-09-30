@@ -11,13 +11,16 @@ the tape's schema is [docs/TAPE.md](docs/TAPE.md), and the GUI's design is
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
 **State as of:** 2026-09-30, on branch `demo-v2` from `reboot` at `f7d1eae`, not pushed or
-merged. **The demo's second pass is built through D2.3b** ("Where things stand"): O39's
+merged. **The demo's second pass is built through D2.4b** ("Where things stand"): O39's
 remainder fixed (D2.1); the stage in the compiler, `tapes/demo-gb-v2.ron` and its pin
 `0x45b7c1201f8ae633` (D2.2); the 36 lenses, `oracle_gap` and the map on the v2 tape (D2.3); the
 flow path nesting v1 bit for bit, and 16 screenshots of the map (D2.3b). v1's tape and pin are
-unchanged. Decisions 343–355 and O89. **D2.4 has its harness, scorer and job list committed
-before any scored run**, with E0–E2 run and amendment A1 (L per county-date); decisions 356–359
-and O90. The wave (the battery, the kick sets and the long run, scored) is next.
+unchanged. Decisions 343–355 and O89. **D2.4 is done and GO**: the harness, scorer and job list
+committed before any scored run, with E0–E2 run and amendment A1 (L per county-date); then the
+wave, scored against the registration (D2.4b;
+[docs/demo/v2/results/](docs/demo/v2/results/README.md)): all 21 scored lines hold, no
+refutation, all 558 county-dates GO, the engine the mirror to the tick in the battery and to
+rounding over the long run. Decisions 356–359, O90–O92. D2.5 (one bounded verification) is next.
 **The demo's second pass is designed** (D2.0, docs only; "Where things stand";
 [docs/demo/WORLD-V2.md](docs/demo/WORLD-V2.md)): D-G12 taken, GOODS-CHAIN's stage v2a.1 (rule
 A's horse and fodder) on all 93 counties at C2g and 52 ticks a year with the maker's reservation,
@@ -149,6 +152,36 @@ v2a.1 on every county (D-G12 taken by Claude, decision 320, open to veto), whose
 is next on `demo-v2`. "Next steps" has each.
 
 ## Where things stand
+
+**The battery and the long run on the engine, scored: GO (D2.4b; 2026-09-30).** Branch `demo-v2`;
+raw runs `D:/rustyecon-d2/runs/`; [docs/demo/v2/results/README.md](docs/demo/v2/results/README.md),
+WORLD-V2 §16. The wave ran D2.4's committed job list on its frozen build: 1,675 jobs on WSL in 3 h
+12 min, 46 at a time, the first half shared with another branch's wave. Every job exited 0.
+- **The scorer's 21 lines all hold; no refutation.**
+  - E2: mode A PASSES at all 558 county-dates (8.4e-14).
+  - E3: all 51,260 runs CONVERGE, each class the mirror's. Ticks to tolerance: the mirror's to
+    the tick in 51,252 runs, one tick off in eight. Dead ticks within one or two in 625 runs, each
+    a tie at the dead bar. Baskets within 7.6e-5.
+  - E4: every base kick set decays (largest g 0.997448 a tick).
+  - E5: all 93 counties on every line.
+  - E0's six b × 2 partings (O90) did not change a class.
+- **All 558 county-dates are GO**, by class: coal and textile 156, London's ring 42, Highland 30,
+  rural 330; England 246, Wales 78, Scotland 198, Ulster 36.
+- **The long run** (`demo_v2_runs_to_1901`, now in `scripts/gate.sh`) is the mirror's to rounding
+  in every county, to the registered table's printed precision:
+  - no dead, idle, no-order or withheld tick;
+  - 14,502 shortfall ticks in the six thin-funded counties (O82);
+  - D̂'s county medians' median 116.7, the largest 543.5 (Glamorgan);
+  - the herd's ratio within 2.0e-14 of the mirror's.
+- **Capital's lag** (O81): in the coal and textile counties the herd falls to 0.72–0.74 of its
+  equilibrium in 1851–1864, and 20 of the 26 are still more than 5% short in 1901. No Highland
+  herd goes below 0.9.
+- **Not as predicted, reported:**
+  - the kick sets' fitted g, 0.856–0.876 a year, reads the kick's early decay, not the slowest mode
+    at 0.92 (O91);
+  - the battery's highest horse price is not read for these instances (O92).
+- Both gates green on WSL and Windows. Next: D2.5, one bounded verification, one fix round, one
+  re-check; then D2.6 (next step 8).
 
 **The battery's harness, the scorer and E0–E2, before any scored run (D2.4; 2026-09-30).**
 Branch `demo-v2`, scratch `D:/rustyecon-d2/run/`; [docs/demo/WORLD-V2.md](docs/demo/WORLD-V2.md)
@@ -4508,7 +4541,18 @@ O89 on are the build's (D2.1 onward), in this branch's range.
   grows about 1.5 times a tick to 8.5e-2 on the horse market's volume and 7e-3 on the other
   observables. That is beyond the mirror's own ulp spread (6.2e-4) but within its spread when it
   is moved 25 ulps before the flip-flop. It is O55's chatter seen from the side of rounding. It
-  does not stop a run; E3 scores those runs as registered.
+  does not stop a run; E3 scores those runs as registered. *Scored at D2.4b:* every one of those
+  county-dates is GO, and in the battery's heads × 2 runs, where the same flip-flop runs, the
+  engine's idle, no-order and 5% ticks differ from the mirror's by 1–4 ticks in 5, 18 and 16
+  runs; none is scored.
+- **O91. The kick set's g reads the kick's early decay** (D2.4b; results/README.md). At the demo's
+  county-dates the fitted g (P2.2a's reading, decision 293) is 0.856–0.876 a year, against the
+  mirror's slowest local mode, 0.920–0.923 (1 − δ). A 1e-9 kick meets the rounding floor about 77
+  years after it, while faster modes still lead. E4 scores decay only, so nothing fails. A later
+  registration that predicts g must predict the harness's reading, or kick harder.
+- **O92. The harness reads no highest horse price for P2.2a's instances** (D2.4b). `pk_high` is the
+  loop step's column (decision 292) and is `-` here, so registration §3.3's highest price (7.65 of
+  target) has no engine value. Nothing scored reads it.
 
 ## Corrections logged (A3; ADDENDUM §1.4)
 
@@ -4690,6 +4734,14 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
    run, and `demo_v2_runs_to_1901` scored against the registration (§11.5), its scorer
    committed before the first job (decision 311).
 
+   *Amended at D2.4b (2026-09-30):* D2.4 is **done and GO** (commits `8e8781f` and D2.4b).
+   Amendment A1 set L per county-date before any scored run. All 21 scored lines hold, and no
+   refutation criterion is hit. All 558 county-dates are GO. The engine is the mirror to the tick
+   in the battery and to rounding over the long run
+   ([docs/demo/v2/results/](docs/demo/v2/results/README.md)). **Next: D2.5**, one bounded
+   verification of D2.1–D2.4, one fix round and one re-check; then D2.6, the report and your look
+   at the map. Stage v2a.1b stays the pass after (O83).
+
 ## File map
 
 ```
@@ -4712,6 +4764,12 @@ docs/demo/WORLD-V2.md    the demo's second pass designed (D2.0): stage v2a.1 on 
 docs/demo/v2/            its registration (D2.0): registration.md, SHA256SUMS and the mirror's
                          predicted long run, battery, growth and funding (CSV)
 docs/demo/v2/map-*.png  the second pass's map, four chain lenses at four dates (D2.3b)
+docs/demo/v2/registration-A1.md, lengths.csv, SHA256SUMS-A1
+                         amendment A1: L per county-date, and E0–E2 before the wave (D2.4)
+docs/demo/v2/results/    the battery and the long run on the engine, scored (D2.4, D2.4b):
+                         README.md, the result tables, E0's trace diff, and tools/ (the job
+                         list, gather, the scorer and its self-test, committed before the wave)
+docs/demo/v2/figs/       the results' four plots (D2.4b)
 docs/reboot/             REVIEW.md and ADDENDUM.md, kept as written (links fixed) but for A14 and
                          rulings 5–8 (P0.11); GUI-review-ledger.md, the GUI design's two reviews
 docs/timeline/eras.md    era research for worldgen

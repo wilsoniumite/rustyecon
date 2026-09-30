@@ -1,0 +1,22 @@
+line,what,registered,engine,tolerance,verdict
+E2,mode A PASSES at every county-date at its L,558 of 558,558 of 558; largest gap in log 8.44e-14 (county.rut@1825),every observable within 1e-9 in log,PASS
+E3,the engine's runs are the registered scored runs,"51,260 runs; 634 not a target","51260 registered runs, 0 missing, 0 extra",exactly,PASS
+E3,every run's class the mirror's,"51,260 of 51,260",51260 of 51260,exactly,PASS
+E3,"ticks to tolerance within 10% run for run, at most three runs a county-date within 25%",at all 558 county-dates,"558 of 558; 0 runs beyond 10%, 0 beyond 25%",10%; three a county-date at 25%,PASS
+E3,"dead ticks within 5 or 10%, whichever is larger",every run,0 runs miss,"max(5, 10%)",PASS
+E3,the lowest baskets over Y* within 1e-3,every run,0 runs miss; largest difference 7.55e-05,1e-3,PASS
+E4,"every county-date's base kick set decays, g below 1 a tick",558 of 558,558 of 558,PASS and g < 1,PASS
+GO,"every county-date GO (every run CONVERGED, its kick set decays)",558 of 558,558 of 558,all,PASS
+E5,the long run ran and its test passed,exit 0,exit 0,exit 0,PASS
+E5,dead ticks the mirror's (0),93 of 93 counties,93 of 93,,PASS
+E5,idle ticks the mirror's (0),93 of 93 counties,93 of 93,,PASS
+E5,withheld ticks within 5,93 of 93 counties,93 of 93,,PASS
+E5,shortfall ticks within 5 or 1%,93 of 93 counties,93 of 93,,PASS
+E5,D-hat median within 5%,93 of 93 counties,93 of 93,,PASS
+E5,D-hat largest within 5%,93 of 93 counties,93 of 93,,PASS
+E5,the heads' lowest over the oracle within 1e-3,93 of 93 counties,93 of 93,,PASS
+refutation,a class other than the mirror's at any county-date,none,0,none,PASS
+refutation,any dead tick in the long run,none,0,none,PASS
+refutation,a runaway with psi 0.25,none,0,none,PASS
+refutation,a CONVERGED run ending more than 1e-12 off its oracle point,none,0,none,PASS
+refutation,"a kick set that grows (FAILS, or g of 1 or more a tick)",none,0,none,PASS
