@@ -165,6 +165,26 @@ on D-G12. "Next steps" has each.
 
 ## Where things stand
 
+**The first scored wave's scorer and job list, committed before it (P2.3.10–P2.3.11;
+2026-09-30).** Branch `phase2-proper`, label `run`, scratch `D:/rustyecon-p23/run/`.
+- **P2.3.10, the harness's baskets count every household.** While the scorer was written, the
+  markets harness's baskets eaten over Y\* were found to sum the provider's and the workers'
+  baskets only, P2.1's two households; at the wall (IW1, IC1) they left out the trained and the
+  master and read 0.725 at rest (E2's mode-A output, unread). The frame's mirror sums every
+  household, so the wall's registered troughs (§6.2, E5) need it. `Stats::push` now sums every
+  household, the first two first, so every other instance keeps its numbers bit for bit; one test
+  fails without it; the gates are green on WSL and Windows (1,008 passed, 4 ignored; gate
+  `0x61f9c8529131ff17`, appb `0xe1fa082b26995867`, demo-gb `0xfad880fe08d06645`). WALL-RULES §4,
+  amended. No scored run had been made.
+- **P2.3.11, the wave's machinery** ([docs/probe/results/p23-wave/](docs/probe/results/p23-wave/README.md)):
+  the job list (3,721 jobs: the wall's E2–E9 on IW1 and IC1, the commons' E2–E9 on C1, C2 and
+  C1N), the job and gather scripts, the scorer and its self-test, with the readings the scorer
+  takes of each registered tolerance. On the mirrors' own outputs every line the registered files
+  feed passes, and its E9 reproduces the frame's 117 edge gaps within 1e-12. O22's families on
+  I1–I3, which decision 368 orders first, are not in this wave (reported only, no registered
+  predictions); they are their own wave.
+- **Next:** the wave on the binary built from this commit, then the scoring and the report.
+
 **The open-commons instances' E0–E2, before any scored run (P2.3.7–P2.3.9; 2026-09-30).** Branch
 `phase2-proper`, scratch `D:/rustyecon-p23/build-commons/e0/`. The record:
 [docs/probe/results/commons/e0.md](docs/probe/results/commons/e0.md), with its outputs in `e0/`.
