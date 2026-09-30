@@ -27,7 +27,8 @@ use clap::{ArgGroup, Args, Parser, Subcommand, ValueEnum};
 use rustyecon_engine::prelude::*;
 use rustyecon_engine::registry;
 use rustyecon_worldgen::atlas::Atlas;
-use rustyecon_worldgen::{compile, Tables};
+use rustyecon_worldgen::stage::{battery_instances, compile_stage_parsed, parse_stage};
+use rustyecon_worldgen::{compile, StageTables, Tables};
 use std::fs::{self, File};
 use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
@@ -133,13 +134,24 @@ enum Cmd {
     /// Compile a world's tables and the bundled county atlas into a tape (crates/worldgen;
     /// docs/demo/WORLD.md): read DIR/world.csv, counties.csv, regions.csv, history.csv and
     /// lenses.csv, check them, solve every county's oracle at genesis and after every step,
-    /// and write the tape to --out. Without --out it checks and reports only.
+    /// and write the tape to --out. Without --out it checks and reports only. With --stage it
+    /// also reads the stage's machine_types.csv, stage-<STAGE>.csv and lenses-<STAGE>.csv, and
+    /// compiles the goods chain's stage (docs/demo/WORLD-V2.md).
     Worldgen {
         /// The world's directory, such as worlds/demo-gb.
         dir: PathBuf,
         /// Write the tape here.
         #[arg(short, long, value_name = "FILE")]
         out: Option<PathBuf>,
+        /// Compile the goods chain's stage, such as v2a1 (the demo's second pass). Without it
+        /// the compiler writes v1's tape.
+        #[arg(long, value_name = "STAGE")]
+        stage: Option<String>,
+        /// With --stage, also write the battery's county instances here: each county's row in
+        /// force on 1 January of the battery's six years, for `horses --counties FILE`
+        /// (docs/demo/WORLD-V2.md §11.3).
+        #[arg(long, value_name = "FILE", requires = "stage")]
+        instances: Option<PathBuf>,
     },
     /// Print the licence and attribution of the data this binary bundles: the county atlas,
     /// data/atlas/gb.atlas.ron, under the ODbL 1.0 (data/atlas/LICENSE and ATTRIBUTION).
@@ -592,7 +604,12 @@ fn run(cmd: Cmd) -> Result<(), Exit> {
             out,
             telemetry,
         } => certify_run(&tape, criteria.as_deref(), until, &out, telemetry),
-        Cmd::Worldgen { dir, out } => worldgen(&dir, out.as_deref()),
+        Cmd::Worldgen {
+            dir,
+            out,
+            stage,
+            instances,
+        } => worldgen(&dir, out.as_deref(), stage.as_deref(), instances.as_deref()),
         Cmd::Licences => {
             print!("{}", rustyecon_worldgen::atlas::licences());
             Ok(())
@@ -602,8 +619,14 @@ fn run(cmd: Cmd) -> Result<(), Exit> {
 
 /// Compile the world in `dir` (crates/worldgen): the cli reads the tables and writes the tape;
 /// the compiler reads no file. The tape is loaded and resolved before it is written, and its
-/// `tape_hash` printed.
-fn worldgen(dir: &Path, out: Option<&Path>) -> Result<(), Exit> {
+/// `tape_hash` printed. With a stage and `instances`, the battery's county instances are written
+/// there too (docs/demo/WORLD-V2.md §11.3).
+fn worldgen(
+    dir: &Path,
+    out: Option<&Path>,
+    stage: Option<&str>,
+    instances: Option<&Path>,
+) -> Result<(), Exit> {
     let read = |name: &str| {
         let path = dir.join(name);
         fs::read_to_string(&path).map_err(|e| io_error("cannot read", &path, e))
@@ -616,7 +639,26 @@ fn worldgen(dir: &Path, out: Option<&Path>) -> Result<(), Exit> {
         lenses: read(Tables::FILES[4])?,
     };
     let atlas = Atlas::gb().map_err(|e| Exit::new(LOAD, format!("{e}")))?;
-    let compiled = compile(&tables, &atlas).map_err(|e| Exit::new(LOAD, format!("{e}")))?;
+    let load = |e: rustyecon_worldgen::CompileError| Exit::new(LOAD, format!("{e}"));
+    let (compiled, rows) = match stage {
+        None => (compile(&tables, &atlas).map_err(load)?, None),
+        Some(key) => {
+            let [types, settings, lenses] = StageTables::files(key);
+            let st = StageTables {
+                key: key.to_string(),
+                machine_types: read(&types)?,
+                stage: read(&settings)?,
+                lenses: read(&lenses)?,
+            };
+            let parsed = parse_stage(&st).map_err(load)?;
+            let c = compile_stage_parsed(&tables, &parsed, &atlas).map_err(load)?;
+            let rows = match instances {
+                Some(_) => Some(battery_instances(&c, &parsed).map_err(load)?),
+                None => None,
+            };
+            (c, rows)
+        }
+    };
     let tape = Tape::from_ron(&compiled.tape).map_err(|e| {
         Exit::new(
             LOAD,
@@ -662,6 +704,19 @@ fn worldgen(dir: &Path, out: Option<&Path>) -> Result<(), Exit> {
          quantities {:.4} ({})",
         s.max_year_prices.0, s.max_year_prices.1, s.max_year_quantities.0, s.max_year_quantities.1
     );
+    if stage.is_some() {
+        println!(
+            "  the chain (unit 1g): meets v1's 1a point within {:.1e} relative ({}); its own \
+             prices and quantities move at most {:.4} in log at one date ({}), {:.4} over a \
+             trailing year ({})",
+            s.max_collapse.0,
+            s.max_collapse.1,
+            s.max_step_chain.0,
+            s.max_step_chain.1,
+            s.max_year_chain.0,
+            s.max_year_chain.1
+        );
+    }
     println!(
         "tape {:?}: {} bytes, tape_hash 0x{:016x}, world_id 0x{:016x}",
         tape.header.name,
@@ -672,6 +727,14 @@ fn worldgen(dir: &Path, out: Option<&Path>) -> Result<(), Exit> {
     if let Some(path) = out {
         write_atomic(path, compiled.tape.as_bytes())?;
         println!("wrote {}", path.display());
+    }
+    if let (Some(path), Some(text)) = (instances, rows) {
+        write_atomic(path, text.as_bytes())?;
+        println!(
+            "wrote {}: the battery's {} county instances",
+            path.display(),
+            text.lines().filter(|l| !l.starts_with('#')).count() - 1
+        );
     }
     Ok(())
 }

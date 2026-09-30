@@ -1,0 +1,9 @@
+grouping,class,counties,county_dates,GO,runs,converged,class_differs,tin_over_10pct,tin_over_25pct,dead_misses,baskets_misses,kicks_pass,E5_pass,dhat_median_engine,dhat_median_mirror,dhat_max_engine,dhat_max_mirror,heads_low_engine,heads_low_mirror,shortfall_ticks_engine,shortfall_ticks_mirror
+kind,rural,55,330,330,30236,30236,0,0,0,0,0,330,55,107.3,107.3,402.6,402.6,0.7973,0.7973,2696,2696
+kind,coal and textile,26,156,156,14434,14434,0,0,0,0,0,156,26,208.0,208.0,543.5,543.5,0.7171,0.7171,4734,4734
+kind,London's ring,7,42,42,3828,3828,0,0,0,0,0,42,7,149.3,149.3,444.4,444.4,0.7641,0.7641,7072,7072
+kind,Highland,5,30,30,2762,2762,0,0,0,0,0,30,5,80.2,80.2,264.4,264.4,0.9059,0.9059,0,0
+nation,england,41,246,246,22572,22572,0,0,0,0,0,246,41,142.5,142.5,531.5,531.5,0.7283,0.7283,7072,7072
+nation,scotland,33,198,198,18218,18218,0,0,0,0,0,198,33,91.3,91.3,542.1,542.1,0.7251,0.7251,0,0
+nation,wales,13,78,78,7164,7164,0,0,0,0,0,78,13,120.4,120.4,543.5,543.5,0.7171,0.7171,2320,2320
+nation,ireland,6,36,36,3306,3306,0,0,0,0,0,36,6,152.9,152.9,336.7,336.7,0.8189,0.8189,5110,5110

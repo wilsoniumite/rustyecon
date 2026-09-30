@@ -10,8 +10,51 @@ the tape's schema is [docs/TAPE.md](docs/TAPE.md), and the GUI's design is
 **Collaboration:** as in laborformal. Sequencing, engineering and drafting are delegated to
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
-**State as of:** 2026-09-30, on branch `phase2-proper` from `reboot` at `f7d1eae`, not pushed or
-merged. **Phase 2 proper's first session is reported** (P2.3.16;
+**State as of:** 2026-09-30, on branch `merge-d2` from `reboot` at `a483ed0`, not pushed.
+**`demo-v2` is merged** at `8fee8e3` by this commit, beside Phase 2 proper's first session, which
+is `reboot`'s head; `reboot` takes the merge by a fast-forward, on your word. The two lines both
+started at `f7d1eae` and numbered apart, so nothing is renumbered: the demo's decisions are
+320–359 and its open items O81–O93, Phase 2 proper's 360–399 and O95–O109. No code conflicted;
+this file was joined by hand ("Where things stand"). **Phase 2 proper's first session is
+reported** (P2.3.16–P2.3.17; [docs/probe/PHASE2-S1.md](docs/probe/PHASE2-S1.md)): IW1, C1 and C2
+are GO as registered, and two reviews narrow them. C1's GO is a point result at C2m, IW1's
+covers reserved-only types, and the zero-rent answer covers one plot-taking type. Next on that
+line: one registered wave of O22's families and the dial neighbourhood, the trap's remedy
+(O100), then the rules the 1750-like instance needs (next step 7). **The demo's second pass is
+GO at all 558 county-dates** (D2.0–D2.7; [docs/demo/SECOND-PASS.md](docs/demo/SECOND-PASS.md)):
+horses and fodder on every county, verified once, fixed at D2.5 and re-checked, with the
+re-check's two doc corrections at D2.7. Your look at the new map is next (the command is in
+"Where things stand"), then the next pass (next step 8). Both gates are green on the merged tree
+on WSL and Windows, and the pins hold: gate `0x61f9c8529131ff17`, appb `0xe1fa082b26995867`,
+demo-gb `0xfad880fe08d06645`, demo-gb-v2 `0x45b7c1201f8ae633`.
+On branch `demo-v2` from `reboot` at `f7d1eae`, merged here at `8fee8e3`: **the demo's second
+pass is written up, and closed but for two looks** (D2.5 `0aa86dd`,
+D2.6; "Where things stand"; the guide [docs/demo/SECOND-PASS.md](docs/demo/SECOND-PASS.md)): its
+bounded verification ran (two reviews at `d015fca`: the world holds, with six minors; the map had
+three majors and six minors, none a wrong value), and the fix round answers every finding, each
+code fix with a test that fails without it. Nothing scored moved. Next: one re-check of D2.5's
+fixes, and your look at the new map (the command is in "Where things stand"). Decisions 332, 333,
+335, 338, 343, 344, 351, 352 and 355 are amended (the range 320–359 is full); O93 is new; O26 and
+O43 are closed. Before that, **the demo's second pass was built through D2.4b**: O39's
+remainder fixed (D2.1); the stage in the compiler, `tapes/demo-gb-v2.ron` and its pin
+`0x45b7c1201f8ae633` (D2.2); the 36 lenses, `oracle_gap` and the map on the v2 tape (D2.3); the
+flow path nesting v1 bit for bit, and 16 screenshots of the map (D2.3b). v1's tape and pin are
+unchanged. Decisions 343–355 and O89. **D2.4 is done and GO**: the harness, scorer and job list
+committed before any scored run, with E0–E2 run and amendment A1 (L per county-date); then the
+wave, scored against the registration (D2.4b;
+[docs/demo/v2/results/](docs/demo/v2/results/README.md)): all 21 scored lines hold, no
+refutation, all 558 county-dates GO, the engine the mirror to the tick in the battery and to
+rounding over the long run. Decisions 356–359, O90–O92.
+**The demo's second pass is designed** (D2.0, docs only; "Where things stand";
+[docs/demo/WORLD-V2.md](docs/demo/WORLD-V2.md)): D-G12 taken, GOODS-CHAIN's stage v2a.1 (rule
+A's horse and fodder) on all 93 counties at C2g and 52 ticks a year with the maker's reservation,
+v1's history mapped so that each date's oracle is v1's. Funding is checked on every county with
+1g, and the mirror's predictions for the battery and the long run are registered
+([docs/demo/v2/registration.md](docs/demo/v2/registration.md)) before any code. The mirror finds
+no dead tick but a large capital lag over the history (O81) and transfer shortfalls in six
+counties (O82). Decisions 320–342 and O81–O88; the build is D2.1–D2.6 (next step 8).
+On branch `phase2-proper` from `reboot` at `f7d1eae`, now `reboot`'s head at `a483ed0`:
+**Phase 2 proper's first session is reported** (P2.3.16;
 [docs/probe/PHASE2-S1.md](docs/probe/PHASE2-S1.md)): both reviews find the verdicts hold, and
 narrow them. C1's GO is a point result at C2m (at every price rate × 0.9 two of its Tier-3
 runs fall into the subsistence trap, and at every buffer × 1.1 one does), IW1's covers reserved-only types, and the zero-rent
@@ -62,7 +105,7 @@ decisions next step 7 waited on are taken by Claude on your word as decisions 36
 to veto, with the probe reports' recommendations (MARKETS §6 keeps 67 and 70); O95 and O96 are
 new. It opens on two loop-free instances at C2m, 52 ticks a year and ρ 0: a solved wall under
 1d's dependence form, and an open commons under s(q) with idle land at zero rent (next step 7).
-Before it, on branch `phase2-plants` from `reboot` at `8b07c8a`, now in `reboot` at `f7d1eae`:
+Before both, on branch `phase2-plants` from `reboot` at `8b07c8a`, now in `reboot` at `f7d1eae`:
 **P2.2b, the loops, is closed** (P2.2b.4; "Where things stand";
 [docs/probe/LOOPS.md](docs/probe/LOOPS.md)): GO for rule B's horse loop at chain8 at C2g and 52
 ticks a year, with CAPACITY's plant on every loop desk and the maker's reservation together, as
@@ -180,11 +223,296 @@ rulings on P2.2b's decisions 286–311 (the loops, closed GO at chain8) and on 2
 it; on the goods chain's line, storable running goods (O51) and a funded steam county (O62)
 before a loop enters the 1750-like instance by its own registration; Phase 2 proper after its
 first session (the wall and commons GO at P2.3.15–P2.3.16; decisions 360–399, open to veto),
-whose next wave and prerequisites next step 7 lists; the demo's second pass, with goods, machine
-types and carriers, on the many-market roles (O27), which may now start from the goods chain's
-stage v2a.1 on your ruling on D-G12. "Next steps" has each.
+whose next wave and prerequisites next step 7 lists; the demo's second pass, built as the goods
+chain's stage v2a.1 on every county (D-G12 taken by Claude, decision 320, open to veto), GO,
+verified once, fixed and re-checked on `demo-v2` (D2.1–D2.7), with your look at its new map next
+(decisions 320–359, open to veto), then its next pass (next step 8). "Next steps" has each.
 
 ## Where things stand
+
+**`demo-v2` is merged beside Phase 2 proper's first session (2026-09-30; this commit).** Branch
+`merge-d2` from `reboot` at `a483ed0` (worktree `D:/rustyecon-wt/merge-d2`, logs in
+`D:/rustyecon-merge-d2/logs/`), `demo-v2` at `8fee8e3`. Two lines that both started at `f7d1eae`
+meet here; `reboot` takes the merge by a fast-forward, on your word.
+- **Phase 2 proper's first session** (P2.3.0–P2.3.17, branch `phase2-proper`, in `reboot` at
+  `a483ed0`) is reported ([docs/probe/PHASE2-S1.md](docs/probe/PHASE2-S1.md)). IW1, C1 and C2 are
+  GO as registered, and two reviews narrow them. C1's GO is a point result at C2m: every price
+  rate × 0.9 puts two of its Tier-3 runs in the subsistence trap, and every buffer × 1.1 one.
+  IW1's covers reserved-only types beside one pooled type, and the zero-rent answer covers one
+  plot-taking type. The 124 failed lines are read by amendments A2 and A3, written after the
+  wave, disclosed and open to veto. Next step 7 has what follows.
+- **The demo's second pass** (D2.0–D2.7, branch `demo-v2`) is GO at all 558 county-dates
+  ([docs/demo/SECOND-PASS.md](docs/demo/SECOND-PASS.md)). It was verified once and fixed at D2.5.
+  The re-check of D2.5's fixes then ran, and D2.7 made its two corrections, docs only: GUI.md
+  counts the GUI's suite as 141 tests (135 run, 6 ignored), and GUI.md and WORLD-V2 say the
+  ranked table keeps 40% of the height at most eleven rows' worth (decision 344). So item 1 of
+  next step 8's list is done. Your look at the new map is pending. On Windows, in PowerShell,
+  from this checkout or from `reboot` once it takes the merge (the first build takes some
+  minutes):
+
+  ```powershell
+  $env:CARGO_TARGET_DIR = 'D:/rustyecon-targets/d2-hand'
+  cargo run --release -p rustyecon-gui -- tapes/demo-gb-v2.ron
+  ```
+
+  The D2.5–D2.6 block below says what to look for. D2.7 is taken, so a fix after your look is a
+  D2.8.
+- **Nothing is renumbered.** The demo's decisions are 320–359 and its open items O81–O93 (its
+  range O81–O94); Phase 2 proper's are 360–399 and O95–O109. The lists put the demo's first, so
+  the numbers ascend.
+- **The join.** Only this file conflicted, in four places: the header, this section, the
+  decisions and the open items. Each side's text is kept whole. Below this block come the demo's
+  blocks (D2.5–D2.6 back to D2.0), then Phase 2 proper's (P2.3.16 back to P2.3.0), then P2.2b's
+  and what came before. Next steps 7 (Phase 2 proper) and 8 (the demo) are as each line wrote
+  them. "Open — your calls" gains the v2 map among the windows to check by hand, the demo's
+  decisions 343–359 beside its 320–342, and this merge under "Landing the branches". Git joined
+  the rest: README.md (Phase 2 proper's tapes and report
+  beside the demo's v2 tape and its section), `crates/probe/src/horses/setup.rs` (Phase 2
+  proper's `first_year_d0` and `ShareAt::Is` beside the demo's `Setup::of`), and the scripts,
+  which only the demo changed: `scripts/gate.sh` runs `demo_v2_pin` and `demo_v2_runs_to_1901` by
+  name, and `scripts/gui.sh` names 104 tests and runs `lens_v2_domains_hold_the_engines_long_run`
+  by name. Phase 2 proper's new tests run in the gate's workspace step.
+- **The gates**, on the merged tree before its commit (stamp `a483ed0`, dirty: the merge before
+  its commit), on fresh targets; logs in `D:/rustyecon-merge-d2/logs/`.
+  - `scripts/gate.sh` is green on WSL (`/root/scratch/target-merge-d2`) and on Windows under Git
+    Bash (`D:/rustyecon-targets/merge-d2`). The workspace's tests: 954 passed and 5 ignored, each
+    ignored one run by name after; certify alone 68 and 1. The gate hash is `0x61f9c8529131ff17`.
+    `demo_runs_to_1901` ends at `0xfad880fe08d06645` (stream `0xdb63cc96f769fb3e`), and
+    `demo_v2_pin` and `demo_v2_runs_to_1901` at `0x45b7c1201f8ae633` (stream
+    `0xacb3ca2bee63b3bf`), with D̂'s county medians' median 116.72, as at D2.4b.
+  - `scripts/gui.sh` is green on both: 135 passed and 6 ignored, the 104 named tests among them;
+    G1's sweep measurement by name on WSL (median 0.737 ms); the lens-domain test by name on both
+    (141 s on WSL, 212 s on Windows). The GUI's hashes equal the cli's for gate
+    `0x61f9c8529131ff17`, appb `0xe1fa082b26995867`, demo-gb `0xfad880fe08d06645` and demo-gb-v2
+    `0x45b7c1201f8ae633`, and for the editor's two branches.
+  - No fix was needed: the two lines' code builds and passes together unchanged. WSL's first
+    gate.sh run, on the fresh target, was green too, but its log interleaved its two streams, so
+    gate.sh ran again there with one log.
+
+**The demo's second pass: the fix round and the write-up (D2.5–D2.6; 2026-09-30).** Branch
+`demo-v2`, worktree `D:/rustyecon-wt/d2`, scratch `D:/rustyecon-d2/fix-report/`. The guide is
+[docs/demo/SECOND-PASS.md](docs/demo/SECOND-PASS.md); the as-built log WORLD-V2 §16; the scored
+results [docs/demo/v2/results/](docs/demo/v2/results/README.md), corrected at D2.5.
+- **Your look at the new map** (Windows, PowerShell, from `D:/rustyecon-wt/d2`; the first build
+  takes some minutes):
+
+  ```powershell
+  $env:CARGO_TARGET_DIR = 'D:/rustyecon-targets/d2-hand'
+  cargo run --release -p rustyecon-gui -- tapes/demo-gb-v2.ron
+  ```
+
+  It opens paused at 1750 on "Wage in land". Space runs (about 28 s to 1901); `1`–`0` pick the
+  "Horses and fodder" lenses and `[` `]` step through all 36; a click selects a county, whose
+  card names what carries its gap. SECOND-PASS.md §2–§5 say what to look for: the horse's price
+  over its replacement cost, and the herd lagging its equilibrium in the coal and cotton counties.
+- **The verification** (D2.5): two bounded reviews read `d015fca`.
+  - *The world* (`D:/rustyecon-d2/review-world/`) holds: six batteries, a kick set, mode A and the
+    long run rerun byte for byte on WSL, and two batteries and mode A on Windows (the kick set's
+    envelope there in content); R1 on both machines; an independent oracle from unit 1a's
+    equations for genesis, the mapping and funding; the registration before the code. Six
+    minors, all wording or disclosure.
+  - *The map* (`D:/rustyecon-d2/review-map/`) did not hold as built: three majors (the sidebar and
+    card cut at the app's own window sizes; v1's domains and two false notes on the v2 tape; the
+    v2 app's wiring untested) and six minors (seven mutants of the v2 map surviving; the legend's
+    header, ψ, labels and scale bar; no refit after a resize; a ranked value over two lines; O85's
+    wording; the gap lens's bursts). No value the map showed was wrong.
+- **The fix round** (D2.5 `0aa86dd`). Each code fix has a test that fails without it. 27 mutants
+  were run and each is killed: each of D2.5's fixes undone in a scratch copy (14), the review's
+  eight surviving mutants of the v2 map (V2, V3, V5, V6, V8, V9, V10, V11), and D2.1's five again
+  (`D:/rustyecon-d2/fix-report/mut/mutate.py`, `mutations.txt`). The fixes:
+  - the sidebar: the card and the lens's description scroll above a ranked table that keeps
+    40–50% of the height, and every line wraps to the sidebar (decision 344, amended; O26 closed);
+  - the domains: nine of v1's lenses take domains and notes from the engine's run to 1901, and
+    every lens of the table is held inside its domain for every county at every tick
+    (`lens_v2_domains_hold_the_engines_long_run`, 171 s on WSL, run by name in `scripts/gui.sh`;
+    decision 332, amended);
+  - the whole app on the v2 tape, and G1.6's colour and credit checks on the v2 store (decision
+    338, amended);
+  - the card's causes by name and sign, ψ as painted, the herd's lines as painted, and the horse's
+    price and its windows tick by tick through a withholding;
+  - the legend's header, ψ's row, its labels and the scale bar; the title; `|` and `×` for glyphs
+    the font lacks (decision 351, amended); the fitted view after a resize (decision 343,
+    amended); a ranked value on one line;
+  - the kick envelope's file name on Windows (decision 335, amended);
+  - answered in the docs: A1's disclosure, the battery's "lowest horse price" as a posted price
+    (O93), "healthy" with the settling times and v1's ratio, every-tick herd minima, O85's bar
+    (corrected), the gap lens's bursts (O86, amended; decision 352 kept), and the horse-day's
+    markup on the posted price (decision 333, amended).
+- **Nothing scored moved.** No tape, pin, hash stream, registration file or scored table changed,
+  and the wave was not rerun. v1 `0xfad880fe08d06645`, v2 `0x45b7c1201f8ae633`, the gate
+  `0x61f9c8529131ff17` and appb `0xe1fa082b26995867` hold on both machines. `scripts/gate.sh`
+  and `scripts/gui.sh` were green on WSL (`/root/scratch/target-d2`, `-gui`) and on Windows
+  (`D:/rustyecon-targets/d2`, `d2-gui`) before D2.5's commit; logs in
+  `D:/rustyecon-d2/fix-report/logs/`. The domain test took 171 s on WSL and 240 s on Windows.
+- **The write-up** (D2.6): SECOND-PASS.md; the results README's corrections; WORLD-V2 §7.1, §10,
+  §14 and §16; WORLD.md §11; GUI.md's block for D2.1–D2.5; the README; and the 16 screenshots
+  taken again from D2.5's commit, lossless.
+- **Open after it:** O81 (capital's lag, measured), O82, O84, O85–O89, O90–O93. Next step 8 has
+  the order: the re-check of D2.5's fixes, your look, then the next pass (v2a.1b on funded,
+  registered counties; v2a.2's categories after O42).
+
+**The battery and the long run on the engine, scored: GO (D2.4b; 2026-09-30).** Branch `demo-v2`;
+raw runs `D:/rustyecon-d2/runs/`; [docs/demo/v2/results/README.md](docs/demo/v2/results/README.md),
+WORLD-V2 §16. The wave ran D2.4's committed job list on its frozen build: 1,675 jobs on WSL in 3 h
+12 min, 46 at a time, the first half shared with another branch's wave. Every job exited 0.
+- **The scorer's 21 lines all hold; no refutation.**
+  - E2: mode A PASSES at all 558 county-dates (8.4e-14).
+  - E3: all 51,260 runs CONVERGE, each class the mirror's. Ticks to tolerance: the mirror's to
+    the tick in 51,252 runs, one tick off in eight. Dead ticks within one or two in 625 runs, each
+    a tie at the dead bar. Baskets within 7.6e-5.
+  - E4: every base kick set decays (largest g 0.997448 a tick).
+  - E5: all 93 counties on every line.
+  - E0's six b × 2 partings (O90) did not change a class.
+- **All 558 county-dates are GO**, by class: coal and textile 156, London's ring 42, Highland 30,
+  rural 330; England 246, Wales 78, Scotland 198, Ulster 36.
+- **The long run** (`demo_v2_runs_to_1901`, now in `scripts/gate.sh`) is the mirror's to rounding
+  in every county, to the registered table's printed precision:
+  - no dead, idle, no-order or withheld tick;
+  - 14,502 shortfall ticks in the six thin-funded counties (O82);
+  - D̂'s county medians' median 116.7, the largest 543.5 (Glamorgan);
+  - the herd's ratio within 2.0e-14 of the mirror's.
+- **Capital's lag** (O81): in the coal and textile counties the herd falls to 0.72–0.74 of its
+  equilibrium in 1851–1864, and 20 of the 26 are still more than 5% short in 1901. No Highland
+  herd goes below 0.9.
+- **Not as predicted, reported:**
+  - the kick sets' fitted g, 0.856–0.876 a year, reads the kick's early decay, not the slowest mode
+    at 0.92 (O91);
+  - the battery's highest horse price is not read for these instances (O92).
+- Both gates green on WSL and Windows. Next: D2.5, one bounded verification, one fix round, one
+  re-check; then D2.6 (next step 8).
+
+**The battery's harness, the scorer and E0–E2, before any scored run (D2.4; 2026-09-30).**
+Branch `demo-v2`, scratch `D:/rustyecon-d2/run/`; [docs/demo/WORLD-V2.md](docs/demo/WORLD-V2.md)
+§16, [docs/demo/v2/registration-A1.md](docs/demo/v2/registration-A1.md).
+- **The harness runs the demo's county-dates**: `rustyecon worldgen worlds/demo-gb --stage v2a1
+  --instances PATH` writes the 558 rows (each county in force on 1 January of 1750, 1800, 1825,
+  1850, 1875 and 1900), and `horses --counties PATH --inst demo:<key>@<year>` runs one, with the
+  row's ψ as the maker's reservation. The rows are the plans' and the mirror's bit for bit, and
+  the harness's battery drops b × 2 exactly where the registration does: 51,260 runs.
+- **The long run's scorer** is `long_run` in `crates/worldgen/tests/demo_v2.rs`: every county every
+  tick against its moving 1g point, as the mirror scores it. It reads the rest point right with
+  the history removed (`the_long_run_scorer_reads_the_rest_point`). `demo_v2_runs_to_1901` runs it
+  to 1901 and joins `scripts/gate.sh` after the wave (decision 358).
+- **The wave's scorer and job list are committed before the first job** (decision 311):
+  `docs/demo/v2/results/tools/` (make_jobs, job, longjob, gather, score and its self-test, which
+  passes every line on the mirror's own outputs and reproduces the registration's numbers).
+- **Before any scored run**: the engine's elasticity probe puts 200·τ_max above 84,000 at 501 of
+  558 county-dates (land's τ, 409–471 ticks), so amendment A1 lengthens L there, to 85,000–95,000
+  (decision 356). E2's mode A PASSES at all 558 (8.4e-14). E0: nothing parts at tick 1; hold and
+  w × 2 agree within 2.2e-13; the six b × 2 runs part after the maker's withholding, through the
+  horse market's flip-flop, up to 8.5e-2 on its volume, beyond the mirror's ulp spread but
+  within its spread at 25 ulps. Reported as a miss, not re-read (decision 357, O90).
+- Decisions 356–359, O90. Both gates green on WSL and Windows. Next: the wave (E2–E5).
+
+**The flow path nests v1, and the map's screenshots (D2.3b; 2026-09-30).** Branch `demo-v2`;
+[docs/demo/WORLD-V2.md](docs/demo/WORLD-V2.md) §16.
+- **R1** (`v2_flow_path_is_v1`): the stage with its machine on the flow path (δ = 1 a tick, ω 0,
+  planned, the probe's C2) runs v1's tables and history for 520 ticks with every county's prices,
+  cleared volumes and coins equal to v1's tape's bit for bit (decision 354).
+- **`oracle_gap`'s cost** (O86): one 1g solve 196 µs; the gap lens's first map 19.2 ms, 1.2 ms
+  from the memo.
+- **Screenshots**: `docs/demo/v2/map-<lens>-<year>.png`, horses per head, horses against their
+  equilibrium, the horse-day's markup and land to the working stock, at 1750, 1800, 1850 and
+  1901 (decision 355). In the engine's run, not scored: the herd lags most in Lanarkshire in 1850
+  (−0.32 in log) and Glamorgan in 1901 (−0.26); the median county is 2% short by 1901.
+- Both gates green on WSL and Windows. Next: D2.4, the battery and the long run's scoring
+  against the registration, then D2.5 and D2.6 (next step 8).
+
+**The lenses and the map on the second pass (D2.3; 2026-09-30).** Branch `demo-v2`, scratch
+`D:/rustyecon-d2/build/`; [docs/demo/WORLD-V2.md](docs/demo/WORLD-V2.md) §16.
+- **36 lenses** in `worlds/demo-gb/lenses-v2a1.csv`: the chain's 11 first (horses per head and
+  since 1750, against their equilibrium and the desk's target, fodder's price, the horse's price
+  over its replacement cost, the horse-day's markup, land to fodder and to the working stock, the
+  reservation's and the idle market's ticks), then v1's 25 with six changed. The map takes a
+  tape's table by its name. Every measure is `crates/worldgen/src/lens.rs`'s; the GUI gathers.
+- **`oracle_gap` in worldgen** (decisions 331, 348, 352): 1g at the county's recorded params, kept
+  by its params; the gap, the wage's gap and the herd against its equilibrium have values on the
+  v2 tape. The horse's price has no value on a tick when no horse traded, and its legend marks ψ
+  (decisions 333, 349). The selected county's card names what carries its gap (decision 351).
+- **Tests:** every lens for every county at three ticks against a Sim's own numbers (10,044
+  values, the markups against the rules' own formulas); an idle county's horse price; each
+  domain against the oracle's range; the ranked table against the map; the layout on the v2
+  store; the lens table per tape; the GUI path's v2 hashes against the cli's (R16).
+- **Speed** (O85, Windows, a shared machine): v2 to 1901 in 27.6–27.9 s in the GUI, 281–284
+  ticks a second, frame p90 10.1–10.3 ms; v1 on the same build and load 16.5 s, p90 9.8–9.9 ms.
+- Decisions 348–353, O89. Both gates green on WSL and Windows.
+
+**The stage is in the compiler (D2.2; 2026-09-30).** Branch `demo-v2`, scratch
+`D:/rustyecon-d2/build/`. `rustyecon worldgen worlds/demo-gb --stage v2a1` compiles
+`tapes/demo-gb-v2.ron` from v1's tables and two new ones (`machine_types.csv`, `stage-v2a1.csv`);
+[docs/demo/WORLD-V2.md](docs/demo/WORLD-V2.md) §16 has the numbers.
+- **R1.** Without `--stage` the compiler writes v1's tape bit for bit (`machine_types` now reads
+  `horse`); v1's pin and every committed tape's hashes hold.
+- **The checks.** Every county at genesis and after each of its step dates, 25,573 points, is
+  Interior and funded under 1a and 1g; 1g meets 1a within 8.0e-16; the chain's own moves are at
+  most 0.0222 at a date and 0.0475 over a year, as the design measured.
+- **The tape.** 14.8 MB, 33,332 events, six actors a county; its pin (`demo_v2_pin`, in
+  `scripts/gate.sh`) is final hash `0x45b7c1201f8ae633` and stream `0xacb3ca2bee63b3bf` on WSL and
+  Windows, every event fired, the ledger closed every tick.
+- **Tests** (`crates/worldgen/tests/demo_v2.rs`): the tape is the compiler's output; rule A, the
+  chain and its point are the probe harness's bit for bit; genesis is the horses rule to 1e-14;
+  C2g key by key; the refusals, an unfunded date among them; at rest within 6.8e-14 for two years
+  with the history removed; two runs one hash stream.
+- Decisions 345–347. Next: D2.3, the lenses and the map.
+
+**O39's remainder is fixed (D2.1; 2026-09-30).** Branch `demo-v2`, worktree `D:/rustyecon-wt/d2`,
+scratch `D:/rustyecon-d2/build/`. The first build step of the demo's second pass
+([docs/demo/WORLD-V2.md](docs/demo/WORLD-V2.md) §10, §13), on v1; no tape, pin or table moved.
+- **The clock.** The compiler refuses `ticks_per_year` other than 52, as it refuses dials off
+  their set (`the_compiler_refuses_bad_tables` at 12 and 4 a year).
+- **The fitted view.** The map fits clear of the legend and the credit: at 1,280 × 800 Cornwall
+  had sat under the legend (`the_fitted_view_leaves_every_county_clear`, four sizes, every
+  region's painted box; decision 343).
+- **The ranked values.** A long lens name no longer widens the sidebar, and the county column
+  clips before the value column does (`the_ranked_values_are_painted_whole`, down to a 480-point
+  window; decision 344).
+- Each test fails with its fix undone. Both gates are green on WSL and Windows before the commit.
+
+**The demo's second pass is designed (D2.0; 2026-09-30; docs only).** Branch `demo-v2` from
+`reboot` at `f7d1eae` (worktree `D:/rustyecon-wt/d2`, scratch `D:/rustyecon-d2/design/`). The
+design is [docs/demo/WORLD-V2.md](docs/demo/WORLD-V2.md) (WORLD.md §11 points to it); the
+registration is [docs/demo/v2/registration.md](docs/demo/v2/registration.md) (sha256
+`972c7d21805f5de06ae712b53d2072f278b134c949d2f3769e38dc5fb612a5b0`; its CSVs in
+`docs/demo/v2/SHA256SUMS`). You asked on 2026-09-27 for goods that use other goods, with
+inventories, on the demo's map; this is its design, and D-G12 is taken on your standing word
+(decision 320).
+- **The stage.** Every county keeps v1's row and history; its flow machine becomes GOODS-CHAIN's
+  rule A: fodder from ω·b land, a head bred by the maker from a·κ/δ of its own horse-days, λ·κ/δ
+  labour and (1 − ω)·b·κ/δ pasture, held and hired out wet by a capacity desk; δ 8% a year, ω
+  0.85, κ 52 a year, ρ 0, J_b 1, C2g held exactly, 52 ticks a year, the maker's reservation at ψ
+  0.25. v1's ramps on b, λ and a are mapped to the recipe's coefficients, so at ρ 0 each of the
+  25,480 step dates has v1's equilibrium (1g against 1a within 5.3e-15). Six actors a county;
+  33,332 events; a new tape `tapes/demo-gb-v2.ron` from the same tables with `--stage v2a1`, v1's
+  tape and pin untouched.
+- **Funding (O43), on all 93 counties with 1g.** Every genesis and step date is funded (least
+  0.119 baskets per unit of N, Surrey 1834-04, v1's). At the battery's six dates b × 1.1, × 0.9
+  and × 0.5 are funded everywhere (least 0.050); b × 2 at 241 of 558 county-dates. The compiler
+  refuses an unfunded date; the battery drops and names an unfunded target.
+- **The mirror** (P2.2a's frame copied unedited, with IDLE's reservation and the registered
+  genesis carry) was checked first: 1g within 1.3e-15; the rest within 9.9e-16; P2.2a's F5
+  battery 91 of 91 runs equal; and with the stocks layer off it gives v1's committed long run
+  (medians 10.8 and 34.1, largest 56.3, lowest 0.945).
+- **The long run, in the mirror.** No dead tick, no idle horse market, the reservation never
+  acts. But capital lags: the median county's median D̂ is 117 against its moving equilibrium
+  (the like-for-like flow county at C2g 28, v1 11), Lanarkshire's 383, Glamorgan's largest 544;
+  the herd falls to 0.72 of its equilibrium (Glamorgan, 1863). Six thin-funded counties have
+  transfer shortfalls, 14,502 county-ticks (Surrey 5,593). Land's rate at 1.3 and s_K at 4δ do
+  not fix it (O81, O82).
+- **The battery, in the mirror**: P2.2a's 93 runs at every county's instance on 1 January of
+  1750, 1800, 1825, 1850, 1875 and 1900 (558 county-dates), funded targets only, L 84,000. All
+  51,260 scored runs CONVERGE (634 unfunded b × 2 runs are not targets), the slowest in 5,661
+  ticks; dead ticks only after Tier 3's displacements (at most 277, horse-days after b × 0.5);
+  the reservation acts in 2,803 runs and holds the horse price at 0.200 of target or above; 5,905
+  runs have a transfer shortfall. Every point is locally stable (at most 0.924 a year, wear's
+  0.92).
+- **Lenses**: v1's 25 (six changed) and 11 of the chain, with capital's lag shown beside its
+  cause; the oracle lenses come forward in worldgen (decisions 331–334).
+- **Measured for the estimate**: v1 in the GUI's smoke mode runs to 1901 in 16.1–16.2 s (485–488
+  ticks a second, frame p90 7.4 ms); one county of the stage costs 1.57 times one of v1's, so
+  about 25 s is expected (O85).
+- **O26/O39's remainder**: the clock, Cornwall under the legend and the ranked values' column,
+  fixed at D2.1; G1.6's mutants and the credit's wrap stay closed.
+- **Decisions 320–342 and O81–O88**, below. Next: D2.1 (next step 8).
 
 **Phase 2 proper's first session is reported: IW1, C1 and C2 GO, narrowed by two reviews (P2.3.16;
 2026-09-30).** Branch `phase2-proper`, label `fix-report`, scratch `D:/rustyecon-p23/fix-report/`.
@@ -3692,6 +4020,201 @@ on your standing word and open to veto.
      `runs.tsv` byte for byte with `gather_gz.py`, and `score_fc.py` fails E11's aggregate closed.
      Alternative: the scratch stamp, as at P2.2b.3.
 
+320–342 are D2.0's, the demo's second pass designed (branch `demo-v2`, 2026-09-30;
+[docs/demo/WORLD-V2.md](docs/demo/WORLD-V2.md) §12, which gives each its reasons), taken by
+Claude on your standing word ("I leave all those calls up to you"; "keep going") and open to
+veto. This branch numbers in 320–359 and O81–O94, apart from the other lines.
+
+320. **D-G12 is taken: the demo's second pass is the goods chain from stage v2a.1, rule A, on every
+     county.** Stage v2a.1b (rule B's loop with plants) joins no county in this pass: decision 308
+     needs a funded county and its own registration for each, so it is the next pass (O83).
+     Alternative: O27's first plan, unit 1b's categories and 1c's machine types on the many-market
+     roles at C2m.
+321. **One durable good, keyed `horse`, stands for the county's whole working stock** until v2a.4
+     gives engines their own good; the tape's keys are P2.2a's (`horse`, `traction`, `fodder`,
+     `maker`, `capacity`), and the map says what the horse stands for (O87). Alternative: a
+     neutral name such as `stock` or `power`.
+322. **Rule A on each county's v1 row: δ 8% a year in every county, ω 0.85, κ 52 a year, J_b 1,
+     ρ 0** (F5's economy). Alternative: δ 10% (F6), or δ by county.
+323. **v1's ramps keep their params, and the compiler maps each to the coefficients whose fold is
+     that param**: b to fodder's land and a head's pasture together, λ to a head's labour, a to its
+     own horse-days; N, T, h, η and χ_max as v1. At ρ 0 every date's oracle is v1's (1g against 1a
+     within 5.3e-15), so v1's funding, bounds and lens ranges carry over. Alternative: b's ramps
+     on fodder's land alone, ω drifting to about 0.72 and fodder's factor rescaled to keep v1's
+     point.
+324. **C2g held exactly, and the clock held to 52 ticks a year in v1 and v2** (O39); s_K 2δ, s_Km
+     0, cover 4 weeks, ψ 0.25 (253), `ExPost` (D-G6), fodder's rate 5.2 (226). Alternative: a dial
+     family as default (land's rate 1.3, or s_K 4δ), which the mirror finds does not shrink the
+     lag and has no probe behind it.
+325. **Genesis at 1g's point per county under the horses genesis rule, divided by p/r so the good
+     costs 1 coin**, as v1. Alternative: r = 1, as the horses tapes.
+326. **Funding: the compiler refuses an unfunded genesis or step date with its path; the battery
+     drops an unfunded cost target and names it; no adjustment.** Alternative: the largest funded
+     factor below 2 in place of an unfunded b × 2.
+327. **One set of county tables: `machine_types` holds `horse`; the stage is three new files and
+     `--stage v2a1`; without it the compiler writes v1's tape bit for bit.** Alternative: a
+     separate `worlds/demo-gb-v2/` with its own copies of the county tables.
+328. **Only params a rule reads are registered**: rule A's coefficients per county, not a, λ and b,
+     whose param lenses show the fold. Alternative: register a, λ and b beside them, unread.
+329. **The rule-A mapping lives in worldgen** (O32, for rule A), held to the probe's bit for bit by
+     test. Alternative: worldgen depends on the probe crate.
+330. **The v2 compiler also bounds the chain's own oracle moves** (p_K/r, p_f/r, heads, fodder)
+     under `max_step` and `MAX_YEAR`; the history's largest are 0.022 at a date and 0.048 over a
+     year. Alternative: v1's list alone.
+331. **The oracle lenses come forward in worldgen** (`oracle_gap`: 1g at the params in force,
+     outside the Sim), called by the GUI and the long-run test alike, extending 128's departure
+     (U6). Alternative: wait for `crates/observe`, with the lag shown only against the desk's own
+     target.
+332. **The lenses: v1's 25 (19 kept, six changed) and 11 of the chain, 36 in all**, domains from the
+     oracle's range, or from the mirror where the rest value is fixed, with margins; neutral
+     palettes; the opening lens stays `wage.land`. Alternative: the chain's lenses alone on the
+     v2 tape. *Amended at D2.5* (the map review's second major): on the second pass the dynamic
+     lenses' domains hold the engine's own run to 1901, read every tick, with a margin, and not
+     only the oracle's range; nine of v1's rows keep their reading with a wider domain and a note
+     naming the run's range (`wage.goods`, `rent.goods`, `share.land`, `share.labour`,
+     `frontier.x`, `price.good`, `relief.burden`, `shortfall`, `rationing`), and `price.hday`'s
+     top becomes 1.8. `lens_v2_domains_hold_the_engines_long_run` holds all 36, run by name in
+     `scripts/gui.sh`. The gap lens alone runs below its domain, where a county is within the
+     tolerance. Alternative: domains from the mirror's long run, which the engine equals.
+333. **The horse's price is shown as its markup over replacement cost, with no value on a tick when
+     no horse traded** (O47, O54). Alternative: p_K/r with an idle mark. *Amended at D2.5* (the
+     world review's fourth minor): the horse-day's markup keeps reading the posted horse price on
+     every tick, idle ones included, since its full cost is the capacity desk's own (running cost
+     plus δ·p_K/κ at posted prices), and its note says so. The docs call the battery's lowest
+     horse price and markup "posted" (O93). Alternative: no value for the horse-day's markup on
+     an idle tick either.
+334. **Capital's lag is shown with its cause, not scored and not hidden** (WORLD-V2 §8; D-G14).
+     Alternative: hide `gap.oracle` on the v2 tape until D-G14's departure lifts.
+335. **The battery: P2.2a's 93 runs at 558 county-dates (six dates), funded targets only, L 84,000,
+     one length, each county-date's base kick set.** Alternative: P2.2a's 10·L reruns of Tier 3
+     and 3S too, about 2.3 times the compute. *Amended at D2.5* (the world review's fifth minor):
+     a kick set's envelope is written as `envelope-<instance>-<run>.tsv` with the instance id made
+     a file name (`envelope-demo_county.gla_1850-hold.tsv`), since a colon opens an alternate data
+     stream on Windows (`kick_envelopes_are_named_as_windows_can_hold_them`). The wave's archive
+     keeps its names; no tool reads them. Alternative: say the kick jobs run on WSL only.
+336. **The mirror is P2.2a's frame, copied unedited, with IDLE's reservation and the registered
+     genesis carry, driven by new files, and checked against v1's long run and P2.2a's F5 before
+     any prediction.** Alternative: a new mirror.
+337. **The engine is scored against the registration by WORLD-V2 §11.5's lines** (E0–E5, with
+     refutation criteria). Alternative: v1's standard alone (no dead tick, no shortfall), which
+     v2 fails on shortfalls by design.
+338. **O39's remainder is fixed first, at D2.1**: the clock, the fitted view clear of the legend
+     and credit, the ranked table's value column. G1.6's eight mutants and the credit's wrap stay
+     closed, their tests extended to the v2 store. Alternative: leave the layout notes to G4.
+     *Amended at D2.5* (the map review's third major): D2.3 extended only the layout checks. The
+     colour and credit checks now run on the v2 store (`the_v2_map_paints_its_lens_colours_and_its_credit`,
+     through `tests/common/mapcheck.rs`, which v1's tests share), and the whole app runs on the v2
+     tape (`the_v2_app_shows_every_lens_and_a_countys_causes`), which fails when the app takes v1's
+     table.
+339. **The v2 tape is new, `tapes/demo-gb-v2.ron`, with its own pin**; v1's tape and pin
+     `0xfad880fe08d06645` are not touched. Alternative: v2 replaces v1's tape and pin.
+340. **The long run's like-for-like reference is the flow county at C2g with ex-post assignment**
+     (235). Alternative: v1's run as the only reference.
+341. **The build is D2.1–D2.6** (WORLD-V2 §13), each step with both gates green on both machines
+     before a commit that touches code. Alternative: one build step.
+342. **The design is `docs/demo/WORLD-V2.md`, with WORLD.md §11 pointing to it**, since WORLD.md
+     would pass 800 lines. Alternative: WORLD.md §11 in full.
+
+343 on are the build's (D2.1 onward, branch `demo-v2`, 2026-09-30), taken by Claude on the same
+standing word and open to veto.
+
+343. **The fitted map moves above the legend and the credit only where a region would fall under
+     them** (D2.1; O39): `View::fit_clear` fits the whole canvas when every region's box is clear
+     of the legend's box and the credit's panel, and the canvas above their tops when one is not
+     (Cornwall under the legend at 1,280 × 800 before the fix). Alternative: always fit above the
+     legend, a map about 10% smaller on every canvas. *Amended at D2.5* (the map review's fifth
+     minor): a fitted view nobody has panned or zoomed is fitted again when the canvas changes
+     size; a moved view stays the user's until a double click
+     (`the_fitted_view_follows_a_resized_window`). Alternative: fit only at the first frame and
+     on a double click, as before.
+344. **A long lens name is cut short in the selector's button, and the ranked table clips county
+     names before values** (D2.1; O39): the button is laid out in the width left for it, and the
+     county column takes the remainder and clips. Before the fix the button's long name widened
+     the sidebar, and the value column ran 33 points off a 480-point window. Alternative: wrap the
+     name onto two lines in the button. *Amended at D2.5* (the map review's first major and sixth
+     minor): below the lens's heading, the selected county's card and the lens's description
+     scroll together above a ranked table that keeps 40% of the height with a county selected and
+     50% without (at most eleven rows' worth); the card's header, its lens list and its inputs wrap
+     to the sidebar; the card's value line drops the lens name the heading gives; the ranked
+     header is one line; a ranked value never wraps. At 1,024 × 768 with Lancashire selected the
+     card's causes and the first of the herd's readings show with five ranked rows, and the other
+     two readings are a scroll away (`the_v2_sidebar_and_card_are_whole_at_the_apps_window_sizes`).
+     Alternative: a collapsed "About this lens", and the card and table unscrolled.
+345. **The v2 tape's pin checks hashes, events and the ledger only** (D2.2; decision 339):
+     `demo_v2_pin` runs the tape to the first tick of 1901 and scores nothing. The long run's
+     scoring against the registration (E5) is D2.4's `demo_v2_runs_to_1901`, after its scorer is
+     committed (decision 311). Alternative: score the long run at D2.2, before the scorer exists.
+346. **The rest check runs the stage with the history removed** (D2.2): every county's 18
+     observables within 1e-12 in log for three ticks and 1e-9 for two years, every market trading,
+     the ledger closed. It is E2 over a short window; E2 at L is D2.4's. Alternative: the committed
+     tape's first ticks, whose steps move the target from February 1750.
+347. **The stage names its lens table at D2.2 and reads it at D2.3**: `stage-v2a1.csv` names
+     `lenses-v2a1.csv`, and the cli reads `machine_types.csv` and `stage-v2a1.csv` with `--stage`.
+     Alternative: build the lens table with the compiler, in one step.
+348. **The second pass's oracle lenses are worldgen's `oracle_gap`, marked `oracle` in their lens
+     table; v1's stay `observe` and without a value** (D2.3; decision 331). v1's table and lens
+     goldens are unchanged. Alternative: bring v1's gap lenses forward on 1a as well.
+349. **A diverging scale may centre on any reference inside its domain** (D2.3): the horse's price
+     over its replacement cost centres on 1 over [0, 2]; the check had required a domain across 0.
+     Alternative: show the markup's log, centred on 0.
+350. **The chain's eleven lenses come first in the second pass's table, as the group "Horses and
+     fodder"**, so keys 1 to 0 pick the first ten; the opening lens stays the wage in land
+     (WORLD-V2 §7.2). Alternative: v1's order with the chain's appended.
+351. **The gap lens's bands are named in its note, shown under the legend, and ψ is painted on the
+     horse price's legend from the run's param** (WORLD-V2 §8 items 1 and 3; D2.3). The selected
+     county's card names the three observables furthest from equilibrium beside the herd's three
+     readings. Alternative: named bands painted on the bar, for which a 480-point legend has no
+     room. *Amended at D2.5* (the map review's fourth minor): the legend's header wraps to the
+     bar, two rows at most, and ψ has its own row between the header and the bar, so neither runs
+     over the other; the domain's ends, the reference and each power of ten on a log scale are
+     written first and the rest where they fit, so the gap lens writes 1, 10, 100 and 1,000; the
+     scale bar moves above the legend and the credit; the reference mark in the header is `|` and
+     the card's button `×`, glyphs the bundled font has. The legend's box is one height for every
+     lens, so the fitted view does not move with the lens. Alternative: ψ written below the bar.
+352. **`oracle_gap` solves on the frame's thread and keeps each point by its params**, a
+     process-wide memo (D2.3; O86): a county's params change at most once a month of the history.
+     Alternative: solve on the run's worker and send the targets with each batch. *Kept at D2.5*
+     (the map review's eighth minor): a map of the gap lens at a report tick with new params costs
+     up to 44 ms, so scrubbing the history hitches the frame (O86, amended). The alternative, or a
+     prefetch at load, is the fix when G4 takes the frame's time.
+353. **The second pass's hashes through the GUI path equal the cli's, in `scripts/gui.sh`**
+     (`gui_equals_cli_demo_gb_v2`; R16). Alternative: v1's alone.
+354. **The stage's flow path is compiled only for R1's test** (D2.3b; WORLD-V2 §9.3):
+     `compile_stage_parsed` writes it for a stage built in code (δ = 1, ω 0, planned, C2), keying
+     the durable good `mach` as the probe's R1a does and taking v1's genesis; `parse_stage`
+     refuses δ = 1, so no table reaches it. Alternative: a `--stage` table for the flow path.
+355. **The map's screenshots are the GUI's map pane at a clean commit, cropped and quantized**
+     (D2.3b): 16 PNGs of about 65 KB, four chain lenses at four dates, rendered headlessly at
+     1,600 × 1,000. Alternative: v1's two full windows at 680 KB each. *Amended at D2.5:* taken
+     again after the fix round, from D2.5's commit, and saved lossless (about 190 KB each, 3 MB in
+     all): 256 colours had banded the legend's scales, and the old frames showed `▏` as a box and
+     a value over two lines. Alternative: keep the 256 colours.
+356. **The battery's L is each county-date's own, by amendment A1** (D2.4; registration-A1.md;
+     WORLD-V2 §11.3; decision 282): the larger of 84,000 and the engine's 200·τ_max rounded up to
+     a thousand ticks (`run_length`), 84,000–95,000; dated shocks at L/4 and the kicks' horizon L.
+     The predictions stand as registered. Alternative: one length, 95,000, everywhere.
+357. **E0's miss at the six b × 2 runs is reported, not re-read, and the wave goes on** (D2.4):
+     the registration stops the run only for a parting at tick 1, and none parts there. The
+     mirror moved 25 ulps before the flip-flop parts as far as the engine does; that check was
+     made after the output and is disclosed, not a rule. Alternative: an amendment accepting
+     partings within the mirror's own spread, or no wave until the partings are explained.
+358. **The long run's scorer is a worldgen test, `demo_v2_runs_to_1901`, and it joins
+     `scripts/gate.sh` only after the wave** (D2.4; decision 311): no gate before the scorer's
+     commit runs a scored job. It asserts the pin's hashes, every event fired, the ledger, the
+     plans' params at the end and the registration's refutation (no dead tick), and writes the
+     table `score.py` reads; every other long-run line is the scorer's. Alternative: gate it at
+     D2.4's commit.
+359. **The registered lines are read as `score.py` states them, before the wave** (D2.4): E3's
+     "at most three runs a county-date within 25%" charges a run beyond 10% once and lets none
+     pass 25% (decision 305's reading); dead ticks are the union count, within 5 or 10%; the
+     baskets against the mirror's full precision; E5's 5% is relative; §3.3's and §3.4's
+     aggregates are computed by the same code from both sides and reported, not scored.
+     Alternative: score the aggregates too.
+
+The range 320–359 is full. D2.5's calls amend the decisions they change (332, 333, 335, 338, 343,
+344, 351, 352 and 355), each marked *Amended at D2.5* or *Kept at D2.5*, taken by Claude on your
+standing word and open to veto; its one new open item is O93.
+
 Decisions 360–393 are P2.3.0's (2026-09-30, branch `phase2-proper` from `reboot` at `f7d1eae`):
 the rulings next step 7 named before Phase 2 proper, taken by Claude on your word of 2026-09-26
 ("I leave all those calls up to you") and 2026-09-27 ("You can keep going beyond the gates"). They
@@ -4012,7 +4535,7 @@ the dated amendments of 397–399 above. A later session on this line needs a ne
 - **Decisions 124–134** (the demo world and its map, branch `demo-world`), open to veto. The
   ones that shape later work: Northern Ireland in the atlas (125), the base county's departure
   from Appendix B (126), and the lens measures in worldgen until observe (128).
-- **Three windows to check by hand, all PENDING, yours.** Each ran headless or in the smoke
+- **Four windows to check by hand, all PENDING, yours.** Each ran headless or in the smoke
   mode on Windows; nobody has looked at any of them. On Windows, from the repository once this
   merge is in `reboot` (or from `merge-og-g1`), in PowerShell:
   - *The G0 gate's window* (G0's gate; how to try the editor is under "G0 is closed" in "Where
@@ -4049,6 +4572,17 @@ the dated amendments of 397–399 above. A later session on this line needs a ne
     a log panel and a breakpoint in use, and a snapshot's PNG carries its banner. The smoke
     mode's p90 was 1.22 and 1.78 ms running. If it fails your look, a G1.12 fixes it on top of
     `reboot`'s line.
+  - *The demo's second pass's map* (added at this merge; what to look for is under "The demo's
+    second pass: the fix round and the write-up" in "Where things stand", and in
+    SECOND-PASS.md §2–§5):
+
+    ```powershell
+    $env:CARGO_TARGET_DIR = 'D:/rustyecon-targets/d2-hand'
+    cargo run --release -p rustyecon-gui -- tapes/demo-gb-v2.ron
+    ```
+
+    It opens paused at 1750 on "Wage in land", and Space runs it to 1901 in about 28 s. If it
+    fails your look, a D2.8 fixes it on top of `reboot`'s line (D2.7 is the re-check's).
 - **Decisions 179–190** (unit 1g's, track 1g), open to veto. The two that bind Phase 2 are
   ruled by Claude at P2.3.0: 179, decision 67 reworded (D-G1), as 389, and 186, E2 enforced and
   G1 not approximated, as 390. 180 (D-G10) amends 71 and keeps every result of 1c bit for bit;
@@ -4085,6 +4619,14 @@ the dated amendments of 397–399 above. A later session on this line needs a ne
   wave's scorer is committed before it starts (310, 311). `phase2-plants` (P2.2b.0–P2.2b.4)
   starts at `8b07c8a`, where the local `reboot` and `phase2-loops` stand, and lands by a
   fast-forward on your word.
+- **Decisions 320–342** (D2.0's, the demo's second pass designed, branch `demo-v2`), open to veto.
+  The ones that shape later work: D-G12 taken, stage v2a.1 on every county and v2a.1b named the
+  next pass (320); the history mapped so each date's oracle is v1's (323); C2g and the clock held
+  (324); funding refused, never adjusted (326); one set of county tables with a `--stage` (327);
+  the oracle lenses brought forward in worldgen (331); the lag shown with its cause (334); the
+  battery and its registration (335–337). `demo-v2` starts at `f7d1eae`, `reboot`'s head.
+  *At this merge:* the build's decisions 343–359 (D2.1–D2.4b, with D2.5's amendments) are open to
+  veto too; next step 8 asks for your rulings on 320–359.
 - **Landing the branches.** `phase0-s2`, `phase1`'s P1.2–P1.7, the `g0` merge (`708167f`),
   `phase2-markets` (P2.1.1–P2.1.4, `b2a55e3`), the `demo-world` merge (`2398b6a`) and the
   `phase1` merge (`16eb728`) are in the local `reboot` by fast-forwards. `oracle-goods`
@@ -4092,7 +4634,12 @@ the dated amendments of 397–399 above. A later session on this line needs a ne
   took the merge by a fast-forward. Nothing is renumbered: the two tracks numbered apart
   (179–199 and O31–O35; 200–219 and O36–O40). `phase2-goods` (P2.2.1–P2.2.4, `d636b76` to
   `401f7b1`) started at `92ba68e` and is in the local `reboot` by a fast-forward too: `reboot`
-  is at `401f7b1` (amended at L0.9; this line said it would land on your word).
+  is at `401f7b1` (amended at L0.9; this line said it would land on your word). *At this merge:*
+  `phase2-plants` (P2.2b.0–P2.2b.4) and `phase2-proper` (P2.3.0–P2.3.17) came into the local
+  `reboot` by fast-forwards, and it is at `a483ed0`. `demo-v2` (D2.0–D2.7, `8fee8e3`), which
+  started at `f7d1eae` beside `phase2-proper`, is merged on `merge-d2` from `reboot` at
+  `a483ed0`, and `reboot` takes the merge by a fast-forward, on your word. `origin/reboot` is at
+  `401f7b1`.
 - **Pushing `reboot`** after `phase2-loops` has landed. `reboot` is at `401f7b1` locally and on
   `origin` (with session 2, Phase 1, G0, the many-markets probe, the demo world, unit 1g, G1 and
   the stocks probe; amended at L0.9, since this line said `origin/reboot` was at `cf3c0ff`).
@@ -4345,8 +4892,21 @@ when its fix is reverted, checked by mutation (the review's own mutants among th
   The re-check also ran histories at the guard's edge (N and T ×4.42 over 20 years, η ×0.374
   over 10 years, a yearly square wave, a combination). Each compiled and ran with no dead tick
   and no shortfall, so the compiler's bounds hold what they were set for.
+  *Closed at D2.5 (2026-09-30, branch `demo-v2`):* G1.6 took the mutants and the credit, D2.1 the
+  clock, Cornwall and the ranked table's values (O39), and D2.5 the card's header, which O39 had
+  dropped without closing (the map review's first major): the card and the lens's description now
+  scroll above the ranked table, and the card's lines wrap to the sidebar
+  (`the_v2_sidebar_and_card_are_whole_at_the_apps_window_sizes`, the whole app at 1,024 × 768 and
+  1,280 × 800). Nothing of O26 is left.
 - **O27. The demo's second pass: goods, machine types and carriers** (WORLD.md §7; decision
-  126). The tables reserve their columns (`categories`, `machine_types` and `carriers` in
+  126). *Outcome at D2.6 (2026-09-30, branch `demo-v2`):* the second pass is built as the goods
+  chain's stage v2a.1 on every county, not as the plan below (D-G12 taken, decision 320): the
+  machine type is a durable horse bred from goods and fed on fodder, GO at all 558 county-dates
+  (docs/demo/SECOND-PASS.md). Categories (item 1) come as stage v2a.2 after O42; machine types
+  beyond the horse (item 2) as v2a.4; the battery and the long run (item 4) ran for v2a.1; carriers
+  (item 6) stay later. The plan as first written:
+
+  The tables reserve their columns (`categories`, `machine_types` and `carriers` in
   `regions.csv`), and the compiler refuses any other value in them until then. The
   many-markets probe built the many-market roles: basket providers and basket workers buying
   many items, category desks and type desks. They are GO for loop-free economies at 52 ticks a
@@ -4372,6 +4932,10 @@ when its fix is reverted, checked by mutation (the review's own mutants among th
      (Phases 4 and 9) and an oracle with trade. So they switch on gradually from zero
      capacity, and the railway ramps on b come out as they go in. The map then draws flows on
      channels (G4, G9).
+
+  *Amended at D2.0 (2026-09-30):* items 1–3 and 5 give way to GOODS-CHAIN's chain of goods,
+  stage by stage from v2a.1 (D-G12 taken, decision 320; docs/demo/WORLD-V2.md); items 4 and 6
+  stand. Categories return at v2a.2, machine types as goods at v2a.4.
 
 - **O28. What the re-checks of 1d–1f left** (recorded, not fixed: the bounded verification ends
   at the re-check). In each case the re-check found the oracle's results right; what is missing
@@ -4425,7 +4989,8 @@ when its fix is reverted, checked by mutation (the review's own mutants among th
   and a builder in worldgen or the probe's generator, which converts with `Clock::fraction`,
   `Clock::compound` and `Clock::ticks` (h4 checks the three against the goldens) and takes D-G8's
   J (J_b under M1, J_b + 1 under M3). With the goods chain's engine work (next step 6) or the
-  demo's second pass (O27).
+  demo's second pass (O27). *For rule A, designed at D2.0* (WORLD-V2 §9.2; decision 329): a
+  `worldgen::chain` held to `probe::horses::Instance::{rule_a, chain}` bit for bit.
 - **O33. What O28 still leaves** (after h8). 1d: the edge's κ bracket started at 0 rather than ζ
   (by reading, the same root, and only the bisection's step count would differ), a tie edge's
   share one double up (a change in the last bit of σ), Lemma B.1's flag without its shortage check (equivalent: a short
@@ -4519,7 +5084,16 @@ O36–O40 are G1's (branch `g1`), numbered after O30 and apart from track 1g's O
   the ranked table's value column is cut under a long lens name. The third, the health chip
   wrapped on a narrow window, is closed: G1.9 keeps a chip whole, and G1.11's toolbar test
   opens the demo world at 1,600 and 1,024 points, the chip in one or two lines. The demo's next
-  pass (O27) takes the rest.
+  pass (O27) takes the rest. *Designed at D2.0* (WORLD-V2 §10; decision 338): the clock refused
+  off 52 in v1 and v2, the fitted view fitted clear of the legend's and the credit's rects, the
+  county column clipped so the value column stays whole; each with a test, at D2.1.
+  *Closed at D2.1* (2026-09-30; decisions 343, 344): the compiler refuses a clock other than 52
+  (`the_compiler_refuses_bad_tables`, at 12 and 4 a year); the fitted view leaves the legend and
+  the credit clear (`the_fitted_view_leaves_every_county_clear`); the ranked values are painted
+  whole (`the_ranked_values_are_painted_whole`). Each test fails with its fix undone. *Amended at
+  D2.5:* O39 had dropped O26's card note; the map review found the card cut at the app's sizes,
+  and D2.5 closes it (O26). The fitted view also refits after a resize now, and a ranked value is
+  one line (decisions 343, 344, amended).
 - **O40. What no headless test reaches** (decisions 206, 213). A snapshot's picture comes from
   the renderer, which kittest's harness does not have; the test hands the app a picture. The
   lab's sweeps of the heavier units (1e and 1f scan their paths) run on the UI thread and can
@@ -4541,7 +5115,13 @@ O41–O46 are HORSES-SPEC §9's, each with what the run found.
   nesting on one segment (P2.0's `assign_ex_post`) and a mirror.
 - **O43. v1's b × 2 is unfunded on the demo's base county** (provider baskets −0.8026), so F5 and
   F6 ran 91 runs, not 93. Demo v1's check (WORLD.md §3.3) ran the probe's battery with b × 2 on
-  every county without checking funding; the demo's second pass must.
+  every county without checking funding; the demo's second pass must. *Checked at D2.0*
+  (WORLD-V2 §4; decision 326), with 1g on all 93 counties: every genesis and step date is funded
+  (least 0.119, Surrey 1834-04), and so are b × 1.1, × 0.9 and × 0.5 at all 558 county-dates; b ×
+  2 is funded at 241 of 558. Unfunded targets are dropped from the battery and named. *Closed
+  at D2.4b (2026-09-30):* the engine's battery ran exactly the funded targets, 482 b × 2 runs at
+  the 241 funded county-dates, and dropped and named the 634 unfunded ones; every run converged.
+  The compiler refuses an unfunded date with its county and date (decision 326).
 - **O44. Slow makers with a fodder market.** The maker from bought inputs (a 0.005, ω 1, δ 4%) is
   near neutral once fodder is a market good (0.999986 a tick at b × 2 in the mirror). P8 diverges
   as registered, and its base kick set fails its tail bar at 40,000 ticks (1.4e-3, g 0.983 a
@@ -4794,6 +5374,96 @@ O79 on are P2.2b.4's ([docs/probe/LOOPS.md](docs/probe/LOOPS.md); `docs/probe/LO
   beside 353–3,047 idle horse-market ticks, and a frozen price, until the fidelity review. A
   later registration or report that scores dead ticks should print the machine market's idle
   ticks, its no-order ticks and the maker's lowest coin in the same table.
+
+O81 on are D2.0's ([docs/demo/WORLD-V2.md](docs/demo/WORLD-V2.md) §14), in this branch's range
+O81–O94.
+
+- **O81. Capital's lag over the demo's history** (D-G14; WORLD-V2 §6). In the mirror, under rule
+  A at C2g, the median county's median gap to its moving equilibrium is D̂ 117 and Lanarkshire's
+  383, against 28 for the flow county at the same dials and 11 for v1. The herd runs 25–30% short
+  in the coal and cotton counties for decades (0.72 at Glamorgan in 1863): a capacity desk's
+  target scales with its coin, which grows only as the horse-day's scarcity rent (up to 23%) is
+  kept, while v1's history grows output by up to 3.3% a year over a decade there. Neither land's
+  rate at 1.3 nor s_K at 4δ shrinks it. Entry (Phase 3) is the candidate fix; until then the map
+  shows it (decision 334). *Measured on the engine at D2.4b:* the mirror's to rounding. Read
+  every tick, the herd falls to 0.717 of its equilibrium (Glamorgan 1863), 0.725 (Lanarkshire
+  1850), 0.728 (Durham 1863), 0.743 (Renfrewshire 1779; Lancashire 1851); 20 of the 26 coal and
+  textile counties are still more than 5% short in 1901, and no Highland county falls below 0.9.
+  The battery's time to tolerance is on the history's own scale (median 58 years, largest 109),
+  and the median county runs about 11 times further from its equilibrium than v1's.
+- **O82. Transfer shortfalls in six thin-funded counties** (WORLD-V2 §6): Surrey 5,593 ticks,
+  Armagh 3,619, Caernarfonshire 2,320, Sussex 1,479, Down 1,115, Tyrone 376, in the mirror's long
+  run, where v1 had none. *Measured on the engine at D2.4b:* the same, county for county; in
+  Surrey the shortfall ticks are 71% of the history, with 10.4% of the transfer unpaid on them
+  on average. The v2 lens table's `shortfall` note names the six (D2.5).
+- **O83. Stage v2a.1b in the demo.** Each county needs a funded rule-B point and its own mirror
+  registration (decision 308); chain8 was funded only by moving N. The next pass searches the 93
+  counties for them. *At D2.6:* this is the next pass (next step 8; SECOND-PASS.md §8).
+- **O84. Thin b × 2 targets.** 39 of the 241 funded b × 2 targets have margins under 0.05 baskets
+  per unit of N (16 under 0.02). They run in the battery, and their shortfalls are reported.
+- **O85. The GUI at v2's size.** About 25 s to 1901, about 9,200 series (0.58 GB) and a frame p90
+  near 8 ms are estimates from today's measurements (v1 16.1 s; one county's tick 1.57 times
+  dearer); D2.3 measures them. *Measured at D2.3* (Windows, release, a machine shared with
+  another branch's builds): 27.6 and 27.9 s to 1901, 281–284 ticks a second, frame p90 10.1–10.3
+  ms running; v1 on the same build and load 16.5 s and p90 9.8–9.9 ms. So under that load the
+  frame's p90 passes G4's 8 ms bar for both, and v2 costs 1.68 times v1 a tick. The series' count
+  and the store's memory are not yet measured. *Corrected at D2.5* (the map review's seventh
+  minor): the sentence above is wrong. G4's bar is a p90 under 8 ms while a run streams
+  (GUI.md), and 10.1–10.3 ms and 9.8–9.9 ms are above it, for both tapes, on that machine and
+  load. The rest is now measured (the map review, WSL, the lean catalogue): the record at 1901
+  holds 9,056 series, and a test process holding that store alone used 822 MB. The whole app
+  headless with its speed cap at 520 ticks a second reached 1901 in 19–29 s in 8 of 10 runs, with
+  a UI time a frame of p90 4–9 ms, on a machine loaded 55–75 on 48 threads.
+- **O86. `oracle_gap`'s cost.** 25,480 solves of 1g over a run; where they run and how long they
+  take is D2.3's to measure. *Measured at D2.3b* (WSL, release; decision 352): one 1g solve 196
+  µs; the gap lens's first map at a report tick 19.2 ms for 93 counties on the frame's thread, 1.2
+  ms from the memo; a run that visits every county date solves for about 5 s in all. *Amended at
+  D2.5* (the map review's eighth minor): the 5 s come in bursts. A map of the gap lens at each of
+  the 7,852 report ticks in order, cold memo, took p50 1.86 ms, p90 5.59, p99 27.0 and at most
+  44.1 ms (tick 7,462); 688 ticks were over 8 ms (WSL, a machine under heavy load). Scrubbing the
+  cursor through the history on an oracle lens therefore hitches the frame. Not fixed in this
+  pass: decision 352 stands, and its alternative, solving on the run's worker as params change
+  and sending the points with each batch, or a prefetch of all 25,573 county-date points on a
+  background thread at load (about 5 s), is the fix when the frame's time is G4's.
+- **O87. The horse stands for engines.** In 1850 Lancashire the one durable good is still called
+  "horses"; v2a.4's engine good and G3's recipe choice replace it.
+- **O88. The history's pace is v1's.** It was bounded for a flow machine (WORLD.md §4.4), and
+  nothing in it was re-dated for capital's time.
+
+O89 on are the build's (D2.1 onward), in this branch's range.
+
+- **O89. A lens over the run is not charted** (WORLD-V2 §8 item 4). The selected county's card
+  plots its recorded series (the herd, its target, the maker's stock, prices), not a lens's value
+  over time, so the herd's catch-up on `horses.vs.oracle` is read off the map date by date. G2's
+  plots take a lens series when `crates/observe` exists.
+- **O90. E0 misses at b × 2 after the maker withholds** (D2.4; registration-A1.md §A1.3). At the
+  five E0 counties' funded b × 2 targets, the engine and the mirror agree to 1e-13 until the
+  maker's offer becomes a small difference (its finished stock less its cover band, 1/24 of it at
+  Lancashire 1750). The market then clears the offer one tick and the order the next, and the gap
+  grows about 1.5 times a tick to 8.5e-2 on the horse market's volume and 7e-3 on the other
+  observables. That is beyond the mirror's own ulp spread (6.2e-4) but within its spread when it
+  is moved 25 ulps before the flip-flop. It is O55's chatter seen from the side of rounding. It
+  does not stop a run; E3 scores those runs as registered. *Scored at D2.4b:* every one of those
+  county-dates is GO, and in the battery's heads × 2 runs, where the same flip-flop runs, the
+  engine's idle, no-order and 5% ticks differ from the mirror's by 1–4 ticks in 5, 18 and 16
+  runs; none is scored.
+- **O91. The kick set's g reads the kick's early decay** (D2.4b; results/README.md). At the demo's
+  county-dates the fitted g (P2.2a's reading, decision 293) is 0.856–0.876 a year, against the
+  mirror's slowest local mode, 0.920–0.923 (1 − δ). A 1e-9 kick meets the rounding floor about 77
+  years after it, while faster modes still lead. E4 scores decay only, so nothing fails. A later
+  registration that predicts g must predict the harness's reading, or kick harder.
+- **O92. The harness reads no highest horse price for P2.2a's instances** (D2.4b). `pk_high` is the
+  loop step's column (decision 292) and is `-` here, so registration §3.3's highest price (7.65 of
+  target) has no engine value. Nothing scored reads it.
+- **O93. The harness's price lows include withheld ticks** (D2.5; the world review's second
+  minor). `pk_low` and the maker's lowest markup are taken over every tick, so the registration's
+  and the engine's "lowest horse price" (0.200 of target, West Riding 1900, J_b × 0.5) and "lowest
+  markup" (0.212) are posted prices on ticks when the maker withheld and no horse traded, which the
+  map's horse-price lens does not show (decision 333). Rerun with every tick written, that West
+  Riding run's lowest price on a tick with a trade is 0.2188 and its lowest markup there 0.2501.
+  Nothing scored reads them, and the docs now say "posted". The next registration that predicts a
+  price low (v2a.1b's, O83) reads the low over traded ticks beside the posted one, which needs a
+  readout in the harness that a registration names first.
 
 O95 on are Phase 2 proper's (P2.3.0, branch `phase2-proper`; this line's range is O95–O109).
 
@@ -5089,6 +5759,65 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
    home-node trading (Phases 4 and 9) and an oracle with trade exist. They switch on from zero
    capacity, and the map then draws flows on channels.
 
+   *Amended at D2.0 (2026-09-30, branch `demo-v2`):* **designed**
+   ([docs/demo/WORLD-V2.md](docs/demo/WORLD-V2.md); decisions 320–342). D-G12 is taken: stage
+   v2a.1 on every county, the many-market plan set aside. Its funding is checked on all 93
+   counties with 1g, and the mirror's predictions for its battery and long run are registered
+   ([docs/demo/v2/registration.md](docs/demo/v2/registration.md)) before any code of the pass.
+   The build, in order, each code step with both gates green on both machines:
+   1. **D2.1**, O39's remainder on v1: the clock refused off 52, the fitted view clear of the
+      legend and credit, the ranked table's values whole.
+   2. **D2.2**, the stage in the compiler (`--stage v2a1`), `tapes/demo-gb-v2.ron` and its pin,
+      then E0's trace diff before any scored run.
+   3. **D2.3**, the lenses, `oracle_gap` and the map on the v2 tape.
+   4. **D2.4**, the battery (51,260 runs at 558 county-dates) and the long run on the engine,
+      scored against the registration.
+   5. **D2.5**, one bounded verification, one fix round, one re-check.
+   6. **D2.6**, the report and the close, and your look at the map.
+
+   Stage v2a.1b joins a county only through that county's own registration (O83).
+
+   *Amended at D2.3b (2026-09-30):* D2.1, D2.2 and D2.3 are **done** (commits `ca7ef45`,
+   `b4f69df`, `27b298d`), and D2.3b adds the flow path's nesting test and the screenshots.
+   `tapes/demo-gb-v2.ron` (14.8 MB, 33,332 events) is pinned at `0x45b7c1201f8ae633`, stream
+   `0xacb3ca2bee63b3bf`. **Next: D2.4**, the battery (51,260 runs at 558 county-dates) with the
+   compiler's `--instances` and the harness's `--counties`, E0's trace diff before any scored
+   run, and `demo_v2_runs_to_1901` scored against the registration (§11.5), its scorer
+   committed before the first job (decision 311).
+
+   *Amended at D2.4b (2026-09-30):* D2.4 is **done and GO** (commits `8e8781f` and D2.4b).
+   Amendment A1 set L per county-date before any scored run. All 21 scored lines hold, and no
+   refutation criterion is hit. All 558 county-dates are GO. The engine is the mirror to the tick
+   in the battery and to rounding over the long run
+   ([docs/demo/v2/results/](docs/demo/v2/results/README.md)). **Next: D2.5**, one bounded
+   verification of D2.1–D2.4, one fix round and one re-check; then D2.6, the report and your look
+   at the map. Stage v2a.1b stays the pass after (O83).
+
+   *Rewritten at D2.6 (2026-09-30):* **the second pass is built, GO, verified once and fixed**
+   (D2.1–D2.6 on `demo-v2`; [docs/demo/SECOND-PASS.md](docs/demo/SECOND-PASS.md)). What follows on
+   this line, in order:
+   1. **One re-check of D2.5's fixes**, as D.4's and G1.11's had one: the map review's mutants
+      and D2.5's own (`D:/rustyecon-d2/fix-report/mut/mutate.py`, which undoes each fix in a
+      scratch copy), the sidebar and legend at the app's window sizes, and the corrected
+      disclosures. A fix it finds wrong gets a D2.7.
+   2. **Your look at the new map** (the command is in "Where things stand", D2.5–D2.6), and your
+      rulings on decisions 320–359 (the D2.5 amendments among them). If the map fails your look,
+      a D2.7 fixes it first.
+   3. **The next pass, stage v2a.1b on funded, registered counties** (O83; decision 308). Search
+      the 93 counties for funded rule-B points as FUNDED.md found chain8's (with the loop's own
+      funding margin, not by moving N); register each such county's mirror predictions
+      (P2.2b's frame, CAPACITY's plant on every loop desk, the reservation, each stock's 5% time
+      and idle ticks beside dead ticks, traded-tick price lows beside posted ones, O93) and commit
+      its scorer before its wave (decision 311); then run it. Counties without a funded loop stay
+      on v2a.1.
+   4. **Then stage v2a.2, categories, after O42**: an ex-post category desk (its rule, its nesting
+      on one segment, and a mirror) before grain, food, shelter and care enter the chain as unit
+      1b's categories. Later stages (land classes, minerals and engines, textiles) follow
+      GOODS-CHAIN §5; carriers wait for transport desks and an oracle with trade.
+   5. **Left open on this pass:** capital's lag (O81; its candidate fix is Phase 3's entry rule),
+      the history's pace (O88), a chart of a lens over the run (O89), and the GUI's frame time and
+      the gap lens's solves at this size (O85, O86).
+
 ## File map
 
 ```
@@ -5103,9 +5832,26 @@ docs/TAPE.md             the tape's schema guide
 docs/GUI.md              the GUI's design (A14): stack, architecture, panels, editor, map, roadmap;
                          amended at G0.1, in its two parts, and at G0.2; closed at G0.3; the map
                          and lenses brought forward at D.3–D.5 (branch demo-world); amended at
-                         G1 and after its verification (G1.10, G1.11)
+                         G1 and after its verification (G1.10, G1.11); the second pass's map
+                         (D2.1–D2.5, branch demo-v2)
 docs/demo/WORLD.md       the illustrative demo world: its tables, history, lenses, compiler, run
 docs/demo/*.png          two screenshots of the demo's map, rendered headlessly (D.5)
+docs/demo/WORLD-V2.md    the demo's second pass designed (D2.0): stage v2a.1 on every county,
+                         funding, genesis, the mirror's long run, lenses, compiler, battery;
+                         §16 logs the build (D2.1–D2.5)
+docs/demo/SECOND-PASS.md the second pass's guide (D2.6): the world, how to run and read it, the
+                         horse's price and capital's lag, what the battery and long run found,
+                         and the next pass
+docs/demo/v2/            its registration (D2.0): registration.md, SHA256SUMS and the mirror's
+                         predicted long run, battery, growth and funding (CSV)
+docs/demo/v2/map-*.png  the second pass's map, four chain lenses at four dates (D2.3b; taken
+                         again, lossless, after D2.5's fixes)
+docs/demo/v2/registration-A1.md, lengths.csv, SHA256SUMS-A1
+                         amendment A1: L per county-date, and E0–E2 before the wave (D2.4)
+docs/demo/v2/results/    the battery and the long run on the engine, scored (D2.4, D2.4b):
+                         README.md, the result tables, E0's trace diff, and tools/ (the job
+                         list, gather, the scorer and its self-test, committed before the wave)
+docs/demo/v2/figs/       the results' four plots (D2.4b)
 docs/reboot/             REVIEW.md and ADDENDUM.md, kept as written (links fixed) but for A14 and
                          rulings 5–8 (P0.11); GUI-review-ledger.md, the GUI design's two reviews
 docs/timeline/eras.md    era research for worldgen
@@ -5175,7 +5921,8 @@ crates/certify           criteria, batteries, the kick, the sealed certificate, 
                          Parquet telemetry behind the feature `parquet` (S2.3–S2.5)
 crates/certify/testdata  appb variants from `appb-tape --perturb`: bcycle, freeze, july, buffer16
 crates/worldgen          the atlas's loader (D.1), the demo world's compiler (D.2) and its lens
-                         measures (D.3); Phase 4's research compiler later
+                         measures (D.3); the second pass's stage, rule A's chain and oracle_gap
+                         (D2.2, D2.3); Phase 4's research compiler later
 crates/gui               the GUI (G0.1, G0.2): model/, run/, edit/, vm/, drive/, platform/, ui/,
                          app.rs, the binary rustyecon-gui; its tests run under scripts/gui.sh
                          only (D1); the map pane and lenses since D.3 (ui/map.rs, vm/map.rs);
@@ -5193,7 +5940,10 @@ tapes/horses-<id>.ron    the stocks probe's six worlds (H1–H4, R1a, P7), from 
 tapes/loops-<id>.ron     the loop step's six worlds (LB1–LB3, LW1–LW3), rule B at chain8 with
                          CAPACITY's plants, from 1g's ChainEconomy (P2.2b.1)
 tapes/demo-gb.ron        the illustrative demo world, compiled from worlds/demo-gb (D.2)
+tapes/demo-gb-v2.ron     its second pass, compiled with --stage v2a1 (D2.2)
 worlds/demo-gb/          the demo world's tables and derive.py
+                         and the second pass's machine_types.csv, stage-v2a1.csv and
+                         lenses-v2a1.csv (D2.2, D2.3)
 data/atlas/              the county atlas, gb.atlas.ron, under the ODbL: LICENSE, ATTRIBUTION,
                          README, its build script and pinned venv (D.1)
 criteria/                each tape's dated criteria, registered before its first certified run
@@ -5202,12 +5952,15 @@ data/spine/              the spine's fetch, extract and eyeball scripts, manifes
                          their cache is $SPINE_ROOT or the ignored data/spine/.cache/
 docs/spine/              DATA_NOTES.md and EYEBALL.md, Breakpoint B's pre-look (S5.0)
 scripts/gate.sh          the gate as one script; the GUI excluded, checked once on Linux (D1);
-                         derive.py --check and the demo's long run by name (D.2)
+                         derive.py --check and the demo's long run by name (D.2); the second
+                         pass's pin and scored long run by name (D2.2, D2.4b)
 scripts/gui.sh           the GUI's gate, run at each G-stage (G0.1); diffs the editor's branch
                          tapes against the cli too (G0.2); names 42 tests (G0.3), 55 with the
                          map's and the demo tape's hashes (D.3, D.4), 75 with G1's, 87 after
-                         its verification (G1.11), and runs G1's sweep measurement by name on
-                         Linux
+                         its verification (G1.11), 95 with the second pass's map (D2.1–D2.3),
+                         104 after its verification (D2.5); runs G1's sweep measurement by name
+                         on Linux, and the second pass's lens domains against the engine's run
+                         to 1901 by name (D2.5)
 .github/workflows/ci.yml hosted CI, on every push
 ```
 

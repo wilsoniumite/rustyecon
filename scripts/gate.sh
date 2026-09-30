@@ -28,7 +28,11 @@
 #  10. the demo world (D.2, docs/demo/WORLD.md): derive.py --check when a python 3 is found,
 #      and demo_runs_to_1901 by name, which must run and pass (tapes/demo-gb.ron through the
 #      first tick of 1901, every step fired, every county alive and near its moving oracle
-#      point, its recorded hashes);
+#      point, its recorded hashes); and its second pass (D2.2, docs/demo/WORLD-V2.md):
+#      demo_v2_pin by name (tapes/demo-gb-v2.ron through the first tick of 1901, every event
+#      fired, the ledger closed every tick, its recorded hashes), and demo_v2_runs_to_1901 by
+#      name (D2.4: the same run scored against each county's moving oracle point, no dead tick
+#      in any county);
 #  11. telemetry written twice through the binary, from two processes: the Parquet files, and
 #      the manifests that pin them, must be byte-identical.
 # Then, recorded and never gated: on Linux, one cargo check of rustyecon-gui in its own target
@@ -211,6 +215,32 @@ out="$(cargo test --locked --release -p rustyecon-worldgen --test demo \
 printf '%s\n' "$out" | grep -v '^county\.'
 if ! grep -q '^test demo_runs_to_1901 \.\.\. ok$' <<<"$out"; then
     echo "gate: demo_runs_to_1901 did not run" >&2
+    exit 1
+fi
+# The second pass (D2.2, docs/demo/WORLD-V2.md): tapes/demo-gb-v2.ron is the compiler's output
+# with --stage v2a1 (demo_v2_tape_is_its_compilers_output, in the test step), and its pin by
+# name: through the first tick of 1901, every event fired, the ledger closed, its hashes.
+out="$(cargo test --locked --release -p rustyecon-worldgen --test demo_v2 \
+    -- --ignored --exact demo_v2_pin --show-output 2>&1)" || {
+    printf '%s\n' "$out"
+    exit 1
+}
+printf '%s\n' "$out"
+if ! grep -q '^test demo_v2_pin \.\.\. ok$' <<<"$out"; then
+    echo "gate: demo_v2_pin did not run" >&2
+    exit 1
+fi
+# Its long run scored (D2.4, WORLD-V2 §11.4; decision 358): the same run against each county's
+# moving oracle point, the registration's refutation (no dead tick in any county), the pin's
+# hashes and the plans' params at the end; the table it writes is docs/demo/v2/results/'s.
+out="$(cargo test --locked --release -p rustyecon-worldgen --test demo_v2 \
+    -- --ignored --exact demo_v2_runs_to_1901 --show-output 2>&1)" || {
+    printf '%s\n' "$out"
+    exit 1
+}
+printf '%s\n' "$out" | grep -v '^county\.'
+if ! grep -q '^test demo_v2_runs_to_1901 \.\.\. ok$' <<<"$out"; then
+    echo "gate: demo_v2_runs_to_1901 did not run" >&2
     exit 1
 fi
 

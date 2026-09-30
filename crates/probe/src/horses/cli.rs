@@ -1,7 +1,9 @@
 //! The options `horses-tape` and `horses` share: the instance, the tick length, the dial set and
 //! changes to it, the rule variants and the one-sided rule, applied to a registered setup in
-//! that order; and a loop instance's (P2.2b), which `horses-tape` takes when `--inst` names one.
+//! that order; a loop instance's (P2.2b), which `horses-tape` takes when `--inst` names one; and
+//! a demo county's (D2.4), `--inst demo:<key>@<year>`, read from `--counties PATH`.
 
+use super::demo;
 use super::loops::{dials as loop_dials, Setup as LoopSetup};
 use super::setup::{dials, Setup};
 use crate::setup::OneSided;
@@ -22,10 +24,13 @@ pub struct SetupArgs {
 /// c2g|c2g13|c2` (default the instance's), `--set KEY=VALUE` (repeatable; `rate.*`, `buffer.*`
 /// and `adjust.*` scale a family, `tilt.*` sets every tilt), `--assign planned|expost`,
 /// `--order target|held`, `--cover yes|none`, `--one-sided saturate|hold`, `--reserve PSI` (the
-/// maker's reservation, L0.4; absent, the tape is P2.2a's). Options in `takes_value` are kept,
-/// with their values, in `rest`.
+/// maker's reservation, L0.4; absent, the tape is P2.2a's), `--counties PATH` (the demo's county
+/// table, D2.4: `--inst demo:<key>@<year>` names one of its rows, whose ψ is the reservation
+/// unless `--reserve` gives another). Options in `takes_value` are kept, with their values, in
+/// `rest`.
 pub fn parse(args: &[String], takes_value: &[&str]) -> Result<SetupArgs, String> {
     let mut inst = "h1".to_string();
+    let mut counties: Option<String> = None;
     let mut tpy = 52;
     let mut dial_set: Option<String> = None;
     let mut sets: Vec<(String, f64)> = Vec::new();
@@ -45,12 +50,13 @@ pub fn parse(args: &[String], takes_value: &[&str]) -> Result<SetupArgs, String>
         };
         match a.as_str() {
             "--inst" | "--tpy" | "--dials" | "--set" | "--one-sided" | "--assign" | "--order"
-            | "--cover" | "--reserve" => {
+            | "--cover" | "--reserve" | "--counties" => {
                 let v = val()?;
                 given.push(a.clone());
                 given.push(v.clone());
                 match a.as_str() {
                     "--inst" => inst = v,
+                    "--counties" => counties = Some(v),
                     "--tpy" => tpy = v.parse().map_err(|_| "--tpy takes a whole number")?,
                     "--dials" => dial_set = Some(v),
                     "--set" => {
@@ -102,7 +108,19 @@ pub fn parse(args: &[String], takes_value: &[&str]) -> Result<SetupArgs, String>
             _ => rest.push(a.clone()),
         }
     }
-    let mut setup = Setup::registered(&inst, tpy)?;
+    let mut setup = if demo::is_demo(&inst) {
+        let path = counties.as_deref().ok_or_else(|| {
+            format!("--inst {inst} needs --counties PATH, the demo's county table")
+        })?;
+        let row = demo::load(path, &inst)?;
+        reserve = reserve.or(Some(row.psi));
+        Setup::of(row.instance, tpy)?
+    } else {
+        if counties.is_some() {
+            return Err(format!("--counties is for a demo instance, not {inst}"));
+        }
+        Setup::registered(&inst, tpy)?
+    };
     if let Some(d) = dial_set {
         setup.dials = dials(&setup.instance, &d)?;
     }

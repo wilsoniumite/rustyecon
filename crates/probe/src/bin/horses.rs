@@ -12,7 +12,11 @@
 //! horses point           [options]  the oracle's point, at the base and each cost target
 //!
 //! setup options (probe::horses::cli):
-//!   --inst ID              h1-h4, f1-f10, r1a, p7 or p8 (default h1)
+//!   --inst ID              h1-h4, f1-f10, r1a, p7 or p8 (default h1); or demo:<key>@<year>,
+//!                          a demo county-date from --counties (D2.4)
+//!   --counties PATH        the demo's county table, written by `rustyecon worldgen
+//!                          worlds/demo-gb --stage v2a1 --instances PATH`; a demo row's ψ is its
+//!                          reservation unless --reserve gives another
 //!   --tpy N                ticks a year (default 52)
 //!   --dials c2g|c2g13|c2   a registered dial set (default the instance's)
 //!   --set KEY=VALUE        set a dial; rate.*, buffer.* and adjust.* scale a family, tilt.* sets
@@ -47,7 +51,7 @@ use probe::horses::kick::{kick_set, slowest_mode, three_t6};
 use probe::horses::loops::{cmd as loops_cmd, Instance as LoopInstance};
 use probe::horses::perturb::{battery, family, Perturbation};
 use probe::horses::probes::{elasticity, open_loop};
-use probe::horses::report::{file_name, g, stats_fields, summary_fields, SUMMARY};
+use probe::horses::report::{envelope_name, file_name, g, stats_fields, summary_fields, SUMMARY};
 use probe::horses::setup::{tape_ron, Setup};
 use probe::protocol::RUN_TICKS;
 use std::io::Write as _;
@@ -346,7 +350,7 @@ fn real_main() -> Result<bool, String> {
             }
             if let Some(dir) = &o.csv {
                 std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
-                let path = dir.join(format!("envelope-{}-{}.tsv", inst.id, file_name(name)));
+                let path = dir.join(envelope_name(&inst.id, name));
                 let body: Vec<String> = env
                     .iter()
                     .enumerate()

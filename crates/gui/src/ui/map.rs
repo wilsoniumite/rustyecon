@@ -12,6 +12,13 @@
 //!   grey; a region with no value is plain grey, and its hover card says why. The atlas's
 //!   credit (data/atlas/ATTRIBUTION, ODbL) sits in the lower right corner, always, with the
 //!   whole attribution on its hover.
+//! - **Fitted clear.** The fitted view leaves the legend's box and the credit's panel clear of
+//!   every region: where a region would fall under them, the map fits the canvas above their
+//!   tops (O39, D2.1). Until someone pans or zooms, a canvas of another size is fitted afresh
+//!   (D2.5). The ranked table's county names are clipped before its values are.
+//! - **The sidebar** (D2.5). Below the selector and the lens's heading, the selected county's
+//!   card and what the lens is scroll together above the ranked table, which keeps at least 40%
+//!   of the height; every line wraps to the sidebar, and a ranked value is one line.
 //! - **Colours.** Neutral scales: viridis for a sequential lens, purple to orange through
 //!   white for a diverging one, and nothing good or bad (U-rules). A value outside the fixed
 //!   domain takes the end colour, and the legend and the card say so.
@@ -32,6 +39,7 @@ use egui::{
 use egui_extras::{Column, TableBuilder};
 use rustyecon_engine::prelude::Key;
 use rustyecon_worldgen::atlas::{Atlas, Country, Part};
+use rustyecon_worldgen::lens as wl;
 use rustyecon_worldgen::tables::Lens;
 use std::collections::BTreeMap;
 
@@ -207,13 +215,50 @@ pub struct View {
 impl View {
     /// The view that fits `bounds` into `rect` with a margin.
     pub fn fit(bounds: [f64; 4], rect: Rect) -> View {
+        View::fit_within(bounds, rect, rect)
+    }
+
+    /// The view on the canvas `rect` that fits `bounds` into `area`, a part of the canvas, with
+    /// a margin: the centre of `bounds` lands on the centre of `area`.
+    pub fn fit_within(bounds: [f64; 4], rect: Rect, area: Rect) -> View {
         let w = (bounds[2] - bounds[0]).max(1.0);
         let h = (bounds[3] - bounds[1]).max(1.0);
-        let scale = (f64::from(rect.width()) / w).min(f64::from(rect.height()) / h) * 0.94;
+        let scale = (f64::from(area.width()) / w).min(f64::from(area.height()) / h) * 0.94;
+        let scale = scale.max(1e-9);
+        let shift = area.center() - rect.center();
         View {
-            centre: [(bounds[0] + bounds[2]) / 2.0, (bounds[1] + bounds[3]) / 2.0],
-            scale: scale.max(1e-9),
+            centre: [
+                (bounds[0] + bounds[2]) / 2.0 - f64::from(shift.x) / scale,
+                (bounds[1] + bounds[3]) / 2.0 + f64::from(shift.y) / scale,
+            ],
+            scale,
         }
+    }
+
+    /// The fitted view of `geo` on the canvas `rect` that leaves the legend's box and the
+    /// credit's panel (`clear`) clear of every region (O39, D2.1): the whole canvas when no
+    /// region's box falls under them, else the canvas above the highest of their tops. On a
+    /// wide canvas the map sits between the two; on a narrower one Cornwall and Devon, at the
+    /// map's south-west corner, would fall under the legend.
+    pub fn fit_clear(geo: &Geo, rect: Rect, clear: &[Rect]) -> View {
+        let whole = View::fit(geo.bounds, rect);
+        if !geo.fills.iter().any(|f| {
+            let r = whole.box_on_screen(rect, f.bbox);
+            clear.iter().any(|c| c.intersects(r))
+        }) {
+            return whole;
+        }
+        let top = clear.iter().map(|c| c.min.y).fold(rect.max.y, f32::min) - 6.0;
+        let area = Rect::from_min_max(rect.min, pos2(rect.max.x, top.max(rect.min.y + 1.0)));
+        View::fit_within(geo.bounds, rect, area)
+    }
+
+    /// A grid box (west, south, east, north) on screen.
+    pub fn box_on_screen(&self, rect: Rect, b: [f64; 4]) -> Rect {
+        Rect::from_two_pos(
+            self.to_screen(rect, [b[0], b[1]]),
+            self.to_screen(rect, [b[2], b[3]]),
+        )
     }
 
     /// A grid point on screen. North is up.
@@ -250,6 +295,9 @@ pub struct DrawnRegion {
     pub fills: u32,
     /// Its label point on screen.
     pub label: Pos2,
+    /// The box its painted triangles cover on screen, read from the frame's mesh: every vertex
+    /// of its span. `None` for a region with no vertex.
+    pub rect: Option<Rect>,
 }
 
 /// A row of the ranked table as the last frame drew it.
@@ -292,6 +340,13 @@ pub struct MapFrame {
     pub credit: Vec<String>,
     /// Where the credit was painted.
     pub credit_rect: Option<Rect>,
+    /// Where the scale bar was painted, its label included (D2.5): clear of the legend and the
+    /// credit.
+    pub scale_bar: Option<Rect>,
+    /// The canvas and the sidebar beside it (D2.5).
+    pub canvas: Option<Rect>,
+    /// The sidebar: the selector, the lens, the selected county and the ranked table.
+    pub sidebar: Option<Rect>,
 }
 
 /// The legend as the last frame drew it.
@@ -307,15 +362,25 @@ pub struct LegendFrame {
     pub head: String,
     /// Its box, once drawn.
     pub rect: Option<Rect>,
+    /// Where along the bar each further named mark was drawn (the maker's reservation ψ on
+    /// the horse's price), from 0 to 1.
+    pub named: Vec<f64>,
+    /// The marks whose values were written under the bar, by value (D2.5): the domain's ends
+    /// always, then the reference, then on a log scale each power of ten, then the rest where
+    /// they fit.
+    pub labelled: Vec<f64>,
 }
 
 /// The map's state between frames.
 pub struct MapState {
     geo: Option<Result<Geo, String>>,
-    lenses: Option<Result<Vec<Lens>, String>>,
+    lenses: Option<(wl::Kind, Result<Vec<Lens>, String>)>,
     /// The lens shown, by key.
     pub lens: String,
     view: Option<View>,
+    /// The canvas the view was last fitted to, while nobody has panned or zoomed since: a
+    /// canvas of another size is then fitted afresh (D2.5). `None` once the view was moved.
+    fit: Option<Rect>,
     /// The region the table's pointer is over, so the map can mark it.
     hot: Option<String>,
     frame: MapFrame,
@@ -331,6 +396,8 @@ struct Painted {
     colours: Vec<Color32>,
     mesh: std::sync::Arc<Mesh>,
     spans: Vec<(usize, usize, usize)>,
+    /// Each region's painted box, from its span's vertices, in the atlas's order.
+    rects: Vec<Option<Rect>>,
     shallows: Vec<Shape>,
     lines: Vec<Shape>,
 }
@@ -342,6 +409,7 @@ impl Default for MapState {
             lenses: None,
             lens: DEFAULT_LENS.to_string(),
             view: None,
+            fit: None,
             hot: None,
             frame: MapFrame::default(),
             painted: None,
@@ -358,25 +426,41 @@ impl MapState {
         g.as_ref().map_err(Clone::clone)
     }
 
-    /// The demo world's lenses, read on first use.
+    /// v1's lenses, read on first use.
     pub fn lenses(&mut self) -> Result<&[Lens], String> {
-        let l = self
-            .lenses
-            .get_or_insert_with(|| rustyecon_worldgen::lens::demo_gb().map_err(|e| e.to_string()));
-        l.as_deref().map_err(Clone::clone)
+        self.lenses_for(wl::V1_TAPE)
     }
 
-    /// Read the atlas and the lenses, once.
+    /// The lenses of the tape named `tape` (`lens::for_tape`: the second pass's for its tape,
+    /// v1's for any other), read when the table changes.
+    pub fn lenses_for(&mut self, tape: &str) -> Result<&[Lens], String> {
+        let kind = wl::Kind::of_tape(tape);
+        if self.lenses.as_ref().map(|(k, _)| *k) != Some(kind) {
+            self.lenses = Some((kind, wl::for_tape(tape).map_err(|e| e.to_string())));
+        }
+        match &self.lenses {
+            Some((_, Ok(l))) => Ok(l),
+            Some((_, Err(e))) => Err(e.clone()),
+            None => Err("no lens table".to_string()),
+        }
+    }
+
+    /// Read the atlas and v1's lenses, once.
     pub fn ready(&mut self) -> Result<(), String> {
+        self.ready_for(wl::V1_TAPE)
+    }
+
+    /// Read the atlas and the lenses of the tape named `tape`.
+    pub fn ready_for(&mut self, tape: &str) -> Result<(), String> {
         self.geo()?;
-        self.lenses()?;
+        self.lenses_for(tape)?;
         Ok(())
     }
 
     /// The atlas and the lenses, once read.
     pub fn parts(&self) -> Option<(&Geo, &[Lens])> {
         match (&self.geo, &self.lenses) {
-            (Some(Ok(g)), Some(Ok(l))) => Some((g, l)),
+            (Some(Ok(g)), Some((_, Ok(l)))) => Some((g, l)),
             _ => None,
         }
     }
@@ -389,6 +473,11 @@ impl MapState {
     /// Fit the map to the canvas on the next frame.
     pub fn fit(&mut self) {
         self.view = None;
+    }
+
+    /// Whether the view is the fitted one, untouched since: the map then follows its canvas.
+    pub fn is_fitted(&self) -> bool {
+        self.view.is_none() || self.fit.is_some()
     }
 }
 
@@ -688,6 +777,8 @@ pub fn show(ui: &mut egui::Ui, vm: &MapVm, state: &mut MapState, out: &mut Vec<I
     let side_w = SIDEBAR.min(full.width() * 0.4);
     let canvas_rect = Rect::from_min_max(full.min, pos2(full.max.x - side_w - 6.0, full.max.y));
     let side = Rect::from_min_max(pos2(full.max.x - side_w, full.min.y), full.max);
+    state.frame.canvas = Some(canvas_rect);
+    state.frame.sidebar = Some(side);
     ui.allocate_rect(full, Sense::hover());
     let mut canvas_ui = ui.new_child(egui::UiBuilder::new().max_rect(canvas_rect));
     canvas(&mut canvas_ui, &geo, vm, lens, state, out);
@@ -712,29 +803,51 @@ fn canvas(
     let resp = ui.interact(rect, ui.id().with("map-canvas"), Sense::click_and_drag());
     let dark = ui.visuals().dark_mode;
     let ink = ink(dark);
-    let mut view = *state
-        .view
-        .get_or_insert_with(|| View::fit(geo.bounds, rect));
+    let p = ui.painter_at(rect);
+    // The legend's box and the credit's panel, which the fitted map leaves clear (O39).
+    let legend_at = legend_box(rect, legend_row(&p));
+    let clear = [legend_at, credit_layout(&p, rect, legend_at, &ink).1];
+    let fitted = || View::fit_clear(geo, rect, &clear);
+    // The fitted view follows its canvas: until someone pans or zooms, a canvas of another size
+    // (a resized window, a moved divider) is fitted afresh, so Cornwall never lies under the
+    // legend after a resize (D2.5; the map review's fifth minor).
+    let refit = match (state.view, state.fit) {
+        (None, _) => true,
+        (Some(_), Some(at)) => at != rect,
+        (Some(_), None) => false,
+    };
+    if refit {
+        state.view = Some(fitted());
+        state.fit = Some(rect);
+    }
+    let mut view = state.view.unwrap_or_else(fitted);
+    let mut moved = false;
     // Pan, zoom about the pointer, fit on a double click.
     if resp.dragged() {
         let d = resp.drag_delta();
         view.centre[0] -= f64::from(d.x) / view.scale;
         view.centre[1] += f64::from(d.y) / view.scale;
-    }
-    if resp.double_clicked() {
-        view = View::fit(geo.bounds, rect);
+        moved |= d != Vec2::ZERO;
     }
     if let Some(p) = resp.hover_pos() {
         let (scroll, zoom) = ui.input(|i| (i.smooth_scroll_delta.y, i.zoom_delta()));
         let factor = f64::from(zoom) * (1.0 + f64::from(scroll) * 0.0015).clamp(0.5, 2.0);
         if (factor - 1.0).abs() > 1e-6 {
-            let fit = View::fit(geo.bounds, rect).scale;
+            let fit = fitted().scale;
             let before = view.to_grid(rect, p);
             view.scale = (view.scale * factor).clamp(fit * 0.5, fit * 60.0);
             let after = view.to_grid(rect, p);
             view.centre[0] += before[0] - after[0];
             view.centre[1] += before[1] - after[1];
+            moved = true;
         }
+    }
+    if moved {
+        state.fit = None;
+    }
+    if resp.double_clicked() {
+        view = fitted();
+        state.fit = Some(rect);
     }
     state.view = Some(view);
     let hovered = resp
@@ -750,7 +863,6 @@ fn canvas(
             }
         }
     }
-    let p = ui.painter_at(rect);
     p.rect_filled(rect, 0.0, ink.sea);
     // Colours, one per region, from the view-model.
     let mut colours = Vec::with_capacity(geo.fills.len());
@@ -782,11 +894,20 @@ fn canvas(
         None => {
             let (shallows, lines) = border_shapes(geo, &view, rect, dark);
             let (mesh, spans) = fill_mesh_spans(geo, &colours, &view, rect);
+            let mut rects: Vec<Option<Rect>> = vec![None; geo.fills.len()];
+            for &(i, first, n) in &spans {
+                for v in &mesh.vertices[first..first + n] {
+                    rects[i]
+                        .get_or_insert(Rect::from_min_max(v.pos, v.pos))
+                        .extend_with(v.pos);
+                }
+            }
             Painted {
                 key,
                 colours: colours.clone(),
                 mesh: std::sync::Arc::new(mesh),
                 spans,
+                rects,
                 shallows,
                 lines,
             }
@@ -805,6 +926,7 @@ fn canvas(
         p.add(s.clone());
     }
     let (mesh, spans) = (std::sync::Arc::clone(&g.mesh), g.spans.clone());
+    let rects = g.rects.clone();
     let lines = g.lines.clone();
     state.painted = Some(g);
     let vertices = mesh.vertices.len();
@@ -892,6 +1014,7 @@ fn canvas(
             hatched: hatched[i],
             fills: fills[i],
             label: at,
+            rect: rects[i],
         });
     }
     overlay_title(&p, rect, lens, &ink);
@@ -904,7 +1027,8 @@ fn canvas(
     } else {
         rect.max.y - 18.0
     };
-    scale_bar(&p, rect, bar_y, &view, &ink);
+    let scale = scale_bar(&p, rect, bar_y, &[legend_rect, credit_rect], &view, &ink);
+    state.frame.scale_bar = Some(scale);
     // The whole attribution and licence, on the credit's hover (data/atlas/ATTRIBUTION).
     ui.interact(credit_rect, ui.id().with("map-credit"), Sense::hover())
         .on_hover_text(rustyecon_worldgen::atlas::ATTRIBUTION);
@@ -965,6 +1089,26 @@ fn canvas(
 /// by side: the lines painted and the panel's rect. Each line wraps to the canvas, so a narrow
 /// one clips none of it (G1, after D.4's re-check, O26), and the panel stays inside the canvas.
 fn credit(p: &egui::Painter, rect: Rect, avoid: Rect, ink: &Ink) -> (Vec<String>, Rect) {
+    let (galleys, r) = credit_layout(p, rect, avoid, ink);
+    p.rect_filled(r, 3.0, ink.panel);
+    let mut y = r.min.y + 3.0;
+    let mut lines = Vec::with_capacity(galleys.len());
+    for g in galleys {
+        let hgt = g.size().y;
+        lines.push(g.text().to_string());
+        p.galley(pos2(r.min.x + 5.0, y), g, ink.weak);
+        y += hgt;
+    }
+    (lines, r)
+}
+
+/// The credit's lines laid out, and the panel [`credit`] paints them on, without painting.
+fn credit_layout(
+    p: &egui::Painter,
+    rect: Rect,
+    avoid: Rect,
+    ink: &Ink,
+) -> (Vec<std::sync::Arc<egui::Galley>>, Rect) {
     let font = FontId::proportional(10.0);
     let wrap = (rect.width() - 18.0).max(40.0);
     let galleys: Vec<_> = rustyecon_worldgen::atlas::CREDIT
@@ -978,16 +1122,7 @@ fn credit(p: &egui::Painter, rect: Rect, avoid: Rect, ink: &Ink) -> (Vec<String>
         let x = avoid.min.x.min(rect.max.x - w - 4.0).max(rect.min.x + 4.0);
         r = Rect::from_min_size(pos2(x, avoid.min.y - h - 4.0), vec2(w, h));
     }
-    p.rect_filled(r, 3.0, ink.panel);
-    let mut y = r.min.y + 3.0;
-    let mut lines = Vec::with_capacity(galleys.len());
-    for g in galleys {
-        let hgt = g.size().y;
-        lines.push(g.text().to_string());
-        p.galley(pos2(r.min.x + 5.0, y), g, ink.weak);
-        y += hgt;
-    }
-    (lines, r)
+    (galleys, r)
 }
 
 fn ordinal(k: usize) -> String {
@@ -1001,7 +1136,9 @@ fn ordinal(k: usize) -> String {
     format!("{k}{suffix}")
 }
 
-/// A rounded panel with lines of text, placed at `at` and kept inside `rect`.
+/// A rounded panel with lines of text, placed at `at` and kept inside `rect`. Each line wraps to
+/// the canvas, so a narrow canvas cuts none of it (D2.5: the title's unit line was cut at a
+/// 1,024 × 768 window).
 fn panel(
     p: &egui::Painter,
     rect: Rect,
@@ -1009,9 +1146,10 @@ fn panel(
     lines: &[(String, FontId, Color32)],
     ink: &Ink,
 ) -> Rect {
+    let wrap = (rect.width() - 28.0).max(60.0);
     let galleys: Vec<_> = lines
         .iter()
-        .map(|(t, f, c)| p.layout_no_wrap(t.clone(), f.clone(), *c))
+        .map(|(t, f, c)| p.layout(t.clone(), f.clone(), *c, wrap))
         .collect();
     let w = galleys.iter().map(|g| g.size().x).fold(0.0, f32::max) + 16.0;
     let h = galleys.iter().map(|g| g.size().y + 2.0).sum::<f32>() + 12.0;
@@ -1068,13 +1206,42 @@ fn legend_bar(rect: Rect) -> f32 {
     (rect.width() * 0.42).clamp(180.0, 380.0)
 }
 
-/// The legend's box on a canvas, in its lower left corner.
-fn legend_box(rect: Rect) -> Rect {
-    let box_h = 74.0;
+/// The legend's font.
+fn legend_font() -> FontId {
+    FontId::proportional(11.0)
+}
+
+/// The height of one row of the legend's text, as the painter lays it out.
+fn legend_row(p: &egui::Painter) -> f32 {
+    p.layout_no_wrap("Hg".to_string(), legend_font(), Color32::WHITE)
+        .size()
+        .y
+}
+
+/// Where the legend's bar starts below the box's top: the head's two rows, then a row for the
+/// named marks (ψ) above the bar (D2.5: the head no longer runs past the box, and ψ is no longer
+/// painted over it).
+fn legend_bar_top(row: f32) -> f32 {
+    5.0 + 2.0 * row + row.max(12.0) + 1.0
+}
+
+/// The legend's box on a canvas, in its lower left corner: the same height for every lens, so
+/// the fitted view does not move when the lens does.
+fn legend_box(rect: Rect, row: f32) -> Rect {
+    let box_h = legend_bar_top(row) + 12.0 + 5.0 + row + 6.0;
     Rect::from_min_size(
         pos2(rect.min.x + 10.0, rect.max.y - box_h - 10.0),
         vec2(legend_bar(rect) + 24.0, box_h),
     )
+}
+
+/// A value on the legend is a power of ten, read from its label (`1`, `10`, `0.01`).
+fn is_decade(label: &str) -> bool {
+    let digits: String = label
+        .chars()
+        .filter(|c| c.is_ascii_digit() && *c != '0')
+        .collect();
+    digits == "1" && !label.contains('e') && !label.starts_with('-')
 }
 
 /// The legend: the scale as a bar with its marks, the unit, the reference and the domain; and
@@ -1082,7 +1249,8 @@ fn legend_box(rect: Rect) -> Rect {
 fn legend(p: &egui::Painter, rect: Rect, lens: &LensVm, ink: &Ink) -> (LegendFrame, Rect) {
     let mut drawn = LegendFrame::default();
     let bar_w = legend_bar(rect);
-    let r = legend_box(rect);
+    let row = legend_row(p);
+    let r = legend_box(rect, row);
     p.rect(
         r,
         6.0,
@@ -1090,7 +1258,7 @@ fn legend(p: &egui::Painter, rect: Rect, lens: &LensVm, ink: &Ink) -> (LegendFra
         Stroke::new(1.0, ink.county),
         StrokeKind::Inside,
     );
-    let bar = Rect::from_min_size(r.min + vec2(12.0, 22.0), vec2(bar_w, 12.0));
+    let bar = Rect::from_min_size(r.min + vec2(12.0, legend_bar_top(row)), vec2(bar_w, 12.0));
     // Where a point of the bar sits on the scale, from 0 to 1, as drawn.
     let along = |x: f32| f64::from((x - bar.min.x) / bar.width());
     let steps = 64;
@@ -1106,28 +1274,62 @@ fn legend(p: &egui::Painter, rect: Rect, lens: &LensVm, ink: &Ink) -> (LegendFra
         drawn.segments.push((f64::from(a), f64::from(b), c));
     }
     p.rect_stroke(bar, 0.0, Stroke::new(1.0, ink.county), StrokeKind::Outside);
-    let font = FontId::proportional(11.0);
-    let mut last_x = f32::NEG_INFINITY;
-    for t in &lens.legend {
+    let font = legend_font();
+    let reference = lens.reference.as_ref().filter(|rf| rf.at.is_some());
+    // Every mark is ticked; its value is written where it fits, by rank (D2.5: the gap lens's 10
+    // and its domain's top went unwritten): the domain's ends always, the reference, each power
+    // of ten on a log scale, then the rest, none within 4 points of another. The ends are
+    // written inward from the bar's ends, so they stay inside the box.
+    let last = lens.legend.len().saturating_sub(1);
+    let mut ranked: Vec<(u8, usize)> = Vec::with_capacity(lens.legend.len());
+    for (k, t) in lens.legend.iter().enumerate() {
         let x = bar.min.x + t.at as f32 * bar.width();
         p.line_segment(
             [pos2(x, bar.max.y), pos2(x, bar.max.y + 4.0)],
             Stroke::new(1.0, ink.text),
         );
         drawn.marks.push((t.value, along(x)));
-        if x - last_x > 34.0 {
-            p.text(
-                pos2(x, bar.max.y + 5.0),
-                Align2::CENTER_TOP,
-                fmt(t.value),
-                font.clone(),
-                ink.text,
-            );
-            last_x = x;
-        }
+        let label = fmt(t.value);
+        let rank = if k == 0 || k == last {
+            0
+        } else if reference.is_some_and(|rf| rf.value == t.value) {
+            1
+        } else if lens.scale.contains("log") && is_decade(&label) {
+            2
+        } else {
+            3
+        };
+        ranked.push((rank, k));
     }
+    ranked.sort();
+    let mut taken: Vec<(f32, f32)> = Vec::new();
+    let mut written: Vec<usize> = Vec::new();
+    for (_, k) in ranked {
+        let t = &lens.legend[k];
+        let x = bar.min.x + t.at as f32 * bar.width();
+        let g = p.layout_no_wrap(fmt(t.value), font.clone(), ink.text);
+        let w = g.size().x;
+        let lo = if k == 0 {
+            x - 1.0
+        } else if k == last {
+            x + 1.0 - w
+        } else {
+            x - w / 2.0
+        };
+        let span = (lo, lo + w);
+        if taken
+            .iter()
+            .any(|&(a, b)| span.0 < b + 4.0 && a < span.1 + 4.0)
+        {
+            continue;
+        }
+        taken.push(span);
+        written.push(k);
+        p.galley(pos2(lo, bar.max.y + 5.0), g, ink.text);
+    }
+    written.sort_unstable();
+    drawn.labelled = written.iter().map(|&k| lens.legend[k].value).collect();
     // The reference is marked, and named in the header, only where it lies on the scale.
-    let reference = lens.reference.as_ref().filter(|rf| rf.at.is_some());
     if let Some(at) = reference.and_then(|rf| rf.at) {
         let x = bar.min.x + at as f32 * bar.width();
         p.line_segment(
@@ -1136,26 +1338,53 @@ fn legend(p: &egui::Painter, rect: Rect, lens: &LensVm, ink: &Ink) -> (LegendFra
         );
         drawn.reference = Some(along(x));
     }
+    // The header names the unit and the reference, whose mark is the bar's heavy line, `|`,
+    // a glyph the bundled font has (D2.5: `▏` was painted as a box). It wraps to the bar's
+    // width, two rows at most, so it never runs past the box.
     let head = match (reference, lens.counts.below + lens.counts.above) {
-        (Some(rf), 0) => format!("{} · ▏{}", lens.unit, rf.text),
-        (Some(rf), n) => format!("{} · ▏{} · {n} beyond the scale", lens.unit, rf.text),
+        (Some(rf), 0) => format!("{} · | {}", lens.unit, rf.text),
+        (Some(rf), n) => format!("{} · | {} · {n} beyond the scale", lens.unit, rf.text),
         (None, 0) => format!("{} · {}", lens.unit, lens.scale),
         (None, n) => format!("{} · {} · {n} beyond the scale", lens.unit, lens.scale),
     };
-    p.text(
-        r.min + vec2(12.0, 5.0),
-        Align2::LEFT_TOP,
-        head.clone(),
-        font,
-        ink.text,
-    );
+    let mut job = egui::text::LayoutJob::simple(head.clone(), font, ink.text, bar_w);
+    job.wrap.max_rows = 2;
+    p.galley(r.min + vec2(12.0, 5.0), p.layout_job(job), ink.text);
+    // Further named marks, in the row between the header and the bar: the maker's
+    // reservation ψ on the horse's price.
+    for m in &lens.marks {
+        if let Some(at) = m.at {
+            let x = bar.min.x + at as f32 * bar.width();
+            p.line_segment(
+                [pos2(x, bar.min.y - 4.0), pos2(x, bar.max.y)],
+                Stroke::new(1.0, ink.text),
+            );
+            p.text(
+                pos2(x + 2.0, bar.min.y - 2.0),
+                Align2::LEFT_BOTTOM,
+                "ψ",
+                FontId::proportional(10.0),
+                ink.text,
+            );
+            drawn.named.push(along(x));
+        }
+    }
     drawn.head = head;
     drawn.rect = Some(r);
     (drawn, r)
 }
 
-/// A scale bar of a round number of kilometres, about 120 points long, its line at `y`.
-fn scale_bar(p: &egui::Painter, rect: Rect, y: f32, view: &View, ink: &Ink) {
+/// A scale bar of a round number of kilometres, about 120 points long, its line at `y`, or
+/// above any of `avoid` it would cross (D2.5: on a narrow canvas it lay over the legend's
+/// labels). Returns what it covers, its label included.
+fn scale_bar(
+    p: &egui::Painter,
+    rect: Rect,
+    y: f32,
+    avoid: &[Rect],
+    view: &View,
+    ink: &Ink,
+) -> Rect {
     let per_km = view.scale * 1000.0;
     let mut km = 1.0;
     for k in [1.0, 2.0, 5.0, 10.0, 20.0, 50.0, 100.0, 200.0, 500.0] {
@@ -1164,7 +1393,30 @@ fn scale_bar(p: &egui::Painter, rect: Rect, y: f32, view: &View, ink: &Ink) {
         }
     }
     let len = (km * per_km) as f32;
-    let a = pos2(rect.max.x - len - 20.0, y - 4.0);
+    let font = FontId::proportional(11.0);
+    let label = p.layout_no_wrap(format!("{km} km"), font, ink.text);
+    let size = label.size();
+    let x0 = rect.max.x - len - 20.0;
+    let covers = |y: f32| {
+        let mid = x0 + len / 2.0;
+        Rect::from_min_max(
+            pos2((x0 - 1.0).min(mid - size.x / 2.0), y - 4.0 - 6.0 - size.y),
+            pos2((x0 + len + 1.0).max(mid + size.x / 2.0), y),
+        )
+    };
+    let mut y = y;
+    for _ in 0..avoid.len() + 1 {
+        match avoid
+            .iter()
+            .filter(|a| a.intersects(covers(y)))
+            .map(|a| a.min.y)
+            .reduce(f32::min)
+        {
+            Some(top) => y = top - 4.0,
+            None => break,
+        }
+    }
+    let a = pos2(x0, y - 4.0);
     let b = a + vec2(len, 0.0);
     p.line_segment([a, b], Stroke::new(2.0, ink.text));
     for q in [a, b] {
@@ -1173,13 +1425,12 @@ fn scale_bar(p: &egui::Painter, rect: Rect, y: f32, view: &View, ink: &Ink) {
             Stroke::new(2.0, ink.text),
         );
     }
-    p.text(
-        a + vec2(len / 2.0, -6.0),
-        Align2::CENTER_BOTTOM,
-        format!("{km} km"),
-        FontId::proportional(11.0),
+    p.galley(
+        a + vec2(len / 2.0 - size.x / 2.0, -6.0 - size.y),
+        label,
         ink.text,
     );
+    covers(y)
 }
 
 fn sidebar(
@@ -1211,37 +1462,45 @@ fn sidebar(
                 .unwrap_or_default(),
             lens.name
         );
-        egui::ComboBox::from_id_salt("map-lens")
-            .selected_text(label)
-            .width(ui.available_width() - 34.0)
-            .height(520.0)
-            .show_ui(ui, |ui| {
-                let mut group = "";
-                for (k, l) in vm.lenses.iter().enumerate() {
-                    if l.group != group {
-                        group = &l.group;
-                        ui.weak(group);
+        // A long lens name is cut short in the button, never widening the sidebar past its
+        // pane (O39, D2.1): the button is laid out in the width left for it, less the next
+        // button's, and the whole name is in the selector and the heading below.
+        let w = (ui.available_width() - 34.0).max(40.0);
+        let h = ui.spacing().interact_size.y;
+        ui.allocate_ui(vec2(w, h), |ui| {
+            egui::ComboBox::from_id_salt("map-lens")
+                .selected_text(label)
+                .truncate()
+                .width(w)
+                .height(520.0)
+                .show_ui(ui, |ui| {
+                    let mut group = "";
+                    for (k, l) in vm.lenses.iter().enumerate() {
+                        if l.group != group {
+                            group = &l.group;
+                            ui.weak(group);
+                        }
+                        let text = format!(
+                            "{}{}",
+                            hotkey(k)
+                                .map(|h| format!("{h}  "))
+                                .unwrap_or_else(|| "    ".to_string()),
+                            l.name
+                        );
+                        let r = ui.add_enabled(
+                            l.unavailable.is_none(),
+                            egui::Button::selectable(l.key == state.lens, text),
+                        );
+                        let r = match &l.unavailable {
+                            Some(why) => r.on_disabled_hover_text(why),
+                            None => r.on_hover_text(format!("{} ({})", l.key, l.unit)),
+                        };
+                        if r.clicked() {
+                            state.lens = l.key.clone();
+                        }
                     }
-                    let text = format!(
-                        "{}{}",
-                        hotkey(k)
-                            .map(|h| format!("{h}  "))
-                            .unwrap_or_else(|| "    ".to_string()),
-                        l.name
-                    );
-                    let r = ui.add_enabled(
-                        l.unavailable.is_none(),
-                        egui::Button::selectable(l.key == state.lens, text),
-                    );
-                    let r = match &l.unavailable {
-                        Some(why) => r.on_disabled_hover_text(why),
-                        None => r.on_hover_text(format!("{} ({})", l.key, l.unit)),
-                    };
-                    if r.clicked() {
-                        state.lens = l.key.clone();
-                    }
-                }
-            });
+                });
+        });
         if ui
             .small_button("▶")
             .on_hover_text("next lens (])")
@@ -1253,6 +1512,37 @@ fn sidebar(
     });
     ui.add_space(4.0);
     ui.label(egui::RichText::new(&lens.name).strong().size(15.0));
+    ui.label(when(lens)).on_hover_text(run_line(lens));
+    if let Some(why) = &lens.unavailable {
+        ui.colored_label(ui.visuals().warn_fg_color, why);
+    }
+    // Below the heading the sidebar has two parts (D2.5; the map review's first major): the
+    // selected county's card and what the lens is, which scroll together and take at most what
+    // leaves the ranked table its rows; and the ranked table, in the rest. Nothing in either is
+    // laid out wider than the sidebar, so nothing is cut at the pane's edge.
+    let avail = ui.available_height();
+    let line = ui.text_style_height(&egui::TextStyle::Body) + 4.0;
+    let share = if vm.county.is_some() { 0.4 } else { 0.5 };
+    let table = (avail * share).min(line * 11.0);
+    let top = (avail - table - 12.0).max(line * 3.0);
+    egui::ScrollArea::vertical()
+        .id_salt("map-side")
+        .max_height(top)
+        .auto_shrink([false, true])
+        .show(ui, |ui| {
+            if let Some(c) = &vm.county {
+                county_card(ui, c, lens, state, out);
+                ui.separator();
+            }
+            about(ui, lens);
+        });
+    ui.separator();
+    ranked(ui, lens, state, out);
+}
+
+/// What the lens is: its measure and unit, its scale and domain, its named marks, its note, the
+/// run its values belong to (U3), and the hatched regions.
+fn about(ui: &mut egui::Ui, lens: &LensVm) {
     ui.weak(format!("{} · {}", lens.measure, lens.unit));
     ui.weak(format!(
         "{} scale, fixed for the run: {} to {}{}",
@@ -1264,10 +1554,12 @@ fn sidebar(
             .map(|r| format!("; reference {}", r.text))
             .unwrap_or_default()
     ));
-    if let Some(why) = &lens.unavailable {
-        ui.colored_label(ui.visuals().warn_fg_color, why);
+    for m in &lens.marks {
+        ui.weak(&m.text);
     }
-    ui.label(when(lens)).on_hover_text(run_line(lens));
+    if !lens.note.is_empty() {
+        ui.small(&lens.note);
+    }
     let [run, ids] = run_lines(lens);
     ui.small(run);
     ui.small(ids);
@@ -1277,12 +1569,6 @@ fn sidebar(
             lens.counts.in_tape, lens.counts.regions
         ));
     }
-    ui.separator();
-    if let Some(c) = &vm.county {
-        county_card(ui, c, lens, state, out);
-        ui.separator();
-    }
-    ranked(ui, lens, state, out);
 }
 
 fn county_card(
@@ -1292,66 +1578,81 @@ fn county_card(
     state: &mut MapState,
     out: &mut Vec<Intent>,
 ) {
-    ui.horizontal(|ui| {
+    // The header wraps rather than running past the pane (O26's card note; D2.5), and its
+    // button is `×`, a glyph the bundled font has (`✕` was painted as a box).
+    ui.horizontal_wrapped(|ui| {
         ui.label(egui::RichText::new(&c.name).strong().size(14.0));
         ui.weak(format!("{} · {}", c.key, c.country));
         if ui
-            .small_button("✕")
+            .small_button("×")
             .on_hover_text("clear the selection")
             .clicked()
         {
             out.push(Intent::Select(None));
         }
     });
+    // Its value under the lens named in the heading just above, which the card leaves out to
+    // keep its lines few on a small window (D2.5).
     let here = lens.regions.iter().find(|r| r.key == c.key);
     if let Some(r) = here {
         match (r.value, &r.why) {
             (Some(v), _) => ui.label(format!(
-                "{}: {}{}",
-                lens.name,
+                "{}{}",
                 value_text(v, &lens.unit, r.beyond),
                 r.rank
                     .map(|k| format!(", {} of {}", ordinal(k), lens.ranked.len()))
                     .unwrap_or_default()
             )),
-            (None, Some(why)) => ui.weak(format!("{}: no value: {why}", lens.name)),
-            (None, None) => ui.weak(format!("{}: no value", lens.name)),
+            (None, Some(why)) => ui.weak(format!("no value: {why}")),
+            (None, None) => ui.weak("no value"),
         };
     }
+    // What carries its gap to its equilibrium, beside the herd's own readings (WORLD-V2 §8,
+    // item 2): a county short of horses shows a positive markup, the rent that buys more.
+    if !c.causes.is_empty() {
+        ui.weak("Its gap, ln(observed / equilibrium):");
+        for cause in &c.causes {
+            ui.label(format!("  {} {:+.3}", cause.observable, cause.gap));
+        }
+        for key in ["horses.vs.oracle", "horses.vs.plan", "hday.markup"] {
+            if let Some(l) = c.lenses.iter().find(|l| l.key == key) {
+                match l.value {
+                    Some(v) => ui.label(format!("  {}: {v:+.3}", l.name)),
+                    None => ui.weak(format!("  {}: {}", l.name, l.why.as_deref().unwrap_or("–"))),
+                };
+            }
+        }
+    }
+    // Each lens and each input on its own line, which wraps to the sidebar: a name and a value
+    // with its unit are wider than the pane together (D2.5: in a grid the values ran past it).
     egui::CollapsingHeader::new("Every lens")
         .id_salt("map-county-lenses")
         .show(ui, |ui| {
-            egui::Grid::new("map-county-lenses-grid")
-                .striped(true)
-                .show(ui, |ui| {
-                    for l in &c.lenses {
-                        if ui.link(&l.name).on_hover_text(&l.key).clicked() {
-                            state.lens = l.key.clone();
-                        }
-                        match l.value {
-                            Some(v) => ui.label(format!("{} {}", fmt(v), l.unit)),
-                            None => ui.weak(l.why.as_deref().unwrap_or("–")),
-                        };
-                        ui.end_row();
+            for l in &c.lenses {
+                ui.horizontal_wrapped(|ui| {
+                    if ui.link(&l.name).on_hover_text(&l.key).clicked() {
+                        state.lens = l.key.clone();
                     }
+                    match l.value {
+                        Some(v) => ui.label(format!("{} {}", fmt(v), l.unit)),
+                        None => ui.weak(l.why.as_deref().unwrap_or("–")),
+                    };
                 });
+            }
         });
     egui::CollapsingHeader::new("Recorded inputs")
         .id_salt("map-county-inputs")
         .show(ui, |ui| {
-            egui::Grid::new("map-county-inputs-grid")
-                .striped(true)
-                .show(ui, |ui| {
-                    for i in &c.inputs {
-                        ui.label(&i.label);
-                        match i.value {
-                            Some(v) => ui.label(format!("{} {}", fmt(v), i.unit)),
-                            None => ui.weak(format!("– {}", i.unit)),
-                        };
-                        plot(ui, &i.series, out);
-                        ui.end_row();
-                    }
+            for i in &c.inputs {
+                ui.horizontal_wrapped(|ui| {
+                    ui.label(&i.label);
+                    match i.value {
+                        Some(v) => ui.label(format!("{} {}", fmt(v), i.unit)),
+                        None => ui.weak(format!("– {}", i.unit)),
+                    };
+                    plot(ui, &i.series, out);
                 });
+            }
         });
 }
 
@@ -1367,10 +1668,10 @@ fn plot(ui: &mut egui::Ui, s: &SeriesKey, out: &mut Vec<Intent>) {
 
 fn ranked(ui: &mut egui::Ui, lens: &LensVm, state: &mut MapState, out: &mut Vec<Intent>) {
     ui.label(format!(
-        "Ranked: {} counties with a value, largest first ({})",
-        lens.ranked.len(),
-        lens.unit
-    ));
+        "Ranked: {} counties, largest first",
+        lens.ranked.len()
+    ))
+    .on_hover_text(format!("the counties with a value, in {}", lens.unit));
     let line = ui.text_style_height(&egui::TextStyle::Body) + 4.0;
     let mut rows = Vec::new();
     let mut hot = None;
@@ -1379,9 +1680,11 @@ fn ranked(ui: &mut egui::Ui, lens: &LensVm, state: &mut MapState, out: &mut Vec<
         .id_salt("map-ranked")
         .striped(true)
         .max_scroll_height(height)
+        // The county's name takes what is left and is clipped there, so the value column keeps
+        // its width on a narrow pane (O39, D2.1): a long name is cut, never a value.
         .column(Column::exact(28.0))
         .column(Column::exact(16.0))
-        .column(Column::remainder().at_least(120.0))
+        .column(Column::remainder().at_least(24.0).clip(true))
         .column(Column::auto().at_least(70.0))
         .header(line, |mut h| {
             for t in ["#", "", "county", "value"] {
@@ -1419,7 +1722,9 @@ fn ranked(ui: &mut egui::Ui, lens: &LensVm, state: &mut MapState, out: &mut Vec<
                         Beyond::Below => " ↓",
                         Beyond::Above => " ↑",
                     };
-                    ui.label(format!("{text}{mark}"))
+                    // One line: a value too wide for the column widens the column rather than
+                    // wrapping (D2.5: `2.22045e-16` was painted over two lines).
+                    ui.add(egui::Label::new(format!("{text}{mark}")).extend())
                         .on_hover_text(format!("{v} {}", lens.unit));
                 });
                 if name.hovered() {
@@ -1468,19 +1773,20 @@ pub fn index(geo: &Geo) -> BTreeMap<String, usize> {
 
 #[cfg(test)]
 mod tests {
-    use super::{credit, ink, legend_box};
+    use super::{credit, ink, legend_box, legend_row};
     use egui::{pos2, vec2, Rect};
 
     /// The credit's panel on a canvas of `w` × 600 beside the legend, as the canvas places it,
     /// with the legend's box and the credit's width.
     fn placed(ctx: &egui::Context, w: f32) -> (Rect, Rect, Rect) {
         let canvas = Rect::from_min_size(pos2(20.0, 30.0), vec2(w, 600.0));
-        let avoid = legend_box(canvas);
         let mut got = None;
         let _ = ctx.run_ui(egui::RawInput::default(), |ui| {
-            got = Some(credit(ui.painter(), canvas, avoid, &ink(false)).1);
+            let avoid = legend_box(canvas, legend_row(ui.painter()));
+            got = Some((avoid, credit(ui.painter(), canvas, avoid, &ink(false)).1));
         });
-        (canvas, avoid, got.expect("the credit was placed"))
+        let (avoid, credit) = got.expect("the credit was placed");
+        (canvas, avoid, credit)
     }
 
     #[test]

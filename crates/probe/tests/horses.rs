@@ -924,3 +924,94 @@ fn harness_reads_the_reservation_the_maker_acts_on() {
     }
     assert_eq!(read[0], read[1]);
 }
+
+#[test]
+fn demo_county_table_reads_back_and_refuses_bad_rows() {
+    // D2.4 (docs/demo/WORLD-V2.md §11.3): a demo county-date is F5's economy on the row's
+    // county, at the row's δ, ω and κ, wet, C2g, with the maker's reservation at the row's ψ.
+    // Written with F5's county, it is F5 with the reservation: the same dials, point and tape
+    // but the reservation's param and the header's name. Bad rows are refused with their line.
+    use probe::horses::demo;
+    let f5 = Instance::named("f5").expect("f5");
+    let c = f5.county;
+    let head = "id\tcounty\tworkers\tland\tspace\teta\tg0\tg1\tk\ta\tlam\tb\tchi_max\tdelta\tomega\tkappa\tpsi";
+    let row = |id: &str, psi: f64| {
+        format!(
+            "{id}\tx\t{:?}\t{:?}\t{:?}\t{:?}\t{:?}\t{:?}\t{:?}\t{:?}\t{:?}\t{:?}\t{:?}\t{:?}\t{:?}\t{:?}\t{psi:?}",
+            c.workers, c.land, c.space, c.eta, c.g0, c.g1, c.k, c.a, c.lam, c.b, c.chi_max,
+            f5.delta, f5.omega, f5.kappa
+        )
+    };
+    let text = format!("# a comment\n{head}\n{}\n", row("county.v1@1750", 0.25));
+    let rows = demo::parse(&text).expect("the table reads");
+    assert_eq!(rows.len(), 1);
+    let r = demo::find(&rows, "demo:county.v1@1750").expect("the row");
+    assert_eq!(r.psi, 0.25);
+    assert_eq!(r.instance.county, c);
+    assert_eq!(r.instance.id, "demo:county.v1@1750");
+    let ours = Setup::of(r.instance.clone(), 52).expect("a setup");
+    let theirs = registered("f5");
+    assert_eq!(ours.dials, theirs.dials);
+    assert_eq!(ours.instance.point(52), theirs.instance.point(52));
+    assert_eq!(
+        (
+            ours.instance.delta,
+            ours.instance.omega,
+            ours.instance.kappa,
+            ours.instance.config
+        ),
+        (f5.delta, f5.omega, f5.kappa, f5.config)
+    );
+    assert_eq!(battery(&ours.instance, 52), battery(&f5, 52));
+    // Refused: a missing column, a ψ out of (0, 1), a repeated id; an unknown id is not found.
+    let no_psi = text.replace("\tpsi", "\tpsx");
+    assert!(demo::parse(&no_psi).unwrap_err().contains("no column psi"));
+    let bad = format!("{head}\n{}\n", row("county.v1@1750", 1.0));
+    assert!(demo::parse(&bad).unwrap_err().contains("line 2"));
+    let twice = format!(
+        "{head}\n{}\n{}\n",
+        row("county.v1@1750", 0.25),
+        row("county.v1@1750", 0.25)
+    );
+    assert!(demo::parse(&twice).unwrap_err().contains("twice"));
+    assert!(demo::find(&rows, "demo:county.v1@1800").is_err());
+    assert!(demo::find(&rows, "county.v1@1750").is_err());
+}
+
+#[test]
+fn kick_envelopes_are_named_as_windows_can_hold_them() {
+    // D2.5 (the world review's fifth minor): a kick set's envelope was written to
+    // `envelope-<instance id>-<run>.tsv`, and a demo instance's id holds a colon
+    // (`demo:county.gla@1850`), which NTFS takes for an alternate data stream: on Windows every
+    // county-date's envelope went into one file named `envelope-demo`. The name now holds no
+    // character Windows refuses in a file name, and distinct instances keep distinct names.
+    use probe::horses::report::envelope_name;
+    let mut seen = std::collections::BTreeSet::new();
+    for id in [
+        "demo:county.gla@1850",
+        "demo:county.gla@1875",
+        "demo:county.lan@1850",
+        "demo:county.v1@1750",
+        "f5",
+        "chain8",
+    ] {
+        let name = envelope_name(id, "hold");
+        assert!(
+            !name.chars().any(
+                |c| ['<', '>', ':', '"', '/', '\\', '|', '?', '*'].contains(&c) || c.is_control()
+            ),
+            "{id}: {name}"
+        );
+        assert!(
+            name.starts_with("envelope-") && name.ends_with("-hold.tsv"),
+            "{name}"
+        );
+        assert!(seen.insert(name.clone()), "{id}: {name} twice");
+    }
+    assert_eq!(
+        envelope_name("demo:county.gla@1850", "hold"),
+        "envelope-demo_county.gla_1850-hold.tsv"
+    );
+    // P2.2a's and P2.2b's ids hold no such character, so their envelopes keep their names.
+    assert_eq!(envelope_name("f5", "b*2"), "envelope-f5-bx2.tsv");
+}

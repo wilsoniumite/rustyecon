@@ -1,0 +1,4 @@
+# D2.4 (label run, 2026-09-30): the wave's inputs outside the repository, fixed before its first job.
+7e1d0f151c1c56bff8395d9d4a40144ee339e88cacc00a58d977c90bc55c68dc  instances.tsv (rustyecon worldgen worlds/demo-gb --stage v2a1 --instances; /root/scratch/d2-runs/instances.tsv)
+f1bb332c98f26ae9bc474f7cc67fd71d754792b502055a029603a69911d0dbef  battery.jsonl (the mirror's, D:/rustyecon-d2/design/out-mirror/; registration.md 1)
+82d68a8eb0a99ad6ac1f57675af9b51517ccd3e277cf932b3025378ca19773e1  jobs.txt (make_jobs.py's output, in this folder)

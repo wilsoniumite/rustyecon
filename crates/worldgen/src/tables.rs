@@ -236,6 +236,16 @@ pub const C2: [(&str, f64); 11] = [
     ("tilt.desk.mach", 0.0),
 ];
 
+/// The one machine type a county may name in `regions.csv` (WORLD-V2 §9.1; decision 327): the
+/// horse, which v1 compiles as its flow machine (rule A's collapse at rho = 0) and stage v2a.1 as a
+/// durable good.
+pub const MACHINE_TYPE: &str = "horse";
+
+/// The ticks a year every world runs at: the probe's registered tick (decisions 121, 237), at
+/// which its battery, its kicks and the demo's long run are evidence. The compiler refuses any
+/// other clock, as it refuses dials off their set (O39, D2.1).
+pub const TICKS_PER_YEAR: u32 = 52;
+
 /// The most `max_step` may be, in log: the design's gradual history, whose largest move at one
 /// date is 0.026, ran with no dead tick and no shortfall (docs/demo/WORLD.md §4.4; O14). A
 /// larger `max_step` would let an abrupt history compile.
@@ -325,7 +335,8 @@ pub struct County {
     pub textile_from: Option<i32>,
     /// Reserved: the county's categories (now `good`).
     pub categories: Vec<String>,
-    /// Reserved: its machine types (now `mach`).
+    /// Its machine types: the one durable good its flow machine stands for, `horse` (decision
+    /// 327). v1 compiles it as its flow machine; a stage as the durable good.
     pub machine_types: Vec<String>,
     /// Reserved: its carriers (now none).
     pub carriers: Vec<String>,
@@ -473,8 +484,14 @@ pub enum LensSource {
     Param,
     /// The actors' states, which the GUI's Extractor records.
     Extractor,
-    /// The oracle, through `crates/observe` (not built yet).
+    /// The actors' states and the params together (the second pass, D2.3).
+    ExtractorParam,
+    /// The oracle, through `crates/observe` (not built yet): v1's oracle lenses, which have no
+    /// value until it is.
     Observe,
+    /// The oracle at the county's params in force through worldgen's `lens::oracle_gap`,
+    /// `crates/observe`'s in waiting (the second pass, D2.3; decision 331).
+    Oracle,
 }
 
 /// A row of `lenses.csv`: one of the map's lenses.
@@ -668,6 +685,19 @@ fn world(text_: &str) -> Result<World, CompileError> {
             ))
         }
     };
+    // O39 (D2.1, 2026-09-30): the clock is held to the probe's registered tick, as the dials are
+    // held to their set. At 4 ticks a year v1's tables compiled, and the run had 46,548 dead
+    // county-ticks (docs/demo/WORLD-V2.md §10; decisions 121, 237).
+    if ticks_per_year != TICKS_PER_YEAR {
+        return Err(CompileError::new(
+            wt,
+            format!(
+                "ticks_per_year is {ticks_per_year}, not {TICKS_PER_YEAR}: the clock is held to \
+                 the probe's registered tick, as the dials are to their set (O39; decisions 121, \
+                 237)"
+            ),
+        ));
+    }
     let (one_sided, _, wo) = take("one_sided", "")?;
     if one_sided != "Saturate" && one_sided != "Hold" {
         return Err(CompileError::new(wo, "one_sided is Saturate or Hold"));
@@ -982,13 +1012,16 @@ fn regions(text_: &str, atlas: &Atlas, w: &World) -> Result<Vec<County>, Compile
         let categories = list(r.get(t.col("categories")));
         let machine_types = list(r.get(t.col("machine_types")));
         let carriers = list(r.get(t.col("carriers")));
-        // Reserved (WORLD.md §7): more categories and machine types wait for the many-market
-        // roles, and carriers for transport desks and an equilibrium with trade.
-        if categories != ["good"] || machine_types != ["mach"] || !carriers.is_empty() {
+        // Reserved (WORLD.md §7): more categories wait for the many-market roles, and carriers
+        // for transport desks and an equilibrium with trade. The one machine type is the horse
+        // (WORLD-V2 §9.1; decision 327): v1 compiles it as its flow machine, rule A's collapse
+        // at rho = 0, and a stage (`--stage v2a1`) as the durable good machine_types.csv defines.
+        if categories != ["good"] || machine_types != [MACHINE_TYPE] || !carriers.is_empty() {
             return Err(CompileError::new(
                 format!("{wr} {key}"),
-                "categories `good`, machine_types `mach` and no carriers: more wait for the \
-                 many-market roles and transport desks (docs/demo/WORLD.md §7)",
+                "categories `good`, machine_types `horse` and no carriers: more wait for the \
+                 many-market roles, the goods chain's later stages and transport desks \
+                 (docs/demo/WORLD.md §7, WORLD-V2.md §9.1)",
             ));
         }
         let why = r.get(t.col("why")).to_string();
@@ -1194,8 +1227,8 @@ const LENS_COLUMNS: [&str; 11] = [
     "note",
 ];
 
-fn lenses(text_: &str) -> Result<Vec<Lens>, CompileError> {
-    let t = Table::parse("lenses.csv", text_, &LENS_COLUMNS)?;
+fn lenses(file: &str, text_: &str) -> Result<Vec<Lens>, CompileError> {
+    let t = Table::parse(file, text_, &LENS_COLUMNS)?;
     let mut keys = BTreeSet::new();
     let mut out = Vec::new();
     for r in &t.rows {
@@ -1255,7 +1288,10 @@ fn lenses(text_: &str) -> Result<Vec<Lens>, CompileError> {
             && match scale {
                 Scale::Sequential => true,
                 Scale::SequentialLog => lo > 0.0,
-                Scale::Diverging => lo < 0.0 && hi > 0.0,
+                // A diverging scale may centre on any reference inside its domain, checked
+                // below: 0 for a log difference, 1 for a ratio such as the horse's price over
+                // its replacement cost (D2.3).
+                Scale::Diverging => true,
             };
         if !ok {
             return Err(CompileError::new(
@@ -1284,12 +1320,15 @@ fn lenses(text_: &str) -> Result<Vec<Lens>, CompileError> {
             "report+param" => LensSource::ReportParam,
             "param" => LensSource::Param,
             "extractor" => LensSource::Extractor,
+            "extractor+param" => LensSource::ExtractorParam,
             "observe" => LensSource::Observe,
+            "oracle" => LensSource::Oracle,
             s => {
                 return Err(CompileError::new(
                     &wr,
                     format!(
-                        "source `{s}` is not report, report+param, param, extractor or observe"
+                        "source `{s}` is not report, report+param, param, extractor, \
+                         extractor+param, observe or oracle"
                     ),
                 ))
             }
@@ -1313,7 +1352,12 @@ fn lenses(text_: &str) -> Result<Vec<Lens>, CompileError> {
 /// Read and check `lenses.csv` alone. The GUI's map reads the bundled table through
 /// [`crate::lens::demo_gb`].
 pub fn parse_lenses(text: &str) -> Result<Vec<Lens>, CompileError> {
-    lenses(text)
+    lenses("lenses.csv", text)
+}
+
+/// Read and check a lens table named `file` (`lenses-v2a1.csv`, D2.3), as [`parse_lenses`].
+pub fn parse_lens_table(file: &str, text: &str) -> Result<Vec<Lens>, CompileError> {
+    lenses(file, text)
 }
 
 /// Read and check every table against the atlas.
@@ -1322,7 +1366,7 @@ pub fn parse(tables: &Tables, atlas: &Atlas) -> Result<Parsed, CompileError> {
     counties(&tables.counties, atlas)?;
     let counties = regions(&tables.regions, atlas, &world)?;
     let ramps = history(&tables.history, &world, &counties)?;
-    let lenses = lenses(&tables.lenses)?;
+    let lenses = lenses("lenses.csv", &tables.lenses)?;
     Ok(Parsed {
         world,
         counties,

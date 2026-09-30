@@ -93,6 +93,18 @@ pub fn file_name(run: &str) -> String {
         .collect()
 }
 
+/// The file a kick set's envelope is written to: `envelope-<instance>-<run>.tsv`, both parts as
+/// file names. An instance id may hold a colon (the demo's `demo:county.gla@1850`), which NTFS
+/// takes for an alternate data stream, so every county-date's envelope would land in one file
+/// named `envelope-demo` on Windows (D2.5; the world review's fifth minor).
+pub fn envelope_name(instance: &str, run: &str) -> String {
+    format!(
+        "envelope-{}-{}.tsv",
+        file_name(&instance.replace(':', "_")),
+        file_name(run)
+    )
+}
+
 /// P2.2a's 50 summary columns of a run: its name, its class and numbers (PROBE-SPEC §4.5), and
 /// §7.11's transient and stock statistics, with the markets in the harness's order.
 pub fn summary_fields(

@@ -216,6 +216,7 @@ fn at_rest(e: &Eq1a, inst: &Instance) -> Readings {
         paid: Some(e.support_cost),
         rationing: vec![(1.0, 1.0)],
         traded: vec![true],
+        chain: None,
     }
 }
 
@@ -395,7 +396,7 @@ fn the_compiler_refuses_bad_tables() {
     // Reserved columns: more categories wait for the many-market roles.
     has(
         &refused("regions.csv", |t| {
-            t.replacen(",good,mach,,", ",good food,mach,,", 1)
+            t.replacen(",good,horse,,", ",good food,horse,,", 1)
         }),
         "WORLD.md §7",
     );
@@ -462,6 +463,16 @@ fn the_compiler_refuses_bad_tables() {
         }),
         "step_log 0.05 is above its ceiling 0.02",
     );
+    // The clock off the probe's registered 52 ticks a year (O39, D2.1): at 12 and at 4 a year
+    // the tables are otherwise sound, so only the clock's check refuses them.
+    for n in [12, 4] {
+        has(
+            &refused("world.csv", |t| {
+                t.replace("ticks_per_year,52,", &format!("ticks_per_year,{n},"))
+            }),
+            &format!("ticks_per_year is {n}, not 52"),
+        );
+    }
     // A dial off the probe's registered C2.
     has(
         &refused("world.csv", |t| {

@@ -24,7 +24,7 @@ use crate::run::{At, Entity, Measure, Origin, SeriesKey, StateField, Store};
 use rustyecon_engine::num;
 use rustyecon_engine::prelude::*;
 use rustyecon_worldgen::atlas::{Atlas, Country};
-use rustyecon_worldgen::lens::{self as wl, CountyKeys, Readings, MARKETS, NO_TRADE_WINDOW};
+use rustyecon_worldgen::lens::{self as wl, CountyKeys, Readings, NO_TRADE_WINDOW};
 use rustyecon_worldgen::tables::{Lens, LensSource, Param, Scale};
 use serde::Serialize;
 
@@ -126,6 +126,10 @@ pub struct LensVm {
     pub unavailable: Option<String>,
     /// The legend's marks.
     pub legend: Vec<TickVm>,
+    /// Further named marks on the legend, read from the run: on the horse's price, the maker's
+    /// reservation ψ (WORLD-V2 §7.2). Empty for every other lens.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub marks: Vec<ReferenceVm>,
     /// The run the values belong to.
     pub run: Option<IdentityVm>,
     /// The report tick the values are read at, once a tick has run.
@@ -199,6 +203,20 @@ pub struct CountyVm {
     pub lenses: Vec<CountyLensVm>,
     /// Its recorded numbers at the report tick, each with its series.
     pub inputs: Vec<InputVm>,
+    /// On the second pass, the three observables furthest from their oracle values at the
+    /// report tick, largest first, each with its signed gap in log (WORLD-V2 §8, item 2). Empty
+    /// on v1, whose oracle waits for `crates/observe`.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub causes: Vec<CauseVm>,
+}
+
+/// One observable that carries a county's gap to its equilibrium.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct CauseVm {
+    /// The observable, as P2.2a's harness names it (`heads.capacity`, `pi.traction`, …).
+    pub observable: String,
+    /// ln(o/o\*) at the report tick.
+    pub gap: f64,
 }
 
 /// The map pane.
@@ -358,11 +376,15 @@ pub fn legend(lens: &Lens) -> Vec<TickVm> {
 /// The selector's group of a lens.
 fn group(key: &str) -> &'static str {
     match key {
+        "since.horses.per.head" => "Horses and fodder",
         k if k.starts_with("since.") => "Change since the record's first tick",
         k if k.starts_with("param.") => "The history's levers",
         k if k.starts_with("gap.") => "Against the oracle",
+        "horses.per.head" | "horses.vs.oracle" | "horses.vs.plan" | "price.fodder"
+        | "price.horse" | "hday.markup" | "land.to.fodder" | "land.to.horses" | "reserve.ticks"
+        | "idle.horse" => "Horses and fodder",
         "wage.baskets" | "wage.goods" | "wage.land" => "Wages",
-        "rent.goods" | "price.good" | "price.mach" => "Prices",
+        "rent.goods" | "price.good" | "price.mach" | "price.hday" => "Prices",
         "share.land" | "share.labour" => "Income",
         "frontier.x" | "participation" | "output.per.head" => "Production",
         "relief.burden" | "shortfall" => "Relief",
@@ -430,12 +452,12 @@ pub fn readings(store: &Store, node: &str, tick: u64) -> Readings {
 /// trailing window, which cost the most to read, are read only for the lenses that use them.
 fn readings_for(store: &Store, node: &str, tick: u64, only: Option<wl::Level>) -> Readings {
     let wants = |l: wl::Level| only.is_none_or(|o| o == l);
-    let k = CountyKeys::of(node);
     let mut x = Readings::default();
     let Some(w) = store.world() else {
         return x;
     };
-    for (i, good) in MARKETS.iter().enumerate() {
+    let k = CountyKeys::of_kind(node, wl::Kind::of_tape(&w.name));
+    for (i, good) in [k.labour, k.land, k.mach, k.good].iter().enumerate() {
         if let Some(m) = market(node, good) {
             x.prices[i] = at(store, &series(Measure::Price, m.clone()), tick);
             x.cleared[i] = at(store, &series(Measure::Cleared, m), tick);
@@ -456,7 +478,7 @@ fn readings_for(store: &Store, node: &str, tick: u64, only: Option<wl::Level>) -
     x.paid = state(&k.provider, StateField::Paid);
     // The tick's rationing lines at the node: every class line the record holds there.
     if let Some(n) = key(node).filter(|_| wants(wl::Level::Rationing)) {
-        for good in MARKETS {
+        for good in k.markets() {
             let Some(g) = key(good) else { continue };
             for c in &w.classes {
                 for side in [SideTag::Buy, SideTag::Sell] {
@@ -475,14 +497,15 @@ fn readings_for(store: &Store, node: &str, tick: u64, only: Option<wl::Level>) -
             }
         }
     }
-    // Whether all four markets traded, in each report tick of the trailing window the record
-    // holds.
+    // Whether every market that must trade traded, in each report tick of the trailing window
+    // the record holds.
+    let lo = tick
+        .saturating_add(1)
+        .saturating_sub(NO_TRADE_WINDOW)
+        .max(store.reports().start);
     if wants(wl::Level::NoTrade) {
-        let lo = tick
-            .saturating_add(1)
-            .saturating_sub(NO_TRADE_WINDOW)
-            .max(store.reports().start);
-        let flags: Option<Vec<&crate::run::Series>> = MARKETS
+        let flags: Option<Vec<&crate::run::Series>> = k
+            .must_trade()
             .iter()
             .map(|g| market(node, g).and_then(|m| store.series(&series(Measure::Trades, m))))
             .collect();
@@ -495,7 +518,94 @@ fn readings_for(store: &Store, node: &str, tick: u64, only: Option<wl::Level>) -
             }
         }
     }
+    if let Some(s) = &k.stage {
+        x.chain = Some(chain_readings(store, w, &k, s, tick, lo, wants));
+    }
     x
+}
+
+/// A county's chain readings on the second pass (WORLD-V2 §7.2): fodder's and the horse's
+/// markets, rule A's coefficients as registered, κ and δ per tick through the engine's own
+/// conversion for their use, the desks' own states, and the trailing window when a lens counts
+/// over it. The GUI gathers them; `rustyecon_worldgen::lens` computes every measure (U6).
+fn chain_readings(
+    store: &Store,
+    w: &World,
+    k: &CountyKeys,
+    s: &wl::StageKeys,
+    tick: u64,
+    lo: u64,
+    wants: impl Fn(wl::Level) -> bool,
+) -> wl::ChainReadings {
+    let node = k.node.as_str();
+    let price = |good: &str, t: u64| {
+        market(node, good).and_then(|m| at(store, &series(Measure::Price, m), t))
+    };
+    let cleared =
+        |good: &str| market(node, good).and_then(|m| at(store, &series(Measure::Cleared, m), tick));
+    let traded = |t: u64| {
+        market(node, s.horse)
+            .and_then(|m| at(store, &series(Measure::Trades, m), t))
+            .map(|f| f > 0.0)
+    };
+    let param =
+        |k: &str, t: u64| key(k).and_then(|p| at(store, &series(Measure::Param, At::Param(p)), t));
+    let per = |k: &str, t: u64| param(k, t).and_then(|v| per_tick(w, k, v));
+    let state = |actor: &str, f: StateField| {
+        key(actor).and_then(|a| at(store, &series(Measure::State(f), At::Actor(a)), tick))
+    };
+    let mut c = wl::ChainReadings {
+        price_fodder: price(s.fodder, tick),
+        price_horse: price(s.horse, tick),
+        cleared_fodder: cleared(s.fodder),
+        cleared_horse: cleared(s.horse),
+        horse_traded: traded(tick),
+        coef: [0, 1, 2, 3].map(|i| per(&s.coef[i], tick)),
+        kappa: per(&s.kappa, tick),
+        delta: per(&s.delta, tick),
+        run_fodder: per(&s.run_fodder, tick),
+        run_labour: per(&s.run_labour, tick),
+        psi: per(&s.psi, tick),
+        used: state(&k.desk_good, StateField::Used),
+        out_good: state(&k.desk_good, StateField::Output),
+        out_hours: state(&s.desk_capacity, StateField::Output),
+        out_horse: state(&s.desk_maker, StateField::Output),
+        out_fodder: state(&s.desk_fodder, StateField::Output),
+        held: state(&s.desk_capacity, StateField::Held),
+        target: state(&s.desk_capacity, StateField::Target),
+        serving: state(&s.desk_maker, StateField::Serving),
+        clock: Some(w.clock),
+        window: Vec::new(),
+    };
+    if wants(wl::Level::ReserveTicks) || wants(wl::Level::IdleHorse) {
+        for t in lo..=tick {
+            let Some(horse_traded) = traded(t) else {
+                continue;
+            };
+            let markup = (|| {
+                Some(wl::MarkupInputs {
+                    w: price(k.labour, t)?,
+                    r: price(k.land, t)?,
+                    pf: price(s.fodder, t)?,
+                    pk: price(s.horse, t)?,
+                    own_hours: per(&s.coef[1], t)?,
+                    kappa: per(&s.kappa, t)?,
+                    delta: per(&s.delta, t)?,
+                    run_fodder: per(&s.run_fodder, t)?,
+                    run_labour: per(&s.run_labour, t)?,
+                    labour: per(&s.coef[2], t)?,
+                    land: per(&s.coef[3], t)?,
+                })
+            })();
+            c.window.push(wl::WindowTick {
+                horse_traded,
+                markup,
+                psi: per(&s.psi, t),
+            });
+        }
+    }
+
+    c
 }
 
 /// The value of `lens` for a county, from its readings at the report tick and at the record's
@@ -603,6 +713,21 @@ pub fn lens(
             .contains(&value)
             .then(|| position(lens, value).0),
     });
+    // The maker's reservation ψ on the horse's price, read from the run's param at the tick.
+    let marks = match (lens.key.as_str(), tick) {
+        ("price.horse", Some(t)) => key("reserve.maker")
+            .and_then(|p| at(store, &series(Measure::Param, At::Param(p)), t))
+            .map(|psi| ReferenceVm {
+                value: psi,
+                text: format!("ψ = {psi}: below it the maker withholds (IDLE-SPEC)"),
+                at: (lens.domain.0..=lens.domain.1)
+                    .contains(&psi)
+                    .then(|| position(lens, psi).0),
+            })
+            .into_iter()
+            .collect(),
+        _ => Vec::new(),
+    };
     Some(LensVm {
         key: lens.key.clone(),
         name: lens.name.clone(),
@@ -616,6 +741,7 @@ pub fn lens(
         note: lens.note.clone(),
         unavailable: unavailable(lens),
         legend: legend(lens),
+        marks,
         run: identity(store, origin),
         tick,
         date: tick.map_or_else(String::new, |t| date(w, t)),
@@ -656,7 +782,24 @@ fn county(
             }
         })
         .collect();
-    let k = CountyKeys::of(node.as_str());
+    // What carries the county's gap to its equilibrium (WORLD-V2 §8, item 2): the three
+    // observables furthest from their oracle values, with their signs, on the second pass.
+    let mut causes: Vec<CauseVm> = now
+        .as_ref()
+        .filter(|_| in_tape)
+        .and_then(|x| wl::oracle_gap::gaps(x).ok())
+        .map(|g| {
+            g.into_iter()
+                .map(|(name, gap)| CauseVm {
+                    observable: name.to_string(),
+                    gap,
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    causes.sort_by(|a, b| b.gap.abs().total_cmp(&a.gap.abs()));
+    causes.truncate(3);
+    let k = CountyKeys::of_kind(node.as_str(), wl::Kind::of_tape(&w.name));
     let mut inputs = Vec::new();
     let mut add = |label: String, s: SeriesKey| {
         inputs.push(InputVm {
@@ -667,7 +810,7 @@ fn county(
         });
     };
     if in_tape {
-        for good in MARKETS {
+        for good in k.markets() {
             if let Some(m) = market(node.as_str(), good) {
                 add(
                     format!("price of {good}"),
@@ -677,7 +820,13 @@ fn county(
             }
         }
         for p in wl::PARAMS_READ {
-            if let Some(pk) = key(k.param(p)) {
+            if let Some(pk) = key(k.param(p)).filter(|pk| w.id_of::<ParamId>(pk.as_str()).is_some())
+            {
+                add(format!("param {pk}"), series(Measure::Param, At::Param(pk)));
+            }
+        }
+        if let Some(s) = &k.stage {
+            for pk in s.coef.iter().filter_map(|c| key(c)) {
                 add(format!("param {pk}"), series(Measure::Param, At::Param(pk)));
             }
         }
@@ -686,6 +835,23 @@ fn county(
                 format!("{a}'s share (1 − x)"),
                 series(Measure::State(StateField::Share), At::Actor(a)),
             );
+        }
+        if let Some(s) = &k.stage {
+            for (actor, f) in [
+                (&s.desk_capacity, StateField::Held),
+                (&s.desk_capacity, StateField::Target),
+                (&s.desk_capacity, StateField::Output),
+                (&s.desk_maker, StateField::Serving),
+                (&s.desk_maker, StateField::Output),
+                (&s.desk_fodder, StateField::Output),
+            ] {
+                if let Some(a) = key(actor) {
+                    add(
+                        format!("{a}'s {}", f.name()),
+                        series(Measure::State(f), At::Actor(a)),
+                    );
+                }
+            }
         }
         for f in [StateField::Due, StateField::Paid] {
             if let Some(a) = key(&k.provider) {
@@ -703,6 +869,7 @@ fn county(
         in_tape,
         lenses,
         inputs,
+        causes,
     })
 }
 
