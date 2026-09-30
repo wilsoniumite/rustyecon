@@ -1,0 +1,4 @@
+C1 tier3s 24 {'CONVERGED': 24} ticks to tol median 379.0 slowest 534 dead ticks worst 50 lowest baskets 0.286 first-year D-hat least 49.7
+C1 tier3sx10 24 {'CONVERGED': 24} ticks to tol median 379.0 slowest 534 dead ticks worst 50 lowest baskets 0.286 first-year D-hat least 49.7
+C2 tier3s 24 {'CONVERGED': 24} ticks to tol median 340.0 slowest 543 dead ticks worst 43 lowest baskets 0.286 first-year D-hat least 63.6
+C2 tier3sx10 24 {'CONVERGED': 24} ticks to tol median 340.0 slowest 543 dead ticks worst 43 lowest baskets 0.286 first-year D-hat least 63.6

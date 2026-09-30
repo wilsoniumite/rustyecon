@@ -1,0 +1,115 @@
+== mode A at L (every observable within 1e-9 in log: PASS)
+   C1 52/yr L 141000: largest gap 2.44e-15 PASS; least fill 0.999999999999997
+   C1 12/yr L 26000: largest gap 1.64e-14 PASS; least fill 0.999999999999987
+   C1 365/yr L 1113000: largest gap 3.44e-15 PASS; least fill 0.999999999999996
+   C2 52/yr L 142000: largest gap 4.44e-16 PASS; least fill 1.000000000000000
+   C2 12/yr L 26000: largest gap 2.82e-14 PASS; least fill 0.999999999999979
+   C2 365/yr L 1116000: largest gap 1.53e-14 PASS; least fill 0.999999999999976
+== C1 battery Tier 1: 30 runs (3 slack) {'CONVERGED': 30}; non-slack converged 27/27
+   ticks to tol median 319 (slowest 444), years 6.1 (8.5); peak D-hat median 71 worst 504; dead ticks median 0 worst 0; worst fill 0.524; lowest baskets/Y* 0.632, ticks with none at most 0
+   transfer short in 1 runs (at most 11 ticks); provider coin low 0.446 of genesis; regimes visited (runs) {'Commons': 0, 'Crowded': 30, 'Enclosed': 4}; switches median 0 max 2; shadow rent/r range [0.168, 1.000]; plots' rented land at most 0.0099
+   lowest cleared/oracle volume per market: labour 0.863, land 0.849, manufactures 0.632, food 0.639, care 0.713, shelter 0.640, mach 0.604
+== C1 battery Tier 2: 42 runs (3 slack) {'CONVERGED': 42}; non-slack converged 39/39
+   ticks to tol median 372 (slowest 557), years 7.2 (10.7); peak D-hat median 311 worst 2184; dead ticks median 0 worst 96; worst fill 0.085; lowest baskets/Y* 0.131, ticks with none at most 0
+   transfer short in 10 runs (at most 94 ticks); provider coin low 0.247 of genesis; regimes visited (runs) {'Commons': 13, 'Crowded': 38, 'Enclosed': 14}; switches median 0 max 6; shadow rent/r range [0.000, 1.000]; plots' rented land at most 0.0572
+   lowest cleared/oracle volume per market: labour 0.213, land 0.544, manufactures 0.131, food 0.150, care 0.143, shelter 0.156, mach 0.113
+== C1 battery Tier 3: 43 runs (3 slack) {'CONVERGED': 43}; non-slack converged 40/40
+   ticks to tol median 508 (slowest 828), years 9.8 (15.9); peak D-hat median 1141 worst inf; dead ticks median 30 worst 183; worst fill 0.000; lowest baskets/Y* 0.000, ticks with none at most 8
+   transfer short in 30 runs (at most 293 ticks); provider coin low 0.047 of genesis; regimes visited (runs) {'Commons': 29, 'Crowded': 39, 'Enclosed': 29}; switches median 3 max 6; shadow rent/r range [0.000, 1.000]; plots' rented land at most 0.2250
+   lowest cleared/oracle volume per market: labour 0.016, land 0.203, manufactures 0.000, food 0.000, care 0.000, shelter 0.000, mach 0.000
+== C1 tier3x10 Tier 3: 43 runs (3 slack) {'CONVERGED': 43}; non-slack converged 40/40
+   ticks to tol median 508 (slowest 828), years 9.8 (15.9); peak D-hat median 1141 worst inf; dead ticks median 30 worst 183; worst fill 0.000; lowest baskets/Y* 0.000, ticks with none at most 8
+   transfer short in 30 runs (at most 293 ticks); provider coin low 0.047 of genesis; regimes visited (runs) {'Commons': 29, 'Crowded': 39, 'Enclosed': 29}; switches median 3 max 6; shadow rent/r range [0.000, 1.000]; plots' rented land at most 0.2250
+   lowest cleared/oracle volume per market: labour 0.016, land 0.203, manufactures 0.000, food 0.000, care 0.000, shelter 0.000, mach 0.000
+== C2 battery Tier 1: 30 runs (3 slack) {'CONVERGED': 30}; non-slack converged 27/27
+   ticks to tol median 315 (slowest 494), years 6.1 (9.5); peak D-hat median 72 worst 419; dead ticks median 0 worst 0; worst fill 0.597; lowest baskets/Y* 0.688, ticks with none at most 0
+   transfer short in 1 runs (at most 2 ticks); provider coin low 0.470 of genesis; regimes visited (runs) {'Commons': 30, 'Crowded': 0, 'Enclosed': 0}; switches median 0 max 0; shadow rent/r range [0.000, 0.000]; plots' rented land at most 0.0000
+   lowest cleared/oracle volume per market: labour 0.759, land 0.875, manufactures 0.688, food 0.697, care 0.724, shelter 0.703, mach 0.658
+== C2 battery Tier 2: 42 runs (3 slack) {'CONVERGED': 38, 'VACUOUS': 4}; non-slack converged 35/39
+   ticks to tol median 360 (slowest 547), years 6.9 (10.5); peak D-hat median 232 worst 1739; dead ticks median 0 worst 79; worst fill 0.134; lowest baskets/Y* 0.205, ticks with none at most 0
+   transfer short in 10 runs (at most 73 ticks); provider coin low 0.278 of genesis; regimes visited (runs) {'Commons': 42, 'Crowded': 0, 'Enclosed': 0}; switches median 0 max 0; shadow rent/r range [0.000, 0.000]; plots' rented land at most 0.0000
+   lowest cleared/oracle volume per market: labour 0.349, land 0.607, manufactures 0.205, food 0.236, care 0.249, shelter 0.244, mach 0.176
+   vacuous: ['exit.To=34.32@genesis', 'exit.To=28.08@genesis', 'exit.To=28.08@dated', 'exit.To=34.32@dated']
+== C2 battery Tier 3: 43 runs (3 slack) {'CONVERGED': 41, 'VACUOUS': 2}; non-slack converged 38/40
+   ticks to tol median 514 (slowest 641), years 9.9 (12.3); peak D-hat median 1068 worst inf; dead ticks median 23 worst 153; worst fill 0.000; lowest baskets/Y* 0.000, ticks with none at most 8
+   transfer short in 27 runs (at most 196 ticks); provider coin low 0.100 of genesis; regimes visited (runs) {'Commons': 41, 'Crowded': 2, 'Enclosed': 0}; switches median 0 max 0; shadow rent/r range [0.000, 0.731]; plots' rented land at most 0.0000
+   lowest cleared/oracle volume per market: labour 0.043, land 0.278, manufactures 0.000, food 0.000, care 0.000, shelter 0.000, mach 0.000
+   vacuous: ['exit.To=62.4@genesis', 'exit.To=62.4@dated']
+== C2 tier3x10 Tier 3: 43 runs (3 slack) {'CONVERGED': 41, 'VACUOUS': 2}; non-slack converged 38/40
+   ticks to tol median 514 (slowest 641), years 9.9 (12.3); peak D-hat median 1068 worst inf; dead ticks median 23 worst 153; worst fill 0.000; lowest baskets/Y* 0.000, ticks with none at most 8
+   transfer short in 27 runs (at most 196 ticks); provider coin low 0.100 of genesis; regimes visited (runs) {'Commons': 41, 'Crowded': 2, 'Enclosed': 0}; switches median 0 max 0; shadow rent/r range [0.000, 0.731]; plots' rented land at most 0.0000
+   lowest cleared/oracle volume per market: labour 0.043, land 0.278, manufactures 0.000, food 0.000, care 0.000, shelter 0.000, mach 0.000
+   vacuous: ['exit.To=62.4@genesis', 'exit.To=62.4@dated']
+== C1/dep1 battery Tier 1: 30 runs (4 slack) {'CONVERGED': 30}; non-slack converged 26/26
+   ticks to tol median 324 (slowest 500), years 6.2 (9.6); peak D-hat median 72 worst 347; dead ticks median 0 worst 0; worst fill 0.668; lowest baskets/Y* 0.720, ticks with none at most 0
+   transfer short in 1 runs (at most 4 ticks); provider coin low 0.465 of genesis; regimes visited (runs) {'Commons': 0, 'Crowded': 0, 'Enclosed': 0}; switches median 0 max 0; shadow rent/r range [inf, 0.000]; plots' rented land at most 0.0000
+   lowest cleared/oracle volume per market: labour 0.746, land 0.898, manufactures 0.751, food 0.751, care 0.737, shelter 0.720, mach 0.735
+== C1/dep1 battery Tier 2: 38 runs (3 slack) {'CONVERGED': 38}; non-slack converged 35/35
+   ticks to tol median 381 (slowest 560), years 7.3 (10.8); peak D-hat median 291 worst 1288; dead ticks median 0 worst 84; worst fill 0.230; lowest baskets/Y* 0.276, ticks with none at most 0
+   transfer short in 10 runs (at most 62 ticks); provider coin low 0.300 of genesis; regimes visited (runs) {'Commons': 0, 'Crowded': 0, 'Enclosed': 0}; switches median 0 max 0; shadow rent/r range [inf, 0.000]; plots' rented land at most 0.0000
+   lowest cleared/oracle volume per market: labour 0.472, land 0.655, manufactures 0.346, food 0.321, care 0.311, shelter 0.276, mach 0.290
+== C1/dep1 battery Tier 3: 39 runs (3 slack) {'CONVERGED': 39}; non-slack converged 36/36
+   ticks to tol median 525 (slowest 654), years 10.1 (12.6); peak D-hat median 1017 worst inf; dead ticks median 30 worst 145; worst fill 0.000; lowest baskets/Y* 0.000, ticks with none at most 3
+   transfer short in 28 runs (at most 151 ticks); provider coin low 0.111 of genesis; regimes visited (runs) {'Commons': 0, 'Crowded': 0, 'Enclosed': 0}; switches median 0 max 0; shadow rent/r range [inf, 0.000]; plots' rented land at most 0.0000
+   lowest cleared/oracle volume per market: labour 0.210, land 0.305, manufactures 0.000, food 0.000, care 0.048, shelter 0.000, mach 0.000
+== families
+   C1 basin: 430 runs {'DIVERGED': 89, 'CONVERGED': 341}; ticks to tol median 511 (slowest 749) = 9.8 years; dead worst 190; lowest baskets/Y* 0.000; not converged 89: ['p[labour]*0.12270440108', 'p[labour]*0.128839621134', 'p[labour]*0.181290285353', 'p[labour]*0.149147966415', 'p[labour]*0.156605364736', 'p[labour]*0.135281602191', 'p[labour]*0.172657414622', 'p[labour]*0.1420456823', 'p[labour]*0.164435632973', 'p[labour]*0.19035479962', 'p[labour]*0.199872539601', 'p[labour]*0.209866166581', 'p[labour]*0.22035947491', 'p[land]*2.52695019538']...
+   C1 enclose: 4 runs {'CONVERGED': 4}; ticks to tol median 323 (slowest 323) = 6.2 years; dead worst 0; lowest baskets/Y* 0.859; not converged 0
+   C1 hold: 115 runs {'CONVERGED': 115}; ticks to tol median 423 (slowest 828) = 8.1 years; dead worst 183; lowest baskets/Y* 0.000; not converged 0
+   C1 joint2: 60 runs {'DIVERGED': 4, 'CONVERGED': 56}; ticks to tol median 564 (slowest 741) = 10.8 years; dead worst 190; lowest baskets/Y* 0.000; not converged 4: ['joint(2,3)', 'joint(2,12)', 'joint(2,34)', 'joint(2,39)']
+   C1 joint4: 40 runs {'DIVERGED': 12, 'CONVERGED': 28}; ticks to tol median 592 (slowest 767) = 11.4 years; dead worst 214; lowest baskets/Y* 0.000; not converged 12: ['joint(4,3)', 'joint(4,6)', 'joint(4,10)', 'joint(4,12)', 'joint(4,18)', 'joint(4,17)', 'joint(4,22)', 'joint(4,28)', 'joint(4,26)', 'joint(4,31)', 'joint(4,34)', 'joint(4,39)']
+   C1 stocks: 41 runs {'CONVERGED': 41}; ticks to tol median 419 (slowest 663) = 8.1 years; dead worst 117; lowest baskets/Y* 0.000; not converged 0
+   C1 tilt1: 115 runs {'CONVERGED': 112, 'DIVERGED': 3}; ticks to tol median 344 (slowest 646) = 6.6 years; dead worst 207; lowest baskets/Y* 0.000; not converged 3: ['p[mach]*0.5', 'JA(0.5)', 'JB(2)']
+   C1 tpy12: 72 runs {'CONVERGED': 72}; ticks to tol median 908 (slowest 1931) = 75.6 years; dead worst 23; lowest baskets/Y* 0.190; not converged 0
+   C1 tpy365: 72 runs {'CONVERGED': 72}; ticks to tol median 2174 (slowest 3673) = 6.0 years; dead worst 631; lowest baskets/Y* 0.104; not converged 0
+   C1/chi025 negctl: 115 runs {'CONVERGED': 100, 'DIVERGED': 9, 'VACUOUS': 6}; ticks to tol median 502 (slowest 745) = 9.7 years; dead worst 110; lowest baskets/Y* 0.000; not converged 9: ['p[land]*2', 'p[mach]*0.5', 'JA(0.5)', 'JB(2)', 'RC(0.5)', 'land.mach=0.8@genesis', 'land.mach=0.8@dated', 'b.food=1.2@genesis', 'b.food=1.2@dated']
+   C1/dep1 basin: 430 runs {'CONVERGED': 430}; ticks to tol median 537 (slowest 851) = 10.3 years; dead worst 259; lowest baskets/Y* 0.000; not converged 0
+   C1/dep1 joint2: 60 runs {'CONVERGED': 60}; ticks to tol median 560 (slowest 670) = 10.8 years; dead worst 146; lowest baskets/Y* 0.000; not converged 0
+   C1/dep1 joint4: 40 runs {'CONVERGED': 40}; ticks to tol median 610 (slowest 778) = 11.7 years; dead worst 200; lowest baskets/Y* 0.000; not converged 0
+   C2 basin: 430 runs {'DIVERGED': 77, 'CONVERGED': 353}; ticks to tol median 517 (slowest 776) = 9.9 years; dead worst 207; lowest baskets/Y* 0.000; not converged 77: ['p[labour]*0.128839621134', 'p[labour]*0.12270440108', 'p[labour]*0.135281602191', 'p[labour]*0.1420456823', 'p[labour]*0.156605364736', 'p[labour]*0.149147966415', 'p[labour]*0.164435632973', 'p[labour]*0.181290285353', 'p[labour]*0.199872539601', 'p[labour]*0.172657414622', 'p[labour]*0.19035479962', 'p[labour]*0.209866166581', 'p[labour]*0.22035947491', 'p[labour]*0.231377448656']...
+   C2 enclose: 4 runs {'CONVERGED': 4}; ticks to tol median 324 (slowest 328) = 6.2 years; dead worst 0; lowest baskets/Y* 0.841; not converged 0
+   C2 hold: 115 runs {'CONVERGED': 109, 'VACUOUS': 6}; ticks to tol median 426 (slowest 641) = 8.2 years; dead worst 153; lowest baskets/Y* 0.000; not converged 0
+   C2 joint2: 60 runs {'CONVERGED': 60}; ticks to tol median 548 (slowest 774) = 10.5 years; dead worst 195; lowest baskets/Y* 0.000; not converged 0
+   C2 joint4: 40 runs {'DIVERGED': 8, 'CONVERGED': 32}; ticks to tol median 592 (slowest 842) = 11.4 years; dead worst 228; lowest baskets/Y* 0.000; not converged 8: ['joint(4,10)', 'joint(4,12)', 'joint(4,3)', 'joint(4,21)', 'joint(4,18)', 'joint(4,22)', 'joint(4,34)', 'joint(4,39)']
+   C2 stocks: 41 runs {'CONVERGED': 41}; ticks to tol median 444 (slowest 569) = 8.5 years; dead worst 96; lowest baskets/Y* 0.000; not converged 0
+   C2 tilt1: 115 runs {'CONVERGED': 109, 'VACUOUS': 6}; ticks to tol median 346 (slowest 640) = 6.6 years; dead worst 213; lowest baskets/Y* 0.000; not converged 0
+   C2 tpy12: 72 runs {'CONVERGED': 68, 'VACUOUS': 4}; ticks to tol median 963 (slowest 1422) = 80.2 years; dead worst 20; lowest baskets/Y* 0.307; not converged 0
+   C2 tpy365: 72 runs {'CONVERGED': 68, 'VACUOUS': 4}; ticks to tol median 2153 (slowest 3451) = 5.9 years; dead worst 481; lowest baskets/Y* 0.223; not converged 0
+== history: cycle(C, 1500, 80)
+   C1 land.mach: 6 of 81 windows run, 5 end within tolerance; ticks to tol median 366 max 724; runaway at window 5, t=288
+   C1 exit.To: 81 of 81 windows run, 81 end within tolerance; ticks to tol median 497 max 504; no runaway
+   C2 land.mach: 81 of 81 windows run, 81 end within tolerance; ticks to tol median 551 max 614; no runaway
+   C2 exit.To: 81 of 81 windows run, 81 end within tolerance; ticks to tol median 0 max 315; no runaway
+== largest root per tick (PL) and L
+   C1 base               Crowded  PL 0.986116 half-life 50 ticks; kick bar passes
+   C1 land.mach x1.1     Crowded  PL 0.985966 half-life 49 ticks; kick bar passes
+   C1 land.mach x0.9     Crowded  PL 0.986245 half-life 50 ticks; kick bar passes
+   C1 land.mach x2       Commons  PL 0.985528 half-life 48 ticks; kick bar passes
+   C1 land.mach x0.5     Enclosed PL 0.991388 half-life 80 ticks; kick bar passes
+   C1 b.food x1.1        Crowded  PL 0.986221 half-life 50 ticks; kick bar passes
+   C1 b.food x0.9        Crowded  PL 0.985622 half-life 48 ticks; kick bar passes
+   C1 b.food x2          Enclosed PL 0.990683 half-life 74 ticks; kick bar passes
+   C1 b.food x0.5        Commons  PL 0.985378 half-life 47 ticks; kick bar passes
+   C1 exit.To x1.1       Commons  PL 0.987089 half-life 53 ticks; kick bar passes
+   C1 exit.To x0.9       Enclosed PL 0.987077 half-life 53 ticks; kick bar passes
+   C1 exit.To x2         Commons  PL 0.987089 half-life 53 ticks; kick bar passes
+   C1 exit.To x0.5       Enclosed PL 0.987249 half-life 54 ticks; kick bar passes
+   C2 base               Commons  PL 0.985988 half-life 49 ticks; kick bar passes
+   C2 land.mach x1.1     Commons  PL 0.985998 half-life 49 ticks; kick bar passes
+   C2 land.mach x0.9     Commons  PL 0.986906 half-life 53 ticks; kick bar passes
+   C2 land.mach x2       Commons  PL 0.985771 half-life 48 ticks; kick bar passes
+   C2 land.mach x0.5     Commons  PL 0.987888 half-life 57 ticks; kick bar passes
+   C2 b.food x1.1        Commons  PL 0.985988 half-life 49 ticks; kick bar passes
+   C2 b.food x0.9        Commons  PL 0.985912 half-life 49 ticks; kick bar passes
+   C2 b.food x2          Commons  PL 0.987725 half-life 56 ticks; kick bar passes
+   C2 b.food x0.5        Commons  PL 0.985555 half-life 48 ticks; kick bar passes
+   C2 exit.To x1.1       Commons  PL 0.985988 half-life 49 ticks; kick bar passes
+   C2 exit.To x0.9       Commons  PL 0.985988 half-life 49 ticks; kick bar passes
+   C2 exit.To x2         Commons  PL 0.985988 half-life 49 ticks; kick bar passes
+   C2 exit.To x0.5       Crowded  PL 0.986290 half-life 50 ticks; kick bar passes
+   L C1 52: 141000 (tau max 703.3 ticks)
+   L C1 12: 26000 (tau max 128.1 ticks)
+   L C1 365: 1113000 (tau max 5564.7 ticks)
+   L C2 52: 142000 (tau max 705.4 ticks)
+   L C2 12: 26000 (tau max 128.6 ticks)
+   L C2 365: 1116000 (tau max 5580.0 ticks)

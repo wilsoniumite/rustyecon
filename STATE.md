@@ -11,7 +11,13 @@ the tape's schema is [docs/TAPE.md](docs/TAPE.md), and the GUI's design is
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
 **State as of:** 2026-09-30, on branch `phase2-proper` from `reboot` at `f7d1eae`, not pushed or
-merged. **The wall instance IW1 is built, and E0–E2 pass** (P2.3.2–P2.3.4; "Where things
+merged. **The open-commons instances C1 and C2 are registered** (P2.3.5, docs only; "Where things
+stand"; [docs/probe/results/commons/registration.md](docs/probe/results/commons/registration.md)):
+the frame `frame-commons` (I1 with one priced worker type in food and a commons the workers hold,
+full at C1 and with room at C2; the commons no market, its plots given out by the participation
+rule) and its mirror's predictions, GO for both, fixed before any engine code for them, with 368's
+Tier 3S added from the same mirror; decisions 398–399, O96 amended, O100–O106. The build is next.
+**The wall instance IW1 is built, and E0–E2 pass** (P2.3.2–P2.3.4; "Where things
 stand"; [docs/probe/WALL-RULES.md](docs/probe/WALL-RULES.md),
 [docs/probe/results/wall/e0.md](docs/probe/results/wall/e0.md)): the roles' three optional
 fields, the instance on unit 1d, `tapes/markets-iw1.ron`, the harness at the wall and 14 tests,
@@ -151,6 +157,48 @@ many-market roles (O27), which may now start from the goods chain's stage v2a.1 
 on D-G12. "Next steps" has each.
 
 ## Where things stand
+
+**The open-commons instances' registration (P2.3.5; 2026-09-30).** Branch `phase2-proper`
+(worktree `D:/rustyecon-wt/p23`, scratch `D:/rustyecon-p23/frame-commons/` and `build-commons/`).
+Docs only: [docs/probe/results/commons/registration.md](docs/probe/results/commons/registration.md),
+the frame's files in [docs/probe/commons/](docs/probe/commons/), Tier 3S's mirror runs in
+`docs/probe/results/commons/tier3s/`, and this file.
+- **The frame** (`SPEC.md`, sha256 `60f21f56…b40d`; its `SHA256SUMS`, 97 entries, each checked).
+  C1 and C2 are the markets probe's I1 (C3's four categories, 1a's machine, N 208 and T 520 a
+  year, χ_max 1, support one basket) with one priced worker type whose exit good is food, and a
+  commons T_o the workers hold and never trade.
+  - C1: exit (s₀ 0.3, s̲ 0, h 0.135), commons 24.3 a year. The commons is full, rationed by a
+    shadow rent of 0.43792 of the land rent that nobody receives; participation 7/13 of the
+    heads' hours; x\* 0.748338.
+  - C2: exit (0.2, 0, 0.09), commons 31.2 a year. The commons has room; 48.8% of it idles at zero
+    rent; x\* 0.743502.
+  - 26 targets (land.mach, b.food and the commons at ×1.1, ×0.9, ×2, ×0.5) span the three regimes,
+    each interior, funded and alone. Unit 1e's oracle and a 50-digit solve that reads no oracle
+    code agree within 5.6e-15.
+- **The zero-rent land market** (O96). The frame's mirror scan found that the commons posted as a
+  market runs to the runaway bound whenever it has room (Saturate and Hold alike), a reservation
+  orbits off the point, and a floor order leaves a continuum of rest points. The chosen answer is
+  no market: the commoners' participation rule gives out the plots, and the shadow rent is a
+  readout. It rests exactly in all three regimes and is the fastest locally (half-life 49 ticks
+  against 876). Idle enclosed land at r = 0 is unfunded under the probe's transfer (the provider's
+  baskets are −N there), so no instance of this run holds it (O96, amended).
+- **The additions** the build will make: one optional `exit` block on `BasketWorkers`, hours =
+  min(max(n(0), N − T_o/h), n(r̂)) (decision 149 for one priced type), and a land buy for plots
+  that spill onto enclosed land. Nothing else changes, and no state is added.
+- **The mirror's verdict: GO for both.** Mode A passes at 12, 52 and 365 a year. Tiers 1–3 and
+  Tier 3 at 10·L: C1 115/115, C2 109/109 with 6 VACUOUS by construction. Largest root per tick
+  0.98538–0.99139. Medians 319/372/508 (C1) and 315/360/514 (C2) ticks by tier.
+- **Tier 3S added** (decision 368, which the frame's verdict left out): 24 runs an instance, run on
+  the frame's mirror unedited before any code, all CONVERGED at L and 10·L (medians 379 and 340).
+- **The subsistence trap**, registered as the families' prediction: with exit valued at food's
+  posted price, nobody working is a second absorbing state. C1 4/60 joint2, 12/40 joint4, 89/430
+  basin; C2 8/40 joint4, 77/430 basin; never in the verdict battery; I1 0/530 (O100).
+- **Readings declared before the build** (registration §3): Tier 3S, the tapes' names
+  (`markets-c1.ron`, `markets-c2.ron`; the brief said `p2-commons*`), the mirror's run names,
+  `joint` in the mirror's order, `enclose` as two changes at one tick, labour's target S and
+  land's T in force, the workers' state share the regime's F, the readouts in `stats.tsv`.
+- **Decisions 398–399, O96 amended and O100–O106**, below: the frame's 360–371 grouped (two numbers
+  of the range were left) and its O95–O102 renumbered.
 
 **The wall instance's E0–E2, before any scored run (P2.3.4; 2026-09-30).** Branch
 `phase2-proper`, scratch `D:/rustyecon-p23/build-wall/e0/`. The record:
@@ -3638,6 +3686,38 @@ to veto; the alternative named is the registered one (R6).
      reported, stocks first; L comes from the engine's elasticity probe; the scorer is committed
      before the wave (311). Alternatives: no control; score the families as well.
 
+Decisions 398–399 are P2.3.5's (2026-09-30): the commons frame's proposals 360–371
+(`docs/probe/commons/SPEC.md` §7), numbered at its registration and grouped, since two numbers of
+this line's range were left. Claude's, on your delegation, each open to veto; the alternative
+named is the registered one (R6).
+
+398. **C1 and C2 are Phase 2 proper's open-commons instances, and the commons is no market (the
+     frame's 360–366 and 368).** I1's economy with one priced worker type in food, χ_max 1 (I1's),
+     support one basket (ν 1), and a commons the workers hold: C1 full (Crowded), C2 with room
+     (Commons). Phase 2's idle land at zero rent is the commons' idle part; idle enclosed land at
+     r = 0 enters no instance under the probe's transfer, which it leaves unfunded (O96). The
+     commons is no market: the commoners' participation rule gives out its plots, hours =
+     min(max(n(0), N − T_o/h), n(r̂)) in SPEC §3.1's evaluation order with fma, and the shadow rent
+     is a readout nobody receives. This amends 374's reading that a crowded commons' shadow rent
+     must be posted: the rule rations the commons from the pop's own params and posted prices, so
+     nothing is posted (R13). Plots that spill onto enclosed land are rented in money on the land
+     market, in one budget chain with the baskets. The exit good must be in the workers' basket
+     and land must not be. No state is added. Alternatives: 1e's K1 and K2 on Appendix B's economy
+     (uncertified); χ_max 0.25; a funded support and a free-good rule for idle enclosed land; the
+     commons as a market under `Saturate`, exact while crowded or spilling and running away where
+     it has room; the shadow rent by bisection; plots rented in kind through an untraded home
+     good; a joint land order for space and plots; ν a param and the regime in state.
+399. **The commons' targets, harness and verdict (the frame's 367 and 369–371, with 368's Tier
+     3S).** The cost coefficients are land.mach, b.food and the commons at ×1.1, ×0.9, ×2, ×0.5,
+     at genesis and dated; enclosure by law is a family. The harness's targets come from unit 1e's
+     `ParcelEconomy`, land's volume T (plots included) and labour's the supply S. The subsistence
+     trap is the families' prediction, not the verdict's. The engine run is SPEC §5.5's E0–E9 with
+     §5.6's tolerances, the scorer committed before its wave. The verdict is §5.5's with Tier 3S
+     (decision 368, which the frame left out; its predictions run on the frame's mirror before any
+     code, registration §3). Alternatives: the commons shocked only by enclosure; the dependence
+     form's harness, scored on prices only; the families in the verdict, which would make C1 and
+     C2 LOCAL at joint4; the verdict alone (E0–E3).
+
 ## Open — your calls
 
 - **The GUI's decisions**, 22–34 (D1–D13): G0 carried them out, none vetoed; a veto now reopens
@@ -3667,6 +3747,11 @@ to veto; the alternative named is the registered one (R6).
   reserved-only types (394), the roles' three optional fields (395), the wall's targets,
   thresholds, grammar and readouts (396), IC1 a control and the verdict rule with Tier 3S (397).
   Each open to veto before the wall's scored runs.
+- **Decisions 398–399** (P2.3.5, 2026-09-30): the commons frame's 360–371, grouped: C1 and C2 and
+  the commons as no market, its plots given out by the participation rule, which amends 374's
+  posted shadow rent (398); the commons' targets from unit 1e, the trap in the families, and the
+  verdict with 368's Tier 3S, which the frame had left out (399). Each open to veto before the
+  commons' scored runs.
 - **Decisions 59–75 and 135–178** (Phase 1), open to veto. Those that bound Phase 2 proper (61,
   67, 70; 135, 137, 139, 140; 147, 149, 151, 153–155, 158, 160, 161; 162, 164, 165, 167–169,
   173) are ruled by Claude at P2.3.0 as 360–393, with the markets probe's advice: keep 67 (its
@@ -4477,7 +4562,14 @@ O95 on are Phase 2 proper's (P2.3.0, branch `phase2-proper`; this line's range i
   registered with its predictions and built before the commons instance's registration. PLAN
   §3.1 puts an idle parcel's reservation rent at zero, so a remedy with a positive floor moves
   the point off r = 0 (GOODS-CHAIN's open question 2); the comparison is in wage units (decision
-  153).
+  153). *Amended at P2.3.5:* the commons frame's scan answered it for the commons (decision 398:
+  no market, the participation rule gives out the plots). What stays open is idle enclosed land at
+  r = 0, the frame's O96: under the probe's transfer the provider's only income is rent, so its
+  baskets are −ν·N there and the idle stretch is unfunded by construction. A positive-price market
+  cannot rest at 0 there either (the commons frame's §1.5: Saturate runs away, Hold never acts, a
+  reservation orbits, a floor order leaves a continuum). It needs a funded support (a 1f transfer,
+  or the workers' own) and a free-good rule for land in markets, in its own frame, when an
+  instance needs it.
 - **O97. A type that sells reserved and pool hours** (the wall frame's OW1; decision 394). 1d's
   pooled type with reserved work (E1, E4), pooled types with ε ≠ 1, and support ν ≠ 1 (decision
   138): IW1 has none. Each needs a rule that splits a pop's hours between two markets, or scales
@@ -4493,6 +4585,33 @@ O95 on are Phase 2 proper's (P2.3.0, branch `phase2-proper`; this line's range i
   keep its whole stock for a tick (a·q ≥ held), and no baskets follow the next tick, in all 16
   such windows. It recovers each time. A keep rule that shares the shortfall, or a stock (Phase
   3), would remove it.
+- **O100. The subsistence trap** (the commons frame's O95; decision 399). Under the priced exit,
+  with the exit good made with labour and valued at its posted price, the agents have a second
+  absorbing state: nobody works, food is not supplied, and every price inflates together. The
+  mirror predicts it in C1's joint2 (4/60), joint4 (12/40) and basin (89/430), C1's tilt-1 Tier 3
+  (3), C1's land.mach history (window 5), C2's joint4 (8/40) and basin (77/430), and the negative
+  control's Tier 3 (9); never in the verdict battery, and never at I1 (0/530). It needs a
+  structural answer, chosen by its own mirror scan, before the 1750-like instance, where food is
+  the exit good by decision 151. Candidates, unscanned: participation adjusting toward its target
+  at a rate, entry for food at zero output, a storable exit good (O51).
+- **O101. A commons shared by several types** (the frame's O97). The rule gives out one pop's
+  commons from that pop's own demand; several types sharing one (1e's instance T) would need each
+  other's plot demand, which R13 forbids. They need the commons as a market (exact only while
+  crowded) or a commons actor. The 1750-like instance with several types needs it.
+- **O102. The Enclosed regime's accounts** (the frame's O98). Plots on enclosed land pay rent in
+  money, not in kind (decision 152's home account). The households' split of baskets differs from
+  the home account's by r·T_p/P_s, and the provider's baskets from the oracle's; the market
+  allocation is the oracle's. At rest it matters only at C1's four Enclosed targets.
+- **O103. C2's commons shocks × 1.1, × 0.9 and × 2 are VACUOUS by construction** (the frame's O99).
+  In the Commons regime the commons' size does not move the point.
+- **O104. 12 ticks a year is slow here too** (the frame's O100): 76–80 years to tolerance, median,
+  over Tiers 1–2, as I1's 90 (decision 121).
+- **O105. C1's x\* lies 0.0017 below care's edge 0.75, and C2's 0.0065** (the frame's O101).
+  b.food × 0.9 crosses it; which s[care] runs are slack depends on the side x\* is on.
+- **O106. The joint family's draws** (the frame's O102). The mirror draws in its own market order;
+  the registration's reading makes the harness draw in the same order at C1 and C2, and E0 checks
+  it. If E0 finds the draws unequal, the per-seed predictions fall and the counts are the
+  prediction (C1 4/60 and 12/40, C2 0/60 and 8/40), within 25%.
 
 ## Corrections logged (A3; ADDENDUM §1.4)
 
@@ -4654,6 +4773,9 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
         commons' shadow rent posted (374), idle land compared in wage units, `Idle` plots read
         as such (376, 381). Its zero-rent land market's remedy comes first: a mirror scan
         chooses it, and it is registered and built before the instance's registration (O96).
+        *Registered at P2.3.5:* C1 and C2, with the scan's answer, the commons as no market,
+        built into the same step (decisions 398–399; docs/probe/results/commons/registration.md).
+        The build, E0, the scorer and the scored wave follow, in that order.
    3. **Later**: the 1750-like instance takes the common basket (388), 1f's tax bases and
       closure if it has a government (382–386), C2g for any machine stock (391), capital's time
       unscored (392), and each addendum of O95 before the feature that needs it.
