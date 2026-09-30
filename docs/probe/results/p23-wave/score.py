@@ -932,7 +932,7 @@ def score_commons(recs, L_, out):
                "SPEC §5.5 with Tier 3S", "pass" if verdict == "GO" else "fail")
         verdicts.append(OrderedDict(inst=inst, verdict=verdict, prediction="GO",
                                     **{k: json.dumps(v[0], sort_keys=True) for k, v in counts.items()},
-                                    kicks=f"{sum(1 for t in targets if kicks.get(t, {}).get('passed'))}/{len(targets)} PASS"))
+                                    kicks=f"{sum(1 for t in targets if kicks.get(fname(t), {}).get('passed'))}/{len(targets)} PASS"))
         # E3 §6.7: every CONVERGED battery run ends in its target's regime, with its shadow rent
         bad_regime, bad_rent, n = [], [], 0
         for run, e in C.get((inst, "L"), {}).items():
