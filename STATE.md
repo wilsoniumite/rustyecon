@@ -28,7 +28,11 @@ paced instances C1P, C2P and C1PN are predicted GO with margin at the dial neigh
 Decisions 404–408 and O113–O117. **It is built** (P2.4.5;
 [docs/probe/TRAP-RULES.md](docs/probe/TRAP-RULES.md)): the exit's optional `pace`, C1P, C2P and
 C1PN, `tapes/markets-c1p.ron` and `markets-c2p.ron`, the harness's grammar and readouts and 10
-tests, with every committed tape's text, ids and streams unchanged; E0 is next.
+tests, with every committed tape's text, ids and streams unchanged. **E0–E2 pass** (P2.4.6;
+[docs/probe/results/trap/e0.md](docs/probe/results/trap/e0.md)): the engine is the scan's mirror
+within 3.6e-14 in all eleven registered runs, C1's trap run under the pace included, with no
+parting above 1e-12 and no amendment; mode A, the kick sets and L as registered. The scorer and
+the scored wave (E3–E10) are next.
 Before it, on branch `phase2-proper` from `reboot` at `f7d1eae`:
 **Phase 2 proper's first session is reported** (P2.3.16;
 [docs/probe/PHASE2-S1.md](docs/probe/PHASE2-S1.md)): both reviews find the verdicts hold, and
@@ -204,6 +208,28 @@ types and carriers, on the many-market roles (O27), which may now start from the
 stage v2a.1 on your ruling on D-G12. "Next steps" has each.
 
 ## Where things stand
+
+**The subsistence trap's remedy: E0–E2, before any scored run (P2.4.6; 2026-09-30).** Branch
+`phase2-s2`, label `build-trap`, scratch `D:/rustyecon-p24/build-trap/e0/`. The record:
+[docs/probe/results/trap/e0.md](docs/probe/results/trap/e0.md), with its outputs in `e0/`.
+- **E0 passes, as registered.** The committed build (`7ddec38`) against the scan's mirror
+  `tm.py` (variant P1.3r, the genesis carry), the spec's eleven runs of 2,000 ticks at C1P, C2P
+  and C1PN: every price, ratio, share, stock, coin, S and D within 3.6e-14 in log, the paced
+  share within 3.6e-15, the rule's F\* within 4.0e-14, the regime, T_p and shadow rent the
+  mirror's at every tick; the mirror one ulp from itself parts by up to 2.6e-14. No gap passes
+  1e-12, so no amendment. C1's registered trap run (`p[mach]*0.5` at every price rate × 0.9) is
+  the mirror's under the pace too, with no tick without hours: the parting C1N's trap run showed at
+  P2.3.7 does not arise, since the paced share never falls below 0.21 of the rule's.
+- **E1 holds** (P2.4.5): every committed tape's text, ids and stream on both machines, the pins,
+  the nesting tests.
+- **E2 holds.** The rest point within 1e-12 at 81 points. Mode A at L passes at 12, 52 and 365 a
+  year, largest gaps 4.9e-14 or below, no tick without hours. The base kick sets pass (largest
+  tail gain 1.5e-5). The engine's elasticity probe gives care's τ 703.3 and 705.4 ticks, so L is
+  the registered 141,000 and 142,000.
+- **Disclosed:** a first start of the E0 script was stopped by hand within its first minute to
+  thin mode A's CSVs; its partial output was overwritten unread.
+- **Next** (the spec's §8): the scorer, its gather script and job list committed before the wave
+  (decision 311), then the scored wave E3–E10 with the controls (E9).
 
 **The subsistence trap's remedy: the build (P2.4.5; 2026-09-30).** Branch `phase2-s2`, label
 `build-trap`, scratch `D:/rustyecon-p24/build-trap/`. As built:
@@ -5314,7 +5340,7 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
       registered and built before any further priced-exit instance and before the gate is judged.
       *Scanned, registered at P2.4.4 and built at P2.4.5:* participation at a rate (decisions
       404–408; `docs/probe/trap/SPEC.md`, `docs/probe/TRAP-RULES.md`), the paced instances C1P,
-      C2P and C1PN; E0, the scorer and the scored wave next.
+      C2P and C1PN; E0–E2 pass at P2.4.6; the scorer and the scored wave next.
    3. **The rules the 1750-like instance needs**, each chosen by a mirror scan, registered and
       built: O97's rule for a type that sells both reserved and pool hours; a zero price markets
       can hold (O96 with O101), for idle enclosed land and a commons several types share; and
@@ -5428,7 +5454,7 @@ docs/probe/trap/         the trap scan's frame, as registered (P2.4.4, LF ending
                          tables)
 docs/probe/TRAP-RULES.md the trap's remedy as built (P2.4.5): the exit's pace, C1P, C2P and C1PN,
                          the harness at a paced instance, the checks
-docs/probe/results/trap/ the trap's remedy's registration (P2.4.4)
+docs/probe/results/trap/ the trap's remedy's registration (P2.4.4) and E0's record (P2.4.6)
 docs/probe/results/families-wave/ wave A's machinery, committed before it (P2.4.2): the job
                          list, job and runner scripts, gather script, scorer, self-test
 docs/probe/results/loops/ the loop step's registration (L0.8), quoting LOOP-SPEC-A1's
