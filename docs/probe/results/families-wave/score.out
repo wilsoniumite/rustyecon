@@ -1,0 +1,18 @@
+6443 records; 32411 lines: pass 31190, reported 1221
+  A1 basin: pass 6722, reported 463
+  A1 history: pass 732
+  A1 hold: pass 1498, reported 17
+  A1 joint2: pass 849, reported 51
+  A1 joint4: pass 513, reported 87
+  A1 map: pass 2923, reported 62
+  A1 map_kick: pass 45
+  A1 stocks: pass 563, reported 37
+  A1 tilt1: pass 1493, reported 22
+  A2 dial: pass 15852, reported 431
+  A2 dial_kick: reported 51
+  I3 map cell r0.5b0.5: registered GO, engine GO
+  I3 map cell r0.5b1: registered GO, engine GO
+  I3 map cell r0.5b2: registered GO, engine GO
+  I3 map cell r1b0.5: registered GO, engine GO
+  I3 map cell r1b2: registered GO, engine GO
+refutations: none

@@ -1,0 +1,2 @@
+be3266abcf5e35f20b20158800a731ef948a518b42d9319d275e6332dd0542e9  /root/scratch/p24-families/markets (the wave: built in WSL release from a git archive export of 66ae453, P2.4.2, in /root/scratch/p24-exportA-target)
+fe868f22c31eafc8d7114f21ea780ca61533cb53e2da13306e93be340e148cfd  runs.jsonl (gather.py over jobs.txt, from /root/scratch/p24-families-runs and again from D:/rustyecon-p24/runs/families; archived as D:/rustyecon-p24/runs/families/runs.jsonl.gz)

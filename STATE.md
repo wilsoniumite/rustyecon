@@ -11,7 +11,12 @@ the tape's schema is [docs/TAPE.md](docs/TAPE.md), and the GUI's design is
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
 **State as of:** 2026-09-30, on branch `phase2-s2` from `reboot` at `a483ed0`, not pushed or
-merged. **Phase 2 proper's second session has begun: wave A is registered** (P2.4.1; "Where
+merged. **Wave A is scored: every registered line holds** (P2.4.16; "Where things stand";
+[docs/probe/results/families/README.md](docs/probe/results/families/README.md)): O22's families on
+I1–I3 converge in all 3,063 runs and I3's five unrun map cells are GO; at the dial neighbourhood C2
+and IW1 converge at all 17 settings and C1 falls into the subsistence trap in exactly the
+registered 18 runs, to the tick; 32,411 lines, none failing, no refutation. O109 is closed.
+**Phase 2 proper's second session has begun: wave A is registered** (P2.4.1; "Where
 things stand"; [docs/probe/results/families/registration.md](docs/probe/results/families/registration.md)):
 O22's families on I1–I3 and the dial neighbourhood of C1, C2 and IW1, predicted run by run on the
 mirrors before any run of the wave, with decisions 400–403 and O110–O112. The mirror predicts
@@ -243,6 +248,29 @@ types and carriers, on the many-market roles (O27), which may now start from the
 stage v2a.1 on your ruling on D-G12. "Next steps" has each.
 
 ## Where things stand
+
+**Wave A is scored: O22's families on I1–I3 and the dial neighbourhood hold as registered
+(P2.4.16; 2026-09-30).** Branch `phase2-s2`, label `run`, raw runs `D:/rustyecon-p24/runs/families/`.
+The record: [docs/probe/results/families/README.md](docs/probe/results/families/README.md); the
+tables beside it; the machinery in [docs/probe/results/families-wave/](docs/probe/results/families-wave/README.md).
+- **The binary** is the P2.4.2 build, rebuilt from a `git archive` export of `66ae453` in its own
+  target directory: sha256 `be3266ab…42e9`, the registration's. 6,443 jobs, all exit 0, 73 minutes
+  on 46 WSL threads (16:30–17:43 UTC).
+- **The lines.** 32,411 read: 31,190 pass, 1,221 reported, none fails, is charged or is missing.
+  No refutation criterion is met.
+- **A1.** All 3,063 family runs on I1–I3 CONVERGED (stocks, joint2, joint4, basin, `Hold`, tilt 1,
+  I3's map cells), every tick to tolerance the mirror's to the tick; the histories never run
+  away, in tolerance at the window's end 81/16/81 window for window (O111); I3's five unrun map
+  cells GO, 45/45 kick sets passing. I3's rate-by-buffer map is complete: eight of nine cells GO,
+  every rate × 2 with every buffer × 0.5 P2.1's NO-GO.
+- **A2, the dial neighbourhood's first slice.** C2 (with its 34 VACUOUS by construction) and IW1
+  converge in Tier 3 and 3S at all 17 settings (rate, buffer, adjust × 0.75, 0.9, 1.1, 1.25; tilt
+  0.05–1). C1 falls into the subsistence trap in 18 Tier-3 runs, `p[mach]*0.5`, `JA(0.5)` and
+  `JB(2)`, at rate × 0.75 and × 0.9, buffer × 1.1 and × 1.25 and tilt 0.25, 0.5 and 1, each at the
+  mirror's runaway tick; its Tier 3S never. All 51 base kick sets pass (reported).
+- **The engine is the mirror**: every class; every tick to tolerance; dead ticks within one; the
+  largest end gap 4.1e-14 in log. **Next:** the B–D waves (running), then the map across the
+  session's instances.
 
 **The B–D waves' machinery and scorers, before the waves (P2.4.14; 2026-09-30).** Branch
 `phase2-s2`, label `run`, scratch `D:/rustyecon-p24/run/`. Committed before any job of the trap's,
@@ -4893,6 +4921,8 @@ when its fix is reverted, checked by mutation (the review's own mutants among th
   Phase 2 proper's battery runs them first, stocks first. *Amended at P2.3.16:* still unrun
   (O109); the wall's and the commons' own families ran at P2.3.15. They go in the next wave,
   registered, beside the dial-neighbourhood family (399 amended).
+  *Amended at P2.4.16:* run and scored as wave A (docs/probe/results/families/README.md): every
+  family converges at I1–I3, I3's five map cells are GO; every line as registered.
 - **O23. Tick length and the kick's horizon in many markets** (decision 121).
   - At 12 a year I2's point is unstable, and I1 takes a median of 90 years to reach tolerance
     (7 at 52 a year).
@@ -5561,6 +5591,7 @@ O95 on are Phase 2 proper's (P2.3.0, branch `phase2-proper`; this line's range i
   dial-neighbourhood family on C1, C2 and IW1. *Amended at P2.4.1:* registered as wave A
   (decisions 400–403; docs/probe/families/SPEC.md), with I3's five unrun map cells; the mirror
   predicts all 3,063 runs CONVERGED and no history runaway. Closed when the wave is scored.
+  *Closed at P2.4.16:* scored as registered, every line (docs/probe/results/families/README.md).
 
 O110 on are Phase 2 proper's second session's (P2.4, branch `phase2-s2`; its range is O110–O129).
 

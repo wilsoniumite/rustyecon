@@ -110,3 +110,13 @@ end, the kick set and the verdict. Both pass at this commit.
 
 None of this wave's runs. The registration's checks (SPEC §2) ran the mirrors only, and read the
 frozen binary's lists and tapes (`markets list`, `markets tape`), which run no tick.
+
+## Files added after the wave (P2.4.16)
+
+- `BIN.sha256`: the wave's binary's sha256 (the P2.4.2 build from a `git archive` export of
+  `66ae453`, `be3266ab…42e9`, the registration's) and the wave's `runs.jsonl`'s.
+- `score.out`: `score.py`'s printout on that `runs.jsonl`. The scored record is
+  [../families/README.md](../families/README.md).
+
+No file listed in `SHA256SUMS` changed; `sha256sum -c SHA256SUMS` passes but for this README,
+which gained this section.
