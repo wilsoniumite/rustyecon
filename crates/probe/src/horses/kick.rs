@@ -31,9 +31,19 @@ pub fn kick_set(
     let mut setup = base.clone();
     pert.apply(&mut setup, ticks)?;
     let text = tape_ron(&setup)?;
-    let tape = Tape::from_ron(&text).map_err(|e| format!("the tape does not load: {e}"))?;
+    kick_set_of(&text, pert.clock_start(ticks) + ticks, horizon, name)
+}
+
+/// The kick set at tick `until` of the tape `text`, with horizon `horizon`, named `name`; and
+/// the kicks' envelope, as [`kick_set`] reads them. The loop step's harness shares it.
+pub fn kick_set_of(
+    text: &str,
+    until: u64,
+    horizon: u64,
+    name: &str,
+) -> Result<(KickSet, Vec<f64>), String> {
+    let tape = Tape::from_ron(text).map_err(|e| format!("the tape does not load: {e}"))?;
     let mut sim = Sim::new(&tape).map_err(|e| format!("the tape does not load: {e}"))?;
-    let until = pert.clock_start(ticks) + ticks;
     sim.run_until(until, &mut |_| {})
         .map_err(|e| format!("the base run failed before its end: {e}"))?;
     let cp = sim

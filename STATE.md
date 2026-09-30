@@ -11,10 +11,15 @@ the tape's schema is [docs/TAPE.md](docs/TAPE.md), and the GUI's design is
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
 **State as of:** 2026-09-30, on branch `phase2-plants` from `reboot` at `8b07c8a`, not pushed or
-merged. **P2.2b's plant layer is built** (P2.2b.1; "Where things stand"): core's untraded good,
+merged. **P2.2b's harness is built and E0–E2 pass** (P2.2b.2; "Where things stand"). The rule-B
+harness is `probe::horses::loops`, which `horses` runs for a loop id. E0's trace diff against the
+registered mirror with the carry passes: nothing parts at tick 1, and the only partings are the
+horse market's cancellation. So the registration stands, with no amendment. E1's nesting holds,
+and mode A passes at L. Decisions 302–304, O75–O76; O73 closed. The scored runs (E3–E11) are
+next. **P2.2b's plant layer is built** (P2.2b.1): core's untraded good,
 CAPACITY's plant on the type desk, the maker and the capacity desk, the loop instances and their
 six tapes, with every committed tape's text, hashes and streams unchanged; decisions 297–301,
-O73–O74. The harness's rule-B readouts and E0's trace diff are next. **P2.2b's frame is
+O73–O74. **P2.2b's frame is
 written** (P2.2b.0, docs only): the build's spec,
 [docs/probe/LOOPS-RULES.md](docs/probe/LOOPS-RULES.md), and one dated amendment before any code,
 [docs/probe/loops/LOOP-SPEC-A2.md](docs/probe/loops/LOOP-SPEC-A2.md) (LN5 waits for O51, as LF4
@@ -112,6 +117,51 @@ many-market roles (O27), which may now start from the goods chain's stage v2a.1 
 on D-G12. "Next steps" has each.
 
 ## Where things stand
+
+**P2.2b's harness, and E0–E2 (P2.2b.2; 2026-09-30).** Branch `phase2-plants` (worktree
+`D:/rustyecon-wt/p2b`, scratch `D:/rustyecon-p2b/build-harness/` and `D:/rustyecon-p2b/e0/`).
+As built: [docs/probe/LOOPS-RULES.md](docs/probe/LOOPS-RULES.md) §15. The evidence:
+[docs/probe/results/loops/e0.md](docs/probe/results/loops/e0.md).
+- **The harness** (LOOPS-RULES §8; decision 302) is `probe::horses::loops`:
+  - `perturb`: the run grammar with the plants, `b*F` at genesis and dated, and the families;
+  - `harness`: the observables with the plants, and §8.3's readouts: dead ticks by market,
+    labour's bound, the horse-days by buyer, `pk_high`, each plant's 5% tick and range, the
+    reservation's;
+  - `probes`: the elasticity probe, the kick set and the run length's rule;
+  - `cmd`: `horses` sends a command with a loop id there.
+
+  It shares P2.2a's row, statistics, classifier, kick set and reports (now
+  `probe::horses::report`). The running cost is read from the tape's recipe, in P2.2a's harness
+  too; P2.2a's outputs are byte-identical before and after, on 17 runs.
+- **E0 passes; no amendment.** The trace diff against `lm_carry.py`: nine runs at LB1 and three
+  at LW1, 2,000 ticks each from the engine's own genesis.
+  - Nothing parts at tick 1, so the planted desks' carry is the mirror's (decision 273).
+  - Eight runs agree within 8.7e-13.
+  - Four part on the horse market's cleared volume, by 3.9e-12 to 2.9e-11 (r × 2, b × 2,
+    heads × 2, heads × 10). There the volume is a small difference, the capacity desk's order
+    or the maker's offer: its inputs' gaps (at most 1.6e-13) times the cancellation (3–507),
+    within a factor of 6.4. The mirror with an ulp each tick parts farther.
+  - The maker's coin and output and, after heads × 10, the horse price (1.8e-12) follow that
+    volume.
+  - The withheld ticks agree tick for tick.
+
+  The allowance is read on both sides of the horse market (decision 304).
+- **E1 holds.**
+  - The pins, and the 13 horses and markets tapes' 2,000-tick streams on WSL and Windows.
+  - θ = 1 is the plain tape (P2.2b.1's test).
+  - The fixed plant's trace diff against lm_carry at plant rule "none" agrees within 7.4e-14 but
+    the horse market's volume (1.7e-12 and 2.4e-12, the maker's offer's cancellation).
+- **E2 holds.** Mode A at L (211,000, 202,000 and 232,000 ticks) passes at LB1–LB3 and LW1–LW3,
+  with largest gaps 8.9e-16 to 2.4e-15; the mirror's are 6.7e-16 to 4.5e-14. The engine's τ are
+  the mirror's (the good's 1,052 ticks at LB1), so its L is the mirror's.
+- **O72 timed**: one LB1 run at 10·L takes 65 s on one WSL core.
+- **Tests**: LOOPS-RULES §10's five remaining ones, in `crates/probe/tests/loops.rs`. 16 mutants
+  were run in two passes (`D:/rustyecon-p2b/build-harness/mutants/`). Two survived the first,
+  and their tests were strengthened. Build-plant's two plan-cap mutants survive the carry test
+  by construction and stay killed by `planted_desks_take_carried_goods` (LOOPS-RULES §15.4).
+- **The gates**: `scripts/gate.sh` and `scripts/gui.sh` green on WSL and Windows
+  (`D:/rustyecon-p2b/build-harness/`).
+- **Decisions 302–304 and O75–O76**, below. O73 is closed.
 
 **P2.2b's plant layer (P2.2b.1; 2026-09-30).** Branch `phase2-plants` (worktree
 `D:/rustyecon-wt/p2b`, scratch `D:/rustyecon-p2b/build-plant/`). As built:
@@ -3110,6 +3160,26 @@ and open to veto.
      3.0e-12). Every other instance is held to 1e-12. Alternative: 1e-12 everywhere, which LN6
      fails by rounding alone.
 
+302–304 are P2.2b.2's (`docs/probe/LOOPS-RULES.md` §15.2), taken by Claude on your standing word
+and open to veto.
+
+302. **The rule-B harness sits beside the loop instances**, as `probe::horses::loops::{perturb,
+     harness, probes, cmd}`, on P2.2a's shared row, statistics, classifier, kick set and reports
+     (`probe::horses::report`). `horses` sends a loop id there. P2.2a's `Instance` and outputs
+     are unchanged, and its running cost is read from the tape. Alternative (decision 290's
+     letter): fold rule B into P2.2a's `Instance` and harness.
+303. **The fodder desk's horse-days by buyer are its one buy line**, running and plant bundles
+     together (2·q_f at rest), reported, not scored. The mirror's `minHf` reads the running line
+     alone (θ at rest). Alternative: split the line by the plan's shares z/(z + s·I), to
+     reproduce `minHf`.
+304. **E0's allowed cancellation is the horse market's cleared volume on either side**: the
+     capacity desk's order, or the maker's offer (its finished stock less its cover band),
+     whichever is short. A parting is accepted where it is its inputs' gaps times the
+     cancellation, within a factor of 10, and the mirror with an ulp each tick parts as far.
+     HORSES-RULES §6.4's text names the maker's finished stock among the rounding sources.
+     Alternative: the demand side only. Then LB1 b × 2 (3.9e-12) and the two fixed-plant runs
+     (1.7e-12, 2.4e-12) would be partings to write up, though they are the same rounding.
+
 ## Open — your calls
 
 - **The GUI's decisions**, 22–34 (D1–D13): G0 carried them out, none vetoed; a veto now reopens
@@ -3820,11 +3890,14 @@ O69 on are P2.2b's (`docs/probe/LOOPS-RULES.md` §12).
   roles exist, against A1's numbers.
 - **O72. The run's cost.** L is 202,000–232,000 ticks and Tier 3 and 3S run again at 10·L: about
   2.3 million ticks for each of 53 runs per verdict instance, beside E4's kick sets at H = L. One
-  LB1 run at 10·L should be timed on WSL before the waves are planned.
+  LB1 run at 10·L should be timed on WSL before the waves are planned. Timed at P2.2b.2: LB1
+  w × 2 at 10·L (2,110,000 ticks) takes 65 s on one WSL core, 4.6 MB resident. So one verdict
+  instance's Tier 3 and 3S at 10·L (53 runs) take about an hour of one core.
 
 O73 on are P2.2b.1's (`docs/probe/LOOPS-RULES.md` §14).
 
-- **O73. The harness's rule-B readouts are not built.** LOOPS-RULES §8 (observables with the
+- **O73. The harness's rule-B readouts are not built.** Closed at P2.2b.2 (LOOPS-RULES §15):
+  the harness, its readouts and the five tests are built. LOOPS-RULES §8 (observables with the
   plants, per-market dead ticks, labour's bound, horse-days by buyer, `pk_high`, the plants' 5%
   readouts, the running cost read from the tape, the run grammar's plant stocks and `b*F`, the
   families and the outputs) and five §10 tests (`loops_batteries_are_registered`,
@@ -3836,6 +3909,17 @@ O73 on are P2.2b.1's (`docs/probe/LOOPS-RULES.md` §14).
   c_m but above it on c_full" cannot happen; the test takes the case that tells the two apart,
   above ψ on c_m and below it on c_full (LOOPS-RULES §14.2 item 5). Nothing to do but read §10
   with §14.
+
+O75 on are P2.2b.2's (`docs/probe/LOOPS-RULES.md` §15).
+
+- **O75. The mirror's run-length term is a table in the code.** `mirror_three_t6` copies
+  `lm_lin.json`'s 3·T6 per instance. If the mirror is registered again, the table must follow.
+  The engine's own term, 200·τ_max, comes from `horses elasticity`, which prints L.
+- **O76. E0's single-ulp column understates the rounding spread.** The mirror against itself with
+  one ulp at genesis (HORSES-RULES §6.4's column) parts less than the engine does wherever the
+  horse market's volume cancels, since the two sides round apart every tick, not once. The trace
+  diff now also reports the mirror with an ulp each tick, which covers every parting. Later trace
+  diffs (the goods chain's next stages) should report both.
 
 ## Corrections logged (A3; ADDENDUM §1.4)
 
@@ -3927,10 +4011,13 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
       no plant every committed tape's text, `world_id` and hash stream. The oracle needs no new
       solve at ρ = 0: 1g's plants give K\*, V and the user cost per plant desk (decision 184); the
       tape's goods need O32's schema and builder.
-   3. **The harness's rule-B readouts** (LOOPS-RULES §8; O73), and **E0, the trace diff**
-      against `lm_carry.py`, before any scored run; then E1–E11 of LOOP-SPEC-A1 §8 at LB1–LB3,
-      the flow controls LW1–LW3 and the negative controls, with the same bounded reviews as
-      P2.2a, and the report.
+   3. **The harness's rule-B readouts, and E0–E2** (P2.2b.2): **done**, 2026-09-30
+      (LOOPS-RULES §15; [results/loops/e0.md](docs/probe/results/loops/e0.md)). E0's trace diff
+      passes with no amendment; E1 and mode A hold.
+   4. **The scored runs** (P2.2b.3): E3–E11 of LOOP-SPEC-A1 §A1.5 at LB1–LB3, the flow controls
+      LW1–LW3, the families and the negative controls, in waves on WSL. L is 202,000–232,000,
+      with Tiers 3 and 3S again at 10·L; one LB1 run at 10·L takes 65 s on one core (O72). Then
+      the same bounded reviews as P2.2a, and the report `docs/probe/LOOPS.md`.
 
    Loops enter Phase 2 on plants (decision 284, amending 120) and machine stocks come forward
    for the goods chain (decision 285, D-G11), both taken by Claude on your word and open to veto.

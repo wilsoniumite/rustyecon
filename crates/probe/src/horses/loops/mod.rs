@@ -12,11 +12,21 @@
 //! stationary coin summed in its rule's order (LOOPS-RULES §7.4). `tapes/loops-<id>.ron` is
 //! `tape_ron(&Setup::registered(id, 52))` for LB1–LB3 and LW1–LW3.
 //!
-//! The harness's observables and readouts for these instances (LOOPS-RULES §8) are not here: the
-//! harness still reads rule A's instances only.
+//! The harness for these instances (LOOPS-RULES §8; P2.2b.2) is in the submodules:
+//!
+//! - [`perturb`]: the run grammar (§8.4), the battery with Tier 3S, and the families;
+//! - [`harness`]: runs a setup, reads §8.1's observables and §8.3's readouts every tick, scores
+//!   them against the oracle outside the Sim, and classifies the run with P2.2a's classifier;
+//! - [`probes`]: the one-tick elasticity probe, the kick set and the run length's rule (§8.6);
+//! - [`cmd`]: the `horses` binary's commands for a loop instance.
+
+pub mod cmd;
+pub mod harness;
+pub mod perturb;
+pub mod probes;
 
 use crate::horses::instance::HOURS;
-use crate::markets::setup::{Dial, Dials};
+use crate::markets::setup::{Dial, Dials, ShareAt};
 use crate::setup::{clock, OneSided, START};
 use oracle::{
     s1_size, Category, ChainCategory, ChainEconomy, GoodsChain, GoodsRecipe, Machine, Material,
@@ -845,8 +855,8 @@ pub fn dials(inst: &Instance, name: &str, plant_delta: f64) -> Result<Dials, Str
 pub struct Displacement {
     /// Each posted price, in [`Instance::markets`] order.
     pub price: Vec<f64>,
-    /// The good desk's human share.
-    pub share: f64,
+    /// The good desk's human share: 1 − x\* times a factor, or 1 − x for an x (`x*/2`).
+    pub share: ShareAt,
     /// Each actor's coin, in [`Instance::actors`] order.
     pub coin: Vec<f64>,
     /// Each stock, in [`stocks`] order.
@@ -858,7 +868,7 @@ impl Displacement {
     pub fn none(inst: &Instance) -> Displacement {
         Displacement {
             price: vec![1.0; inst.markets().len()],
-            share: 1.0,
+            share: ShareAt::Times(1.0),
             coin: vec![1.0; inst.actors().len()],
             stock: vec![1.0; stocks(inst).len()],
         }
@@ -932,6 +942,17 @@ pub struct Setup {
     /// The land factor the tape registers from tick 0 (a cost shock at genesis); genesis stays
     /// at the registered point.
     pub b_genesis: Option<f64>,
+    /// Dated changes of the land factor, in tick order (`b*F@dated`).
+    pub shocks: Vec<Shock>,
+}
+
+/// A dated change of the land factor b, by `SetParam`s at the start of `tick`.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Shock {
+    /// The tick it fires in.
+    pub tick: u64,
+    /// b from then on.
+    pub b: f64,
 }
 
 impl Setup {
@@ -949,6 +970,7 @@ impl Setup {
             fixed_plants: false,
             displace: Displacement::none(&instance),
             b_genesis: None,
+            shocks: Vec::new(),
             instance,
         })
     }
@@ -977,6 +999,26 @@ impl Setup {
     pub fn tape_instance(&self) -> Instance {
         self.instance
             .with_b(self.b_genesis.unwrap_or(self.instance.b))
+    }
+
+    /// The land factor in force at `tick`.
+    pub fn b_at(&self, tick: u64) -> f64 {
+        self.shocks
+            .iter()
+            .rfind(|s| s.tick <= tick)
+            .map(|s| s.b)
+            .or(self.b_genesis)
+            .unwrap_or(self.instance.b)
+    }
+
+    /// The instance in force at `tick`.
+    pub fn instance_at(&self, tick: u64) -> Instance {
+        self.instance.with_b(self.b_at(tick))
+    }
+
+    /// The reservation ψ the maker reads: its param, or 0 (off) where it has none.
+    pub fn psi(&self) -> f64 {
+        self.instance.reserve.unwrap_or(0.0)
     }
 
     /// The cover in ticks the maker reads: `cover.maker` through the clock (0 in the flow
@@ -1207,7 +1249,10 @@ pub fn genesis(s: &Setup) -> Result<Genesis, String> {
     for (p, f) in prices.iter_mut().zip(&xd.price) {
         *p *= f;
     }
-    let one_minus_x = e.one_minus_x * xd.share;
+    let one_minus_x = match xd.share {
+        ShareAt::Times(f) => e.one_minus_x * f,
+        ShareAt::At(x) => 1.0 - x,
+    };
     if !(0.0..=1.0).contains(&one_minus_x) {
         return Err(format!(
             "the genesis human share {one_minus_x} is outside [0, 1]"
@@ -1310,6 +1355,22 @@ pub fn params(
         }
     }
     Ok(out)
+}
+
+/// The params a change of the land factor moves (decision 256), each at `b`: fodder's land and
+/// a head's pasture, or in the flow control fodder's land and the horse-day's land.
+pub fn b_params(inst: &Instance, b: f64, tpy: u32) -> Result<Vec<(String, f64)>, String> {
+    let i = inst.with_b(b);
+    let r = i.rule;
+    let mut v = vec![("inst.fodder.land".to_string(), r.fodder_land * i.b)];
+    match i.config {
+        Config::Wet => v.push(("inst.horse.land".into(), r.horse_land * i.b)),
+        Config::Flow => {
+            let (_, _, b_hd) = i.flow_recipe(tpy)?;
+            v.push(("inst.traction.land".into(), b_hd));
+        }
+    }
+    Ok(v)
 }
 
 fn f(x: f64) -> String {
@@ -1521,6 +1582,20 @@ pub fn tape_ron(s: &Setup) -> Result<String, String> {
                 "Dimensionless",
                 &basis,
             );
+        }
+    }
+    if !s.shocks.is_empty() {
+        o.push("        // The dated shocks' values: schedule params (LOOPS-RULES §8.4).".into());
+        for (k, sh) in s.shocks.iter().enumerate() {
+            for (p, v) in b_params(base, sh.b, s.tpy)? {
+                param(
+                    &mut o,
+                    &format!("{p}.shock.{}", k + 1),
+                    v,
+                    "Dimensionless",
+                    "Assumed(\"LOOPS-RULES §8.4: a dated cost shock of the land factor\")",
+                );
+            }
         }
     }
     o.push("    ],".into());
@@ -1760,7 +1835,29 @@ pub fn tape_ron(s: &Setup) -> Result<String, String> {
     }
     o.push("        ],".into());
     o.push("    ),".into());
-    o.push("    events: [],".into());
+    if s.shocks.is_empty() {
+        o.push("    events: [],".into());
+    } else {
+        o.push("    events: [".into());
+        for (k, sh) in s.shocks.iter().enumerate() {
+            let date = c
+                .date_of(sh.tick)
+                .ok_or_else(|| format!("tick {} has no date", sh.tick))?;
+            for (j, (p, _)) in b_params(base, sh.b, s.tpy)?.iter().enumerate() {
+                o.push(format!(
+                    "        (key: \"shock.{}.{}\", at: \"{date}\", basis: Assumed(\"LOOPS-RULES §8.4: a                      dated cost shock of the land factor at tick {}\"),",
+                    k + 1,
+                    j + 1,
+                    sh.tick
+                ));
+                o.push(format!(
+                    "         act: SetParam(param: \"{p}\", to: \"{p}.shock.{}\")),",
+                    k + 1
+                ));
+            }
+        }
+        o.push("    ],".into());
+    }
     o.push("    recurring: [],".into());
     o.push(")".into());
     let mut text = o.join("\n");

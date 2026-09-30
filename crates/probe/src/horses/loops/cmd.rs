@@ -1,58 +1,32 @@
-//! The stocks probe's command line (HORSES-SPEC §7; docs/probe/HORSES-RULES.md §5).
+//! The `horses` binary's commands for a loop instance (P2.2b; LOOPS-RULES §8): `--inst` naming
+//! one of LOOPS-RULES §7.1's ids sends the command here. The commands and outputs are P2.2a's
+//! (HORSES-RULES §5), with the loop's setup options (`probe::horses::cli::parse_loops`) and its
+//! readouts appended (§8.5):
 //!
 //! ```text
-//! horses run NAME...     [options]  run named perturbations (see `probe::horses::perturb`)
-//! horses family FAMILY   [options]  run a family: battery, tier3s, stocks
-//! horses list FAMILY     [options]  print a family's run names (the battery with its tier)
-//! horses tape [NAME]     [options]  print the tape a run is made from
-//! horses kick NAME...    [options]  the kick set at the end of each named run (§7.5)
-//! horses slowest NAME    [options]  the kick set's envelope and its slowest mode, g (§7.4)
-//! horses elasticity      [options]  the one-tick elasticity probe and L's second term (§7.8)
-//! horses openloop        [options]  the open-loop probe, prices frozen (§7.8)
-//! horses point           [options]  the oracle's point, at the base and each cost target
-//!
-//! setup options (probe::horses::cli):
-//!   --inst ID              h1-h4, f1-f10, r1a, p7 or p8 (default h1)
-//!   --tpy N                ticks a year (default 52)
-//!   --dials c2g|c2g13|c2   a registered dial set (default the instance's)
-//!   --set KEY=VALUE        set a dial; rate.*, buffer.* and adjust.* scale a family, tilt.* sets
-//!   --assign planned|expost, --order target|held, --cover yes|none
-//!   --one-sided saturate|hold
-//!   --reserve PSI          the maker's reservation (L0.4; IDLE-SPEC): it offers no finished heads
-//!                          while its net markup is below PSI; absent, the tape is P2.2a's
-//! run options:
-//!   --ticks L              the scored length (default 20000; a dated shock adds L/4 before it)
-//!   --csv DIR              write DIR/<run>.csv, one row per tick, DIR/summary.tsv, DIR/stats.tsv
-//!   --every K              write every K-th tick to the CSV (and the last)
-//!   --jobs J               run J runs at once (default 1)
-//!   --horizon H            the kick's horizon (default: the scored length)
-//!   --h X                  the probes' step in log price (default 0.01)
+//! horses run NAME...     --inst ID [options]  run named perturbations (`loops::perturb`)
+//! horses family FAMILY   --inst ID [options]  run a family: battery, tier3s, stocks
+//! horses list FAMILY     --inst ID [options]  print a family's run names (the battery with its tier)
+//! horses tape [NAME]     --inst ID [options]  print the tape a run is made from
+//! horses kick NAME...    --inst ID [options]  the kick set at the end of each named run
+//! horses slowest NAME    --inst ID [options]  the kick set's envelope and its slowest mode, g
+//! horses elasticity      --inst ID [options]  the one-tick elasticity probe and the run length
+//! horses point           --inst ID [options]  the oracle's point, at the base and each cost target
 //! ```
 //!
-//! Each run prints one summary line: its class (PROBE-SPEC §4.5) and the reported numbers, with
-//! §7.11's transient and stock statistics in long form in `stats.tsv`. Columns 48–50 of
-//! `summary.tsv` are the idle market's (L0.4): the scored ticks the maker withheld, its switches
-//! between withholding and offering, and its lowest net markup. The last nine are the loop
-//! step's (LOOPS-RULES §8.5; `probe::horses::report`), `-` for these instances.
-//!
-//! A loop instance (P2.2b; `--inst lb1` and the rest of LOOPS-RULES §7.1's ids) runs through
-//! `probe::horses::loops::cmd`: the same commands but `openloop`, with the loop's setup options
-//! (`--dials c2g|c2g13`, `--one-sided`, `--reserve PSI|none`, `--theta X`, `--plant-delta D`,
-//! `--fixed-plants`) and its readouts appended.
+//! Run options: `--ticks L` (default 20,000), `--csv DIR`, `--every K`, `--jobs J`, `--horizon
+//! H`, `--h X`, as P2.2a's.
 
-use probe::harness::Summary;
-use probe::horses::cli::{inst_of, parse};
-use probe::horses::harness::{csv_header, items, outputs, run, Record};
-use probe::horses::kick::{kick_set, slowest_mode, three_t6};
-use probe::horses::loops::{cmd as loops_cmd, Instance as LoopInstance};
-use probe::horses::perturb::{battery, family, Perturbation};
-use probe::horses::probes::{elasticity, open_loop};
-use probe::horses::report::{file_name, g, stats_fields, summary_fields, SUMMARY};
-use probe::horses::setup::{tape_ron, Setup};
-use probe::protocol::RUN_TICKS;
+use super::harness::{csv_header, run, stats_lines, summary_line};
+use super::perturb::{battery, family, Perturbation};
+use super::probes::{elasticity, kick_set, mirror_three_t6, run_length};
+use super::{tape_ron, Setup};
+use crate::horses::cli::parse_loops;
+use crate::horses::kick::{slowest_mode, three_t6};
+use crate::horses::report::{file_name, g, SUMMARY};
+use crate::protocol::RUN_TICKS;
 use std::io::Write as _;
 use std::path::PathBuf;
-use std::process::ExitCode;
 
 struct Options {
     ticks: u64,
@@ -65,7 +39,7 @@ struct Options {
 }
 
 fn options(args: &[String]) -> Result<(Vec<String>, Options), String> {
-    let a = parse(
+    let a = parse_loops(
         args,
         &["--ticks", "--csv", "--every", "--jobs", "--horizon", "--h"],
     )?;
@@ -98,48 +72,14 @@ fn options(args: &[String]) -> Result<(Vec<String>, Options), String> {
     Ok((rest, o))
 }
 
-/// The summary line of a P2.2a run: P2.2a's 50 columns, and the loop step's nine as `-`
-/// (decision 292).
-fn summary_line(rec: &Record, s: &Summary) -> String {
-    let mut v = summary_fields(
-        &rec.name,
-        s,
-        &rec.stats,
-        &rec.setup.instance.markets(),
-        &rec.hold_failure,
-        &rec.stop,
-    );
-    v.extend(std::iter::repeat_n(
-        "-".to_string(),
-        SUMMARY.len() - v.len(),
-    ));
-    v.join("	")
-}
-
-/// §7.11's statistics in long form: run, statistic, where, value.
-fn stats_lines(rec: &Record) -> Vec<String> {
-    let inst = &rec.setup.instance;
-    stats_fields(
-        &rec.stats,
-        &inst.markets(),
-        &outputs(inst),
-        &items(),
-        &rec.engine_markets,
-    )
-    .into_iter()
-    .map(|(stat, at, value)| format!("{}	{stat}	{at}	{value}", rec.name))
-    .collect()
-}
-
 fn one(o: &Options, name: &str) -> Result<(String, Vec<String>), String> {
-    let inst = &o.setup.instance;
     let mut csv = match &o.csv {
         Some(dir) => {
             std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
             let path = dir.join(format!("{}.csv", file_name(name)));
             let f = std::fs::File::create(&path).map_err(|e| format!("{}: {e}", path.display()))?;
             let mut w = std::io::BufWriter::new(f);
-            writeln!(w, "{}", csv_header(inst)).map_err(|e| e.to_string())?;
+            writeln!(w, "{}", csv_header(&o.setup)).map_err(|e| e.to_string())?;
             Some(w)
         }
         None => None,
@@ -150,11 +90,11 @@ fn one(o: &Options, name: &str) -> Result<(String, Vec<String>), String> {
     let mut failed = None;
     let rec = run(&o.setup, name, o.ticks, &mut |row| {
         if let Some(w) = csv.as_mut() {
-            if row.tick % every == 0 {
+            if row.row.tick % every == 0 {
                 if let Err(e) = writeln!(w, "{}", row.csv()) {
                     failed = Some(e.to_string());
                 }
-                last_written = Some(row.tick);
+                last_written = Some(row.row.tick);
             } else {
                 pending = Some(row.csv());
             }
@@ -162,7 +102,7 @@ fn one(o: &Options, name: &str) -> Result<(String, Vec<String>), String> {
     })?;
     if let Some(w) = csv.as_mut() {
         if let (Some(line), Some(last)) = (pending, rec.last.as_ref()) {
-            if last_written != Some(last.tick) {
+            if last_written != Some(last.row.tick) {
                 writeln!(w, "{line}").map_err(|e| e.to_string())?;
             }
         }
@@ -171,7 +111,7 @@ fn one(o: &Options, name: &str) -> Result<(String, Vec<String>), String> {
     if let Some(e) = failed {
         return Err(e);
     }
-    Ok((summary_line(&rec, &rec.summary), stats_lines(&rec)))
+    Ok((summary_line(&rec), stats_lines(&rec)))
 }
 
 fn parallel<T: Send>(
@@ -211,14 +151,14 @@ fn print_point(setup: &Setup) -> Result<(), String> {
         let i = inst.with_b(b);
         let e = i.point(tpy)?;
         println!(
-            "{}\t{label}\tb {b:?}\tx* {:?}\t1-x* {:?}\tv {:?}\tP_s {:?}\tY {:?}\tN_a {:?}\tp {:?}\tp_f {:?}\tp_K {:?}\tp_h {:?}\tO {:?}\tq_f {:?}\tq_b {:?}\tsold {:?}\thours {:?}\ttask_hours {:?}\theads_tasks {:?}\theads_maker {:?}\tfunded {} ({:?})",
+            "{}\t{label}\tb {b:?}\tx* {:?}\t1-x* {:?}\tv {:?}\tP_s {:?}\tY {:?}\tN_a {:?}\tp {:?}\tp_f {:?}\tp_K {:?}\tp_h {:?}\tO {:?}\tq_f {:?}\tq_b {:?}\thours {:?}\ttask_hours {:?}\tfodder_hours {:?}\theads {:?}\tfunded {} ({:?})",
             i.id, e.x_star, e.one_minus_x, e.v, e.p_s, e.y, e.n_a, e.p, e.pf, e.pk, e.ph, e.o,
-            e.qf, e.made, e.sold, e.hours, e.task_hours, e.capacity, e.serving, e.funded,
+            e.qf, e.made, e.hours, e.task_hours, e.fodder_hours, e.capacity, e.funded,
             e.provider_baskets
         );
         Ok(())
     };
-    let b = inst.county.b;
+    let b = inst.b;
     show("base", b)?;
     for f in [1.1, 0.9, 2.0, 0.5] {
         show(&format!("b*{f}"), b * f)?;
@@ -226,32 +166,12 @@ fn print_point(setup: &Setup) -> Result<(), String> {
     Ok(())
 }
 
-fn main() -> ExitCode {
-    match real_main() {
-        Ok(true) => ExitCode::SUCCESS,
-        Ok(false) => ExitCode::FAILURE,
-        Err(e) => {
-            eprintln!("horses: {e}");
-            ExitCode::FAILURE
-        }
-    }
-}
-
-fn real_main() -> Result<bool, String> {
-    let args: Vec<String> = std::env::args().skip(1).collect();
-    let Some(cmd) = args.first() else {
-        return Err(
-            "run, family, list, tape, kick, slowest, elasticity, openloop or point; see the \
-             source's header"
-                .into(),
-        );
-    };
-    if inst_of(&args[1..]).is_some_and(LoopInstance::is_loop) {
-        return loops_cmd::main(cmd, &args[1..]);
-    }
-    let (rest, o) = options(&args[1..])?;
+/// Run the command `cmd` with `args` (every argument after it) on a loop instance. Returns
+/// whether every run succeeded.
+pub fn main(cmd: &str, args: &[String]) -> Result<bool, String> {
+    let (rest, o) = options(args)?;
     let inst = o.setup.instance.clone();
-    match cmd.as_str() {
+    match cmd {
         "point" => {
             print_point(&o.setup)?;
             return Ok(true);
@@ -280,48 +200,23 @@ fn real_main() -> Result<bool, String> {
                     e.k[i], e.eps_d[i][i], e.eps_s[i][i], e.multiplier[i], e.tau[i]
                 );
             }
+            let t6 = mirror_three_t6(&inst.id)?;
+            // Where the mirror's T6 is infinite, LB1's length at this tick length.
+            let fallback = if t6.is_none() {
+                let mut lb1 = Setup::registered("lb1", o.setup.tpy)?;
+                lb1.one_sided = o.setup.one_sided;
+                let el = elasticity(&lb1, o.h)?;
+                Some(run_length("lb1", o.setup.tpy, el.l, None)?)
+            } else {
+                None
+            };
+            let l = run_length(&inst.id, o.setup.tpy, e.l, fallback)?;
             println!(
-                "tau_max {:.1} ticks; 200 tau_max rule: L = {}",
-                e.tau_max, e.l
+                "tau_max {:.1} ticks; 200 tau_max term {}; the mirror's 3*T6 at 52 a year {}; L = {l}",
+                e.tau_max,
+                e.l,
+                t6.map_or("infinite (LB1's L)".to_string(), |t| t.to_string())
             );
-            return Ok(true);
-        }
-        "openloop" => {
-            let lags = [0, 1, 5, 20, 200];
-            let ol = open_loop(&o.setup, o.h, &lags)?;
-            let actors = inst.actors();
-            println!(
-                "{} {} tpy {}: every price rate 0; d ln(D/S) and d ln(coin) per unit d ln p",
-                inst.id, o.setup.dials.set, o.setup.tpy
-            );
-            for (j, m) in ol.markets.iter().enumerate() {
-                println!(" price of {m}:");
-                for (k, lag) in ol.lags.iter().enumerate() {
-                    let r: Vec<String> = ol
-                        .markets
-                        .iter()
-                        .zip(&ol.response[j][k])
-                        .map(|(n, x)| format!("{n} {x:+.3}"))
-                        .collect();
-                    let c: Vec<String> = actors
-                        .iter()
-                        .zip(&ol.coin[j][k])
-                        .map(|(n, x)| format!("{n} {x:+.3}"))
-                        .collect();
-                    println!("   lag {lag:3}: {}", r.join("  "));
-                    println!("            coin: {}", c.join("  "));
-                }
-            }
-            println!(" undisplaced, prices frozen: ln(D/S) by market");
-            for (k, lag) in ol.lags.iter().enumerate() {
-                let r: Vec<String> = ol
-                    .markets
-                    .iter()
-                    .zip(&ol.hold[k])
-                    .map(|(n, x)| format!("{n} {x:+.3e}"))
-                    .collect();
-                println!("   lag {lag:3}: {}", r.join("  "));
-            }
             return Ok(true);
         }
         "slowest" => {
@@ -359,7 +254,7 @@ fn real_main() -> Result<bool, String> {
         }
         _ => {}
     }
-    let names: Vec<String> = match cmd.as_str() {
+    let names: Vec<String> = match cmd {
         "run" | "kick" => rest,
         "family" | "list" => {
             let mut v = Vec::new();
@@ -368,7 +263,12 @@ fn real_main() -> Result<bool, String> {
             }
             v
         }
-        x => return Err(format!("unknown command {x}")),
+        x => {
+            return Err(format!(
+                "unknown command {x} for a loop instance: run, family, list, tape, kick, slowest, \
+                 elasticity or point"
+            ))
+        }
     };
     if cmd == "list" {
         let tiers = battery(&inst, o.setup.tpy)?;

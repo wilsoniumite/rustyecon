@@ -8,6 +8,10 @@ file "as built", as HORSES-RULES was.
 from §1–§13, what it checked, and what it leaves to the harness step. The text above §14 is the
 spec as P2.2b.0 wrote it.
 
+**Amended at P2.2b.2 (2026-09-30): the harness as built, and E0–E2.** §15 says what the harness
+step made, where it departs from §8–§10 and §13, and what E0, E1 and E2 found
+([results/loops/e0.md](results/loops/e0.md)). E0 passes and needs no amendment.
+
 P2.2b asks whether rule B's horse runs on the engine as the mirror registered it. Fodder is
 raised with horse-days (the loop). The horses are held by M3's wet capacity desk and bred by M2
 from bought fodder. CAPACITY's plant, y = K^(1−θ)·z^θ, sits on the fodder desk, on the capacity
@@ -46,7 +50,8 @@ This file says:
 - where the build's arithmetic parts from the mirror's (§11);
 - decisions 286–296 and open items O69–O72 (§12);
 - the files and the order of work (§13);
-- the build as built (§14, P2.2b.1).
+- the build as built (§14, P2.2b.1);
+- the harness as built, and E0–E2 (§15, P2.2b.2).
 
 ## 1. What changes, and what does not
 
@@ -1043,3 +1048,140 @@ refuses its orders first), and the engine's boxed delta, which clippy guards.
 ### 14.5 Decisions and open items
 
 Decisions 297–301 and open items O73–O74 are in STATE.md.
+
+## 15. The harness as built, and E0–E2 (P2.2b.2, 2026-09-30)
+
+Label `build-harness`, scratch `D:/rustyecon-p2b/build-harness/` and `D:/rustyecon-p2b/e0/`.
+The harness (§8) is built, with the five tests §14.2 item 5 left. E0, E1 and E2 ran before any
+scored run ([results/loops/e0.md](results/loops/e0.md)). No scored run (E3–E11) has been made.
+
+### 15.1 What was built
+
+- **`probe::horses::loops`** is a module directory now (`loops.rs` moved to `loops/mod.rs`). It
+  gains:
+  - `perturb`: §8.4's grammar on a loop instance (P2.2a's terms, the plants among the stocks,
+    `b*F@genesis` and `b*F@dated` on the land factor), `battery`, `tier3s` and `family`;
+  - `harness`: §8.1's observables and targets, the rows, §8.3's readouts (`Readouts`), `run`, the
+    CSV, and the summary and stats lines;
+  - `probes`: the one-tick elasticity probe, the kick set and §8.6's rule (`run_length`, with
+    the mirror's 3·T6 from `lm_lin.json` as a table, `mirror_three_t6`);
+  - `cmd`: the `horses` binary's commands for a loop instance.
+- **The setup** gains dated shocks: `Setup::shocks`, `b_at`, `instance_at` and `b_params`. The
+  tape writes their params and `SetParam` events as P2.2a's does. A tape without a shock keeps
+  `events: []`, so the six committed tapes are unchanged. The displacement's share is P2.2a's
+  `ShareAt`, for `x*/2`.
+- **Shared with P2.2a.** The loop harness reads P2.2a's row, statistics (`Stats`,
+  `StockTrack`), classifier, mode A check, kick set (`kick_set_of`, split out of `kick_set`)
+  and reports. The reports moved out of the binary into `probe::horses::report`: `SUMMARY` (59
+  columns), `summary_fields` and `stats_fields`.
+- **The running cost is read from the tape** (§8.3), in P2.2a's harness too:
+  `probe::horses::harness::running_cost` sums the capacity desk's (or M1's owner desk's) running
+  recipe in the rule's order, at the params in force. At every P2.2a instance it is p_f bit for
+  bit.
+- **`horses`** sends a command whose `--inst` names a loop id to `loops::cmd::main`. The
+  commands are `run`, `family`, `list`, `tape`, `kick`, `slowest`, `elasticity` and `point`;
+  `openloop` is not ported. `elasticity` prints L by §8.6's rule.
+- **The outputs** are §8.5's. A P2.2a instance writes the nine new `summary.tsv` columns as `-`.
+
+### 15.2 Where the harness departs from §8–§10 and §13
+
+1. **The loop instances keep their own module** (decision 300), and the harness sits beside
+   them, on P2.2a's shared parts, not inside P2.2a's `Instance` (decision 302). `horses` and
+   `horses-tape` take the loop ids as §7 and §8 say.
+2. **The fodder desk's horse-days are its one buy line** (`hours_fodder`, `hours_fodder_low`):
+   the running and the plant bundles together (§3.5), 2·q_f at rest. The mirror's `minHf` reads
+   its running line alone, θ of the line at rest. Reported, not scored; E7 scores the tasks'
+   (decision 303).
+3. **`dead_by`, `pk_high` and the plants' readouts in the flow control**: `pk_high` is `-` (no
+   horse market). `markup_low` is `inf`, P2.2a's form when no maker reads a markup.
+4. **The run length's third term** is the mirror's 3·T6 at 52 a year, scaled by tpy/52 and
+   rounded up to a thousand at other tick lengths. Where the mirror's T6 is infinite, the
+   instance runs at LB1's L at the same tick length (§8.6).
+5. **E0's script** (§13) is `D:/rustyecon-p2b/e0/tracediff.py`, not
+   `D:/rustyecon-p2b/<label>/tracediff/`. It adds two columns to HORSES-RULES §6.4's:
+   - the mirror with an ulp added after every tick;
+   - at each tick where the horse market's volume parts, its short side, the cancellation and
+     the gap over (the cancellation × the inputs' gaps).
+
+   The flow control's mirror P is rule B at the instance's δ and the tape's land factor. The
+   flow tape has the horse-day desk's recipe but no horse params, so the script asserts the
+   mirror's flow recipe equals the tape's bit for bit.
+6. **The allowed parting is read on both sides of the horse market** (decision 304). HORSES-RULES
+   §6.4's cancellation is read as the cleared volume's, whichever side is short: the capacity
+   desk's order or the maker's offer (its finished stock less its cover band). §6.4's own text
+   names the maker's finished stock among the rounding sources.
+7. **`loops_carry_meets_the_mirror_at_tick_one` does not run at LB1 w × 0.5** (§10). There
+   labour binds every planted desk at tick 1, so the carried units never reach the bundles, and a
+   build without the carry would pass. The test runs where the carry binds instead:
+   - LB1 p[traction] × 0.5 (the capacity desk and the maker);
+   - LB1 p[fodder] × 0.5 (the fodder desk);
+   - LW1 p[traction] × 0.5 (the horse-day desk).
+
+   The no-carry mirror makes 3.2–6.4% less at tick 1 there. The literals come from
+   `D:/rustyecon-p2b/e0/carry_literals.py`.
+8. **`loops_harness_readouts_are_the_rows`** runs LB1 w × 0.3 (dead ticks in four markets),
+   LB1 w × 3 (labour's bound reached) and LW1 r × 2, for 300 ticks each. It also reads the
+   horse-days by buyer apart from the readouts: the two buyers' fills sum to the cleared
+   horse-days every tick, and at rest they are Y·J(x\*) and 2·q_f at LB1, LW1 and LC1.
+
+### 15.3 E0, E1 and E2
+
+The numbers are in [results/loops/e0.md](results/loops/e0.md).
+
+- **E0 passes.** At LB1's nine runs and LW1's three, 2,000 ticks each from the engine's own
+  genesis, nothing parts at tick 1, and nothing parts above 1e-12 before tick 140.
+  - Eight runs agree within 8.7e-13 on every observable, coin and readout.
+  - Four (r × 2, b × 2, heads × 2, heads × 10) part on the horse market's cleared volume, by 9.4e-12,
+    3.9e-12, 7.1e-12 and 2.9e-11. Where it parts, the volume is a difference of terms 3 to 507
+    times its size. Each gap is its inputs' gaps (at most 1.6e-13) times that ratio, within a
+    factor of 6.4, and the mirror with an ulp each tick parts farther.
+  - The maker's coin and next output (the volume's revenue) and, after heads × 10, the horse
+    price (1.8e-12) follow the volume.
+  - The withheld ticks agree tick for tick.
+
+  No amendment is needed.
+- **E1 holds.** The pins and the 13 tapes' streams on both machines. θ = 1 is the plain tape
+  (P2.2b.1's test). The fixed plant is drs, and its trace diff against lm_carry at plant rule
+  "none" parts only on the horse market's volume (1.7e-12, 2.4e-12), by the same cancellation.
+  P2.2a's CSV, `stats.tsv` and first 50 summary columns are byte-identical before and after this
+  step, on 17 runs.
+- **E2 holds.** Mode A at L passes at LB1–LB3 and LW1–LW3, with largest gaps 8.9e-16, 2.4e-15,
+  5.6e-16, 2.2e-16, 2.0e-15 and 8.9e-16. The engine's L equals the mirror's: 211,000, 202,000
+  and 232,000.
+
+### 15.4 Tests and mutants
+
+**Tests.** The five §10 tests are built in `crates/probe/tests/loops.rs`:
+`loops_batteries_are_registered`, `loops_runs_apply_as_named`,
+`loops_harness_readouts_are_the_rows`, `harness_reads_the_running_cost_from_the_tape` and
+`loops_carry_meets_the_mirror_at_tick_one`.
+
+**Mutants.** Each change was undone, one at a time, in a copy of the tree
+(`D:/rustyecon-p2b/build-harness/mutants/`). 16 mutants were run in two passes.
+- Two survived the first pass, and their tests were strengthened:
+  - swapping the horse-days' buyers (the test now reads the buyers apart from the readouts);
+  - the genesis carry (the test moved to runs where the carry binds).
+- Build-plant's two mutants that cap the bundles at the plan (on the type desk and the capacity
+  desk) survive the carry test by construction: at its runs the carry fills the shortfall up to
+  the plan, not past it. They stay killed by `planted_desks_take_carried_goods`.
+
+| mutant | killed by |
+|---|---|
+| the running cost without its labour | `harness_reads_the_running_cost_from_the_tape` |
+| the loop rows' running cost is fodder's price | `harness_reads_the_running_cost_from_the_tape` |
+| a dead tick below a quarter of the target | `loops_harness_readouts_are_the_rows` |
+| labour's reach capped at 1 | `loops_harness_readouts_are_the_rows` |
+| the horse-days' buyers swapped | `loops_harness_readouts_are_the_rows` (second pass) |
+| `pk_high` keeps the lowest | `loops_harness_readouts_are_the_rows` |
+| a plant's band at 10% | `loops_harness_readouts_are_the_rows` |
+| the herd's plant target without κ | `loops_harness_readouts_are_the_rows` |
+| a dated shock a tick late | `loops_runs_apply_as_named` |
+| the flow control's shock leaves the horse-day's land | `loops_runs_apply_as_named` |
+| `x*/2` sets x, not 1 − x | `loops_runs_apply_as_named` |
+| the battery without `x*/2` | `loops_batteries_are_registered` |
+| Tier 3S without the plants | `loops_batteries_are_registered` |
+| a genesis lot lives no longer than a lot made at tick 0 | `loops_carry_meets_the_mirror_at_tick_one` (second pass) |
+
+### 15.5 Decisions and open items
+
+Decisions 302–304 and open items O75–O76 are in STATE.md. O73 is closed.

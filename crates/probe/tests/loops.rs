@@ -8,10 +8,15 @@
 //! total coin over a run, as in `horses.rs`; and `REST`, 1e-12 in log, for three ticks from the
 //! oracle's f64 point (LOOPS-RULES §10).
 
+use probe::horses::cli::parse_loops;
+use probe::horses::loops::harness::{csv_header, run as loop_run, summary_line, LoopRow};
+use probe::horses::loops::perturb::{battery, family, Perturbation};
+use probe::horses::loops::probes::{floor, mirror_three_t6, run_length};
 use probe::horses::loops::{genesis, params, stocks, tape_ron, Config, Instance, Setup};
+use probe::horses::report::SUMMARY;
 use rustyecon_core::{num, StateDelta};
 use rustyecon_engine::prelude::{
-    ActorId, Amount, GoodId, Holder, NodeId, Phase, Provenance, Sim, Tape, TickReport,
+    ActorId, Amount, GoodId, Holder, NodeId, ParamId, Phase, Provenance, Sim, Tape, TickReport,
 };
 use rustyecon_engine::rustyecon_agents::{ActorState, PlantState};
 
@@ -810,4 +815,582 @@ fn loops_instances_are_fundeds() {
         m += 1;
     }
     assert_eq!(m, 80);
+}
+
+// ---------------------------------------------------------------------------------------------
+// The harness (P2.2b.2; LOOPS-RULES §8, §10).
+
+fn param_of(s: &Sim, key: &str) -> f64 {
+    let id = s
+        .world()
+        .id_of::<ParamId>(key)
+        .unwrap_or_else(|| panic!("no param {key}"));
+    s.param(id).expect("a value")
+}
+
+fn applied(id: &str, name: &str, ticks: u64) -> Setup {
+    let mut s = registered(id);
+    Perturbation::parse(name)
+        .unwrap_or_else(|e| panic!("{id} {name}: {e}"))
+        .apply(&mut s, ticks)
+        .unwrap_or_else(|e| panic!("{id} {name}: {e}"));
+    s
+}
+
+#[test]
+fn loops_batteries_are_registered() {
+    // LOOPS-RULES §8.4 and §9 (E3, E8, E9): the tier counts of each instance's battery (Tiers 1,
+    // 2, 3 and 3S) and of its stocks family. Wet with three plants 20, 24, 25, 28 and 28; with two
+    // plants Tier 3S and the stocks family 26; with one 24; with none 22; the flow control with
+    // plants 18, 22, 23, 20 and 20; LW0's 3S and stocks 16. Every run name is new within its
+    // battery, parses and applies to its setup; and the run lengths are §8.6's rule.
+    let tiers = |id: &str| -> [usize; 5] {
+        let inst = Instance::named(id).unwrap();
+        let b = battery(&inst, 52).unwrap();
+        let n = |t: u8| b.iter().filter(|r| r.tier == t).count();
+        [
+            n(1),
+            n(2),
+            n(3),
+            n(4),
+            family(&inst, 52, "stocks").unwrap().len(),
+        ]
+    };
+    for id in [
+        "lb1", "lb2", "lb3", "lf1", "lf7", "lf8", "lf2", "lf3", "lf5", "lf6", "lc1", "ln6",
+    ] {
+        assert_eq!(tiers(id), [20, 24, 25, 28, 28], "{id}");
+    }
+    for id in ["ln2", "ln4"] {
+        assert_eq!(tiers(id), [20, 24, 25, 26, 26], "{id}");
+    }
+    assert_eq!(tiers("ln3"), [20, 24, 25, 24, 24]);
+    for id in ["ln1", "ln7", "ln8", "ln9"] {
+        assert_eq!(tiers(id), [20, 24, 25, 22, 22], "{id}");
+    }
+    for id in ["lw1", "lw2", "lw3"] {
+        assert_eq!(tiers(id), [18, 22, 23, 20, 20], "{id}");
+    }
+    assert_eq!(tiers("lw0"), [18, 22, 23, 16, 16]);
+    for id in Instance::IDS {
+        let inst = Instance::named(id).unwrap();
+        let mut names: Vec<String> = battery(&inst, 52)
+            .unwrap()
+            .into_iter()
+            .map(|r| r.name)
+            .collect();
+        assert_eq!(
+            family(&inst, 52, "tier3s").unwrap(),
+            battery(&inst, 52)
+                .unwrap()
+                .into_iter()
+                .filter(|r| r.tier == 4)
+                .map(|r| r.name)
+                .collect::<Vec<_>>(),
+            "{id}"
+        );
+        names.extend(family(&inst, 52, "stocks").unwrap());
+        let n = names.len();
+        names.sort();
+        names.dedup();
+        assert_eq!(names.len(), n, "{id}: a run name repeats");
+        for name in &names {
+            applied(id, name, 400);
+        }
+    }
+    // §8.6: L = max(20,000·tpy/52, 200·τ_max, 3·T6), each rounded up to a thousand; the mirror's
+    // T6 infinite at LN1, LN3, LN6 and LN7, which run at LB1's L.
+    assert_eq!(floor(52), 20_000);
+    assert_eq!(floor(365), 141_000);
+    assert_eq!(run_length("lb1", 52, 211_000, None).unwrap(), 211_000);
+    assert_eq!(run_length("lf6", 52, 20_000, None).unwrap(), 103_000);
+    assert_eq!(run_length("lb3", 12, 1_000, None).unwrap(), 11_000);
+    assert_eq!(mirror_three_t6("ln1").unwrap(), None);
+    assert_eq!(
+        run_length("ln7", 52, 221_000, Some(211_000)).unwrap(),
+        211_000
+    );
+    assert!(run_length("ln7", 52, 221_000, None).is_err());
+    for id in Instance::IDS {
+        assert!(mirror_three_t6(id).is_ok(), "{id}");
+    }
+}
+
+#[test]
+fn loops_runs_apply_as_named() {
+    // LOOPS-RULES §8.4: each run changes what its name says and nothing else. A stock or coin
+    // term moves that holding at genesis by its factor (the plants among the stocks); `b*F`
+    // moves fodder's land and a head's pasture, or fodder's and the horse-day's land in the flow
+    // control, from tick 0 (`@genesis`, genesis kept at the registered point) or by dated
+    // `SetParam`s at L/4 (`@dated`); `x*/2` sets the good desk's x to x*/2; `--reserve none`
+    // removes the maker's reservation, and the flow control refuses one.
+    let holdings = |s: &Sim| -> Vec<(String, String, f64)> {
+        let w = s.world();
+        let mut out = Vec::new();
+        for a in &w.actors {
+            let inv = s.holding(Holder::Actor(a.id)).expect("a holding");
+            for g in &w.goods {
+                out.push((a.key.to_string(), g.key.to_string(), inv.get(g.id)));
+            }
+        }
+        out
+    };
+    for (id, name, holder, good, f) in [
+        (
+            "lb1",
+            "plant.capacity*2",
+            "desk.capacity",
+            "plant.capacity",
+            2.0,
+        ),
+        ("lb1", "plant.maker*0.5", "desk.maker", "plant.maker", 0.5),
+        (
+            "lb1",
+            "plant.fodder*10",
+            "desk.fodder",
+            "plant.fodder",
+            10.0,
+        ),
+        ("lb1", "heads.capacity*10", "desk.capacity", "horse", 10.0),
+        ("lb1", "hours.capacity*2", "desk.capacity", "traction", 2.0),
+        ("lb1", "finished.maker*2", "desk.maker", "horse", 2.0),
+        ("lb1", "stock.good*0.5", "desk.good", "good", 0.5),
+        ("lb1", "stock.fodder*2", "desk.fodder", "fodder", 2.0),
+        ("lb1", "coin.desk.maker*0.1", "desk.maker", "coin", 0.1),
+        ("lb1", "coin.workers*0.02", "workers", "coin", 0.02),
+        (
+            "lw1",
+            "plant.traction*2",
+            "desk.traction",
+            "plant.traction",
+            2.0,
+        ),
+        (
+            "lw1",
+            "stock.traction*0.5",
+            "desk.traction",
+            "traction",
+            0.5,
+        ),
+        ("lw1", "coin.desk.traction*2", "desk.traction", "coin", 2.0),
+    ] {
+        let base = holdings(&sim(&tape_ron(&registered(id)).unwrap()));
+        let moved = holdings(&sim(&tape_ron(&applied(id, name, 400)).unwrap()));
+        for ((a, g, x0), (_, _, x1)) in base.iter().zip(&moved) {
+            let want = if a == holder && g == good {
+                x0 * f
+            } else {
+                *x0
+            };
+            assert_eq!(x1.to_bits(), want.to_bits(), "{id} {name}: {a} {g}");
+        }
+    }
+    // The land factor at genesis: the coefficients move, genesis stays.
+    for (id, keys) in [
+        ("lb1", ["inst.fodder.land", "inst.horse.land"]),
+        ("lw1", ["inst.fodder.land", "inst.traction.land"]),
+    ] {
+        let inst = registered(id).instance;
+        let value = |b: f64, k: &str| {
+            params(&inst.with_b(b), 52)
+                .unwrap()
+                .into_iter()
+                .find(|p| p.0 == k)
+                .unwrap()
+                .1
+        };
+        let base = sim(&tape_ron(&registered(id)).unwrap());
+        let shocked = sim(&tape_ron(&applied(id, "b*2@genesis", 400)).unwrap());
+        for k in keys {
+            assert_eq!(param_of(&shocked, k), value(2.0, k), "{id} {k}");
+            assert_ne!(param_of(&base, k), value(2.0, k), "{id} {k}");
+        }
+        assert_eq!(holdings(&base), holdings(&shocked), "{id}: genesis moved");
+        // Dated at L/4 = 100: the params are the registered ones through tick 99 and b's from
+        // tick 100, when the events fire at the tick's start.
+        let setup = applied(id, "b*0.5@dated", 400);
+        assert_eq!(setup.b_at(99), 1.0);
+        assert_eq!(setup.b_at(100), 0.5);
+        let mut s = sim(&tape_ron(&setup).unwrap());
+        for t in 0..101 {
+            s.step().expect("the world runs");
+            for k in keys {
+                let want = value(if t < 100 { 1.0 } else { 0.5 }, k);
+                assert_eq!(param_of(&s, k), want, "{id} {k} after tick {t}");
+            }
+        }
+    }
+    // x*/2.
+    let x_star = registered("lb1").instance.point(52).unwrap().x_star;
+    assert_eq!(
+        genesis(&applied("lb1", "x*/2", 400)).unwrap().share,
+        1.0 - 0.5 * x_star
+    );
+    // The reservation.
+    let args = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+    let none = parse_loops(&args(&["--inst", "lb1", "--reserve", "none"]), &[]).unwrap();
+    assert!(!tape_ron(&none.setup).unwrap().contains("reserve.maker"));
+    let other = parse_loops(&args(&["--inst", "lb1", "--reserve", "0.4"]), &[]).unwrap();
+    assert_eq!(
+        param_of(&sim(&tape_ron(&other.setup).unwrap()), "reserve.maker"),
+        0.4
+    );
+    assert_eq!(
+        param_of(
+            &sim(&tape_ron(&registered("lb1")).unwrap()),
+            "reserve.maker"
+        ),
+        0.25
+    );
+    assert!(parse_loops(&args(&["--inst", "lw1", "--reserve", "0.25"]), &[]).is_err());
+    // A price term: JB(2) moves labour's and the good's price by 2 and the machine side's by 1/2.
+    let g0 = genesis(&registered("lb1")).unwrap();
+    let g1 = genesis(&applied("lb1", "JB(2)", 400)).unwrap();
+    for ((p0, p1), f) in g0
+        .prices
+        .iter()
+        .zip(&g1.prices)
+        .zip([2.0, 1.0, 0.5, 0.5, 0.5, 2.0])
+    {
+        assert_eq!(*p1, p0 * f);
+    }
+}
+
+#[test]
+fn loops_harness_readouts_are_the_rows() {
+    // LOOPS-RULES §8.3, §8.5: over short runs with dead ticks in several markets (LB1 w ×0.3),
+    // with labour supply's bound reached (LB1 w ×3) and in the flow control (LW1 r ×2), each
+    // readout equals what the rows give, recomputed here from the rows' own fields: each market's
+    // dead count its scored rows that did not trade or cleared below half its target volume; the
+    // bound's ticks the rows whose z = ln1p(w/((0.0 + p) + r))/0.05 at posted prices is at least
+    // 1, with z's peak; the horse-days' lows over Y·J(x*) and 2·q_f; the horse price's highest
+    // over its target; each plant's lowest and highest over κ_p·X_d and the tick from which it
+    // stays within 5%. And each CSV row has the header's width.
+    let mut reached = [false; 3];
+    for (id, name) in [("lb1", "w*0.3"), ("lb1", "w*3"), ("lw1", "r*2")] {
+        let base = registered(id);
+        let mut rows: Vec<LoopRow> = Vec::new();
+        let rec = loop_run(&base, name, 300, &mut |r| rows.push(r.clone())).unwrap();
+        let setup = &rec.setup;
+        let inst = &setup.instance;
+        let markets = inst.markets();
+        let n = markets.len();
+        let e = inst.point(52).unwrap();
+        let g = &rec.genesis;
+        let width = csv_header(setup).split(',').count();
+        let mut dead = vec![0u64; n];
+        let (mut bound, mut peak) = (0u64, 0.0f64);
+        let (mut low_t, mut low_f) = (f64::INFINITY, f64::INFINITY);
+        let mut pk_high = f64::NEG_INFINITY;
+        let planted = inst.planted();
+        let mut p_low = vec![f64::INFINITY; planted.len()];
+        let mut p_high = vec![f64::NEG_INFINITY; planted.len()];
+        let mut last_out: Vec<Option<u64>> = vec![None; planted.len()];
+        let horse = markets.iter().position(|m| m == "horse");
+        let good = markets.iter().position(|m| m == "good").unwrap();
+        for r in &rows {
+            assert_eq!(r.csv().split(',').count(), width, "{id} {name}");
+            let row = &r.row;
+            let (w, rr, p) = (row.price[0], row.price[1], row.price[good]);
+            let mut ps = 0.0;
+            ps += 1.0 * p;
+            ps += 1.0 * rr;
+            let z = num::ln1p(w / ps) / 0.05;
+            assert_eq!(z, r.supply_ratio, "{id} {name} tick {}", row.tick);
+            bound += u64::from(z >= 1.0);
+            peak = peak.max(z);
+            for (m, d) in dead.iter_mut().enumerate() {
+                if Some(m) != horse && (!row.trades[m] || row.cleared[m] < 0.5 * row.target[n + m])
+                {
+                    *d += 1;
+                }
+            }
+            assert_eq!(row.dead, r.dead_by.iter().any(|&d| d));
+            low_t = low_t.min(r.hours[0] / e.task_hours);
+            low_f = low_f.min(r.hours[1] / e.fodder_hours);
+            if let Some(m) = horse {
+                pk_high = pk_high.max(row.price[m] / row.price[1] / e.pk);
+            }
+            for (i, d) in planted.iter().enumerate() {
+                let rest = g.rest[stocks(inst)
+                    .iter()
+                    .position(|s| *s == format!("plant.{d}"))
+                    .unwrap()];
+                let rel = r.plants[i].held / rest;
+                p_low[i] = p_low[i].min(rel);
+                p_high[i] = p_high[i].max(rel);
+                if (rel - 1.0).abs() > 0.05 {
+                    last_out[i] = Some(row.tick);
+                }
+            }
+        }
+        let got = &rec.readouts;
+        assert_eq!(got.dead_by, dead, "{id} {name}");
+        assert_eq!(
+            (got.bound_ticks, got.bound_peak),
+            (bound, peak),
+            "{id} {name}"
+        );
+        assert_eq!(got.hours_low, [low_t, low_f], "{id} {name}");
+        if horse.is_some() {
+            assert_eq!(got.pk_high, pk_high, "{id} {name}");
+        } else {
+            assert!(got.pk_high.is_nan());
+        }
+        for (i, p) in got.plants.iter().enumerate() {
+            assert_eq!(p.desk, planted[i]);
+            assert_eq!(
+                (p.low, p.high),
+                (p_low[i], p_high[i]),
+                "{id} {name} {}",
+                p.desk
+            );
+            let from = match last_out[i] {
+                None => Some(0),
+                Some(k) if k + 1 < rows.len() as u64 => Some(k + 1),
+                Some(_) => None,
+            };
+            assert_eq!(p.in_five, from, "{id} {name} {}", p.desk);
+        }
+        // The summary line has P2.2a's 50 columns and the nine.
+        assert_eq!(summary_line(&rec).split('\t').count(), SUMMARY.len());
+        reached[0] |= dead.iter().filter(|&&d| d > 0).count() >= 3;
+        reached[1] |= bound > 0;
+        reached[2] |= got.plants.iter().any(|p| p.in_five.is_some_and(|t| t > 0));
+    }
+    assert_eq!(
+        reached, [true; 3],
+        "the runs no longer show dead ticks, the bound or a plant's return"
+    );
+    // The horse-days by buyer, read apart from the readouts: every tick the two buyers' fills sum
+    // to the horse-days cleared, and at rest the good desk's are the tasks' Y·J(x*) and the
+    // fodder desk's 2·q_f (its running and plant bundles on one line, §3.5).
+    for id in ["lb1", "lw1", "lc1"] {
+        let e = Instance::named(id).unwrap().point(52).unwrap();
+        let hours = registered(id)
+            .instance
+            .markets()
+            .iter()
+            .position(|m| m == "traction")
+            .unwrap();
+        for name in ["hold", "w*2"] {
+            loop_run(&registered(id), name, 40, &mut |r| {
+                let cleared = r.row.cleared[hours];
+                assert!(
+                    (r.hours[0] + r.hours[1] - cleared).abs() <= 1e-12 * cleared,
+                    "{id} {name} tick {}",
+                    r.row.tick
+                );
+                if name == "hold" {
+                    assert!(gap(r.hours[0], e.task_hours) <= 1e-12, "{id}: the tasks'");
+                    if e.fodder_hours > 0.0 {
+                        assert!(gap(r.hours[1], e.fodder_hours) <= 1e-12, "{id}: fodder's");
+                    } else {
+                        assert_eq!(r.hours[1], 0.0, "{id}: the loop cut buys no horse-days");
+                    }
+                }
+            })
+            .unwrap();
+        }
+    }
+}
+
+#[test]
+fn harness_reads_the_running_cost_from_the_tape() {
+    // LOOPS-RULES §8.3: the harness reads a horse-day's running cost O from the tape's running
+    // recipe, summed in the rule's order. At LB1 each row's O is (0.0 + 0.0176·p_f) + 0.1·w and
+    // its full cost O + δ·p_K/κ at the row's posted prices; at H1 (rule A: one unit of fodder, no
+    // labour) O is p_f bit for bit, P2.2a's value.
+    let setup = registered("lb1");
+    let (kappa, delta) = setup.instance.per_tick(52).unwrap();
+    let mut n = 0;
+    loop_run(&setup, "w*2", 50, &mut |r| {
+        let row = &r.row;
+        let (w, pf, pk) = (row.price[0], row.price[2], row.price[3]);
+        let mut o = 0.0;
+        o += 0.0176 * pf;
+        let o = o + 0.1 * w;
+        assert_eq!(row.stocks.running, o, "tick {}", row.tick);
+        assert_eq!(row.stocks.full, o + delta * pk / kappa, "tick {}", row.tick);
+        assert_ne!(row.stocks.running, pf);
+        n += 1;
+    })
+    .unwrap();
+    assert_eq!(n, 50);
+    let h1 = probe::horses::setup::Setup::registered("h1", 52).unwrap();
+    let fodder = h1
+        .instance
+        .markets()
+        .iter()
+        .position(|m| m == "fodder")
+        .unwrap();
+    probe::horses::harness::run(&h1, "w*2", 50, &mut |row| {
+        assert_eq!(
+            row.stocks.running.to_bits(),
+            row.price[fodder].to_bits(),
+            "h1 tick {}",
+            row.tick
+        );
+    })
+    .unwrap();
+}
+
+/// One tick-1 comparison of `loops_carry_meets_the_mirror_at_tick_one`: the run, what each
+/// planted desk carries into tick 1, tick 1's outputs, both fills of every market and every coin
+/// after it, as lm_carry makes them.
+struct CarryCase {
+    id: &'static str,
+    run: &'static str,
+    carry: &'static [(&'static str, &'static str, f64)],
+    outputs: &'static [(&'static str, f64)],
+    fills: &'static [(&'static str, f64, f64)],
+    coins: &'static [(&'static str, f64)],
+}
+
+#[test]
+fn loops_carry_meets_the_mirror_at_tick_one() {
+    // LOOPS-RULES §5, §10 (decision 273; E0 at tick 1): a planted desk reads its bundles over
+    // every unit it holds, so a genesis lot it bought at tick 0 and did not use enters its
+    // bundles at tick 1, as the registered mirror with the carry, `lm_carry.py`, has it. The
+    // runs are ones where that carry binds a planted desk's bundles at tick 1: at LB1
+    // p[traction] ×0.5 the capacity desk and the maker run on carried fodder, at LB1 p[fodder]
+    // ×0.5 the fodder desk on carried horse-days, at LW1 p[traction] ×0.5 the horse-day desk on
+    // carried fodder. Without the carry (the registered `lm_mirror.py`) tick 1 makes 3.050859,
+    // 0.0010165953, 0.060151009 and 3.0383157 there: 6.4%, 6.4%, 4.7% and 3.2% below the
+    // literals below. The literals are lm_carry.tick from each tape's genesis
+    // (`D:/rustyecon-p2b/e0/carry_literals.py` and `carry_literals.out`, 2026-09-30; the mirror
+    // copied unedited, lm_carry.py's sha256 f94c33e1…a2e); each value must hold within 1e-12.
+    const CASES: [CarryCase; 3] = [
+        CarryCase {
+            id: "lb1",
+            run: "p[traction]*0.5",
+            carry: &[
+                ("desk.capacity", "fodder", 0.01593180049936626),
+                ("desk.maker", "fodder", 0.0024133721325613026),
+            ],
+            outputs: &[
+                ("desk.good", 9.114486453355868),
+                ("desk.capacity", 3.252479686806617),
+                ("desk.maker", 0.001083778346472926),
+                ("desk.fodder", 0.04665254634877016),
+            ],
+            fills: &[
+                ("labour", 0.809407675379637, 1.0),
+                ("land", 0.999701982188847, 1.0),
+                ("fodder", 0.7471827490109347, 1.0),
+                ("horse", 0.933710019677007, 1.0),
+                ("traction", 0.5139574112268412, 1.0),
+                ("good", 1.0, 0.9610809599048304),
+            ],
+            coins: &[
+                ("desk.good", 1.8086221806996035),
+                ("desk.capacity", 1.066387496400538),
+                ("desk.maker", 0.18043398833872104),
+                ("desk.fodder", 0.9966776723439746),
+                ("provider", 16.580756342080115),
+                ("workers", 37.132084374595365),
+            ],
+        },
+        CarryCase {
+            id: "lb1",
+            run: "p[fodder]*0.5",
+            carry: &[("desk.fodder", "traction", 0.006696830161074363)],
+            outputs: &[
+                ("desk.good", 8.254723507547606),
+                ("desk.capacity", 2.8399346302614963),
+                ("desk.maker", 0.001358436373591868),
+                ("desk.fodder", 0.06304791877864245),
+            ],
+            fills: &[
+                ("labour", 0.9728417245786356, 1.0),
+                ("land", 1.0, 0.9998572490202152),
+                ("fodder", 0.6831789975575826, 1.0),
+                ("horse", 0.47209947459178464, 1.0),
+                ("traction", 0.7579881623726273, 1.0),
+                ("good", 0.9848321042672087, 1.0),
+            ],
+            coins: &[
+                ("desk.good", 1.735553898346461),
+                ("desk.capacity", 1.203659375413836),
+                ("desk.maker", 0.1897004195526825),
+                ("desk.fodder", 0.9278352662768208),
+                ("provider", 16.579323454597347),
+                ("workers", 37.12888964027117),
+            ],
+        },
+        CarryCase {
+            id: "lw1",
+            run: "p[traction]*0.5",
+            carry: &[("desk.traction", "fodder", 0.018345172631927573)],
+            outputs: &[
+                ("desk.good", 9.12819999658367),
+                ("desk.traction", 3.136895674978064),
+                ("desk.fodder", 0.046652546348770176),
+            ],
+            fills: &[
+                ("labour", 0.8123786892703699, 1.0),
+                ("land", 0.9997272316970782, 1.0),
+                ("fodder", 0.7805928150797473, 1.0),
+                ("traction", 0.5139574112268414, 1.0),
+                ("good", 1.0, 0.9610809599048304),
+            ],
+            coins: &[
+                ("desk.good", 1.8083841531448035),
+                ("desk.traction", 1.0670148133527997),
+                ("desk.fodder", 0.9966310415206012),
+                ("provider", 16.58070991334391),
+                ("workers", 37.13188036276345),
+            ],
+        },
+    ];
+    for c in CASES {
+        let what = format!("{} {}", c.id, c.run);
+        let mut s = sim(&tape_ron(&applied(c.id, c.run, 20_000)).unwrap());
+        s.step().expect("tick 0");
+        // The carry into tick 1 (lm_carry's C_Fc, C_Fm, C_Hf): what the desk holds of its
+        // one-tick input after tick 0.
+        for &(who, good, want) in c.carry {
+            let got = held(&s, who, good);
+            assert!(
+                gap(got, want) <= 1e-12,
+                "{what}: {who} carries {got:e} {good}, the mirror {want:e}"
+            );
+        }
+        let r = s.step().expect("tick 1");
+        assert_eq!(r.tick, 1);
+        let output = |a: &str| match s.actor_state(actor(&s, a)) {
+            Some(ActorState::GoodDesk(x)) => x.output,
+            Some(ActorState::PlantedCapacity(x)) => x.desk.output,
+            Some(ActorState::PlantedMaker(x)) => x.desk.output,
+            Some(ActorState::PlantedType(x)) => x.desk.output,
+            other => panic!("{a}: {other:?}"),
+        };
+        for &(a, want) in c.outputs {
+            let got = output(a);
+            assert!(
+                gap(got, want) <= 1e-12,
+                "{what}: {a} made {got:e}, the mirror {want:e}"
+            );
+        }
+        for &(m, bf, sf) in c.fills {
+            let l = r
+                .markets
+                .iter()
+                .find(|l| key_of(&s, l.good) == m)
+                .expect("a market line");
+            assert!(
+                (l.buyer_fill - bf).abs() <= 1e-12 && (l.seller_fill - sf).abs() <= 1e-12,
+                "{what}: {m}'s fills {} {}, the mirror {bf} {sf}",
+                l.buyer_fill,
+                l.seller_fill
+            );
+        }
+        for &(a, want) in c.coins {
+            let got = held(&s, a, "coin");
+            assert!(
+                gap(got, want) <= 1e-12,
+                "{what}: {a}'s coin {got:e}, the mirror {want:e}"
+            );
+        }
+    }
 }

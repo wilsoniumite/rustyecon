@@ -30,7 +30,7 @@ use rustyecon_engine::prelude::{
     ActorId, ClassId, GoodId, Holder, PriceError, RunErrorKind, SideTag, Sim, Tape, TickReport,
 };
 use rustyecon_engine::rustyecon_agents::{
-    maker_reservation, ActorState, AgentError, Maker, Reservation, Spec,
+    maker_reservation, ActorState, AgentError, Input, Maker, Reservation, Spec,
 };
 use std::collections::BTreeMap;
 
@@ -442,6 +442,44 @@ pub fn maker_readout(
     maker_reservation(maker, &par, &pr).map_err(|e| e.to_string())
 }
 
+/// A horse-day's running cost O at posted prices, read from the tape's own running recipe (P2.2b;
+/// LOOPS-RULES §8.3): the first capacity desk's (O = (0.0 + Σ run_g·p_g) + run_lab·w), or under
+/// M1 the owner desk's (0.0 + Σ run_g·p_g), with the params in force after the tick's step, summed
+/// in the rule's order. At every P2.2a instance that is (0.0 + 1·p_f) + 0·w, which is p_f bit for
+/// bit; under rule B it is (0.0 + 0.0176·p_f) + 0.1·w. `None` where the world has neither desk.
+/// Read here, outside the Sim; no agent sees it.
+pub fn running_cost(
+    sim: &Sim,
+    price_of: &dyn Fn(GoodId) -> Option<f64>,
+) -> Result<Option<f64>, String> {
+    let clock = &sim.world().clock;
+    let par = |s: Site| -> Result<f64, String> {
+        let v = sim
+            .param(s.param)
+            .ok_or_else(|| format!("no param {}", s.param))?;
+        s.convert(clock, v).map_err(|e| e.to_string())
+    };
+    let pr = |g: GoodId| price_of(g).ok_or_else(|| format!("no posted price for {g}"));
+    let goods = |inputs: &[Input]| -> Result<f64, String> {
+        let mut o = 0.0;
+        for i in inputs {
+            o += par(i.coef)? * pr(i.good)?;
+        }
+        Ok(o)
+    };
+    for a in &sim.world().actors {
+        match &a.spec {
+            Spec::CapacityDesk(c) => {
+                let o = goods(&c.running.goods)?;
+                return Ok(Some(o + par(c.running.labour)? * pr(c.labour)?));
+            }
+            Spec::OwnerDesk(d) => return Ok(Some(goods(&d.running)?)),
+            _ => {}
+        }
+    }
+    Ok(None)
+}
+
 /// The ids a run reads.
 struct Ids {
     /// Each market's good, in market order.
@@ -616,17 +654,16 @@ fn row(
         }
     }
     let [w, rr] = [price[0], price[1]];
-    // A horse-day's running cost and full cost at posted prices (rule A: one unit of fodder).
+    // A horse-day's running cost and full cost at posted prices, from the tape's running recipe
+    // (P2.2b.2; LOOPS-RULES §8.3): at every P2.2a instance, p_f bit for bit.
     if !inst.is_flow() {
         let markets = inst.markets();
         let pk = price[markets
             .iter()
             .position(|m| *m == inst.keys.horse)
             .unwrap_or(0)];
-        let o_run = markets
-            .iter()
-            .position(|m| m == "fodder")
-            .map_or(0.0, |i| price[i]);
+        let price_of = |g: GoodId| ids.goods.iter().position(|x| *x == g).map(|i| price[i]);
+        let o_run = running_cost(sim, &price_of)?.unwrap_or(f64::NAN);
         st.running = o_run;
         st.full = o_run + k.delta * pk / k.kappa;
     }
@@ -701,7 +738,7 @@ fn row(
 /// Mode A's per-tick check (PROBE-SPEC §4.6, HORSES-SPEC §7.6): every gap at most 1e-9, every
 /// market trading (the horse market too) with both fills at least 1 − 1e-9, and no produced good
 /// spoiling beyond 1e-9 of its volume.
-fn hold_check(row: &Row, names: &[String], markets: &[String]) -> Option<String> {
+pub(crate) fn hold_check(row: &Row, names: &[String], markets: &[String]) -> Option<String> {
     if let Some(i) = (0..row.gap.len()).find(|&i| row.gap[i].is_nan() || row.gap[i] > HOLD_TOL) {
         return Some(format!(
             "tick {}: {} is {:e} from the oracle in log",
@@ -806,7 +843,11 @@ pub struct Stats {
 
 impl Stats {
     fn new(inst: &Instance) -> Stats {
-        let (nm, nd, ni) = (inst.markets().len(), inst.desks().len(), items().len());
+        Stats::sized(inst.markets().len(), inst.desks().len(), items().len())
+    }
+
+    /// Empty statistics for `nm` markets, `nd` desks and `ni` basket items.
+    pub(crate) fn sized(nm: usize, nd: usize, ni: usize) -> Stats {
         Stats {
             peak: (f64::NEG_INFINITY, 0),
             dead_market: vec![[0; 4]; nm],
@@ -850,7 +891,7 @@ impl Stats {
         }
     }
 
-    fn push(&mut self, row: &Row, o: &Obs, t: &Target, class_names: &[String]) {
+    pub(crate) fn push(&mut self, row: &Row, o: &Obs, t: &Target, class_names: &[String]) {
         if !self.peak.0.is_nan() && (row.dhat.is_nan() || row.dhat > self.peak.0) {
             self.peak = (row.dhat, row.tick);
         }
@@ -926,7 +967,7 @@ impl Stats {
 }
 
 /// The streaming stock statistics' state, beside [`StockStats`].
-struct StockTrack {
+pub(crate) struct StockTrack {
     last_out_five: Option<u64>,
     last_out_nine: Option<u64>,
     seen: u64,
@@ -940,7 +981,29 @@ struct StockTrack {
 }
 
 impl StockTrack {
-    fn push(&mut self, st: &mut StockStats, row: &Row, t: &Target, scored: u64) {
+    /// The state for a run: the horse market's index (none on a flow path), whether the capacity
+    /// desk hires out the hours, κ and δ a tick, and GOODS-CHAIN's nine's indices.
+    pub(crate) fn new(
+        horse: Option<usize>,
+        wet: bool,
+        kappa: f64,
+        delta: f64,
+        nine: Vec<usize>,
+    ) -> StockTrack {
+        StockTrack {
+            last_out_five: None,
+            last_out_nine: None,
+            seen: 0,
+            one_over_delta: (1.0 / delta).round() as u64,
+            horse,
+            wet,
+            kappa,
+            nine,
+            last_withheld: None,
+        }
+    }
+
+    pub(crate) fn push(&mut self, st: &mut StockStats, row: &Row, t: &Target, scored: u64) {
         self.seen += 1;
         if !st.peak_ex.0.is_nan() && (row.dhat_ex.is_nan() || row.dhat_ex > st.peak_ex.0) {
             st.peak_ex = (row.dhat_ex, row.tick);
@@ -1009,7 +1072,7 @@ impl StockTrack {
         st.markup_low = min2(st.markup_low, row.markup);
     }
 
-    fn finish(&self, st: &mut StockStats) {
+    pub(crate) fn finish(&self, st: &mut StockStats) {
         let settle = |last: Option<u64>| match last {
             None if self.seen > 0 => Some(0),
             None => None,
@@ -1136,17 +1199,13 @@ pub fn run(
     let total = clock_start + ticks;
     let mut classifier = Classifier::new(ticks, names.len(), n_prices);
     let mut stats = Stats::new(&inst);
-    let mut track = StockTrack {
-        last_out_five: None,
-        last_out_nine: None,
-        seen: 0,
-        one_over_delta: (1.0 / delta).round() as u64,
-        horse: horse_market,
-        wet: inst.config == Config::Wet,
+    let mut track = StockTrack::new(
+        horse_market,
+        inst.config == Config::Wet,
         kappa,
-        nine: nine(&inst),
-        last_withheld: None,
-    };
+        delta,
+        nine(&inst),
+    );
     // The maker whose reservation the rows read (none on the flow path).
     let maker = if inst.is_flow() {
         None
