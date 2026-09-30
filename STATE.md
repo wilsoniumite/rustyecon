@@ -11,7 +11,11 @@ the tape's schema is [docs/TAPE.md](docs/TAPE.md), and the GUI's design is
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
 **State as of:** 2026-09-30, on branch `phase2-proper` from `reboot` at `f7d1eae`, not pushed or
-merged. **Phase 2 proper opens with its rulings** (P2.3.0, docs only; "Where things stand"): the
+merged. **The wall instance IW1 is registered** (P2.3.1, docs only; "Where things stand";
+[docs/probe/results/wall/registration.md](docs/probe/results/wall/registration.md)): the frame
+`frame-wall` (1d's B economy with E7's three types, a solved wall whose pool wage is 0.94 in log
+above the top task's replacement value) and its mirror's predictions, GO, fixed before any engine
+code for it; decisions 394–397 and O97–O99. Its build and E0 are next. **Phase 2 proper opens with its rulings** (P2.3.0, docs only; "Where things stand"): the
 decisions next step 7 waited on are taken by Claude on your word as decisions 360–393, each open
 to veto, with the probe reports' recommendations (MARKETS §6 keeps 67 and 70); O95 and O96 are
 new. It opens on two loop-free instances at C2m, 52 ticks a year and ρ 0: a solved wall under
@@ -139,6 +143,31 @@ many-market roles (O27), which may now start from the goods chain's stage v2a.1 
 on D-G12. "Next steps" has each.
 
 ## Where things stand
+
+**The wall instance's registration (P2.3.1; 2026-09-30).** Branch `phase2-proper` (worktree
+`D:/rustyecon-wt/p23`, scratch `D:/rustyecon-p23/frame-wall/` and `build-wall/`). Docs only:
+[docs/probe/results/wall/registration.md](docs/probe/results/wall/registration.md), the frame's
+files in [docs/probe/wall/](docs/probe/wall/), and this file.
+- **The frame** (`SPEC.md`, sha256 `cc2b6d1c…9be0`; its `SHA256SUMS`, 56 entries, each checked).
+  IW1 is unit 1d's B economy (services with a human-required tail of 0.1 hours a unit, goods,
+  space 1, Appendix B's machine, η 0.5, T 520 a year) with E7's three worker types: the entrant
+  (130 a year, χ_max 1) sells to the pool; the trained (52, χ_max 2) and the master (26, χ_max 2)
+  do only their reserved hours, 0.04 a unit of services and 0.03 a unit of goods, each on its own
+  labour market. Every type's support is one basket.
+- **Why it is a solved wall.** The oracle (`WorkerEconomy::solve`) gives margin Wall at x\* = 1.
+  The pool's wage 0.807310 is set by its own clearing, 0.94 in log above γ(1)·π; the reserved
+  wages 1.303538 and 2.325461 by their own markets, at participation 0.31 and 0.46. Every one of
+  the 12 cost targets (land.mach, tail.services, res.services.trained at ×1.1, ×0.9, ×2, ×0.5) is
+  a funded wall at least 0.216 in log from every edge (decision 370). A 50-digit solve that reads
+  no oracle code agrees within 1.13e-15 at all 39 points, one sign change each.
+- **The roles' additions** are three optional fields, absent on every committed tape: the category
+  desk's `tail` and `reserved`, and the provider's `more`. No new kind, state or market rule.
+- **The mirror's verdict: GO.** Mode A passes; Tiers 1–3 26/26, 38/38, 39/39 and Tier 3S 20/20;
+  every target's kick set passes; the largest root per tick is 0.9832–0.9919. Only JB(0.5)
+  breaches the wall (11 ticks). The families all converge.
+- **Readings declared before the build** (registration §3): E0's coefficient runs, 18
+  observables, the registered run names, the joint draw order and `s[D]=V` exact.
+- **Decisions 394–397 and O97–O99**, below: the frame's FW1–FW9, grouped, and OW1–OW3.
 
 **Phase 2 proper's rulings (P2.3.0; 2026-09-30).** Branch `phase2-proper` (worktree
 `D:/rustyecon-wt/p23`) from `reboot` at `f7d1eae`. Docs only: this file.
@@ -3507,6 +3536,45 @@ committed run. This line numbers 360–399 and O95–O109; other lines number be
      uniqueness and Proposition 5 are proved. Interest waits for the mirror's runs with fuel, wet
      M3 and J_b > 1. Alternative: a registered ρ now, uniqueness measured, not proved.
 
+Decisions 394–397 are P2.3.1's (2026-09-30): the wall frame's proposals FW1–FW9
+(`docs/probe/wall/SPEC.md` §8), numbered at its registration and grouped, since this line's range
+has six numbers left and the commons instance needs some. Claude's, on your delegation, each open
+to veto; the alternative named is the registered one (R6).
+
+394. **IW1 is Phase 2 proper's wall instance (FW1, FW2).** Unit 1d's B economy with E7's three
+     worker types: η 0.5, L^H 0.1, R 0.04 (trained, services) and 0.03 (master, goods), N 130, 52
+     and 26 a year, χ_max 1, 2 and 2, T 520, h 1 and Appendix B's machine. The trained and the
+     master sell only their reserved hours (ε 0), and every type's support is one basket (ν 1),
+     so each type trades on one market and no rule chooses between markets (371, 377). With E's
+     efficiencies the base point is the same double for double, but at four targets the trained
+     would join the pool. Alternatives: 1d's E3 as written (unfunded under the probe's transfer,
+     10.4 baskets of support against T 10); a one-type wall (W1), which has one labour market;
+     E's ε and ν with a market-choice rule, its nesting and its mirror first (O97).
+395. **The roles' additions are three optional fields (FW3):** the category desk's `tail` (the
+     pool's hours at tasks closed to machines, added to the line's hours) and `reserved` (each
+     reserved type's hours, bought on its own labour market, in the cost, the orders and the
+     Leontief), and the provider's `more` (further transfers of N_i·P_s, paid in list order, the
+     state holding the sums). No new kind, state or market rule; every committed tape keeps its
+     hashes. Alternative: a new desk kind for categories with human-required or reserved tasks.
+396. **The wall's targets, observables, grammar and readouts (FW4–FW7).** The cost targets are
+     land.mach, tail.services and res.services.trained at ×1.1, ×0.9, ×2 and ×0.5, dated and at
+     genesis, each a funded wall at least 0.216 in log from every edge. At the wall the harness
+     reads each desk's threshold x_j = 1 − s_j in log, not s_j (whose target 0 has no log); P2.1's
+     instances keep s_j. The grammar replaces s[D]\*F (a no-op at s\* = 0) by s[D]=V at 0.05, 0.2
+     and 0.5, scales every labour market in JA and JB, adds RW(F) where there are several labour
+     markets, and puts the reserved wages in the basin family in place of the technique: 103
+     battery runs. The wall's own readouts (depth, breach ticks, each desk's largest share, each
+     pop's participation range and saturated ticks) are reported, not scored. Alternatives: land
+     alone as I0; an absolute tolerance on s_j; s[D]\*F kept and marked slack (VACUOUS); breach
+     ticks scored.
+397. **IC1 is a reported control, and the verdict rule is P2.1's with Tier 3S (FW8, FW9).** IC1 is
+     IW1 with the entrant's χ_max 0.25, the task margin active (x\* 0.947), like for like and not a
+     verdict instance. IW1's verdict: mode A passes; every run of Tiers 1–3 and of Tier 3S (each
+     stock and coin × 0.5 and × 2, the start distance the first year's largest D̂, decision 229) is
+     CONVERGED, Tiers 3 and 3S again at 10·L; every target's kick set passes; O22's families are
+     reported, stocks first; L comes from the engine's elasticity probe; the scorer is committed
+     before the wave (311). Alternatives: no control; score the families as well.
+
 ## Open — your calls
 
 - **The GUI's decisions**, 22–34 (D1–D13): G0 carried them out, none vetoed; a veto now reopens
@@ -3532,6 +3600,10 @@ committed run. This line numbers 360–399 and O95–O109; other lines number be
   C2m, 52 ticks a year, ρ 0 and the fixed basket (364, 366, 393, 387). For later: C2g for the
   goods chain's stock instances (391), the common basket for the 1750-like instance (388), and
   the oracle addenda of O95.
+- **Decisions 394–397** (P2.3.1, 2026-09-30): the wall frame's FW1–FW9, grouped: IW1 with
+  reserved-only types (394), the roles' three optional fields (395), the wall's targets,
+  thresholds, grammar and readouts (396), IC1 a control and the verdict rule with Tier 3S (397).
+  Each open to veto before the wall's scored runs.
 - **Decisions 59–75 and 135–178** (Phase 1), open to veto. Those that bound Phase 2 proper (61,
   67, 70; 135, 137, 139, 140; 147, 149, 151, 153–155, 158, 160, 161; 162, 164, 165, 167–169,
   173) are ruled by Claude at P2.3.0 as 360–393, with the markets probe's advice: keep 67 (its
@@ -4343,6 +4415,21 @@ O95 on are Phase 2 proper's (P2.3.0, branch `phase2-proper`; this line's range i
   §3.1 puts an idle parcel's reservation rent at zero, so a remedy with a positive floor moves
   the point off r = 0 (GOODS-CHAIN's open question 2); the comparison is in wage units (decision
   153).
+- **O97. A type that sells reserved and pool hours** (the wall frame's OW1; decision 394). 1d's
+  pooled type with reserved work (E1, E4), pooled types with ε ≠ 1, and support ν ≠ 1 (decision
+  138): IW1 has none. Each needs a rule that splits a pop's hours between two markets, or scales
+  them to efficiency units, with its nesting, a mirror and its own registration before a Phase 2
+  instance uses it. The eras' trained worker, who holds engines' tasks at some dials and the pool
+  at others, is such a type. It joins O95's list where it needs the oracle.
+- **O98. At the wall, labour-demand shocks move wages, not output, but halve output on the way**
+  (OW2). In the mirror tail.services × 2 and res.services.trained × 2 move Y\* by 0 in log and
+  bottom at 0.516 and 0.500 of it. O14 and O24 carry this as the wall's path cost. Ex-post
+  assignment might lift it, and is untested here.
+- **O99. O21's one-type cousin at the wall** (OW3). In the mirror's history family a step that
+  cuts the machine desk's cost 3.5 times at the prices in force (land.mach 0.8 → 0.2) makes it
+  keep its whole stock for a tick (a·q ≥ held), and no baskets follow the next tick, in all 16
+  such windows. It recovers each time. A keep rule that shares the shortfall, or a stock (Phase
+  3), would remove it.
 
 ## Corrections logged (A3; ADDENDUM §1.4)
 
@@ -4496,6 +4583,9 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
         distance from each edge registered at genesis and at every cost target (370); types in
         one shape with an efficiency each (369); pooled hours compared through supply or in
         total, the pool's market form the frame's call (371); type desks on pool labour (372).
+        *Registered at P2.3.1:* IW1 (decisions 394–397;
+        docs/probe/results/wall/registration.md). Its build, E0, the scorer and the scored
+        wave follow, in that order.
       - **The open-commons instance** (1e): s(q), every type pooled (377), food as its exit good
         (375, 380), one land service (379), certified by 1e's Proposition 5 (378), the crowded
         commons' shadow rent posted (374), idle land compared in wage units, `Idle` plots read

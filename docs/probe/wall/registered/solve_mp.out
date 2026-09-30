@@ -1,0 +1,55 @@
+base                          52 changes 1 line_min 0.594774 f_inf -1.44231 depth 0.94257484 cover 1.6308846 F 0.423077 0.307692 0.461538 residual 2.67e-51 worst rel vs oracle 2.78e-16
+land.mach=0.44                52 changes 1 line_min 0.539113 f_inf -1.46617 depth 0.84603135 cover 1.6026879 F 0.413534 0.300752 0.451128 residual 0.0 worst rel vs oracle 3.82e-16
+land.mach=0.36                52 changes 1 line_min 0.653491 f_inf -1.41732 depth 1.0477735 cover 1.6598488 F 0.433071 0.314961 0.472441 residual -2.67e-51 worst rel vs oracle 4.65e-16
+land.mach=0.8                 52 changes 1 line_min 0.143669 f_inf -1.64062 depth 0.21636355 cover 1.381461 F 0.34375 0.25 0.375 residual 0.0 worst rel vs oracle 5.19e-16
+land.mach=0.2                 52 changes 1 line_min 0.924616 f_inf -1.30435 depth 1.6001047 cover 1.7832674 F 0.478261 0.347826 0.521739 residual 2.67e-51 worst rel vs oracle 1.92e-16
+tail.services=0.11            52 changes 1 line_min 0.672629 f_inf -1.36538 depth 1.0341707 cover 1.6072252 F 0.453846 0.307692 0.461538 residual 0.0 worst rel vs oracle 4.11e-16
+tail.services=0.09            52 changes 1 line_min 0.516915 f_inf -1.51923 depth 0.8467411 cover 1.6523547 F 0.392308 0.307692 0.461538 residual 1.34e-51 worst rel vs oracle 2.78e-16
+tail.services=0.2             52 changes 1 line_min 1.37316 f_inf -0.673077 depth 1.7636894 cover 1.2783917 F 0.730769 0.307692 0.461538 residual 0.0 worst rel vs oracle 3.81e-16
+tail.services=0.05            52 changes 1 line_min 0.205441 f_inf -1.82692 depth 0.39857842 cover 1.7181554 F 0.269231 0.307692 0.461538 residual 1.34e-51 worst rel vs oracle 2.78e-16
+res.services.trained=0.044    52 changes 1 line_min 0.598711 f_inf -1.44231 depth 0.95179535 cover 1.6144056 F 0.423077 0.338462 0.461538 residual -2.67e-51 worst rel vs oracle 2.78e-16
+res.services.trained=0.036    52 changes 1 line_min 0.591389 f_inf -1.44231 depth 0.93470439 cover 1.6450714 F 0.423077 0.276923 0.461538 residual 0.0 worst rel vs oracle 2.78e-16
+res.services.trained=0.08     52 changes 1 line_min 0.66928 f_inf -1.44231 depth 1.1304223 cover 1.3233956 F 0.423077 0.615385 0.461538 residual 2.67e-51 worst rel vs oracle 1.13e-15
+res.services.trained=0.02     52 changes 1 line_min 0.582496 f_inf -1.44231 depth 0.91426483 cover 1.6824405 F 0.423077 0.153846 0.461538 residual 0.0 worst rel vs oracle 2.78e-16
+base                          12 changes 1 line_min 2.57735 f_inf -6.25 depth 0.94257484 cover 1.6308846 F 0.423077 0.307692 0.461538 residual 0.0 worst rel vs oracle 3.54e-16
+land.mach=0.44                12 changes 1 line_min 2.33616 f_inf -6.35338 depth 0.84603135 cover 1.6026879 F 0.413534 0.300752 0.451128 residual 0.0 worst rel vs oracle 3.84e-16
+land.mach=0.36                12 changes 1 line_min 2.8318 f_inf -6.14173 depth 1.0477735 cover 1.6598488 F 0.433071 0.314961 0.472441 residual -1.07e-50 worst rel vs oracle 4.93e-16
+land.mach=0.8                 12 changes 1 line_min 0.622567 f_inf -7.10938 depth 0.21636355 cover 1.381461 F 0.34375 0.25 0.375 residual 5.35e-51 worst rel vs oracle 4.3e-16
+land.mach=0.2                 12 changes 1 line_min 4.00667 f_inf -5.65217 depth 1.6001047 cover 1.7832674 F 0.478261 0.347826 0.521739 residual 0.0 worst rel vs oracle 2.28e-16
+tail.services=0.11            12 changes 1 line_min 2.91473 f_inf -5.91667 depth 1.0341707 cover 1.6072252 F 0.453846 0.307692 0.461538 residual -1.07e-50 worst rel vs oracle 8.06e-16
+tail.services=0.09            12 changes 1 line_min 2.23997 f_inf -6.58333 depth 0.8467411 cover 1.6523547 F 0.392308 0.307692 0.461538 residual 0.0 worst rel vs oracle 3.54e-16
+tail.services=0.2             12 changes 1 line_min 5.95035 f_inf -2.91667 depth 1.7636894 cover 1.2783917 F 0.730769 0.307692 0.461538 residual 0.0 worst rel vs oracle 4.95e-16
+tail.services=0.05            12 changes 1 line_min 0.890246 f_inf -7.91667 depth 0.39857842 cover 1.7181554 F 0.269231 0.307692 0.461538 residual -1.07e-50 worst rel vs oracle 3.74e-16
+res.services.trained=0.044    12 changes 1 line_min 2.59441 f_inf -6.25 depth 0.95179535 cover 1.6144056 F 0.423077 0.338462 0.461538 residual 0.0 worst rel vs oracle 5.9e-16
+res.services.trained=0.036    12 changes 1 line_min 2.56269 f_inf -6.25 depth 0.93470439 cover 1.6450714 F 0.423077 0.276923 0.461538 residual 0.0 worst rel vs oracle 4.26e-16
+res.services.trained=0.08     12 changes 1 line_min 2.90021 f_inf -6.25 depth 1.1304223 cover 1.3233956 F 0.423077 0.615385 0.461538 residual 0.0 worst rel vs oracle 6.73e-16
+res.services.trained=0.02     12 changes 1 line_min 2.52415 f_inf -6.25 depth 0.91426483 cover 1.6824405 F 0.423077 0.153846 0.461538 residual 0.0 worst rel vs oracle 6.38e-16
+base                         365 changes 1 line_min 0.0847349 f_inf -0.205479 depth 0.94257484 cover 1.6308846 F 0.423077 0.307692 0.461538 residual 3.34e-52 worst rel vs oracle 2.52e-16
+land.mach=0.44               365 changes 1 line_min 0.0768051 f_inf -0.208878 depth 0.84603135 cover 1.6026879 F 0.413534 0.300752 0.451128 residual 0.0 worst rel vs oracle 4.27e-16
+land.mach=0.36               365 changes 1 line_min 0.0931001 f_inf -0.20192 depth 1.0477735 cover 1.6598488 F 0.433071 0.314961 0.472441 residual 0.0 worst rel vs oracle 2.02e-16
+land.mach=0.8                365 changes 1 line_min 0.020468 f_inf -0.233733 depth 0.21636355 cover 1.381461 F 0.34375 0.25 0.375 residual 3.34e-52 worst rel vs oracle 3.96e-16
+land.mach=0.2                365 changes 1 line_min 0.131726 f_inf -0.185825 depth 1.6001047 cover 1.7832674 F 0.478261 0.347826 0.521739 residual 0.0 worst rel vs oracle 3.0e-16
+tail.services=0.11           365 changes 1 line_min 0.0958266 f_inf -0.194521 depth 1.0341707 cover 1.6072252 F 0.453846 0.307692 0.461538 residual 0.0 worst rel vs oracle 5.34e-16
+tail.services=0.09           365 changes 1 line_min 0.0736427 f_inf -0.216438 depth 0.8467411 cover 1.6523547 F 0.392308 0.307692 0.461538 residual 0.0 worst rel vs oracle 2.76e-16
+tail.services=0.2            365 changes 1 line_min 0.195628 f_inf -0.0958904 depth 1.7636894 cover 1.2783917 F 0.730769 0.307692 0.461538 residual 0.0 worst rel vs oracle 2.69e-16
+tail.services=0.05           365 changes 1 line_min 0.0292684 f_inf -0.260274 depth 0.39857842 cover 1.7181554 F 0.269231 0.307692 0.461538 residual -1.67e-52 worst rel vs oracle 5.09e-16
+res.services.trained=0.044   365 changes 1 line_min 0.0852958 f_inf -0.205479 depth 0.95179535 cover 1.6144056 F 0.423077 0.338462 0.461538 residual 3.34e-52 worst rel vs oracle 2.52e-16
+res.services.trained=0.036   365 changes 1 line_min 0.0842527 f_inf -0.205479 depth 0.93470439 cover 1.6450714 F 0.423077 0.276923 0.461538 residual 3.34e-52 worst rel vs oracle 2.54e-16
+res.services.trained=0.08    365 changes 1 line_min 0.0953495 f_inf -0.205479 depth 1.1304223 cover 1.3233956 F 0.423077 0.615385 0.461538 residual 3.34e-52 worst rel vs oracle 2.52e-16
+res.services.trained=0.02    365 changes 1 line_min 0.0829858 f_inf -0.205479 depth 0.91426483 cover 1.6824405 F 0.423077 0.153846 0.461538 residual 3.34e-52 worst rel vs oracle 2.82e-16
+worst relative difference over every point and value: 1.13e-15
+  base v = 0.807309943784067885600234748824
+  base Ps = 1.53291046743957724648653260484
+  base Y = 7.69230769230769213876572744503
+  base nD = 1.05769230769230773923174237638
+  base DT = 0.307692307692307691955761932177
+  base DM = 0.23076923076923075562279471085
+  base X = 5.76923076923076933282903966863
+  base pm = 0.629093567413147731058379738689
+  base wT = 1.30353822722811161479223516444
+  base wM = 2.32546070267144710700565129702
+  base depth = 0.942574842758311344684151027961
+  base cover = 1.63088455138267397554783620167
+  base provider = 2.52353820553069590219134480667
+  base p_services = 0.274418576135489506064116711504
+  base p_goods = 0.258491891304087740422415893335

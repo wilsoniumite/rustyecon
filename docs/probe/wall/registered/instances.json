@@ -1,0 +1,131 @@
+{
+ "id": "iw1",
+ "title": "The wall: unit 1d's B economy with E7's three types, reserved-only trained and master",
+ "dated": "2026-09-30",
+ "label": "frame-wall",
+ "per_year": {
+  "T": 520.0,
+  "workers": {
+   "entrant": 130.0,
+   "trained": 52.0,
+   "master": 26.0
+  }
+ },
+ "scalars": {
+  "eta": 0.5,
+  "g0": 0.2,
+  "g1": 0.8,
+  "k": 1.0,
+  "space": 1.0,
+  "edges": [
+   0.0,
+   1.0
+  ]
+ },
+ "worker_types": [
+  {
+   "name": "entrant",
+   "market": "labour",
+   "chi_max": 1.0,
+   "efficiency": 1.0,
+   "support": 1.0
+  },
+  {
+   "name": "trained",
+   "market": "labour.trained",
+   "chi_max": 2.0,
+   "efficiency": 0.0,
+   "support": 1.0
+  },
+  {
+   "name": "master",
+   "market": "labour.master",
+   "chi_max": 2.0,
+   "efficiency": 0.0,
+   "support": 1.0
+  }
+ ],
+ "categories": [
+  {
+   "name": "services",
+   "weight": 1.0,
+   "land": 0.0,
+   "density": [
+    0.75
+   ],
+   "tail": 0.1,
+   "reserved": {
+    "trained": 0.04
+   }
+  },
+  {
+   "name": "goods",
+   "weight": 1.0,
+   "land": 0.0,
+   "density": [
+    1.0
+   ],
+   "tail": 0.0,
+   "reserved": {
+    "master": 0.03
+   }
+  }
+ ],
+ "types": [
+  {
+   "name": "mach",
+   "theta": 1.0,
+   "own": 0.3,
+   "labour": 0.05,
+   "land": 0.4
+  }
+ ],
+ "coefs": [
+  {
+   "name": "land.mach",
+   "param": "inst.mach.land",
+   "base": "0.4",
+   "values": [
+    "0.44",
+    "0.36",
+    "0.8",
+    "0.2"
+   ]
+  },
+  {
+   "name": "tail.services",
+   "param": "inst.services.tail",
+   "base": "0.1",
+   "values": [
+    "0.11",
+    "0.09",
+    "0.2",
+    "0.05"
+   ]
+  },
+  {
+   "name": "res.services.trained",
+   "param": "inst.services.reserved.trained",
+   "base": "0.04",
+   "values": [
+    "0.044",
+    "0.036",
+    "0.08",
+    "0.02"
+   ]
+  }
+ ],
+ "line_control": {
+  "id": "ic1",
+  "change": {
+   "entrant.chi_max": 0.25
+  }
+ },
+ "oracle_points": "out/points.jsonl (unit 1d, WorkerEconomy::solve, the worktree at f7d1eae; floats in Rust's shortest round-trip form)",
+ "L": {
+  "52": 22000,
+  "12": 20000,
+  "365": 164000,
+  "ic1_52": 25000
+ }
+}
