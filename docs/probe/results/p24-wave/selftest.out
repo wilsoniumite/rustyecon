@@ -1,0 +1,390 @@
+==== trap
+trap: 4762 records: 107209 lines: missing 10731, pass 66367, reported 30111
+  E10 c1p dial: missing 1989, pass 10989, reported 4540
+  E10 c2p dial: missing 1428, pass 9683, reported 4342
+  E2 c1p info: pass 1, reported 2
+  E2 c1p kick: pass 1, reported 2
+  E2 c1p modea: pass 1, reported 2
+  E2 c1pn info: reported 3
+  E2 c1pn kick: reported 1
+  E2 c1pn modea: pass 1, reported 2
+  E2 c2p info: pass 1, reported 2
+  E2 c2p kick: pass 1, reported 2
+  E2 c2p modea: pass 1, reported 2
+  E3 c1p 10L: missing 117, pass 650, reported 265
+  E3 c1p L: missing 329, pass 1758, reported 625
+  E3 c1p Tier 1: pass 1
+  E3 c1p Tier 2: pass 1
+  E3 c1p Tier 3: pass 1
+  E3 c1p Tier 3 at 10L: pass 1
+  E3 c1p Tier 3S: pass 1
+  E3 c1p Tier 3S at 10L: pass 1
+  E3 c1p kick: pass 12
+  E3 c1p tier3s: missing 72, pass 374, reported 120
+  E3 c1p tier3s10L: missing 72, pass 374, reported 120
+  E3 c1p verdict: pass 1
+  E3 c2p 10L: missing 84, pass 571, reported 254
+  E3 c2p L: missing 220, pass 1599, reported 594
+  E3 c2p Tier 1: pass 1
+  E3 c2p Tier 2: pass 1
+  E3 c2p Tier 3: pass 1
+  E3 c2p Tier 3 at 10L: pass 1
+  E3 c2p Tier 3S: pass 1
+  E3 c2p Tier 3S at 10L: pass 1
+  E3 c2p kick: pass 12
+  E3 c2p tier3s: missing 48, pass 361, reported 120
+  E3 c2p tier3s10L: missing 48, pass 361, reported 120
+  E3 c2p verdict: pass 1
+  E4 c1p pace: missing 15, pass 72, reported 38
+  E4 c1p stocks: missing 123, pass 615, reported 242
+  E4 c2p pace: missing 10, pass 63, reported 38
+  E4 c2p stocks: missing 82, pass 584, reported 237
+  E5 c1p basin: missing 1290, pass 6032, reported 3236
+  E5 c1p joint2: missing 180, pass 838, reported 474
+  E5 c1p joint4: missing 120, pass 498, reported 381
+  E5 c2p basin: missing 860, pass 5421, reported 3180
+  E5 c2p joint2: missing 120, pass 742, reported 459
+  E5 c2p joint4: missing 80, pass 421, reported 380
+  E6 c1p history: pass 488, reported 162
+  E6 c2p history: pass 488, reported 162
+  E7 c1p hold: missing 329, pass 1758, reported 625
+  E7 c1p tilt1: missing 329, pass 1726, reported 652
+  E7 c2p hold: missing 220, pass 1599, reported 594
+  E7 c2p tilt1: missing 220, pass 1571, reported 622
+  E8 c1p tpy12: missing 212, pass 1110, reported 365
+  E8 c1p tpy365: missing 212, pass 1109, reported 360
+  E8 c2p tpy12: missing 136, pass 1029, reported 340
+  E8 c2p tpy365: missing 136, pass 1029, reported 340
+  E9 c1 ctl-dial: missing 1222, pass 9543, reported 4917
+  E9 c1p ctl-tilt2: missing 108, pass 579, reported 281
+  E9 c1p enclose: missing 8, pass 61, reported 20
+  E9 c1pn L: missing 222, pass 1653, reported 587
+  E9 c2p ctl-tilt2: missing 80, pass 511, reported 281
+  E9 c2p enclose: missing 10, pass 61, reported 20
+  E9 controls controls: pass 1
+  verdict c1p: GO with margin (registered GO with margin)
+  verdict c2p: GO with margin (registered GO with margin)
+refutations: none
+self-test: 0 lines fail; 10731 missing, of which 10731 are end-of-run lines only the engine's run to L gives and 0 others
+self-test trap: PASS
+==== trap (negative control)
+trap: 4762 records: 107190 lines: fail 8, missing 10729, pass 66347, reported 30106
+  E10 c1p dial: missing 1989, pass 10989, reported 4540
+  E10 c2p dial: missing 1428, pass 9683, reported 4342
+  E2 c1p info: pass 1, reported 2
+  E2 c1p kick: pass 1, reported 2
+  E2 c1p modea: pass 1, reported 2
+  E2 c1pn info: reported 3
+  E2 c1pn kick: reported 1
+  E2 c1pn modea: pass 1, reported 2
+  E2 c2p info: pass 1, reported 2
+  E2 c2p kick: pass 1, reported 2
+  E2 c2p modea: pass 1, reported 2
+  E3 c1p 10L: missing 117, pass 650, reported 265
+  E3 c1p L: fail 2, missing 329, pass 1756, reported 625
+  E3 c1p Tier 1: pass 1
+  E3 c1p Tier 2: pass 1
+  E3 c1p Tier 3: pass 1
+  E3 c1p Tier 3 at 10L: pass 1
+  E3 c1p Tier 3S: pass 1
+  E3 c1p Tier 3S at 10L: pass 1
+  E3 c1p kick: pass 12
+  E3 c1p tier3s: missing 72, pass 374, reported 120
+  E3 c1p tier3s10L: missing 72, pass 374, reported 120
+  E3 c1p verdict: pass 1
+  E3 c2p 10L: missing 84, pass 571, reported 254
+  E3 c2p L: missing 220, pass 1599, reported 594
+  E3 c2p Tier 1: pass 1
+  E3 c2p Tier 2: pass 1
+  E3 c2p Tier 3: pass 1
+  E3 c2p Tier 3 at 10L: pass 1
+  E3 c2p Tier 3S: pass 1
+  E3 c2p Tier 3S at 10L: pass 1
+  E3 c2p kick: fail 1, pass 11
+  E3 c2p tier3s: missing 48, pass 361, reported 120
+  E3 c2p tier3s10L: missing 48, pass 361, reported 120
+  E3 c2p verdict: fail 1
+  E4 c1p pace: missing 15, pass 72, reported 38
+  E4 c1p stocks: missing 123, pass 615, reported 242
+  E4 c2p pace: missing 10, pass 63, reported 38
+  E4 c2p stocks: fail 3, missing 80, pass 569, reported 232
+  E5 c1p basin: missing 1290, pass 6032, reported 3236
+  E5 c1p joint2: missing 180, pass 838, reported 474
+  E5 c1p joint4: missing 120, pass 498, reported 381
+  E5 c2p basin: missing 860, pass 5421, reported 3180
+  E5 c2p joint2: missing 120, pass 742, reported 459
+  E5 c2p joint4: missing 80, pass 421, reported 380
+  E6 c1p history: pass 488, reported 162
+  E6 c2p history: pass 488, reported 162
+  E7 c1p hold: missing 329, pass 1758, reported 625
+  E7 c1p tilt1: missing 329, pass 1726, reported 652
+  E7 c2p hold: missing 220, pass 1599, reported 594
+  E7 c2p tilt1: missing 220, pass 1571, reported 622
+  E8 c1p tpy12: missing 212, pass 1110, reported 365
+  E8 c1p tpy365: missing 212, pass 1109, reported 360
+  E8 c2p tpy12: missing 136, pass 1029, reported 340
+  E8 c2p tpy365: missing 136, pass 1029, reported 340
+  E9 c1 ctl-dial: fail 1, missing 1222, pass 9542, reported 4917
+  E9 c1p ctl-tilt2: missing 108, pass 579, reported 281
+  E9 c1p enclose: missing 8, pass 61, reported 20
+  E9 c1pn L: missing 222, pass 1653, reported 587
+  E9 c2p ctl-tilt2: missing 80, pass 511, reported 281
+  E9 c2p enclose: missing 10, pass 61, reported 20
+  E9 controls controls: pass 1
+  verdict c1p: GO with margin (registered GO with margin)
+  verdict c2p: LOCAL (registered GO with margin)
+refutations: ['1 class changes in E3, E4 or E10 at C1P or C2P', '2 C1P or C2P runs of E3-E8 or E10 in the trap or with a tick of no hours']
+self-test: 8 lines fail; 10729 missing, of which 10729 are end-of-run lines only the engine's run to L gives and 0 others
+negative control trap: the scorer fails it; 8 lines fail or are charged (the missing end-of-run lines left out):
+   E4 c2p stocks coin.desk.manufactures*0.1: class: CONVERGED vs DIVERGED -> fail
+   E3 c1p L p[labour]*2: ticks to tolerance: 489 vs 635 -> fail
+   E3 c1p L p[food]*2: ticks with no hours offered: 0 vs 3 -> fail
+   E9 c1 ctl-dial p[mach]*0.5: runaway tick: 325 vs 357 -> fail
+   E3 c2p kick b.food=1.2@dated: kick set decays (gain_tail at most 1e-3): True vs False -> fail
+   E4 c2p stocks -: classes: {"CONVERGED": 41} vs {"CONVERGED": 40, "DIVERGED": 1} -> fail
+   E4 c2p stocks -: the runs DIVERGED (the subsistence trap): [] vs ["coin.desk.manufactures*0.1"] -> fail
+   E3 c2p verdict -: C2P's verdict: GO with margin vs LOCAL -> fail
+==== switch
+switch: 3039 records: 65047 lines: missing 13214, pass 22538, reported 29295
+  E1 is1 L: pass 108
+  E1 is1 never-pooled: pass 1
+  E1 is1 tier3s: pass 28
+  E2 is1 info: pass 3
+  E2 is1 modea: pass 3
+  E2 is2 info: reported 3
+  E2 is2 modea: reported 3
+  E3 is1 10L: pass 123
+  E3 is1 L: missing 109, pass 1176, reported 654
+  E3 is1 Tier 1: pass 1
+  E3 is1 Tier 2: pass 1
+  E3 is1 Tier 3: pass 1
+  E3 is1 Tier 3 at 10L: pass 1
+  E3 is1 Tier 3S: pass 1
+  E3 is1 Tier 3S at 10L: pass 1
+  E3 is1 tier3s: missing 20, pass 206, reported 120
+  E3 is1 verdict: pass 1
+  E4 is1 corner: missing 1
+  E4 is1 env: pass 1
+  E4 is1 env-ts011: reported 1
+  E4 is1 kick: pass 13
+  E5 is1 L: missing 426
+  E5 is1 L+tier3s: pass 1
+  E5 is1 basin: missing 2064
+  E5 is1 hold: missing 268
+  E5 is1 joint2: missing 240
+  E5 is1 joint4: missing 160
+  E5 is1 nbhd: missing 2686
+  E5 is1 stocks: missing 124
+  E5 is1 swrate: missing 632
+  E5 is1 tier3s: missing 80
+  E5 is1 tpy12: missing 268
+  E5 is1 tpy365: missing 268
+  E5 is2 L: missing 329
+  E5 is2 hold: missing 204
+  E5 is2 nbhd: missing 2125
+  E5 is2 tier3s: missing 60
+  E5 is2 tpy12: missing 204
+  E5 is2 tpy365: missing 204
+  E6 is1 L: pass 1
+  E7 is1 basin: missing 516, pass 6673, reported 3096
+  E7 is1 hold: missing 68, pass 688, reported 408
+  E7 is1 joint2: missing 60, pass 769, reported 360
+  E7 is1 joint4: missing 40, pass 634, reported 240
+  E7 is1 nbhd: missing 697, pass 8373, reported 4182
+  E7 is1 stocks: missing 31, pass 353, reported 186
+  E7 is1 swrate: missing 164, pass 1960, reported 984
+  E7 is1 tpy12: missing 68, pass 682, reported 408
+  E7 is1 tpy365: missing 68, pass 687, reported 408
+  E8 is2 10L: reported 123
+  E8 is2 L: missing 109, reported 1838
+  E8 is2 hold: missing 68, reported 1099
+  E8 is2 kick: reported 13
+  E8 is2 nbhd: missing 697, reported 12621
+  E8 is2 tier3s: missing 20, reported 326
+  E8 is2 tpy12: missing 68, reported 1096
+  E8 is2 tpy365: missing 68, reported 1099
+  E9 is1 point: pass 48
+  E9 is2 point: reported 27
+  verdict is1: GO (registered GO)
+refutations: none
+self-test: 0 lines fail; 13214 missing, of which 13214 are end-of-run or every-tick lines only the engine's runs give and 0 others
+self-test switch: PASS
+==== switch (negative control)
+switch: 3039 records: 65026 lines: fail 10, missing 13209, pass 22518, reported 29289
+  E1 is1 L: fail 1, pass 107
+  E1 is1 never-pooled: fail 1
+  E1 is1 tier3s: pass 28
+  E2 is1 info: pass 3
+  E2 is1 modea: pass 3
+  E2 is2 info: reported 3
+  E2 is2 modea: reported 3
+  E3 is1 10L: pass 123
+  E3 is1 L: fail 3, missing 108, pass 1163, reported 648
+  E3 is1 Tier 1: pass 1
+  E3 is1 Tier 2: pass 1
+  E3 is1 Tier 3: fail 1
+  E3 is1 Tier 3 at 10L: pass 1
+  E3 is1 Tier 3S: pass 1
+  E3 is1 Tier 3S at 10L: pass 1
+  E3 is1 tier3s: missing 20, pass 206, reported 120
+  E3 is1 verdict: fail 1
+  E4 is1 corner: missing 1
+  E4 is1 env: fail 1
+  E4 is1 env-ts011: reported 1
+  E4 is1 kick: fail 1, pass 12
+  E5 is1 L: missing 422
+  E5 is1 L+tier3s: pass 1
+  E5 is1 basin: missing 2064
+  E5 is1 hold: missing 268
+  E5 is1 joint2: missing 240
+  E5 is1 joint4: missing 160
+  E5 is1 nbhd: missing 2686
+  E5 is1 stocks: missing 124
+  E5 is1 swrate: missing 632
+  E5 is1 tier3s: missing 80
+  E5 is1 tpy12: missing 268
+  E5 is1 tpy365: missing 268
+  E5 is2 L: missing 329
+  E5 is2 hold: missing 204
+  E5 is2 nbhd: missing 2125
+  E5 is2 tier3s: missing 60
+  E5 is2 tpy12: missing 204
+  E5 is2 tpy365: missing 204
+  E6 is1 L: pass 1
+  E7 is1 basin: missing 516, pass 6673, reported 3096
+  E7 is1 hold: fail 1, missing 68, pass 687, reported 408
+  E7 is1 joint2: missing 60, pass 769, reported 360
+  E7 is1 joint4: missing 40, pass 634, reported 240
+  E7 is1 nbhd: missing 697, pass 8373, reported 4182
+  E7 is1 stocks: missing 31, pass 353, reported 186
+  E7 is1 swrate: missing 164, pass 1960, reported 984
+  E7 is1 tpy12: missing 68, pass 682, reported 408
+  E7 is1 tpy365: missing 68, pass 687, reported 408
+  E8 is2 10L: reported 123
+  E8 is2 L: missing 109, reported 1838
+  E8 is2 hold: missing 68, reported 1099
+  E8 is2 kick: reported 13
+  E8 is2 nbhd: missing 697, reported 12621
+  E8 is2 tier3s: missing 20, reported 326
+  E8 is2 tpy12: missing 68, reported 1096
+  E8 is2 tpy365: missing 68, reported 1099
+  E9 is1 point: pass 48
+  E9 is2 point: reported 27
+  verdict is1: LOCAL (registered GO)
+refutations: ["1 class changes in IS1's battery or Tier 3S at L or 10 L", "1 never-pooled lines differing from IW1's", '1 kick sets failing']
+self-test: 10 lines fail; 13209 missing, of which 13209 are end-of-run or every-tick lines only the engine's runs give and 0 others
+negative control switch: the scorer fails it; 10 lines fail or are charged (the missing end-of-run lines left out):
+   E3 is1 L JA(2): class: CONVERGED vs ORBITING -> fail
+   E3 is1 L RW(2): largest a: trained: 0.9729455503302876 vs 1.167534660396345 -> fail
+   E1 is1 L JA(0.95): the engine's IW1 run of the P2.3 wave: class, ticks, peak D-hat: ["CONVERGED", 452, 182.7572] vs ["CONVERGED", 453, 182.75723869073556] -> fail
+   E1 is1 never-pooled -: never-pooled runs that are IW1's: 68/68 vs 67/68 -> fail
+   E4 is1 kick land.mach=0.8@dated: kick set decays (gain_tail at most 1e-3): PASS vs [false, 1.4e-05] -> fail
+   E4 is1 env base: the kick envelope's decay, a year: 0.534 vs 0.5775924719275634 -> fail
+   E3 is1 L -: classes: {"CONVERGED": 109} vs {"CONVERGED": 108, "ORBITING": 1} -> fail
+   E7 is1 hold -: Hold identical to Saturate in every statistic: 68/68 vs 67/68 -> fail
+   E3 is1 Tier 3 -: runs CONVERGED: 41/41 vs 40/41 -> fail
+   E3 is1 verdict -: IS1's verdict: GO vs LOCAL -> fail
+==== free
+free: 2351 records: 42231 lines: missing 2211, pass 31343, reported 8677
+  E2 ct2 info: pass 3
+  E2 ct2 modea: pass 6
+  E2 il1 info: pass 2, reported 1
+  E2 il1 modea: pass 6
+  E3 ct2 10L: missing 41, pass 549, reported 192
+  E3 ct2 L: missing 111, pass 1601, reported 402
+  E3 ct2 Tier 1: pass 1
+  E3 ct2 Tier 2: pass 1
+  E3 ct2 Tier 3: pass 1
+  E3 ct2 Tier 3 at 10L: pass 1
+  E3 ct2 Tier 3S: pass 1
+  E3 ct2 Tier 3S at 10L: pass 1
+  E3 ct2 kick: pass 13
+  E3 ct2 tier3s: missing 24, pass 361, reported 72
+  E3 ct2 tier3s10L: missing 24, pass 361, reported 72
+  E3 ct2 verdict: pass 1
+  E3 il1 10L: missing 36, pass 527, reported 124
+  E3 il1 L: missing 94, pass 1399, reported 300
+  E3 il1 Tier 1: pass 1
+  E3 il1 Tier 2: pass 1
+  E3 il1 Tier 3: pass 1
+  E3 il1 Tier 3 at 10L: pass 1
+  E3 il1 Tier 3S: pass 1
+  E3 il1 Tier 3S at 10L: pass 1
+  E3 il1 kick: pass 13
+  E3 il1 tier3s: missing 22, pass 331, reported 66
+  E3 il1 tier3s10L: missing 22, pass 331, reported 66
+  E3 il1 verdict: pass 1
+  E4 ct2 dial: missing 697, pass 9359, reported 3238
+  E4 il1 dial: missing 612, pass 8954, reported 2113
+  E5 ct2 joint2: missing 60, pass 741, reported 340
+  E5 ct2 joint4: missing 33, pass 381, reported 229
+  E5 ct2 stocks: missing 41, pass 581, reported 158
+  E5 ct2 tpy12: missing 70, pass 1053, reported 210
+  E5 ct2 tpy365: missing 70, pass 1053, reported 210
+  E5 il1 joint2: missing 60, pass 871, reported 210
+  E5 il1 joint4: missing 39, pass 544, reported 162
+  E5 il1 stocks: missing 39, pass 543, reported 160
+  E5 il1 tpy12: missing 58, pass 873, reported 176
+  E5 il1 tpy365: missing 58, pass 873, reported 176
+  verdict il1: GO (registered GO)
+  verdict ct2: GO (registered GO)
+refutations: none
+self-test: 0 lines fail; 2211 missing, of which 2211 are end-of-run lines only the engine's run to L gives and 0 others
+self-test free: PASS
+==== free (negative control)
+free: 2351 records: 42213 lines: fail 9, missing 2210, pass 31327, reported 8667
+  E2 ct2 info: pass 3
+  E2 ct2 modea: pass 6
+  E2 il1 info: pass 2, reported 1
+  E2 il1 modea: fail 1, pass 5
+  E3 ct2 10L: missing 41, pass 549, reported 192
+  E3 ct2 L: fail 2, missing 110, pass 1592, reported 392
+  E3 ct2 Tier 1: pass 1
+  E3 ct2 Tier 2: pass 1
+  E3 ct2 Tier 3: fail 1
+  E3 ct2 Tier 3 at 10L: pass 1
+  E3 ct2 Tier 3S: pass 1
+  E3 ct2 Tier 3S at 10L: pass 1
+  E3 ct2 kick: pass 13
+  E3 ct2 tier3s: missing 24, pass 361, reported 72
+  E3 ct2 tier3s10L: missing 24, pass 361, reported 72
+  E3 ct2 verdict: fail 1
+  E3 il1 10L: missing 36, pass 527, reported 124
+  E3 il1 L: fail 2, missing 94, pass 1397, reported 300
+  E3 il1 Tier 1: pass 1
+  E3 il1 Tier 2: pass 1
+  E3 il1 Tier 3: pass 1
+  E3 il1 Tier 3 at 10L: pass 1
+  E3 il1 Tier 3S: pass 1
+  E3 il1 Tier 3S at 10L: pass 1
+  E3 il1 kick: pass 13
+  E3 il1 tier3s: missing 22, pass 331, reported 66
+  E3 il1 tier3s10L: missing 22, pass 331, reported 66
+  E3 il1 verdict: fail 1
+  E4 ct2 dial: missing 697, pass 9359, reported 3238
+  E4 il1 dial: missing 612, pass 8954, reported 2113
+  E5 ct2 joint2: missing 60, pass 741, reported 340
+  E5 ct2 joint4: fail 1, missing 33, pass 380, reported 229
+  E5 ct2 stocks: missing 41, pass 581, reported 158
+  E5 ct2 tpy12: missing 70, pass 1053, reported 210
+  E5 ct2 tpy365: missing 70, pass 1053, reported 210
+  E5 il1 joint2: missing 60, pass 871, reported 210
+  E5 il1 joint4: missing 39, pass 544, reported 162
+  E5 il1 stocks: missing 39, pass 543, reported 160
+  E5 il1 tpy12: missing 58, pass 873, reported 176
+  E5 il1 tpy365: missing 58, pass 873, reported 176
+  verdict il1: LOCAL (registered GO)
+  verdict ct2: LOCAL (registered GO)
+refutations: ['1 CONVERGED runs whose free-able market ends priced at a free target or free at a priced one', "1 mode-A lines failing (a rest point off the oracle's)", '1 Tier 1-3 or 3S runs not CONVERGED']
+self-test: 9 lines fail; 2210 missing, of which 2210 are end-of-run lines only the engine's run to L gives and 0 others
+negative control free: the scorer fails it; 9 lines fail or are charged (the missing end-of-run lines left out):
+   E3 ct2 L JB(2): class: CONVERGED vs STUCK -> fail
+   E3 il1 L p[labour]*2: the free-able market's end state: land: 0 vs positive -> fail
+   E3 il1 L p[land]=0.025: its first free tick: land: 4 vs 7 -> fail
+   E5 ct2 joint4 joint(4,10): runaway tick: 254 vs 279 -> fail
+   E2 il1 modea hold at 365 a year: mode A at L, largest gap below 1e-9: 1.1102230246251565e-16 vs 1.1102230246251565e-16 -> fail
+   E3 ct2 L -: classes: {"CONVERGED": 111, "VACUOUS": 4} vs {"CONVERGED": 110, "STUCK": 1, "VACUOUS": 4} -> fail
+   E3 il1 verdict -: IL1's verdict: GO vs LOCAL -> fail
+   E3 ct2 Tier 3 -: classes: {"CONVERGED": 41, "VACUOUS": 2} vs {"CONVERGED": 40, "STUCK": 1, "VACUOUS": 2} -> fail
+   E3 ct2 verdict -: CT2's verdict: GO vs LOCAL -> fail
+SELF-TEST PASS
