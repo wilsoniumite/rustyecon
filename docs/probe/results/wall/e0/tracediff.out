@@ -1,0 +1,24 @@
+E0: the engine against wm.py, 2000 ticks, C2m, 52 a year (label build-wall, 2026-09-30)
+Gaps are |ln(engine/mirror)|. A1 (registration-A1.md) allows a market's S, D or volume to
+part where it is a residue at most 1e-12 of its target volume and the mirror one ulp from
+itself parts there too; such partings are listed apart and left out of the other columns.
+run	ticks	worst, A1's partings aside	at (tick, name, engine, mirror)	worst of prices, ratios, techniques, stocks and coins	shares: in log, absolute	the mirror against itself, one ulp apart	worst by kind	partings above 1e-12 (A1-allowed / all)
+iw1 hold	2000	3.331e-16	(1, 'vol.land', 9.999999999999996, 10.0)	2.220e-16	0.000e+00, 0.000e+00	4.441e-16	D:2.2e-16 S:2.2e-16 coin:2.2e-16 price:0.0e+00 ratio:0.0e+00 stock:2.2e-16 technique:0.0e+00 volume:3.3e-16	0/0
+iw1 p[labour]*2	2000	6.661e-15	(1952, 'coin_desk.goods', 20.89475845274052, 20.89475845274038)	6.661e-15	0.000e+00, 0.000e+00	3.997e-15	D:2.7e-15 S:3.3e-15 coin:6.7e-15 price:6.2e-15 ratio:4.2e-15 stock:3.3e-15 technique:0.0e+00 volume:3.3e-15	0/0
+iw1 JB(0.5)	2000	1.310e-14	(100, 'coin_workers.master', 2.5159532083958713, 2.515953208395904)	1.310e-14	0.000e+00, 0.000e+00	4.441e-15	D:2.6e-15 S:4.2e-15 coin:1.3e-14 price:3.4e-15 ratio:3.1e-15 stock:4.2e-15 technique:0.0e+00 volume:4.0e-15	0/0
+iw1 x*/2	2000	6.661e-15	(1888, 'coin_desk.goods', 20.894758453117706, 20.894758453117568)	6.661e-15	0.000e+00, 0.000e+00	7.105e-15	D:2.6e-15 S:3.8e-15 coin:6.7e-15 price:6.2e-15 ratio:3.8e-15 stock:3.8e-15 technique:0.0e+00 volume:3.8e-15	0/0
+iw1 s[goods]=0.5	2000	3.997e-15	(527, 'coin_desk.services', 22.20967858214765, 22.20967858214774)	3.997e-15	0.000e+00, 0.000e+00	5.329e-15	D:2.1e-15 S:3.1e-15 coin:4.0e-15 price:3.3e-15 ratio:3.1e-15 stock:3.1e-15 technique:0.0e+00 volume:2.9e-15	0/0
+iw1 RW(2)	2000	3.331e-15	(597, 'vol.goods', 7.692285245872695, 7.6922852458727204)	3.220e-15	0.000e+00, 0.000e+00	4.885e-15	D:2.2e-15 S:3.2e-15 coin:3.1e-15 price:2.7e-15 ratio:2.4e-15 stock:3.2e-15 technique:0.0e+00 volume:3.3e-15	0/0
+iw1 p[labour.trained]*0.5	2000	4.441e-15	(1558, 'y.services', 7.692307692966684, 7.692307692966649)	4.441e-15	0.000e+00, 0.000e+00	7.105e-15	D:2.7e-15 S:4.4e-15 coin:4.2e-15 price:2.7e-15 ratio:2.7e-15 stock:4.4e-15 technique:0.0e+00 volume:4.0e-15	0/0
+iw1 coin.workers.master*0.1	2000	3.775e-15	(1484, 'coin_desk.mach', 25.601700937758032, 25.601700937757936)	3.775e-15	0.000e+00, 0.000e+00	4.219e-15	D:2.3e-15 S:3.2e-15 coin:3.8e-15 price:3.3e-15 ratio:3.2e-15 stock:3.2e-15 technique:0.0e+00 volume:3.1e-15	0/0
+iw1 stock.mach*0.01	2000	4.663e-15	(1316, 'coin_desk.services', 22.1821654520864, 22.182165452086505)	4.663e-15	0.000e+00, 0.000e+00	inf	D:2.4e-15 S:3.3e-15 coin:4.7e-15 price:3.7e-15 ratio:2.9e-15 stock:3.3e-15 technique:0.0e+00 volume:3.1e-15	4/4
+iw1 land.mach=0.8@genesis	2000	3.997e-15	(134, 'coin_workers.master', 1.6292729790563367, 1.62927297905633)	3.997e-15	0.000e+00, 0.000e+00	4.441e-16	D:2.2e-15 S:3.6e-15 coin:4.0e-15 price:3.1e-15 ratio:2.7e-15 stock:3.6e-15 technique:0.0e+00 volume:3.1e-15	0/0
+iw1 tail.services=0.2@genesis	2000	4.330e-15	(533, 'w.master', 2.976020910312575, 2.976020910312588)	4.330e-15	0.000e+00, 0.000e+00	7.438e-15	D:3.1e-15 S:3.2e-15 coin:4.3e-15 price:3.7e-15 ratio:4.3e-15 stock:3.2e-15 technique:0.0e+00 volume:3.3e-15	0/0
+iw1 res.services.trained=0.02@genesis	2000	3.997e-15	(1254, 'coin_provider', 25.400514398893964, 25.400514398893865)	3.997e-15	0.000e+00, 0.000e+00	4.219e-15	D:2.9e-15 S:3.8e-15 coin:4.0e-15 price:3.8e-15 ratio:3.8e-15 stock:3.8e-15 technique:0.0e+00 volume:3.8e-15	0/0
+i0 hold	2000	9.992e-16	(9, 'mach_S', 3.7089403312974083, 3.708940331297412)	7.772e-16	0.000e+00, 0.000e+00	2.220e-16	D:6.7e-16 S:1.0e-15 coin:5.6e-16 price:2.2e-16 ratio:2.2e-16 stock:7.8e-16 technique:0.0e+00 volume:8.9e-16	0/0
+
+Every parting above 1e-12:
+iw1 stock.mach*0.01	tick 1	vol.services	engine 8.881784197001252e-16	mirror 8.540177112501203e-16	absolute 3.416e-17	of target 4.441e-18	mirror one ulp apart inf	A1
+iw1 stock.mach*0.01	tick 1	vol.goods	engine 8.881784197001252e-16	mirror 8.540177112501203e-16	absolute 3.416e-17	of target 4.441e-18	mirror one ulp apart inf	A1
+iw1 stock.mach*0.01	tick 1	services_S	engine 8.881784197001252e-16	mirror 8.540177112501203e-16	absolute 3.416e-17	of target 4.441e-18	mirror one ulp apart inf	A1
+iw1 stock.mach*0.01	tick 1	goods_S	engine 8.881784197001252e-16	mirror 8.540177112501203e-16	absolute 3.416e-17	of target 4.441e-18	mirror one ulp apart inf	A1

@@ -1,0 +1,21 @@
+unmutated: exit 0, failed [], built True
+M1 decide ignores the tail: KILLED fails: category_desk_buys_its_tail_and_reserved_hours, markets_iw1_rest_point_is_the_oracles, markets_iw1_holds_at_the_oracle_point
+M2 produce ignores the tail: KILLED fails: category_desk_buys_its_tail_and_reserved_hours
+M3 the cost leaves out the reserved hours: KILLED fails: category_desk_buys_its_tail_and_reserved_hours, markets_iw1_rest_point_is_the_oracles, markets_iw1_holds_at_the_oracle_point
+M4 no reserved order: KILLED fails: category_desk_buys_its_tail_and_reserved_hours, markets_iw1_holds_at_the_oracle_point, markets_iw1_rest_point_is_the_oracles
+M5 the Leontief leaves out the reserved hours: KILLED fails: category_desk_buys_its_tail_and_reserved_hours, markets_iw1_conserves_and_is_deterministic
+M6 no reserved burn: KILLED fails: category_desk_buys_its_tail_and_reserved_hours
+M7 the further transfers are not paid: KILLED fails: provider_pays_every_transfer_in_list_order, markets_iw1_rest_point_is_the_oracles, markets_iw1_holds_at_the_oracle_point
+M8 the state holds the first transfer only: KILLED fails: provider_pays_every_transfer_in_list_order
+M9 a further transfer is not taken from the copy: KILLED fails: provider_pays_every_transfer_in_list_order, markets_iw1_rest_point_is_the_oracles, markets_iw1_conserves_and_is_deterministic, markets_iw1_holds_at_the_oracle_point
+M10 a zero reserved coefficient is ordered: KILLED fails: wall_fields_at_zero_leave_every_decision
+M11 the resolved tail is written when absent: KILLED fails: wall_specs_round_trip_and_old_worlds_keep_their_ids, markets_tapes_keep_their_world_ids
+M12 the raw more is written when empty: KILLED fails: wall_specs_round_trip_and_old_worlds_keep_their_ids, markets_tapes_keep_their_world_ids
+M13 a reserved good may repeat: KILLED fails: wall_specs_are_checked_at_load
+M14 a further transfer may go to transfer's recipient: KILLED fails: wall_specs_are_checked_at_load
+M15 the provider may pay itself: KILLED fails: wall_specs_are_checked_at_load
+M16 the workers' genesis coin takes the whole transfer: KILLED fails: markets_iw1_genesis_is_unit_1d, markets_iw1_tape_is_its_generators_output, markets_iw1_rest_point_is_the_oracles, markets_iw1_holds_at_the_oracle_point
+M17 the wall's technique is read as s: KILLED fails: markets_iw1_holds_at_the_oracle_point, markets_iw1_rest_point_is_the_oracles
+M18 JA leaves the reserved wages: KILLED fails: wall_grammar_applies_as_named
+M19 joint draws the types before the categories: KILLED fails: wall_grammar_applies_as_named
+M20 the wall's basin takes libm's pow: KILLED fails: wall_battery_and_families_are_the_registered_ones

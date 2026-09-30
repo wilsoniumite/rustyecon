@@ -11,10 +11,13 @@ the tape's schema is [docs/TAPE.md](docs/TAPE.md), and the GUI's design is
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
 **State as of:** 2026-09-30, on branch `phase2-proper` from `reboot` at `f7d1eae`, not pushed or
-merged. **The wall instance IW1 is built** (P2.3.2; "Where things stand";
-[docs/probe/WALL-RULES.md](docs/probe/WALL-RULES.md)): the roles' three optional fields, the
-instance on unit 1d, `tapes/markets-iw1.ron`, the harness at the wall and 14 tests, with every
-committed tape's text, ids and streams unchanged. E0, before any scored run, is next.
+merged. **The wall instance IW1 is built, and E0–E2 pass** (P2.3.2–P2.3.4; "Where things
+stand"; [docs/probe/WALL-RULES.md](docs/probe/WALL-RULES.md),
+[docs/probe/results/wall/e0.md](docs/probe/results/wall/e0.md)): the roles' three optional
+fields, the instance on unit 1d, `tapes/markets-iw1.ron`, the harness at the wall and 14 tests,
+with every committed tape's text, ids and streams unchanged. The engine is the mirror's map to
+1.31e-14, but for a tick-1 rounding residue that amendment A1, committed before the run, allows.
+The scorer and the scored wave are next.
 **The wall instance IW1 is registered** (P2.3.1, docs only; "Where things stand";
 [docs/probe/results/wall/registration.md](docs/probe/results/wall/registration.md)): the frame
 `frame-wall` (1d's B economy with E7's three types, a solved wall whose pool wage is 0.94 in log
@@ -148,6 +151,30 @@ many-market roles (O27), which may now start from the goods chain's stage v2a.1 
 on D-G12. "Next steps" has each.
 
 ## Where things stand
+
+**The wall instance's E0–E2, before any scored run (P2.3.4; 2026-09-30).** Branch
+`phase2-proper`, scratch `D:/rustyecon-p23/build-wall/e0/`. The record:
+[docs/probe/results/wall/e0.md](docs/probe/results/wall/e0.md), with its outputs in `e0/`.
+- **E0 passes under A1.** The trace diff of the committed build (`1ecbb7a`) against the frame's
+  mirror `wm.py`, 2,000 ticks, 12 runs at IW1 and I0's hold: every price, ratio, threshold, stock
+  and coin within 1.31e-14 in log, every share to the bit, every S and D within 4.4e-15 but at one
+  tick. Four partings pass 1e-12, all at tick 1 of `stock.mach*0.01`: services' and goods' S and
+  cleared volume, a leftover genesis lot, 3.4e-17 absolute, where the mirror one ulp from itself
+  parts without bound. A1 allows them; without it E0 would fail on them alone.
+- **A1** (P2.3.3, `1ecbb7a`; [registration-A1.md](docs/probe/results/wall/registration-A1.md),
+  sha256 `0f609f20…0dfd`) was written after the development trace diff found the residue and
+  committed before this run and any scored run. It allows a market's S, D or cleared volume to
+  part where it is a residue at most 1e-12 of its target volume and the mirror one ulp apart parts
+  too, reported in absolute terms. No prediction moves. Its text names the services market; the
+  goods market's residue is the same one.
+- **E1 holds** (P2.3.2): every committed tape's text, ids and stream, the pins, the nesting tests.
+- **E2 holds.** The rest point within 1e-12 at 39 points. Mode A at L passes: largest gaps 3.3e-16
+  (52 a year, L 22,000), 4.4e-16 (12, 20,000) and 4.4e-16 (365, 164,000), and IC1's 3.3e-16 at
+  25,000. The engine's elasticity probe gives SPEC §6.1's τ to the printed digit (goods 106.4
+  ticks), so L is the registered one at every tick length.
+- **Next** (next step 7): the scorer, its gather script and job list committed before the wave
+  (decision 311), then the scored wave E3–E9 on IW1 and IC1, O22's families on I1–I3 first
+  (decision 368).
 
 **The wall instance's build (P2.3.2; 2026-09-30).** Branch `phase2-proper` (worktree
 `D:/rustyecon-wt/p23`, scratch `D:/rustyecon-p23/build-wall/`). As built:
