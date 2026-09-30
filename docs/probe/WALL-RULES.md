@@ -206,7 +206,7 @@ sees it.
 The build was exercised on the engine before E0: six IW1 runs of 3,000 ticks (hold, p[labour]×2,
 JB(0.5), x\*/2, s[goods]=0.5, RW(2)) to see that the tape loads and the harness classifies, and a
 development trace diff (`e0/tracediff-dev.out`) on the uncommitted build, with E0's runs. The
-latter found one parting, below; its numbers are E0's (P2.3.3). They are disclosed here, as
+latter found one parting, below; its numbers are E0's (P2.3.4). They are disclosed here, as
 P2.2a's smoke runs were (HORSES-RULES §8).
 
 ## 7. Readings and departures
@@ -223,14 +223,15 @@ P2.2a's smoke runs were (HORSES-RULES §8).
   part by an ulp in a starting price. The joint families are reported, not scored.
 - **Mode A's spoilage check** reads produced goods only (types and categories); a reserved type's
   unsold hours, like the pool's, are not produced. P2.1's instances have no other goods.
-- **E0's tick-1 residue** (the development trace diff; E0, P2.3.3). In `stock.mach*0.01` the
-  services market at tick 1 holds only what is left of its genesis lot, one ulp of 7.69
-  (8.9e-16) in the engine, which keeps each lot's unsold part as held − sold, and 8.5e-16 in the
-  mirror, which computes held·(1 − fill). S and the cleared volume there part by 3.9e-2 in log
-  (3.4e-17 absolute); the mirror one ulp from itself parts without bound on the same tick. Every
-  price, coin, share, stock and every other S and D agree within 1.4e-14 over the 2,000 ticks.
-  The frame's E0 allows only the budget chain's ulp, so the allowance is extended by a dated
-  amendment before any scored run (P2.3.3).
+- **E0's tick-1 residue** (the development trace diff; E0, P2.3.4). In `stock.mach*0.01` the
+  services and goods markets at tick 1 hold only what is left of their genesis lots, one ulp of
+  7.69 (8.9e-16) in the engine, which keeps each lot's unsold part as held − sold, and 8.5e-16 in
+  the mirror, which computes held·(1 − fill). S and the cleared volume there part by 3.9e-2 in
+  log (3.4e-17 absolute); the mirror one ulp from itself parts without bound on the same tick.
+  Every price, coin, share, stock and every other S and D agree within 1.4e-14 over the 2,000
+  ticks. The frame's E0 allows only the budget chain's ulp, so the allowance is extended by a
+  dated amendment before any scored run: A1 (P2.3.3, results/wall/registration-A1.md), under
+  which E0 passes (results/wall/e0.md).
 
 ## 8. How to run
 
