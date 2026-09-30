@@ -173,7 +173,8 @@ report: [docs/probe/LOOPS.md](docs/probe/LOOPS.md); as run: LOOPS-RULES §17.
   binary (`/root/scratch/p2b-fix/fine`, 340 MB), for the maker's lowest coin and the frozen price.
 - **The gates**, logs in `D:/rustyecon-p2b/fix-report/`: `scripts/gate.sh` and `scripts/gui.sh`
   are green on WSL (`/root/scratch/target-p2b`) and on Windows (`D:/rustyecon-targets/p2b`).
-  The stamp is `6ae6674`, clean (docs-only changes since). The gate hash is `0x61f9c8529131ff17`.
+  The stamp is `6ae6674`, clean (docs-only changes since); gate.sh was green again at
+  `2cede8a`. The gate hash is `0x61f9c8529131ff17`.
 - **Decisions 307–311 and O79–O80**, below. O49, O65 and O68 are closed. O14, O46, O52, O54 and
   O67 are amended.
 - **Housekeeping.** `/root/scratch/p2b-runs` (2.9 GB, the plain duplicate of the archive) is no
@@ -3973,7 +3974,7 @@ O51 on are the loop stage's groundwork's (L0, branch `phase2-loops`).
     where it will bind.
   - *Under rule B (P2.2b.4; LOOPS.md §4; decision 307):* the maker's coin collapses the same way,
     but no deep shortage follows. Through heads × 10 at LB1–LB3 its coin falls to 1.3e-43,
-    3.4e-34 and 4.3e-90 of genesis and its output to 1e-27 of target or below, for up to 50
+    3.4e-34 and 4.3e-90 of genesis and its output to about 1e-27 of target or below, for up to 50
     years; after it the heads stay at 0.89 of target or above and the horse price peaks at
     3.3–3.8 times target. After r × 2 at LB1 the coin falls to 4.0e-7. The reservation, not the
     plants alone, carries these runs: at ψ 0 each runs away (ticks 155–170).
@@ -3986,7 +3987,7 @@ O51 on are the loop stage's groundwork's (L0, branch `phase2-loops`).
   one step of ψ·p_rep, with neither offer nor bid. That instance's frame must run it and score the
   price as an idle market's. *Seen in part at P2.2b.4* (LOOPS.md §4): through a glut in the loop,
   with the maker withholding and no order, the horse price does not move, at 0.223 of target for
-  139–2,510 ticks (up to 48 years at LB3 heads × 10), and at 0.149–0.150 for 66–282 ticks after
+  68–2,510 ticks (up to 48 years at LB3 heads × 10), and from 0.149–0.150 (drifting up as v moves) for 66–282 ticks after
   r × 2. Those markets reopen; one that never does is still unrun.
 - **O55. The chatter after a glut, and the engine's sensitivity there** (IDLE-SPEC's O54).
   - When orders resume against a withheld pile, the offer switches on and off: 82–200 switches at
@@ -4140,7 +4141,7 @@ O79 on are P2.2b.4's ([docs/probe/LOOPS.md](docs/probe/LOOPS.md); `docs/probe/LO
   Each goods-chain instance with a loop registers its own predictions at its dials first.
 - **O80. Idle ticks belong beside dead ticks.** The harness counts a machine market that clears
   below half its target as idle, not dead (P2.2a's convention). So E6's "no dead tick" stood
-  beside 477–3,047 idle horse-market ticks, and a frozen price, until the fidelity review. A
+  beside 353–3,047 idle horse-market ticks, and a frozen price, until the fidelity review. A
   later registration or report that scores dead ticks should print the machine market's idle
   ticks, its no-order ticks and the maker's lowest coin in the same table.
 

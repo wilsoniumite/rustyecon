@@ -76,7 +76,7 @@ control's median years, 1.17 times on the observables both share; at horse δ 4%
 | E3: LB1–LB3 GO with A1 §7.1's numbers | **Held**: 537 of 537 CONVERGED; §7.1 to printed precision, but four one-tick ties (O77) |
 | E4: kick sets decay; g 0.847, 0.830, 0.901, 0.836 a year ± 0.03 | **Held**: 24 of 24; 0.8478, 0.8310, 0.9008, 0.8463; largest g 0.998971 a tick |
 | E5: A1 §7.2's cost shocks | **Held** to printed precision; LB1 b × 2: trough 0.704, 46.3 years, horse low 0.194 |
-| E6: heads × 2, × 10 converge, no dead tick; withheld 303, 1,315; 221, 1,034; 662, 2,694 | **Held**, tick for tick. The horse market is idle 477–3,047 ticks (§4) |
+| E6: heads × 2, × 10 converge, no dead tick; withheld 303, 1,315; 221, 1,034; 662, 2,694 | **Held**, tick for tick. The horse market is idle 353–3,047 ticks (§4) |
 | E7: LB1 r × 2 ≤ 5 horse-day dead ticks, fodder 175; LN7 ≥ 100, not CONVERGED | **Held**: 0 and 175, CONVERGED in 50.3 years; LN7 146, ORBITING |
 | E8: LW1–LW3 GO; trough 0.036 higher; 1.36 times the years | **Held**: 0.0362; 1.361 (26.5 against 19.5 years) |
 | E9: the controls keep their verdicts, counts within 2 | **Held**; LN7's stocks family 0/22 against 1/22 |
@@ -113,9 +113,10 @@ of target.
 | LB3 heads × 10 | 118.2 | 2,694 | 3,047 | 2,510, 0.223 | 4.3e-90 | 1.1e-72 | 0.0049 | runaway, tick 155 |
 
 Over LB1–LB3's battery and stocks family at L the reservation acts in 117 of 375 runs, and in 19
-the maker's output falls below 1% of target (52-tick rows). The harness counts the horse market
-idle, not dead, so E6's "no dead tick" stands beside 477–3,047 idle ticks. With no offer and no
-order the price rests at 0.22 of target after a glut and 0.15 after r × 2 (decision 245; O54).
+the maker's output falls below 1% of target (52-tick rows; 21 on every tick's troughs). The
+harness counts the horse market idle, not dead, so E6's "no dead tick" stands beside 353–3,047
+idle ticks. With no offer and no order the price rests at 0.22 of target after a glut, and after
+r × 2 it holds from 0.15 of target, the ratio drifting to 0.18 as v moves (decision 245; O54).
 This is O52's collapse of the maker's coin, under rule B, but with no deep shortage after it: the
 heads stay at 0.89 of target or above and the price peaks at 3.3–3.8 times target after heads ×
 10, where rule A's heads fell to 0.40–0.53 and its price rose 8–120 times.
