@@ -1121,7 +1121,12 @@ impl Stats {
         for (d, (&y, &ys)) in row.output.iter().zip(&t.output).enumerate() {
             Stats::trough(&mut self.output_trough[d], row.tick, y / ys);
         }
-        let total = row.baskets[0] + row.baskets[1];
+        // Every household's baskets: the provider's and the workers', then each reserved pop's
+        // at the wall (P2.3.10), in `Instance::households` order, so Y\* is what they all eat.
+        // With two households this is the old sum, bit for bit.
+        let total = row.baskets[2..]
+            .iter()
+            .fold(row.baskets[0] + row.baskets[1], |a, &b| a + b);
         let mut slot = (self.baskets.0, self.baskets.1);
         Stats::trough(&mut slot, row.tick, total / t.baskets);
         self.baskets = (slot.0, slot.1, self.baskets.2 + u64::from(total == 0.0));

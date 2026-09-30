@@ -101,6 +101,16 @@ instances take none of it.
 - **Each household's baskets**, the provider's, the workers' and each reserved pop's, and their
   oracle values (support plus wage bill over P_s). The CSV adds `baskets_` and `bound_` columns
   for the reserved pops, then `part_<pop>` (each pop's participation) and `depth`.
+
+  *Amended at P2.3.10 (2026-09-30, label `run`, before the scored wave):* the baskets eaten over
+  Y\* (`low_baskets`, `no_basket_ticks`, `baskets.trough` and the cost shocks' `depth.*`) summed
+  the provider's and the workers' baskets only, as at P2.1's two households, so at IW1 and IC1
+  they left out the reserved pops' and read 0.725 at rest (E2's `e0/modea.out`, where nobody
+  read it). The frame's mirror sums every household (`nb_p + nb_w + Σ nb_r`), and so the §6.2
+  troughs and E5's bottoms are registered. `Stats::push` now sums every household in
+  `Instance::households` order, the first two first, so every two-household instance keeps its
+  numbers bit for bit; `markets_iw1_baskets_count_every_household` fails without it. It was
+  found by reading the code while the scorer was written, before any scored run.
 - **The wall's readouts** (the frame's §5.3; `Stats::wall`, `stats.tsv`'s `wall.*` lines),
   reported and never scored: the lowest depth ln(θ·w/(p_τ·γ(1))) at posted prices and its tick,
   breach ticks (depth below 0), the first and the longest run; each desk's largest human share;

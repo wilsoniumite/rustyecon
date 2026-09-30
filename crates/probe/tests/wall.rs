@@ -206,6 +206,27 @@ fn markets_iw1_holds_at_the_oracle_point() {
 }
 
 #[test]
+fn markets_iw1_baskets_count_every_household() {
+    // The baskets eaten over Y* (MARKETS-SPEC §7.11's trough; the wall frame's §6.2 "lowest
+    // baskets over Y*", its §7 E5 and its mirror's `nb_p + nb_w + Σ nb_r`) are every
+    // household's: the provider's, the workers' and each reserved pop's (P2.3.10). At the
+    // oracle's point they sum to Y*, so the trough is 1 to rounding and no tick is without
+    // baskets; the reserved pops' share is about a quarter of Y*, so a trough of the first two
+    // households alone reads 0.73.
+    let rec = run(&iw1(52), "hold", 30, &mut |r| {
+        assert_eq!(r.baskets.len(), 4, "provider, workers, trained, master");
+        assert!(r.baskets[2] > 0.0 && r.baskets[3] > 0.0);
+    })
+    .unwrap();
+    let (low, _, none) = rec.stats.baskets;
+    assert!(
+        (low - 1.0).abs() <= 1e-12,
+        "the baskets' trough over Y* is {low:e}, not 1"
+    );
+    assert_eq!(none, 0);
+}
+
+#[test]
 fn markets_iw1_conserves_and_is_deterministic() {
     // R8: two runs of the tape give identical reports and hash streams, and the state moves.
     // R2: at rest and through a large transient (w ×2, every reserved wage ×0.5 and every
