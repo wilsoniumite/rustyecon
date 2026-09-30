@@ -55,7 +55,13 @@ scan of O96's and O101's candidates chose the free step, an optional per-good pr
 p′ = p·e^(kx) + (c·p_ref)·expm1(kx) that posts 0 where that is not positive, at c 0.5 with
 labour the reference; it adds no state and moves no equilibrium. Two new instances on I1's
 economy, IL1 (idle enclosed land at r = 0) and CT2 (two plot-taking types sharing one commons
-traded on a market), are predicted GO. Decisions 416–423 and O124–O129; the build and E0 are next.
+traded on a market), are predicted GO. Decisions 416–423 and O124–O129. **It is built** (P2.4.11;
+[docs/probe/FREE-RULES.md](docs/probe/FREE-RULES.md)): a good's optional `free` in core, the step
+`next_price_free` and admission at a price of 0 in markets, the kick's reading of a free market
+in certify, the workers' exit's optional `market` in the agents, IL1 and CT2 with
+`tapes/markets-il1.ron` and `markets-ct2.ron`, the harness in wage units and at the commons market,
+and 18 tests, with every committed tape's text, ids and streams unchanged. E0 on the committed
+build is next.
 Before it, on branch `phase2-proper` from `reboot` at `f7d1eae`:
 **Phase 2 proper's first session is reported** (P2.3.16;
 [docs/probe/PHASE2-S1.md](docs/probe/PHASE2-S1.md)): both reviews find the verdicts hold, and
@@ -231,6 +237,51 @@ types and carriers, on the many-market roles (O27), which may now start from the
 stage v2a.1 on your ruling on D-G12. "Next steps" has each.
 
 ## Where things stand
+
+**A zero price markets can hold: the build (P2.4.11; 2026-09-30).** Branch `phase2-s2`, label
+`build-free`, scratch `D:/rustyecon-p24/build-free/`. As built:
+[docs/probe/FREE-RULES.md](docs/probe/FREE-RULES.md); ENGINE.md and TAPE.md, "Amended at P2.4.11".
+- **Core** (decision 416): `RawGood.free: Option<(reference, scale)>`, resolved `GoodDef.free`,
+  both skipped when absent (core's second raw field with a default). `World::price_allowed` lets a
+  free good's price and EMA be +0.0 in `update_prices`, `apply` (`SetPrice`, `SetEma`,
+  `ScalePrice`) and at genesis; the checkpoint's book decodes a clean 0 and `validate` refuses it
+  for any other good. Load checks: a market under `Imbalance`, another good with a market as the
+  reference, a `Dimensionless` scale above 0 at genesis.
+- **Markets**: `next_price_free` (q = p·e^(kx) + c·p_ref·expm1(kx), +0.0 where not positive, NaN
+  kept so the run stops, 0 held under `Hold`), called by `update_prices` for a free good with c
+  read now and p_ref the reference's phase-start price; a buy at a posted 0 is feasible in full.
+- **Certify**: the kick set skips a market posting 0 and masks free markets (`kick_gain_free`);
+  `kick_gain` is unchanged, so a 0/0 elsewhere still fails closed (registration §3 read so: a
+  disclosed departure, FREE-RULES §7).
+- **Agents** (decision 419): the exit's `market`, the scan's `fm.pop_decide` in its order
+  (`pop_market`), the pop minting and offering its share of the commons, bidding for its plots,
+  its baskets' budget 398's and the commons' rent paid from what they leave, produce burning
+  min(held, bid) of the commons; `market` with `pace` refused; the exit's support read through a
+  provider's `more` too.
+- **The instances** (decisions 418, 419, 421): IL1 and CT2 on unit 1e (CT2 with two worker types),
+  `Point::rent` (0 on the idle stretch, where the point is in wage units), the dials
+  `rate.commons` and `free.<good>`, genesis as the mirror's `fm.genesis`, the tapes; the harness
+  in wage units at IL1 (21 observables), the commons unobserved at CT2, the free-able market's
+  runaway bound, mode A's reading, `p[M]=V`, CT2's `exit.To` and `coin.workers`, the batteries
+  (100 and 115) and families, the readouts `free.*`, the elasticity probe leaving a price of 0
+  out (L 56,000 and 141,000, as registered).
+- **R1.** The 28 committed tapes' 2,000-tick hash streams, `tape_hash` and `world_id` equal the
+  pre-build binary's (`adf1ec6`) on WSL and Windows; `free_field_moves_no_world_id` pins them.
+- **Tests**: 18 (FREE-RULES §6), each killed by the mutants of its change: 75 mutants, four alive
+  on the first pass (the readout's end over its reference, `r_end` over its genesis price, a pop's
+  genesis coin without the commons' rent, which the pops' aggregate demand hides, and an equivalent
+  skip in the elasticity probe, removed) and all 75 killed on the final pass.
+- **Development runs** (FREE-RULES §6.5): a trace diff on the uncommitted build found every run of
+  E0 within 6.1e-14 of the registered traces, the free ticks exact, but one parting of 1.06e-12 at
+  IL1's `JB(2)` tick 32 (land's last positive price before it goes free, and the provider's coin):
+  a budget ulp at a small price amplified by the free step's cancellation. It is amendment A1's
+  subject (P2.4.12), before E0.
+- **The gates**: `scripts/gate.sh` and `scripts/gui.sh` are green on WSL and Windows, 1,053 tests
+  passed and 4 ignored on each; gate hash `0x61f9c8529131ff17`, appb `0xe1fa082b26995867`,
+  demo-gb `0xfad880fe08d06645`. IL1's `tape_hash` `0x8c0b34885c544444`, `world_id`
+  `0x3e6c156dea5b795a`, 2,000-tick final `0xf42fcb94a6eb8fd3`; CT2's `0x677bc17e15c89d90`,
+  `0x5bd87c8fcdecef19`, `0x81fe3e335cb85a36`, on both machines. The stamp is `99b1ad3`, dirty.
+- **Next:** amendment A1, then E0 on the committed build, then the scorer and the scored wave.
 
 **A zero price markets can hold: the free step, registered (P2.4.10; 2026-09-30).** Branch
 `phase2-s2`, label `build-free`, scratch `D:/rustyecon-p24/build-free/`; the scan's

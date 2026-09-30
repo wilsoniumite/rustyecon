@@ -11,8 +11,9 @@
 //! genesis share and a switch pop's genesis pool share. Every field is
 //! required and none has a default but the type desk's `plant` (P2.2b), the category desk's
 //! `tail` and `reserved` and the provider's `more` (P2.3, the wall), the workers' `exit` (P2.3,
-//! the commons), the exit's `pace` (P2.4, the trap's remedy) and the workers' `pool` (P2.4, the
-//! type switch at the wall), whose absence is off.
+//! the commons), the exit's `pace` (P2.4, the trap's remedy), the workers' `pool` (P2.4, the
+//! type switch at the wall) and the exit's `market` (P2.4, the commons as a market), whose
+//! absence is off.
 //!
 //! **Lists keep the order written.** A basket's items, a category's segments and a type's bought
 //! services are evaluated in list order: P_s is summed from 0.0 in item order, a desk's budgets
@@ -155,6 +156,15 @@ pub struct RawPricedExit {
     /// field keeps its canonical text, `tape_hash` and `world_id`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pace: Option<RawPace>,
+    /// `Option<Key>`: a good key, the commons as a market (P2.4; FREE-SPEC §6.3, decision 419;
+    /// docs/probe/FREE-RULES.md): a traded `Instant` good with a free step, not in the pop's basket.
+    /// The pop holds its share of the commons (`commons`, T_o,i) as an endowment each tick and
+    /// offers it there, and bids there for its plots at the posted plot rent. `None` or absent: the
+    /// commons is no market and the rule gives out its plots, P2.3's role bit for bit; absent is not
+    /// written, so every tape written before the field keeps its canonical text, `tape_hash` and
+    /// `world_id`. Not with `pace`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub market: Option<Key>,
 }
 
 /// Participation at a rate, as the tape writes it: the technique's form on the workers' share
@@ -381,6 +391,10 @@ pub struct PricedExit {
     /// so the field is left out when it is `None`, and a world without it keeps its `world_id`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pace: Option<Pace>,
+    /// The commons as a market, if it is one (P2.4; FREE-SPEC §6.3): its good. Left out of
+    /// `world_id`'s bincode when `None`, as `pace` is.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub market: Option<GoodId>,
 }
 
 /// The resolved participation at a rate.
@@ -771,6 +785,34 @@ fn resolve_exit(
         }
         None => None,
     };
+    // The commons as a market (P2.4; FREE-SPEC §6.3), checked by the spec alone: a traded good,
+    // none of the pop's other goods, and not with a pace (the two were not scanned together).
+    // That it is `Instant` and has a free step is checked with the world (`Cast::new`).
+    let market = match &raw.market {
+        Some(k) => {
+            let m = traded(r, k, "market")?;
+            if m == labour || m == good || m == land || basket.iter().any(|it| it.good == m) {
+                return Err(r.error(
+                    "market",
+                    LoadErrorKind::Invalid(
+                        "a good named twice in one role: the commons' market is none of the pop's                          labour, basket, exit good or plots' land"
+                            .into(),
+                    ),
+                ));
+            }
+            if pace.is_some() {
+                return Err(r.error(
+                    "market",
+                    LoadErrorKind::Invalid(
+                        "a pop on a commons market does not pace: the two were not scanned                          together (FREE-SPEC §6.3)"
+                            .into(),
+                    ),
+                ));
+            }
+            Some(m)
+        }
+        None => None,
+    };
     r.leave();
     Ok(PricedExit {
         good,
@@ -780,6 +822,7 @@ fn resolve_exit(
         commons,
         land,
         pace,
+        market,
     })
 }
 

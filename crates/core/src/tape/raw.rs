@@ -2,7 +2,8 @@
 //! (docs/ENGINE.md §2.6 and §5; `docs/TAPE.md`).
 //!
 //! Every field is required and none has a default: nothing here carries `#[serde(default)]` but
-//! a good's `untraded` flag (amended at P2.2b.1), and each `Option` field goes through a
+//! a good's `untraded` flag (amended at P2.2b.1) and its `free` step (amended at P2.4.11), and
+//! each other `Option` field goes through a
 //! `deserialize_with` helper so that serde treats it as
 //! required too (it would otherwise read a missing `Option` as `None`). Unknown fields are
 //! rejected. Keyed data is always a list of entries carrying a `key`, never a RON map, and any
@@ -98,11 +99,31 @@ pub struct RawGood {
     pub price_rate: Option<Key>,
     /// `bool`. An untraded good (amended at P2.2b.1): held, minted and burned, never traded. It
     /// is `Indefinite`, has no `price_rate`, is no node's currency, has no market and takes no
-    /// genesis price. The one field of core's raw schema that may be absent: absent is `false`,
-    /// and `false` is not written, so every tape written before the field keeps its canonical
-    /// text, `tape_hash` and `world_id`.
+    /// genesis price. One of the two fields of core's raw schema that may be absent: absent is
+    /// `false`, and `false` is not written, so every tape written before the field keeps its
+    /// canonical text, `tape_hash` and `world_id`.
     #[serde(default, skip_serializing_if = "is_false")]
     pub untraded: bool,
+    /// `Option<RawFreeStep>`: the free step (amended at P2.4.11; FREE-SPEC §6.1, decision 416):
+    /// the good's price may be 0, the good free. The other field that may be absent: absent is
+    /// `None`, and `None` is not written, so every tape written before the field keeps its
+    /// canonical text, `tape_hash` and `world_id`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub free: Option<RawFreeStep>,
+}
+
+/// The free step of a good's price (FREE-SPEC §6.1): p′ = p·e^(kx) + (c·p_ref)·expm1(kx), posting
+/// 0 where that is not positive. Without it the good's price moves by the world's rule and stays
+/// positive.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RawFreeStep {
+    /// Good key: the reference, a good with a market (no currency, not untraded, not the good
+    /// itself), whose posted price at the same node scales the step. Required, no default.
+    pub reference: Key,
+    /// Param key, unit `Dimensionless`, live, above 0 at genesis: c, the step's scale in units of
+    /// the reference's price. Required, no default.
+    pub scale: Key,
 }
 
 fn is_false(b: &bool) -> bool {

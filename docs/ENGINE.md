@@ -1046,6 +1046,58 @@ tapes' 2,000-tick streams equal the pre-build binary's on both machines).
    `switch_grammar_and_dials_apply_as_named` and `markets_reports_the_switch`. In the GUI:
    `inspector_reads_switch_states`.
 
+**Amended at P2.4.11** (2026-09-30, branch `phase2-s2`: a zero price markets can hold,
+docs/probe/FREE-RULES.md; decisions 416–423). Core, markets and certify change for the first time
+since P2.2b.1: a good may carry a free step, whose price may be 0. The good's field and the
+workers' exit's one field are absent on every committed tape but the two new ones and left out of
+the raw and the resolved form when absent, so every committed tape keeps its canonical form,
+`tape_hash` and `world_id`, and every hash stream is unchanged (the 28 tapes' 2,000-tick streams
+equal the pre-build binary's on both machines). No `ActorState` variant is added.
+
+1. The free step (§2.1, §3.3; FREE-SPEC §6.1). `RawGood.free: Option<(reference, scale)>`,
+   core's second raw field with a default, resolved as `GoodDef.free: Option<FreeStep {
+   reference, scale }>`. `markets::next_price_free(one_sided, p, k, S, D, shift)` is the step:
+   under `Hold` a one-sided market keeps p; else q = p·e^(kx) + shift·expm1(kx), each product
+   rounded once and then the sum, posted where positive (or NaN, so a non-finite step still stops
+   the run) and +0.0 otherwise. `update_prices` calls it for a free good with shift = c·p_ref, c
+   read now through its `Value` site and p_ref the reference's phase-start posted price at the
+   node; every other good moves by `next_price`, unchanged. With c = 0 the step is `step`'s bit
+   for bit.
+2. Zero where the good is free (§2.1, §3.3): `World::price_allowed` (finite, a clear sign bit,
+   and positive unless the good has a free step) is the check of `update_prices` (price and EMA),
+   `apply`'s `SetPrice`, `SetEma` and `ScalePrice`, and the genesis price. The book's decode
+   accepts a clean 0 (it has no world), and `SimState::validate` refuses a zero price or EMA of a
+   good without a free step, so a resumed checkpoint keeps the invariant.
+3. Admission (§3.1): a buy at a posted price of exactly 0 is feasible in full, whatever its
+   budget, a branch before `num::max_qty`; only a free good can post 0. Settlement pays 0·qty = 0.
+4. Load checks (§5): the good has a market under `Imbalance` (`goods[<key>].free`); the reference
+   is another good with a market (`.free.reference`); the scale is `Dimensionless` with a genesis
+   value above 0 (`.free.scale`).
+5. Certify's kick (CERTIFY §7): `kick_segment` does not kick a market posting 0 at the kick tick,
+   and records which markets are free (`KickSegment::free`); `kick_gain_free` reads equal prices
+   of a free market (0 in both included) as a gap of 0, every other market's as before, so a zero
+   price elsewhere still fails closed (N12). `kick_gain` is unchanged.
+6. The agents' pops on a commons market (FREE-SPEC §6.3): `PricedExit.market: Option<GoodId>`, a
+   traded `Instant` good with a free step, not the pop's labour, a basket item, the exit good or
+   the plots' land, and not with `pace`. The pop mints its share of the commons, offers it, and
+   bids for its plots at the posted plot rent by `pop_market_participation` (the scan's
+   `fm.pop_decide`); its baskets' budget is 398's, the commons' rent paid from what they leave; in
+   produce it burns its land and min(held, bid) of the commons. The exit's support check reads a
+   provider's `more` too.
+7. The GUI's explainer calls `next_price_free` for a free good, and its waterfall's step is
+   ln(p'/p) of the free step.
+8. Tests (§11). In core (`checkpoint::tests`): `a_free_price_of_zero_checkpoints_and_no_other_does`.
+   In markets (`tests/free.rs`): `free_step_absent_is_saturate`, `free_step_posts_zero_and_reopens`,
+   `free_market_takes_buys_for_nothing` and `only_free_goods_may_be_zero`. In certify
+   (`tests/batteries.rs`): `a_free_markets_zero_prices_read_a_gap_of_zero`. In agents
+   (`tests/free.rs`): `pops_on_a_commons_market_rule`, `commons_market_is_checked_at_load` and
+   `idle_land_is_taken_for_nothing`. In probe (`tests/free.rs`):
+   `free_points_are_the_registered_ones`, `il1_ct2_rest_at_the_oracle`,
+   `il1_ct2_tapes_are_their_generators_output`, `free_field_moves_no_world_id`,
+   `harness_reads_free_state`, `free_battery_and_families_are_the_registered_ones`,
+   `free_grammar_applies_as_named` and `free_elasticity_and_kick_leave_out_a_free_market`. In the
+   GUI (`tests/pricestep.rs`): `the_explainer_and_the_waterfall_read_a_free_step`.
+
 ## 0. Engine invariants
 
 Numbered so tests and reviews can cite them. Each has at least one test in §11.

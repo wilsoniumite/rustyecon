@@ -14,8 +14,8 @@
 //!
 //! setup options (probe::markets::cli):
 //!   --inst ID              i0, i1, i2, i3, l2, l3, g1, the wall's iw1 and ic1, the commons'
-//!                          c1, c2 and c1n, the paced c1p, c2p and c1pn, or the switch's is1
-//!                          and is2 (default i1)
+//!                          c1, c2 and c1n, the paced c1p, c2p and c1pn, the switch's is1
+//!                          and is2, or the free il1 and ct2 (default i1)
 //!   --tpy N                ticks a year (default 52)
 //!   --dials c2m|c2l        the registered dial set (default c2m)
 //!   --set KEY=VALUE        set a dial; rate.*, buffer.*, adjust.* and rate.switch.* scale a
@@ -37,8 +37,9 @@
 //! `stats.tsv` adds the wall's readouts (`wall.*`; docs/probe/WALL-RULES.md §5), and at the
 //! commons (`--inst c1`, `c2`, `c1n`) the commons' (`commons.*`; docs/probe/COMMONS-RULES.md §5);
 //! at a paced instance (`--inst c1p`, `c2p`, `c1pn`) the pace's too (`pace.*`;
-//! docs/probe/TRAP-RULES.md §4); and at a switch instance (`--inst is1`, `is2`) the switch's
-//! (`switch.*`, one line a switch pop; docs/probe/SWITCH-RULES.md §4).
+//! docs/probe/TRAP-RULES.md §4); at a switch instance (`--inst is1`, `is2`) the switch's
+//! (`switch.*`, one line a switch pop; docs/probe/SWITCH-RULES.md §4); and at a free instance
+//! (`--inst il1`, `ct2`) the free-able market's (`free.*`; docs/probe/FREE-RULES.md §5).
 
 use probe::harness::{Class, Summary};
 use probe::markets::cli::parse;
@@ -310,6 +311,26 @@ fn stats_lines(rec: &Record) -> Vec<String> {
             put("switch.gap_end", p, g(x.gap_end));
         }
     }
+    // The free-able market's readouts (P2.4; the free scan's §6.4), reported and never scored.
+    if let (Some(f), Some(fr)) = (&st.free, &inst.free) {
+        let m = fr.good.as_str();
+        put("free.zero_ticks", m, f.ticks.to_string());
+        put(
+            "free.first_zero",
+            m,
+            f.first.map_or("-".into(), |t| t.to_string()),
+        );
+        put("free.switches", m, f.switches.to_string());
+        put("free.end_over_ref", m, g(f.end));
+        put("free.star_over_ref", m, g(f.star));
+        for (k, n) in &f.regimes {
+            put("free.regime_ticks", k, n.to_string());
+        }
+        put("free.regime_switches", "-", f.regime_switches.to_string());
+        put("free.regime_end", "-", f.regime_end.clone());
+        put("free.regime_star", "-", f.regime_star.clone());
+        put("free.provider_coin_low", "-", g(f.provider_coin_low));
+    }
     out
 }
 
@@ -414,6 +435,14 @@ fn print_point(inst: &Instance, tpy: u32) -> Result<(), String> {
                 c.regime, c.land_market, c.plot_rent, c.rented, c.occupied, c.exit_value, e.pool,
                 e.worker_baskets, e.provider_baskets, c.funded, c.certified
             );
+            // A free instance (P2.4): r in the point's units (0 on the idle stretch), T_m and
+            // T_idle, and each pop's hours and baskets.
+            if i.free.is_some() {
+                print!(
+                    "\tr {:?}\tT_m {:?}\tT_idle {:?}\thours {:?}\tpop baskets {:?}",
+                    e.rent, c.market_land, c.idle, e.hours, e.pop_baskets
+                );
+            }
         }
         println!();
         Ok(())

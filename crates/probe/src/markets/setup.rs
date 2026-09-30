@@ -8,9 +8,10 @@
 //! actor's stationary coin under the dials (MARKETS-SPEC §5.4). No agent reads the oracle
 //! (R13). `tapes/markets-<id>.ron` is `tape_ron(&Setup::registered(id, 52))`, checked by a test.
 
-use super::instance::{Instance, Point, COMMONS_BASIS, SWITCH_BASIS, WALL_BASIS};
+use super::instance::{Instance, Point, COMMONS_BASIS, FREE_BASIS, SWITCH_BASIS, WALL_BASIS};
 use crate::setup::{clock, OneSided, START};
 use rustyecon_core::{num, FlowPerYear, RatePerYear};
+use rustyecon_engine::rustyecon_agents::{pop_market, PopMarket};
 
 /// One dial: a tape param with its unit and basis (R4).
 #[derive(Debug, Clone, PartialEq)]
@@ -44,6 +45,11 @@ pub const PACE_KEY: &str = "adjust.participation.workers";
 const SWITCH_DIAL: &str = "Assumed(\"scan-switch SPEC §6.3\")";
 /// The switch's rate a year (the switch scan's §6.3; decision 410).
 pub const SWITCH_RATE: f64 = 26.0;
+/// The free step's dial's basis (the free scan's §8, R14; decision 417).
+const FREE_DIAL: &str = "Assumed(\"FREE-SPEC: the scan's window 0.3–1 at C2m, c 0.5\")";
+/// The commons market's rate's basis (the free scan's mirror, `fm.dials`: land's rate).
+const COMMONS_RATE: &str =
+    "Assumed(\"FREE-SPEC §6.4: the pops' commons market at land's rate (fm.dials)\")";
 const C2L: &str = "Assumed(\"MARKETS-SPEC C2L: type rates at labour's, markup tilt 1 (§5.2)\")";
 
 impl Dials {
@@ -86,6 +92,24 @@ impl Dials {
             })
         };
         rate("rate.land".into(), 1.3);
+        // The commons' market at land's rate where pops trade it (P2.4; the free scan's mirror,
+        // `fm.dials`), a `rate.*` dial.
+        if !inst.commoners.is_empty() {
+            v.push(Dial {
+                key: "rate.commons".into(),
+                value: 1.3,
+                unit: "RatePerYear",
+                basis: COMMONS_RATE.into(),
+            });
+        }
+        let mut rate = |key: String, value: f64| {
+            v.push(Dial {
+                key,
+                value,
+                unit: "RatePerYear",
+                basis: C2M.into(),
+            })
+        };
         for t in &inst.types {
             rate(format!("rate.{}", t.key), 1.3);
         }
@@ -125,6 +149,16 @@ impl Dials {
                 value: 0.0,
                 unit: "Dimensionless",
                 basis: C2M.into(),
+            });
+        }
+        // The free step's c at a free instance only (P2.4; the free scan's §5; decision 417): no
+        // dial family scales it.
+        if let Some(f) = &inst.free {
+            v.push(Dial {
+                key: format!("free.{}", f.good),
+                value: f.scale,
+                unit: "Dimensionless",
+                basis: FREE_DIAL.into(),
             });
         }
         v.push(Dial {
@@ -245,6 +279,9 @@ pub struct Displacement {
     /// Each reserved pop's genesis pool share, in [`Instance::wtypes`] order (P2.4): `None` for
     /// the point's a\*, `Some(V)` for V exactly (`sw[T]=V`). Read at a switch instance only.
     pub switch: Vec<Option<f64>>,
+    /// Each posted price set to V times labour's genesis price, after the factors (`p[M]=V`;
+    /// P2.4, the free scan's grammar), in [`Instance::markets`] order.
+    pub set: Vec<Option<f64>>,
 }
 
 impl Displacement {
@@ -257,6 +294,7 @@ impl Displacement {
             stock: vec![1.0; inst.desks().len()],
             pace: PaceAt::Times(1.0),
             switch: vec![None; inst.wtypes.len()],
+            set: vec![None; inst.markets().len()],
         }
     }
 }
@@ -370,6 +408,9 @@ pub struct Genesis {
     /// At a switch instance (P2.4): each reserved pop's genesis pool share, the tape's
     /// `pool.share`, in [`Instance::wtypes`] order; empty elsewhere.
     pub switch: Vec<f64>,
+    /// At a commons market (P2.4): each commoner's decision by its rule at the point's prices,
+    /// which its genesis coin reads; empty elsewhere.
+    pub pops: Vec<PopMarket>,
 }
 
 /// The oracle point's P_s as the households' rule sums it: Σ z_j·p_j from 0.0 in item order,
@@ -393,6 +434,12 @@ pub fn basket_price(inst: &Instance, cat_price: &[f64], r: f64) -> f64 {
 /// (the commons frame's §3.8) takes the workers' hours as unit 1e's supply S at the point, and
 /// their coin as r·T_p + (N·P_s + w·S − r·T_p)/share(spend), T_p the plots' rented land, which is
 /// P2.1's formula where T_p = 0.
+///
+/// At a free instance (P2.4; the free scan's `fm.genesis`): on the idle stretch (IL1) the prices
+/// are the point's in wage units, w 1 and land 0, the provider, whose only income is rent, holds
+/// no coin, and the workers' coin is w·S/share(spend); at a commons market (CT2) the commons is at
+/// the point's r_o, and each commoner's coin is r·T_p,i + (N_i·P_s + w·h_i + r_o·(T_o,i − bid_i)
+/// − r·T_p,i)/share(spend), its hours, bid and plots by its own rule at those prices.
 pub fn genesis(s: &Setup) -> Result<Genesis, String> {
     let inst = &s.instance;
     let e = inst.point(s.tpy)?;
@@ -401,10 +448,11 @@ pub fn genesis(s: &Setup) -> Result<Genesis, String> {
     let d = &s.dials;
     let n = c.flow(FlowPerYear(inst.workers));
     let t = c.flow(FlowPerYear(inst.land));
-    let (w, r) = (e.v, 1.0);
+    // r is 1 in every point's units but unit 1e's idle stretch's, where it is 0 and w is 1.
+    let (w, r) = (e.v, e.rent);
     let ps = basket_price(inst, &e.cat_price, r);
     let tau_w = n * ps;
-    let hours = if inst.worker_form || inst.exit.is_some() {
+    let hours = if inst.worker_form || inst.parcel() {
         e.hours[0]
     } else {
         n * (num::ln1p(w / ps) / inst.chi_max).min(1.0)
@@ -436,22 +484,63 @@ pub fn genesis(s: &Setup) -> Result<Genesis, String> {
         let v = d.get(&format!("buffer.desk.{}.cash", ty.key))?;
         stationary.push(cost * e.type_services[k] / share(v));
     }
-    stationary.push(tau + (r * t - tau) / share(d.get("spend.provider")?));
-    match e.commons.as_ref().map(|c| c.rented) {
-        // The plots' rent first, from the coin; the baskets from the rest.
-        Some(tp) if tp > 0.0 => {
-            let rent = r * tp;
-            stationary.push(rent + (tau_w + w * hours - rent) / share(d.get("spend.workers")?));
+    // Each commoner's decision at the point's prices, the commons at r_o (P2.4).
+    let r_o = e.commons.as_ref().map_or(0.0, |k| k.plot_rent);
+    let mut pops = Vec::with_capacity(inst.commoners.len());
+    if !inst.commoners.is_empty() {
+        let first = &inst.commoners[0];
+        let g = inst
+            .categories
+            .iter()
+            .position(|j| j.key == first.good)
+            .ok_or("the commoners' exit good is no category")?;
+        tau = 0.0;
+        for k in &inst.commoners {
+            let nk = c.flow(FlowPerYear(k.workers));
+            tau += nk * ps;
+            let to = c.flow(FlowPerYear(k.share));
+            pops.push(pop_market(
+                (nk, k.chi_max),
+                (w, ps, e.cat_price[g], r, r_o),
+                (k.gross, k.floor, k.plot, to),
+            ));
         }
-        _ => stationary.push((tau_w + w * hours) / share(d.get("spend.workers")?)),
+    }
+    if e.rent == 0.0 {
+        // The idle stretch (P2.4): the provider's only income is rent, 0, so it holds no coin.
+        stationary.push(0.0);
+    } else {
+        stationary.push(tau + (r * t - tau) / share(d.get("spend.provider")?));
+    }
+    if inst.commoners.is_empty() {
+        match e.commons.as_ref().map(|c| c.rented) {
+            // On the idle stretch the provider pays no support: the workers' coin is their
+            // wage bill's, w·S/share(spend) (P2.4; `fm.genesis`).
+            _ if e.rent == 0.0 => stationary.push(w * hours / share(d.get("spend.workers")?)),
+            // The plots' rent first, from the coin; the baskets from the rest.
+            Some(tp) if tp > 0.0 => {
+                let rent = r * tp;
+                stationary.push(rent + (tau_w + w * hours - rent) / share(d.get("spend.workers")?));
+            }
+            _ => stationary.push((tau_w + w * hours) / share(d.get("spend.workers")?)),
+        }
     }
     stationary.extend(reserved_pops);
+    for (k, pm) in inst.commoners.iter().zip(&pops) {
+        let tk = c.flow(FlowPerYear(k.workers)) * ps;
+        let inc = ((tk + w * pm.hours) + r_o * (pm.offer - pm.bid)) - r * pm.plots;
+        stationary.push(r * pm.plots + inc / share(d.get("spend.workers")?));
+    }
     let x = &s.displace;
     let mut prices = vec![w, r];
     prices.extend(e.type_price.iter().copied());
     prices.extend(e.cat_price.iter().copied());
     prices.extend(e.wage.iter().copied());
+    if !inst.commoners.is_empty() {
+        prices.push(r_o);
+    }
     if x.price.len() != prices.len()
+        || x.set.len() != prices.len()
         || x.share.len() != inst.categories.len()
         || x.coin.len() != stationary.len()
         || x.stock.len() != inst.desks().len()
@@ -461,13 +550,20 @@ pub fn genesis(s: &Setup) -> Result<Genesis, String> {
     for (p, f) in prices.iter_mut().zip(&x.price) {
         *p *= f;
     }
+    // `p[M]=V` (P2.4): V times labour's genesis price, after the factors.
+    let wage = prices[0];
+    for (p, v) in prices.iter_mut().zip(&x.set) {
+        if let Some(v) = v {
+            *p = v * wage;
+        }
+    }
     let mut shares = Vec::new();
     for sh in &x.share {
         let v = match *sh {
             // At the commons a share scaled past 1 is 1, as the frame's mirror displaces it
             // (`battery_c.displace`; the registration's §3): only the basin's s[food] runs reach
             // it. Elsewhere a share above 1 is refused below.
-            ShareAt::Times(f) if inst.exit.is_some() => (e.one_minus_x * f).min(1.0),
+            ShareAt::Times(f) if inst.parcel() => (e.one_minus_x * f).min(1.0),
             ShareAt::Times(f) => e.one_minus_x * f,
             ShareAt::At(xx) => 1.0 - xx,
             ShareAt::Is(v) => v,
@@ -524,6 +620,7 @@ pub fn genesis(s: &Setup) -> Result<Genesis, String> {
         stock,
         pace,
         switch,
+        pops,
     })
 }
 
@@ -540,6 +637,8 @@ const COMMONS_ROLE: &str =
      the priced exit and their commons (docs/probe/COMMONS-RULES.md)\")";
 const SWITCH_ROLE: &str = "Assumed(\"the switch scan's §3: the wall's roles, each reserved pop \
      switching between its own market and the pool (docs/probe/SWITCH-RULES.md)\")";
+const FREE_ROLE: &str = "Assumed(\"the free scan's §6: the commons' roles, a market whose price \
+     may be 0 and pops on a commons market (docs/probe/FREE-RULES.md)\")";
 
 /// The tape's text, one line at a time.
 struct Lines(Vec<String>);
@@ -571,6 +670,8 @@ pub fn tape_ron(s: &Setup) -> Result<String, String> {
     let name = format!("markets-{}", inst.id);
     let header = if inst.worker_form {
         wall_header(s, &g, &inst)?
+    } else if inst.free.is_some() {
+        free_header(s, &g, &inst)?
     } else if inst.exit.is_some() {
         commons_header(s, &g, &inst)?
     } else {
@@ -932,6 +1033,139 @@ fn list_s(v: &[String]) -> String {
     format!("[{}]", v.join(", "))
 }
 
+/// The header of a free instance's tape (P2.4; docs/probe/FREE-RULES.md): its derivation from
+/// unit 1e, its free-able market and, at a commons market, each commoner's genesis decision.
+fn free_header(s: &Setup, g: &Genesis, inst: &Instance) -> Result<Vec<String>, String> {
+    let e = &g.point;
+    let c = clock(s.tpy)?;
+    let base = &s.instance;
+    let k = e
+        .commons
+        .as_ref()
+        .ok_or("a free instance's point without unit 1e's readouts")?;
+    let fr = inst
+        .free
+        .as_ref()
+        .ok_or("a free tape without a free market")?;
+    let units = if e.rent == 0.0 {
+        "per unit of the pool's wage, w = 1, r = 0 (the idle stretch)"
+    } else {
+        "per unit of rent, r = 1"
+    };
+    let mut out = vec![
+        format!(
+            "// The free world {} (docs/probe/free/SPEC.md; docs/probe/FREE-RULES.md):",
+            inst.id.to_uppercase()
+        ),
+        format!("// {},", inst.title),
+        format!(
+            "// run by the four many-market roles, the good `{}` with a free step (its price may be 0),",
+            fr.good
+        ),
+        "// for P2.4 (2026-09-30).".to_string(),
+        "//".into(),
+        "// Generated: do not edit. `cargo run -p rustyecon-probe --bin markets-tape -- --inst"
+            .into(),
+        format!(
+            "// {} <path>` writes it, and the test `il1_ct2_tapes_are_their_generators_output` checks",
+            inst.id
+        ),
+        "// this file against the generator.".into(),
+        "//".into(),
+        "// Genesis is the oracle's equilibrium (mode A): crates/oracle unit 1e, ParcelEconomy::solve,"
+            .into(),
+        format!(
+            "// at the instance's per-tick values, the enclosed land T = {} at {} ticks a year, the",
+            f(c.flow(FlowPerYear(base.land))),
+            s.tpy
+        ),
+        "// machine's flow recipe as its operating recipe (δ = J = 1, ρ = 0), gives".into(),
+        format!(
+            "//   land {}, the plots {}, plot rent r_o = {}, rented plots T_p = {}, commons used {},",
+            k.land_market,
+            k.regime,
+            f(k.plot_rent),
+            f(k.rented),
+            f(k.occupied)
+        ),
+        format!(
+            "//   the market's land T_m = {}, idle T_idle = {}, provider baskets {}, funded {},",
+            f(k.market_land),
+            f(k.idle),
+            f(e.provider_baskets),
+            k.funded
+        ),
+        format!("//   x* = {}, 1 - x* = {},", f(e.x_star), f(e.one_minus_x)),
+        format!(
+            "//   v = {}, P_s = {}, Y = {}, the supply S = {}, hours by pop {},",
+            f(e.v),
+            f(e.p_s),
+            f(e.y),
+            f(e.pool),
+            list(&e.hours)
+        ),
+        format!(
+            "//   type prices {} and services {},",
+            list(&e.type_price),
+            list(&e.type_services)
+        ),
+        format!(
+            "//   category prices {} and outputs {}, {units}.",
+            list(&e.cat_price),
+            list(&e.cat_output)
+        ),
+        "// Each desk holds one tick's output, each category desk's human share is 1 - x*, and each"
+            .into(),
+        format!(
+            "// actor's coin is its stationary balance, share(v) = 1 - exp(-v/{}) (the free scan's",
+            s.tpy
+        ),
+        "// fm.genesis):".into(),
+        "//   category desk  p_j*y_j/share(turnover)".into(),
+        "//   type desk      (sum_l a_kl*p_l + lam_k*w + b_k*r)*X_k/share(turnover)".into(),
+    ];
+    if inst.commoners.is_empty() {
+        out.extend([
+            "//   provider       0 on the idle stretch: its only income is rent, 0 at r = 0"
+                .to_string(),
+            "//   workers        w*S/share(spend.workers): the provider pays min(N*P_s, coin) = 0"
+                .into(),
+        ]);
+    } else {
+        out.extend([
+            "//   provider       tau + (r*T - tau)/share(spend.provider), tau = sum_i N_i*P_s".to_string(),
+            "//   each pop       r*T_p,i + (N_i*P_s + w*h_i + r_o*(T_o,i - bid_i) - r*T_p,i)/share(spend.workers)"
+                .into(),
+        ]);
+        for (k, p) in inst.commoners.iter().zip(&g.pops) {
+            out.push(format!(
+                "//                  {}: hours {}, commons bid {}, offer {}, T_p {}",
+                k.pop(),
+                f(p.hours),
+                f(p.bid),
+                f(p.offer),
+                f(p.plots)
+            ));
+        }
+    }
+    out.extend([
+        format!("// giving {} in actor order", list(&g.stationary)),
+        format!("// ({}).", inst.actors().join(", ")),
+        "// The free step (FREE-SPEC §6.1): p' = p*e^(kx) + (c*p_ref)*expm1(kx), 0 where that is not"
+            .to_string(),
+        format!(
+            "// positive, p_ref the price of `{}`, c the dial `free.{}` = {}.",
+            fr.reference,
+            fr.good,
+            f(fr.scale)
+        ),
+        "// No agent reads the oracle at run time (R13): it seeds genesis here and scores runs in"
+            .into(),
+        "// the harness (crates/probe), outside the Sim.".into(),
+    ]);
+    Ok(out)
+}
+
 /// A tape's params, goods, nodes, classes, actors, genesis and events.
 fn body(s: &Setup, g: &Genesis, inst: &Instance, o: &mut Lines) -> Result<(), String> {
     let c = clock(s.tpy)?;
@@ -943,6 +1177,8 @@ fn body(s: &Setup, g: &Genesis, inst: &Instance, o: &mut Lines) -> Result<(), St
         SWITCH_ROLE
     } else if inst.worker_form {
         WALL_ROLE
+    } else if inst.free.is_some() {
+        FREE_ROLE
     } else if inst.exit.is_some() {
         COMMONS_ROLE
     } else {
@@ -962,6 +1198,8 @@ fn body(s: &Setup, g: &Genesis, inst: &Instance, o: &mut Lines) -> Result<(), St
     );
     if inst.worker_form {
         o.line("        // The instance (the wall frame's §2.1, §3.5).");
+    } else if inst.free.is_some() {
+        o.line("        // The instance (MARKETS-SPEC §1.2, §2.9; the free scan's §3.1).");
     } else if inst.exit.is_some() {
         o.line("        // The instance (MARKETS-SPEC §1.2, §2.9; the commons frame's §2.1).");
     } else {
@@ -969,7 +1207,11 @@ fn body(s: &Setup, g: &Genesis, inst: &Instance, o: &mut Lines) -> Result<(), St
     }
     for (key, value, unit, basis) in inst.params()? {
         // The wall frame's own numbers are its calibration, assumed; the rest are literature.
-        let kind = if basis == WALL_BASIS || basis == COMMONS_BASIS || basis == SWITCH_BASIS {
+        let kind = if basis == WALL_BASIS
+            || basis == COMMONS_BASIS
+            || basis == SWITCH_BASIS
+            || basis == FREE_BASIS
+        {
             "Assumed"
         } else {
             "Literature"
@@ -1017,17 +1259,30 @@ fn body(s: &Setup, g: &Genesis, inst: &Instance, o: &mut Lines) -> Result<(), St
     o.line("    goods: [");
     o.line("        (key: \"coin\", life: Indefinite, price_rate: None),");
     o.line("        (key: \"labour\", life: Instant, price_rate: Some(\"rate.labour\")),");
-    o.line("        (key: \"land\", life: Instant, price_rate: Some(\"rate.land\")),");
+    // A free-able good's free step (P2.4; the free scan's §6.1), written only where it has one.
+    let free = |good: &str| match &inst.free {
+        Some(f) if f.good == good => format!(
+            ", free: Some((reference: \"{}\", scale: \"free.{}\"))",
+            f.reference, f.good
+        ),
+        _ => String::new(),
+    };
+    o.line(format!(
+        "        (key: \"land\", life: Instant, price_rate: Some(\"rate.land\"){}),",
+        free("land")
+    ));
     let produced = 2 + inst.types.len() + inst.categories.len();
     for m in &markets[2..produced] {
         o.line(format!(
             "        (key: \"{m}\", life: Years(\"life.one_tick\"), price_rate: Some(\"rate.{m}\")),"
         ));
     }
-    // Each reserved type's hours, Instant as the pool's are (the wall frame's §3.5).
+    // Each reserved type's hours, Instant as the pool's are (the wall frame's §3.5), and the
+    // commons where pops trade it (P2.4), Instant as land is.
     for m in &markets[produced..] {
         o.line(format!(
-            "        (key: \"{m}\", life: Instant, price_rate: Some(\"rate.{m}\")),"
+            "        (key: \"{m}\", life: Instant, price_rate: Some(\"rate.{m}\"){}),",
+            free(m)
         ));
     }
     o.line("    ],");
@@ -1149,35 +1404,51 @@ fn body(s: &Setup, g: &Genesis, inst: &Instance, o: &mut Lines) -> Result<(), St
         items.push("(good: \"land\", weight: \"inst.space.weight\")".into());
     }
     let basket = format!("            basket: [{}],", items.join(", "));
+    // The provider's first transfer: to the workers, or at a commons market (P2.4) to the first
+    // commoner; the rest, one per reserved pop or further commoner in order, as `more`.
+    let first = match inst.commoners.first() {
+        Some(k) => format!("(to: \"{}\", heads: \"inst.{}.workers\")", k.pop(), k.key),
+        None => "(to: \"workers\", heads: \"inst.workers\")".to_string(),
+    };
     for line in [
         format!(
             "        (key: \"provider\", kind: Pop, class: \"owners\", home: \"home\", basis: {role},"
         ),
         "         spec: BasketProvider((".into(),
         "            land: \"land\", endowment: \"inst.land\",".into(),
-        "            transfer: (to: \"workers\", heads: \"inst.workers\"),".into(),
+        format!("            transfer: {first},"),
         basket.clone(),
         "            spend: \"spend.provider\",".into(),
     ] {
         o.line(line);
     }
-    // The further transfers, one per reserved pop in order (P2.3), written only if any.
-    let more: Vec<String> = inst
+    // The further transfers, one per reserved pop in order (P2.3), or per commoner after the
+    // first (P2.4), written only if any.
+    let mut more: Vec<String> = inst
         .wtypes
         .iter()
         .map(|w| format!("(to: \"{}\", heads: \"inst.{}.workers\")", w.pop(), w.key))
         .collect();
+    more.extend(
+        inst.commoners
+            .iter()
+            .skip(1)
+            .map(|k| format!("(to: \"{}\", heads: \"inst.{}.workers\")", k.pop(), k.key)),
+    );
     if !more.is_empty() {
         o.line(format!("            more: [{}],", more.join(", ")));
     }
     o.line("         ))),");
-    let mut pops = vec![(
-        "workers".to_string(),
-        "workers".to_string(),
-        "labour".to_string(),
-        "inst.workers".to_string(),
-        "inst.chi_max".to_string(),
-    )];
+    let mut pops = Vec::new();
+    if inst.commoners.is_empty() {
+        pops.push((
+            "workers".to_string(),
+            "workers".to_string(),
+            "labour".to_string(),
+            "inst.workers".to_string(),
+            "inst.chi_max".to_string(),
+        ));
+    }
     for w in &inst.wtypes {
         pops.push((
             w.pop(),
@@ -1231,7 +1502,42 @@ fn body(s: &Setup, g: &Genesis, inst: &Instance, o: &mut Lines) -> Result<(), St
         }
         o.line("         ))),");
     }
-    let genesis_basis = if inst.exit.is_some() {
+    // Each commoner's pop on the commons' market (P2.4; the free scan's §6.3), its exit with
+    // `market`, last in its block.
+    for k in &inst.commoners {
+        for line in [
+            format!(
+                "        (key: \"{}\", kind: Pop, class: \"{}_workers\", home: \"home\", basis: {role},",
+                k.pop(),
+                k.key
+            ),
+            "         spec: BasketWorkers((".into(),
+            format!(
+                "            labour: \"labour\", heads: \"inst.{0}.workers\", chi_max: \"inst.{0}.chi_max\",",
+                k.key
+            ),
+            basket.clone(),
+            "            spend: \"spend.workers\",".into(),
+            format!(
+                "            exit: Some((good: \"{1}\", gross: \"inst.{0}.exit.gross\", floor: \
+                 \"inst.{0}.exit.floor\", plot: \"inst.{0}.exit.plot\", commons: \
+                 \"inst.{0}.commons\", land: \"land\", market: Some(\"commons\"))),",
+                k.key, k.good
+            ),
+            "         ))),".into(),
+        ] {
+            o.line(line);
+        }
+    }
+    let genesis_basis = if inst.free.is_some() {
+        format!(
+            "        basis: Approximate(\"oracle unit 1e (crates/oracle, ParcelEconomy) at the free \
+             scan's {}, T = {} per tick; stationary coins per its fm.genesis; written by \
+             rustyecon-probe's markets-tape\"),",
+            inst.id.to_uppercase(),
+            f(t)
+        )
+    } else if inst.exit.is_some() {
         format!(
             "        basis: Approximate(\"oracle unit 1e (crates/oracle, ParcelEconomy) at the commons \
              frame's {}, N = {} and T = {} per tick; stationary coins per the commons frame's \

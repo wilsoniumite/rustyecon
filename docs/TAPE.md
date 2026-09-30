@@ -35,21 +35,23 @@ whose raw types are documented the same way in `rustyecon_agents::spec` (which a
 | 1 | 2026-09-30 | P2.3.6 | The basket workers gain an optional field, `exit` (`Option` of `(good, gross, floor, plot, commons, land)`), last (see below). Absent, it is off and the canonical form omits it, so every tape keeps its text, `tape_hash`, `world_id` and meaning, and the number stays 1 (docs/probe/COMMONS-RULES.md §1). |
 | 1 | 2026-09-30 | P2.4.5 | The workers' `exit` gains an optional field, `pace` (`Option` of `(adjust, share)`), last (see below). Absent, it is off and the canonical form omits it, so every tape keeps its text, `tape_hash`, `world_id` and meaning, and the number stays 1 (docs/probe/TRAP-RULES.md §1). |
 | 1 | 2026-09-30 | P2.4.8 | The basket workers gain an optional field, `pool` (`Option` of `(good, efficiency, rate, share)`), last (see below). Absent, it is off and the canonical form omits it, so every tape keeps its text, `tape_hash`, `world_id` and meaning, and the number stays 1 (docs/probe/SWITCH-RULES.md §1). |
+| 1 | 2026-09-30 | P2.4.11 | A good gains an optional field, `free` (`Option` of `(reference, scale)`: the free step, its price may be 0; see Free goods), and the workers' `exit` one, `market` (`Option` of a good key: the commons as a market; see below), each last. Absent, each is off and the canonical form omits it, so every tape keeps its text, `tape_hash`, `world_id` and meaning, and the number stays 1. `free` is core's second field with a default (docs/probe/FREE-RULES.md §1). |
 
 The loader reads its own version only; anything else is refused as a schema error before any
 other field is looked at. Since no field has a default, every change to the schema bumps the
 number and adds a row here; the one exception is a field whose absence is the older meaning, the
 maker's `reserve` (L0.4), a good's `untraded` and a desk's `plant` (P2.2b.1), and the category
 desk's `tail` and `reserved` and the provider's `more` (P2.3.2), the workers' `exit` (P2.3.6),
-the exit's `pace` (P2.4.5) and the workers' `pool` (P2.4.8), which add a row and keep the
-number.
+the exit's `pace` (P2.4.5), the workers' `pool` (P2.4.8), and a good's `free` and the exit's
+`market` (P2.4.11), which add a row and keep the number.
 
 ## Rules
 
 - **Every field is required, and none has a default**, but those whose absence is the older
   meaning: the maker's `reserve`, a good's `untraded`, a desk's `plant`, the wall's `tail`,
-  `reserved` and `more` (P2.3.2), the workers' `exit` (P2.3.6) and its `pace` (P2.4.5), and the
-  workers' `pool` (P2.4.8). An `Option` field is
+  `reserved` and `more` (P2.3.2), the workers' `exit` (P2.3.6) and its `pace` (P2.4.5), the
+  workers' `pool` (P2.4.8), and a good's `free` and the exit's `market` (P2.4.11). An `Option`
+  field is
   written as `None` or `Some(..)`; leaving it out is an error, as leaving out any other field is.
   Unknown fields are errors.
 - **Keys.** Every entity has a key of one or more of `a-z`, `0-9`, `_`, `.` and `-`. A key is unique
@@ -98,6 +100,16 @@ number.
   (`goods[<key>].life`, `.price_rate` or `.untraded`, `genesis.prices[<node>/<key>].good`). Every
   other good has a `price_rate` and a genesis price at every node; a good with neither a price
   rate nor the flag is still refused (`NoPriceRate`), so a typo is caught.
+- **Free goods** (amended at P2.4.11; docs/probe/free/SPEC.md §6.1; docs/probe/FREE-RULES.md). A
+  good with a market may carry `free: Some((reference: "<good>", scale: "<param>"))`: its price
+  moves by the free step, p' = p·e^(kx) + (c·p_ref)·(e^(kx) − 1), with p_ref the `reference`
+  good's posted price at the same node and c the `scale` (a `Dimensionless` param, live), and
+  posts +0.0 where that is not positive: the good is free, and a buy at a price of 0 is feasible
+  in full. Only such a good may take a genesis price of 0 or post 0; every other price stays
+  positive. It needs the rule `Imbalance`; its `reference` is another good with a market; `scale`
+  is above 0 at genesis. Each refusal names its path (`goods[<key>].free`, `.free.reference`,
+  `.free.scale`). `tapes/markets-il1.ron` (idle land) and `markets-ct2.ron` (a commons market) are
+  the worked examples.
 
 ## Units
 
@@ -277,6 +289,15 @@ param, live. Their lists are evaluation order, and the canonical form keeps them
   its own `labour`; each tick the share moves toward the market that pays more at `rate` (a
   `RatePerYear` param, read as a `LogStep`); `share` is its genesis value, an inline number in
   [0, 1]. Not with `exit`. The switch tape `tapes/markets-is1.ron` is the worked example.
+- The commons as a market (P2.4.11; docs/probe/FREE-RULES.md), absent (off) where not written:
+  the exit's `market: Some("<good>")`, an `Instant` good with a free step (see Free goods), not
+  the pop's labour, a basket item, the exit good or the plots' land. The pop holds its share of
+  the commons (the exit's `commons`, now its own share) as an endowment each tick, offers it on
+  that market, and bids there for its plots at the posted plot rent; where a plot pays more on the
+  commons than on enclosed land it fills its own share first and rents the rest of its plots on
+  `land`. Not with `pace`. Several pops may share one commons this way, the provider paying the
+  first by `transfer` and the rest by `more`. The free tape `tapes/markets-ct2.ron` is the worked
+  example.
 
 ## The stock roles (P2.2.1)
 

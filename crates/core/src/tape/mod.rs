@@ -24,8 +24,8 @@ use crate::registry::{ParamDef, Registry};
 use crate::state::{MarketBook, SimState};
 use crate::units::{Unit, Years};
 use crate::world::{
-    ActorDecl, ChannelDef, Firing, GoodDef, KeyIndex, Life, MarketConfig, NodeDef, OneSided,
-    PriceRule, Recurring, Schedule, ScheduleParam, Tolerances, World,
+    ActorDecl, ChannelDef, Firing, FreeStep, GoodDef, KeyIndex, Life, MarketConfig, NodeDef,
+    OneSided, PriceRule, Recurring, Schedule, ScheduleParam, Tolerances, World,
 };
 use raw::{
     RawAct, RawActorEntry, RawChannel, RawEvent, RawGenesis, RawGood, RawHeader, RawLife, RawNode,
@@ -926,12 +926,51 @@ fn resolve_with<E: Ext>(t: &Tape<E>, schedule: &[Key]) -> Result<Pass<E>, LoadEr
         } else if price_rate.is_none() {
             return Err(r.error("price_rate", LoadErrorKind::NoPriceRate));
         }
+        // The free step (amended at P2.4.11; FREE-SPEC §6.1): only on a good with a market under
+        // `Imbalance`, whose step it varies; its reference a good with a market, not the good; c a
+        // `Dimensionless` param above 0 at genesis.
+        let free = match &g.free {
+            None => None,
+            Some(f) => {
+                if !r.has_market(id) || market.rule != PriceRule::Imbalance {
+                    return Err(r.error(
+                        "free",
+                        LoadErrorKind::Invalid(
+                            "a free step is a step of an `Imbalance` price: the good needs a                              market, under the rule `Imbalance`"
+                                .into(),
+                        ),
+                    ));
+                }
+                let reference = r.good(&f.reference, "free.reference")?;
+                if reference == id || !r.has_market(reference) {
+                    return Err(r.error(
+                        "free.reference",
+                        LoadErrorKind::Invalid(
+                            "the reference is another good with a market: its posted price scales                              the step"
+                                .into(),
+                        ),
+                    ));
+                }
+                let scale = r.param(&f.scale, ClockMethod::Value, ParamUse::Live, "free.scale")?;
+                if r.value(scale.param, "free.scale")? <= 0.0 {
+                    return Err(r.error(
+                        "free.scale",
+                        LoadErrorKind::Invalid(
+                            "c, the step's scale, is above 0 at genesis (at 0 the step is                              Saturate's and never reaches 0)"
+                                .into(),
+                        ),
+                    ));
+                }
+                Some(FreeStep { reference, scale })
+            }
+        };
         r.leave();
         goods.push(GoodDef {
             id,
             key: g.key.clone(),
             life,
             price_rate,
+            free,
         });
     }
 
@@ -1137,8 +1176,9 @@ fn resolve_genesis<A>(
     nodes: &[NodeDef],
     actors: &[ActorDecl<A>],
 ) -> Result<Genesis, LoadError> {
-    // Prices: exactly one per (node, good with a market), finite and positive; EMA = price. A
-    // currency or an untraded good (amended at P2.2b.1) takes none: its slot stays 1.
+    // Prices: exactly one per (node, good with a market), finite and positive, or +0.0 for a
+    // good with a free step (amended at P2.4.11); EMA = price. A currency or an untraded good
+    // (amended at P2.2b.1) takes none: its slot stays 1.
     let mut prices: BTreeMap<(NodeId, GoodId), f64> = BTreeMap::new();
     for p in &g.prices {
         r.enter(format!("genesis.prices[{}/{}]", p.node, p.good));
@@ -1150,7 +1190,8 @@ fn resolve_genesis<A>(
         if r.is_untraded(good) {
             return Err(r.error("good", LoadErrorKind::NoMarket));
         }
-        if !(is_clean(p.price) && p.price > 0.0) {
+        let free = goods.get(good.idx()).is_some_and(|d| d.free.is_some());
+        if !(is_clean(p.price) && (p.price > 0.0 || free)) {
             return Err(r.error("price", LoadErrorKind::BadValue(p.price)));
         }
         if prices.insert((n, good), p.price).is_some() {

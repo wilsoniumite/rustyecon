@@ -7,11 +7,13 @@
 //! a tape that differs only by the kick (`certify::kick::kick_segment`), for H ticks. It passes
 //! when every kick is realised, its `gain_tail` over the last tenth of H is at most 1e-3 and its
 //! `gain_peak` at most 1e6 (`criteria/appb-2026-09-26.ron`'s bars), by certify's own verdict
-//! (`certify::battery::kick`).
+//! (`certify::battery::kick`). A market posting 0 at the kick, a free good (P2.4; FREE-SPEC
+//! §6.1), is not kicked, and a free-able market's equal prices read a gap of 0 (certify's
+//! `kick_gain_free`).
 
 use super::perturb::Perturbation;
 use super::setup::{tape_ron, Setup};
-use certify::battery::{kick, kick_gain, KickBars, KickSegment};
+use certify::battery::{kick, kick_gain_free, KickBars, KickSegment};
 use certify::fold::ceil_share;
 use certify::kick::kick_segment;
 use certify::Names;
@@ -91,7 +93,7 @@ pub fn kick_set(base: &Setup, name: &str, ticks: u64, horizon: u64) -> Result<Ki
         for r in runs {
             let market = names.market(r.market);
             let (size, gain_tail, gain_peak, error) = match &r.prices {
-                Ok(p) => match kick_gain(base_prices, p, bars.tail) {
+                Ok(p) => match kick_gain_free(base_prices, p, bars.tail, &seg.free) {
                     Some(g) => (g.size, g.gain_tail, g.gain_peak, None),
                     None => (f64::NAN, f64::NAN, f64::NAN, Some("no gain".to_string())),
                 },

@@ -60,14 +60,14 @@ fn apply_one<E: Ext>(
         StateDelta::SetPrice { node, good, price } => {
             let i = market(s, w, *node, *good)?;
             only(phase, Phase::Prices, "SetPrice")?;
-            positive("price", *price)?;
+            priced(w, *good, "price", *price)?;
             s.book.set_price(i, *price);
             Ok(0.0)
         }
         StateDelta::SetEma { node, good, ema } => {
             let i = market(s, w, *node, *good)?;
             only(phase, Phase::Prices, "SetEma")?;
-            positive("ema", *ema)?;
+            priced(w, *good, "ema", *ema)?;
             s.book.set_ema(i, *ema);
             Ok(0.0)
         }
@@ -210,12 +210,13 @@ fn apply_one<E: Ext>(
         }
         StateDelta::ScalePrice { node, good, factor } => {
             // A dated price shock (docs/CERTIFY.md §2.4): the posted price becomes fl(p·factor),
-            // which must be clean and positive; the EMA is left alone. Tape events only.
+            // which must be clean and positive, or +0.0 for a free-able good's free price
+            // (amended at P2.4.11); the EMA is left alone. Tape events only.
             let i = market(s, w, *node, *good)?;
             only(phase, Phase::Events, "ScalePrice")?;
             positive("price factor", *factor)?;
             let p = s.book.price(i) * *factor;
-            positive("scaled price", p)?;
+            priced(w, *good, "scaled price", p)?;
             s.book.set_price(i, p);
             Ok(0.0)
         }
@@ -257,6 +258,16 @@ fn clean(what: &'static str, v: f64) -> Result<(), CoreError> {
 
 fn positive(what: &'static str, v: f64) -> Result<(), CoreError> {
     if is_clean(v) && v > 0.0 {
+        Ok(())
+    } else {
+        Err(CoreError::BadValue { what, value: v })
+    }
+}
+
+/// A posted price or EMA of `good`: finite and positive, or +0.0 where the good has a free step
+/// (amended at P2.4.11; FREE-SPEC §6.1).
+fn priced<E: Ext>(w: &World<E>, good: GoodId, what: &'static str, v: f64) -> Result<(), CoreError> {
+    if w.price_allowed(good, v) {
         Ok(())
     } else {
         Err(CoreError::BadValue { what, value: v })

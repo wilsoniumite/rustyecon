@@ -898,6 +898,20 @@ pub struct KickGain {
 /// scores as what it was. `None` when the series are empty, of different lengths or shapes, or
 /// `tail` is 0 or longer than them.
 pub fn kick_gain(base: &[Vec<f64>], kicked: &[Vec<f64>], tail: u64) -> Option<KickGain> {
+    kick_gain_free(base, kicked, tail, &[])
+}
+
+/// [`kick_gain`] with `free[m]` marking each market whose good has a free step (amended at
+/// P2.4.11; FREE-SPEC §6.1): there a posted price of 0 is a price, and equal prices, 0 in both
+/// series included, read a gap of 0. Every other market's gap is |ln(p_kick/p_base)|, NaN-keeping,
+/// as [`kick_gain`]'s, so a price of 0 anywhere else still fails closed (N12). A mask shorter than
+/// the markets marks the rest not free.
+pub fn kick_gain_free(
+    base: &[Vec<f64>],
+    kicked: &[Vec<f64>],
+    tail: u64,
+    free: &[bool],
+) -> Option<KickGain> {
     let h = base.len();
     let tail = usize::try_from(tail).ok()?;
     if h == 0 || kicked.len() != h || tail == 0 || tail > h {
@@ -908,10 +922,13 @@ pub fn kick_gain(base: &[Vec<f64>], kicked: &[Vec<f64>], tail: u64) -> Option<Ki
         if b.len() != k.len() || b.is_empty() {
             return None;
         }
-        let gap = b
-            .iter()
-            .zip(k)
-            .map(|(pb, pk)| rustyecon_core::num::ln(pk / pb).abs());
+        let gap = b.iter().zip(k).enumerate().map(|(m, (pb, pk))| {
+            if pk == pb && free.get(m).copied().unwrap_or(false) {
+                0.0
+            } else {
+                rustyecon_core::num::ln(pk / pb).abs()
+            }
+        });
         g.push(max_nan(gap)?);
     }
     let size = g[0];
@@ -971,6 +988,9 @@ pub struct KickSegment {
     pub at: u64,
     /// The base continuation and the kicked runs, or the error.
     pub runs: Result<(Vec<Vec<f64>>, Vec<KickedRun>), String>,
+    /// Each market's good has a free step (amended at P2.4.11), in market order: its prices may
+    /// be 0, and [`kick_gain_free`] reads them so. Empty for a world without one.
+    pub free: Vec<bool>,
 }
 
 /// The Kick bars, in ticks where §7 needs ticks.
@@ -1091,7 +1111,7 @@ pub fn kick(points: &[KickSegment], bars: &KickBars, names: &Names) -> BatteryRe
                     continue;
                 }
             };
-            let Some(k) = kick_gain(base, prices, bars.tail) else {
+            let Some(k) = kick_gain_free(base, prices, bars.tail, &ks.free) else {
                 pass = false;
                 errors += 1;
                 notes.push(format!("kick {at}: no samples over the horizon"));

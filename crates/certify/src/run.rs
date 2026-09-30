@@ -370,6 +370,7 @@ pub fn certify(
                                         runs: Err(format!(
                                             "the base run kept no checkpoint at tick {t}"
                                         )),
+                                        free: Vec::new(),
                                     },
                                 }
                             })

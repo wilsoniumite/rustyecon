@@ -30,7 +30,10 @@ pub use ext::{
     OwnerState, PlantState, PlantedCapacityState, PlantedMakerState, PlantedTypeState,
     ProviderState, RawAgentAction, ScriptState, SwitchWorkersState, WorkersState,
 };
-pub use roles::many::rules::{workers_participation, Participation, PlotRegime};
+pub use roles::many::rules::{
+    pop_market, pop_market_participation, workers_participation, Participation, PlotRegime,
+    PopMarket,
+};
 pub use roles::many::spec::{
     BasketProvider, BasketWorkers, CategoryDesk, Input, Item, Pace, Pool, PricedExit,
     RawBasketProvider, RawBasketWorkers, RawCategoryDesk, RawInput, RawItem, RawLine, RawPace,

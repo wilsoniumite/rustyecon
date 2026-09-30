@@ -49,6 +49,22 @@ pub struct GoodDef {
     /// The registered `RatePerYear` its price moves at, a `LogStep` site; `None` exactly for a
     /// currency or an untraded good (amended at P2.2b.1).
     pub price_rate: Option<Site>,
+    /// Its free step, if any (amended at P2.4.11; FREE-SPEC §6.1): its price may be 0. `world_id`
+    /// hashes the goods by bincode, so the field is left out when it is `None`, and a world without
+    /// it keeps its `world_id`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub free: Option<FreeStep>,
+}
+
+/// A good's resolved free step (FREE-SPEC §6.1; decision 416): its price moves by
+/// p′ = p·e^(kx) + (c·p_ref)·expm1(kx) and posts 0 where that is not positive.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct FreeStep {
+    /// The reference: a good with a market, not this one, whose posted price at the same node is
+    /// p_ref.
+    pub reference: GoodId,
+    /// c, a live `Dimensionless` param, a `Value` site.
+    pub scale: Site,
 }
 
 /// A market node.
@@ -475,6 +491,17 @@ impl<E: Ext> World<E> {
     /// Whether `g` is an untraded good: held, minted and burned, never traded (P2.2b.1).
     pub fn is_untraded(&self, g: GoodId) -> bool {
         !self.is_currency(g) && self.good(g).is_some_and(|d| d.price_rate.is_none())
+    }
+
+    /// `g`'s free step, if it has one (amended at P2.4.11): its price may be 0.
+    pub fn free_step(&self, g: GoodId) -> Option<FreeStep> {
+        self.good(g).and_then(|d| d.free)
+    }
+
+    /// Whether `v` may be `g`'s posted price or EMA: finite with a clear sign bit, and positive
+    /// unless `g` has a free step, whose price may be 0 (+0.0, never −0.0; FREE-SPEC §6.1).
+    pub fn price_allowed(&self, g: GoodId, v: f64) -> bool {
+        crate::num::is_clean(v) && (v > 0.0 || self.free_step(g).is_some())
     }
 
     /// Every market, (node, good with a market), in (node, good) order: no currency and no

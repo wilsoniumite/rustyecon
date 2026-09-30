@@ -19,7 +19,9 @@
 //! and uses no hours of its own horses. The workers' priced exit (P2.3, the commons) rents an
 //! `Instant` land, the land of the provider that pays their support, and has land for every plot.
 //! A switch pop's pool (P2.4, the type switch at the wall) is labour it mints and offers in full,
-//! so an `Instant` good, as its own labour is.
+//! so an `Instant` good, as its own labour is. The exit's commons market (P2.4, FREE-SPEC §6.3) is
+//! the pop's share of the commons, which it mints and offers in full, so an `Instant` good, and it
+//! has a free step; its support may come through a provider's `transfer` or its `more`.
 
 use crate::behaviour::{AgentError, Behaviour, Decision, Posted, View};
 use crate::ext::{
@@ -169,10 +171,12 @@ fn at_genesis(
 
 /// The checks on the workers' priced exit that need the whole world (the commons frame's §3.4,
 /// checks 2 to 5): the plots' land is `Instant` and is the land of the basket provider whose
-/// transfer pays the workers' support (ν = 1: a pop with an exit must be one); and there is land
-/// for every plot, T + T_o > h·N at genesis, T that provider's endowment (unit-1e.md §3.2). Check
-/// 3, s₀, s̲, h and T_o finite and not negative, is the registry's: every param's value is finite
-/// with a clear sign bit.
+/// transfer pays the workers' support (ν = 1: a pop with an exit must be one), its `transfer` or
+/// one of its `more` (amended at P2.4.11: several plot-taking pops, decision 395); and there is
+/// land for every plot, T + T_o > h·N at genesis, T that provider's endowment (unit-1e.md §3.2).
+/// Check 3, s₀, s̲, h and T_o finite and not negative, is the registry's: every param's value is
+/// finite with a clear sign bit. On a commons market (P2.4.11; FREE-SPEC §6.3) the commons is an
+/// `Instant` good, minted and offered in full, with a free step.
 fn check_exit(
     w: &World<Agents>,
     decl: &ActorDecl<Spec>,
@@ -187,7 +191,11 @@ fn check_exit(
         ));
     }
     let provider = w.actors.iter().find_map(|a| match &a.spec {
-        Spec::BasketProvider(bp) if bp.transfer_to == decl.id => Some((a, bp)),
+        Spec::BasketProvider(bp)
+            if bp.transfer_to == decl.id || bp.more.iter().any(|t| t.to == decl.id) =>
+        {
+            Some((a, bp))
+        }
         _ => None,
     });
     let Some((pd, bp)) = provider else {
@@ -216,6 +224,17 @@ fn check_exit(
             "land for every plot: T + T_o > h·N at genesis, T the provider's endowment \
              (unit-1e.md §3.2)",
         ));
+    }
+    if let Some(m) = x.market {
+        check_role(w, decl, ActorKind::Pop, Some((m, "exit.market")), None)?;
+        if w.free_step(m).is_none() {
+            return Err(invalid(
+                decl,
+                "exit.market",
+                "the commons' market holds a price of 0 where the commons has room: its good has a \
+                 free step (FREE-SPEC §6.1)",
+            ));
+        }
     }
     Ok(())
 }

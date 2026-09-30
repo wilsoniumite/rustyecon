@@ -323,6 +323,8 @@ fn flow_genesis(s: &Setup) -> Result<Genesis, String> {
             pace: crate::markets::setup::PaceAt::Times(1.0),
             // Nor a switch pop (P2.4's field, read at a switch instance only).
             switch: Vec::new(),
+            // Nor a price set outright (P2.4's `p[M]=V`): one `None` per market.
+            set: vec![None; s.displace.price.len()],
         },
         at_genesis: Vec::new(),
         shocks: Vec::new(),

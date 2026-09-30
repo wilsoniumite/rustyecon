@@ -471,3 +471,37 @@ fn a_next_price_that_differs_is_said_to() {
         .expect("the row");
     assert_eq!(r.1, format!("{:?}: equal bit for bit", e.next));
 }
+
+#[test]
+fn the_explainer_and_the_waterfall_read_a_free_step() {
+    // FREE-SPEC §6.1 (P2.4.11): at a good with a free step the explainer calls markets' own
+    // `next_price_free` on the tick's recorded price, volumes, rate, reference price and scale, and
+    // equals the engine's next price bit for bit on every tick and market, the steps that post 0
+    // and the ticks at 0 included; its shift is c·p_ref. IL1 with land's genesis price 0.025 of
+    // the wage: land is priced for four ticks and free after. The waterfall's step is ln(p′/p) of
+    // the free step while land is priced, so its residual is rounding, and it names its term.
+    let text = edit(
+        include_str!("../../../tapes/markets-il1.ron"),
+        "(node: \"home\", good: \"land\", price: 0.0),",
+        "(node: \"home\", good: \"land\", price: 0.025),",
+    );
+    let store = every_tick("il1 land 0.025", &text, 40);
+    let (home, land) = (Key::new("home").unwrap(), Key::new("land").unwrap());
+    let e = explain(&store, &home, &land, 0).unwrap();
+    let f = e.free.as_ref().expect("the free step's inputs");
+    assert_eq!(f.reference.as_str(), "labour");
+    assert_eq!(f.scale.as_str(), "free.land");
+    assert_eq!(f.scale_value, 0.5);
+    assert_eq!(f.shift.to_bits(), (0.5 * f.reference_price).to_bits());
+    let zero = explain(&store, &home, &land, 10).unwrap();
+    assert_eq!(zero.price, 0.0);
+    assert_eq!(zero.next, 0.0);
+    let labour = Key::new("labour").unwrap();
+    assert!(explain(&store, &home, &labour, 0).unwrap().free.is_none());
+    let w = waterfall(&store, &home, &land, Some(3)).unwrap();
+    assert_eq!(w.term, "ln(p′/p) of the free step");
+    assert!(w.residual.abs() <= 1e-12, "{}", w.residual);
+    assert!(waterfall(&store, &home, &land, Some(10))
+        .unwrap_err()
+        .contains("not positive"));
+}
