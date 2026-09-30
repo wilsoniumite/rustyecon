@@ -513,6 +513,10 @@ The tables are shaped so that these switch on without a redesign.
   a desk per category and type, and a carrier per channel; genesis comes from unit 1b or 1c at
   the county's instance; and the per-date check of §8 reads that unit's relative prices. The
   stepping (§4.3), the bases, the keys and the atlas checks stay as they are.
+- *Amended at D2.0 (2026-09-30):* the second pass starts from GOODS-CHAIN's chain of goods, not
+  from units 1b and 1c on the many-market roles (D-G12, decision 320). `machine_types` will hold
+  `horse`, a `machine_types.csv` defines it, and the stage compiles from these tables (§11;
+  WORLD-V2.md §9).
 
 ## 8. The compiler and the tape (D.2)
 
@@ -711,3 +715,14 @@ says how it is built; this section says what it shows of this world.
     orange: Lancashire leads at 0.85 in log, then Northumberland, Lanarkshire, Durham, Fife and
     the West Riding. Ten counties end below their 1750 level. The lowest, in purple, are
     Dunbartonshire at −0.28, Selkirkshire, Essex, Kent, Sussex and Hampshire.
+
+## 11. The second pass: horses and fodder (v2a.1)
+
+Designed 2026-09-30 at D2.0 on branch `demo-v2`, in its own file,
+[WORLD-V2.md](WORLD-V2.md), since this one would pass 800 lines with it. Each county keeps this
+file's row and history, and its flow machine becomes GOODS-CHAIN's rule A: fodder from land, a
+horse bred by a maker and hired out by the horse-day by a capacity desk, at C2g and 52 ticks a
+year with the maker's reservation. At ρ = 0 each county's equilibrium is this file's at every
+date. The v2 tape, `tapes/demo-gb-v2.ron`, is compiled from these tables with `--stage v2a1`;
+without it the compiler writes `tapes/demo-gb.ron` bit for bit. The mirror's predictions for its
+battery and long run are registered in [v2/registration.md](v2/registration.md).
