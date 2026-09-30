@@ -726,3 +726,9 @@ year with the maker's reservation. At ρ = 0 each county's equilibrium is this f
 date. The v2 tape, `tapes/demo-gb-v2.ron`, is compiled from these tables with `--stage v2a1`;
 without it the compiler writes `tapes/demo-gb.ron` bit for bit. The mirror's predictions for its
 battery and long run are registered in [v2/registration.md](v2/registration.md).
+
+Built, run and verified on the same branch (D2.1–D2.6, 2026-09-30): GO at all 558 county-dates
+of its battery, and a long run to 1901 that is the mirror's to rounding, with capital lagging its
+moving equilibrium for decades in the coal and cotton counties. How to run it, how to read its
+lenses, and what it found are in [SECOND-PASS.md](SECOND-PASS.md); the scored results in
+[v2/results/](v2/results/README.md).

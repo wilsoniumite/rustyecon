@@ -2,7 +2,9 @@
 
 Dated 2026-09-30. Written at step D2.0 (label `design`) on branch `demo-v2`, from `reboot` at
 `f7d1eae`. Docs only: no code, table or tape changes at D2.0. WORLD.md §11 points here; this file is
-separate because WORLD.md would pass 800 lines with it (decision 342).
+separate because WORLD.md would pass 800 lines with it (decision 342). The design below stands as
+registered; §16 logs the build step by step. **The guide to the pass as built** (how to run it and
+read it, and what it found) is [SECOND-PASS.md](SECOND-PASS.md), written at D2.6.
 
 **The request (2026-09-27).** A nice map of the United Kingdom with Victoria-style lenses over a
 fairly complex world of regions, goods and history, "not necessarily perfectly accurate but enough
@@ -384,6 +386,18 @@ and states, and their oracle ranges are v1's to the digit (the collapse; the mir
 `frontier.x` is the good desk's planned share, as in v1, although production now assigns tasks after
 the fact.
 
+*Amended at D2.5 (decision 332, amended; the map review's second major):* the oracle's range carried
+over, but the engine's run departs further from its oracle than v1's (the county medians' median D̂
+117 against 11), and nine of these nineteen ran past v1's domains on the run, two of them with
+notes that were false there. Those nine keep v1's reading, with a domain from the engine's run to
+1901 read every tick, with a margin, and a note that names that run's range: `wage.goods` [1.2,
+1.7], `rent.goods` [0.5, 3.6], `share.land` [0.45, 1.0], `share.labour` [0, 0.55], `frontier.x`
+[0.55, 1.0], `price.good` [0.28, 2.0], `relief.burden` [0, 1.4], `shortfall` [0, 0.5] (its note
+now names O82's six counties) and `rationing` [0, 0.2] (the run reaches 0.175, Lanarkshire in
+December 1850, nearly always the owners' land left unsold). Of the changed six, `price.hday`
+becomes [0.4, 1.8]. Ten rows stay v1's whole. `lens_v2_domains_hold_the_engines_long_run` holds
+every domain to the run, every county, every tick.
+
 **Changed (6):**
 
 | lens | v1 | v2a.1 | domain |
@@ -570,6 +584,19 @@ the frame (O85, O86).
 
 G1.6's tests run on v1's demo store. D2.3 adds the v2 store to each, and D2's bounded verification
 reruns `verify-map-r2`'s `mutate.py` on the v2 map (decision 338).
+
+*Amended at D2.5:* D2.3 took only the layout checks to the v2 store. The map review found that, and
+that O26's card note (the card's header cut at the pane's edge) had been dropped from O39 without
+being closed. D2.5 closes both:
+
+| item | status | fix | test |
+|---|---|---|---|
+| **the card and the sidebar cut** at the app's window sizes (O26's card note) | fixed at D2.5 (decision 344, amended) | the card and the lens's description scroll above a ranked table that keeps at least 40% of the height (50% with no county selected); the card's header, its lens list and its inputs wrap to the sidebar; the card's value line drops the lens name its heading gives | `the_v2_sidebar_and_card_are_whole_at_the_apps_window_sizes`: the whole app at 1,024 × 768 and 1,280 × 800, Lancashire selected, three lenses, the lists open |
+| G1.6's colour and credit checks on the v2 store | added at D2.5 | none needed | `the_v2_map_paints_its_lens_colours_and_its_credit` |
+| the whole app on the v2 tape | added at D2.5 | none needed | `the_v2_app_shows_every_lens_and_a_countys_causes` |
+| the legend's header, ψ, labels and scale bar; the title; two glyphs | fixed at D2.5 | the header wraps to two rows; ψ has its own row; the ends, the reference and the powers of ten are written first; the scale bar moves above the legend and the credit; the title wraps; `|` and `×` for `▏` and `✕` | `the_v2_legend_title_and_scale_bar_are_whole`, `every_glyph_the_map_paints_is_in_its_font` |
+| the fitted view after a resize | fixed at D2.5 (decision 343, amended) | an untouched fitted view refits to a new canvas | `the_fitted_view_follows_a_resized_window` |
+| a ranked value over two lines | fixed at D2.5 | the value cell does not wrap | `the_ranked_values_are_painted_whole` and the v2 layout test assert one row |
 
 ## 11. The battery and the long run's checks
 
@@ -817,6 +844,11 @@ Taken by Claude on your word of 2026-09-26 and 2026-09-27 ("I leave all those ca
 - **O88. The history's pace is v1's.** It was bounded for a flow machine (WORLD.md §4.4); nothing in
   it was re-dated for capital's time.
 
+The build added O89 (a lens over the run is not charted), O90 (E0's b × 2 partings), O91 (the kick
+set's g), O92 (no highest horse price for these instances) and, at D2.5, O93 (the harness's price
+lows include withheld ticks). O85 and O86 are amended at D2.5 with what the map review measured.
+STATE.md has each in full.
+
 ## 15. Where the evidence is
 
 Scratch `D:/rustyecon-d2/design/` (WSL `/mnt/d/rustyecon-d2/design/`):
@@ -986,3 +1018,49 @@ on WSL in 3 hours 12 minutes, and the committed scorer read it unchanged.
   - the kick sets' fitted g, 0.856–0.876 a year, reads the kick's early decay, not the mirror's
     slowest mode (0.920–0.923): a 1e-9 kick meets the rounding floor after about 77 years (O91);
   - the harness does not report the battery's highest horse price for these instances (O92).
+
+**D2.5 (2026-09-30): one bounded verification, and its fix round.** Two reviews read `d015fca`
+(scratch `D:/rustyecon-d2/review-world/`, `review-map/`); the fix round is in
+`D:/rustyecon-d2/fix-report/`.
+- **The world review found the world and its economics hold.** Six batteries (Lancashire 1900,
+  Surrey, Clackmannanshire and Armagh 1825, Sutherland and the West Riding 1850), a kick set, mode
+  A and the long run reran byte for byte against the wave on WSL, and two batteries and mode A on
+  Windows (the kick set's envelope there in content). R1 held on both machines. An independent
+  oracle, written from unit 1a's equations alone, matched every county's genesis within 6e-16,
+  the mapping of v1's 30,078 steps onto the 33,332 events exactly, and the funding tables to their
+  printed precision. The registration came before the code. Its six findings were minor, all
+  wording or disclosure.
+- **The map review found three majors and six minors, and no wrong value.** The sidebar and the
+  county card were cut at the app's own window sizes; v1's domains and two of its notes did not
+  hold on the v2 run; the v2 app's wiring had no test (an app that took v1's lenses on the v2 tape
+  passed every test). Seven mutants of the v2 map survived; the legend's header ran past its box,
+  ψ was painted over it and two glyphs were boxes; the fitted view did not follow a resize; a
+  ranked value wrapped; O85's sentence on the 8 ms bar was wrong; and the gap lens's solves come
+  in bursts on the frame's thread.
+- **The fixes**, each with a test that fails without it: §10's amended table, §7.1's amended
+  domains, and decisions 332, 333, 335, 338, 343, 344, 351 and 355 amended in STATE.md. 27
+  mutants were run in a scratch copy of the tree (`D:/rustyecon-d2/fix-report/mut/`), and each
+  fails a test: each of D2.5's fixes undone (14), the review's eight surviving mutants of the v2
+  map (V2, V3, V5, V6, V8, V9, V10, V11), and D2.1's five again. D2.5 is `0aa86dd`.
+- **Answered in the docs**, with nothing scored moving: A1 §A1.3's disclosure is corrected in the
+  results README (the long run had been run and read at D2.2–D2.3b, before the E5 scorer; E5's
+  lines are D2.0's and unchanged); the battery's lowest horse price (0.200) and markup (0.212)
+  are posted prices on ticks when the maker withheld (O93); "healthy" means no dead, idle or
+  withheld tick, and the lag is on the history's scale (the battery's median 58 years to
+  tolerance, up to 109; D̂ about 11 times v1's); the herd's minima are quoted every tick; O85 now
+  says the p90 is above G4's bar; the gap lens's bursts are O86's, and decision 352 is kept.
+- **The domains against the engine's run** (`lens_v2_domains_hold_the_engines_long_run`, WSL,
+  release): the GUI's record of the v2 tape to 1901 in 26.9 s, then every lens for every county
+  at every one of the 7,852 report ticks in 144 s (Windows: 36.7 s and 204 s). Every lens lies
+  inside its domain, and the gap lens runs below its low end only within the tolerance. The narrowest margins are the params'
+  own ends and `wage.land`'s top (0.027 of its span, v1's domain).
+- **No tape, pin, stream, registration or scored table moved**, and the wave was not rerun. The
+  gates were green on WSL and Windows before the commit (`D:/rustyecon-d2/fix-report/logs/`).
+
+**D2.6 (2026-09-30): the write-up.** [SECOND-PASS.md](SECOND-PASS.md), the guide to the pass as
+built: the world, how to run it, each new lens, how to read the horse's price and capital's lag,
+what the battery and the long run found, and the next pass (v2a.1b on funded, registered counties;
+v2a.2's categories after O42). STATE.md, the README, WORLD.md §11 and GUI.md's block for
+D2.1–D2.5 are brought up to date, and the 16 screenshots in `docs/demo/v2/` are taken again from D2.5's
+commit (decision 355, amended): same lenses, dates and crop, lossless, with `|` in the legend's
+header and each value on one line.

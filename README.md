@@ -240,15 +240,20 @@ line and run `wsl --shutdown`. Without a display, the cli runs the same tape and
 final hash (`0xfad880fe08d06645` at state tick 7,852):
 `cargo run --release -p rustyecon-cli -- run tapes/demo-gb.ron --until 7852`.
 
-The second pass, `tapes/demo-gb-v2.ron` ([docs/demo/WORLD-V2.md](docs/demo/WORLD-V2.md)), opens
-the same way: each county's land grows fodder, a maker breeds horses, a capacity desk hires out
-horse-days, and 36 lenses show the chain (the group "Horses and fodder") beside v1's. It runs to
-1901 in about 28 s (final hash `0x45b7c1201f8ae633`); `docs/demo/v2/` holds its map at four dates.
-Its agents are checked against their own oracle, with predictions registered before any of its
-code existed. All 51,260 battery runs at 558 county-dates converge as the mirror predicted, to the
-tick, and the long run to 1901 has no dead market
-([docs/demo/v2/results/](docs/demo/v2/results/README.md)). In the coal and cotton counties the herd
-lags its moving equilibrium by decades, and the map shows that lag beside its cause.
+The second pass, `tapes/demo-gb-v2.ron`, opens the same way
+(`cargo run --release -p rustyecon-gui -- tapes/demo-gb-v2.ron`; the guide is
+[docs/demo/SECOND-PASS.md](docs/demo/SECOND-PASS.md), the design
+[docs/demo/WORLD-V2.md](docs/demo/WORLD-V2.md)): each county's land grows fodder, a maker breeds
+horses, a capacity desk holds the herd and hires out horse-days, and 36 lenses show the chain (the
+group "Horses and fodder") beside v1's. It runs to 1901 in about 28 s (final hash
+`0x45b7c1201f8ae633`); `docs/demo/v2/` holds its map at four dates. Its agents are checked against
+their own oracle, with predictions registered before any of its code existed. All 51,260 battery
+runs at 558 county-dates converge as the mirror predicted, to the tick, and the long run to 1901
+has no dead, idle or withheld tick ([docs/demo/v2/results/](docs/demo/v2/results/README.md)). It
+is not near equilibrium, though: the herd takes decades to settle after a shock, the history moves
+faster, and the median county runs about 11 times further from its equilibrium than v1's. In the
+coal and cotton counties the herd falls to about three quarters of its equilibrium in the 1850s
+and 1860s, and the map shows that lag beside its cause.
 
 - **The map.** It opens paused at 1750 on the lens "Wage in land" (w/r). Press Space to run,
   and the counties recolour as the history moves them. "Step a year" and "Run until" (a tick,
@@ -266,8 +271,9 @@ lags its moving equilibrium by decades, and the map shows that lag beside its ca
   carries `[illustrative]`, so nothing from it may be scored or cited. `certify` seals any run
   of it UNSCORED. Keeping its figures out of citation rests on its readers (GUI.md U5).
 - **One economy per county.** Each county has one good and one machine type, and no county
-  trades with another. More goods, machine types and carriers come in a second pass, on the
-  many-market roles (WORLD.md §7; STATE.md O27).
+  trades with another. The second pass makes the machine a stock of horses fed on fodder; more
+  goods come stage by stage from the goods chain (docs/demo/SECOND-PASS.md §8), and carriers
+  later (WORLD.md §7; STATE.md O27).
 - **The map's data.** The county borders are the Historic County Borders Project's and
   OpenStreetMap's, under the ODbL 1.0. The map credits both in its corner, and `rustyecon
   licences` and `rustyecon-gui --licences` print the licence and attribution.

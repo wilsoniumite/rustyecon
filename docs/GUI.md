@@ -828,6 +828,53 @@ verifier's 22 survivors and 13 of the fixes' own, all killed (`D:/rustyecon-g1/f
 8. **Tests.** The GUI's suite grows from 110 (106 run, 4 ignored) to 121 (117 run, 4 ignored);
    `scripts/gui.sh` names 87, up from 75.
 
+**Amended at D2.1–D2.5 (2026-09-30), on branch `demo-v2`,** the demo's second pass: stage v2a.1
+of the goods chain on every county, `tapes/demo-gb-v2.ron` (docs/demo/WORLD-V2.md; the guide is
+docs/demo/SECOND-PASS.md; STATE.md decisions 320–359). What changed in the GUI:
+1. **O39's remainder** (D2.1; decisions 343, 344). The fitted view leaves the legend and the
+   credit clear of every county; the lens selector cuts a long name short in its button; the
+   ranked table clips county names before values.
+2. **A lens table per tape** (D2.3; decisions 347, 350). The map takes its table by the tape's
+   name (`lens::for_tape`): v1's 25 for `demo-gb`, and 36 for the second pass, the chain's
+   eleven first as "Horses and fodder". Every measure is worldgen's; the GUI gathers a county's
+   recorded numbers, now its six markets and six actors' states (U6).
+3. **The oracle lenses have values on the second pass** (D2.3; decisions 331, 348, 352).
+   worldgen's `oracle_gap` solves unit 1g at a county's recorded params, outside any `Sim`, on
+   the frame's thread, and keeps each point by its params. Nothing it returns reaches an agent
+   (R13). A map of the gap lens at a report tick whose params are new costs up to 44 ms (O86).
+4. **The horse's price is never a valuation** (D2.3; decision 333). No value on a tick when no
+   horse traded, the card says why, and the legend marks ψ from the run's param. A diverging
+   scale may centre on any reference inside its domain (decision 349).
+5. **The county card names what carries its gap** (D2.3; decision 351): the three observables
+   furthest from equilibrium, with signs, and the herd's three readings.
+6. **The fix round after D2.5's verification** (decisions 332, 338, 343, 344, 351 and 355,
+   amended). Each fix has a test that fails without it, checked by undoing it in a scratch copy
+   (`D:/rustyecon-d2/fix-report/mut/`):
+   - **the sidebar.** Below the lens's heading the card and the lens's description scroll above a
+     ranked table that keeps at least 40% of the height (50% with no county selected). The card's
+     header, its lens list and its inputs wrap to the sidebar; the ranked value cell does not
+     wrap. At a 1,024 × 768 window the card's cause lines were cut and the ranked table was gone;
+   - **the legend.** Its header wraps to the bar's width, two rows at most; ψ has its own row
+     above the bar; the domain's ends, the reference and each power of ten on a log scale are
+     written first, the rest where they fit; the scale bar moves above the legend and the credit
+     when it would cross them; the reference mark in the header is `|`, since the bundled fonts
+     lack `▏`;
+   - **the title** wraps to the canvas; **the card's button** is `×`, since they lack `✕`;
+   - **the fitted view** refits to a canvas of another size until the user pans or zooms;
+   - **the second pass's domains** hold the engine's own run to 1901 (item 7).
+7. **Tests.** On the second pass's store and tape: the lens values against the engine, the idle
+   horse price, the map against its table, the layout, the lens table per tape and the GUI's
+   hashes against the cli's (D2.3); and at D2.5 the whole app on the v2 tape, the sidebar and
+   card at 1,024 × 768 and 1,280 × 800, the legend, title and scale bar, ψ as painted, the card's
+   lines as painted, the horse's price and its windows tick by tick through a withholding, the
+   fitted view after a resize, the colours and the credit, every glyph in its font, and every
+   lens of the table inside its domain for every county at every tick to 1901
+   (`lens_v2_domains_hold_the_engines_long_run`, ignored and run by name in `scripts/gui.sh`).
+   The suite is 123 tests; `scripts/gui.sh` names 104, and runs the domain test by name.
+8. **Not met, and still G4's:** the frame's p90 under 8 ms while a run streams (10.1–10.3 ms on
+   the v2 tape and 9.8–9.9 ms on v1's, on a Windows machine shared with other builds; O85), and
+   the gap lens's solves off the frame's thread (O86).
+
 ## 0. Rulings and decisions
 
 **Rulings (2026-09-25),** numbered here 1–4; they are ADDENDUM's rulings 5–8.
