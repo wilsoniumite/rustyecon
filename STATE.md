@@ -62,7 +62,12 @@ in certify, the workers' exit's optional `market` in the agents, IL1 and CT2 wit
 `tapes/markets-il1.ron` and `markets-ct2.ron`, the harness in wage units and at the commons market,
 and 18 tests, with every committed tape's text, ids and streams unchanged. Amendment A1
 (P2.4.12, before E0) lets E0 pass a parting at a free price near 0 when the step and the volumes
-are the mirror's from the engine's own state. E0 on the committed build is next.
+are the mirror's from the engine's own state. **E0–E2 pass** (P2.4.13;
+[docs/probe/results/free/e0.md](docs/probe/results/free/e0.md)): the engine is the mirror within
+6.1e-14 in all eleven registered runs, 0.0 on exactly the trace's ticks, but A1's two partings at
+IL1's `JB(2)` tick 32 (1.06e-12), where A1's checks hold; mode A, τ and the kick sets as
+registered, IL1's L at 12 a year kept at the registered 13,000 (decision 424). The scorer and the
+scored wave (E3–E5) are next.
 Before it, on branch `phase2-proper` from `reboot` at `f7d1eae`:
 **Phase 2 proper's first session is reported** (P2.3.16;
 [docs/probe/PHASE2-S1.md](docs/probe/PHASE2-S1.md)): both reviews find the verdicts hold, and
@@ -238,6 +243,30 @@ types and carriers, on the many-market roles (O27), which may now start from the
 stage v2a.1 on your ruling on D-G12. "Next steps" has each.
 
 ## Where things stand
+
+**A zero price markets can hold: E0–E2 pass (P2.4.13; 2026-09-30).** Docs only, before any scored
+run: [docs/probe/results/free/e0.md](docs/probe/results/free/e0.md), its outputs in
+`docs/probe/results/free/e0/`. `markets` built at `f5fd1c5`, clean (sha256 `aa97c626…88d4`).
+- **E0 passes under A1.** In the eleven runs of SPEC §9.1 the engine is the scan's `fm.py` for
+  2,000 ticks: every price, coin, stock and share within 1.5e-13 in log of the registered traces,
+  within 6.1e-14 outside IL1's `JB(2)` tick 32, and the free-able market 0.0 on exactly the trace's
+  ticks, through 0 both ways. The only partings above 1e-12 are A1's two there, land's last
+  positive price before it goes free and the provider's coin, 1.06e-12; the step from the
+  engine's inputs is its next price bit for bit, the mirror's one tick from the engine's state
+  gives land's S and D within 6.7e-15, and the free ticks agree: `A1 HOLDS`. CT2's first joint
+  draw is the mirror's within 4.4e-16. The committed build gives the development diff byte for
+  byte.
+- **E1 holds**: the 28 tapes' streams, ids and text on both machines, the pins, SPEC §6.5's tests
+  1, 5 and 6.
+- **E2 holds.** Mode A passes at L at 12, 52 and 365 a year on both instances, largest gap 3.9e-11
+  (CT2 at 12 a year; the mirror's 9.0e-12), the free-able market at 0 throughout. The engine's
+  elasticity probe gives the scan's τ_max (care's: 277.2, 64.0 and 1,946.1 ticks at IL1, 703.7,
+  128.2 and 5,567.6 at CT2), so L is as registered but at IL1 at 12 a year, where the probe's floor
+  of 20,000 ticks, not scaled by the tick length, binds over the registered 13,000 (the scan's
+  floor is 20,000·tpy/52). Decision 424 keeps 13,000 there. The base kick sets pass (largest tail
+  gain 6.4e-6 at IL1, 5.2e-6 at CT2; the bar 1e-3), the free-able market left out.
+- **Decision 424**, below. **Next:** the scorer, its gather script and job list, committed before
+  the wave (decision 311); then the wave, E3–E5 on IL1 and CT2.
 
 **A zero price markets can hold: amendment A1 (P2.4.12; 2026-09-30).** Docs only, before E0 on
 the committed build and any scored run:
@@ -4494,6 +4523,19 @@ each open to veto; the alternative named is the registered one (R6).
      decides at the wall's end; the rule would need the desk's recipe (R13), and the roles have no
      land-alone category. *Alternative:* a land-only category and a limit rule now.
 
+Decision 424 is P2.4.13's (2026-09-30), from E2 of the free scan (`docs/probe/results/free/e0.md`
+§4). Claude's, on your delegation, open to veto.
+
+424. **IL1's runs at 12 a year keep the registered L, 13,000 ticks.** The engine's elasticity probe
+     gives the scan's τ_max there (64.0 ticks) but prints L 20,000: its floor of 20,000 ticks
+     (PROBE-SPEC §4.4) is not scaled by the tick length, and the scan's (20,000·tpy/52, 5,000 at
+     12 a year) is, so 200·τ_max's 13,000 stands in the mirror. The registered 12-a-year runs at
+     IL1 (mode A and Tiers 1–2, 63) ran 13,000 ticks, and the wave runs them so, like for like;
+     their slowest registered ticks to tolerance is 450. Whether the probe's floor should scale
+     with the tick length is left to the session that next touches `run_length`: scaling it would
+     move earlier frames' L at 12 a year, as the wall's and the switch's 20,000 rest on the floor.
+     *Alternative:* 20,000, the probe's printed L.
+
 ## Open — your calls
 
 - **The GUI's decisions**, 22–34 (D1–D13): G0 carried them out, none vetoed; a veto now reopens
@@ -4551,6 +4593,8 @@ each open to veto; the alternative named is the registered one (R6).
   the reference (417), IL1 under the stated transfer (418), CT2 and the pops' commons market
   (419), one plot-taking type keeping 398's rule (420), IL1's harness in wage units (421), the
   verdict (422), and decision 160 left untested (423). Each open to veto before the build.
+- **Decision 424** (P2.4.13, 2026-09-30): IL1's 12-a-year runs keep the registered L of 13,000
+  ticks, not the engine probe's floor of 20,000. Open to veto before the wave.
 - **Decisions 59–75 and 135–178** (Phase 1), open to veto. Those that bound Phase 2 proper (61,
   67, 70; 135, 137, 139, 140; 147, 149, 151, 153–155, 158, 160, 161; 162, 164, 165, 167–169,
   173) are ruled by Claude at P2.3.0 as 360–393, with the markets probe's advice: keep 67 (its

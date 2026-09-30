@@ -1,0 +1,6 @@
+worktree HEAD: f5fd1c5, clean
+markets binary: aa97c626d6e266c9241f2ceb52b0f33b43352247cb6ac7c1f57ebd63f30488d4
+the scan's SHA256SUMS entries not OK: 0
+fm.py: 87a9ef6aef7b0187abec6bf53c54755db54cb339850f7cf867400f9461257c96
+fb.py: 624a82bfbdbbc3b8b55f479b4fdce0fbe7cdc838501959c5710b16e82906b7a1
+tracediff_f.py: ddd136716c28be85c320dbcb72429c2afa4c6fb8c985919732f51c099007ed51
