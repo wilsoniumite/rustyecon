@@ -221,6 +221,17 @@ impl StageParam {
         }
     }
 
+    /// Its tape key after `county.<c>.`, with the machine type's key `h` (`horse`; `mach` on the
+    /// flow path): the recipe's coefficients are the machine's.
+    pub fn key(self, h: &str) -> String {
+        match self {
+            StageParam::OwnHours => format!("{h}.own_hours"),
+            StageParam::HorseLabour => format!("{h}.labour"),
+            StageParam::HorseLand => format!("{h}.land"),
+            q => q.column().to_string(),
+        }
+    }
+
     /// Its unit: N and T are flows a year, the rest dimensionless (the recipe's coefficients are
     /// per tick at the tape's clock, as P2.2a's tapes register them).
     pub fn unit(self) -> &'static str {
@@ -690,6 +701,12 @@ pub fn compile_stage_parsed(
     let mut plans = Vec::with_capacity(counties.len());
     for county in counties {
         let mut plan = plan_county(&world, county, &ramps, &c, &mut summary)?;
+        // On the flow path (R1a) the machine lives one tick and the county is v1's: its point is
+        // 1a's itself, and there is no chain to solve.
+        if stage.machine.is_flow() {
+            plans.push(plan);
+            continue;
+        }
         let key = plan.county.key.clone();
         let at0 = format!("{key} at {}", world.start);
         let p0 = checked_point(
@@ -757,11 +774,15 @@ pub fn compile_stage_parsed(
         dials: stage.dials.clone(),
         ..world
     };
-    let mut gens = Vec::with_capacity(plans.len());
-    for p in &plans {
-        gens.push(stage_genesis(&w, stage, &p.county.genesis, &p.chain[0])?);
-    }
-    let (tape, events) = write_stage(&w, stage, &plans, &gens, &ramps, atlas.digest);
+    let (tape, events) = if stage.machine.is_flow() {
+        write_flow(&w, stage, &plans, &ramps, atlas.digest)
+    } else {
+        let mut gens = Vec::with_capacity(plans.len());
+        for p in &plans {
+            gens.push(stage_genesis(&w, stage, &p.county.genesis, &p.chain[0])?);
+        }
+        write_stage(&w, stage, &plans, &gens, &ramps, atlas.digest)
+    };
     summary.events = events;
     Ok(Compiled {
         tape,
@@ -917,7 +938,7 @@ fn write_stage(
 ) -> (String, usize) {
     let c = clock(w);
     let m = &stage.machine;
-    let h = &m.key;
+    let h = m.good();
     let mark = &w.basis;
     let assumed = |why: &str| format!("Assumed({})", quote(&format!("{mark}: {why}")));
     let steps: Vec<Vec<StageStep>> = plans.iter().map(|p| stage_steps(&p.steps, m, &c)).collect();
@@ -1079,7 +1100,7 @@ fn write_stage(
                 ),
             };
             line(&param(
-                &format!("{}.{}", cty.key, q.column()),
+                &format!("{}.{}", cty.key, q.key(h)),
                 s[q.index()],
                 q.unit(),
                 &assumed(&why),
@@ -1102,11 +1123,11 @@ fn write_stage(
             let why = format!(
                 "{}'s {} from {stamp}{mapped}: {}",
                 cty.name,
-                s.param.column(),
+                s.param.key(h),
                 names.join("; ")
             );
             line(&param(
-                &format!("{}.{}.{stamp}", cty.key, s.param.column()),
+                &format!("{}.{}.{stamp}", cty.key, s.param.key(h)),
                 s.value,
                 s.param.unit(),
                 &assumed(&why),
@@ -1249,7 +1270,7 @@ fn write_stage(
             .iter()
             .zip(g.prices)
             .map(|(mk, x)| {
-                let good = if *mk == "horse" { h.as_str() } else { mk };
+                let good = if *mk == "horse" { h } else { mk };
                 format!("(node: \"{k}\", good: \"{good}\", price: {})", f(x))
             })
             .collect();
@@ -1302,11 +1323,262 @@ fn write_stage(
             line(&format!("        // {}", history::date(w, mo)));
             last = Some(mo);
         }
-        let key = format!("{k}.{}.{}", q.column(), history::stamp(w, mo));
+        let key = format!("{k}.{}.{}", q.key(h), history::stamp(w, mo));
         line(&format!(
             "        (key: \"{key}\", at: \"{}\", basis: {event_basis}, act: SetParam(param: \"{k}.{}\", to: \"{key}\")),",
             history::date(w, mo),
-            q.column()
+            q.key(h)
+        ));
+    }
+    line("    ],");
+    line("    recurring: [],");
+    line(")");
+    (o, events)
+}
+
+/// The tape of a stage on its flow path (R1a; WORLD-V2 §9.3): the machine lives one tick (δ =
+/// 1), no fodder (ω 0), so the owner desk runs the good desk's code and the maker the type
+/// desk's, on the probe's C2 with planned assignment; genesis is v1's, the probe's rule at 1a.
+/// Only `v2_flow_path_is_v1` reaches it, through [`compile_stage_parsed`] with a stage built
+/// in code: `parse_stage` refuses δ = 1.
+fn write_flow(
+    w: &World,
+    stage: &Stage,
+    plans: &[Plan],
+    ramps: &[Ramp],
+    atlas: u64,
+) -> (String, usize) {
+    let c = clock(w);
+    let m = &stage.machine;
+    let h = m.good();
+    let mark = &w.basis;
+    let assumed = |why: &str| format!("Assumed({})", quote(&format!("{mark}: {why}")));
+    let steps: Vec<Vec<StageStep>> = plans.iter().map(|p| stage_steps(&p.steps, m, &c)).collect();
+    // No fodder on the flow path: a b step sets the machine's land alone, one event.
+    let events = steps
+        .iter()
+        .flatten()
+        .filter(|s| s.param != StageParam::FodderLand)
+        .count();
+    let mut o = String::new();
+    let mut line = |s: &str| {
+        o.push_str(s);
+        o.push('\n');
+    };
+    for l in [
+        format!(
+            "// The demo world's second pass on its flow path, `{}`: {} counties, the machine one tick",
+            w.name,
+            plans.len()
+        ),
+        format!(
+            "// (R1a; docs/demo/WORLD-V2.md §9.3), on the atlas {atlas:016x}. Written only by the \
+             test v2_flow_path_is_v1."
+        ),
+        "Tape(".into(),
+        "    schema: 1,".into(),
+        "    header: (".into(),
+        format!("        name: {},", quote(&w.name)),
+        format!("        start: \"{}\",", w.start),
+        format!("        ticks_per_year: {},", w.ticks_per_year),
+        format!(
+            "        market: (rule: Imbalance, one_sided: {}, ema_time_constant: \"price.ema_tc\"),",
+            w.one_sided
+        ),
+        "        ledger: (rel_flow: \"ledger.rel_flow\", rel_stock: \"ledger.rel_stock\"),".into(),
+        "    ),".into(),
+        "    params: [".into(),
+    ] {
+        line(&l);
+    }
+    let param = |key: &str, value: f64, unit: &str, basis: &str| {
+        format!(
+            "        (key: {}, value: {}, unit: {unit}, basis: {basis}),",
+            quote(key),
+            f(value)
+        )
+    };
+    for d in &w.dials {
+        line(&param(&d.key, d.value, d.unit, &assumed(&d.note)));
+    }
+    let rule = assumed("the flow path (R1a)");
+    for (key, value, unit) in [
+        (
+            "life.one_tick".to_string(),
+            1.0 / f64::from(w.ticks_per_year),
+            "Years",
+        ),
+        (format!("{h}.kappa"), m.kappa, "FlowPerYear"),
+        (format!("{h}.delta"), m.delta, "FractionPerYear"),
+        (format!("{h}.run.labour"), 0.0, "Dimensionless"),
+        ("good.weight".to_string(), 1.0, "Dimensionless"),
+    ] {
+        line(&param(&key, value, unit, &rule));
+    }
+    for p in plans {
+        let cty = &p.county;
+        let s = stage_instance(&cty.genesis, m, &c);
+        for q in StageParam::ALL {
+            if q == StageParam::FodderLand {
+                continue;
+            }
+            line(&param(
+                &format!("{}.{}", cty.key, q.key(h)),
+                s[q.index()],
+                q.unit(),
+                &rule,
+            ));
+        }
+    }
+    for (p, st) in plans.iter().zip(&steps) {
+        for s in st.iter().filter(|s| s.param != StageParam::FodderLand) {
+            let names: Vec<&str> = s.ramps.iter().map(|&i| ramps[i].key.as_str()).collect();
+            line(&param(
+                &format!(
+                    "{}.{}.{}",
+                    p.county.key,
+                    s.param.key(h),
+                    history::stamp(w, s.month)
+                ),
+                s.value,
+                s.param.unit(),
+                &assumed(&names.join("; ")),
+            ));
+        }
+    }
+    line("    ],");
+    line("    goods: [");
+    line("        (key: \"coin\", life: Indefinite, price_rate: None),");
+    line("        (key: \"labour\", life: Instant, price_rate: Some(\"rate.labour\")),");
+    line("        (key: \"land\", life: Instant, price_rate: Some(\"rate.land\")),");
+    line(&format!(
+        "        (key: \"{h}\", life: Years(\"life.one_tick\"), price_rate: Some(\"rate.{h}\")),"
+    ));
+    line(
+        "        (key: \"good\", life: Years(\"life.one_tick\"), price_rate: Some(\"rate.good\")),",
+    );
+    line("    ],");
+    line("    nodes: [");
+    for p in plans {
+        line(&format!(
+            "        (key: {}, currency: \"coin\"),",
+            quote(&p.county.key)
+        ));
+    }
+    line("    ],");
+    line("    channels: [],");
+    line(&format!(
+        "    classes: [\"good_desks\", \"{h}_desks\", \"owners\", \"workers\"],"
+    ));
+    line("    actors: [");
+    let scale = |d: &str| {
+        format!(
+            "scale: Cash((turnover: \"buffer.desk.{d}.cash\", tilt: \"tilt.desk.{d}\", payout: None))"
+        )
+    };
+    let mut gens = Vec::with_capacity(plans.len());
+    for p in plans {
+        let k = &p.county.key;
+        let g = crate::compile::genesis(w, &p.county.genesis, &p.point);
+        line(&format!(
+            "        (key: \"{k}.desk.good\", kind: Desk, class: \"good_desks\", home: \"{k}\", basis: {rule},"
+        ));
+        line(&format!(
+            "         spec: OwnerDesk((output: \"good\", labour: \"labour\", stock: \"{h}\", \
+             schedule: (eta: \"{k}.eta\", g0: \"{k}.g0\", g1: \"{k}.g1\", k: \"{k}.k\"), \
+             technique: (adjust: \"adjust.technique.good\", share: {}), assign: {}, \
+             kappa: \"{h}.kappa\", running: [], delta: \"{h}.delta\", \
+             adjust: \"adjust.invest.good\", {}))),",
+            f(p.point.one_minus_x_star),
+            stage.assign,
+            scale("good")
+        ));
+        line(&format!(
+            "        (key: \"{k}.desk.{h}\", kind: Desk, class: \"{h}_desks\", home: \"{k}\", basis: {rule},"
+        ));
+        line(&format!(
+            "         spec: Maker((output: \"{h}\", labour: \"labour\", land: \"land\", \
+             own_hours: \"{k}.{h}.own_hours\", kappa: \"{h}.kappa\", \
+             running: (goods: [], labour: \"{h}.run.labour\"), \
+             build: (goods: [], labour: \"{k}.{h}.labour\", land: \"{k}.{h}.land\"), \
+             delta: \"{h}.delta\", adjust: \"adjust.invest.{h}\", cover: None, own: 0.0, {}))),",
+            scale(h)
+        ));
+        let basket = format!(
+            "basket: [(good: \"good\", weight: \"good.weight\"), (good: \"land\", weight: \"{k}.space\")]"
+        );
+        line(&format!(
+            "        (key: \"{k}.provider\", kind: Pop, class: \"owners\", home: \"{k}\", basis: {rule},"
+        ));
+        line(&format!(
+            "         spec: BasketProvider((land: \"land\", endowment: \"{k}.land\", \
+             transfer: (to: \"{k}.workers\", heads: \"{k}.workers\"), {basket}, \
+             spend: \"spend.provider\"))),"
+        ));
+        line(&format!(
+            "        (key: \"{k}.workers\", kind: Pop, class: \"workers\", home: \"{k}\", basis: {rule},"
+        ));
+        line(&format!(
+            "         spec: BasketWorkers((labour: \"labour\", heads: \"{k}.workers\", \
+             chi_max: \"{k}.chi_max\", {basket}, spend: \"spend.workers\"))),"
+        ));
+        gens.push(g);
+    }
+    line("    ],");
+    line("    genesis: (");
+    line(&format!("        basis: {rule},"));
+    line("        prices: [");
+    for (p, g) in plans.iter().zip(&gens) {
+        let k = &p.county.key;
+        let [pw, pr, ppm, pp] = g.prices;
+        line(&format!(
+            "            (node: \"{k}\", good: \"good\", price: {}), (node: \"{k}\", good: \"labour\", price: {}), \
+             (node: \"{k}\", good: \"land\", price: {}), (node: \"{k}\", good: \"{h}\", price: {}),",
+            f(pp),
+            f(pw),
+            f(pr),
+            f(ppm)
+        ));
+    }
+    line("        ],");
+    line("        holdings: [");
+    for (p, g) in plans.iter().zip(&gens) {
+        let k = &p.county.key;
+        let e = &p.point;
+        line(&format!(
+            "            (holder: \"{k}.desk.good\", goods: [(\"coin\", {}), (\"good\", {})]), \
+             (holder: \"{k}.desk.{h}\", goods: [(\"coin\", {}), (\"{h}\", {})]),",
+            f(g.coin[0]),
+            f(e.y),
+            f(g.coin[1]),
+            f(e.k)
+        ));
+        line(&format!(
+            "            (holder: \"{k}.provider\", goods: [(\"coin\", {})]), \
+             (holder: \"{k}.workers\", goods: [(\"coin\", {})]),",
+            f(g.coin[2]),
+            f(g.coin[3])
+        ));
+    }
+    line("        ],");
+    line("    ),");
+    line("    events: [");
+    let mut all: Vec<(Month, &str, StageParam)> = plans
+        .iter()
+        .zip(&steps)
+        .flat_map(|(p, st)| {
+            st.iter()
+                .filter(|s| s.param != StageParam::FodderLand)
+                .map(move |s| (s.month, p.county.key.as_str(), s.param))
+        })
+        .collect();
+    all.sort_unstable();
+    for (mo, k, q) in all {
+        let key = format!("{k}.{}.{}", q.key(h), history::stamp(w, mo));
+        line(&format!(
+            "        (key: \"{key}\", at: \"{}\", basis: {rule}, act: SetParam(param: \"{k}.{}\", to: \"{key}\")),",
+            history::date(w, mo),
+            q.key(h)
         ));
     }
     line("    ],");

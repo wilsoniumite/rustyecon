@@ -752,3 +752,31 @@ fn painted_texts(h: &Harness<'static, Pane1>) -> Vec<(String, egui::Rect, egui::
     }
     out
 }
+
+#[test]
+#[ignore = "a measurement: run by name, with --release"]
+fn oracle_gap_cost_is_recorded() {
+    // O86 (WORLD-V2 §7.1): the gap lens's cost. The first map of gap.oracle at a report tick
+    // solves 1g for each county whose params it has not seen; a second is served from the
+    // memo. Each solve's cost is timed over every county at genesis.
+    let store = v2_store();
+    let l = lens("gap.oracle");
+    let t0 = std::time::Instant::now();
+    let cold = lens_vm(store, l, 259);
+    let cold_ms = t0.elapsed().as_secs_f64() * 1e3;
+    let t1 = std::time::Instant::now();
+    let warm = lens_vm(store, l, 259);
+    let warm_ms = t1.elapsed().as_secs_f64() * 1e3;
+    assert_eq!(cold, warm);
+    let truth = engine_truth(0);
+    let t2 = std::time::Instant::now();
+    for x in truth[0].values() {
+        let _ = oracle(x);
+    }
+    let per = t2.elapsed().as_secs_f64() * 1e6 / truth[0].len() as f64;
+    println!(
+        "gap.oracle at report tick 259: {cold_ms:.1} ms cold, {warm_ms:.1} ms from the memo; one \
+         1g solve {per:.0} µs, so a run's 25,573 about {:.1} s",
+        per * 25_573.0 / 1e6
+    );
+}

@@ -11,7 +11,12 @@ the tape's schema is [docs/TAPE.md](docs/TAPE.md), and the GUI's design is
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
 **State as of:** 2026-09-30, on branch `demo-v2` from `reboot` at `f7d1eae`, not pushed or
-merged. **The demo's second pass is designed** (D2.0, docs only; "Where things stand";
+merged. **The demo's second pass is built through D2.3b** ("Where things stand"): O39's
+remainder fixed (D2.1); the stage in the compiler, `tapes/demo-gb-v2.ron` and its pin
+`0x45b7c1201f8ae633` (D2.2); the 36 lenses, `oracle_gap` and the map on the v2 tape (D2.3); the
+flow path nesting v1 bit for bit, and 16 screenshots of the map (D2.3b). v1's tape and pin are
+unchanged. Decisions 343–355 and O89; the battery and the long run's scoring (D2.4) are next.
+**The demo's second pass is designed** (D2.0, docs only; "Where things stand";
 [docs/demo/WORLD-V2.md](docs/demo/WORLD-V2.md)): D-G12 taken, GOODS-CHAIN's stage v2a.1 (rule
 A's horse and fodder) on all 93 counties at C2g and 52 ticks a year with the maker's reservation,
 v1's history mapped so that each date's oracle is v1's. Funding is checked on every county with
@@ -142,6 +147,20 @@ v2a.1 on every county (D-G12 taken by Claude, decision 320, open to veto), whose
 is next on `demo-v2`. "Next steps" has each.
 
 ## Where things stand
+
+**The flow path nests v1, and the map's screenshots (D2.3b; 2026-09-30).** Branch `demo-v2`;
+[docs/demo/WORLD-V2.md](docs/demo/WORLD-V2.md) §16.
+- **R1** (`v2_flow_path_is_v1`): the stage with its machine on the flow path (δ = 1 a tick, ω 0,
+  planned, the probe's C2) runs v1's tables and history for 520 ticks with every county's prices,
+  cleared volumes and coins equal to v1's tape's bit for bit (decision 354).
+- **`oracle_gap`'s cost** (O86): one 1g solve 196 µs; the gap lens's first map 19.2 ms, 1.2 ms
+  from the memo.
+- **Screenshots**: `docs/demo/v2/map-<lens>-<year>.png`, horses per head, horses against their
+  equilibrium, the horse-day's markup and land to the working stock, at 1750, 1800, 1850 and
+  1901 (decision 355). In the engine's run, not scored: the herd lags most in Lanarkshire in 1850
+  (−0.32 in log) and Glamorgan in 1901 (−0.26); the median county is 2% short by 1901.
+- Both gates green on WSL and Windows. Next: D2.4, the battery and the long run's scoring
+  against the registration, then D2.5 and D2.6 (next step 8).
 
 **The lenses and the map on the second pass (D2.3; 2026-09-30).** Branch `demo-v2`, scratch
 `D:/rustyecon-d2/build/`; [docs/demo/WORLD-V2.md](docs/demo/WORLD-V2.md) §16.
@@ -3556,6 +3575,13 @@ standing word and open to veto.
      Alternative: solve on the run's worker and send the targets with each batch.
 353. **The second pass's hashes through the GUI path equal the cli's, in `scripts/gui.sh`**
      (`gui_equals_cli_demo_gb_v2`; R16). Alternative: v1's alone.
+354. **The stage's flow path is compiled only for R1's test** (D2.3b; WORLD-V2 §9.3):
+     `compile_stage_parsed` writes it for a stage built in code (δ = 1, ω 0, planned, C2), keying
+     the durable good `mach` as the probe's R1a does and taking v1's genesis; `parse_stage`
+     refuses δ = 1, so no table reaches it. Alternative: a `--stage` table for the flow path.
+355. **The map's screenshots are the GUI's map pane at a clean commit, cropped and quantized**
+     (D2.3b): 16 PNGs of about 65 KB, four chain lenses at four dates, rendered headlessly at
+     1,600 × 1,000. Alternative: v1's two full windows at 680 KB each.
 
 ## Open — your calls
 
@@ -4409,9 +4435,15 @@ O81–O94.
   per unit of N (16 under 0.02). They run in the battery, and their shortfalls are reported.
 - **O85. The GUI at v2's size.** About 25 s to 1901, about 9,200 series (0.58 GB) and a frame p90
   near 8 ms are estimates from today's measurements (v1 16.1 s; one county's tick 1.57 times
-  dearer); D2.3 measures them.
+  dearer); D2.3 measures them. *Measured at D2.3* (Windows, release, a machine shared with
+  another branch's builds): 27.6 and 27.9 s to 1901, 281–284 ticks a second, frame p90 10.1–10.3
+  ms running; v1 on the same build and load 16.5 s and p90 9.8–9.9 ms. So under that load the
+  frame's p90 passes G4's 8 ms bar for both, and v2 costs 1.68 times v1 a tick. The series' count
+  and the store's memory are not yet measured.
 - **O86. `oracle_gap`'s cost.** 25,480 solves of 1g over a run; where they run and how long they
-  take is D2.3's to measure.
+  take is D2.3's to measure. *Measured at D2.3b* (WSL, release; decision 352): one 1g solve 196
+  µs; the gap lens's first map at a report tick 19.2 ms for 93 counties on the frame's thread, 1.2
+  ms from the memo; a run that visits every county date solves for about 5 s in all.
 - **O87. The horse stands for engines.** In 1850 Lancashire the one durable good is still called
   "horses"; v2a.4's engine good and G3's recipe choice replace it.
 - **O88. The history's pace is v1's.** It was bounded for a flow machine (WORLD.md §4.4), and
@@ -4596,6 +4628,14 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
 
    Stage v2a.1b joins a county only through that county's own registration (O83).
 
+   *Amended at D2.3b (2026-09-30):* D2.1, D2.2 and D2.3 are **done** (commits `ca7ef45`,
+   `b4f69df`, `27b298d`), and D2.3b adds the flow path's nesting test and the screenshots.
+   `tapes/demo-gb-v2.ron` (14.8 MB, 33,332 events) is pinned at `0x45b7c1201f8ae633`, stream
+   `0xacb3ca2bee63b3bf`. **Next: D2.4**, the battery (51,260 runs at 558 county-dates) with the
+   compiler's `--instances` and the harness's `--counties`, E0's trace diff before any scored
+   run, and `demo_v2_runs_to_1901` scored against the registration (§11.5), its scorer
+   committed before the first job (decision 311).
+
 ## File map
 
 ```
@@ -4617,6 +4657,7 @@ docs/demo/WORLD-V2.md    the demo's second pass designed (D2.0): stage v2a.1 on 
                          funding, genesis, the mirror's long run, lenses, compiler, battery
 docs/demo/v2/            its registration (D2.0): registration.md, SHA256SUMS and the mirror's
                          predicted long run, battery, growth and funding (CSV)
+docs/demo/v2/map-*.png  the second pass's map, four chain lenses at four dates (D2.3b)
 docs/reboot/             REVIEW.md and ADDENDUM.md, kept as written (links fixed) but for A14 and
                          rulings 5–8 (P0.11); GUI-review-ledger.md, the GUI design's two reviews
 docs/timeline/eras.md    era research for worldgen
@@ -4666,7 +4707,8 @@ crates/certify           criteria, batteries, the kick, the sealed certificate, 
                          Parquet telemetry behind the feature `parquet` (S2.3–S2.5)
 crates/certify/testdata  appb variants from `appb-tape --perturb`: bcycle, freeze, july, buffer16
 crates/worldgen          the atlas's loader (D.1), the demo world's compiler (D.2) and its lens
-                         measures (D.3); Phase 4's research compiler later
+                         measures (D.3); the second pass's stage, rule A's chain and oracle_gap
+                         (D2.2, D2.3); Phase 4's research compiler later
 crates/gui               the GUI (G0.1, G0.2): model/, run/, edit/, vm/, drive/, platform/, ui/,
                          app.rs, the binary rustyecon-gui; its tests run under scripts/gui.sh
                          only (D1); the map pane and lenses since D.3 (ui/map.rs, vm/map.rs);
@@ -4683,7 +4725,10 @@ tapes/horses-<id>.ron    the stocks probe's six worlds (H1–H4, R1a, P7), from 
 tapes/loops-<id>.ron     the loop step's six worlds (LB1–LB3, LW1–LW3), rule B at chain8 with
                          CAPACITY's plants, from 1g's ChainEconomy (P2.2b.1)
 tapes/demo-gb.ron        the illustrative demo world, compiled from worlds/demo-gb (D.2)
+tapes/demo-gb-v2.ron     its second pass, compiled with --stage v2a1 (D2.2)
 worlds/demo-gb/          the demo world's tables and derive.py
+                         and the second pass's machine_types.csv, stage-v2a1.csv and
+                         lenses-v2a1.csv (D2.2, D2.3)
 data/atlas/              the county atlas, gb.atlas.ron, under the ODbL: LICENSE, ATTRIBUTION,
                          README, its build script and pinned venv (D.1)
 criteria/                each tape's dated criteria, registered before its first certified run

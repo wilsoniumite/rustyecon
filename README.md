@@ -67,11 +67,13 @@ Packages are named `rustyecon-<crate>`. `tapes/gate.ron` is the Phase 0 gate wor
 worlds, `tapes/horses-<id>.ron` the stocks probe's, `tapes/loops-<id>.ron` the loop step's
 (rule B with CAPACITY's plants, P2.2b), and `tapes/demo-gb.ron` the illustrative
 demo world, 93 historic counties of the United Kingdom from 1750 to 1901, compiled by
-`rustyecon worldgen worlds/demo-gb --out tapes/demo-gb.ron`; nothing from it may be scored or
-cited (`certify` seals any run of it UNSCORED; citation is kept out by hand). The county atlas
-in `data/atlas/` is under the ODbL 1.0, with its own LICENSE and ATTRIBUTION, which
-`rustyecon licences` and `rustyecon-gui --licences` print. `criteria/` holds each tape's dated
-criteria, registered before its first certified run, and `results/` the certificates and
+`rustyecon worldgen worlds/demo-gb --out tapes/demo-gb.ron`, and `tapes/demo-gb-v2.ron` its
+second pass, horses and fodder on every county (`--stage v2a1`, docs/demo/WORLD-V2.md);
+nothing from either may be scored or cited (`certify` seals any run of it UNSCORED; citation is
+kept out by hand). The county atlas in `data/atlas/` is under the ODbL 1.0, with its own
+LICENSE and ATTRIBUTION, which `rustyecon licences` and `rustyecon-gui --licences` print.
+`criteria/` holds each tape's dated criteria, registered before its first certified run, and
+`results/` the certificates and
 manifests they gave.
 
 ## Documents
@@ -237,6 +239,11 @@ A window from WSL needs WSLg. On the build machine `%USERPROFILE%\.wslconfig` se
 line and run `wsl --shutdown`. Without a display, the cli runs the same tape and prints its
 final hash (`0xfad880fe08d06645` at state tick 7,852):
 `cargo run --release -p rustyecon-cli -- run tapes/demo-gb.ron --until 7852`.
+
+The second pass, `tapes/demo-gb-v2.ron` ([docs/demo/WORLD-V2.md](docs/demo/WORLD-V2.md)), opens
+the same way: each county's land grows fodder, a maker breeds horses, a capacity desk hires out
+horse-days, and 36 lenses show the chain (the group "Horses and fodder") beside v1's. It runs to
+1901 in about 28 s (final hash `0x45b7c1201f8ae633`); `docs/demo/v2/` holds its map at four dates.
 
 - **The map.** It opens paused at 1750 on the lens "Wage in land" (w/r). Press Space to run,
   and the counties recolour as the history moves them. "Step a year" and "Run until" (a tick,

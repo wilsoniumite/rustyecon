@@ -31,7 +31,8 @@ use rustyecon_worldgen::chain::{self, ChainPoint, MachineType};
 use rustyecon_worldgen::compile::{clock, Compiled, MAX_YEAR};
 use rustyecon_worldgen::lens::{value, ChainReadings, Measure, Readings, WindowTick};
 use rustyecon_worldgen::stage::{
-    chain_params, parse_stage, stage_genesis, stage_instance, Stage, StageParam, C2G, MARKETS,
+    chain_params, compile_stage_parsed, parse_stage, stage_genesis, stage_instance, Stage,
+    StageParam, C2G, MARKETS,
 };
 use rustyecon_worldgen::tables::{Instance, Param};
 use rustyecon_worldgen::{compile_stage, StageTables, Tables};
@@ -892,4 +893,108 @@ fn lens_v2_domains_hold_the_oracle_range() {
         lines.push(line);
     }
     assert_eq!(lines.len(), 33, "every lens but the three oracle lenses");
+}
+
+#[test]
+fn v2_flow_path_is_v1() {
+    // R1 (WORLD-V2 §9.3): the stage with its machine on the flow path (δ = 1 a tick, ω 0, planned
+    // assignment, the probe's C2), which runs the owner desk as P2.0's good desk and the maker as
+    // the type desk (P2.2a's R1a, P2.1's I0 bit for bit), compiles v1's tables into a tape whose
+    // run gives every county's prices, cleared volumes and coins equal to v1's tape's, bit for
+    // bit, for ten years with v1's history firing. The actor kinds differ, so the hashes do.
+    let mut s = stage();
+    s.machine = MachineType {
+        delta: 1.0,
+        omega: 0.0,
+        ..s.machine.clone()
+    };
+    s.assign = "Planned".into();
+    s.name = "demo-gb flow path [illustrative]".into();
+    let r1a = Horse::named("r1a").unwrap_or_else(|e| panic!("{e}"));
+    let c2 = dials(&r1a, "c2").unwrap_or_else(|e| panic!("{e}"));
+    let mut d: Vec<rustyecon_worldgen::tables::Dial> = s
+        .dials
+        .iter()
+        .filter(|x| x.key.starts_with("ledger."))
+        .cloned()
+        .collect();
+    d.extend(c2.values.iter().map(|x| rustyecon_worldgen::tables::Dial {
+        key: x.key.clone(),
+        value: x.value,
+        unit: x.unit,
+        note: x.basis.clone(),
+    }));
+    s.dials = d;
+    let flow = compile_stage_parsed(&tables(), &s, &atlas()).unwrap_or_else(|e| panic!("{e}"));
+    let v1 = rustyecon_worldgen::compile(&tables(), &atlas()).unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(
+        flow.summary.events, v1.summary.events,
+        "a b step is one event here"
+    );
+    let tf = Tape::from_ron(&flow.tape).unwrap_or_else(|e| panic!("{e}"));
+    let t1 = Tape::from_ron(&v1.tape).unwrap_or_else(|e| panic!("{e}"));
+    let mut a = Sim::new(&tf).unwrap_or_else(|e| panic!("{e}"));
+    let mut b = Sim::new(&t1).unwrap_or_else(|e| panic!("{e}"));
+    let (wa, wb) = (a.world().clone(), b.world().clone());
+    let coin = |w: &rustyecon_engine::prelude::World| w.id_of::<GoodId>("coin").expect("coin");
+    let actors = |w: &rustyecon_engine::prelude::World| -> Vec<ActorId> {
+        let mut v = Vec::new();
+        for n in &w.nodes {
+            for r in ["desk.good", "desk.mach", "provider", "workers"] {
+                v.push(
+                    w.id_of::<ActorId>(&format!("{}.{r}", n.key))
+                        .expect("an actor"),
+                );
+            }
+        }
+        v
+    };
+    let (aa, ab) = (actors(&wa), actors(&wb));
+    let mut compared = 0usize;
+    let mut fired = 0usize;
+    for tick in 0..520 {
+        let ra = a
+            .step()
+            .unwrap_or_else(|e| panic!("flow, tick {tick}: {e}"));
+        let rb = b.step().unwrap_or_else(|e| panic!("v1, tick {tick}: {e}"));
+        assert_eq!(ra.events.len(), rb.events.len(), "tick {tick}");
+        fired += ra.events.len();
+        let key = |w: &rustyecon_engine::prelude::World,
+                   l: &rustyecon_engine::prelude::MarketLine| {
+            (
+                w.key_of(l.node).map(|k| k.as_str().to_string()),
+                w.key_of(l.good).map(|k| k.as_str().to_string()),
+            )
+        };
+        let lines = |w: &rustyecon_engine::prelude::World,
+                     r: &rustyecon_engine::prelude::TickReport| {
+            let mut v: Vec<_> = r
+                .markets
+                .iter()
+                .map(|l| (key(w, l), l.price.to_bits(), l.cleared.to_bits()))
+                .collect();
+            v.sort();
+            v
+        };
+        let (la, lb) = (lines(&wa, &ra), lines(&wb, &rb));
+        assert_eq!(la.len(), 4 * 93);
+        assert_eq!(la, lb, "tick {tick}: prices and cleared volumes");
+        for (x, y) in aa.iter().zip(&ab) {
+            let ca = a
+                .holding(rustyecon_engine::prelude::Holder::Actor(*x))
+                .map_or(0.0, |i| i.get(coin(&wa)));
+            let cb = b
+                .holding(rustyecon_engine::prelude::Holder::Actor(*y))
+                .map_or(0.0, |i| i.get(coin(&wb)));
+            assert_eq!(
+                ca.to_bits(),
+                cb.to_bits(),
+                "tick {tick}: the coin of {:?}",
+                wa.key_of(*x)
+            );
+            compared += 1;
+        }
+    }
+    assert!(fired > 0, "v1's history fired in the ten years");
+    println!("{compared} coins and 520 ticks of 372 market lines equal; {fired} events fired");
 }

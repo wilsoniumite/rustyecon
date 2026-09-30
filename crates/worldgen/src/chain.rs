@@ -52,6 +52,16 @@ impl MachineType {
         self.delta == 1.0
     }
 
+    /// The durable good's key on the tape: its own key, or on the flow path `mach`, the probe's
+    /// machine services, so that the flow path's tape names v1's markets (R1a keys it so too).
+    pub fn good(&self) -> &str {
+        if self.is_flow() {
+            "mach"
+        } else {
+            &self.key
+        }
+    }
+
     /// Whether fodder is a traded good (ω > 0).
     pub fn has_fodder(&self) -> bool {
         self.omega > 0.0

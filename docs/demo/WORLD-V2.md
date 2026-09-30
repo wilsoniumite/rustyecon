@@ -905,3 +905,32 @@ and computes nothing (U6). The map takes a tape's lens table by the tape's name 
   measured on a quieter machine). So v2 costs 1.68 times v1's time a tick in the GUI (§9.4
   estimated 1.57), and its frame about 0.3 ms more at p90. Through the cli: 27.0 s on Windows,
   and on WSL the pin's run takes 27–28 s, 280–290 ticks a second.
+
+**D2.3b (2026-09-30): the flow path nests v1, `oracle_gap`'s cost, and the map's screenshots.**
+- **R1, the flow path** (§9.3; `v2_flow_path_is_v1`): the stage compiled with its machine on the
+  flow path (δ = 1 a tick, ω 0, planned assignment, the probe's C2; the owner desk and the maker
+  run P2.0's good desk's and the type desk's code, and the durable good is keyed `mach`) runs v1's
+  tables with v1's history for 520 ticks, 785 events firing, with every county's four market
+  lines' prices and cleared volumes and its four actors' coins equal to v1's tape's, bit for bit
+  (193,440 coins). Only the test reaches the flow path: `parse_stage` refuses δ = 1 (decision 354).
+- **`oracle_gap`'s cost** (O86; WSL, release, `oracle_gap_cost_is_recorded`, run by name): the
+  gap lens's first map at a report tick takes 19.2 ms for 93 counties, 1.2 ms from the memo; one
+  1g solve takes 196 µs, so a run that visits every one of the 25,573 county dates solves for about
+  5 s in all, spread over the run as its params change.
+- **Screenshots** (`docs/demo/v2/map-<lens>-<year>.png`, 16 in all, about 65 KB each): the map pane
+  of the GUI at the D2.3 commit, rendered headlessly through egui_kittest's wgpu renderer at
+  1,600 × 1,000 from a scratch crate (`D:/rustyecon-d2/build/shot/`), cropped to the pane and
+  quantized to 256 colours. Four chain lenses at the first report of 1750, 1800, 1850 and 1901.
+  What they show, from the engine's run of the committed tape (not scored; the long run's scoring
+  against the registration is D2.4's):
+
+  | lens | 1750 | 1800 | 1850 | 1901 |
+  |---|---|---|---|---|
+  | horses per head, lowest to highest | 1.77 (Surrey) to 3.83 (Lanarkshire) | 1.55 to 4.45 (Northumberland) | 1.35 to 5.14 | 1.18 (Dunbartonshire) to 6.96 |
+  | horses against equilibrium, lowest; median | 0 at every county | −0.18 (Renfrewshire); −0.05 | −0.32 (Lanarkshire); −0.13 | −0.26 (Glamorgan); −0.02 |
+  | horse-day markup, median; highest | 0 at every county | +0.04; +0.16 (Lancashire) | +0.07; +0.19 (Lanarkshire) | +0.01; +0.13 (Glamorgan) |
+  | land to the working stock, lowest to highest | 0.74 (West Riding) to 0.84 (Norfolk) | 0.71 to 0.85 | 0.61 to 0.82 | 0.58 to 0.82 (Huntingdonshire) |
+
+  At genesis every county rests at its equilibrium (the herd's gap and the markup are 0 to
+  2e-16). Through the century the fast-growing counties' herds fall behind, and their horse-days
+  carry a markup, the rent that buys more (§6, §8); by 1901 the median county is 2% short.
