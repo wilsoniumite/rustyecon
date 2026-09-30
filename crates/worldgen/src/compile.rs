@@ -18,6 +18,7 @@
 //! abrupt change badly). `max_step` itself may not pass [`tables::MAX_STEP_CEILING`].
 
 use crate::atlas::Atlas;
+use crate::chain::ChainPoint;
 use crate::history::{self, Month, Step};
 use crate::tables::{self, County, Instance, Lens, Param, Parsed, Ramp, Tables, World};
 use crate::CompileError;
@@ -55,6 +56,9 @@ pub struct Plan {
     /// Its oracle point after each step date, in month order: the point of the instance in
     /// force from the first of that month on.
     pub points: Vec<(Month, Eq1a)>,
+    /// Under a stage (D2.2), unit 1g's chain point at genesis and after each step date, in the
+    /// order of `points` with genesis first; empty for v1.
+    pub chain: Vec<ChainPoint>,
 }
 
 impl Plan {
@@ -97,6 +101,37 @@ pub struct Summary {
     pub max_year_prices: (f64, String),
     /// The same, of the quantities.
     pub max_year_quantities: (f64, String),
+    /// Under a stage: the largest relative difference of 1g's point from v1's 1a point on x\*,
+    /// v, P_s, Y, N_a and p, at genesis and every step date (R1b); 0 for v1.
+    pub max_collapse: (f64, String),
+    /// Under a stage: the largest move at one date of the chain's own prices (p_K/r, p_f/r) or
+    /// quantities (heads installed and made, fodder), in log; 0 for v1.
+    pub max_step_chain: (f64, String),
+    /// The same over a trailing year.
+    pub max_year_chain: (f64, String),
+}
+
+impl Summary {
+    /// Nothing found yet, over `counties` counties.
+    pub fn new(counties: usize) -> Summary {
+        Summary {
+            counties,
+            events: 0,
+            step_dates: 0,
+            min_funding: (f64::INFINITY, String::new()),
+            min_participation: (f64::INFINITY, String::new()),
+            max_participation: (f64::NEG_INFINITY, String::new()),
+            min_x: (f64::INFINITY, String::new()),
+            max_x: (f64::NEG_INFINITY, String::new()),
+            max_step_prices: (0.0, String::new()),
+            max_step_quantities: (0.0, String::new()),
+            max_year_prices: (0.0, String::new()),
+            max_year_quantities: (0.0, String::new()),
+            max_collapse: (0.0, String::new()),
+            max_step_chain: (0.0, String::new()),
+            max_year_chain: (0.0, String::new()),
+        }
+    }
 }
 
 /// The clock the world runs on.
@@ -234,99 +269,10 @@ pub fn compile(tables: &Tables, atlas: &Atlas) -> Result<Compiled, CompileError>
         lenses,
     } = tables::parse(tables, atlas)?;
     let c = clock(&world);
-    let mut summary = Summary {
-        counties: counties.len(),
-        events: 0,
-        step_dates: 0,
-        min_funding: (f64::INFINITY, String::new()),
-        min_participation: (f64::INFINITY, String::new()),
-        max_participation: (f64::NEG_INFINITY, String::new()),
-        min_x: (f64::INFINITY, String::new()),
-        max_x: (f64::NEG_INFINITY, String::new()),
-        max_step_prices: (0.0, String::new()),
-        max_step_quantities: (0.0, String::new()),
-        max_year_prices: (0.0, String::new()),
-        max_year_quantities: (0.0, String::new()),
-    };
-    let mut plans = Vec::new();
+    let mut summary = Summary::new(counties.len());
+    let mut plans = Vec::with_capacity(counties.len());
     for county in counties {
-        let steps = history::steps(&world, &county, &ramps)?;
-        let mut inst = county.genesis;
-        let at0 = format!("{} at {}", county.key, world.start);
-        let point = solve(&at0, &inst, &c)?;
-        let mut prev = point.clone();
-        let mut note = |e: &Eq1a, inst: &Instance, at: &str| {
-            let n = c.flow(FlowPerYear(inst[Param::Workers.index()]));
-            keep(&mut summary.min_funding, e.provider_baskets / n, at, false);
-            keep(&mut summary.min_participation, e.participation, at, false);
-            keep(&mut summary.max_participation, e.participation, at, true);
-            keep(&mut summary.min_x, e.x_star, at, false);
-            keep(&mut summary.max_x, e.x_star, at, true);
-        };
-        note(&point, &inst, &at0);
-        let mut points: Vec<(Month, Eq1a)> = Vec::new();
-        let mut i = 0;
-        while i < steps.len() {
-            let m = steps[i].month;
-            while i < steps.len() && steps[i].month == m {
-                inst[steps[i].param.index()] = steps[i].value;
-                i += 1;
-            }
-            let at = format!("{} at {}", county.key, history::date(&world, m));
-            let e = solve(&at, &inst, &c)?;
-            note(&e, &inst, &at);
-            let (dp, dq) = distance(&e, &prev);
-            for (what, d) in [
-                (
-                    "relative prices and technique (1 − x*, w/r, p_m/r, p/r)",
-                    dp,
-                ),
-                ("quantities (Y, K, N_a)", dq),
-            ] {
-                if d > world.max_step {
-                    return Err(CompileError::new(
-                        &at,
-                        format!(
-                            "one date moves the oracle's {what} by {d:.4} in log, above \
-                             max_step {}: make the history more gradual (O14)",
-                            world.max_step
-                        ),
-                    ));
-                }
-            }
-            // The point in force twelve months before: the last dated at or before then.
-            let year_ago = points
-                .iter()
-                .rev()
-                .find(|(pm, _)| *pm <= m - 12)
-                .map_or(&point, |(_, e)| e);
-            let (yp, yq) = distance(&e, year_ago);
-            for (what, d) in [("relative prices and technique", yp), ("quantities", yq)] {
-                if d > MAX_YEAR {
-                    return Err(CompileError::new(
-                        &at,
-                        format!(
-                            "the year to this date moves the oracle's {what} by {d:.4} in log, \
-                             above {MAX_YEAR} a year: spread the change over more years (O14)"
-                        ),
-                    ));
-                }
-            }
-            keep(&mut summary.max_step_prices, dp, &at, true);
-            keep(&mut summary.max_step_quantities, dq, &at, true);
-            keep(&mut summary.max_year_prices, yp, &at, true);
-            keep(&mut summary.max_year_quantities, yq, &at, true);
-            summary.step_dates += 1;
-            points.push((m, e.clone()));
-            prev = e;
-        }
-        summary.events += steps.len();
-        plans.push(Plan {
-            county,
-            point,
-            steps,
-            points,
-        });
+        plans.push(plan_county(&world, county, &ramps, &c, &mut summary)?);
     }
     let tape = write(&world, &plans, &ramps, atlas.digest);
     Ok(Compiled {
@@ -337,6 +283,97 @@ pub fn compile(tables: &Tables, atlas: &Atlas) -> Result<Compiled, CompileError>
         lenses,
         summary,
         atlas_digest: atlas.digest,
+    })
+}
+
+/// One county's plan (WORLD.md §3.3, §4.4): its steps, and its oracle point (unit 1a) at genesis
+/// and after every step date, each solved and checked by [`solve`], with each date's move held
+/// to `max_step` and each trailing year's to [`MAX_YEAR`]. The extremes go to `summary`. The
+/// stage (D2.2) plans each county by it too, and adds its chain.
+pub fn plan_county(
+    world: &World,
+    county: County,
+    ramps: &[Ramp],
+    c: &Clock,
+    summary: &mut Summary,
+) -> Result<Plan, CompileError> {
+    let steps = history::steps(world, &county, ramps)?;
+    let mut inst = county.genesis;
+    let at0 = format!("{} at {}", county.key, world.start);
+    let point = solve(&at0, &inst, c)?;
+    let mut prev = point.clone();
+    let mut note = |e: &Eq1a, inst: &Instance, at: &str| {
+        let n = c.flow(FlowPerYear(inst[Param::Workers.index()]));
+        keep(&mut summary.min_funding, e.provider_baskets / n, at, false);
+        keep(&mut summary.min_participation, e.participation, at, false);
+        keep(&mut summary.max_participation, e.participation, at, true);
+        keep(&mut summary.min_x, e.x_star, at, false);
+        keep(&mut summary.max_x, e.x_star, at, true);
+    };
+    note(&point, &inst, &at0);
+    let mut points: Vec<(Month, Eq1a)> = Vec::new();
+    let mut i = 0;
+    while i < steps.len() {
+        let m = steps[i].month;
+        while i < steps.len() && steps[i].month == m {
+            inst[steps[i].param.index()] = steps[i].value;
+            i += 1;
+        }
+        let at = format!("{} at {}", county.key, history::date(world, m));
+        let e = solve(&at, &inst, c)?;
+        note(&e, &inst, &at);
+        let (dp, dq) = distance(&e, &prev);
+        for (what, d) in [
+            (
+                "relative prices and technique (1 − x*, w/r, p_m/r, p/r)",
+                dp,
+            ),
+            ("quantities (Y, K, N_a)", dq),
+        ] {
+            if d > world.max_step {
+                return Err(CompileError::new(
+                    &at,
+                    format!(
+                        "one date moves the oracle's {what} by {d:.4} in log, above \
+                         max_step {}: make the history more gradual (O14)",
+                        world.max_step
+                    ),
+                ));
+            }
+        }
+        // The point in force twelve months before: the last dated at or before then.
+        let year_ago = points
+            .iter()
+            .rev()
+            .find(|(pm, _)| *pm <= m - 12)
+            .map_or(&point, |(_, e)| e);
+        let (yp, yq) = distance(&e, year_ago);
+        for (what, d) in [("relative prices and technique", yp), ("quantities", yq)] {
+            if d > MAX_YEAR {
+                return Err(CompileError::new(
+                    &at,
+                    format!(
+                        "the year to this date moves the oracle's {what} by {d:.4} in log, \
+                         above {MAX_YEAR} a year: spread the change over more years (O14)"
+                    ),
+                ));
+            }
+        }
+        keep(&mut summary.max_step_prices, dp, &at, true);
+        keep(&mut summary.max_step_quantities, dq, &at, true);
+        keep(&mut summary.max_year_prices, yp, &at, true);
+        keep(&mut summary.max_year_quantities, yq, &at, true);
+        summary.step_dates += 1;
+        points.push((m, e.clone()));
+        prev = e;
+    }
+    summary.events += steps.len();
+    Ok(Plan {
+        county,
+        point,
+        steps,
+        points,
+        chain: Vec::new(),
     })
 }
 

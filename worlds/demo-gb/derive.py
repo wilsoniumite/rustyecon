@@ -257,7 +257,9 @@ def main():
             row[k] = fnum(r[k])
         row["textile_from"] = r["textile_from"] or ""
         row["categories"] = "good"
-        row["machine_types"] = "mach"
+        # The one machine type, the horse (docs/demo/WORLD-V2.md §9.1; decision 327): v1 compiles it
+        # as its flow machine, and stage v2a.1 as the durable good of machine_types.csv.
+        row["machine_types"] = "horse"
         row["carriers"] = ""
         row["why"] = g["why"]
         reg.append(row)

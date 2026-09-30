@@ -143,6 +143,24 @@ is next on `demo-v2`. "Next steps" has each.
 
 ## Where things stand
 
+**The stage is in the compiler (D2.2; 2026-09-30).** Branch `demo-v2`, scratch
+`D:/rustyecon-d2/build/`. `rustyecon worldgen worlds/demo-gb --stage v2a1` compiles
+`tapes/demo-gb-v2.ron` from v1's tables and two new ones (`machine_types.csv`, `stage-v2a1.csv`);
+[docs/demo/WORLD-V2.md](docs/demo/WORLD-V2.md) §16 has the numbers.
+- **R1.** Without `--stage` the compiler writes v1's tape bit for bit (`machine_types` now reads
+  `horse`); v1's pin and every committed tape's hashes hold.
+- **The checks.** Every county at genesis and after each of its step dates, 25,573 points, is
+  Interior and funded under 1a and 1g; 1g meets 1a within 8.0e-16; the chain's own moves are at
+  most 0.0222 at a date and 0.0475 over a year, as the design measured.
+- **The tape.** 14.8 MB, 33,332 events, six actors a county; its pin (`demo_v2_pin`, in
+  `scripts/gate.sh`) is final hash `0x45b7c1201f8ae633` and stream `0xacb3ca2bee63b3bf` on WSL and
+  Windows, every event fired, the ledger closed every tick.
+- **Tests** (`crates/worldgen/tests/demo_v2.rs`): the tape is the compiler's output; rule A, the
+  chain and its point are the probe harness's bit for bit; genesis is the horses rule to 1e-14;
+  C2g key by key; the refusals, an unfunded date among them; at rest within 6.8e-14 for two years
+  with the history removed; two runs one hash stream.
+- Decisions 345–347. Next: D2.3, the lenses and the map.
+
 **O39's remainder is fixed (D2.1; 2026-09-30).** Branch `demo-v2`, worktree `D:/rustyecon-wt/d2`,
 scratch `D:/rustyecon-d2/build/`. The first build step of the demo's second pass
 ([docs/demo/WORLD-V2.md](docs/demo/WORLD-V2.md) §10, §13), on v1; no tape, pin or table moved.
@@ -3489,6 +3507,17 @@ standing word and open to veto.
      county column takes the remainder and clips. Before the fix the button's long name widened
      the sidebar, and the value column ran 33 points off a 480-point window. Alternative: wrap the
      name onto two lines in the button.
+345. **The v2 tape's pin checks hashes, events and the ledger only** (D2.2; decision 339):
+     `demo_v2_pin` runs the tape to the first tick of 1901 and scores nothing. The long run's
+     scoring against the registration (E5) is D2.4's `demo_v2_runs_to_1901`, after its scorer is
+     committed (decision 311). Alternative: score the long run at D2.2, before the scorer exists.
+346. **The rest check runs the stage with the history removed** (D2.2): every county's 18
+     observables within 1e-12 in log for three ticks and 1e-9 for two years, every market trading,
+     the ledger closed. It is E2 over a short window; E2 at L is D2.4's. Alternative: the committed
+     tape's first ticks, whose steps move the target from February 1750.
+347. **The stage names its lens table at D2.2 and reads it at D2.3**: `stage-v2a1.csv` names
+     `lenses-v2a1.csv`, and the cli reads `machine_types.csv` and `stage-v2a1.csv` with `--stage`.
+     Alternative: build the lens table with the compiler, in one step.
 
 ## Open — your calls
 

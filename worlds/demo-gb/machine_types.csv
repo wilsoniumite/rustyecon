@@ -1,0 +1,2 @@
+key,rule,delta,kappa,omega,build_lag,note
+horse,A,0.08,52,0.85,1,"GOODS-CHAIN rule A's horse (docs/demo/WORLD-V2.md 2.1; decision 322): wear 8% a year (F5's, CHAIN's verdict delta; a working life of about twelve years), 52 horse-days a head a year, omega 0.85 of a horse's land in its fodder (GOODS-CHAIN 0), built in one tick; it stands for the county's whole working stock until v2a.4 gives engines their own good (decision 321)"

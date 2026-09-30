@@ -829,3 +829,44 @@ Scratch `D:/rustyecon-d2/design/` (WSL `/mnt/d/rustyecon-d2/design/`):
   `battery.jsonl`, `validate-f5.json`, `lens-ranges.txt`, `vgap.json`).
 - `speed/`: the GUI's and the cli's timings.
 - `tools/`: the summaries that made §4's and §6's tables.
+
+## 16. As built
+
+Dated entries, one per build step; the design above stands as registered.
+
+**D2.1 (2026-09-30): O39's remainder on v1.** The compiler refuses a clock other than 52 ticks a
+year. The fitted map leaves the legend and the credit clear (Cornwall sat under the legend at
+1,280 × 800). The lens selector's button cuts a long name short, and the ranked table clips county
+names before values (at a 480-point window the value column had run 33 points off). Each has a test
+that fails with its fix undone (§10; decisions 343, 344).
+
+**D2.2 (2026-09-30): the stage in the compiler.** `rustyecon worldgen worlds/demo-gb --stage v2a1`
+compiles `tapes/demo-gb-v2.ron`; `crates/worldgen/src/chain.rs` holds rule A and 1g's chain,
+`stage.rs` the stage's tables, checks, genesis and writer.
+- **R1.** Without `--stage` the compiler writes v1's tape bit for bit (`regions.csv`'s
+  `machine_types` now reads `horse`, and v1 compiles it as its flow machine). v1's pin
+  `0xfad880fe08d06645` and every committed tape's hashes are unchanged.
+- **The checks, on all 93 counties** (WSL, 3.4 s for the compile): 25,480 step dates and 93
+  genesis points, every one Interior and funded under 1a and 1g; 1g meets 1a within 8.0e-16
+  relative (Leicestershire, July 1853); the chain's own prices and quantities move at most 0.0222
+  in log at a date (Gloucestershire, May 1848) and 0.0475 over a trailing year (Lanarkshire, June
+  1845). These are §3's and §4's numbers.
+- **The tape.** 14,828,343 bytes (988,553 gzipped), 71,355 lines, 33,332 events on 25,480 county
+  dates, 558 actors, `tape_hash` `0xb06f07458015e332`, `world_id` `0x0b8d31536f99be41`. §9.4
+  estimated 13.6 MB: the per-county comments and bases are longer than v1's.
+- **Its pin** (decision 339; `demo_v2_pin`, run by name in `scripts/gate.sh`): through the first
+  tick of 1901 every one of the 33,332 events fires and the ledger closes every tick (largest
+  margin 5.9e-4 of the tolerance); final hash `0x45b7c1201f8ae633`, hash stream
+  `0xacb3ca2bee63b3bf`, the same on WSL and Windows. The pin scores nothing: the long run's scoring
+  against the registration is D2.4's.
+- **At rest** (`v2_rests_at_every_county_oracle_point`): with the history removed, every county's
+  18 observables stay within 5.6e-14 in log of 1g's point for three ticks and 6.8e-14 for two
+  years (the horse market's volume), every market trading and the ledger closed every tick.
+- **Held to the probe**: rule A, 1g's chain and its point are `probe::horses`'s bit for bit on F5,
+  F6 and ten counties at genesis and in 1850 (`rule_a_is_the_probes`); each county's genesis is
+  the horses rule divided by p/r to 1e-14 (`v2_genesis_is_the_horses_rule_at_each_county`); the
+  dials are C2g key by key (`c2g_is_the_probes`).
+- **Refused** (`the_stage_compiler_refuses_bad_tables`): dials off C2g, s_K not 2δ, no
+  reservation, ex-ante assignment, an unknown machine type or stage, δ, ω or J_b out of range, rule
+  B, a county's machine type not the horse, a clock off 52, and an unfunded date with its county
+  and date (Surrey's population raised 30% over 1830–1834).

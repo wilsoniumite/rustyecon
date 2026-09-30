@@ -19,15 +19,23 @@
 //! [`lens`] (D.3, 2026-09-27) defines the demo world's lenses, the measures its map colours by,
 //! over a county's recorded numbers, beside `lenses.csv` and the keys the compiler writes. The
 //! GUI calls it and defines none (U6), until `crates/observe` takes them (docs/GUI.md §7.3).
+//!
+//! [`stage`] (D2.2, 2026-09-30) compiles the demo's second pass (docs/demo/WORLD-V2.md): the same
+//! county tables under GOODS-CHAIN's stage v2a.1, rule A's horse and fodder on every county, with
+//! [`chain`] the one definition of rule A's recipe and unit 1g's chain per county. Without a
+//! stage the compiler is v1's and writes v1's tape bit for bit (R1).
 
 pub mod atlas;
+pub mod chain;
 pub mod compile;
 mod csv;
 pub mod history;
 pub mod lens;
+pub mod stage;
 pub mod tables;
 
 pub use compile::{compile, Compiled, Plan, Summary};
+pub use stage::{compile_stage, StageTables};
 pub use tables::Tables;
 
 use std::fmt;

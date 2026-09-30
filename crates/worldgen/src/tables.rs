@@ -236,6 +236,11 @@ pub const C2: [(&str, f64); 11] = [
     ("tilt.desk.mach", 0.0),
 ];
 
+/// The one machine type a county may name in `regions.csv` (WORLD-V2 §9.1; decision 327): the
+/// horse, which v1 compiles as its flow machine (rule A's collapse at rho = 0) and stage v2a.1 as a
+/// durable good.
+pub const MACHINE_TYPE: &str = "horse";
+
 /// The ticks a year every world runs at: the probe's registered tick (decisions 121, 237), at
 /// which its battery, its kicks and the demo's long run are evidence. The compiler refuses any
 /// other clock, as it refuses dials off their set (O39, D2.1).
@@ -330,7 +335,8 @@ pub struct County {
     pub textile_from: Option<i32>,
     /// Reserved: the county's categories (now `good`).
     pub categories: Vec<String>,
-    /// Reserved: its machine types (now `mach`).
+    /// Its machine types: the one durable good its flow machine stands for, `horse` (decision
+    /// 327). v1 compiles it as its flow machine; a stage as the durable good.
     pub machine_types: Vec<String>,
     /// Reserved: its carriers (now none).
     pub carriers: Vec<String>,
@@ -1000,13 +1006,16 @@ fn regions(text_: &str, atlas: &Atlas, w: &World) -> Result<Vec<County>, Compile
         let categories = list(r.get(t.col("categories")));
         let machine_types = list(r.get(t.col("machine_types")));
         let carriers = list(r.get(t.col("carriers")));
-        // Reserved (WORLD.md §7): more categories and machine types wait for the many-market
-        // roles, and carriers for transport desks and an equilibrium with trade.
-        if categories != ["good"] || machine_types != ["mach"] || !carriers.is_empty() {
+        // Reserved (WORLD.md §7): more categories wait for the many-market roles, and carriers
+        // for transport desks and an equilibrium with trade. The one machine type is the horse
+        // (WORLD-V2 §9.1; decision 327): v1 compiles it as its flow machine, rule A's collapse
+        // at rho = 0, and a stage (`--stage v2a1`) as the durable good machine_types.csv defines.
+        if categories != ["good"] || machine_types != [MACHINE_TYPE] || !carriers.is_empty() {
             return Err(CompileError::new(
                 format!("{wr} {key}"),
-                "categories `good`, machine_types `mach` and no carriers: more wait for the \
-                 many-market roles and transport desks (docs/demo/WORLD.md §7)",
+                "categories `good`, machine_types `horse` and no carriers: more wait for the \
+                 many-market roles, the goods chain's later stages and transport desks \
+                 (docs/demo/WORLD.md §7, WORLD-V2.md §9.1)",
             ));
         }
         let why = r.get(t.col("why")).to_string();

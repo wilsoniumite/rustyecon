@@ -395,7 +395,7 @@ fn the_compiler_refuses_bad_tables() {
     // Reserved columns: more categories wait for the many-market roles.
     has(
         &refused("regions.csv", |t| {
-            t.replacen(",good,mach,,", ",good food,mach,,", 1)
+            t.replacen(",good,horse,,", ",good food,horse,,", 1)
         }),
         "WORLD.md §7",
     );
