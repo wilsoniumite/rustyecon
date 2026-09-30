@@ -3,7 +3,8 @@
 //! ```text
 //! markets run NAME...     [options]  run named perturbations (see `probe::markets::perturb`)
 //! markets family FAMILY   [options]  run a family: battery, tier3s, stocks, joint2, joint4, basin,
-//!                                    history (tier3s reads its first year's D̂ as its start)
+//!                                    history, and at the commons enclose (tier3s reads its first
+//!                                    year's D̂ as its start)
 //! markets list FAMILY     [options]  print a family's run names (the battery with tier and slack)
 //! markets tape [NAME]     [options]  print the tape a run is made from
 //! markets kick NAME...    [options]  the kick set at the end of each named run (§7.5)
@@ -12,7 +13,8 @@
 //! markets point           [options]  the oracle's point, at the base and each cost target
 //!
 //! setup options (probe::markets::cli):
-//!   --inst ID              i0, i1, i2, i3, l2, l3, g1, or the wall's iw1 and ic1 (default i1)
+//!   --inst ID              i0, i1, i2, i3, l2, l3, g1, the wall's iw1 and ic1, or the commons'
+//!                          c1, c2 and c1n (default i1)
 //!   --tpy N                ticks a year (default 52)
 //!   --dials c2m|c2l        the registered dial set (default c2m)
 //!   --set KEY=VALUE        set a dial; rate.*, buffer.* and adjust.* scale a family, tilt.* sets
@@ -30,7 +32,8 @@
 //!
 //! Each run prints one summary line: its class (PROBE-SPEC §4.5) and the reported numbers, with
 //! §7.11's transient statistics in long form in `stats.tsv`; at the wall (`--inst iw1`, `ic1`)
-//! `stats.tsv` adds the wall's readouts (`wall.*`; docs/probe/WALL-RULES.md §5).
+//! `stats.tsv` adds the wall's readouts (`wall.*`; docs/probe/WALL-RULES.md §5), and at the
+//! commons (`--inst c1`, `c2`, `c1n`) the commons' (`commons.*`; docs/probe/COMMONS-RULES.md §5).
 
 use probe::harness::{Class, Summary};
 use probe::markets::cli::parse;
@@ -267,6 +270,24 @@ fn stats_lines(rec: &Record) -> Vec<String> {
         }
         put("wall.worst_buyer_fill", "-", g(w.worst_buyer_fill));
     }
+    // The commons' readouts (the commons frame's §3.8), reported and never scored.
+    if let Some(c) = &st.commons {
+        for (k, n) in ["Unused", "Commons", "Crowded", "Enclosed", "Split"]
+            .iter()
+            .zip(c.ticks)
+        {
+            put("commons.regime_ticks", k, n.to_string());
+        }
+        put("commons.switches", "-", c.switches.to_string());
+        put("commons.regime_end", "-", c.end.clone());
+        put("commons.regime_star", "-", c.star.clone());
+        put("commons.ro_low", "-", g(c.rent.0));
+        put("commons.ro_high", "-", g(c.rent.1));
+        put("commons.ro_end", "-", g(c.rent.2));
+        put("commons.ro_star", "-", g(c.rent_star));
+        put("commons.tp_max", "-", g(c.rented_max));
+        put("commons.provider_coin_low", "-", g(c.provider_coin_low));
+    }
     out
 }
 
@@ -355,6 +376,13 @@ fn print_point(inst: &Instance, tpy: u32) -> Result<(), String> {
             print!(
                 "\tmargin {}\tn_D {:?}\treserved wages {:?}\thours {:?}\tpop baskets {:?}\tprovider baskets {:?}",
                 e.margin, e.pool, e.wage, e.hours, e.pop_baskets, e.provider_baskets
+            );
+        }
+        if let Some(c) = &e.commons {
+            print!(
+                "\tplots {}\tland {}\tr_o {:?}\tT_p {:?}\tcommons used {:?}\texit value {:?}\tS {:?}\tworker baskets {:?}\tprovider baskets {:?}\tfunded {}\tcertified {}",
+                c.regime, c.land_market, c.plot_rent, c.rented, c.occupied, c.exit_value, e.pool,
+                e.worker_baskets, e.provider_baskets, c.funded, c.certified
             );
         }
         println!();

@@ -16,7 +16,11 @@ stand"; [docs/probe/results/commons/registration.md](docs/probe/results/commons/
 the frame `frame-commons` (I1 with one priced worker type in food and a commons the workers hold,
 full at C1 and with room at C2; the commons no market, its plots given out by the participation
 rule) and its mirror's predictions, GO for both, fixed before any engine code for them, with 368's
-Tier 3S added from the same mirror; decisions 398–399, O96 amended, O100–O106. The build is next.
+Tier 3S added from the same mirror; decisions 398–399, O96 amended, O100–O106. **They are
+built** (P2.3.6; [docs/probe/COMMONS-RULES.md](docs/probe/COMMONS-RULES.md)): the workers'
+optional `exit`, C1, C2 and C1N on unit 1e, `tapes/markets-c1.ron` and `markets-c2.ron`, the
+harness at the commons and 16 tests, with every committed tape's text, ids and streams unchanged.
+E0, the scorer and the scored wave are next.
 **The wall instance IW1 is built, and E0–E2 pass** (P2.3.2–P2.3.4; "Where things
 stand"; [docs/probe/WALL-RULES.md](docs/probe/WALL-RULES.md),
 [docs/probe/results/wall/e0.md](docs/probe/results/wall/e0.md)): the roles' three optional
@@ -157,6 +161,37 @@ many-market roles (O27), which may now start from the goods chain's stage v2a.1 
 on D-G12. "Next steps" has each.
 
 ## Where things stand
+
+**The open-commons instances' build (P2.3.6; 2026-09-30).** Branch `phase2-proper` (worktree
+`D:/rustyecon-wt/p23`, scratch `D:/rustyecon-p23/build-commons/`). As built:
+[docs/probe/COMMONS-RULES.md](docs/probe/COMMONS-RULES.md); ENGINE.md and TAPE.md, "Amended at
+P2.3.6".
+- **The roles' addition** (decision 398): one optional field, the workers' `exit` (the exit good,
+  s₀, s̲, h, the commons T_o and the plots' land). Their hours become min(max(n(0), N − T_o/h),
+  n(r̂)) through `workers_participation`, which the harness reads too; plots that spill onto
+  enclosed land are bought at r in the chain of their baskets and burned in `produce`. No new
+  kind, state or market rule; the field is skipped when absent, raw and resolved.
+- **The instances** (decision 399): C1, C2 and the negative control C1N in `probe::markets`,
+  solved by unit 1e's `ParcelEconomy`; at the 26 targets the harness's point is the frame's
+  50-digit solve within 1e-13. The tapes are `tapes/markets-c1.ron` and `markets-c2.ron` (the
+  frame's names in lower case; the run's brief said `p2-commons*`).
+- **The harness at the commons**: targets from 1e (labour's S, land's T in force); the plots'
+  regime, shadow rent and T_p each tick through the workers' own rule, with `commons.*` lines in
+  `stats.tsv`; `commons=V` and `enclose=F`; the battery (115) and the tier3s, stocks, joint,
+  basin, history and enclose families equal the registered runs name for name.
+- **R1.** The 23 committed tapes' 2,000-tick hash streams, `tape_hash` and `world_id` equal the
+  pre-build binary's (`7ea124d`); with the exit switched off the workers are P2.1's bit for bit,
+  rule by rule over 3,000 states and run by run over 2,000 ticks.
+- **Tests**: four in `crates/agents/tests/commons.rs` and twelve in `crates/probe/tests/commons.rs`
+  (COMMONS-RULES §6); two existing tests read C1's tape too. 30 mutants, one per change undone,
+  each killed; three survived a first pass and their tests were strengthened before this commit.
+- **The gates**: `scripts/gate.sh` and `scripts/gui.sh` are green on WSL and Windows, 1,007 tests
+  passed and 4 ignored on each; gate hash `0x61f9c8529131ff17`, appb `0xe1fa082b26995867`, demo-gb
+  `0xfad880fe08d06645`. The stamp is `7ea124d`, dirty: this build before its commit.
+- **Development runs** before E0, disclosed (COMMONS-RULES §6.5): a trace diff on the
+  uncommitted build found C1 and C2 within 2.6e-14 of the mirror, and the negative control's trap
+  run parting from tick 41, where the engine is still the mirror's one-step map. A1 (next)
+  answers it.
 
 **The open-commons instances' registration (P2.3.5; 2026-09-30).** Branch `phase2-proper`
 (worktree `D:/rustyecon-wt/p23`, scratch `D:/rustyecon-p23/frame-commons/` and `build-commons/`).
@@ -4852,6 +4887,12 @@ docs/probe/wall/         the wall frame's inputs, byte for byte as registered (P
 docs/probe/WALL-RULES.md the wall instance's build as built (P2.3.2): the roles' three optional
                          fields, IW1 and IC1 on unit 1d, the harness at the wall, the checks
 docs/probe/results/wall/ the wall's registration (P2.3.1) and its amendments, E0's record
+docs/probe/commons/      the commons frame's inputs, as registered (P2.3.5, LF endings): SPEC.md,
+                         SHA256SUMS and registered/ (the run-by-run outputs the scorer reads)
+docs/probe/COMMONS-RULES.md the open-commons instances' build as built (P2.3.6): the workers'
+                         exit, C1, C2 and C1N on unit 1e, the harness at the commons, the checks
+docs/probe/results/commons/ the commons' registration (P2.3.5) with Tier 3S's mirror runs, its
+                         amendments, E0's record
 docs/probe/results/loops/ the loop step's registration (L0.8), quoting LOOP-SPEC-A1's
                          predictions and FUNDED's county, with its sha256; E0-E2 (e0.md,
                          P2.2b.2); the scored runs' README and CSVs (P2.2b.3) with the reviews'

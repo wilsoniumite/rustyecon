@@ -20,6 +20,14 @@
 //! its baskets. The wall's own readouts (the depth, breach ticks, each desk's largest share, each
 //! pop's participation range and saturated ticks) are kept beside §7.11's statistics, reported and
 //! never scored.
+//!
+//! **At the commons** (an open-commons instance, P2.3; docs/probe/COMMONS-RULES.md §5): the
+//! targets are unit 1e's, labour's volume the supply S and land's the enclosed land T of the
+//! instance in force; a cost shock's start distance is read over every observable, as the wall's.
+//! Each tick the regime of the plots, the shadow rent over r and the plots' rented land are read
+//! through the workers' own rule (`workers_participation`) at the tick's posted prices and the
+//! params in force, so the readouts cannot part from what the workers did; they are kept beside
+//! §7.11's statistics, reported and never scored.
 
 use super::instance::{Instance, Point};
 use super::perturb::Perturbation;
@@ -32,11 +40,13 @@ use certify::fold::{max2, min2};
 use certify::Obs;
 use rustyecon_core::num;
 use rustyecon_core::num::ln;
-use rustyecon_core::FlowPerYear;
+use rustyecon_core::{CoreError, FlowPerYear, Site};
 use rustyecon_engine::prelude::{
     ActorId, ClassId, GoodId, Holder, PriceError, RunErrorKind, SideTag, Sim, Tape, TickReport,
 };
-use rustyecon_engine::rustyecon_agents::ActorState;
+use rustyecon_engine::rustyecon_agents::{
+    workers_participation, ActorState, AgentError, BasketWorkers, Participation, PlotRegime, Spec,
+};
 use std::collections::BTreeMap;
 
 /// The observables of an instance, in order (MARKETS-SPEC §7.1): `v`, `pi.<type>`,
@@ -227,11 +237,92 @@ pub struct Row {
     /// The wall's depth at the tick's posted prices, ln(θ·w/(p_τ·γ(1))) (the wall frame's
     /// §5.3): below 0 the machine comparison pins the wage again.
     pub depth: f64,
+    /// At the commons, the plots as the workers' rule read them this tick.
+    pub plots: Option<Plots>,
     /// The tick's ledger margin.
     pub margin: f64,
     /// Whether the tick is dead: some market did not trade, or cleared less than the live
     /// floor of its oracle volume.
     pub dead: bool,
+}
+
+/// The workers' plots on one tick (the commons frame's §3.8): the regime, the shadow rent over r
+/// and the enclosed land rented, as their rule formed them at the tick's posted prices.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Plots {
+    /// Where the plots stand.
+    pub regime: PlotRegime,
+    /// r_o/r: 0 on a commons with room, the shadow rent when crowded (or at the split, the rent
+    /// at which a plot stops paying), 1 when the plots spill onto enclosed land.
+    pub rent: f64,
+    /// T_p, the enclosed land the plots rent.
+    pub rented: f64,
+}
+
+/// The shadow rent r_o of the workers' plots, a readout that nobody receives (the commons
+/// frame's §3.8, `cm.shadow_rent`): 0 with room or no plot, r when the plots spill onto enclosed
+/// land, and when the commons is full (or at the split) the plot rent at which the rule's supply
+/// is its hours: F(e) = hours/N at e = (w − k·P_s)/(1 + k), k = expm1(χ_max·hours/N), and
+/// r_o = (p_g·s₀ − e)/h, at most r.
+pub fn shadow_rent(p: &Participation, chi: f64, w: f64, pg: f64, s0: f64, h: f64, r: f64) -> f64 {
+    match p.regime {
+        PlotRegime::Unused | PlotRegime::Commons => 0.0,
+        PlotRegime::Enclosed => r,
+        PlotRegime::Crowded | PlotRegime::Split => {
+            let k = num::expm1(p.hours / p.heads * chi);
+            let e = (w - k * p.basket_price) / (1.0 + k);
+            ((pg * s0 - e) / h).min(r)
+        }
+    }
+}
+
+/// The workers' plots as their rule forms them from `sim`'s params in force and the posted
+/// prices `price_of` (by good), with the shadow rent; `None` without an exit.
+pub fn plots_now(
+    sim: &Sim,
+    workers: &BasketWorkers,
+    price_of: &dyn Fn(GoodId) -> Option<f64>,
+) -> Result<Option<Plots>, String> {
+    let Some(x) = &workers.exit else {
+        return Ok(None);
+    };
+    let clock = &sim.world().clock;
+    let par = |s: Site| -> Result<f64, AgentError> {
+        let v = sim
+            .param(s.param)
+            .ok_or(AgentError::Core(CoreError::UnknownParam(s.param)))?;
+        s.convert(clock, v).map_err(AgentError::Core)
+    };
+    let pr = |g: GoodId| -> Result<f64, AgentError> {
+        price_of(g)
+            .ok_or_else(|| AgentError::Core(CoreError::Shape(format!("no posted price for {g}"))))
+    };
+    let Some(p) = workers_participation(workers, &par, &pr).map_err(|e| e.to_string())? else {
+        return Ok(None);
+    };
+    let f = |e: AgentError| e.to_string();
+    let (w, pg, r) = (
+        pr(workers.labour).map_err(f)?,
+        pr(x.good).map_err(f)?,
+        pr(x.land).map_err(f)?,
+    );
+    let chi = par(workers.chi_max).map_err(f)?;
+    let (s0, h) = (par(x.gross).map_err(f)?, par(x.plot).map_err(f)?);
+    Ok(Some(Plots {
+        regime: p.regime,
+        rent: shadow_rent(&p, chi, w, pg, s0, h, r) / r,
+        rented: p.plots,
+    }))
+}
+
+/// The regime's name as the frame's mirror labels it (`cm.exit_rule`): the split is `Crowded`.
+pub fn mirror_regime(r: PlotRegime) -> &'static str {
+    match r {
+        PlotRegime::Unused => "Unused",
+        PlotRegime::Commons => "Commons",
+        PlotRegime::Crowded | PlotRegime::Split => "Crowded",
+        PlotRegime::Enclosed => "Enclosed",
+    }
 }
 
 /// The CSV header of [`Row::csv`], for an instance.
@@ -274,6 +365,11 @@ pub fn csv_header(inst: &Instance) -> String {
             h.push(format!("part_{k}"));
         }
         h.push("depth".into());
+    }
+    if inst.exit.is_some() {
+        for k in ["part_workers", "regime", "ro_over_r", "plots_rented"] {
+            h.push(k.into());
+        }
     }
     h.join(",")
 }
@@ -323,6 +419,20 @@ impl Row {
             }
             v.push(format!("{:?}", self.depth));
         }
+        if inst.exit.is_some() {
+            v.push(format!(
+                "{:?}",
+                self.participation.first().copied().unwrap_or(f64::NAN)
+            ));
+            match &self.plots {
+                Some(p) => {
+                    v.push(format!("{:?}", p.regime));
+                    v.push(format!("{:?}", p.rent));
+                    v.push(format!("{:?}", p.rented));
+                }
+                None => v.extend(["-".to_string(), "-".into(), "-".into()]),
+            }
+        }
         v.join(",")
     }
 }
@@ -341,6 +451,8 @@ struct Ids {
     classes: Vec<ClassId>,
     /// The number of desks: the actors before the households.
     desks: usize,
+    /// The pool's workers' resolved spec, where they hold a priced exit (the commons).
+    exit_workers: Option<BasketWorkers>,
 }
 
 impl Ids {
@@ -349,7 +461,16 @@ impl Ids {
         let good = |k: &str| w.id_of::<GoodId>(k).ok_or(format!("no good {k}"));
         let actor = |k: &str| w.id_of::<ActorId>(k).ok_or(format!("no actor {k}"));
         let class = |k: &str| w.id_of::<ClassId>(k).ok_or(format!("no class {k}"));
+        let exit_workers = w
+            .actors
+            .iter()
+            .find(|a| a.key.as_str() == "workers")
+            .and_then(|a| match &a.spec {
+                Spec::BasketWorkers(p) if p.exit.is_some() => Some(p.clone()),
+                _ => None,
+            });
         Ok(Ids {
+            exit_workers,
             desks: inst.desks().len(),
             goods: inst
                 .markets()
@@ -500,6 +621,14 @@ fn row(
     // The depth at the posted prices this tick settled at (the wall frame's §5.3).
     let tau = inst.task_type()?;
     let depth = ln((inst.types[tau].theta * w) / (price[2 + tau] * gamma_top(inst)));
+    // The plots, through the workers' own rule at the prices this tick settled at.
+    let plots = match &ids.exit_workers {
+        Some(p) => {
+            let price_of = |g: GoodId| o.markets.iter().find(|l| l.good == g).map(|l| l.price);
+            plots_now(sim, p, &price_of)?
+        }
+        None => None,
+    };
     let gap: Vec<f64> = obs
         .iter()
         .zip(&target.obs)
@@ -536,6 +665,7 @@ fn row(
         binding,
         participation,
         depth,
+        plots,
         margin: o.margin,
         dead,
     })
@@ -794,6 +924,78 @@ pub struct Stats {
     pub depth: Option<(f64, f64, f64)>,
     /// The wall's own readouts, at a worker-form instance (the wall frame's §5.3).
     pub wall: Option<Wall>,
+    /// The commons' readouts, at an open-commons instance (the commons frame's §3.8).
+    pub commons: Option<CommonsStats>,
+}
+
+/// The commons' readouts over the scored run (the commons frame's §3.8; `battery_c.run`'s),
+/// reported and never scored: the plots' regime tick by tick, the shadow rent over r, the plots'
+/// rented land, and the provider's coin, each read through the workers' own rule.
+#[derive(Debug, Clone, PartialEq)]
+pub struct CommonsStats {
+    /// Ticks in each regime: unused, Commons, Crowded, Enclosed, and the split, apart.
+    pub ticks: [u64; 5],
+    /// Switches between the mirror's labels (`mirror_regime`: the split counted as Crowded).
+    pub switches: u64,
+    last: Option<&'static str>,
+    /// The regime on the last tick, the mirror's label.
+    pub end: String,
+    /// The target's regime on the last tick, unit 1e's `ExitLand` by name.
+    pub star: String,
+    /// r_o/r: the lowest, the highest and the last.
+    pub rent: (f64, f64, f64),
+    /// The target's r_o over r = 1 on the last tick.
+    pub rent_star: f64,
+    /// The largest T_p.
+    pub rented_max: f64,
+    /// The provider's lowest coin after a tick over its genesis coin (1 if it never falls).
+    pub provider_coin_low: f64,
+    provider_genesis: f64,
+}
+
+impl CommonsStats {
+    fn new(provider_genesis: f64) -> CommonsStats {
+        CommonsStats {
+            ticks: [0; 5],
+            switches: 0,
+            last: None,
+            end: String::new(),
+            star: String::new(),
+            rent: (f64::INFINITY, f64::NEG_INFINITY, f64::NAN),
+            rent_star: f64::NAN,
+            rented_max: 0.0,
+            provider_coin_low: 1.0,
+            provider_genesis,
+        }
+    }
+
+    fn push(&mut self, row: &Row, t: &Target, provider: usize) {
+        if let Some(p) = &row.plots {
+            let k = match p.regime {
+                PlotRegime::Unused => 0,
+                PlotRegime::Commons => 1,
+                PlotRegime::Crowded => 2,
+                PlotRegime::Enclosed => 3,
+                PlotRegime::Split => 4,
+            };
+            self.ticks[k] += 1;
+            let label = mirror_regime(p.regime);
+            if self.last.is_some_and(|l| l != label) {
+                self.switches += 1;
+            }
+            self.last = Some(label);
+            self.end = label.to_string();
+            self.rent = (min2(self.rent.0, p.rent), max2(self.rent.1, p.rent), p.rent);
+            self.rented_max = max2(self.rented_max, p.rented);
+        }
+        if let Some(c) = &t.point.commons {
+            self.star = c.regime.clone();
+            self.rent_star = c.plot_rent;
+        }
+        if let Some(&c) = row.coin.get(provider) {
+            self.provider_coin_low = min2(self.provider_coin_low, c / self.provider_genesis);
+        }
+    }
 }
 
 /// The wall's own readouts over the scored run (the wall frame's §5.3; decision 396), reported
@@ -879,6 +1081,7 @@ impl Stats {
             worst_fill: 1.0,
             depth: None,
             wall: inst.worker_form.then(|| Wall::new(inst)),
+            commons: None,
         }
     }
 
@@ -966,6 +1169,10 @@ impl Stats {
         if let Some(w) = self.wall.as_mut() {
             w.push(row);
         }
+        if let Some(c) = self.commons.as_mut() {
+            // The provider's coin: the first household, after the desks.
+            c.push(row, t, t.output.len());
+        }
     }
 }
 
@@ -1017,7 +1224,9 @@ pub fn run(
     let mut sim = Sim::new(&tape).map_err(|e| format!("the tape does not load: {e}"))?;
     let ids = Ids::of(&sim, &inst)?;
     let g = genesis(&setup)?;
-    let land = sim.world().clock.flow(FlowPerYear(setup.instance.land));
+    let c = crate::setup::clock(setup.tpy)?;
+    // Land clears the enclosed land T of the instance in force (it moves under `enclose`, P2.3).
+    let land = c.flow(FlowPerYear(setup.instance.land));
     let names = observables(&inst);
     let markets = inst.markets();
     let class_names: Vec<String> = sim.world().classes.iter().map(|k| k.to_string()).collect();
@@ -1035,7 +1244,7 @@ pub fn run(
             return Ok(t.clone());
         }
         let i = setup.instance_at(tick)?;
-        let t = Target::of(&i, &i.point(setup.tpy)?, land);
+        let t = Target::of(&i, &i.point(setup.tpy)?, c.flow(FlowPerYear(i.land)));
         targets.push((key, t.clone()));
         Ok(t)
     };
@@ -1072,7 +1281,7 @@ pub fn run(
                 .fold(0.0, f64::max)
                 / TOL_FLOOR
         }
-        Start::Shock if inst.worker_form => {
+        Start::Shock if inst.worker_form || inst.exit.is_some() => {
             target_distance(&t0, &Target::of(&inst, &g.point, land))
         }
         Start::Shock => shock_distance(&t0.point, &g.point),
@@ -1081,6 +1290,9 @@ pub fn run(
     let total = clock_start + ticks;
     let mut classifier = Classifier::new(ticks, names.len(), n_prices);
     let mut stats = Stats::new(&inst);
+    if inst.exit.is_some() {
+        stats.commons = Some(CommonsStats::new(g.coin[ids.desks]));
+    }
     let mut stop = Stop::Ran;
     let mut last: Option<Row> = None;
     let mut hold_failure = None;

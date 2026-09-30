@@ -16,7 +16,8 @@
 //! θ in (0, 1], a plant that wears by less than all of it a tick, a positive size, the cash rule,
 //! a bundle that costs something, and a plant good of its own; the herd's target is a capacity
 //! desk's only; a planted type desk has no own input, and a planted maker is on the stock path
-//! and uses no hours of its own horses.
+//! and uses no hours of its own horses. The workers' priced exit (P2.3, the commons) rents an
+//! `Instant` land, the land of the provider that pays their support, and has land for every plot.
 
 use crate::behaviour::{AgentError, Behaviour, Decision, Posted, View};
 use crate::ext::{
@@ -24,7 +25,7 @@ use crate::ext::{
     PlantedCapacityState, PlantedMakerState, PlantedTypeState, ProviderState, ScriptState,
     WorkersState,
 };
-use crate::roles::many::spec::{BasketProvider, BasketWorkers, CategoryDesk, TypeDesk};
+use crate::roles::many::spec::{BasketProvider, BasketWorkers, CategoryDesk, PricedExit, TypeDesk};
 use crate::roles::plant::rules::{PlantedCapacity, PlantedMaker, PlantedType};
 use crate::roles::plant::spec::{Plant, PlantTarget};
 use crate::roles::spec::{GoodDesk, MachDesk, Provider, Scale, Workers};
@@ -162,6 +163,59 @@ fn at_genesis(
         .map_err(|e| invalid(decl, field, &e.to_string()))
 }
 
+/// The checks on the workers' priced exit that need the whole world (the commons frame's §3.4,
+/// checks 2 to 5): the plots' land is `Instant` and is the land of the basket provider whose
+/// transfer pays the workers' support (ν = 1: a pop with an exit must be one); and there is land
+/// for every plot, T + T_o > h·N at genesis, T that provider's endowment (unit-1e.md §3.2). Check
+/// 3, s₀, s̲, h and T_o finite and not negative, is the registry's: every param's value is finite
+/// with a clear sign bit.
+fn check_exit(
+    w: &World<Agents>,
+    decl: &ActorDecl<Spec>,
+    p: &BasketWorkers,
+    x: &PricedExit,
+) -> Result<(), LoadError> {
+    if w.good(x.land).map(|d| d.life) != Some(Life::Instant) {
+        return Err(invalid(
+            decl,
+            "exit.land",
+            "the plots' land is an Instant good, rented and used within the tick",
+        ));
+    }
+    let provider = w.actors.iter().find_map(|a| match &a.spec {
+        Spec::BasketProvider(bp) if bp.transfer_to == decl.id => Some((a, bp)),
+        _ => None,
+    });
+    let Some((pd, bp)) = provider else {
+        return Err(invalid(
+            decl,
+            "exit",
+            "a pop with an exit is paid its support: it must be a basket provider's transfer.to \
+             (ν = 1)",
+        ));
+    };
+    if bp.land != x.land {
+        return Err(invalid(
+            decl,
+            "exit.land",
+            "the plots rent the land that pays the workers' support: their provider's endowment",
+        ));
+    }
+    let h = at_genesis(w, decl, x.plot, "exit.plot")?;
+    let to = at_genesis(w, decl, x.commons, "exit.commons")?;
+    let t = at_genesis(w, pd, bp.endowment, "endowment")?;
+    let n = at_genesis(w, decl, p.heads, "heads")?;
+    if t + to <= h * n {
+        return Err(invalid(
+            decl,
+            "exit.plot",
+            "land for every plot: T + T_o > h·N at genesis, T the provider's endowment \
+             (unit-1e.md §3.2)",
+        ));
+    }
+    Ok(())
+}
+
 /// Whether a stock role's durable good takes the flow path (HORSES-SPEC §3, SG6 and SG7): an
 /// `Indefinite` good is a stock worn by δ < 1 a tick; a good that lives one tick is the probe's
 /// flow service, at δ = 1 a tick exactly; any other life is refused.
@@ -214,7 +268,12 @@ fn bought(s: &Spec) -> Vec<(GoodId, &'static str)> {
         Spec::GoodDesk(d) => vec![(d.labour, "labour"), (d.mach, "mach")],
         Spec::MachDesk(d) => vec![(d.labour, "labour"), (d.land, "land")],
         Spec::BasketProvider(p) => p.basket.iter().map(|i| (i.good, "basket")).collect(),
-        Spec::BasketWorkers(p) => p.basket.iter().map(|i| (i.good, "basket")).collect(),
+        Spec::BasketWorkers(p) => {
+            let mut v: Vec<(GoodId, &'static str)> =
+                p.basket.iter().map(|i| (i.good, "basket")).collect();
+            v.extend(p.exit.iter().map(|x| (x.land, "exit.land")));
+            v
+        }
         Spec::CategoryDesk(d) => {
             let mut v = vec![
                 (d.labour, "labour"),
@@ -444,6 +503,9 @@ impl Cast {
                 }
                 Spec::BasketWorkers(p) => {
                     check_role(w, decl, ActorKind::Pop, Some((p.labour, "labour")), None)?;
+                    if let Some(x) = &p.exit {
+                        check_exit(w, decl, p, x)?;
+                    }
                     Member::BasketWorkers(p.clone())
                 }
                 Spec::CategoryDesk(d) => {

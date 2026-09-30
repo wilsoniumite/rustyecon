@@ -24,6 +24,7 @@ const I0: &str = include_str!("../../../tapes/markets-i0.ron");
 const I2: &str = include_str!("../../../tapes/markets-i2.ron");
 const L3: &str = include_str!("../../../tapes/markets-l3.ron");
 const IW1: &str = include_str!("../../../tapes/markets-iw1.ron");
+const C1: &str = include_str!("../../../tapes/markets-c1.ron");
 const CLOSE: f64 = 1e-14;
 
 type W = World<Agents>;
@@ -171,14 +172,17 @@ fn many_roles_never_overbudget_or_overdraw() {
     // and markups tilted by up to 8, on I2 (space in the basket, a chain of types, a zero own
     // input) and L3 (desks that buy land, types that buy each other's services); and on the
     // wall tape IW1 (P2.3), whose desks buy a tail and reserved hours and whose provider pays
-    // further transfers.
-    for text in [I2, L3, IW1] {
+    // further transfers; and on the commons tape C1 (P2.3), whose workers hold a priced exit
+    // and a commons drawn over six decades, so that their plots rent enclosed land in some
+    // draws and they burn what they hold of it in produce.
+    for text in [I2, L3, IW1, C1] {
         let (w, genesis, cast) = load(text);
         let goods = traded(&w);
         let coin = good(&w, "coin");
         let actors: Vec<ActorId> = cast.actors().collect();
         let rates = params_with(&w, &["spend.", "buffer.", "adjust."]);
         let tilts = params_with(&w, &["tilt."]);
+        let commons = params_with(&w, &["inst.commons"]);
         let mut d = Draws(0x2026_0927_0001);
         for i in 0..3000 {
             let mut s = genesis.clone();
@@ -214,6 +218,9 @@ fn many_roles_never_overbudget_or_overdraw() {
             }
             for key in &tilts {
                 set_param(&mut s, &w, key, 8.0 * d.unit());
+            }
+            for key in &commons {
+                set_param(&mut s, &w, key, d.decades(-3.0, 3.0));
             }
             decide_and_admit(&mut s, &w, &cast);
             // Produce on arbitrary inputs: each role burns within what it holds.

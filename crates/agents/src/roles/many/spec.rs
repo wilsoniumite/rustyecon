@@ -8,8 +8,9 @@
 //! Every coefficient and dial is a registered param referenced by key and read at use time (R4,
 //! E1), so a dated `SetParam` retargets the actor. The only inline number is genesis state: the
 //! category desk's genesis human share 1 − x, and a step rule's genesis scale. Every field is
-//! required and none has a default but the type desk's `plant` (P2.2b) and the category desk's
-//! `tail` and `reserved` and the provider's `more` (P2.3), whose absence is off.
+//! required and none has a default but the type desk's `plant` (P2.2b), the category desk's
+//! `tail` and `reserved` and the provider's `more` (P2.3, the wall), and the workers' `exit`
+//! (P2.3, the commons), whose absence is off.
 //!
 //! **Lists keep the order written.** A basket's items, a category's segments and a type's bought
 //! services are evaluated in list order: P_s is summed from 0.0 in item order, a desk's budgets
@@ -87,6 +88,38 @@ pub struct RawBasketWorkers {
     /// Param key, unit `RatePerYear`, live: the share of their coin spent on baskets each tick.
     /// Required, no default.
     pub spend: Key,
+    /// `Option<RawPricedExit>`: the priced exit with a commons the workers hold (P2.3; the
+    /// commons frame's §3; docs/probe/COMMONS-RULES.md). `None` or absent is the dependence
+    /// form, and the role is P2.1's bit for bit; absent is not written, so every tape written
+    /// before the field keeps its canonical text, `tape_hash` and `world_id`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exit: Option<RawPricedExit>,
+}
+
+/// The priced exit with a commons (the commons frame's §3.1, §3.4; decisions 149 and 398), as the
+/// tape writes it: s(q) = max(s₀ − q·h, s̲) units of the exit good a head yields at home, on a plot
+/// of h land service, on the commons T_o the workers hold and never trade, or on enclosed land
+/// rented at the land market's price.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RawPricedExit {
+    /// Good key: g, the exit good, a traded good of the workers' basket (decision 151). Required,
+    /// no default.
+    pub good: Key,
+    /// Param key, unit `Dimensionless`, live: s₀, the exit good a head yields at home. Required,
+    /// no default.
+    pub gross: Key,
+    /// Param key, unit `Dimensionless`, live: s̲, the floor. Required, no default.
+    pub floor: Key,
+    /// Param key, unit `Dimensionless`, live: h, the land service a plot takes. Required, no
+    /// default.
+    pub plot: Key,
+    /// Param key, unit `FlowPerYear`, live: T_o, the commons the workers hold and never trade.
+    /// Required, no default.
+    pub commons: Key,
+    /// Good key: land, an `Instant` traded good some role is endowed with and sells, for plots
+    /// rented on enclosed land; not an item of the workers' basket. Required, no default.
+    pub land: Key,
 }
 
 /// A category's place on the shared task line (decision 60), as the tape writes it: the
@@ -254,6 +287,28 @@ pub struct BasketWorkers {
     pub basket: Vec<Item>,
     /// Their spending rate, a live `RatePerYear` param read as a `Share`.
     pub spend: Site,
+    /// Their priced exit and commons, if any (P2.3). `world_id` hashes the resolved actors by
+    /// bincode, so the field is left out when it is `None`, and a world without it keeps its
+    /// `world_id`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exit: Option<PricedExit>,
+}
+
+/// The resolved priced exit with a commons.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct PricedExit {
+    /// g, the exit good.
+    pub good: GoodId,
+    /// s₀, a live `Dimensionless` param.
+    pub gross: Site,
+    /// s̲, a live `Dimensionless` param.
+    pub floor: Site,
+    /// h, a live `Dimensionless` param.
+    pub plot: Site,
+    /// T_o, a live `FlowPerYear` param, per tick.
+    pub commons: Site,
+    /// The land plots rent on enclosed land.
+    pub land: GoodId,
 }
 
 /// The resolved category desk.
@@ -365,6 +420,12 @@ impl BasketWorkers {
         site(out, "chi_max".into(), self.chi_max);
         basket_sites(w, &self.basket, out);
         site(out, "spend".into(), self.spend);
+        if let Some(x) = &self.exit {
+            site(out, "exit.gross".into(), x.gross);
+            site(out, "exit.floor".into(), x.floor);
+            site(out, "exit.plot".into(), x.plot);
+            site(out, "exit.commons".into(), x.commons);
+        }
     }
 }
 
@@ -504,12 +565,64 @@ pub fn resolve_basket_workers(
         ));
     }
     let spend = live(r, &raw.spend, ClockMethod::Share, "spend")?;
+    let exit = match &raw.exit {
+        Some(x) => Some(resolve_exit(x, labour, &basket, r)?),
+        None => None,
+    };
     Ok(BasketWorkers {
         labour,
         heads,
         chi_max,
         basket,
         spend,
+        exit,
+    })
+}
+
+/// Resolve the workers' priced exit (the commons frame's §3.4, checks 1 and 2 by the spec alone):
+/// the exit good is a traded item of their basket; the land is traded, not their hours and not a
+/// basket item ("a basket with space and an exit plot" is refused for now, decision 398). That
+/// the land is `Instant` and some role's endowment, the params' genesis values, the land for every
+/// plot and the transfer are checked with the world (`Cast::new`).
+fn resolve_exit(
+    raw: &RawPricedExit,
+    labour: GoodId,
+    basket: &[Item],
+    r: &mut Resolver<'_>,
+) -> Result<PricedExit, LoadError> {
+    r.enter("exit");
+    let good = traded(r, &raw.good, "good")?;
+    if !basket.iter().any(|it| it.good == good) {
+        return Err(r.error(
+            "good",
+            LoadErrorKind::Invalid(
+                "the exit good is one of the workers' basket goods (decision 151)".into(),
+            ),
+        ));
+    }
+    let land = traded(r, &raw.land, "land")?;
+    if land == labour || basket.iter().any(|it| it.good == land) {
+        return Err(r.error(
+            "land",
+            LoadErrorKind::Invalid(
+                "the plots' land is not the workers' hours or a basket item: a basket with space \
+                 and an exit plot is refused for now (decision 398)"
+                    .into(),
+            ),
+        ));
+    }
+    let gross = value(r, &raw.gross, "gross")?;
+    let floor = value(r, &raw.floor, "floor")?;
+    let plot = value(r, &raw.plot, "plot")?;
+    let commons = live(r, &raw.commons, ClockMethod::Flow, "commons")?;
+    r.leave();
+    Ok(PricedExit {
+        good,
+        gross,
+        floor,
+        plot,
+        commons,
+        land,
     })
 }
 

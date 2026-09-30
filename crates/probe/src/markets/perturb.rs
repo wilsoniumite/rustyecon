@@ -20,12 +20,17 @@
 //! | `stock.D*F` | desk D's genesis stock of its output times F |
 //! | `joint(F,SEED)` | every price times F^u, then every s times 2^u, u uniform on [−1, 1] from a fixed generator seeded by SEED |
 //! | `cycle(C,P,N)` | N dated changes of C, P ticks apart from tick P, cycling ×1.1, ×0.9, ×2, ×0.5 and ×1 of its registered value |
+//! | `enclose=F@genesis`, `enclose=F@dated` | enclosure by law (the commons; P2.3): a share F of the commons T_o moved to the enclosed land T, both changed from tick 0 or at L/4 |
 //!
 //! On I0 the grammar is P2.0's with the markets named: `p[mach]` is `pm`, `p[good]` is `p`,
 //! `s[good]` is `s`, `stock.mach` is `mach`, `land.mach` is `b`, and `joint` draws in P2.0's
 //! order. At the wall (a worker-form instance, the wall frame's §5.2) `joint` draws in the
 //! frame's mirror's market order, labour, land, the categories, the types, then the reserved
 //! labour markets, and the battery and families are the frame's, named as its mirror names them.
+//! At the open-commons instances (the commons frame's §3.8; its registration §3) `joint` draws in
+//! its mirror's order, labour, land, the categories, then the type; the battery and families are
+//! named and ordered as its mirror's (`battery_c.run_list`), the commons' coefficient `commons`;
+//! and the basin's factors are written as the mirror ran them, `1.05**j` to 12 significant digits.
 
 use super::instance::Instance;
 use super::setup::{Setup, ShareAt, Shock};
@@ -58,6 +63,7 @@ enum Term {
     Stock(String, f64),
     Joint(f64, u64),
     Cycle(String, u64, u64),
+    Enclose(f64, bool),
 }
 
 fn number(s: &str) -> Result<f64, String> {
@@ -130,6 +136,13 @@ fn term(t: &str) -> Result<Term, String> {
     if let Some((c, rest)) = t.split_once('=') {
         let (v, when) = rest.split_once('@').ok_or("C=V@genesis or C=V@dated")?;
         number(v)?;
+        if c == "enclose" {
+            return match when {
+                "genesis" => Ok(Term::Enclose(number(v)?, false)),
+                "dated" => Ok(Term::Enclose(number(v)?, true)),
+                _ => Err(format!("{t}: enclose=F@genesis or enclose=F@dated")),
+            };
+        }
         return match when {
             "genesis" => Ok(Term::Genesis(c.to_string(), v.to_string())),
             "dated" => Ok(Term::Dated(c.to_string(), v.to_string())),
@@ -215,7 +228,9 @@ impl Perturbation {
                 Term::Hold => Start::Hold,
                 Term::Nominal(_) => Start::Nominal,
                 Term::Coin(..) | Term::Stock(..) => Start::Stocks,
-                Term::Genesis(..) | Term::Dated(..) | Term::Cycle(..) => Start::Shock,
+                Term::Genesis(..) | Term::Dated(..) | Term::Cycle(..) | Term::Enclose(..) => {
+                    Start::Shock
+                }
                 _ => Start::Prices,
             };
             start = match (start, this) {
@@ -242,7 +257,9 @@ impl Perturbation {
 
     /// Whether the run has a dated shock, which restarts the scored clock at L/4.
     pub fn dated(&self) -> bool {
-        self.terms.iter().any(|t| matches!(t, Term::Dated(..)))
+        self.terms
+            .iter()
+            .any(|t| matches!(t, Term::Dated(..) | Term::Enclose(_, true)))
     }
 
     /// The tick the scored clock starts at: a dated shock restarts it (PROBE-SPEC §4.4).
@@ -374,9 +391,10 @@ impl Perturbation {
                 Term::Joint(f, seed) => {
                     let mut g = SplitMix(*seed);
                     let mut draw = |base: f64| rustyecon_core::num::pow(base, g.signed());
-                    // The draw order: the markets' order, or at the wall the frame's mirror's
-                    // (labour, land, the categories, the types, the reserved labour markets).
-                    let order: Vec<usize> = if inst.worker_form {
+                    // The draw order: the markets' order, or at the wall and the commons the
+                    // frame's mirror's (labour, land, the categories, the types, the reserved
+                    // labour markets).
+                    let order: Vec<usize> = if inst.worker_form || inst.exit.is_some() {
                         let mut o = vec![0, 1];
                         o.extend((0..nc).map(cat_at));
                         o.extend((0..nt).map(type_at));
@@ -391,6 +409,30 @@ impl Perturbation {
                     for sh in x.share.iter_mut() {
                         let fs = draw(2.0);
                         times_share(sh, fs)?;
+                    }
+                }
+                Term::Enclose(f, dated) => {
+                    // Enclosure by law (unit-1e.md §2.2; the commons frame's §2.6): F·T_o of
+                    // the commons becomes enclosed land, as `cm.shocked` computes it, per year.
+                    let x = inst
+                        .exit
+                        .as_ref()
+                        .ok_or("enclose needs an instance with a commons")?;
+                    let moved = f * x.commons;
+                    let changes = [
+                        ("inst.commons".to_string(), x.commons - moved),
+                        ("inst.land".to_string(), inst.land + moved),
+                    ];
+                    for (param, value) in changes {
+                        if *dated {
+                            s.shocks.push(Shock {
+                                tick: ticks / 4,
+                                param,
+                                value,
+                            });
+                        } else {
+                            s.at_genesis.push((param, value));
+                        }
                     }
                 }
                 Term::Cycle(c, period, count) => {
@@ -454,6 +496,9 @@ pub fn slack(inst: &Instance, j: usize, x_star: f64, x: f64) -> bool {
 pub fn battery(inst: &Instance, tpy: u32) -> Result<Vec<Run>, String> {
     if inst.worker_form {
         return Ok(wall_battery(inst));
+    }
+    if inst.exit.is_some() {
+        return commons_battery(inst, tpy);
     }
     let e = inst.point(tpy)?;
     let mut out = Vec::new();
@@ -561,6 +606,89 @@ pub fn wall_battery(inst: &Instance) -> Vec<Run> {
     out
 }
 
+/// The open-commons battery (the commons frame's §5.3; decision 399), in its mirror's order and
+/// with its names (`battery_c.run_list`): each market's price at the six factors, market by market
+/// in the mirror's order (labour, land, the categories, the type); each category desk's share at
+/// the six factors; JA, JB and N, then RC, at the six factors; x\*/2; and each registered cost
+/// coefficient (land.mach, b.food, the commons) at ×1.1, ×0.9, ×2 and ×0.5, at genesis and dated.
+/// 115 runs; the share runs whose recipe does not change are marked slack.
+pub fn commons_battery(inst: &Instance, tpy: u32) -> Result<Vec<Run>, String> {
+    let e = inst.point(tpy)?;
+    let mut out = Vec::new();
+    let mut push = |name: String, tier: u8, slack: bool| out.push(Run { name, tier, slack });
+    for m in wall_markets(inst) {
+        for (fs, _, tier) in FACTORS {
+            push(format!("p[{m}]*{fs}"), tier, false);
+        }
+    }
+    for (j, c) in inst.categories.iter().enumerate() {
+        for (fs, fv, tier) in FACTORS {
+            let x = 1.0 - e.one_minus_x * fv;
+            push(
+                format!("s[{}]*{fs}", c.key),
+                tier,
+                slack(inst, j, e.x_star, x),
+            );
+        }
+    }
+    let mut shapes = vec!["JA", "JB", "N"];
+    if inst.categories.len() > 1 {
+        shapes.push("RC");
+    }
+    for shape in shapes {
+        for (fs, _, tier) in FACTORS {
+            push(format!("{shape}({fs})"), tier, false);
+        }
+    }
+    push("x*/2".into(), 3, false);
+    for c in &inst.coefs {
+        for (k, v) in c.values.iter().enumerate() {
+            let tier = if k < 2 { 2 } else { 3 };
+            push(format!("{}={v}@genesis", c.name), tier, false);
+            push(format!("{}={v}@dated", c.name), tier, false);
+        }
+    }
+    Ok(out)
+}
+
+/// Python's `%.12g` of x (the commons mirror's basin names, `battery_c`): x to 12 significant
+/// digits, correctly rounded, trailing zeros and a trailing point dropped, positional where the
+/// decimal exponent is in [−4, 12) and scientific (`1.5e-05`) outside it.
+pub fn g12(x: f64) -> String {
+    let sci = format!("{x:.11e}");
+    let Some((mant, exp)) = sci.split_once('e') else {
+        return sci;
+    };
+    let Ok(exp) = exp.parse::<i32>() else {
+        return sci;
+    };
+    let neg = mant.starts_with('-');
+    let digits: String = mant.chars().filter(char::is_ascii_digit).collect();
+    let trim = |s: String| -> String {
+        if s.contains('.') {
+            s.trim_end_matches('0').trim_end_matches('.').to_string()
+        } else {
+            s
+        }
+    };
+    let body = if !(-4..12).contains(&exp) {
+        let m = trim(format!("{}.{}", &digits[..1], &digits[1..]));
+        let sign = if exp < 0 { '-' } else { '+' };
+        format!("{m}e{sign}{:02}", exp.abs())
+    } else if exp >= 0 {
+        let k = (exp + 1) as usize;
+        trim(format!("{}.{}", &digits[..k], &digits[k..]))
+    } else {
+        let zeros = "0".repeat((-exp - 1) as usize);
+        trim(format!("0.{zeros}{digits}"))
+    };
+    if neg {
+        format!("-{body}")
+    } else {
+        body
+    }
+}
+
 /// The markets in the wall frame's mirror's order: labour, land, the categories, the types, then
 /// the reserved labour markets.
 pub fn wall_markets(inst: &Instance) -> Vec<String> {
@@ -638,11 +766,45 @@ pub fn family(inst: &Instance, tpy: u32, name: &str) -> Result<Vec<String>, Stri
         // §7.10 item 6.
         "joint2" => (1..=60).map(|k| format!("joint(2,{k})")).collect(),
         "joint4" => (1..=40).map(|k| format!("joint(4,{k})")).collect(),
-        // §7.10 item 8: the first coefficient cycled through its battery values and back.
+        // §7.10 item 8: the first coefficient cycled through its battery values and back; at
+        // the commons (the commons frame's §5.4 item 4) the commons as well, across its regimes.
+        "history" if inst.exit.is_some() => vec![
+            "cycle(land.mach,1500,80)".to_string(),
+            "cycle(commons,1500,80)".to_string(),
+        ],
         "history" => match inst.coefs.first() {
             Some(c) => vec![format!("cycle({},1500,80)", c.name)],
             None => Vec::new(),
         },
+        // The commons frame's §5.4 item 7: enclosure by law, half and all of the commons.
+        "enclose" if inst.exit.is_some() => {
+            let mut v = Vec::new();
+            for f in ["0.5", "1"] {
+                for when in ["genesis", "dated"] {
+                    v.push(format!("enclose={f}@{when}"));
+                }
+            }
+            v
+        }
+        // The commons frame's §5.4 item 3 (`run_battery_c.basin_jobs`): w, r, the exit good
+        // (food, the largest share), the machine and the exit good's technique, at 1.05^j written
+        // to 12 significant digits, j = −43 … 43 but 0; a share past 1 is set to 1 (genesis).
+        "basin" if inst.exit.is_some() => {
+            let x = inst.exit.as_ref().ok_or("no exit")?;
+            let mut vars = vec!["labour".to_string(), "land".to_string(), x.good.clone()];
+            vars.extend(inst.types.iter().map(|t| t.key.clone()));
+            let mut v = Vec::new();
+            let js = || (-43i32..=43).filter(|&j| j != 0);
+            for var in &vars {
+                for j in js() {
+                    v.push(format!("p[{var}]*{}", g12(pow_whole(1.05, j))));
+                }
+            }
+            for j in js() {
+                v.push(format!("s[{}]*{}", x.good, g12(pow_whole(1.05, j))));
+            }
+            v
+        }
         // §7.10 item 7: 1.05^j out to ×/÷8 for w, r, the largest-share good, each type, and
         // the technique of the desk with the most tasks at x* (s only while s ≤ 1).
         // At the wall (the wall frame's §5.2): w, r, the largest-share good, each type and each

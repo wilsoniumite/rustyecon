@@ -22,6 +22,13 @@
 //! provider's optional `more` pays further transfers N_i·P_s in list order from the coin left,
 //! its state holding the sums. With all three absent every rule is P2.1's bit for bit.
 //!
+//! **The commons' addition** (P2.3; docs/probe/COMMONS-RULES.md): the workers' optional `exit`,
+//! the priced exit s(q) in an exit good of their basket with a commons they hold and never trade.
+//! Their hours become min(max(n(0), N − T_o/h), n(r̂)) ([`workers_participation`]), and where the
+//! plots spill onto enclosed land they buy it at r in the chain of their baskets and burn it in
+//! `produce`. Without it the workers take P2.1's path, and with it switched off (s₀ = s̲ = 0) they
+//! make P2.1's hours, orders and share bit for bit.
+//!
 //! The arithmetic cannot fail, as RULES §2 says of the Appendix B roles: every budget is capped
 //! by the copy of the holding and taken from it, each after the first is at most
 //! `max_remainder(outlay, spent so far)`, sells take from the same copy, and recipes run at
@@ -37,7 +44,7 @@ use crate::roles::rules::{
     burn, buy, leontief, offer, param, price, scale_outlay, sell, set, take, Delta, Margin, Tasks,
 };
 use rustyecon_core::num;
-use rustyecon_core::{Amount, GoodId, Holder, Inventory, Provenance, StateDelta};
+use rustyecon_core::{Amount, GoodId, Holder, Inventory, Provenance, Site, StateDelta};
 
 /// Budgets out of one outlay, a chain over the wanted budgets (MARKETS-SPEC §2.6): the first at
 /// most its want, the outlay and the coin the copy holds; each later one at most its want,
@@ -75,11 +82,159 @@ pub(crate) fn budget_chain(
 
 /// P_s = Σ_j z_j·p_j at posted prices, summed from 0.0 in item order.
 fn basket_price<S>(v: &View<'_, S>, items: &[Item]) -> Result<f64, AgentError> {
+    basket_price_at(items, &|s| param(v, s), &|g| price(v, g))
+}
+
+/// A param's per-tick value at one of its sites, as a rule reads it.
+pub type ParamAt<'a> = dyn Fn(Site) -> Result<f64, AgentError> + 'a;
+/// A good's posted price, as a rule reads it.
+pub type PriceOf<'a> = dyn Fn(GoodId) -> Result<f64, AgentError> + 'a;
+
+/// P_s from `par` and `pr`, summed from 0.0 in item order: [`basket_price`]'s operations.
+fn basket_price_at(items: &[Item], par: &ParamAt<'_>, pr: &PriceOf<'_>) -> Result<f64, AgentError> {
     let mut ps = 0.0;
     for it in items {
-        ps += param(v, it.weight)? * price(v, it.good)?;
+        ps += par(it.weight)? * pr(it.good)?;
     }
     Ok(ps)
+}
+
+/// Where the workers' exit plots stand at posted prices (the commons frame's §3.1; unit 1e's
+/// `ExitLand` for one type, docs/unit-1e.md §4.4).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlotRegime {
+    /// No plot pays at any rent (h = 0 or s₀ ≤ s̲): the supply is the floor's, with no plots.
+    Unused,
+    /// The plots fit the commons at no rent: hours n(0), and the rest of the commons idles.
+    Commons,
+    /// The commons is full: hours N − T_o/h, rationed by a shadow rent that nobody receives.
+    Crowded,
+    /// A plot pays at the market rent r and the plots spill onto enclosed land: hours n(r), and
+    /// T_p = h·(N − n(r)) − T_o is rented on the land market.
+    Enclosed,
+    /// The commons fills at the rent where a plot stops paying, below r: hours are the floor's
+    /// supply and no plot is rented (unit-1e.md §4.4).
+    Split,
+}
+
+/// The workers' participation under the priced exit with the commons they hold, at posted prices
+/// (the commons frame's §3.1): the rule's hours and every quantity it forms on the way.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Participation {
+    /// Where the plots stand.
+    pub regime: PlotRegime,
+    /// The hours offered, min(max(n(0), N − T_o/h), n(r̂)).
+    pub hours: f64,
+    /// The share kept in `WorkersState`: the regime's F (F(e₀) in Commons, (N − T_o/h)/N when
+    /// Crowded, F(e_r̂) when Enclosed or split, F(p_g·s̲) when unused), hours/N to one rounding.
+    pub share: f64,
+    /// T_p, the enclosed land the plots rent; 0 but in the Enclosed regime.
+    pub plots: f64,
+    /// n(0), the supply with every plot free.
+    pub free: f64,
+    /// n(r̂), the supply at the rent a plot pays on enclosed land, or the floor's.
+    pub paid: f64,
+    /// N − T_o/h, the supply that fills the commons; 0 when unused.
+    pub crowded: f64,
+    /// P_s, the basket's price.
+    pub basket_price: f64,
+    /// N, the heads' hours a tick.
+    pub heads: f64,
+}
+
+/// F(e) = min(max(ln1p((w − e)/(P_s + e))/χ_max, 0), 1): the share of the heads whose work cost
+/// χ ~ U[0, χ_max] is below the exit's, e the exit life's money value. The bounds 0 and 1 are the
+/// support of χ, the shares F can take, not a clamp on a price (R3).
+fn worth_working(chi: f64, w: f64, ps: f64, e: f64) -> f64 {
+    (num::ln1p((w - e) / (ps + e)) / chi).clamp(0.0, 1.0)
+}
+
+/// The workers' participation from their spec, `par` (a param's per-tick value at one of its
+/// sites) and `pr` (a good's posted price), as their rule forms it; `None` without an exit. The
+/// harness reads its readouts (the regime, T_p) through this function, so the two cannot part.
+///
+/// Its evaluation order is the commons frame's §3.1: P_s summed as the basket's price; then
+/// e₀ = p_g·s₀; the branch test r·h < p_g·Δ with both products rounded once; e_r by `num::fma`;
+/// each n by `num::ln1p` of (w − e)/(P_s + e); then N − T_o/h. With s₀ = s̲ = 0 every e is 0.0,
+/// so F is ln1p(w/P_s)/χ_max within [0, 1], P2.1's share bit for bit whenever w > 0.
+pub fn workers_participation(
+    workers: &BasketWorkers,
+    par: &ParamAt<'_>,
+    pr: &PriceOf<'_>,
+) -> Result<Option<Participation>, AgentError> {
+    let Some(x) = &workers.exit else {
+        return Ok(None);
+    };
+    let w = pr(workers.labour)?;
+    let ps = basket_price_at(&workers.basket, par, pr)?;
+    let n = par(workers.heads)?;
+    let chi = par(workers.chi_max)?;
+    let pg = pr(x.good)?;
+    let r = pr(x.land)?;
+    let (s0, sf, h, to) = (par(x.gross)?, par(x.floor)?, par(x.plot)?, par(x.commons)?);
+    Ok(Some(participation(n, chi, w, ps, pg, r, (s0, sf, h, to))))
+}
+
+/// The rule itself (the commons frame's §3.1), on numbers: heads N, χ_max, the wage w, P_s, the
+/// exit good's price p_g, the land rent r, and the exit (s₀, s̲, h, T_o), N and T_o per tick.
+fn participation(
+    n: f64,
+    chi: f64,
+    w: f64,
+    ps: f64,
+    pg: f64,
+    r: f64,
+    (s0, sf, h, to): (f64, f64, f64, f64),
+) -> Participation {
+    let delta = s0 - sf;
+    let at = |regime, hours, share, plots, free, paid, crowded| Participation {
+        regime,
+        hours,
+        share,
+        plots,
+        free,
+        paid,
+        crowded,
+        basket_price: ps,
+        heads: n,
+    };
+    // A pop that takes no plot supplies the floor's hours.
+    if !(h > 0.0 && delta > 0.0) {
+        let f = worth_working(chi, w, ps, pg * sf);
+        let hours = n * f;
+        return at(PlotRegime::Unused, hours, f, 0.0, hours, hours, 0.0);
+    }
+    let e0 = pg * s0;
+    let f0 = worth_working(chi, w, ps, e0);
+    let free = n * f0;
+    // A plot pays at the market rent where r·h < p_g·Δ; the exit is then worth p_g·s₀ − r·h,
+    // rounded once. Where it does not pay, the floor's.
+    let plot_pays = r * h < pg * delta;
+    let fr = if plot_pays {
+        worth_working(chi, w, ps, num::fma(-r, h, e0))
+    } else {
+        worth_working(chi, w, ps, pg * sf)
+    };
+    let paid = n * fr;
+    let crowded = n - to / h;
+    if free >= crowded {
+        at(PlotRegime::Commons, free, f0, 0.0, free, paid, crowded)
+    } else if paid > crowded {
+        at(
+            PlotRegime::Crowded,
+            crowded,
+            crowded / n,
+            0.0,
+            free,
+            paid,
+            crowded,
+        )
+    } else if plot_pays {
+        let plots = h * (n - paid) - to;
+        at(PlotRegime::Enclosed, paid, fr, plots, free, paid, crowded)
+    } else {
+        at(PlotRegime::Split, paid, fr, 0.0, free, paid, crowded)
+    }
 }
 
 /// A household's baskets: `budget` at P_s buys n = budget/P_s baskets, posted as a buy of z_j·n
@@ -193,6 +348,9 @@ impl Behaviour for BasketWorkers {
     type Own = WorkersState;
 
     fn decide(&self, v: &View<'_, WorkersState>) -> Result<Decision, AgentError> {
+        if self.exit.is_some() {
+            return self.decide_with_exit(v);
+        }
         let mut out = Decision::default();
         let mut dry = v.own.clone();
         // The hours whose work cost χ ~ U[0, χ_max] is at most ln(1 + w/P_s), with P_s the
@@ -218,11 +376,83 @@ impl Behaviour for BasketWorkers {
     }
 
     fn produce(&self, v: &View<'_, WorkersState>) -> Result<Vec<Delta>, AgentError> {
-        eat(v, &self.basket)
+        let mut out = eat(v, &self.basket)?;
+        // The plots use the enclosed land the workers rented for them (the commons frame's
+        // §3.2): all of it is burned as `Consumption`, so none of it spoils.
+        if let Some(x) = &self.exit {
+            let me = Holder::Actor(v.me);
+            burn(
+                me,
+                x.land,
+                v.own.get(x.land),
+                Provenance::Consumption,
+                &mut out,
+            );
+        }
+        Ok(out)
     }
 
     fn upkeep(&self, _: &View<'_, WorkersState>) -> Result<Vec<Delta>, AgentError> {
         Ok(Vec::new())
+    }
+}
+
+impl BasketWorkers {
+    /// Their decision with the priced exit and the commons they hold (the commons frame's §3.1,
+    /// §3.2; decision 398): the hours [`workers_participation`] gives, offered as P2.1's are;
+    /// and, where the plots spill onto enclosed land, one buy of T_p land at r in the same budget
+    /// chain as the baskets. The chain's total is P + share(spend)·(C − P), with C the coin as the
+    /// phase began and P = min(r·T_p, C) the plots' rent the coin covers, so the rent comes first
+    /// and the baskets from the rest. Where T_p = 0 the baskets' budget is share(spend)·C and the
+    /// orders are P2.1's. The state holds the regime's F.
+    fn decide_with_exit(&self, v: &View<'_, WorkersState>) -> Result<Decision, AgentError> {
+        let mut out = Decision::default();
+        let mut dry = v.own.clone();
+        let p = workers_participation(self, &|s| param(v, s), &|g| price(v, g))?.ok_or(
+            AgentError::Core(rustyecon_core::CoreError::Shape(
+                "the workers' exit rule without an exit".into(),
+            )),
+        )?;
+        if p.hours > 0.0 {
+            out.deltas.push(StateDelta::Mint {
+                to: Holder::Actor(v.me),
+                good: self.labour,
+                qty: p.hours,
+                prov: Provenance::Endowment,
+            });
+        }
+        out.orders.push(sell(v, self.labour, p.hours));
+        let spend = param(v, self.spend)?;
+        let coin = dry.get(v.currency);
+        match &self.exit {
+            Some(x) if p.plots > 0.0 => {
+                let r = price(v, x.land)?;
+                let rent = r * p.plots;
+                let paid = rent.min(coin);
+                let budget = spend * (coin - paid);
+                let n = budget / p.basket_price;
+                let mut lines: Vec<(GoodId, f64)> = Vec::with_capacity(self.basket.len() + 1);
+                let mut wants = Vec::with_capacity(self.basket.len() + 1);
+                for it in &self.basket {
+                    let q = param(v, it.weight)? * n;
+                    lines.push((it.good, q));
+                    wants.push((it.good, price(v, it.good)? * q));
+                }
+                lines.push((x.land, p.plots));
+                wants.push((x.land, rent));
+                let budgets = budget_chain(paid + budget, &wants, &mut dry, v.currency)?;
+                for ((g, q), b) in lines.into_iter().zip(budgets) {
+                    out.orders.push(buy(v, g, q, b));
+                }
+            }
+            _ => {
+                let budget = spend * coin;
+                basket_orders(v, &self.basket, p.basket_price, budget, &mut dry, &mut out)?;
+            }
+        }
+        out.deltas
+            .push(set(v, ActorState::Workers(WorkersState { share: p.share })));
+        Ok(out)
     }
 }
 

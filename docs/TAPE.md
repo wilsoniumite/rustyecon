@@ -32,18 +32,20 @@ whose raw types are documented the same way in `rustyecon_agents::spec` (which a
 | 1 | 2026-09-30 | P2.2b.1 | A good gains an optional field, `untraded` (a `bool`, absent `false`; see Currencies and untraded goods), and the type desk, the maker and the capacity desk an optional `plant` (see below), each last. Absent, each is off and the canonical form omits it, so every tape keeps its text, `tape_hash`, `world_id` and meaning, and the number stays 1. `untraded` is core's one field with a default (docs/probe/LOOPS-RULES.md §1). |
 
 | 1 | 2026-09-30 | P2.3.2 | The category desk gains two optional fields, `tail` (`Option` of a `Dimensionless` param) and `reserved` (a list of `(good, coef)`), and the basket provider one, `more` (a list of `(to, heads)`), each last (see below). Absent, each is off and the canonical form omits it, so every tape keeps its text, `tape_hash`, `world_id` and meaning, and the number stays 1 (docs/probe/WALL-RULES.md §1). |
+| 1 | 2026-09-30 | P2.3.6 | The basket workers gain an optional field, `exit` (`Option` of `(good, gross, floor, plot, commons, land)`), last (see below). Absent, it is off and the canonical form omits it, so every tape keeps its text, `tape_hash`, `world_id` and meaning, and the number stays 1 (docs/probe/COMMONS-RULES.md §1). |
 
 The loader reads its own version only; anything else is refused as a schema error before any
 other field is looked at. Since no field has a default, every change to the schema bumps the
 number and adds a row here; the one exception is a field whose absence is the older meaning, the
 maker's `reserve` (L0.4), a good's `untraded` and a desk's `plant` (P2.2b.1), and the category
-desk's `tail` and `reserved` and the provider's `more` (P2.3.2), which add a row and keep the
-number.
+desk's `tail` and `reserved` and the provider's `more` (P2.3.2), and the workers' `exit`
+(P2.3.6), which add a row and keep the number.
 
 ## Rules
 
-- **Every field is required, and none has a default**, but the three whose absence is the older
-  meaning: the maker's `reserve`, a good's `untraded` and a desk's `plant`. An `Option` field is
+- **Every field is required, and none has a default**, but those whose absence is the older
+  meaning: the maker's `reserve`, a good's `untraded`, a desk's `plant`, the wall's `tail`,
+  `reserved` and `more` (P2.3.2), and the workers' `exit` (P2.3.6). An `Option` field is
   written as `None` or `Some(..)`; leaving it out is an error, as leaving out any other field is.
   Unknown fields are errors.
 - **Keys.** Every entity has a key of one or more of `a-z`, `0-9`, `_`, `.` and `-`. A key is unique
@@ -251,6 +253,13 @@ param, live. Their lists are evaluation order, and the canonical form keeps them
   `BasketProvider`'s `more: [(to, heads), ...]`, further transfers of `heads`
   (`FlowPerYear`)·P_s, paid after `transfer` in list order, each to its own actor. The wall
   tape `tapes/markets-iw1.ron` is the worked example.
+- The commons' optional field (P2.3.6; docs/probe/COMMONS-RULES.md), absent (off) where not
+  written: a `BasketWorkers`' `exit: Some((good, gross, floor, plot, commons, land))`, the priced
+  exit in `good` (one of their basket goods) at s₀ `gross`, s̲ `floor` and h `plot` (each
+  `Dimensionless`), with the commons `commons` (`FlowPerYear`) they hold and never trade, and
+  `land` (an `Instant` good, the land of the provider that pays their support) for plots rented
+  on enclosed land. The commons tapes `tapes/markets-c1.ron` and `markets-c2.ron` are the worked
+  examples.
 
 ## The stock roles (P2.2.1)
 

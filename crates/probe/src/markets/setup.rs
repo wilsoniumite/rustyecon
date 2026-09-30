@@ -8,7 +8,7 @@
 //! actor's stationary coin under the dials (MARKETS-SPEC §5.4). No agent reads the oracle
 //! (R13). `tapes/markets-<id>.ron` is `tape_ron(&Setup::registered(id, 52))`, checked by a test.
 
-use super::instance::{Instance, Point, WALL_BASIS};
+use super::instance::{Instance, Point, COMMONS_BASIS, WALL_BASIS};
 use crate::setup::{clock, OneSided, START};
 use rustyecon_core::{num, FlowPerYear, RatePerYear};
 
@@ -317,7 +317,10 @@ pub fn basket_price(inst: &Instance, cat_price: &[f64], r: f64) -> f64 {
 /// coin, in the operation order that makes I0's genesis appb's bit for bit. A worker-form
 /// instance (the wall frame's §3.6) takes each pop's hours from unit 1d's `WorkerEq::hours`,
 /// and each reserved wage as its labour market's price; the provider's transfer is
-/// τ = ((N·P_s) + N_1·P_s) + …, summed in pop order as its rule pays it.
+/// τ = ((N·P_s) + N_1·P_s) + …, summed in pop order as its rule pays it. An open-commons instance
+/// (the commons frame's §3.8) takes the workers' hours as unit 1e's supply S at the point, and
+/// their coin as r·T_p + (N·P_s + w·S − r·T_p)/share(spend), T_p the plots' rented land, which is
+/// P2.1's formula where T_p = 0.
 pub fn genesis(s: &Setup) -> Result<Genesis, String> {
     let inst = &s.instance;
     let e = inst.point(s.tpy)?;
@@ -329,7 +332,7 @@ pub fn genesis(s: &Setup) -> Result<Genesis, String> {
     let (w, r) = (e.v, 1.0);
     let ps = basket_price(inst, &e.cat_price, r);
     let tau_w = n * ps;
-    let hours = if inst.worker_form {
+    let hours = if inst.worker_form || inst.exit.is_some() {
         e.hours[0]
     } else {
         n * (num::ln1p(w / ps) / inst.chi_max).min(1.0)
@@ -362,7 +365,14 @@ pub fn genesis(s: &Setup) -> Result<Genesis, String> {
         stationary.push(cost * e.type_services[k] / share(v));
     }
     stationary.push(tau + (r * t - tau) / share(d.get("spend.provider")?));
-    stationary.push((tau_w + w * hours) / share(d.get("spend.workers")?));
+    match e.commons.as_ref().map(|c| c.rented) {
+        // The plots' rent first, from the coin; the baskets from the rest.
+        Some(tp) if tp > 0.0 => {
+            let rent = r * tp;
+            stationary.push(rent + (tau_w + w * hours - rent) / share(d.get("spend.workers")?));
+        }
+        _ => stationary.push((tau_w + w * hours) / share(d.get("spend.workers")?)),
+    }
     stationary.extend(reserved_pops);
     let x = &s.displace;
     let mut prices = vec![w, r];
@@ -382,6 +392,10 @@ pub fn genesis(s: &Setup) -> Result<Genesis, String> {
     let mut shares = Vec::new();
     for sh in &x.share {
         let v = match *sh {
+            // At the commons a share scaled past 1 is 1, as the frame's mirror displaces it
+            // (`battery_c.displace`; the registration's §3): only the basin's s[food] runs reach
+            // it. Elsewhere a share above 1 is refused below.
+            ShareAt::Times(f) if inst.exit.is_some() => (e.one_minus_x * f).min(1.0),
             ShareAt::Times(f) => e.one_minus_x * f,
             ShareAt::At(xx) => 1.0 - xx,
             ShareAt::Is(v) => v,
@@ -415,6 +429,9 @@ const ROLE: &str =
     "Assumed(\"MARKETS-SPEC §2: the probe's rules carried to many markets (docs/probe/MARKETS-RULES.md)\")";
 const WALL_ROLE: &str = "Assumed(\"the wall frame's §3: the many-market roles with the tail, the \
      reserved hours and further transfers (docs/probe/WALL-RULES.md)\")";
+const COMMONS_ROLE: &str =
+    "Assumed(\"the commons frame's §3: the many-market roles, the workers with \
+     the priced exit and their commons (docs/probe/COMMONS-RULES.md)\")";
 
 /// The tape's text, one line at a time.
 struct Lines(Vec<String>);
@@ -446,6 +463,8 @@ pub fn tape_ron(s: &Setup) -> Result<String, String> {
     let name = format!("markets-{}", inst.id);
     let header = if inst.worker_form {
         wall_header(s, &g, &inst)?
+    } else if inst.exit.is_some() {
+        commons_header(s, &g, &inst)?
     } else {
         p21_header(s, &g, &inst)?
     };
@@ -631,6 +650,100 @@ fn wall_header(s: &Setup, g: &Genesis, inst: &Instance) -> Result<Vec<String>, S
     ])
 }
 
+/// The header of an open-commons tape (P2.3; docs/probe/COMMONS-RULES.md §4): its derivation
+/// from unit 1e.
+fn commons_header(s: &Setup, g: &Genesis, inst: &Instance) -> Result<Vec<String>, String> {
+    let e = &g.point;
+    let c = clock(s.tpy)?;
+    let base = &s.instance;
+    let x = base
+        .exit
+        .as_ref()
+        .ok_or("an open-commons tape without an exit")?;
+    let k = e
+        .commons
+        .as_ref()
+        .ok_or("an open-commons point without unit 1e's readouts")?;
+    Ok(vec![
+        format!(
+            "// The open-commons world {} (docs/probe/commons/SPEC.md; docs/probe/COMMONS-RULES.md):",
+            inst.id.to_uppercase(),
+        ),
+        format!("// {},", inst.title),
+        "// run by the four many-market roles, the workers with the priced exit in food and the"
+            .into(),
+        "// commons they hold (their optional `exit`), for P2.3 (2026-09-30).".into(),
+        "//".into(),
+        "// Generated: do not edit. `cargo run -p rustyecon-probe --bin markets-tape -- --inst"
+            .into(),
+        format!(
+            "// {} <path>` writes it, and the test `commons_tapes_are_their_generators_output` checks",
+            inst.id
+        ),
+        "// this file against the generator.".into(),
+        "//".into(),
+        "// Genesis is the oracle's equilibrium (mode A): crates/oracle unit 1e, ParcelEconomy::solve,"
+            .into(),
+        format!(
+            "// at the instance's per-tick values, N = {}, the enclosed land T = {} and the commons",
+            f(c.flow(FlowPerYear(base.workers))),
+            f(c.flow(FlowPerYear(base.land)))
+        ),
+        format!(
+            "// T_o = {} at {} ticks a year, the exit (s0 {}, floor {}, h {}) in {}, the machine's flow",
+            f(c.flow(FlowPerYear(x.commons))),
+            s.tpy,
+            f(x.gross),
+            f(x.floor),
+            f(x.plot),
+            x.good
+        ),
+        "// recipe as its operating recipe (δ = J = 1, ρ = 0), gives".into(),
+        format!(
+            "//   the plots {}, plot rent r_o = {}, rented plots T_p = {}, commons used {},",
+            k.regime,
+            f(k.plot_rent),
+            f(k.rented),
+            f(k.occupied)
+        ),
+        format!("//   x* = {}, 1 - x* = {},", f(e.x_star), f(e.one_minus_x)),
+        format!(
+            "//   v = w/r = {}, P_s/r = {}, Y = {}, the supply S = {},",
+            f(e.v),
+            f(e.p_s),
+            f(e.y),
+            f(e.pool)
+        ),
+        format!(
+            "//   type prices {} and services {},",
+            list(&e.type_price),
+            list(&e.type_services)
+        ),
+        format!(
+            "//   category prices {} and outputs {}.",
+            list(&e.cat_price),
+            list(&e.cat_output)
+        ),
+        "// The genesis prices are those ratios with r = 1 coin. Each desk holds one tick's output,"
+            .into(),
+        "// each category desk's human share is 1 - x*, and each actor's coin is its stationary"
+            .into(),
+        format!(
+            "// balance under the dials, share(v) = 1 - exp(-v/{}) (MARKETS-SPEC §5.4; the commons frame's §3.8):",
+            s.tpy
+        ),
+        "//   category desk  p_j*y_j/share(turnover)".into(),
+        "//   type desk      (sum_l a_kl*p_l + lam_k*w + b_k*r)*X_k/share(turnover)".into(),
+        "//   provider       N*P_s + (r*T - N*P_s)/share(spend.provider)".into(),
+        "//   workers        r*T_p + (N*P_s + w*S - r*T_p)/share(spend.workers)".into(),
+        format!("// giving {} in actor order", list(&g.stationary)),
+        format!("// ({}).", inst.actors().join(", ")),
+        "// No agent reads the oracle at run time (R13): it seeds genesis here and scores runs in"
+            .into(),
+        "// the harness (crates/probe), outside the Sim.".into(),
+    ])
+}
+
 fn list_s(v: &[String]) -> String {
     format!("[{}]", v.join(", "))
 }
@@ -642,7 +755,13 @@ fn body(s: &Setup, g: &Genesis, inst: &Instance, o: &mut Lines) -> Result<(), St
     let n = c.flow(FlowPerYear(inst.workers));
     let t = c.flow(FlowPerYear(inst.land));
     let markets = inst.markets();
-    let role = if inst.worker_form { WALL_ROLE } else { ROLE };
+    let role = if inst.worker_form {
+        WALL_ROLE
+    } else if inst.exit.is_some() {
+        COMMONS_ROLE
+    } else {
+        ROLE
+    };
     o.param(
         "ledger.rel_flow",
         1e-12,
@@ -657,12 +776,14 @@ fn body(s: &Setup, g: &Genesis, inst: &Instance, o: &mut Lines) -> Result<(), St
     );
     if inst.worker_form {
         o.line("        // The instance (the wall frame's §2.1, §3.5).");
+    } else if inst.exit.is_some() {
+        o.line("        // The instance (MARKETS-SPEC §1.2, §2.9; the commons frame's §2.1).");
     } else {
         o.line("        // The instance (MARKETS-SPEC §1.2, §2.9).");
     }
     for (key, value, unit, basis) in inst.params()? {
         // The wall frame's own numbers are its calibration, assumed; the rest are literature.
-        let kind = if basis == WALL_BASIS {
+        let kind = if basis == WALL_BASIS || basis == COMMONS_BASIS {
             "Assumed"
         } else {
             "Literature"
@@ -868,7 +989,7 @@ fn body(s: &Setup, g: &Genesis, inst: &Instance, o: &mut Lines) -> Result<(), St
             format!("inst.{}.chi_max", w.key),
         ));
     }
-    for (key, class, labour, heads, chi) in pops {
+    for (i, (key, class, labour, heads, chi)) in pops.into_iter().enumerate() {
         for line in [
             format!(
                 "        (key: \"{key}\", kind: Pop, class: \"{class}\", home: \"home\", basis: {role},"
@@ -877,12 +998,31 @@ fn body(s: &Setup, g: &Genesis, inst: &Instance, o: &mut Lines) -> Result<(), St
             format!("            labour: \"{labour}\", heads: \"{heads}\", chi_max: \"{chi}\","),
             basket.clone(),
             "            spend: \"spend.workers\",".into(),
-            "         ))),".into(),
         ] {
             o.line(line);
         }
+        // The pool's workers' priced exit and commons (P2.3), written only where the instance
+        // has one.
+        if let (0, Some(x)) = (i, &inst.exit) {
+            o.line(format!(
+                "            exit: Some((good: \"{}\", gross: \"inst.exit.gross\", floor: \
+                 \"inst.exit.floor\", plot: \"inst.exit.plot\", commons: \"inst.commons\", land: \
+                 \"land\")),",
+                x.good
+            ));
+        }
+        o.line("         ))),");
     }
-    let genesis_basis = if inst.worker_form {
+    let genesis_basis = if inst.exit.is_some() {
+        format!(
+            "        basis: Approximate(\"oracle unit 1e (crates/oracle, ParcelEconomy) at the commons \
+             frame's {}, N = {} and T = {} per tick; stationary coins per the commons frame's \
+             §3.8; written by rustyecon-probe's markets-tape\"),",
+            inst.id.to_uppercase(),
+            f(n),
+            f(t)
+        )
+    } else if inst.worker_form {
         format!(
             "        basis: Approximate(\"oracle unit 1d (crates/oracle, WorkerEconomy) at the wall \
              frame's {}, N = {} for the pool and T = {} per tick; stationary coins per the wall \

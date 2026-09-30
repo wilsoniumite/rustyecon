@@ -966,6 +966,34 @@ tape keeps its canonical form, `tape_hash` and `world_id`, and every hash stream
    `wall_roles_nest_the_many_roles`, `markets_tapes_keep_their_world_ids`,
    `wall_battery_and_families_are_the_registered_ones` and `wall_grammar_applies_as_named`.
 
+**Amended at P2.3.6** (2026-09-30, branch `phase2-proper`: the open-commons instances' build,
+docs/probe/COMMONS-RULES.md; decisions 398–399). Core, markets and the engine are unchanged. The
+agents crate's basket workers gain one optional field, absent on every committed tape but the two
+new ones and left out of the raw and the resolved form when absent, so every committed tape keeps
+its canonical form, `tape_hash` and `world_id`, and every hash stream is unchanged (the 23 tapes'
+2,000-tick streams equal the pre-build binary's on both machines).
+
+1. `BasketWorkers.exit: Option<(good, gross, floor, plot, commons, land)>`: the priced exit s(q)
+   in an exit good of the workers' basket, with a commons T_o (a `FlowPerYear` param) they hold
+   and never trade. Their hours become min(max(n(0), N − T_o/h), n(r̂)) (decision 149 for one
+   priced type; `workers_participation`, which the harness also reads), and where the plots spill
+   onto enclosed land they buy it at r in the chain of their baskets and burn it in `produce` as
+   `Consumption`. `WorkersState` holds the regime's F, so `ActorState` gains no variant. With
+   the exit switched off (s₀ = s̲ = 0) the workers are P2.1's bit for bit.
+2. Load checks: the exit good is a basket good; the plots' land is `Instant`, not a basket item
+   or the workers' hours, and the land of the provider that pays their support; T + T_o > h·N at
+   genesis. M6 lists the plots' land among the workers' bought goods.
+3. Tests (§11). In agents (`tests/commons.rs`): `workers_without_exit_are_p21s`,
+   `plots_rent_enclosed_land`, `exit_is_checked_at_load` and
+   `commons_specs_round_trip_and_old_worlds_keep_their_ids`; `each_site_converts_as_registered`
+   and `many_roles_never_overbudget_or_overdraw` read C1's tape too. In probe (`tests/commons.rs`):
+   `commons_tapes_are_their_generators_output`, `commons_points_are_the_registered_ones`,
+   `commons_genesis_is_unit_1e`, `commons_rule_is_unit_1e_supply`, `commons_rest_at_the_oracle`,
+   `commons_hold_at_the_oracle_point`, `exit_switched_off_is_the_dependence_form`,
+   `harness_reads_the_rule_the_workers_act_on`, `commons_battery_and_families_are_the_registered_ones`,
+   `commons_grammar_applies_as_named`, `commons_conserve_and_run_deterministically` and
+   `commons_leave_the_other_markets_tapes_ids`.
+
 ## 0. Engine invariants
 
 Numbered so tests and reviews can cite them. Each has at least one test in §11.

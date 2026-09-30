@@ -30,9 +30,11 @@ pub use ext::{
     OwnerState, PlantState, PlantedCapacityState, PlantedMakerState, PlantedTypeState,
     ProviderState, RawAgentAction, ScriptState, WorkersState,
 };
+pub use roles::many::rules::{workers_participation, Participation, PlotRegime};
 pub use roles::many::spec::{
-    BasketProvider, BasketWorkers, CategoryDesk, Input, Item, RawBasketProvider, RawBasketWorkers,
-    RawCategoryDesk, RawInput, RawItem, RawLine, RawTypeDesk, RawTypeRecipe, Transfer, TypeDesk,
+    BasketProvider, BasketWorkers, CategoryDesk, Input, Item, PricedExit, RawBasketProvider,
+    RawBasketWorkers, RawCategoryDesk, RawInput, RawItem, RawLine, RawPricedExit, RawTypeDesk,
+    RawTypeRecipe, Transfer, TypeDesk,
 };
 pub use roles::plant::rules::{PlantedCapacity, PlantedMaker, PlantedType};
 pub use roles::plant::spec::{Plant, PlantOrder, PlantTarget, RawPlant};

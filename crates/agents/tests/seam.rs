@@ -775,13 +775,15 @@ fn each_site_converts_as_registered() {
     // SetParam the view reads the new value through the same method. The markets probe's
     // tapes (P2.1) carry the four many-market kinds, whose lists name their paths by key, and
     // the stocks probe's (P2.2) the three stock kinds, with flows, fractions and whole ticks;
-    // the wall's (P2.3) adds the tail, the reserved hours and the further transfers.
+    // the wall's (P2.3) adds the tail, the reserved hours and the further transfers, and the
+    // commons' (P2.3) the workers' exit and commons.
     const APPB: &str = include_str!("../../../tapes/appb.ron");
-    const MARKETS: [&str; 7] = [
+    const MARKETS: [&str; 8] = [
         include_str!("../../../tapes/markets-i2.ron"),
         include_str!("../../../tapes/markets-l3.ron"),
         include_str!("../../../tapes/markets-g1.ron"),
         include_str!("../../../tapes/markets-iw1.ron"),
+        include_str!("../../../tapes/markets-c1.ron"),
         include_str!("../../../tapes/horses-h1.ron"),
         include_str!("../../../tapes/horses-p7.ron"),
         include_str!("../../../tapes/horses-r1a.ron"),
