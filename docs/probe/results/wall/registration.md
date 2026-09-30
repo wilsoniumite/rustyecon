@@ -18,9 +18,9 @@ The frame, in [docs/probe/wall/](../../wall/), byte for byte as its author left 
 |---|---|---|
 | `SPEC.md` | `cc2b6d1c55a5d04a4d44c0447dce0158431f5e74b0b8d9c6e8a3cb238cc89be0` | the frame: IW1, the roles' additions, the harness at the wall, the mirror's battery, §7's predictions |
 | `SHA256SUMS` | `43fccf3a2dff88f8c15b36d2c910b02837b272c129fc27830ae4371a47bbf669` | sha256 of SPEC.md and every registered output and script (56 entries, each verified on 2026-09-30) |
-| `registered/edges.json` | `ab13d3ac506fdfd535364438b9ff9436f59e0b79358e6b576e259b073aa41873` | a registered output |
+| `registered/edges.json` | `ab13d3ac506fdfd535364438b9ff9436f59e0b79358e6b576e259b073aa41873` | a registered output; CRLF in scratch, committed with LF (below) |
 | `registered/history_land.json` | `26de3622788fbadf550326bfdb3a407eefdc7bc2c614429efea1c68dcded3cba` | a registered output |
-| `registered/instances.json` | `c1f4bae629fda3fd41ccba28e671695ec7ff6291ff7f16151cfdc6c130530ce7` | a registered output |
+| `registered/instances.json` | `c1f4bae629fda3fd41ccba28e671695ec7ff6291ff7f16151cfdc6c130530ce7` | a registered output; CRLF in scratch, committed with LF (below) |
 | `registered/local.json` | `e5b84861d45fec11efe906409437ac260e75b9dc19492fc0de0b44e85549062a` | a registered output |
 | `registered/points.jsonl` | `4e6d510d1c7262d17fc586935dd79a58c4d7fb476509965a7ecc6bee32d7710f` | a registered output |
 | `registered/runs_basin.tsv` | `5ba6d6d2eb82c236f0a0de597f8bda7a63cf8df23528e71a070a8aeb7e758893` | the run-by-run outputs of one set |
@@ -35,7 +35,18 @@ The frame, in [docs/probe/wall/](../../wall/), byte for byte as its author left 
 | `registered/runs_tilt1.tsv` | `d46f5d8ed8e4c2faabdd7ba40b073212cbbce9f337dfd1a743c9fe09a575dc49` | the run-by-run outputs of one set |
 | `registered/runs_tpy12.tsv` | `60a7dd902e77828205f5e57b4add80187105650dc638be006bd1a5e89dd9b80e` | the run-by-run outputs of one set |
 | `registered/runs_tpy365.tsv` | `b87c95dd62c39ab48485660d4e8c7ae3d771a63045125c415945c7b46ee70529` | the run-by-run outputs of one set |
-| `registered/solve_mp.out` | `abf997ba7a09cb4ca495dd876801d590c6f0f6f1377e78baaa858871a6ced847` | a registered output |
+| `registered/solve_mp.out` | `abf997ba7a09cb4ca495dd876801d590c6f0f6f1377e78baaa858871a6ced847` | a registered output; CRLF in scratch, committed with LF (below) |
+
+The repository stores text with LF endings (`.gitattributes`). Three files were written on
+Windows with CRLF endings; git commits them with LF, so their committed blobs have the
+sha256s below, and the registered ones above are those of the same text with CRLF. Nothing
+else differs, and the scorer parses either.
+
+```
+f796b77e61fd2c5dabc589be1bf61f902e0e56d6ca75a6009acee682d23f50cf  registered/edges.json  (as committed, LF)
+c93ca71a44b6f0ff414f0eb22bc5393ab724dd53dda21c8d8fc2e91870f58757  registered/instances.json  (as committed, LF)
+ff06de418e565749da29ca2793d577ad73ce9d2cc8dc577c250b52e32b28c259  registered/solve_mp.out  (as committed, LF)
+```
 
 The scorer (SPEC §7, decision 311) reads `registered/runs_*.tsv`, `local.json`,
 `history_land.json` and `edges.json` from this copy.
