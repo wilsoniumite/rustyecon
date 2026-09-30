@@ -1,0 +1,3 @@
+inst,y_old,y_new,eq_move_ln,trough_of_new,trough_tick,trough_ln_of_old,ticks_below_0_9,transient_over_eq
+lb1,9.918,9.902,-0.001621,0.7037,9,-0.353,27,216.8
+lw1,9.918,9.902,-0.001621,0.6787,9,-0.3892,32,239.1

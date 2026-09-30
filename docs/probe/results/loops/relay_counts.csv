@@ -1,0 +1,9 @@
+inst,part,runs,converged,withholds,idle_any,maker_output_below_1pct,switches_max,below_1pct_runs
+lb1,L,97,97,23,38,3,274,N(2) heads.capacity*2 r*2
+lb1,stocks,28,28,13,21,3,246,coin.workers*0.02 coin.workers*0.1 heads.capacity*10
+lb2,L,97,97,20,36,2,262,heads.capacity*2 r*2
+lb2,stocks,28,28,12,20,3,200,coin.workers*0.02 coin.workers*0.1 heads.capacity*10
+lb3,L,97,97,31,44,4,450,N(2) heads.capacity*2 r*0.5 r*2
+lb3,stocks,28,28,18,23,4,318,coin.workers*0.02 coin.workers*0.1 heads.capacity*10 plant.capacity*10
+lf3,L,97,95,0,38,0,0,
+lf3,stocks,28,25,0,20,0,0,

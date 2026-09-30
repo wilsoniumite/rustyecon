@@ -3,7 +3,10 @@
 Dated 2026-09-30. Step P2.2b.3 on branch `phase2-plants`, label `run`. Scratch
 `D:/rustyecon-p2b/run/`, raw runs `D:/rustyecon-p2b/runs/`. It runs LOOP-SPEC-A1 §A1.5's E3–E11
 as LOOPS-RULES §9 names them, and scores each against the registration line by line. E0–E2 came
-before, at P2.2b.2 ([e0.md](e0.md)).
+before, at P2.2b.2 ([e0.md](e0.md)). The report is [LOOPS.md](../../LOOPS.md). **Amended at
+P2.2b.4** (label `fix-report`, after the two reviews): the E1 row, "How it ran", the E6, E7 and
+E8 sections and the files, each marked; the tables the reviews asked for are in the new section
+"Added at P2.2b.4" at the end. No scored line or verdict moved.
 
 Conditions of every number here, unless its line says otherwise: chain8 under rule B, C2g, 52
 ticks a year, ρ 0, J_b 1, ex post, ψ 0.25, plants on the fodder desk, the capacity desk and the
@@ -29,7 +32,7 @@ The engine is the mirror to a degree the tolerances do not need. At the 12 GO in
 
 | E | registered | engine | |
 |---|---|---|---|
-| E1 nesting | tapes, pins and streams unchanged; θ 1 is the plain tape; the fixed plant is drs | P2.2b.2 ([e0.md](e0.md)); this step changes no code | holds |
+| E1 nesting | tapes, pins and streams unchanged; θ 1 is the plain tape; the fixed plant is drs | P2.2b.2 ([e0.md](e0.md)); this step changes no code. The fixed plant is fixed-Q drs within 1e-12 on every observable but the horse market's volume, which parts by 1.7e-12 and 2.4e-12 (the offer's cancellation; decision 304's reading, taken after E0's first output: e0.md §9) | holds |
 | E2 rest point, mode A | fixed point within 1e-12; mode A at L below 1e-9 | P2.2b.2; here mode A passes again at all 12 GO instances, largest gap 5.0e-15 | holds |
 | E3 LB1–LB3 | 20/20, 24/24, 25/25 (25/25), 28/28 (28/28), 28/28 each; A1 §7.1 | the same counts; 537 of 537 runs CONVERGED; §7.1 to printed precision but four one-tick ties | holds |
 | E4 kick sets | every set decays; base g 0.847, 0.830, 0.901, 0.836 a year ± 0.03; no g above 1 | 24 of 24 sets PASS; base g 0.8478, 0.8310, 0.9008, 0.8463; largest g 0.998971 a tick | holds |
@@ -78,6 +81,20 @@ The engine is the mirror to a degree the tolerances do not need. At the 12 GO in
   in the engine's columns (`selftest.py`), and every line passed but the kick sets, which the
   self-test has no files for. One disclosure: a timing run of LB1 r × 2 at L was made at 02:17,
   before the scorer, to size the CSVs, and its summary was read. It was run again in the wave.
+  *Amended at P2.2b.4 (the measurement review):* the stamp is a scratch file's time, and nothing
+  outside the machine fixed the scorer or the job list before the wave began at 02:19:34. Four
+  patches edited the scorer while the wave ran, each for what the self-test on the mirror's
+  outputs showed (its files are dated 02:28:34–02:28:49):
+  - `fix1.py` (02:26:53) keyed the tick lines per run and scored the tiers' medians and largest
+    by `tick_agg`, charging no run (decision 305);
+  - `fix2.py` (02:28:23) skipped non-finite peaks and baskets in the O14 row;
+  - `fix3.py` (02:28:33) let the largest kick g read an empty set;
+  - `fix4.py` (02:28:46) fixed `selftest.py`'s `@1L` tag and printed the refutation lines.
+
+  `score.py` was stamped at 02:28:55, with 89 jobs done, and still has that sha256. That no
+  engine output was read before the stamp cannot be checked; the timing run above is the one
+  read. From P2.2b.4 on, a wave's scorer and job list are committed before it starts (decision
+  311).
 - **How the tolerances were read.**
   - "Every class exactly": each run's class against the mirror's run of the same name.
   - "Three runs per instance within 25%": a run is charged once when any of its tick or year
@@ -173,6 +190,11 @@ fodder plant within 5% from 10.1, 9.4 and 8.6 years, the horse price's low 0.194
 | LB3 | 77.6; 0.221–2.24; 662 | 118.2; 0.221–3.56; 2,694 |
 
 Each is CONVERGED with no dead tick, at L and at 10·L, and each number is the mirror's.
+*Amended at P2.2b.4 (the fidelity review):* the harness counts the horse market as idle, not
+dead. It is idle for 477, 1,524; 353, 1,217; 996 and 3,047 ticks. Through the glut the maker
+withholds, keeps breeding and sells nothing: its coin falls to 5.2e-6 of genesis or below
+(4.3e-90 at LB3 heads × 10), and the horse price rests unmoved at 0.223 of target for up to
+2,510 ticks. With ψ 0 each of the six runs away at ticks 155–158. See "Added at P2.2b.4".
 
 ### E7: the pass-through (r × 2 at genesis)
 
@@ -191,7 +213,12 @@ Each is CONVERGED with no dead tick, at L and at 10·L, and each number is the m
 | LN1 | 414 | 2,685 | 82 | 10 | 0 | 0.002 | 0.002 | DEAD |
 
 Every row is A1 §7.5's but LN1's, a control reported and not scored, whose fodder and horse-day
-counts part (398 and 2,700 in the mirror); it is DEAD either way.
+counts part (398 and 2,700 in the mirror); it is DEAD either way. *Amended at P2.2b.4 (the
+fidelity review):* LB1 converges after r × 2 through the capacity plant and the maker's
+reservation together. The maker withholds for 251 ticks, the horse market is idle for 412, the
+horse price rests at 0.149 of target for 145 ticks, and the maker's coin falls to 4.0e-7 of
+genesis (every-tick rerun). At ψ 0 the same run (LF3) runs away at tick 170. See "Added at
+P2.2b.4".
 
 ### E8: O14 like for like
 
@@ -211,7 +238,13 @@ its printed precision:
 Like for like, stocks lift the b × 2 trough by 0.0362 in log and take 1.361 times the flow
 control's median years (registered 0.036 and 1.36). LW0's T3 peak D̂ is 3,379 over its runs that
 do not run away, as the mirror records it; over all its Tier 3 runs it is 227,000 (JB(0.5), a
-runaway).
+runaway). *Amended at P2.2b.4 (the fidelity review):* o14.csv's `T3_peak` is over every Tier-3
+run, so it gains `T3_peak_ex_runaway`, the table's figure. The 1.36 is read on every observable,
+the maker's plant and the horse market included, which the flow control lacks. On the
+observables both share, less the plants, it is 1.17 at δ 8% and 1.94 at δ 4% (2.21 on every
+observable). And b × 2 moves the good's equilibrium by −0.16% in log, while the good falls about
+30% for half a year: the trough is a path, about 200 times the equilibrium's move in log. See
+"Added at P2.2b.4".
 
 ### E9: the negative controls
 
@@ -284,7 +317,11 @@ Written by `D:/rustyecon-p2b/run/score.py` (sha256 `0a98d77c…6dec`) and `extra
 - [battery.csv](battery.csv): every run beside the mirror's run of the same name (3,489 runs);
 - [agreement.csv](agreement.csv), [glut_psi0.csv](glut_psi0.csv),
   [ticklength12.csv](ticklength12.csv): reported beside the scoring;
-- [lists/](lists/): each instance's battery and stocks family, as `horses list` prints them.
+- [lists/](lists/): each instance's battery and stocks family, as `horses list` prints them;
+- added at P2.2b.4, reported and not scored: [relay.csv](relay.csv),
+  [relay_counts.csv](relay_counts.csv), [capital_time.csv](capital_time.csv),
+  [last_in.csv](last_in.csv), [o14_years.csv](o14_years.csv), [o14_trough.csv](o14_trough.csv),
+  and o14.csv's column `T3_peak_ex_runaway` (the last section).
 
 The figures are in [docs/probe/figs/loops/](../../figs/loops/). Figures 2 and 3 plot the scored
 runs again over their first years with a row every tick (the same binary; the runs are
@@ -293,3 +330,65 @@ deterministic); the others read the scored runs' rows, one every 52 ticks.
 The raw runs, each with its CSV (gzipped), `summary.tsv`, `stats.tsv`, stdout, stderr and exit, are
 in `D:/rustyecon-p2b/runs/` (`b52/<inst>/{modea,L,10L,stocks}/`, `extra/{glut10L,psi0,tpy12}/`,
 `kicks/`, `lengths/`, `points/`).
+
+*Amended at P2.2b.4 (the measurement review).* The archive regenerates the scoring. Its CSVs are
+gzipped, which `gather.py` did not read, so `D:/rustyecon-p2b/fix-report/gather_gz.py` reads
+them. From the archive it writes `runs.tsv` byte for byte as scored. `score_fc.py` is `score.py`
+with E11's line "no run starts at the bound" failing closed on a run with no z at tick 0 (it
+failed open); it fails on the review's regathered table, which had none. On the regenerated
+table it reproduces `lines.csv` and every other scored table byte for byte, `battery.csv` as the
+committed projection (four long columns of the scorer's, `m_final`, `why`, `m_why` and
+`m_runaway`, were left out at P2.2b.3). So `/root/scratch/p2b-runs`, the plain duplicate, is no
+longer needed to rescore.
+
+## Added at P2.2b.4: what the reviews asked for
+
+Reported, not scored. Written by `D:/rustyecon-p2b/fix-report/analysis.py`, `frozen.py` and
+`merge_relay.py` from the scored runs, and from every-tick reruns of the E6 and E7 runs' first
+10,400 ticks with the same frozen binary (`fine.sh`; the runs are deterministic).
+
+**The reservation's part** ([relay.csv](relay.csv), [relay_counts.csv](relay_counts.csv)). Per
+run: class and years; withheld ticks, switches, idle and no-order ticks of the horse market; the
+horse price's low and high; the heads' low and high; the maker's plant low; and from the
+every-tick rerun the maker's lowest coin (of genesis) and output (of target), ticks with its
+output below 1% of target, the longest idle spell, and the longest stretch below 0.9 of target
+over which the horse price does not move.
+
+| run | withheld | idle | price unmoved: ticks, of target | maker's coin low | output low | heads low–high | ψ 0 |
+|---|---|---|---|---|---|---|---|
+| LB1 r × 2 | 251 | 412 | 145, 0.149 | 4.0e-7 | 6.0e-6 | 0.57–1.01 | DIVERGED, tick 170 (LF3) |
+| LB2 r × 2 | 193 | 352 | 66, 0.150 | 9.5e-6 | 7.9e-5 | 0.56–1.00 | – |
+| LB3 r × 2 | 404 | 587 | 282, 0.150 | 9.2e-12 | 1.0e-9 | 0.66–1.04 | – |
+| LB1 heads × 2, × 10 | 303, 1,315 | 477, 1,524 | 139, 1,161 at 0.223 | 2.2e-8, 1.3e-43 | 6.6e-7, 2.9e-35 | 0.93, 0.90 low | DIVERGED, tick 156 |
+| LB2 heads × 2, × 10 | 221, 1,034 | 353, 1,217 | 68, 891 at 0.223 | 5.2e-6, 3.4e-34 | 5.3e-5, 1.1e-27 | 0.93, 0.89 low | DIVERGED, 158, 156 |
+| LB3 heads × 2, × 10 | 662, 2,694 | 996, 3,047 | 457, 2,510 at 0.223 | 1.7e-19, 4.3e-90 | 7.3e-16, 1.1e-72 | 0.94, 0.94 low | DIVERGED, tick 155 |
+
+Over LB1–LB3's battery and stocks family at L (375 runs) the reservation acts in 36, 32 and 49,
+117 in all. The maker's output falls below 1% of target in 19 of those, on 52-tick rows
+(`below1.py`: N(2), heads × 2, r × 2, the workers' coin × 0.02 and × 0.1, heads × 10, and at LB3
+r × 0.5 and plant.capacity × 10), and in none where it does not act. The switches reach 274, 262
+and 450. LF3 (ψ 0) converges in 120 of LB1's 125.
+
+**Capital's time (D-G14)** ([capital_time.csv](capital_time.csv), [last_in.csv](last_in.csv)).
+The cost shocks at genesis at LB1–LB3, LF2 and LW1–LW3: years to tolerance; the heads', each
+plant's and the paper's years to within 5% (the paper's is ln(K′/K)/ln(1 − δ) ticks of zero
+builds for a glut, a tick for a shortage); the quasi-rent 3 ticks and 1/δ on. For which
+observable comes into tolerance last, each converged battery run at L is read on its 52-tick
+rows: the first row from which each gap stays within 1e-3, from the scored clock's start (L/4
+for a dated shock). A tie counts every group that ties.
+
+| instance | the maker's plant last | the horse market last | a plant last (flow) | runs |
+|---|---|---|---|---|
+| LB1 | 59 | 50 | – | 97 |
+| LB2 | 63 | 32 | – | 97 |
+| LB3 | 82 | 17 | – | 97 |
+| LW1, LW2, LW3 | – | – | 77, 77, 76 | 83 each |
+
+**O14's years and trough** ([o14_years.csv](o14_years.csv), [o14_trough.csv](o14_trough.csv)).
+The Tier 1–2 upper medians over converged runs (as `score.py` reads them), on every observable
+(the harness's ticks, and 52-tick rows), without the plants, and on the observables both the
+stocks and the flow economies have, less the plants: LB1 26.5, 27, 25, 21 years against LW1's
+19.5, 20, 18, 18; LB2 24.1, 25, 23, 21 against 19.5, 20, 18, 18; LB3 42.8, 43, 42, 35 against
+19.3, 20, 18, 18. The trough, every tick (`/root/scratch/p2b-diag/fine`, P2.2b.3's reruns): b × 2
+moves Y\* from 9.918 to 9.902 (−0.16% in log); the good falls to 0.704 (LB1) and 0.679 (LW1) of the
+new Y\* at tick 9 and stays below 0.9 for 27 and 32 ticks, 217 and 239 times the move in log.

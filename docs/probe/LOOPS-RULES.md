@@ -1229,7 +1229,8 @@ unchanged; no engine bug was found, so nothing was fixed or rerun.
    `lm_kick.json`). The parsed §7.1 equals the JSON's aggregates in all 48 rows.
 6. **The scorer** (`score.py`) was stamped (`SCORE.sha256`) before any scored output was read,
    and first scored the mirror's own outputs (`selftest.py`). A timing run of LB1 r × 2 at L was
-   read before it was written.
+   read before it was written. *Amended at P2.2b.4:* the stamp is a scratch file's time, and four
+   patches edited the scorer while the wave ran (§17.2).
 
 ### 16.3 What it found
 
@@ -1241,3 +1242,48 @@ each is a market at exactly half its target at tick 0 or 1, where the last ulp d
 ### 16.4 Decisions and open items
 
 Decisions 305–306 and open items O77–O78 are in STATE.md. O72 is closed.
+
+## 17. The reviews and the fix round (P2.2b.4, 2026-09-30)
+
+Label `fix-report`, scratch `D:/rustyecon-p2b/fix-report/`. Two reviews ran on `6ae6674`, the
+measurement review (`D:/rustyecon-p2b/review-measurement/`) and the fidelity review
+(`D:/rustyecon-p2b/review-fidelity/`). Both found that the verdict holds. Neither found a defect
+in the engine, the harness or the scoring's result, so no code changed and no scored run was
+redone. The report is [LOOPS.md](LOOPS.md); its §5 lists each finding and its answer.
+
+### 17.1 What the fix round added
+
+- **Tables the reviews asked for**, reported and not scored ([results/loops/README.md](results/loops/README.md),
+  "Added at P2.2b.4"): the reservation's part in the E6 and E7 runs (`relay.csv`,
+  `relay_counts.csv`), capital's time (`capital_time.csv`, `last_in.csv`), O14's years on shared
+  observables and the trough's transient (`o14_years.csv`, `o14_trough.csv`), and o14.csv's
+  `T3_peak_ex_runaway`. They read the scored runs, and every-tick reruns of 21 E6 and E7 runs'
+  first 10,400 ticks with the frozen binary (`fine.sh`).
+- **The archive rescored** (§17.2 item 3).
+- **Disclosures** in [results/loops/e0.md](results/loops/e0.md) §9 and the results README.
+
+### 17.2 Where P2.2b.2 and P2.2b.3 read the registration, amended
+
+1. **§15.2 item 6, the allowed parting (decision 304), was read after E0's first output**
+   (`tracediff-1.out` at 01:48:35, the diagnostic patches at 01:49 and 01:51), and recorded as a
+   decision, not as a dated amendment. Under the registered text (the order's cancellation) three
+   partings exceed 1e-12, all on the maker's offer: E0's LB1 b × 2 (3.9e-12) and E1's two
+   fixed-plant runs (1.7e-12, 2.4e-12). They stay written up as partings. None is at tick 1, so
+   E0's amendment clause does not apply (decision 310).
+2. **§16.2 item 6, the scorer's stamp.** It is a scratch file's time. `fix1.py`–`fix4.py`
+   (02:26:53–02:28:46, 89 jobs done) edited `score.py` and `selftest.py` for what the self-test on
+   the mirror's outputs showed: tick lines keyed per run with the tiers' aggregates charging no
+   run (decision 305's reading), non-finite peaks and baskets skipped in the O14 row, an empty
+   kick set, and `selftest.py`'s tag. `score.py`'s sha256 is still the stamp's. From now on a
+   wave's scorer and job list are committed before it starts (decision 311).
+3. **The archive.** `gather.py` read plain CSVs only, and E11's aggregate "no run starts at the
+   bound" passed on a missing z at tick 0. `gather_gz.py` (sha256 in
+   `D:/rustyecon-p2b/fix-report/SHA256SUMS`) reads the archive's gzipped CSVs and writes
+   `runs.tsv` byte for byte. `score_fc.py` fails that line closed; on the review's regathered
+   table (no z at tick 0) it fails, and on the regenerated one it writes every scored table
+   byte for byte. `battery.csv` is committed as a projection without four long columns.
+
+### 17.3 Decisions and open items
+
+Decisions 307–311 and open items O79–O80 are in STATE.md; O46, O49, O52, O54, O65 and O68 are
+amended there.

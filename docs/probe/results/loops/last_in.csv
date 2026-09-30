@@ -1,0 +1,33 @@
+inst,last_group,runs,of
+lb1,plant.maker,46,97
+lb1,horse market,32,97
+lb1,horse market + plant.maker,13,97
+lb1,horse market + the rest,5,97
+lb1,the rest,1,97
+lb2,plant.maker,51,97
+lb2,the rest,14,97
+lb2,horse market + plant.maker,12,97
+lb2,horse market,10,97
+lb2,horse market + the rest,10,97
+lb3,plant.maker,78,97
+lb3,horse market,13,97
+lb3,horse market + plant.maker,4,97
+lb3,the rest,2,97
+lw1,plant.traction,45,83
+lw1,plant.fodder,20,83
+lw1,plant.fodder + plant.traction,10,83
+lw1,the rest,6,83
+lw1,plant.traction + the rest,1,83
+lw1,plant.fodder + plant.traction + the rest,1,83
+lw2,plant.traction,44,83
+lw2,plant.fodder,21,83
+lw2,plant.fodder + plant.traction,10,83
+lw2,the rest,6,83
+lw2,plant.traction + the rest,1,83
+lw2,plant.fodder + plant.traction + the rest,1,83
+lw3,plant.traction,49,83
+lw3,plant.fodder,16,83
+lw3,the rest,7,83
+lw3,plant.fodder + plant.traction,7,83
+lw3,plant.fodder + plant.traction + the rest,2,83
+lw3,plant.traction + the rest,2,83
