@@ -29,6 +29,11 @@
 //! `produce`. Without it the workers take P2.1's path, and with it switched off (s₀ = s̲ = 0) they
 //! make P2.1's hours, orders and share bit for bit.
 //!
+//! **The trap's remedy** (P2.4; docs/probe/TRAP-RULES.md): the exit's optional `pace`,
+//! participation at a rate. The workers' share, their own state, moves a share a of its gap to
+//! the rule's hours over N each tick, and they offer N times it; the plots stay the rule's.
+//! Without it the rule's hours and share are offered and kept, P2.3's bit for bit.
+//!
 //! The arithmetic cannot fail, as RULES §2 says of the Appendix B roles: every budget is capped
 //! by the copy of the holding and taken from it, each after the first is at most
 //! `max_remainder(outlay, spent so far)`, sells take from the same copy, and recipes run at
@@ -404,7 +409,8 @@ impl BasketWorkers {
     /// chain as the baskets. The chain's total is P + share(spend)·(C − P), with C the coin as the
     /// phase began and P = min(r·T_p, C) the plots' rent the coin covers, so the rent comes first
     /// and the baskets from the rest. Where T_p = 0 the baskets' budget is share(spend)·C and the
-    /// orders are P2.1's. The state holds the regime's F.
+    /// orders are P2.1's. The state holds the regime's F; with the exit's `pace` (P2.4) it holds
+    /// the paced share, and the hours are N times it.
     fn decide_with_exit(&self, v: &View<'_, WorkersState>) -> Result<Decision, AgentError> {
         let mut out = Decision::default();
         let mut dry = v.own.clone();
@@ -413,15 +419,31 @@ impl BasketWorkers {
                 "the workers' exit rule without an exit".into(),
             )),
         )?;
-        if p.hours > 0.0 {
+        // Participation at a rate (P2.4; the trap scan's §5.2; decision 404): with a pace the
+        // share of the heads offering hours moves a share a of its gap to the rule's share
+        // F* = hours/N, s = s₀ + a·(F* − s₀), the technique's form, and they offer N·s; only the
+        // hours lag, the plots below are the rule's. A convex combination of two shares in
+        // [0, 1], so nothing is clamped (R3). Without one they offer the rule's hours and keep
+        // its share, P2.3's bit for bit.
+        let (hours, share) = match self.exit.as_ref().and_then(|x| x.pace) {
+            Some(pace) => {
+                let a = param(v, pace.adjust)?;
+                let target = p.hours / p.heads;
+                let s0 = v.own_state.share;
+                let s = s0 + a * (target - s0);
+                (p.heads * s, s)
+            }
+            None => (p.hours, p.share),
+        };
+        if hours > 0.0 {
             out.deltas.push(StateDelta::Mint {
                 to: Holder::Actor(v.me),
                 good: self.labour,
-                qty: p.hours,
+                qty: hours,
                 prov: Provenance::Endowment,
             });
         }
-        out.orders.push(sell(v, self.labour, p.hours));
+        out.orders.push(sell(v, self.labour, hours));
         let spend = param(v, self.spend)?;
         let coin = dry.get(v.currency);
         match &self.exit {
@@ -451,7 +473,7 @@ impl BasketWorkers {
             }
         }
         out.deltas
-            .push(set(v, ActorState::Workers(WorkersState { share: p.share })));
+            .push(set(v, ActorState::Workers(WorkersState { share })));
         Ok(out)
     }
 }

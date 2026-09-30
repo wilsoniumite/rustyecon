@@ -21,6 +21,7 @@
 //! | `joint(F,SEED)` | every price times F^u, then every s times 2^u, u uniform on [−1, 1] from a fixed generator seeded by SEED |
 //! | `cycle(C,P,N)` | N dated changes of C, P ticks apart from tick P, cycling ×1.1, ×0.9, ×2, ×0.5 and ×1 of its registered value |
 //! | `enclose=F@genesis`, `enclose=F@dated` | enclosure by law (the commons; P2.3): a share F of the commons T_o moved to the enclosed land T, both changed from tick 0 or at L/4 |
+//! | `part.workers*F`, `part.workers=V` | the paced workers' genesis share (P2.4): the point's S/N times F, at most 1, or V exactly |
 //!
 //! On I0 the grammar is P2.0's with the markets named: `p[mach]` is `pm`, `p[good]` is `p`,
 //! `s[good]` is `s`, `stock.mach` is `mach`, `land.mach` is `b`, and `joint` draws in P2.0's
@@ -31,9 +32,12 @@
 //! its mirror's order, labour, land, the categories, then the type; the battery and families are
 //! named and ordered as its mirror's (`battery_c.run_list`), the commons' coefficient `commons`;
 //! and the basin's factors are written as the mirror ran them, `1.05**j` to 12 significant digits.
+//! At a paced commons instance (P2.4; the trap registration's §3) `part.workers` displaces the
+//! workers' genesis share as the scan's mirror does (`tb.displace`); its start is a stock's, so
+//! `--first-year` reads it as Tier 3S is read, and the family `pace` runs it.
 
 use super::instance::Instance;
-use super::setup::{Setup, ShareAt, Shock};
+use super::setup::{PaceAt, Setup, ShareAt, Shock};
 use crate::perturb::Start;
 
 /// A parsed run: its terms, and the name it was parsed from.
@@ -64,6 +68,7 @@ enum Term {
     Joint(f64, u64),
     Cycle(String, u64, u64),
     Enclose(f64, bool),
+    Pace(PaceAt),
 }
 
 fn number(s: &str) -> Result<f64, String> {
@@ -132,6 +137,14 @@ fn term(t: &str) -> Result<Term, String> {
     if let Some(r) = bracket(t, "s") {
         let (d, f) = r?;
         return Ok(Term::Share(d.to_string(), f));
+    }
+    // The paced workers' genesis share (P2.4), before the `C=V@when` form it would otherwise be
+    // read as.
+    if let Some(f) = t.strip_prefix("part.workers*") {
+        return Ok(Term::Pace(PaceAt::Times(number(f)?)));
+    }
+    if let Some(v) = t.strip_prefix("part.workers=") {
+        return Ok(Term::Pace(PaceAt::Is(number(v)?)));
     }
     if let Some((c, rest)) = t.split_once('=') {
         let (v, when) = rest.split_once('@').ok_or("C=V@genesis or C=V@dated")?;
@@ -227,7 +240,8 @@ impl Perturbation {
             let this = match t {
                 Term::Hold => Start::Hold,
                 Term::Nominal(_) => Start::Nominal,
-                Term::Coin(..) | Term::Stock(..) => Start::Stocks,
+                // The paced share is a state, as a stock or a coin (P2.4).
+                Term::Coin(..) | Term::Stock(..) | Term::Pace(_) => Start::Stocks,
                 Term::Genesis(..) | Term::Dated(..) | Term::Cycle(..) | Term::Enclose(..) => {
                     Start::Shock
                 }
@@ -445,6 +459,22 @@ impl Perturbation {
                             value: base * CYCLE[(k % 5) as usize],
                         });
                     }
+                }
+                Term::Pace(at) => {
+                    if !inst.paced_exit() {
+                        return Err(format!(
+                            "{}: part.workers needs an instance whose workers' participation is \
+                             paced (c1p, c2p, c1pn)",
+                            inst.id
+                        ));
+                    }
+                    x.pace = match (x.pace, *at) {
+                        (PaceAt::Times(g), PaceAt::Times(f)) => PaceAt::Times(g * f),
+                        (_, PaceAt::Is(v)) => PaceAt::Is(v),
+                        (PaceAt::Is(_), PaceAt::Times(_)) => {
+                            return Err("the workers' share is set outright and then scaled".into())
+                        }
+                    };
                 }
             }
         }
@@ -726,6 +756,16 @@ pub fn tier3s(inst: &Instance) -> Vec<String> {
     v
 }
 
+/// The pace family (P2.4; the trap scan's §8 E4, in its order): the paced workers' genesis share
+/// at 0.1, 0.5 and 2 times the point's S/N, and at 0 and 1.
+pub const PACE_FAMILY: [&str; 5] = [
+    "part.workers*0.1",
+    "part.workers*0.5",
+    "part.workers*2",
+    "part.workers=0",
+    "part.workers=1",
+];
+
 /// The added families (MARKETS-SPEC §7.10), each a list of run names.
 pub fn family(inst: &Instance, tpy: u32, name: &str) -> Result<Vec<String>, String> {
     Ok(match name {
@@ -776,6 +816,8 @@ pub fn family(inst: &Instance, tpy: u32, name: &str) -> Result<Vec<String>, Stri
             Some(c) => vec![format!("cycle({},1500,80)", c.name)],
             None => Vec::new(),
         },
+        // The trap scan's §8 E4 (P2.4): the paced share at genesis, at a paced instance.
+        "pace" if inst.paced_exit() => PACE_FAMILY.iter().map(|r| r.to_string()).collect(),
         // The commons frame's §5.4 item 7: enclosure by law, half and all of the commons.
         "enclose" if inst.exit.is_some() => {
             let mut v = Vec::new();

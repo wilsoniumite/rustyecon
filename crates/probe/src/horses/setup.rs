@@ -319,6 +319,8 @@ fn flow_genesis(s: &Setup) -> Result<Genesis, String> {
             share: vec![s.displace.share],
             coin: s.displace.coin.clone(),
             stock: s.displace.stock.clone(),
+            // The flow path's county has no paced workers (P2.4's field, read only where paced).
+            pace: crate::markets::setup::PaceAt::Times(1.0),
         },
         at_genesis: Vec::new(),
         shocks: Vec::new(),

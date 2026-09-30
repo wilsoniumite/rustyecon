@@ -28,6 +28,11 @@
 //! through the workers' own rule (`workers_participation`) at the tick's posted prices and the
 //! params in force, so the readouts cannot part from what the workers did; they are kept beside
 //! §7.11's statistics, reported and never scored.
+//!
+//! **At a paced commons instance** (P2.4; docs/probe/TRAP-RULES.md §4): the workers' state share
+//! is the paced share, the hours offered over N; the rule's share F\* at the tick's posted prices
+//! is read beside it (`part_target`), and the lag and the ticks without hours are kept as the
+//! pace's readouts (`pace.*`), reported and never scored.
 
 use super::instance::{Instance, Point};
 use super::perturb::Perturbation;
@@ -257,6 +262,9 @@ pub struct Plots {
     pub rent: f64,
     /// T_p, the enclosed land the plots rent.
     pub rented: f64,
+    /// The rule's share F\* = hours/N at the tick's posted prices, the share paced workers move
+    /// toward (P2.4; the trap scan's §5.4 `part_target`); the rule's own share without a pace.
+    pub target: f64,
 }
 
 /// The shadow rent r_o of the workers' plots, a readout that nobody receives (the commons
@@ -312,6 +320,7 @@ pub fn plots_now(
         regime: p.regime,
         rent: shadow_rent(&p, chi, w, pg, s0, h, r) / r,
         rented: p.plots,
+        target: p.hours / p.heads,
     }))
 }
 
@@ -370,6 +379,10 @@ pub fn csv_header(inst: &Instance) -> String {
         for k in ["part_workers", "regime", "ro_over_r", "plots_rented"] {
             h.push(k.into());
         }
+    }
+    // The rule's share beside the paced share (P2.4), at a paced instance only.
+    if inst.paced_exit() {
+        h.push("part_target".into());
     }
     h.join(",")
 }
@@ -432,6 +445,13 @@ impl Row {
                 }
                 None => v.extend(["-".to_string(), "-".into(), "-".into()]),
             }
+        }
+        if inst.paced_exit() {
+            v.push(
+                self.plots
+                    .as_ref()
+                    .map_or("-".to_string(), |p| format!("{:?}", p.target)),
+            );
         }
         v.join(",")
     }
@@ -926,6 +946,53 @@ pub struct Stats {
     pub wall: Option<Wall>,
     /// The commons' readouts, at an open-commons instance (the commons frame's §3.8).
     pub commons: Option<CommonsStats>,
+    /// The pace's readouts, at a paced instance (P2.4; the trap scan's §5.4).
+    pub pace: Option<PaceStats>,
+}
+
+/// The pace's readouts over the scored run (P2.4; the trap scan's §5.4), reported and never
+/// scored: how far the paced share F (the workers' state, the hours offered over N) lags the
+/// rule's share F\* at the tick's posted prices, and the ticks with no hours offered.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PaceStats {
+    /// The largest |ln(F/F\*)| (0 where both are 0, infinite where one alone is).
+    pub gap_max: f64,
+    /// The least F/F\* (1 where both are 0, infinite where F\* alone is).
+    pub low: f64,
+    /// The ticks with labour's supply 0: no hours offered.
+    pub zero_hours: u64,
+}
+
+impl PaceStats {
+    fn new() -> PaceStats {
+        PaceStats {
+            gap_max: 0.0,
+            low: f64::INFINITY,
+            zero_hours: 0,
+        }
+    }
+
+    fn push(&mut self, row: &Row) {
+        if let (Some(&f), Some(p)) = (row.participation.first(), &row.plots) {
+            let ratio = if p.target > 0.0 {
+                f / p.target
+            } else if f == 0.0 {
+                1.0
+            } else {
+                f64::INFINITY
+            };
+            let gap = if ratio > 0.0 {
+                ln(ratio).abs()
+            } else {
+                f64::INFINITY
+            };
+            self.gap_max = max2(self.gap_max, gap);
+            self.low = min2(self.low, ratio);
+        }
+        if let Some(&s) = row.supply.first() {
+            self.zero_hours += u64::from(s <= 0.0);
+        }
+    }
 }
 
 /// The commons' readouts over the scored run (the commons frame's §3.8; `battery_c.run`'s),
@@ -1082,6 +1149,7 @@ impl Stats {
             depth: None,
             wall: inst.worker_form.then(|| Wall::new(inst)),
             commons: None,
+            pace: inst.paced_exit().then(PaceStats::new),
         }
     }
 
@@ -1177,6 +1245,9 @@ impl Stats {
         if let Some(c) = self.commons.as_mut() {
             // The provider's coin: the first household, after the desks.
             c.push(row, t, t.output.len());
+        }
+        if let Some(p) = self.pace.as_mut() {
+            p.push(row);
         }
     }
 }
@@ -1280,10 +1351,13 @@ pub fn run(
         }
         Start::Stocks if first_year => 0.0,
         Start::Stocks => {
+            // A paced share's displacement (P2.4) counts as a stock's factor, its genesis share
+            // over the point's S/N; elsewhere there is none.
+            let pace = g.pace.map_or(0.0, |(at, share)| ln(share / at).abs());
             pert.stock_factors()
                 .iter()
                 .map(|f| ln(*f).abs())
-                .fold(0.0, f64::max)
+                .fold(pace, f64::max)
                 / TOL_FLOOR
         }
         Start::Shock if inst.worker_form || inst.exit.is_some() => {

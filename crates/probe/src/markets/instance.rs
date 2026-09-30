@@ -13,7 +13,9 @@
 //! The open-commons instances (P2.3; the commons frame, docs/probe/commons/SPEC.md §2) are I1
 //! with one priced worker type whose exit good is food and a commons the workers hold
 //! ([`Commons`]); unit 1e's `ParcelEconomy` solves them, with the enclosed land T and the commons
-//! T_o as two parcels of quality 1 (decision 399).
+//! T_o as two parcels of quality 1 (decision 399). The paced instances (P2.4; the trap's remedy,
+//! decisions 404–406) C1P, C2P and C1PN are C1, C2 and C1N with the workers' participation at a
+//! rate; the pace does not move the point, so their oracle is the same.
 
 use crate::setup::clock;
 use oracle::{
@@ -84,6 +86,10 @@ pub struct Commons {
     pub plot: f64,
     /// T_o, the commons, per year.
     pub commons: f64,
+    /// Whether the workers' participation moves at a rate (P2.4; O100's remedy, decisions
+    /// 404–406; docs/probe/TRAP-RULES.md): the exit's `pace`, at the dial
+    /// `adjust.participation.workers`, its genesis share the point's S/N. False at C1, C2 and C1N.
+    pub paced: bool,
 }
 
 /// A machine type, with its flow recipe (unit-1c.md §2; decision 67).
@@ -380,8 +386,28 @@ impl Instance {
             floor: 0.0,
             plot,
             commons,
+            paced: false,
         });
         i
+    }
+
+    /// A paced open-commons instance (P2.4; the trap scan's §5.4 and §6; decision 405): the
+    /// commons instance `of` with the workers' participation at a rate, and its own id and title.
+    /// Its oracle, targets, genesis prices and coins are `of`'s; only the workers' block and the
+    /// dial `adjust.participation.workers` are added.
+    fn paced(of: Instance, id: &str, title: &str) -> Instance {
+        let mut i = of;
+        i.id = id.into();
+        i.title = title.into();
+        if let Some(x) = i.exit.as_mut() {
+            x.paced = true;
+        }
+        i
+    }
+
+    /// Whether the workers' participation moves at a rate (a paced commons instance, P2.4).
+    pub fn paced_exit(&self) -> bool {
+        self.exit.as_ref().is_some_and(|x| x.paced)
     }
 
     /// The wall frame's IW1 (docs/probe/wall/SPEC.md §2.1; decision 394), with the entrant's
@@ -555,9 +581,27 @@ impl Instance {
                 (0.3, 0.135, 24.3),
                 ("24.3", ["26.73", "21.87", "48.6", "12.15"]),
             ),
+            // The trap's remedy (P2.4; decision 405): C1, C2 and C1N with the workers'
+            // participation at a rate.
+            "c1p" => Instance::paced(
+                Instance::named("c1")?,
+                "c1p",
+                "C1 with the workers' participation at a rate (the trap's remedy)",
+            ),
+            "c2p" => Instance::paced(
+                Instance::named("c2")?,
+                "c2p",
+                "C2 with the workers' participation at a rate (the trap's remedy)",
+            ),
+            "c1pn" => Instance::paced(
+                Instance::named("c1n")?,
+                "c1pn",
+                "C1N with the workers' participation at a rate: a stress control",
+            ),
             _ => {
                 return Err(format!(
-                    "no instance {id}: i0, i1, i2, i3, l2, l3, g1, iw1, ic1, c1, c2 or c1n"
+                    "no instance {id}: i0, i1, i2, i3, l2, l3, g1, iw1, ic1, c1, c2, c1n, c1p, \
+                     c2p or c1pn"
                 ))
             }
         })
@@ -571,6 +615,10 @@ impl Instance {
 
     /// Phase 2 proper's open-commons instances (P2.3): C1, C2 and C1's negative control.
     pub const COMMONS_IDS: [&'static str; 3] = ["c1", "c2", "c1n"];
+
+    /// Phase 2 proper's paced commons instances (P2.4, the trap's remedy): C1P, C2P and the
+    /// stress control C1PN.
+    pub const PACED_IDS: [&'static str; 3] = ["c1p", "c2p", "c1pn"];
 
     /// The number of segments of the task line.
     pub fn segments(&self) -> usize {

@@ -7,10 +7,11 @@
 //!
 //! Every coefficient and dial is a registered param referenced by key and read at use time (R4,
 //! E1), so a dated `SetParam` retargets the actor. The only inline number is genesis state: the
-//! category desk's genesis human share 1 − x, and a step rule's genesis scale. Every field is
+//! category desk's genesis human share 1 − x, a step rule's genesis scale, and the paced
+//! workers' genesis share. Every field is
 //! required and none has a default but the type desk's `plant` (P2.2b), the category desk's
-//! `tail` and `reserved` and the provider's `more` (P2.3, the wall), and the workers' `exit`
-//! (P2.3, the commons), whose absence is off.
+//! `tail` and `reserved` and the provider's `more` (P2.3, the wall), the workers' `exit` (P2.3,
+//! the commons) and the exit's `pace` (P2.4, the trap's remedy), whose absence is off.
 //!
 //! **Lists keep the order written.** A basket's items, a category's segments and a type's bought
 //! services are evaluated in list order: P_s is summed from 0.0 in item order, a desk's budgets
@@ -120,6 +121,27 @@ pub struct RawPricedExit {
     /// Good key: land, an `Instant` traded good some role is endowed with and sells, for plots
     /// rented on enclosed land; not an item of the workers' basket. Required, no default.
     pub land: Key,
+    /// `Option<RawPace>`: participation at a rate (P2.4; O100's remedy, decision 404; the trap
+    /// scan's §5; docs/probe/TRAP-RULES.md). `None` or absent: the workers offer the rule's hours
+    /// each tick, P2.3's role bit for bit; absent is not written, so every tape written before the
+    /// field keeps its canonical text, `tape_hash` and `world_id`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pace: Option<RawPace>,
+}
+
+/// Participation at a rate, as the tape writes it: the technique's form on the workers' share
+/// (the trap scan's §5.1). Each tick the share of the heads offering hours moves a share of its
+/// gap to the participation rule's share at posted prices, instead of jumping to it.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RawPace {
+    /// Param key, unit `RatePerYear`, live, read as a `Share` (as a technique's `adjust`):
+    /// a = −expm1(−rate/tpy), the share of its gap to the rule's share the workers' share closes
+    /// each tick. Required, no default.
+    pub adjust: Key,
+    /// `f64`, dimensionless, in [0, 1]: the workers' share at genesis, F₀, genesis state (the
+    /// generator writes the point's S/N). Required, no default.
+    pub share: f64,
 }
 
 /// A category's place on the shared task line (decision 60), as the tape writes it: the
@@ -309,6 +331,19 @@ pub struct PricedExit {
     pub commons: Site,
     /// The land plots rent on enclosed land.
     pub land: GoodId,
+    /// Participation at a rate, if any (P2.4). `world_id` hashes the resolved actors by bincode,
+    /// so the field is left out when it is `None`, and a world without it keeps its `world_id`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pace: Option<Pace>,
+}
+
+/// The resolved participation at a rate.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct Pace {
+    /// a, a live `RatePerYear` param read as a `Share`.
+    pub adjust: Site,
+    /// The workers' share at genesis, in [0, 1].
+    pub share: f64,
 }
 
 /// The resolved category desk.
@@ -425,6 +460,9 @@ impl BasketWorkers {
             site(out, "exit.floor".into(), x.floor);
             site(out, "exit.plot".into(), x.plot);
             site(out, "exit.commons".into(), x.commons);
+            if let Some(p) = &x.pace {
+                site(out, "exit.pace.adjust".into(), p.adjust);
+            }
         }
     }
 }
@@ -615,6 +653,22 @@ fn resolve_exit(
     let floor = value(r, &raw.floor, "floor")?;
     let plot = value(r, &raw.plot, "plot")?;
     let commons = live(r, &raw.commons, ClockMethod::Flow, "commons")?;
+    // Participation at a rate (the trap scan's §5.3): the rate a `RatePerYear` param (the
+    // resolver's `UnitMismatch`; its value finite and not negative, the registry's), the genesis
+    // share finite and in [0, 1].
+    let pace = match &raw.pace {
+        Some(p) => {
+            r.enter("pace");
+            let adjust = live(r, &p.adjust, ClockMethod::Share, "adjust")?;
+            let genesis = share(r, p.share, "share")?;
+            r.leave();
+            Some(Pace {
+                adjust,
+                share: genesis,
+            })
+        }
+        None => None,
+    };
     r.leave();
     Ok(PricedExit {
         good,
@@ -623,6 +677,7 @@ fn resolve_exit(
         plot,
         commons,
         land,
+        pace,
     })
 }
 

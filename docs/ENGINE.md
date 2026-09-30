@@ -994,6 +994,28 @@ its canonical form, `tape_hash` and `world_id`, and every hash stream is unchang
    `commons_grammar_applies_as_named`, `commons_conserve_and_run_deterministically` and
    `commons_leave_the_other_markets_tapes_ids`.
 
+**Amended at P2.4.5** (2026-09-30, branch `phase2-s2`: the subsistence trap's remedy,
+docs/probe/TRAP-RULES.md; decisions 404–408). Core, markets and the engine are unchanged. The
+workers' exit gains one optional field, absent on every committed tape but the two new ones and
+left out of the raw and the resolved form when absent, so every committed tape keeps its canonical
+form, `tape_hash` and `world_id`, and every hash stream is unchanged (the 25 tapes' 2,000-tick
+streams equal the pre-build binary's on both machines).
+
+1. `PricedExit.pace: Option<(adjust, share)>`: participation at a rate. With it the workers'
+   share, their own state, moves share(adjust) of its gap to the rule's hours over N each tick,
+   s = s₀ + a·(F\* − s₀), and they offer N·s hours; the plots stay the rule's. `WorkersState`
+   holds s, and starts at `share` (`genesis_state`), so `ActorState` gains no variant. Without
+   it the workers are P2.3's bit for bit.
+2. Load checks: `share` finite and in [0, 1]; `adjust` a `RatePerYear` param.
+3. Tests (§11). In agents (`tests/pace.rs`): `pace_absent_is_p23s`,
+   `paced_share_moves_at_its_rate`, `pace_is_checked_at_load` and
+   `paced_genesis_state_is_the_tapes`; `each_site_converts_as_registered` and
+   `many_roles_never_overbudget_or_overdraw` read C1P's tape too. In probe (`tests/trap.rs`):
+   `paced_rest_is_the_oracles`, `paced_workers_leave_the_trap`,
+   `commons_paced_tapes_are_their_generators_output`, `harness_reads_the_paced_share`,
+   `paced_grammar_dials_and_families_are_the_registered_ones` and
+   `markets_runs_the_pace_family_and_reports_the_pace`.
+
 ## 0. Engine invariants
 
 Numbered so tests and reviews can cite them. Each has at least one test in §11.

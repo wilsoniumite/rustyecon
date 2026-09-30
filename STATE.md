@@ -25,7 +25,10 @@ scan of O100's four candidates chose participation at a rate, the workers' optio
 (their share moves 1 − exp(−1.3/tpy) of its gap to the rule's each tick), which keeps the
 oracle's point and, in the mirror, clears the trap from every scanned family at C1 and C2; the
 paced instances C1P, C2P and C1PN are predicted GO with margin at the dial neighbourhood.
-Decisions 404–408 and O113–O117. The build and E0 are next.
+Decisions 404–408 and O113–O117. **It is built** (P2.4.5;
+[docs/probe/TRAP-RULES.md](docs/probe/TRAP-RULES.md)): the exit's optional `pace`, C1P, C2P and
+C1PN, `tapes/markets-c1p.ron` and `markets-c2p.ron`, the harness's grammar and readouts and 10
+tests, with every committed tape's text, ids and streams unchanged; E0 is next.
 Before it, on branch `phase2-proper` from `reboot` at `f7d1eae`:
 **Phase 2 proper's first session is reported** (P2.3.16;
 [docs/probe/PHASE2-S1.md](docs/probe/PHASE2-S1.md)): both reviews find the verdicts hold, and
@@ -201,6 +204,41 @@ types and carriers, on the many-market roles (O27), which may now start from the
 stage v2a.1 on your ruling on D-G12. "Next steps" has each.
 
 ## Where things stand
+
+**The subsistence trap's remedy: the build (P2.4.5; 2026-09-30).** Branch `phase2-s2`, label
+`build-trap`, scratch `D:/rustyecon-p24/build-trap/`. As built:
+[docs/probe/TRAP-RULES.md](docs/probe/TRAP-RULES.md); ENGINE.md and TAPE.md, "Amended at P2.4.5".
+- **The roles' addition** (decision 404): one optional field, the workers' exit's `pace`
+  (`adjust`, a `RatePerYear` param read as a `Share`; `share`, the genesis share in [0, 1]). With
+  it the workers' share, their own state, moves a of its gap to the rule's hours over N each
+  tick and they offer N times it; the plots stay the rule's. No new kind, state or market rule;
+  the field is skipped when absent, raw and resolved. Load checks: the share finite and in
+  [0, 1], the rate a `RatePerYear` param.
+- **The instances** (decision 405): C1P, C2P and the stress control C1PN, C1, C2 and C1N with the
+  pace; their oracle is their twins'. The dial `adjust.participation.workers`, 1.3 a year, in C2m
+  at a paced instance only, after the techniques' (decision 406). Genesis share S/N (C1P
+  0.13461538461538466, C2P 0.14681190682890408). The tapes `tapes/markets-c1p.ron` and
+  `markets-c2p.ron`.
+- **The harness at a paced instance**: `part.workers*F` and `part.workers=V`; the family `pace`
+  (the spec's E4, first-year start); the CSV's `part_target` beside `part_workers`, and
+  `pace.gap_max`, `pace.low` and `pace.zero_hours` in `stats.tsv`.
+- **R1.** The 25 committed tapes' 2,000-tick hash streams, `tape_hash` and `world_id` equal the
+  pre-build binary's (`e29b9c6`) on WSL and Windows; the generator writes every old markets tape
+  byte for byte; without a pace the workers are P2.3's over 3,000 random states.
+- **Tests**: four in `crates/agents/tests/pace.rs` and six in `crates/probe/tests/trap.rs`
+  (TRAP-RULES §6), and C1P's tape in two agents tests. 32 mutants, one per change undone, each
+  killed; one survived a first pass (the readout's F\* as the rule's share, equal to hours/N
+  when N is 4, a power of 2) and its test was strengthened at 12 ticks a year before this commit.
+- **Development runs** before E0, disclosed (TRAP-RULES §6.5): C1P `p[mach]*0.5` at every price
+  rate × 0.9 converges from tick 723, the mirror's (C1's runs away at 325); a trace diff on the
+  uncommitted build, E0's eleven runs, parts nowhere above 1e-12 (largest 3.6e-14).
+- **The gates**: `scripts/gate.sh` and `scripts/gui.sh` are green on WSL and Windows, 1,019
+  tests passed and 4 ignored on each; gate hash `0x61f9c8529131ff17`, appb `0xe1fa082b26995867`,
+  demo-gb `0xfad880fe08d06645`. The new tapes' 2,000-tick finals are `0x7d5133fb7b903a8f` (C1P)
+  and `0xd5ad10fe6f6dfc86` (C2P) on both machines. The stamp is `e29b9c6`, dirty: this build
+  before its commit.
+- **Next:** E0 on the committed build, then the scorer and the scored wave (E1–E10), committed
+  before it (decision 311).
 
 **The subsistence trap's remedy: participation at a rate, registered (P2.4.4; 2026-09-30).**
 Branch `phase2-s2`, label `build-trap`, scratch `D:/rustyecon-p24/build-trap/`; the scan's
@@ -5274,6 +5312,9 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
       at a rate, entry for food at zero output, a storable exit good, and home output sold, the
       last an oracle addendum, 1e's open question 6), measured on C1's dial neighbourhood; then
       registered and built before any further priced-exit instance and before the gate is judged.
+      *Scanned, registered at P2.4.4 and built at P2.4.5:* participation at a rate (decisions
+      404–408; `docs/probe/trap/SPEC.md`, `docs/probe/TRAP-RULES.md`), the paced instances C1P,
+      C2P and C1PN; E0, the scorer and the scored wave next.
    3. **The rules the 1750-like instance needs**, each chosen by a mirror scan, registered and
       built: O97's rule for a type that sells both reserved and pool hours; a zero price markets
       can hold (O96 with O101), for idle enclosed land and a commons several types share; and
@@ -5381,6 +5422,13 @@ docs/probe/families/     wave A's frame, as registered (P2.4.1): SPEC.md (O22's 
                          I1-I3 and the dial neighbourhood of C1, C2 and IW1), SHA256SUMS and
                          registered/ (the run-by-run predictions the scorer reads, the checks)
 docs/probe/results/families/ wave A's registration (P2.4.1)
+docs/probe/trap/         the trap scan's frame, as registered (P2.4.4, LF endings): SPEC.md (O100's
+                         remedy, participation at a rate), SHA256SUMS, registered/ (the run-by-run
+                         predictions and controls the scorer reads) and evidence/ (the scan's
+                         tables)
+docs/probe/TRAP-RULES.md the trap's remedy as built (P2.4.5): the exit's pace, C1P, C2P and C1PN,
+                         the harness at a paced instance, the checks
+docs/probe/results/trap/ the trap's remedy's registration (P2.4.4)
 docs/probe/results/families-wave/ wave A's machinery, committed before it (P2.4.2): the job
                          list, job and runner scripts, gather script, scorer, self-test
 docs/probe/results/loops/ the loop step's registration (L0.8), quoting LOOP-SPEC-A1's
@@ -5411,7 +5459,10 @@ crates/gui/tests/golden  the view-model goldens, one RON file per builder and po
 tapes/gate.ron           the gate world
 tapes/appb.ron           the probe's Appendix B world, generated from the oracle
 tapes/markets-<id>.ron   the markets probe's seven worlds (I0–I3, L2, L3, G1), from the oracle;
-                         markets-iw1.ron, Phase 2 proper's wall instance, from unit 1d (P2.3.2)
+                         markets-iw1.ron, Phase 2 proper's wall instance, from unit 1d (P2.3.2);
+                         markets-c1.ron and markets-c2.ron, the open commons, from unit 1e
+                         (P2.3.6); markets-c1p.ron and markets-c2p.ron, the same with the
+                         workers' participation at a rate (P2.4.5)
 tapes/horses-<id>.ron    the stocks probe's six worlds (H1–H4, R1a, P7), from 1g's ChainEconomy
 tapes/loops-<id>.ron     the loop step's six worlds (LB1–LB3, LW1–LW3), rule B at chain8 with
                          CAPACITY's plants, from 1g's ChainEconomy (P2.2b.1)

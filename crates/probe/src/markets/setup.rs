@@ -35,6 +35,11 @@ pub struct Dials {
 }
 
 const C2M: &str = "Assumed(\"MARKETS-SPEC C2m, design-analytic-first C2 per role\")";
+/// The pace's dial's basis (the trap scan's §5.4; decision 406).
+const PACE_DIAL: &str =
+    "Assumed(\"the trap scan's §4: participation at land's and the types' rate\")";
+/// The pace's dial: participation's rate, a year (P2.4; decision 406).
+pub const PACE_KEY: &str = "adjust.participation.workers";
 const C2L: &str = "Assumed(\"MARKETS-SPEC C2L: type rates at labour's, markup tilt 1 (§5.2)\")";
 
 impl Dials {
@@ -66,6 +71,25 @@ impl Dials {
         for c in &inst.categories {
             rate(format!("adjust.technique.{}", c.key), 2.6);
         }
+        // Participation's rate at a paced instance only (P2.4; the trap scan's §5.4; decision
+        // 406): 1.3 a year, land's and the types' rate, beside the techniques' so `adjust.*`
+        // scales it with them.
+        if inst.paced_exit() {
+            v.push(Dial {
+                key: PACE_KEY.into(),
+                value: 1.3,
+                unit: "RatePerYear",
+                basis: PACE_DIAL.into(),
+            });
+        }
+        let mut rate = |key: String, value: f64| {
+            v.push(Dial {
+                key,
+                value,
+                unit: "RatePerYear",
+                basis: C2M.into(),
+            })
+        };
         for d in inst.desks() {
             rate(format!("buffer.desk.{d}.cash"), 5.2);
         }
@@ -170,6 +194,16 @@ pub enum ShareAt {
     Is(f64),
 }
 
+/// The paced workers' genesis share (P2.4): the point's S/N times a factor, at most 1 (the trap
+/// scan's `displace`, `part.workers*F`), or set outright (`part.workers=V`).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum PaceAt {
+    /// min((S/N)·f, 1).
+    Times(f64),
+    /// This share exactly.
+    Is(f64),
+}
+
 /// A displacement of genesis from the oracle's point, by factors, each in its list's order.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Displacement {
@@ -181,6 +215,8 @@ pub struct Displacement {
     pub coin: Vec<f64>,
     /// Each desk's stock of its output, in [`Instance::desks`] order.
     pub stock: Vec<f64>,
+    /// The paced workers' genesis share (P2.4); read at a paced instance only.
+    pub pace: PaceAt,
 }
 
 impl Displacement {
@@ -191,6 +227,7 @@ impl Displacement {
             share: vec![ShareAt::Times(1.0); inst.categories.len()],
             coin: vec![1.0; inst.actors().len()],
             stock: vec![1.0; inst.desks().len()],
+            pace: PaceAt::Times(1.0),
         }
     }
 }
@@ -298,6 +335,9 @@ pub struct Genesis {
     pub coin: Vec<f64>,
     /// Each desk's genesis stock of its output, in desk order.
     pub stock: Vec<f64>,
+    /// At a paced instance (P2.4): the workers' share at the point, S/N, and their genesis
+    /// share, the tape's `pace.share`.
+    pub pace: Option<(f64, f64)>,
 }
 
 /// The oracle point's P_s as the households' rule sums it: Σ z_j·p_j from 0.0 in item order,
@@ -411,6 +451,23 @@ pub fn genesis(s: &Setup) -> Result<Genesis, String> {
     for (q, f) in stock.iter_mut().zip(&x.stock) {
         *q *= f;
     }
+    // The paced workers' genesis share (the trap scan's §5.1, §5.4): the point's S/N, the rule's
+    // share at the oracle's prices, displaced as the mirror's `displace` does.
+    let pace = if inst.paced_exit() {
+        let at = hours / n;
+        let share = match x.pace {
+            PaceAt::Times(f) => (at * f).min(1.0),
+            PaceAt::Is(v) => v,
+        };
+        if !(0.0..=1.0).contains(&share) {
+            return Err(format!(
+                "the workers' genesis share {share} is outside [0, 1]"
+            ));
+        }
+        Some((at, share))
+    } else {
+        None
+    };
     Ok(Genesis {
         point: e,
         prices,
@@ -418,6 +475,7 @@ pub fn genesis(s: &Setup) -> Result<Genesis, String> {
         stationary,
         coin,
         stock,
+        pace,
     })
 }
 
@@ -664,22 +722,41 @@ fn commons_header(s: &Setup, g: &Genesis, inst: &Instance) -> Result<Vec<String>
         .commons
         .as_ref()
         .ok_or("an open-commons point without unit 1e's readouts")?;
-    Ok(vec![
+    // A paced instance (P2.4; docs/probe/TRAP-RULES.md) names its step, its test and its pace.
+    let (intro, test) = match g.pace {
+        Some(_) => (
+            vec![
+                "// run by the four many-market roles, the workers with the priced exit in food, the"
+                    .to_string(),
+                "// commons they hold and their participation at a rate (their optional `exit` with"
+                    .into(),
+                "// its `pace`: the trap's remedy, docs/probe/trap/SPEC.md), for P2.4 (2026-09-30)."
+                    .into(),
+            ],
+            "commons_paced_tapes_are_their_generators_output",
+        ),
+        None => (
+            vec![
+                "// run by the four many-market roles, the workers with the priced exit in food and the"
+                    .to_string(),
+                "// commons they hold (their optional `exit`), for P2.3 (2026-09-30).".into(),
+            ],
+            "commons_tapes_are_their_generators_output",
+        ),
+    };
+    let mut out = vec![
         format!(
             "// The open-commons world {} (docs/probe/commons/SPEC.md; docs/probe/COMMONS-RULES.md):",
             inst.id.to_uppercase(),
         ),
         format!("// {},", inst.title),
-        "// run by the four many-market roles, the workers with the priced exit in food and the"
-            .into(),
-        "// commons they hold (their optional `exit`), for P2.3 (2026-09-30).".into(),
-        "//".into(),
+    ];
+    out.extend(intro);
+    out.extend([
+        "//".to_string(),
         "// Generated: do not edit. `cargo run -p rustyecon-probe --bin markets-tape -- --inst"
             .into(),
-        format!(
-            "// {} <path>` writes it, and the test `commons_tapes_are_their_generators_output` checks",
-            inst.id
-        ),
+        format!("// {} <path>` writes it, and the test `{test}` checks", inst.id),
         "// this file against the generator.".into(),
         "//".into(),
         "// Genesis is the oracle's equilibrium (mode A): crates/oracle unit 1e, ParcelEconomy::solve,"
@@ -738,10 +815,24 @@ fn commons_header(s: &Setup, g: &Genesis, inst: &Instance) -> Result<Vec<String>
         "//   workers        r*T_p + (N*P_s + w*S - r*T_p)/share(spend.workers)".into(),
         format!("// giving {} in actor order", list(&g.stationary)),
         format!("// ({}).", inst.actors().join(", ")),
+    ]);
+    if let Some((at, share)) = g.pace {
+        out.extend([
+            "// The workers' share moves 1 - exp(-rate/tpy) of its gap to the rule's hours over N each"
+                .to_string(),
+            format!("// tick, the rate `{PACE_KEY}` a year. The point's S/N is {},", f(at)),
+            format!(
+                "// and the genesis share written is {} (the trap scan's §5.1, §5.4).",
+                f(share)
+            ),
+        ]);
+    }
+    out.extend([
         "// No agent reads the oracle at run time (R13): it seeds genesis here and scores runs in"
-            .into(),
+            .to_string(),
         "// the harness (crates/probe), outside the Sim.".into(),
-    ])
+    ]);
+    Ok(out)
 }
 
 fn list_s(v: &[String]) -> String {
@@ -1016,10 +1107,19 @@ fn body(s: &Setup, g: &Genesis, inst: &Instance, o: &mut Lines) -> Result<(), St
         // The pool's workers' priced exit and commons (P2.3), written only where the instance
         // has one.
         if let (0, Some(x)) = (i, &inst.exit) {
+            // With the pace (P2.4; the trap scan's §5.1), written last in the block, only where
+            // the instance is paced.
+            let pace = match g.pace {
+                Some((_, share)) => format!(
+                    ", pace: Some((adjust: \"{PACE_KEY}\", share: {}))",
+                    f(share)
+                ),
+                None => String::new(),
+            };
             o.line(format!(
                 "            exit: Some((good: \"{}\", gross: \"inst.exit.gross\", floor: \
                  \"inst.exit.floor\", plot: \"inst.exit.plot\", commons: \"inst.commons\", land: \
-                 \"land\")),",
+                 \"land\"{pace})),",
                 x.good
             ));
         }

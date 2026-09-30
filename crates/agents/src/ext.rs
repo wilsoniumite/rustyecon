@@ -67,7 +67,8 @@ pub struct ProviderState {
 }
 
 /// The workers' record of their last offer: the participation share s, so N·s hours were
-/// offered. 0 before the first tick.
+/// offered. 0 before the first tick, or, for paced workers (P2.4), their pace's genesis share,
+/// which their rule reads as its own state.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct WorkersState {
     /// The share of potential hours offered, in [0, 1].
@@ -350,7 +351,15 @@ pub(crate) fn genesis_state(spec: &Spec) -> ActorState {
             due: 0.0,
             paid: 0.0,
         }),
-        Spec::BasketWorkers(_) => ActorState::Workers(WorkersState { share: 0.0 }),
+        // Paced workers (P2.4; the trap scan's §5.1) start at their pace's genesis share, which
+        // their rule reads; every other pop's share is a record, 0 before the first tick.
+        Spec::BasketWorkers(p) => ActorState::Workers(WorkersState {
+            share: p
+                .exit
+                .as_ref()
+                .and_then(|x| x.pace)
+                .map_or(0.0, |pace| pace.share),
+        }),
         Spec::CategoryDesk(d) => ActorState::GoodDesk(GoodDeskState {
             share: d.share,
             used: d.share,

@@ -25,6 +25,7 @@ const I2: &str = include_str!("../../../tapes/markets-i2.ron");
 const L3: &str = include_str!("../../../tapes/markets-l3.ron");
 const IW1: &str = include_str!("../../../tapes/markets-iw1.ron");
 const C1: &str = include_str!("../../../tapes/markets-c1.ron");
+const C1P: &str = include_str!("../../../tapes/markets-c1p.ron");
 const CLOSE: f64 = 1e-14;
 
 type W = World<Agents>;
@@ -174,8 +175,9 @@ fn many_roles_never_overbudget_or_overdraw() {
     // wall tape IW1 (P2.3), whose desks buy a tail and reserved hours and whose provider pays
     // further transfers; and on the commons tape C1 (P2.3), whose workers hold a priced exit
     // and a commons drawn over six decades, so that their plots rent enclosed land in some
-    // draws and they burn what they hold of it in produce.
-    for text in [I2, L3, IW1, C1] {
+    // draws and they burn what they hold of it in produce; and on the paced commons tape C1P
+    // (P2.4), whose workers offer a paced share of their heads, its rate drawn with the others.
+    for text in [I2, L3, IW1, C1, C1P] {
         let (w, genesis, cast) = load(text);
         let goods = traded(&w);
         let coin = good(&w, "coin");

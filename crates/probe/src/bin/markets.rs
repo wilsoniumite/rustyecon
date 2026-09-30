@@ -3,8 +3,8 @@
 //! ```text
 //! markets run NAME...     [options]  run named perturbations (see `probe::markets::perturb`)
 //! markets family FAMILY   [options]  run a family: battery, tier3s, stocks, joint2, joint4, basin,
-//!                                    history, and at the commons enclose (tier3s reads its first
-//!                                    year's D̂ as its start)
+//!                                    history, and at the commons enclose, at a paced instance pace
+//!                                    (tier3s and pace read their first year's D̂ as their start)
 //! markets list FAMILY     [options]  print a family's run names (the battery with tier and slack)
 //! markets tape [NAME]     [options]  print the tape a run is made from
 //! markets kick NAME...    [options]  the kick set at the end of each named run (§7.5)
@@ -13,8 +13,8 @@
 //! markets point           [options]  the oracle's point, at the base and each cost target
 //!
 //! setup options (probe::markets::cli):
-//!   --inst ID              i0, i1, i2, i3, l2, l3, g1, the wall's iw1 and ic1, or the commons'
-//!                          c1, c2 and c1n (default i1)
+//!   --inst ID              i0, i1, i2, i3, l2, l3, g1, the wall's iw1 and ic1, the commons'
+//!                          c1, c2 and c1n, or the paced c1p, c2p and c1pn (default i1)
 //!   --tpy N                ticks a year (default 52)
 //!   --dials c2m|c2l        the registered dial set (default c2m)
 //!   --set KEY=VALUE        set a dial; rate.*, buffer.* and adjust.* scale a family, tilt.* sets
@@ -26,14 +26,16 @@
 //!   --jobs J               run J runs at once (default 1)
 //!   --horizon H            the kick's horizon (default: the scored length)
 //!   --h X                  the probes' step in log price (default 0.01)
-//!   --first-year           a stock or coin start's distance is its first year's largest D̂
-//!                          (Tier 3S; `family tier3s` sets it)
+//!   --first-year           a stock, coin or paced share's start distance is its first year's
+//!                          largest D̂ (Tier 3S; `family tier3s` and `family pace` set it)
 //! ```
 //!
 //! Each run prints one summary line: its class (PROBE-SPEC §4.5) and the reported numbers, with
 //! §7.11's transient statistics in long form in `stats.tsv`; at the wall (`--inst iw1`, `ic1`)
 //! `stats.tsv` adds the wall's readouts (`wall.*`; docs/probe/WALL-RULES.md §5), and at the
-//! commons (`--inst c1`, `c2`, `c1n`) the commons' (`commons.*`; docs/probe/COMMONS-RULES.md §5).
+//! commons (`--inst c1`, `c2`, `c1n`) the commons' (`commons.*`; docs/probe/COMMONS-RULES.md §5);
+//! at a paced instance (`--inst c1p`, `c2p`, `c1pn`) the pace's too (`pace.*`;
+//! docs/probe/TRAP-RULES.md §4).
 
 use probe::harness::{Class, Summary};
 use probe::markets::cli::parse;
@@ -288,6 +290,12 @@ fn stats_lines(rec: &Record) -> Vec<String> {
         put("commons.tp_max", "-", g(c.rented_max));
         put("commons.provider_coin_low", "-", g(c.provider_coin_low));
     }
+    // The pace's readouts (P2.4; the trap scan's §5.4), reported and never scored.
+    if let Some(p) = &st.pace {
+        put("pace.gap_max", "-", g(p.gap_max));
+        put("pace.low", "-", g(p.low));
+        put("pace.zero_hours", "-", p.zero_hours.to_string());
+    }
     out
 }
 
@@ -421,12 +429,17 @@ fn real_main() -> Result<bool, String> {
     };
     let (rest, mut o) = options(&args[1..])?;
     let inst = o.setup.instance.clone();
-    // Tier 3S reads its first year's largest D̂ as its start distance (decision 229).
-    if cmd == "family" && rest.iter().any(|f| f == "tier3s") {
-        if rest.len() > 1 {
-            return Err("run tier3s as a family of its own: its start distance differs".into());
+    // Tier 3S reads its first year's largest D̂ as its start distance (decision 229), and so
+    // does the pace family (P2.4; the trap registration's §3), as the scan's prediction reads it.
+    for fam in ["tier3s", "pace"] {
+        if cmd == "family" && rest.iter().any(|f| f == fam) {
+            if rest.len() > 1 {
+                return Err(format!(
+                    "run {fam} as a family of its own: its start distance differs"
+                ));
+            }
+            o.setup.first_year_d0 = true;
         }
-        o.setup.first_year_d0 = true;
     }
     match cmd.as_str() {
         "point" => {
