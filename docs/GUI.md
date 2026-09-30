@@ -851,8 +851,9 @@ docs/demo/SECOND-PASS.md; STATE.md decisions 320–359). What changed in the GUI
    amended). Each fix has a test that fails without it, checked by undoing it in a scratch copy
    (`D:/rustyecon-d2/fix-report/mut/`):
    - **the sidebar.** Below the lens's heading the card and the lens's description scroll above a
-     ranked table that keeps at least 40% of the height (50% with no county selected). The card's
-     header, its lens list and its inputs wrap to the sidebar; the ranked value cell does not
+     ranked table that keeps 40% of the height (50% with no county selected), at most eleven
+     rows' worth. The card's header, its lens list and its inputs wrap to the sidebar; the ranked
+     value cell does not
      wrap. At a 1,024 × 768 window the card's cause lines were cut and the ranked table was gone;
    - **the legend.** Its header wraps to the bar's width, two rows at most; ψ has its own row
      above the bar; the domain's ends, the reference and each power of ten on a log scale are
@@ -870,7 +871,8 @@ docs/demo/SECOND-PASS.md; STATE.md decisions 320–359). What changed in the GUI
    fitted view after a resize, the colours and the credit, every glyph in its font, and every
    lens of the table inside its domain for every county at every tick to 1901
    (`lens_v2_domains_hold_the_engines_long_run`, ignored and run by name in `scripts/gui.sh`).
-   The suite is 123 tests; `scripts/gui.sh` names 104, and runs the domain test by name.
+   The suite is 141 tests (135 run, 6 ignored; 122 without the lib's unit tests);
+   `scripts/gui.sh` names 104, and runs the domain test by name.
 8. **Not met, and still G4's:** the frame's p90 under 8 ms while a run streams (10.1–10.3 ms on
    the v2 tape and 9.8–9.9 ms on v1's, on a Windows machine shared with other builds; O85), and
    the gap lens's solves off the frame's thread (O86).
