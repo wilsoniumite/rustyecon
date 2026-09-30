@@ -236,6 +236,11 @@ pub const C2: [(&str, f64); 11] = [
     ("tilt.desk.mach", 0.0),
 ];
 
+/// The ticks a year every world runs at: the probe's registered tick (decisions 121, 237), at
+/// which its battery, its kicks and the demo's long run are evidence. The compiler refuses any
+/// other clock, as it refuses dials off their set (O39, D2.1).
+pub const TICKS_PER_YEAR: u32 = 52;
+
 /// The most `max_step` may be, in log: the design's gradual history, whose largest move at one
 /// date is 0.026, ran with no dead tick and no shortfall (docs/demo/WORLD.md §4.4; O14). A
 /// larger `max_step` would let an abrupt history compile.
@@ -668,6 +673,19 @@ fn world(text_: &str) -> Result<World, CompileError> {
             ))
         }
     };
+    // O39 (D2.1, 2026-09-30): the clock is held to the probe's registered tick, as the dials are
+    // held to their set. At 4 ticks a year v1's tables compiled, and the run had 46,548 dead
+    // county-ticks (docs/demo/WORLD-V2.md §10; decisions 121, 237).
+    if ticks_per_year != TICKS_PER_YEAR {
+        return Err(CompileError::new(
+            wt,
+            format!(
+                "ticks_per_year is {ticks_per_year}, not {TICKS_PER_YEAR}: the clock is held to \
+                 the probe's registered tick, as the dials are to their set (O39; decisions 121, \
+                 237)"
+            ),
+        ));
+    }
     let (one_sided, _, wo) = take("one_sided", "")?;
     if one_sided != "Saturate" && one_sided != "Hold" {
         return Err(CompileError::new(wo, "one_sided is Saturate or Hold"));

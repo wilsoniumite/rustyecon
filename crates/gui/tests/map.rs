@@ -34,6 +34,13 @@
 //!   every triangle, and the hover card and the click at a point of every part.
 //! - `the_credit_is_painted_clear_of_the_legend`: the atlas's credit on every map, inside
 //!   the canvas and clear of the legend, at four widths.
+//!
+//! Added at D2.1 (O39's remainder, 2026-09-30):
+//!
+//! - `the_fitted_view_leaves_every_county_clear`: every region's painted box is clear of the
+//!   legend's and the credit's painted rects at four window sizes, Cornwall and Devon by name.
+//! - `the_ranked_values_are_painted_whole`: under the longest lens name and unit, every value
+//!   the ranked table shows is painted whole across, down to a 480-point window.
 
 mod common;
 
@@ -1485,5 +1492,105 @@ fn the_credit_is_painted_whole_on_a_narrow_window() {
         }
         let c = h.state().map.frame().credit_rect.expect("the credit");
         assert!(c.max.x <= w && c.min.x >= 0.0, "at {w}: {c:?}");
+    }
+}
+
+#[test]
+fn the_fitted_view_leaves_every_county_clear() {
+    // O39 (D2.1): the fitted map put Cornwall and Devon under the legend on a narrower canvas.
+    // The fit now leaves the legend's box and the credit's panel clear of every region. Read
+    // from what was painted: each region's box is its span's vertices in the frame's mesh, and
+    // the legend's and the credit's rects are the painted ones.
+    let store = demo_store();
+    let idx = ui_map::index(geo());
+    for (w, hgt) in [
+        (1600.0, 900.0),
+        (1280.0, 800.0),
+        (1024.0, 768.0),
+        (700.0, 768.0),
+    ] {
+        let mut h = map_harness_sized(store, egui::vec2(w, hgt));
+        h.state_mut().cursor = Some(51);
+        h.run();
+        let f = h.state().map.frame().clone();
+        let legend = f.legend.rect.expect("the legend was drawn");
+        let credit = f.credit_rect.expect("the credit was painted");
+        assert_eq!(f.regions.len(), 93);
+        for r in &f.regions {
+            let b = r
+                .rect
+                .unwrap_or_else(|| panic!("at {w} × {hgt}: {} has no box", r.key));
+            for (what, c) in [("legend", legend), ("credit", credit)] {
+                assert!(
+                    !b.intersects(c),
+                    "at {w} × {hgt}: {} at {b:?} under the {what} at {c:?}",
+                    r.key
+                );
+            }
+        }
+        // Cornwall and Devon, at the map's south-west corner, by name.
+        for k in ["county.con", "county.dev"] {
+            let b = f.regions[idx[k]].rect.expect("painted");
+            assert!(
+                b.max.y < legend.min.y || b.min.x > legend.max.x,
+                "{k} at {w}"
+            );
+        }
+    }
+}
+
+#[test]
+fn the_ranked_values_are_painted_whole() {
+    // O39 (D2.1): under a long lens name and unit, the ranked table's value column was cut on a
+    // narrow pane. The county column now takes what is left and clips its names, the value
+    // column keeps its width, and the header wraps. Read from the shapes painted: under the
+    // longest name and unit of the table, at each width down to the narrowest, every row's
+    // value text is painted inside its clip rect and inside the window.
+    let store = demo_store();
+    let longest = lenses()
+        .iter()
+        .filter(|l| l.source != rustyecon_worldgen::tables::LensSource::Observe)
+        .max_by_key(|l| l.name.len() + l.unit.len())
+        .expect("a lens");
+    for (w, hgt) in [
+        (1600.0, 900.0),
+        (1024.0, 768.0),
+        (700.0, 768.0),
+        (480.0, 600.0),
+    ] {
+        let mut h = map_harness_sized(store, egui::vec2(w, hgt));
+        h.state_mut().cursor = Some(51);
+        h.state_mut().map.lens = longest.key.clone();
+        h.run();
+        let f = h.state().map.frame().clone();
+        assert_eq!(f.lens.as_deref(), Some(longest.key.as_str()));
+        assert!(!f.rows.is_empty(), "at {w}: no row drawn");
+        let texts = painted_texts(&h);
+        let window = egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(w, hgt));
+        let mut whole = 0;
+        for row in &f.rows {
+            // The table lays out a row or two past the scroll area's edge, which egui does not paint.
+            let Some((t, r, clip, seen)) = texts.iter().find(|(t, _, _, _)| {
+                t == &row.text || t.strip_suffix(" ↓").or(t.strip_suffix(" ↑")) == Some(&row.text)
+            }) else {
+                continue;
+            };
+            assert!(*seen, "at {w}: {t:?} is painted unseen");
+            // A row the scroll area shows only in part, at its top or bottom, is cut there by
+            // design; across, every shown row is whole.
+            if r.min.y < clip.min.y - 0.5 || r.max.y > clip.max.y + 0.5 {
+                continue;
+            }
+            whole += 1;
+            let across = |a: egui::Rect| a.min.x <= r.min.x + 0.5 && r.max.x <= a.max.x + 0.5;
+            assert!(
+                across(*clip) && across(window),
+                "at {w} × {hgt} under {:?} ({}): {}'s value {t:?} at {r:?} is clipped to {clip:?}",
+                longest.name,
+                longest.unit,
+                row.key
+            );
+        }
+        assert!(whole > 5, "at {w}: {whole} rows shown whole");
     }
 }

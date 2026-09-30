@@ -143,6 +143,19 @@ is next on `demo-v2`. "Next steps" has each.
 
 ## Where things stand
 
+**O39's remainder is fixed (D2.1; 2026-09-30).** Branch `demo-v2`, worktree `D:/rustyecon-wt/d2`,
+scratch `D:/rustyecon-d2/build/`. The first build step of the demo's second pass
+([docs/demo/WORLD-V2.md](docs/demo/WORLD-V2.md) §10, §13), on v1; no tape, pin or table moved.
+- **The clock.** The compiler refuses `ticks_per_year` other than 52, as it refuses dials off
+  their set (`the_compiler_refuses_bad_tables` at 12 and 4 a year).
+- **The fitted view.** The map fits clear of the legend and the credit: at 1,280 × 800 Cornwall
+  had sat under the legend (`the_fitted_view_leaves_every_county_clear`, four sizes, every
+  region's painted box; decision 343).
+- **The ranked values.** A long lens name no longer widens the sidebar, and the county column
+  clips before the value column does (`the_ranked_values_are_painted_whole`, down to a 480-point
+  window; decision 344).
+- Each test fails with its fix undone. Both gates are green on WSL and Windows before the commit.
+
 **The demo's second pass is designed (D2.0; 2026-09-30; docs only).** Branch `demo-v2` from
 `reboot` at `f7d1eae` (worktree `D:/rustyecon-wt/d2`, scratch `D:/rustyecon-d2/design/`). The
 design is [docs/demo/WORLD-V2.md](docs/demo/WORLD-V2.md) (WORLD.md §11 points to it); the
@@ -3463,6 +3476,20 @@ veto. This branch numbers in 320–359 and O81–O94, apart from the other lines
 342. **The design is `docs/demo/WORLD-V2.md`, with WORLD.md §11 pointing to it**, since WORLD.md
      would pass 800 lines. Alternative: WORLD.md §11 in full.
 
+343 on are the build's (D2.1 onward, branch `demo-v2`, 2026-09-30), taken by Claude on the same
+standing word and open to veto.
+
+343. **The fitted map moves above the legend and the credit only where a region would fall under
+     them** (D2.1; O39): `View::fit_clear` fits the whole canvas when every region's box is clear
+     of the legend's box and the credit's panel, and the canvas above their tops when one is not
+     (Cornwall under the legend at 1,280 × 800 before the fix). Alternative: always fit above the
+     legend, a map about 10% smaller on every canvas.
+344. **A long lens name is cut short in the selector's button, and the ranked table clips county
+     names before values** (D2.1; O39): the button is laid out in the width left for it, and the
+     county column takes the remainder and clips. Before the fix the button's long name widened
+     the sidebar, and the value column ran 33 points off a 480-point window. Alternative: wrap the
+     name onto two lines in the button.
+
 ## Open — your calls
 
 - **The GUI's decisions**, 22–34 (D1–D13): G0 carried them out, none vetoed; a veto now reopens
@@ -4012,6 +4039,10 @@ O36–O40 are G1's (branch `g1`), numbered after O30 and apart from track 1g's O
   pass (O27) takes the rest. *Designed at D2.0* (WORLD-V2 §10; decision 338): the clock refused
   off 52 in v1 and v2, the fitted view fitted clear of the legend's and the credit's rects, the
   county column clipped so the value column stays whole; each with a test, at D2.1.
+  *Closed at D2.1* (2026-09-30; decisions 343, 344): the compiler refuses a clock other than 52
+  (`the_compiler_refuses_bad_tables`, at 12 and 4 a year); the fitted view leaves the legend and
+  the credit clear (`the_fitted_view_leaves_every_county_clear`); the ranked values are painted
+  whole (`the_ranked_values_are_painted_whole`). Each test fails with its fix undone.
 - **O40. What no headless test reaches** (decisions 206, 213). A snapshot's picture comes from
   the renderer, which kittest's harness does not have; the test hands the app a picture. The
   lab's sweeps of the heavier units (1e and 1f scan their paths) run on the UI thread and can

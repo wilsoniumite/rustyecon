@@ -66,7 +66,8 @@ step() { printf '\n== gui: %s\n' "$*"; }
 # the knobs held to the parameter types' Debug, the explainer off the gate's easy path (a rate
 # change, a shock, Ratio, Saturate, a flipped record), the waterfall's flags and bins and its
 # Ratio steps, what the lab's charts and the waterfall lend and paint, an event before a date,
-# the credit's clamp, and the session's format.
+# the credit's clamp, and the session's format. D2.1 (O39's remainder) adds the fitted view clear
+# of the legend and the credit, and the ranked values painted whole under a long lens name.
 named=(
     gui_equals_cli
     failed_run_shows_its_ledger_line
@@ -155,6 +156,8 @@ named=(
     an_event_breakpoint_names_the_pause_before_a_date_in_one_tick
     ui::map::tests::the_credit_moved_above_the_legend_stays_on_the_canvas
     a_session_round_trips_and_refuses_what_it_does_not_know
+    the_fitted_view_leaves_every_county_clear
+    the_ranked_values_are_painted_whole
 )
 
 step "toolchain (rust-toolchain.toml)"
