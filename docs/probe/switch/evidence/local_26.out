@@ -1,0 +1,58 @@
+== mig:avg:26
+  tpy 52 None                                 PL 0.987132 (a year 0.5099) a* [0.0, 0.0] corner rates [trained 0.963838, master 0.790500]
+  tpy 52 ('land.mach', '0.44')                PL 0.986734 (a year 0.4993) a* [0.0, 0.0] corner rates [trained 0.965061, master 0.793220]
+  tpy 52 ('land.mach', '0.36')                PL 0.987509 (a year 0.5202) a* [0.0, 0.0] corner rates [trained 0.962554, master 0.787650]
+  tpy 52 ('land.mach', '0.8')                 PL 0.983590 (a year 0.4230) a* [0.0, 0.0] corner rates [trained 0.973931, master 0.813058]
+  tpy 52 ('land.mach', '0.2')                 PL 0.988980 (a year 0.5620) a* [0.0, 0.0] corner rates [trained 0.956717, master 0.774749]
+  tpy 52 ('tail.services', '0.11')            PL 0.992722 (a year 0.6840) a* [0.007031052173720907, 0.0] corner rates [master 0.824046]
+  tpy 52 ('tail.services', '0.09')            PL 0.986852 (a year 0.5025) a* [0.0, 0.0] corner rates [trained 0.920535, master 0.754985]
+  tpy 52 ('tail.services', '0.2')             PL 0.991067 (a year 0.6271) a* [0.2860879343123933, 0.04967163795419959] corner rates []
+  tpy 52 ('tail.services', '0.05')            PL 0.986240 (a year 0.4865) a* [0.0, 0.0] corner rates [trained 0.738229, master 0.605465]
+  tpy 52 ('res.services.trained', '0.044')    PL 0.987330 (a year 0.5153) a* [0.0, 0.0] corner rates [trained 0.903465, master 0.790500]
+  tpy 52 ('res.services.trained', '0.036')    PL 0.986969 (a year 0.5056) a* [0.035671256071013464, 0.0] corner rates [master 0.783448]
+  tpy 52 ('res.services.trained', '0.08')     PL 0.991911 (a year 0.6555) a* [0.0, 0.0] corner rates [trained 0.570891, master 0.790500]
+  tpy 52 ('res.services.trained', '0.02')     PL 0.986832 (a year 0.5019) a* [0.39142810838832914, 0.0] corner rates [master 0.721439]
+  tpy 12 None                                 PL 0.963575 (a year 0.6407) a* [0.0, 0.0] corner rates [trained 0.852479, master 0.361056]
+  tpy 365 None                                 PL 0.998158 (a year 0.5103) a* [0.0, 0.0] corner rates [trained 0.994766, master 0.967062]
+  kicks None                                 PASS 14 gain_tail 8.22e-06 gain_peak 2.21 slowest decay 0.988002 a tick, 0.5338 a year
+  kicks ('land.mach', '0.44')                PASS 14 gain_tail 6.88e-06 gain_peak 2.20 slowest decay 0.987747 a tick, 0.5267 a year
+  kicks ('land.mach', '0.36')                PASS 14 gain_tail 9.99e-06 gain_peak 2.30 slowest decay 0.988176 a tick, 0.5388 a year
+  kicks ('land.mach', '0.8')                 PASS 14 gain_tail 7.88e-06 gain_peak 2.10 slowest decay 0.984292 a tick, 0.4390 a year
+  kicks ('land.mach', '0.2')                 PASS 14 gain_tail 1.04e-05 gain_peak 2.74 slowest decay 0.989365 a tick, 0.5735 a year
+  kicks ('tail.services', '0.11')            PASS 14 gain_tail 9.44e-06 gain_peak 2.61 slowest decay 0.992768 a tick, 0.6856 a year
+  kicks ('tail.services', '0.09')            PASS 14 gain_tail 8.10e-06 gain_peak 2.19 slowest decay 0.987683 a tick, 0.5250 a year
+  kicks ('tail.services', '0.2')             PASS 14 gain_tail 1.32e-05 gain_peak 3.00 slowest decay 0.991570 a tick, 0.6439 a year
+  kicks ('tail.services', '0.05')            PASS 14 gain_tail 7.55e-06 gain_peak 2.15 slowest decay 0.986287 a tick, 0.4877 a year
+  kicks ('res.services.trained', '0.044')    PASS 14 gain_tail 1.02e-05 gain_peak 2.28 slowest decay 0.987996 a tick, 0.5337 a year
+  kicks ('res.services.trained', '0.036')    PASS 14 gain_tail 8.10e-06 gain_peak 2.23 slowest decay 0.987542 a tick, 0.5211 a year
+  kicks ('res.services.trained', '0.08')     PASS 14 gain_tail 1.39e-05 gain_peak 2.70 slowest decay 0.992066 a tick, 0.6609 a year
+  kicks ('res.services.trained', '0.02')     PASS 14 gain_tail 8.44e-06 gain_peak 2.19 slowest decay 0.986797 a tick, 0.5010 a year
+== is2/mig:avg:26
+  tpy 52 None                                 PL 0.986832 (a year 0.5019) a* [0.39142810838832914, 0.0] corner rates [master 0.721439]
+  tpy 52 ('land.mach', '0.44')                PL 0.986515 (a year 0.4936) a* [0.3920586729489223, 0.0] corner rates [master 0.724008]
+  tpy 52 ('land.mach', '0.36')                PL 0.987134 (a year 0.5100) a* [0.39077131266119797, 0.0] corner rates [master 0.718746]
+  tpy 52 ('land.mach', '0.8')                 PL 0.983819 (a year 0.4282) a* [0.39677252332766405, 0.0] corner rates [master 0.742749]
+  tpy 52 ('land.mach', '0.2')                 PL 0.988385 (a year 0.5447) a* [0.387846294928211, 0.0] corner rates [master 0.706556]
+  tpy 52 ('tail.services', '0.11')            PL 0.986867 (a year 0.5029) a* [0.4241539900012464, 0.0] corner rates [master 0.747465]
+  tpy 52 ('tail.services', '0.09')            PL 0.986721 (a year 0.4990) a* [0.35457129872983106, 0.0] corner rates [master 0.695090]
+  tpy 52 ('tail.services', '0.2')             PL 0.989622 (a year 0.5813) a* [0.6091995878176161, 0.0] corner rates [master 0.973284]
+  tpy 52 ('tail.services', '0.05')            PL 0.985261 (a year 0.4620) a* [0.14475154970860185, 0.0] corner rates [master 0.585245]
+  tpy 52 ('res.services.trained', '0.022')    PL 0.986873 (a year 0.5030) a* [0.34181122187676016, 0.0] corner rates [master 0.729278]
+  tpy 52 ('res.services.trained', '0.018')    PL 0.986809 (a year 0.5013) a* [0.4427551661680639, 0.0] corner rates [master 0.713570]
+  tpy 52 ('res.services.trained', '0.04')     PL 0.987132 (a year 0.5099) a* [0.0, 0.0] corner rates [trained 0.963838, master 0.790500]
+  tpy 52 ('res.services.trained', '0.01')     PL 0.986930 (a year 0.5045) a* [0.6671699872023659, 0.0] corner rates [master 0.681778]
+  tpy 12 None                                 PL 0.963446 (a year 0.6396) a* [0.3914281083883293, 0.0] corner rates [master 0.242958]
+  tpy 365 None                                 PL 0.998027 (a year 0.4864) a* [0.3914281083883292, 0.0] corner rates [master 0.954549]
+  kicks None                                 PASS 14 gain_tail 8.44e-06 gain_peak 2.19 slowest decay 0.986797 a tick, 0.5010 a year
+  kicks ('land.mach', '0.44')                PASS 14 gain_tail 8.66e-06 gain_peak 2.17 slowest decay 0.986509 a tick, 0.4935 a year
+  kicks ('land.mach', '0.36')                PASS 14 gain_tail 8.99e-06 gain_peak 2.20 slowest decay 0.987475 a tick, 0.5192 a year
+  kicks ('land.mach', '0.8')                 PASS 14 gain_tail 6.88e-06 gain_peak 2.06 slowest decay 0.983623 a tick, 0.4237 a year
+  kicks ('land.mach', '0.2')                 PASS 14 gain_tail 9.77e-06 gain_peak 2.70 slowest decay 0.988887 a tick, 0.5593 a year
+  kicks ('tail.services', '0.11')            PASS 14 gain_tail 7.66e-06 gain_peak 2.20 slowest decay 0.987088 a tick, 0.5087 a year
+  kicks ('tail.services', '0.09')            PASS 14 gain_tail 7.22e-06 gain_peak 2.18 slowest decay 0.986787 a tick, 0.5007 a year
+  kicks ('tail.services', '0.2')             PASS 14 gain_tail 1.43e-05 gain_peak 2.76 slowest decay 0.990130 a tick, 0.5970 a year
+  kicks ('tail.services', '0.05')            PASS 14 gain_tail 6.99e-06 gain_peak 2.24 slowest decay 0.986245 a tick, 0.4866 a year
+  kicks ('res.services.trained', '0.022')    PASS 14 gain_tail 7.77e-06 gain_peak 2.18 slowest decay 0.987068 a tick, 0.5082 a year
+  kicks ('res.services.trained', '0.018')    PASS 14 gain_tail 7.66e-06 gain_peak 2.19 slowest decay 0.986775 a tick, 0.5004 a year
+  kicks ('res.services.trained', '0.04')     PASS 14 gain_tail 8.22e-06 gain_peak 2.21 slowest decay 0.988002 a tick, 0.5338 a year
+  kicks ('res.services.trained', '0.01')     PASS 14 gain_tail 8.44e-06 gain_peak 2.21 slowest decay 0.987489 a tick, 0.5196 a year

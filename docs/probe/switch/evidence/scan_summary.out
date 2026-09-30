@@ -1,0 +1,193 @@
+== is2/mig:avg:104
+  tpy12               n   68 CONVERGED 58 ORBITING 10 | ttol med 141.0 slowest 184 (p[labour.trained]*0.8) | dead max 26 | baskets low 0.049 | runs pooling 68, crossing 68
+     not CONVERGED: p[labour]*1.2:ORBITING, sw[trained]=0.05:ORBITING, tail.services=0.11@genesis:ORBITING, RW(1.05):ORBITING, sw[trained]=0.2:ORBITING, tail.services=0.09@genesis:ORBITING, tail.services=0.11@dated:ORBITING, res.services.trained=0.018@genesis:ORBITING, tail.services=0.09@dated:ORBITING, res.services.trained=0.018@dated:ORBITING
+== is2/mig:avg:13
+  tpy12               n   68 CONVERGED 68 | ttol med 134.5 slowest 185 (s[goods]=0.2) | dead max 2 | baskets low 0.417 | runs pooling 68, crossing 68
+== is2/mig:avg:208
+  tpy12               n   68 DEAD 55 DIVERGED 13 | ttol med None slowest None () | dead max 14600 | baskets low 0.002 | runs pooling 68, crossing 68
+     not CONVERGED: p[land]*1.05:DEAD, p[mach]*1.05:DEAD, p[labour]*1.05:DEAD, p[labour.trained]*1.05:DEAD, p[labour]*0.95:DEAD, p[land]*0.95:DEAD, p[services]*1.05:DEAD, p[goods]*1.05:DEAD, p[labour.master]*1.05:DIVERGED, p[labour.trained]*0.95:DEAD, p[services]*0.95:DEAD, p[labour.master]*0.95:DEAD, p[mach]*0.95:DEAD, p[goods]*0.95:DEAD, p[labour]*1.2:DEAD, p[land]*1.2:DIVERGED, p[goods]*1.2:DEAD, p[services]*1.2:DEAD, p[mach]*1.2:DIVERGED, p[labour]*0.8:DEAD, p[labour.master]*1.2:DIVERGED, p[labour.trained]*1.2:DEAD, p[land]*0.8:DIVERGED, p[mach]*0.8:DIVERGED, p[labour.master]*0.8:DEAD, p[services]*0.8:DIVERGED, p[goods]*0.8:DEAD, p[labour.trained]*0.8:DEAD, s[services]=0.05:DIVERGED, s[services]=0.2:DIVERGED, s[goods]=0.05:DEAD, JA(1.2):DEAD, JA(1.05):DEAD, JA(0.95):DEAD, s[goods]=0.2:DEAD, JA(0.8):DEAD, JB(1.05):DEAD, JB(0.95):DEAD, JB(1.2):DIVERGED, JB(0.8):DEAD ...
+== is2/mig:avg:26
+  battery             n  109 CONVERGED 109 | ttol med 453 slowest 677 (tail.services=0.2@genesis) | dead max 114 | baskets low 0.0 | runs pooling 109, crossing 109
+  hold     holdx1     n   68 CONVERGED 68 | ttol med 382.5 slowest 574 (JA(0.8)) | dead max 13 | baskets low 0.319 | runs pooling 68, crossing 68
+  nbhd     adjustx0.75 n   41 CONVERGED 41 | ttol med 556 slowest 677 (tail.services=0.2@genesis) | dead max 114 | baskets low 0.0 | runs pooling 41, crossing 41
+  nbhd     adjustx0.9 n   41 CONVERGED 41 | ttol med 556 slowest 677 (tail.services=0.2@genesis) | dead max 114 | baskets low 0.0 | runs pooling 41, crossing 41
+  nbhd     adjustx1.1 n   41 CONVERGED 41 | ttol med 556 slowest 677 (tail.services=0.2@genesis) | dead max 114 | baskets low 0.0 | runs pooling 41, crossing 41
+  nbhd     adjustx1.25 n   41 CONVERGED 41 | ttol med 556 slowest 677 (tail.services=0.2@genesis) | dead max 114 | baskets low 0.0 | runs pooling 41, crossing 41
+  nbhd     bufferx0.75 n   41 CONVERGED 41 | ttol med 536 slowest 683 (tail.services=0.2@genesis) | dead max 108 | baskets low 0.0 | runs pooling 41, crossing 39
+  nbhd     bufferx0.9 n   41 CONVERGED 41 | ttol med 551 slowest 677 (tail.services=0.2@genesis) | dead max 111 | baskets low 0.0 | runs pooling 41, crossing 39
+  nbhd     bufferx1.1 n   41 CONVERGED 41 | ttol med 550 slowest 677 (tail.services=0.2@genesis) | dead max 116 | baskets low 0.0 | runs pooling 41, crossing 41
+  nbhd     bufferx1.25 n   41 CONVERGED 41 | ttol med 540 slowest 676 (tail.services=0.2@genesis) | dead max 118 | baskets low 0.0 | runs pooling 41, crossing 41
+  nbhd     ratex0.75  n   41 CONVERGED 41 | ttol med 706 slowest 913 (tail.services=0.2@genesis) | dead max 164 | baskets low 0.0 | runs pooling 41, crossing 41
+  nbhd     ratex0.9   n   41 CONVERGED 41 | ttol med 606 slowest 761 (JA(0.5)) | dead max 130 | baskets low 0.0 | runs pooling 41, crossing 41
+  nbhd     ratex1.1   n   41 CONVERGED 41 | ttol med 485 slowest 613 (tail.services=0.2@genesis) | dead max 101 | baskets low 0.0 | runs pooling 41, crossing 39
+  nbhd     ratex1.25  n   41 CONVERGED 41 | ttol med 440 slowest 566 (JA(0.5)) | dead max 87 | baskets low 0.0 | runs pooling 41, crossing 39
+  nbhd     tilt0.05   n   41 CONVERGED 41 | ttol med 531 slowest 674 (tail.services=0.2@genesis) | dead max 113 | baskets low 0.0 | runs pooling 41, crossing 41
+  nbhd     tilt0.1    n   41 CONVERGED 41 | ttol med 509 slowest 671 (tail.services=0.2@genesis) | dead max 112 | baskets low 0.0 | runs pooling 41, crossing 39
+  nbhd     tilt0.25   n   41 CONVERGED 41 | ttol med 494 slowest 664 (tail.services=0.2@genesis) | dead max 109 | baskets low 0.015 | runs pooling 41, crossing 39
+  nbhd     tilt0.5    n   41 CONVERGED 41 | ttol med 480 slowest 646 (tail.services=0.2@genesis) | dead max 103 | baskets low 0.015 | runs pooling 41, crossing 39
+  nbhd     tilt1      n   41 CONVERGED 41 | ttol med 453 slowest 619 (tail.services=0.2@genesis) | dead max 92 | baskets low 0.005 | runs pooling 41, crossing 39
+  tier3s              n   20 CONVERGED 20 | ttol med 406.5 slowest 557 (coin.provider*2) | dead max 10 | baskets low 0.286 | runs pooling 20, crossing 20
+  tpy12               n   68 CONVERGED 68 | ttol med 135.5 slowest 186 (JA(0.8)) | dead max 4 | baskets low 0.417 | runs pooling 68, crossing 68
+  tpy365              n   68 CONVERGED 68 | ttol med 2642.0 slowest 3768 (JA(0.8)) | dead max 82 | baskets low 0.264 | runs pooling 68, crossing 68
+== is2/mig:avg:52
+  tpy12               n   68 CONVERGED 68 | ttol med 137.0 slowest 187 (s[services]=0.2) | dead max 8 | baskets low 0.23 | runs pooling 68, crossing 68
+== is2/mig:max:26
+  battery             n  109 CONVERGED 109 | ttol med 453 slowest 678 (tail.services=0.2@genesis) | dead max 114 | baskets low 0.0 | runs pooling 109, crossing 109
+  tier3s              n   20 CONVERGED 20 | ttol med 406.5 slowest 557 (coin.provider*2) | dead max 9 | baskets low 0.286 | runs pooling 20, crossing 20
+== is2/rep:avg:26
+  battery             n  109 CONVERGED 109 | ttol med 453 slowest 732 (tail.services=0.2@genesis) | dead max 115 | baskets low 0.0 | runs pooling 109, crossing 109
+  tier3s              n   20 CONVERGED 20 | ttol med 407.5 slowest 570 (coin.desk.mach*2) | dead max 9 | baskets low 0.286 | runs pooling 20, crossing 20
+== is2/step:avg:0
+  battery             n  109 CONVERGED 5 DEAD 100 DIVERGED 4 | ttol med 0 slowest 475 (res.services.trained=0.04@genesis) | dead max 16081 | baskets low 0.0 | runs pooling 109, crossing 104
+     not CONVERGED: p[land]*1.05:DEAD, p[labour.master]*1.05:DEAD, p[goods]*1.05:DEAD, p[mach]*1.05:DEAD, p[goods]*0.95:DEAD, p[land]*1.2:DEAD, p[services]*0.95:DEAD, p[labour.trained]*0.95:DEAD, p[goods]*1.2:DEAD, p[labour]*1.05:DEAD, p[labour.trained]*1.2:DEAD, p[labour]*1.2:DEAD, p[labour]*0.8:DEAD, p[land]*0.95:DEAD, p[labour.trained]*1.05:DEAD, p[services]*1.2:DEAD, p[labour]*0.95:DEAD, p[mach]*1.2:DEAD, p[labour.master]*0.95:DEAD, p[labour.master]*1.2:DEAD, p[services]*1.05:DEAD, p[mach]*0.8:DEAD, p[labour.trained]*0.8:DEAD, p[labour.master]*0.8:DEAD, p[goods]*0.8:DEAD, p[land]*2:DEAD, p[mach]*0.95:DEAD, p[labour]*2:DEAD, p[goods]*2:DEAD, p[labour.trained]*2:DEAD, p[labour.master]*2:DEAD, p[land]*0.5:DEAD, p[mach]*2:DEAD, p[labour]*0.5:DEAD, p[land]*0.8:DEAD, p[services]*0.8:DEAD, p[services]*0.5:DEAD, s[goods]=0.05:DEAD, s[goods]=0.2:DEAD, p[services]*2:DEAD ...
+  tier3s              n   20 DEAD 20 | ttol med None slowest None () | dead max 12627 | baskets low 0.0 | runs pooling 20, crossing 20
+     not CONVERGED: stock.goods*0.5:DEAD, stock.goods*2:DEAD, stock.mach*2:DEAD, stock.mach*0.5:DEAD, stock.services*0.5:DEAD, coin.desk.services*0.5:DEAD, coin.desk.goods*0.5:DEAD, coin.desk.services*2:DEAD, coin.desk.goods*2:DEAD, coin.workers*2:DEAD, stock.services*2:DEAD, coin.provider*2:DEAD, coin.provider*0.5:DEAD, coin.desk.mach*0.5:DEAD, coin.workers*0.5:DEAD, coin.desk.mach*2:DEAD, coin.workers.trained*0.5:DEAD, coin.workers.master*0.5:DEAD, coin.workers.master*2:DEAD, coin.workers.trained*2:DEAD
+== mig:avg:1.3
+  battery             n  109 CONVERGED 109 | ttol med 503 slowest 5279 (tail.services=0.11@dated) | dead max 117 | baskets low 0.0 | runs pooling 55, crossing 49
+  tier3s              n   20 CONVERGED 20 | ttol med 404.0 slowest 1679 (coin.desk.mach*0.5) | dead max 8 | baskets low 0.286 | runs pooling 6, crossing 6
+== mig:avg:104
+  battery             n  109 CONVERGED 109 | ttol med 440 slowest 706 (JA(0.5)) | dead max 117 | baskets low 0.0 | runs pooling 55, crossing 49
+  tier3s              n   20 CONVERGED 20 | ttol med 404.0 slowest 555 (coin.desk.mach*2) | dead max 8 | baskets low 0.286 | runs pooling 6, crossing 6
+  tpy12               n   68 CONVERGED 68 | ttol med 118.5 slowest 187 (JA(0.8)) | dead max 2 | baskets low 0.086 | runs pooling 21, crossing 17
+== mig:avg:1040
+  battery             n  109 CONVERGED 107 ORBITING 2 | ttol med 440 slowest 706 (JA(0.5)) | dead max 117 | baskets low 0.0 | runs pooling 55, crossing 49
+     not CONVERGED: res.services.trained=0.02@dated:ORBITING, res.services.trained=0.02@genesis:ORBITING
+  tier3s              n   20 CONVERGED 20 | ttol med 404.0 slowest 550 (coin.desk.mach*2) | dead max 8 | baskets low 0.286 | runs pooling 6, crossing 6
+== mig:avg:13
+  battery             n  109 CONVERGED 109 | ttol med 445 slowest 737 (tail.services=0.2@genesis) | dead max 118 | baskets low 0.0 | runs pooling 55, crossing 49
+  hold     holdx1     n   68 CONVERGED 68 | ttol med 368.5 slowest 649 (tail.services=0.11@genesis) | dead max 6 | baskets low 0.33 | runs pooling 21, crossing 17
+  nbhd     adjustx0.75 n   41 CONVERGED 41 | ttol med 566 slowest 737 (tail.services=0.2@genesis) | dead max 118 | baskets low 0.0 | runs pooling 34, crossing 32
+  nbhd     adjustx0.9 n   41 CONVERGED 41 | ttol med 566 slowest 737 (tail.services=0.2@genesis) | dead max 118 | baskets low 0.0 | runs pooling 34, crossing 32
+  nbhd     adjustx1.1 n   41 CONVERGED 41 | ttol med 566 slowest 737 (tail.services=0.2@genesis) | dead max 118 | baskets low 0.001 | runs pooling 34, crossing 32
+  nbhd     adjustx1.25 n   41 CONVERGED 41 | ttol med 566 slowest 737 (tail.services=0.2@genesis) | dead max 118 | baskets low 0.005 | runs pooling 34, crossing 32
+  nbhd     bufferx0.75 n   41 CONVERGED 41 | ttol med 561 slowest 739 (tail.services=0.2@genesis) | dead max 111 | baskets low 0.0 | runs pooling 34, crossing 32
+  nbhd     bufferx0.9 n   41 CONVERGED 41 | ttol med 569 slowest 736 (tail.services=0.2@genesis) | dead max 115 | baskets low 0.0 | runs pooling 34, crossing 32
+  nbhd     bufferx1.1 n   41 CONVERGED 41 | ttol med 558 slowest 732 (tail.services=0.2@genesis) | dead max 120 | baskets low 0.0 | runs pooling 34, crossing 32
+  nbhd     bufferx1.25 n   41 CONVERGED 41 | ttol med 551 slowest 733 (tail.services=0.2@genesis) | dead max 123 | baskets low 0.003 | runs pooling 35, crossing 33
+  nbhd     ratex0.75  n   41 CONVERGED 41 | ttol med 753 slowest 995 (tail.services=0.2@genesis) | dead max 170 | baskets low 0.0 | runs pooling 35, crossing 33
+  nbhd     ratex0.9   n   41 CONVERGED 41 | ttol med 617 slowest 817 (tail.services=0.2@genesis) | dead max 135 | baskets low 0.0 | runs pooling 34, crossing 32
+  nbhd     ratex1.1   n   41 CONVERGED 41 | ttol med 517 slowest 663 (tail.services=0.2@genesis) | dead max 104 | baskets low 0.01 | runs pooling 34, crossing 32
+  nbhd     ratex1.25  n   41 CONVERGED 41 | ttol med 451 slowest 583 (tail.services=0.2@genesis) | dead max 89 | baskets low 0.027 | runs pooling 34, crossing 32
+  nbhd     tilt0.05   n   41 CONVERGED 41 | ttol med 558 slowest 733 (tail.services=0.2@genesis) | dead max 117 | baskets low 0.023 | runs pooling 34, crossing 32
+  nbhd     tilt0.1    n   41 CONVERGED 41 | ttol med 550 slowest 729 (tail.services=0.2@genesis) | dead max 116 | baskets low 0.047 | runs pooling 34, crossing 32
+  nbhd     tilt0.25   n   41 CONVERGED 41 | ttol med 532 slowest 719 (tail.services=0.2@genesis) | dead max 113 | baskets low 0.106 | runs pooling 34, crossing 32
+  nbhd     tilt0.5    n   41 CONVERGED 41 | ttol med 505 slowest 703 (tail.services=0.2@genesis) | dead max 108 | baskets low 0.103 | runs pooling 34, crossing 32
+  nbhd     tilt1      n   41 CONVERGED 41 | ttol med 470 slowest 676 (tail.services=0.2@genesis) | dead max 97 | baskets low 0.042 | runs pooling 34, crossing 32
+  switch   switchx0.75 n   41 CONVERGED 41 | ttol med 568 slowest 740 (tail.services=0.2@genesis) | dead max 118 | baskets low 0.0 | runs pooling 34, crossing 32
+  switch   switchx0.9 n   41 CONVERGED 41 | ttol med 566 slowest 738 (tail.services=0.2@genesis) | dead max 118 | baskets low 0.0 | runs pooling 34, crossing 32
+  switch   switchx1.1 n   41 CONVERGED 41 | ttol med 564 slowest 735 (tail.services=0.2@genesis) | dead max 118 | baskets low 0.0 | runs pooling 34, crossing 32
+  switch   switchx1.25 n   41 CONVERGED 41 | ttol med 562 slowest 735 (tail.services=0.2@genesis) | dead max 118 | baskets low 0.0 | runs pooling 34, crossing 32
+  tier3s              n   20 CONVERGED 20 | ttol med 404.0 slowest 556 (coin.desk.mach*2) | dead max 8 | baskets low 0.286 | runs pooling 6, crossing 6
+  tpy12               n   68 CONVERGED 68 | ttol med 118.5 slowest 187 (JA(0.8)) | dead max 1 | baskets low 0.401 | runs pooling 21, crossing 17
+  tpy365              n   68 CONVERGED 68 | ttol med 2518.0 slowest 4468 (tail.services=0.11@genesis) | dead max 45 | baskets low 0.281 | runs pooling 19, crossing 15
+== mig:avg:2.6
+  battery             n  109 CONVERGED 109 | ttol med 482 slowest 2797 (tail.services=0.11@genesis) | dead max 117 | baskets low 0.0 | runs pooling 55, crossing 49
+  tier3s              n   20 CONVERGED 20 | ttol med 404.0 slowest 977 (coin.desk.mach*0.5) | dead max 8 | baskets low 0.286 | runs pooling 6, crossing 6
+== mig:avg:208
+  tpy12               n   68 CONVERGED 67 STUCK 1 | ttol med 119 slowest 1299 (res.services.trained=0.036@dated) | dead max 15 | baskets low 0.007 | runs pooling 21, crossing 17
+     not CONVERGED: res.services.trained=0.036@genesis:STUCK
+== mig:avg:26
+  basin               n  516 CONVERGED 516 | ttol med 572.0 slowest 1012 (p[mach]*0.12270440108003683) | dead max 250 | baskets low 0.0 | runs pooling 405, crossing 405
+  battery             n  109 CONVERGED 109 | ttol med 445 slowest 734 (tail.services=0.2@genesis) | dead max 117 | baskets low 0.002 | runs pooling 55, crossing 49
+  hold     holdx1     n   68 CONVERGED 68 | ttol med 369.0 slowest 575 (JA(0.8)) | dead max 8 | baskets low 0.33 | runs pooling 21, crossing 17
+  joint2              n   60 CONVERGED 60 | ttol med 581.5 slowest 734 (joint(2,45)) | dead max 145 | baskets low 0.032 | runs pooling 57, crossing 57
+  joint4              n   40 CONVERGED 40 | ttol med 665.5 slowest 853 (joint(4,21)) | dead max 204 | baskets low 0.0 | runs pooling 40, crossing 40
+  nbhd     adjustx0.75 n   41 CONVERGED 41 | ttol med 561 slowest 734 (tail.services=0.2@genesis) | dead max 117 | baskets low 0.0 | runs pooling 34, crossing 32
+  nbhd     adjustx0.9 n   41 CONVERGED 41 | ttol med 561 slowest 734 (tail.services=0.2@genesis) | dead max 117 | baskets low 0.0 | runs pooling 34, crossing 32
+  nbhd     adjustx1.1 n   41 CONVERGED 41 | ttol med 561 slowest 734 (tail.services=0.2@genesis) | dead max 117 | baskets low 0.004 | runs pooling 34, crossing 32
+  nbhd     adjustx1.25 n   41 CONVERGED 41 | ttol med 561 slowest 734 (tail.services=0.2@genesis) | dead max 117 | baskets low 0.008 | runs pooling 34, crossing 32
+  nbhd     bufferx0.75 n   41 CONVERGED 41 | ttol med 560 slowest 712 (tail.services=0.2@genesis) | dead max 112 | baskets low 0.0 | runs pooling 34, crossing 32
+  nbhd     bufferx0.9 n   41 CONVERGED 41 | ttol med 567 slowest 734 (tail.services=0.2@genesis) | dead max 115 | baskets low 0.0 | runs pooling 34, crossing 32
+  nbhd     bufferx1.1 n   41 CONVERGED 41 | ttol med 557 slowest 729 (tail.services=0.2@genesis) | dead max 119 | baskets low 0.004 | runs pooling 34, crossing 32
+  nbhd     bufferx1.25 n   41 CONVERGED 41 | ttol med 550 slowest 721 (tail.services=0.2@genesis) | dead max 122 | baskets low 0.007 | runs pooling 35, crossing 33
+  nbhd     ratex0.75  n   41 CONVERGED 41 | ttol med 748 slowest 986 (tail.services=0.2@genesis) | dead max 170 | baskets low 0.0 | runs pooling 35, crossing 33
+  nbhd     ratex0.9   n   41 CONVERGED 41 | ttol med 614 slowest 807 (tail.services=0.2@genesis) | dead max 134 | baskets low 0.0 | runs pooling 34, crossing 32
+  nbhd     ratex1.1   n   41 CONVERGED 41 | ttol med 515 slowest 652 (tail.services=0.2@genesis) | dead max 104 | baskets low 0.014 | runs pooling 34, crossing 32
+  nbhd     ratex1.25  n   41 CONVERGED 41 | ttol med 446 slowest 566 (tail.services=0.2@genesis) | dead max 89 | baskets low 0.025 | runs pooling 34, crossing 32
+  nbhd     tilt0.05   n   41 CONVERGED 41 | ttol med 556 slowest 731 (tail.services=0.2@genesis) | dead max 117 | baskets low 0.026 | runs pooling 34, crossing 32
+  nbhd     tilt0.1    n   41 CONVERGED 41 | ttol med 550 slowest 725 (tail.services=0.2@genesis) | dead max 116 | baskets low 0.026 | runs pooling 34, crossing 32
+  nbhd     tilt0.25   n   41 CONVERGED 41 | ttol med 528 slowest 699 (tail.services=0.2@genesis) | dead max 113 | baskets low 0.026 | runs pooling 34, crossing 32
+  nbhd     tilt0.5    n   41 CONVERGED 41 | ttol med 497 slowest 685 (tail.services=0.2@genesis) | dead max 108 | baskets low 0.025 | runs pooling 34, crossing 32
+  nbhd     tilt1      n   41 CONVERGED 41 | ttol med 461 slowest 667 (tail.services=0.2@genesis) | dead max 97 | baskets low 0.025 | runs pooling 34, crossing 32
+  stocks              n   31 CONVERGED 31 | ttol med 457 slowest 635 (coin.desk.services*0.02) | dead max 84 | baskets low 0.0 | runs pooling 13, crossing 13
+  switch   switchx0.75 n   41 CONVERGED 41 | ttol med 562 slowest 733 (tail.services=0.2@genesis) | dead max 118 | baskets low 0.0 | runs pooling 34, crossing 32
+  switch   switchx0.9 n   41 CONVERGED 41 | ttol med 561 slowest 736 (tail.services=0.2@genesis) | dead max 118 | baskets low 0.001 | runs pooling 34, crossing 32
+  switch   switchx1.1 n   41 CONVERGED 41 | ttol med 562 slowest 730 (tail.services=0.2@genesis) | dead max 117 | baskets low 0.003 | runs pooling 34, crossing 32
+  switch   switchx1.25 n   41 CONVERGED 41 | ttol med 562 slowest 726 (tail.services=0.2@genesis) | dead max 117 | baskets low 0.004 | runs pooling 34, crossing 32
+  tier3L10            n   61 CONVERGED 61 | ttol med 538 slowest 734 (tail.services=0.2@genesis) | dead max 117 | baskets low 0.002 | runs pooling 40, crossing 38
+  tier3s              n   20 CONVERGED 20 | ttol med 404.0 slowest 558 (coin.desk.mach*2) | dead max 8 | baskets low 0.286 | runs pooling 6, crossing 6
+  tpy12               n   68 CONVERGED 68 | ttol med 118.5 slowest 187 (JA(0.8)) | dead max 1 | baskets low 0.401 | runs pooling 21, crossing 17
+  tpy365              n   68 CONVERGED 68 | ttol med 2566.5 slowest 3949 (JA(0.8)) | dead max 56 | baskets low 0.281 | runs pooling 19, crossing 15
+== mig:avg:260
+  battery             n  109 CONVERGED 109 | ttol med 440 slowest 706 (JA(0.5)) | dead max 117 | baskets low 0.0 | runs pooling 55, crossing 49
+  tier3s              n   20 CONVERGED 20 | ttol med 404.0 slowest 551 (coin.desk.mach*2) | dead max 8 | baskets low 0.286 | runs pooling 6, crossing 6
+== mig:avg:5.2
+  battery             n  109 CONVERGED 109 | ttol med 462 slowest 1443 (tail.services=0.11@genesis) | dead max 117 | baskets low 0.0 | runs pooling 55, crossing 49
+  tier3s              n   20 CONVERGED 20 | ttol med 404.0 slowest 608 (coin.desk.mach*0.5) | dead max 8 | baskets low 0.286 | runs pooling 6, crossing 6
+== mig:avg:52
+  battery             n  109 CONVERGED 109 | ttol med 441 slowest 706 (JA(0.5)) | dead max 117 | baskets low 0.002 | runs pooling 55, crossing 49
+  hold     holdx1     n   68 CONVERGED 68 | ttol med 369.0 slowest 575 (JA(0.8)) | dead max 8 | baskets low 0.33 | runs pooling 21, crossing 17
+  nbhd     adjustx0.75 n   41 CONVERGED 41 | ttol med 563 slowest 706 (JA(0.5)) | dead max 117 | baskets low 0.002 | runs pooling 34, crossing 32
+  nbhd     adjustx0.9 n   41 CONVERGED 41 | ttol med 563 slowest 706 (JA(0.5)) | dead max 117 | baskets low 0.002 | runs pooling 34, crossing 32
+  nbhd     adjustx1.1 n   41 CONVERGED 41 | ttol med 563 slowest 706 (JA(0.5)) | dead max 117 | baskets low 0.002 | runs pooling 34, crossing 32
+  nbhd     adjustx1.25 n   41 CONVERGED 41 | ttol med 563 slowest 706 (JA(0.5)) | dead max 117 | baskets low 0.002 | runs pooling 34, crossing 32
+  nbhd     bufferx0.75 n   41 CONVERGED 41 | ttol med 559 slowest 692 (tail.services=0.2@genesis) | dead max 112 | baskets low 0.002 | runs pooling 34, crossing 32
+  nbhd     bufferx0.9 n   41 CONVERGED 41 | ttol med 565 slowest 711 (tail.services=0.2@genesis) | dead max 115 | baskets low 0.002 | runs pooling 34, crossing 32
+  nbhd     bufferx1.1 n   41 CONVERGED 41 | ttol med 557 slowest 704 (JA(0.5)) | dead max 119 | baskets low 0.002 | runs pooling 34, crossing 32
+  nbhd     bufferx1.25 n   41 CONVERGED 41 | ttol med 549 slowest 703 (tail.services=0.2@genesis) | dead max 122 | baskets low 0.002 | runs pooling 35, crossing 33
+  nbhd     ratex0.75  n   41 CONVERGED 41 | ttol med 747 slowest 965 (tail.services=0.2@genesis) | dead max 170 | baskets low 0.0 | runs pooling 35, crossing 33
+  nbhd     ratex0.9   n   41 CONVERGED 41 | ttol med 614 slowest 779 (tail.services=0.2@genesis) | dead max 134 | baskets low 0.0 | runs pooling 34, crossing 32
+  nbhd     ratex1.1   n   41 CONVERGED 41 | ttol med 514 slowest 647 (tail.services=0.2@genesis) | dead max 104 | baskets low 0.002 | runs pooling 34, crossing 32
+  nbhd     ratex1.25  n   41 CONVERGED 41 | ttol med 444 slowest 556 (JA(0.5)) | dead max 89 | baskets low 0.002 | runs pooling 34, crossing 32
+  nbhd     tilt0.05   n   41 CONVERGED 41 | ttol med 554 slowest 703 (tail.services=0.2@genesis) | dead max 116 | baskets low 0.002 | runs pooling 34, crossing 32
+  nbhd     tilt0.1    n   41 CONVERGED 41 | ttol med 550 slowest 701 (tail.services=0.2@genesis) | dead max 115 | baskets low 0.002 | runs pooling 34, crossing 32
+  nbhd     tilt0.25   n   41 CONVERGED 41 | ttol med 522 slowest 685 (tail.services=0.2@genesis) | dead max 113 | baskets low 0.002 | runs pooling 34, crossing 32
+  nbhd     tilt0.5    n   41 CONVERGED 41 | ttol med 497 slowest 666 (tail.services=0.2@genesis) | dead max 108 | baskets low 0.002 | runs pooling 34, crossing 32
+  nbhd     tilt1      n   41 CONVERGED 41 | ttol med 461 slowest 651 (tail.services=0.2@genesis) | dead max 97 | baskets low 0.002 | runs pooling 34, crossing 32
+  switch   switchx0.75 n   41 CONVERGED 41 | ttol med 563 slowest 719 (tail.services=0.2@genesis) | dead max 117 | baskets low 0.005 | runs pooling 34, crossing 32
+  switch   switchx0.9 n   41 CONVERGED 41 | ttol med 563 slowest 709 (tail.services=0.2@genesis) | dead max 117 | baskets low 0.003 | runs pooling 34, crossing 32
+  switch   switchx1.1 n   41 CONVERGED 41 | ttol med 563 slowest 706 (JA(0.5)) | dead max 117 | baskets low 0.001 | runs pooling 34, crossing 32
+  switch   switchx1.25 n   41 CONVERGED 41 | ttol med 562 slowest 706 (JA(0.5)) | dead max 117 | baskets low 0.0 | runs pooling 34, crossing 32
+  tier3s              n   20 CONVERGED 20 | ttol med 404.0 slowest 557 (coin.desk.mach*2) | dead max 8 | baskets low 0.286 | runs pooling 6, crossing 6
+  tpy12               n   68 CONVERGED 68 | ttol med 118.5 slowest 187 (JA(0.8)) | dead max 3 | baskets low 0.291 | runs pooling 21, crossing 17
+  tpy365              n   68 CONVERGED 68 | ttol med 2566.5 slowest 3946 (JA(0.8)) | dead max 54 | baskets low 0.281 | runs pooling 19, crossing 15
+== mig:avg:520
+  battery             n  109 CONVERGED 109 | ttol med 437 slowest 706 (JA(0.5)) | dead max 117 | baskets low 0.0 | runs pooling 55, crossing 49
+  tier3s              n   20 CONVERGED 20 | ttol med 404.0 slowest 550 (coin.desk.mach*2) | dead max 8 | baskets low 0.286 | runs pooling 6, crossing 6
+== mig:max:13
+  battery             n  109 CONVERGED 109 | ttol med 448 slowest 750 (tail.services=0.2@genesis) | dead max 118 | baskets low 0.0 | runs pooling 55, crossing 49
+  tier3s              n   20 CONVERGED 20 | ttol med 404.0 slowest 558 (coin.desk.mach*2) | dead max 8 | baskets low 0.286 | runs pooling 6, crossing 6
+== mig:max:2.6
+  battery             n  109 CONVERGED 109 | ttol med 512 slowest 2816 (tail.services=0.11@dated) | dead max 117 | baskets low 0.0 | runs pooling 55, crossing 49
+  tier3s              n   20 CONVERGED 20 | ttol med 404.0 slowest 1037 (coin.desk.mach*0.5) | dead max 8 | baskets low 0.286 | runs pooling 6, crossing 6
+== mig:max:26
+  battery             n  109 CONVERGED 109 | ttol med 446 slowest 738 (tail.services=0.2@genesis) | dead max 118 | baskets low 0.002 | runs pooling 55, crossing 49
+  nbhd     adjustx0.75 n   41 CONVERGED 41 | ttol med 563 slowest 738 (tail.services=0.2@genesis) | dead max 118 | baskets low 0.0 | runs pooling 34, crossing 32
+  nbhd     adjustx0.9 n   41 CONVERGED 41 | ttol med 563 slowest 738 (tail.services=0.2@genesis) | dead max 118 | baskets low 0.0 | runs pooling 34, crossing 32
+  nbhd     adjustx1.1 n   41 CONVERGED 41 | ttol med 563 slowest 738 (tail.services=0.2@genesis) | dead max 118 | baskets low 0.005 | runs pooling 34, crossing 32
+  nbhd     adjustx1.25 n   41 CONVERGED 41 | ttol med 563 slowest 738 (tail.services=0.2@genesis) | dead max 118 | baskets low 0.008 | runs pooling 34, crossing 32
+  nbhd     bufferx0.75 n   41 CONVERGED 41 | ttol med 560 slowest 720 (tail.services=0.2@genesis) | dead max 112 | baskets low 0.0 | runs pooling 34, crossing 32
+  nbhd     bufferx0.9 n   41 CONVERGED 41 | ttol med 568 slowest 743 (tail.services=0.2@genesis) | dead max 116 | baskets low 0.0 | runs pooling 34, crossing 32
+  nbhd     bufferx1.1 n   41 CONVERGED 41 | ttol med 557 slowest 731 (tail.services=0.2@genesis) | dead max 120 | baskets low 0.004 | runs pooling 34, crossing 32
+  nbhd     bufferx1.25 n   41 CONVERGED 41 | ttol med 550 slowest 724 (tail.services=0.2@genesis) | dead max 122 | baskets low 0.007 | runs pooling 35, crossing 33
+  nbhd     ratex0.75  n   41 CONVERGED 41 | ttol med 750 slowest 999 (tail.services=0.2@genesis) | dead max 170 | baskets low 0.0 | runs pooling 35, crossing 33
+  nbhd     ratex0.9   n   41 CONVERGED 41 | ttol med 614 slowest 809 (tail.services=0.2@genesis) | dead max 134 | baskets low 0.0 | runs pooling 34, crossing 32
+  nbhd     ratex1.1   n   41 CONVERGED 41 | ttol med 516 slowest 674 (tail.services=0.2@genesis) | dead max 105 | baskets low 0.015 | runs pooling 34, crossing 32
+  nbhd     ratex1.25  n   41 CONVERGED 41 | ttol med 446 slowest 572 (tail.services=0.2@genesis) | dead max 89 | baskets low 0.023 | runs pooling 34, crossing 32
+  nbhd     tilt0.05   n   41 CONVERGED 41 | ttol med 557 slowest 735 (tail.services=0.2@genesis) | dead max 117 | baskets low 0.023 | runs pooling 34, crossing 32
+  nbhd     tilt0.1    n   41 CONVERGED 41 | ttol med 550 slowest 733 (tail.services=0.2@genesis) | dead max 116 | baskets low 0.023 | runs pooling 34, crossing 32
+  nbhd     tilt0.25   n   41 CONVERGED 41 | ttol med 528 slowest 715 (tail.services=0.2@genesis) | dead max 113 | baskets low 0.023 | runs pooling 34, crossing 32
+  nbhd     tilt0.5    n   41 CONVERGED 41 | ttol med 497 slowest 692 (tail.services=0.2@genesis) | dead max 108 | baskets low 0.022 | runs pooling 34, crossing 32
+  nbhd     tilt1      n   41 CONVERGED 41 | ttol med 461 slowest 675 (tail.services=0.2@genesis) | dead max 97 | baskets low 0.022 | runs pooling 34, crossing 32
+  tier3s              n   20 CONVERGED 20 | ttol med 404.0 slowest 559 (coin.desk.mach*2) | dead max 8 | baskets low 0.286 | runs pooling 6, crossing 6
+== mig:max:5.2
+  battery             n  109 CONVERGED 109 | ttol med 470 slowest 1515 (tail.services=0.11@dated) | dead max 117 | baskets low 0.0 | runs pooling 55, crossing 49
+  tier3s              n   20 CONVERGED 20 | ttol med 404.0 slowest 626 (coin.desk.mach*0.5) | dead max 8 | baskets low 0.286 | runs pooling 6, crossing 6
+== rep:avg:5.2
+  battery             n  109 CONVERGED 101 STUCK 8 | ttol med 452 slowest 705 (JA(0.5)) | dead max 117 | baskets low 0.0 | runs pooling 6, crossing 49
+     not CONVERGED: res.services.trained=0.036@genesis:STUCK, tail.services=0.11@dated:STUCK, tail.services=0.11@genesis:STUCK, res.services.trained=0.036@dated:STUCK, res.services.trained=0.02@genesis:STUCK, tail.services=0.2@dated:STUCK, res.services.trained=0.02@dated:STUCK, tail.services=0.2@genesis:STUCK
+  tier3s              n   20 CONVERGED 20 | ttol med 404.0 slowest 550 (coin.desk.mach*2) | dead max 8 | baskets low 0.286 | runs pooling 0, crossing 6
+== step:avg:0
+  battery             n  109 CONVERGED 101 DEAD 8 | ttol med 452 slowest 751 (x*/2) | dead max 14987 | baskets low 0.0 | runs pooling 49, crossing 49
+     not CONVERGED: tail.services=0.11@dated:DEAD, res.services.trained=0.036@genesis:DEAD, tail.services=0.2@dated:DEAD, tail.services=0.2@genesis:DEAD, res.services.trained=0.036@dated:DEAD, res.services.trained=0.02@dated:DEAD, res.services.trained=0.02@genesis:DEAD, tail.services=0.11@genesis:DEAD
+  tier3s              n   20 CONVERGED 20 | ttol med 404.0 slowest 556 (coin.desk.mach*2) | dead max 10 | baskets low 0.0 | runs pooling 6, crossing 6

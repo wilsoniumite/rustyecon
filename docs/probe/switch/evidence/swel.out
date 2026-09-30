@@ -1,0 +1,74 @@
+is1 at 52 a year: L = 22000
+  goods            eps_S +0.00000 eps_D -0.18803 multiplier 0.990599 tau     106.4 ticks
+  services         eps_S +0.00000 eps_D -0.19961 multiplier 0.990019 tau     100.2 ticks
+  mach             eps_S +0.00000 eps_D -0.63826 multiplier 0.984043 tau      62.7 ticks
+  land             eps_S +0.00000 eps_D -0.76915 multiplier 0.980771 tau      52.0 ticks
+  labour.master    eps_S +0.65293 eps_D -0.26989 multiplier 0.907718 tau      10.8 ticks
+  labour.trained   eps_S +0.74680 eps_D -0.19001 multiplier 0.906320 tau      10.7 ticks
+  labour           eps_S +0.81539 eps_D -0.23896 multiplier 0.894566 tau       9.5 ticks
+is1 at 12 a year: L = 20000
+  goods            eps_S +0.00000 eps_D -0.22664 multiplier 0.950895 tau      20.4 ticks
+  services         eps_S +0.00000 eps_D -0.24060 multiplier 0.947869 tau      19.2 ticks
+  mach             eps_S +0.00000 eps_D -0.63826 multiplier 0.930855 tau      14.5 ticks
+  land             eps_S +0.00000 eps_D -0.88405 multiplier 0.904228 tau      10.4 ticks
+  labour.master    eps_S +0.65293 eps_D -0.26989 multiplier 0.600111 tau       2.5 ticks
+  labour.trained   eps_S +0.74680 eps_D -0.19001 multiplier 0.594051 tau       2.5 ticks
+  labour           eps_S +0.81539 eps_D -0.23896 multiplier 0.543118 tau       2.2 ticks
+is1 at 365 a year: L = 164000
+  goods            eps_S +0.00000 eps_D -0.17170 multiplier 0.998777 tau     817.6 ticks
+  services         eps_S +0.00000 eps_D -0.18228 multiplier 0.998702 tau     770.2 ticks
+  mach             eps_S +0.00000 eps_D -0.63826 multiplier 0.997727 tau     439.9 ticks
+  land             eps_S +0.00000 eps_D -0.72056 multiplier 0.997434 tau     389.7 ticks
+  labour.master    eps_S +0.65293 eps_D -0.26989 multiplier 0.986853 tau      76.1 ticks
+  labour.trained   eps_S +0.74680 eps_D -0.19001 multiplier 0.986654 tau      74.9 ticks
+  labour           eps_S +0.81539 eps_D -0.23896 multiplier 0.984979 tau      66.6 ticks
+  is1 target land.mach=0.44: L 21000, slowest goods tau 101.8
+  is1 target land.mach=0.36: L 23000, slowest goods tau 111.5
+  is1 target land.mach=0.8: L 20000, slowest services tau 81.2
+  is1 target land.mach=0.2: L 29000, slowest goods tau 140.2
+  is1 target tail.services=0.11: L 22000, slowest goods tau 106.8
+  is1 target tail.services=0.09: L 22000, slowest goods tau 106.1
+  is1 target tail.services=0.2: L 23000, slowest goods tau 113.2
+  is1 target tail.services=0.05: L 26000, slowest services tau 125.6
+  is1 target res.services.trained=0.044: L 22000, slowest goods tau 107.1
+  is1 target res.services.trained=0.036: L 22000, slowest goods tau 105.9
+  is1 target res.services.trained=0.08: L 25000, slowest goods tau 121.6
+  is1 target res.services.trained=0.02: L 24000, slowest services tau 118.6
+is1: largest L over the targets at 52 a year: 29000
+is2 at 52 a year: L = 24000
+  services         eps_S +0.00000 eps_D -0.16860 multiplier 0.991570 tau     118.6 ticks
+  goods            eps_S +0.00000 eps_D -0.19077 multiplier 0.990462 tau     104.8 ticks
+  mach             eps_S +0.00000 eps_D -0.68637 multiplier 0.982841 tau      58.3 ticks
+  land             eps_S +0.00000 eps_D -0.79477 multiplier 0.980131 tau      50.3 ticks
+  labour.master    eps_S +0.65293 eps_D -0.26601 multiplier 0.908106 tau      10.9 ticks
+  labour.trained   eps_S +0.88739 eps_D -0.08703 multiplier 0.902558 tau      10.3 ticks
+  labour           eps_S +0.85316 eps_D -0.23140 multiplier 0.891545 tau       9.2 ticks
+is2 at 12 a year: L = 20000
+  services         eps_S +0.00000 eps_D -0.20323 multiplier 0.955968 tau      22.7 ticks
+  goods            eps_S +0.00000 eps_D -0.22994 multiplier 0.950179 tau      20.1 ticks
+  mach             eps_S +0.00000 eps_D -0.68637 multiplier 0.925643 tau      13.4 ticks
+  land             eps_S +0.00000 eps_D -0.91414 multiplier 0.900968 tau      10.1 ticks
+  labour.master    eps_S +0.65293 eps_D -0.26601 multiplier 0.601793 tau       2.5 ticks
+  labour           eps_S +1.14761 eps_D -0.23140 multiplier 0.402433 tau       1.7 ticks
+  labour.trained   eps_S +2.24376 eps_D -0.08703 multiplier -0.010008 tau       1.0 ticks
+is2 at 365 a year: L = 183000
+  services         eps_S +0.00000 eps_D -0.15396 multiplier 0.998903 tau     911.8 ticks
+  goods            eps_S +0.00000 eps_D -0.17420 multiplier 0.998759 tau     805.9 ticks
+  mach             eps_S +0.00000 eps_D -0.68637 multiplier 0.997555 tau     409.1 ticks
+  land             eps_S +0.00000 eps_D -0.74429 multiplier 0.997349 tau     377.2 ticks
+  labour.trained   eps_S +0.53613 eps_D -0.08703 multiplier 0.991122 tau     112.6 ticks
+  labour.master    eps_S +0.65293 eps_D -0.26601 multiplier 0.986908 tau      76.4 ticks
+  labour           eps_S +0.77656 eps_D -0.23140 multiplier 0.985640 tau      69.6 ticks
+  is2 target land.mach=0.44: L 23000, slowest services tau 114.4
+  is2 target land.mach=0.36: L 25000, slowest services tau 123.3
+  is2 target land.mach=0.8: L 20000, slowest services tau 89.3
+  is2 target land.mach=0.2: L 30000, slowest services tau 148.1
+  is2 target tail.services=0.11: L 23000, slowest services tau 112.4
+  is2 target tail.services=0.09: L 26000, slowest services tau 125.0
+  is2 target tail.services=0.2: L 23000, slowest goods tau 111.9
+  is2 target tail.services=0.05: L 31000, slowest services tau 151.0
+  is2 target res.services.trained=0.022: L 24000, slowest services tau 116.7
+  is2 target res.services.trained=0.018: L 25000, slowest services tau 120.5
+  is2 target res.services.trained=0.04: L 22000, slowest goods tau 106.4
+  is2 target res.services.trained=0.01: L 26000, slowest services tau 128.3
+is2: largest L over the targets at 52 a year: 31000

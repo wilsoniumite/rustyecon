@@ -33,6 +33,14 @@ tests, with every committed tape's text, ids and streams unchanged. **E0–E2 pa
 within 3.6e-14 in all eleven registered runs, C1's trap run under the pace included, with no
 parting above 1e-12 and no amendment; mode A, the kick sets and L as registered. The scorer and
 the scored wave (E3–E10) are next.
+**The type switch at the wall is registered** (P2.4.7, docs only; "Where things stand";
+[docs/probe/results/switch/registration.md](docs/probe/results/switch/registration.md)): a
+mirror scan of O97's candidates chose the migration rule, a worker type's pool share moving each
+tick toward the market that pays more, by share(k·|g|) of the worse market's hours with
+g = ln(ε·w/w_i), which rests exactly at unit 1d's switch v_i = max(ε·v, ζ·ν·P_s) with both
+corners open; the instance IS1 (IW1 with 1d's E efficiencies, trained 1.5 and master 1.8) is
+predicted GO, a type crossing in 61 of its 129 battery and Tier-3S runs. Decisions 409–415 and
+O118–O123; the build and E0 are next.
 Before it, on branch `phase2-proper` from `reboot` at `f7d1eae`:
 **Phase 2 proper's first session is reported** (P2.3.16;
 [docs/probe/PHASE2-S1.md](docs/probe/PHASE2-S1.md)): both reviews find the verdicts hold, and
@@ -208,6 +216,39 @@ types and carriers, on the many-market roles (O27), which may now start from the
 stage v2a.1 on your ruling on D-G12. "Next steps" has each.
 
 ## Where things stand
+
+**The type switch at the wall: the migration rule, registered (P2.4.7; 2026-09-30).** Branch
+`phase2-s2`, label `build-switch`, scratch `D:/rustyecon-p24/build-switch/`; the scan's
+`D:/rustyecon-p24/scan-switch/`. Docs only:
+[docs/probe/results/switch/registration.md](docs/probe/results/switch/registration.md), the scan's
+frame in [docs/probe/switch/](docs/probe/switch/), and this file.
+- **The scan** (`SPEC.md`, sha256 `ebf52cea…315f6f`, LF; `SHA256SUMS`, 125 entries, each
+  checked). PHASE2-S1 §6 item C. The mirror `wms.py` is the wall frame's registered `wm.py` with
+  a switch written in by 8 checked replacements, and equals it bit for bit with the switch off
+  (43 runs of 3,000 ticks). Four rules ran IS1's battery and Tier 3S (129 runs) and the control
+  IS2's: the step, the replicator, a static logit split and the migration rule.
+- **The choice: the migration rule** (decision 409). With g = ln(ε·w/w_i), the pool share a
+  moves to a + share(k·g)·(1 − a) if g > 0 and to a·e^(k·g) if g < 0; the type offers (1 − a)·n
+  on its own market and ε·a·n to the pool, n read at v = w_i + a·(ε·w − w_i). It rests exactly at
+  1d's switch (at a pooled genesis e = w_i bit for bit, so g = 0.0), has no clamp and both
+  corners open. The step dies at every pooled rest (8 DEAD at IS1, 100 at IS2); the replicator's
+  a = 0 absorbs, so the 8 runs to a pooled target end STUCK; the static split moves the point.
+  Rate 26 a year (decision 410): 129/129 at every rate from 1.3 to 520; two orbit at 1,040.
+- **The instance** (decision 412): IS1, IW1 with the trained's ε 1.5 and the master's 1.8. Both
+  are at their walls at the base, so its point is IW1's double for double; the trained pools at
+  four of the 12 cost targets and the master at one. The control IS2 (decision 413) has the
+  trained's reserved hours 0.02 and is pooled at its base.
+- **The predictions** (SPEC §7): IS1 GO, Tiers 1–3 28/28, 40/40, 41/41, Tier 3S 20/20, again at
+  10·L; the neighbourhood 697/697; a type pools in 61 of 129 runs and the other 68 are IW1's run
+  for run; largest root 0.992722; RW(2) bottoms at 0.026 of Y\* with 53 dead ticks, IW1's 0.576
+  and none (O119).
+- **Readings declared before the build** (registration §3): the rule vectors bit for bit at 21
+  of 24, within 4 ulps at three where libm's `exp` is an ulp off glibc's (checked in scratch, no
+  engine code); the field, load checks, orders, instance, dials `rate.switch.*`, genesis share,
+  observables `rs.<type>`, start distances, grammar `sw[T]=V`, readouts `switch.*`, tape, and
+  E0's comparison.
+- **Decisions 409–415 and O118–O123**, below. **Next:** the build, then E0 against `wms.py`
+  before any scored run.
 
 **The subsistence trap's remedy: E0–E2, before any scored run (P2.4.6; 2026-09-30).** Branch
 `phase2-s2`, label `build-trap`, scratch `D:/rustyecon-p24/build-trap/e0/`. The record:
@@ -4180,6 +4221,46 @@ alternative named is the registered one (R6).
      at every tilt 2 (the trap beyond the stable region); C1PN is kept as a stress control.
      *Alternative:* C1PN as the negative control, now predicted to converge.
 
+Decisions 409–415 are P2.4.7's (2026-09-30), the switch scan's SW1–SW7
+(`docs/probe/switch/SPEC.md` §8), numbered at its registration. Claude's, on your delegation,
+each open to veto; the alternative named is the registered one (R6).
+
+409. **O97's rule is the migration rule, with participation at the split's own wage** (SW1; the
+     scan's §0, §3.3): a switch pop's pool share moves toward the market that pays more by
+     share(k·|g|) of the worse market's hours a tick, g = ln(ε·w/w_i); it offers (1 − a)·n on its
+     own market and ε·a·n to the pool, n read at v = w_i + a·(ε·w − w_i). It rests exactly at
+     1d's switch, has open corners and no clamp. *Alternative:* the same rule with participation
+     at max(ε·w, w_i), 1d's v_i read literally, which scanned alike. Rejected by the scan: the
+     step (dead at every pooled rest), the replicator (a spurious rest where a type must leave
+     its wall), a static split (moves the point).
+410. **`rate.switch` is 26 a year** (SW2; the scan's §6.3), `RatePerYear` read as `LogStep`, per
+     switch pop, a `rate.*` dial. *Alternative:* 13 a year, twice the margin at monthly ticks and
+     slower near the switch.
+411. **The roles' addition is one optional field and one appended state** (SW3; the scan's
+     §3.1–§3.6): `BasketWorkers.pool` (the pool's good, ε, the rate, the genesis share) and
+     `ActorState::SwitchWorkers { share, pool }` after `PlantedCapacity`; off when absent and
+     structurally off at ε 0; no new kind or market rule; `pool` with `exit` refused.
+     *Alternative:* a new actor kind for a type on two markets.
+412. **IS1 is O97's instance** (SW4; the scan's §2): IW1 with unit 1d's E efficiencies (trained
+     1.5, master 1.8), support 1, both switch pops at rate 26. Its base point is IW1's double for
+     double; the trained pools at four of the 12 targets and the master at one. Its verdict is
+     IW1's rule (decision 397): mode A, Tiers 1–3 and 3S CONVERGED, Tiers 3 and 3S again at 10·L,
+     every kick set, L from the engine's probe, the scorer first; on 109 battery runs (IW1's 103
+     and `sw[T]=V`). *Alternative:* IS2, a pooled base, as the verdict instance.
+413. **IS2 is a reported control** (SW5; the scan's §2.4): IS1 with the trained's reserved hours
+     0.02, pooled at its base, walled at × 2. Not a verdict instance: its land.mach 0.8 target
+     sits 0.016 in log above the wall's junction (decision 370 asks 0.2). *Alternative:* no
+     control.
+414. **The harness at the switch** (SW6; the scan's §3.9): 20 observables (IW1's 18 and each
+     switch pop's reserved share 1 − a in log), `sw[T]=V`, the switch's readouts reported and not
+     scored, and the families (the neighbourhood with `rate.*` including `rate.switch.*`; the
+     switch's rate alone; 12 and 365 a year; Hold; stocks, joint2, joint4, basin; Tiers 3 and 3S
+     at 10·L). *Alternative:* the pool shares read only through the volumes.
+415. **Each switch pop's distance from its switch is registered at every target and not
+     bounded** (SW7; the scan's §2.2), beside decision 370's edges, which IS1 keeps (its walled
+     targets are IW1's). *Alternative:* a 0.2 bound, which would drop tail.services 0.11 and
+     res.services.trained 0.036, the targets nearest the switch.
+
 ## Open — your calls
 
 - **The GUI's decisions**, 22–34 (D1–D13): G0 carried them out, none vetoed; a veto now reopens
@@ -4228,6 +4309,10 @@ alternative named is the registered one (R6).
   O100's remedy (404), the new paced instances C1P, C2P and C1PN (405), the dial at 1.3 a year in
   `adjust.*` (406), the engine run with "with margin" a verdict line (407), and the controls
   (408). Each open to veto before the build; home output sold is the named alternative.
+- **Decisions 409–415** (P2.4.7, 2026-09-30): the switch scan's choice, the migration rule as
+  O97's (409), its rate 26 a year (410), one optional field and one appended state (411), IS1 as
+  the instance (412), IS2 a reported control (413), the harness at the switch (414), and the
+  switch distance registered, not bounded (415). Each open to veto before the build.
 - **Decisions 59–75 and 135–178** (Phase 1), open to veto. Those that bound Phase 2 proper (61,
   67, 70; 135, 137, 139, 140; 147, 149, 151, 153–155, 158, 160, 161; 162, 164, 165, 167–169,
   173) are ruled by Claude at P2.3.0 as 360–393, with the markets probe's advice: keep 67 (its
@@ -5074,6 +5159,10 @@ O95 on are Phase 2 proper's (P2.3.0, branch `phase2-proper`; this line's range i
   (the fidelity review): IW1's GO does not test the switch between pooled and walled, 1d's v_i =
   max(ε_i·v, ζ_i·ν_i·P_s); with E's efficiencies the trained would pool at 4 of IW1's 12 targets.
   A prerequisite of the 1750-like instance, with its own mirror scan and registration.
+  *Amended at P2.4.7:* scanned (`docs/probe/switch/SPEC.md`): the migration rule is chosen and
+  registered on IS1, IW1 with E's efficiencies (decisions 409–415); the step, the replicator and
+  a static split are rejected. The pooled type with reserved work is covered; a pooled type with
+  ε ≠ 1 and no reserved tasks, and ν ≠ 1, are not (O118). Closed when IS1 is scored.
 - **O98. At the wall, labour-demand shocks move wages, not output, but halve output on the way**
   (OW2). In the mirror tail.services × 2 and res.services.trained × 2 move Y\* by 0 in log and
   bottom at 0.516 and 0.500 of it. O14 and O24 carry this as the wall's path cost. Ex-post
@@ -5198,6 +5287,30 @@ O110 on are Phase 2 proper's second session's (P2.4, branch `phase2-s2`; its ran
 - **O117. A storable exit good as GOODS-CHAIN E1's seller is locally unstable at C1** (O-TR5;
   the scan's §3.4: largest root 1.0009 with a cover of 13 ticks, 1.0068 with 4). O51 needs a
   stock rule that damps before any storable running good is registered.
+- **O118. O97's other two cases are not built** (P2.4.7; the switch scan's OS1): a pooled type
+  with ε ≠ 1 and no reserved tasks (it needs only its hours scaled into the pool, and its own
+  market would have no demand), and support ν ≠ 1 (the provider's transfer would be ν_i·N_i·P_s
+  and participation ln1p(v/(ν_i·P_s))). Each needs its own nesting and scan when an instance
+  uses it.
+- **O119. The switch's path cost** (OS2). When the pool's wage jumps above a type's reserved
+  wage, the type leaves the reserved market its desks need, and output falls hard before the
+  reserved wage catches up: in the mirror RW(2) bottoms at 0.026 of Y\* with 53 dead ticks, where
+  IW1 keeps 0.576 and none. O98's cousin; O14 and O24 carry it. A slower rate softens it and
+  costs speed near the switch.
+- **O120. A type near its switch is slow** (OS3). At tail.services 0.11 (0.0095 in log inside the
+  switch, a\* 0.007) the largest root is 0.992722 a tick at rate 26 and 0.998657 at 5.2. Whatever
+  the rule, a pooled share near 0 moves little on the side that shrinks it.
+- **O121. The switch's margin at monthly ticks** (OS4). At 12 a year IS2's Tiers 1–2 converge at
+  rate 52 and 10 of 68 orbit at 104; at 52 a year the edge is between 520 and 1,040. At rate 26
+  and 12 a year the pooled trained's reserved market has a one-tick multiplier of −0.010. An
+  instance at monthly ticks may need `rate.switch` scaled.
+- **O122. The walled pool share stalls in the subnormals** (OS5): 13 ulps for the trained and 2
+  for the master at 52 a year in the mirror, as the technique's share does (the wall's A2). A
+  registration that reads its end value reads it as 0 or at most 1e-300.
+- **O123. The switch under the priced exit** (OS6). The rule compares wages only, so it is
+  form-free; but a walled type under s(q) needs 1e's addendum first (O95, decision 377), and
+  `pool` with `exit` is refused until a scan runs them together. The 1750-like trained type
+  needs both.
 
 ## Corrections logged (A3; ADDENDUM §1.4)
 
@@ -5345,7 +5458,8 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
       built: O97's rule for a type that sells both reserved and pool hours; a zero price markets
       can hold (O96 with O101), for idle enclosed land and a commons several types share; and
       the addenda of O95 it uses (a walled type under s(q), 1e §2.9, decision 377; a second land
-      class if its tape has one).
+      class if its tape has one). *O97's rule scanned and registered at P2.4.7:* the migration
+      rule on IS1 (decisions 409–415; `docs/probe/switch/SPEC.md`); the build and E0 next.
    4. **The 1750-like instance**, first as a flow instance at C2m on the many-market roles,
       loop-free as I1–I3, IW1, C1 and C2 are (67's letter, 361), with 1e and 1f, the common basket
       (388), 1f's tax bases and closure if it has a government (382–386) and ρ 0 (393), so that
@@ -5455,6 +5569,11 @@ docs/probe/trap/         the trap scan's frame, as registered (P2.4.4, LF ending
 docs/probe/TRAP-RULES.md the trap's remedy as built (P2.4.5): the exit's pace, C1P, C2P and C1PN,
                          the harness at a paced instance, the checks
 docs/probe/results/trap/ the trap's remedy's registration (P2.4.4) and E0's record (P2.4.6)
+docs/probe/switch/       the switch scan's frame, as registered (P2.4.7): SPEC.md (O97's rule, the
+                         migration rule, on IS1 and IS2), SHA256SUMS, registered/ (the run-by-run
+                         predictions, points, kick sets and rule vectors the scorer and tests read)
+                         and evidence/ (the scan's tables and the mirror's checks)
+docs/probe/results/switch/ the switch's registration (P2.4.7)
 docs/probe/results/families-wave/ wave A's machinery, committed before it (P2.4.2): the job
                          list, job and runner scripts, gather script, scorer, self-test
 docs/probe/results/loops/ the loop step's registration (L0.8), quoting LOOP-SPEC-A1's
