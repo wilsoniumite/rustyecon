@@ -806,11 +806,23 @@ fn body(s: &Setup, g: &Genesis, inst: &Instance, o: &mut Lines) -> Result<(), St
     }
     if !s.shocks.is_empty() {
         o.line("        // The dated shocks' values: schedule params (MARKETS-SPEC §7.7).");
+        // Each carries the unit of the param it sets (P2.3.12): the commons' `inst.commons` and
+        // `inst.land` are `FlowPerYear`, which `SetParam` refuses to set from a `Dimensionless`
+        // param. Every other coefficient is `Dimensionless`, as before.
+        let units: Vec<(String, &'static str)> = inst
+            .params()?
+            .into_iter()
+            .map(|(key, _, unit, _)| (key, unit))
+            .collect();
         for (k, sh) in s.shocks.iter().enumerate() {
+            let unit = units
+                .iter()
+                .find(|(key, _)| *key == sh.param)
+                .map_or("Dimensionless", |(_, unit)| *unit);
             o.param(
                 &format!("{}.shock.{}", sh.param, k + 1),
                 sh.value,
-                "Dimensionless",
+                unit,
                 "Assumed(\"MARKETS-SPEC §1.5, §7.7: a dated cost shock\")",
             );
         }

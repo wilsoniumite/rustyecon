@@ -183,7 +183,17 @@ on D-G12. "Next steps" has each.
   feed passes, and its E9 reproduces the frame's 117 edge gaps within 1e-12. O22's families on
   I1–I3, which decision 368 orders first, are not in this wave (reported only, no registered
   predictions); they are their own wave.
-- **Next:** the wave on the binary built from this commit, then the scoring and the report.
+- **P2.3.12, dated shocks of the commons load.** Twelve minutes into the wave (started 09:29 on
+  the P2.3.11 binary), twelve jobs had failed alike: the tape writer wrote each dated shock's
+  schedule param `Dimensionless`, and `inst.commons` and `inst.land` are `FlowPerYear`, so every
+  `commons=V@dated`, `enclose=F@dated` and `cycle(commons,P,N)` tape was refused at load, 54 of
+  the 3,721 jobs, all at C1, C2 and C1N; no wall job. No test had loaded such a tape. The
+  schedule param now takes its target's unit, every other tape is the same text, and
+  `commons_dated_shocks_load_and_fire` fails without it; gates green on both machines (1,009
+  passed, 4 ignored; the pins unmoved). COMMONS-RULES §4, amended. The wave ran to its end
+  unchanged; the 54 jobs run again on the fixed binary, with an R1 check of 24 untouched jobs
+  byte for byte ([rerun/](docs/probe/results/p23-wave/rerun/README.md)).
+- **Next:** the rerun, the gather and the scoring, and the report.
 
 **The open-commons instances' E0–E2, before any scored run (P2.3.7–P2.3.9; 2026-09-30).** Branch
 `phase2-proper`, scratch `D:/rustyecon-p23/build-commons/e0/`. The record:

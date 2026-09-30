@@ -830,6 +830,62 @@ fn commons_grammar_applies_as_named() {
 }
 
 #[test]
+fn commons_dated_shocks_load_and_fire() {
+    // A dated shock of the commons (`commons=V@dated`), enclosure dated (`enclose=F@dated`) and
+    // the commons' history (`cycle(commons,P,N)`) set `FlowPerYear` params (`inst.commons`,
+    // `inst.land`) at their tick (P2.3.12): the schedule param carries that unit, so the tape
+    // loads, and from the shock's tick on the run's target is the shocked instance's. Before it
+    // the schedule params were `Dimensionless` and `Sim::new` refused every such tape.
+    let s = setup("c1", 52);
+    let (ticks, at) = (400u64, 100u64);
+    let land = observables(&s.instance)
+        .iter()
+        .position(|o| o == "vol.land")
+        .unwrap();
+    for (name, shocked) in [
+        ("commons=48.6@dated", vec![("inst.commons", 48.6)]),
+        (
+            "enclose=0.5@dated",
+            vec![
+                ("inst.commons", 24.3 - 0.5 * 24.3),
+                ("inst.land", 520.0 + 0.5 * 24.3),
+            ],
+        ),
+        ("cycle(commons,100,3)", vec![("inst.commons", 24.3 * 1.1)]),
+    ] {
+        let mut u = s.clone();
+        let p = Perturbation::parse(name).unwrap();
+        p.apply(&mut u, ticks).unwrap();
+        let text = tape_ron(&u).unwrap();
+        let line = text
+            .lines()
+            .find(|l| l.contains("(key: \"inst.commons.shock.1\", value:"))
+            .unwrap_or_else(|| panic!("{name}: no schedule param"));
+        assert!(
+            line.contains("unit: FlowPerYear,"),
+            "{name}: the schedule param is not FlowPerYear: {line}"
+        );
+        Sim::new(&Tape::from_ron(&text).expect("the tape parses")).expect("the tape loads");
+        let mut rows: Vec<Row> = Vec::new();
+        let rec = run(&s, name, ticks, &mut |r| rows.push(r.clone())).unwrap();
+        assert_eq!(rec.stop, probe::harness::Stop::Ran, "{name}");
+        let mut target = s.instance.clone();
+        for (k, v) in &shocked {
+            target.set(k, *v).unwrap();
+        }
+        let want = Target::of(&target, &target.point(52).unwrap(), target.land / 52.0);
+        let after = rows.iter().find(|r| r.tick == at).unwrap();
+        let before = rows.iter().find(|r| r.tick == at - 1).unwrap();
+        assert_eq!(after.target, want.obs, "{name}: the target after the shock");
+        assert_ne!(
+            before.target, after.target,
+            "{name}: the shock moved nothing"
+        );
+        assert_eq!(after.target[land], target.land / 52.0, "{name}");
+    }
+}
+
+#[test]
 fn commons_conserve_and_run_deterministically() {
     // R8: two runs of C1's tape give identical reports and hash streams, and the state moves.
     // R2: at rest and through a transient whose plots rent enclosed land (the commons at 12.15

@@ -131,6 +131,17 @@ the wall's instances take none of it.
   `cm.shocked` computes them. `joint(F,SEED)` draws in the mirror's order (labour, land, the
   categories, the type). A share scaled past 1 is 1, as the mirror's `displace`; P2.1's instances
   keep their refusal.
+
+  *Amended at P2.3.12 (2026-09-30, label `run`, during the scored wave):* a dated shock is an
+  event that sets its param from a schedule param, and the tape writer wrote every schedule param
+  `Dimensionless`. `inst.commons` and `inst.land` are `FlowPerYear`, so every tape with
+  `commons=V@dated`, `enclose=F@dated` or `cycle(commons,P,N)` was refused at load ("cannot set a
+  FlowPerYear param from a Dimensionless param"): 54 of the wave's 3,721 jobs, each an error
+  before its first tick. No test loaded such a tape (`commons_grammar_applies_as_named` checked the
+  shocks' list, not the tape), and E0 ran genesis shocks only. The schedule param now carries the
+  unit of the param it sets, so every other tape is the same text;
+  `commons_dated_shocks_load_and_fire` fails without it. The 54 jobs were run again on the fixed
+  binary (results/p23-wave/README.md, "The rerun").
 - **The battery** (`commons_battery`): the mirror's `battery_c.run_list` in its order and names:
   each market's price at the six factors, market by market (labour, land, the categories, the
   type; `p[labour]*1.05`); each category desk's share at the six factors; JA, JB, N and RC at the
