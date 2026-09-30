@@ -11,11 +11,16 @@ the tape's schema is [docs/TAPE.md](docs/TAPE.md), and the GUI's design is
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
 **State as of:** 2026-09-30, on branch `phase2-proper` from `reboot` at `f7d1eae`, not pushed or
-merged. **The wall instance IW1 is registered** (P2.3.1, docs only; "Where things stand";
+merged. **The wall instance IW1 is built** (P2.3.2; "Where things stand";
+[docs/probe/WALL-RULES.md](docs/probe/WALL-RULES.md)): the roles' three optional fields, the
+instance on unit 1d, `tapes/markets-iw1.ron`, the harness at the wall and 14 tests, with every
+committed tape's text, ids and streams unchanged. E0, before any scored run, is next.
+**The wall instance IW1 is registered** (P2.3.1, docs only; "Where things stand";
 [docs/probe/results/wall/registration.md](docs/probe/results/wall/registration.md)): the frame
 `frame-wall` (1d's B economy with E7's three types, a solved wall whose pool wage is 0.94 in log
 above the top task's replacement value) and its mirror's predictions, GO, fixed before any engine
-code for it; decisions 394–397 and O97–O99. Its build and E0 are next. **Phase 2 proper opens with its rulings** (P2.3.0, docs only; "Where things stand"): the
+code for it; decisions 394–397 and O97–O99. **Phase 2 proper opens with its rulings** (P2.3.0,
+docs only; "Where things stand"): the
 decisions next step 7 waited on are taken by Claude on your word as decisions 360–393, each open
 to veto, with the probe reports' recommendations (MARKETS §6 keeps 67 and 70); O95 and O96 are
 new. It opens on two loop-free instances at C2m, 52 ticks a year and ρ 0: a solved wall under
@@ -143,6 +148,37 @@ many-market roles (O27), which may now start from the goods chain's stage v2a.1 
 on D-G12. "Next steps" has each.
 
 ## Where things stand
+
+**The wall instance's build (P2.3.2; 2026-09-30).** Branch `phase2-proper` (worktree
+`D:/rustyecon-wt/p23`, scratch `D:/rustyecon-p23/build-wall/`). As built:
+[docs/probe/WALL-RULES.md](docs/probe/WALL-RULES.md); ENGINE.md and TAPE.md, "Amended at P2.3.2".
+- **The roles' additions** (decision 395): the category desk's optional `tail` (h = H + L^H) and
+  `reserved` (each reserved type's hours in the cost, the orders and the Leontief), and the
+  provider's optional `more` (further transfers N_i·P_s in list order, its state the sums). No
+  new kind, state or market rule; each field is skipped when absent, raw and resolved.
+- **The instance** (decision 394): IW1 and the control IC1 in `probe::markets`, solved by unit
+  1d's `WorkerEconomy`; P2.1's instances keep unit 1c. Genesis equals the frame's registered
+  point and its mirror's coins bit for bit. The tape is `tapes/markets-iw1.ron` (the frame's
+  name; the run's brief said `p2-wall*`).
+- **The harness at the wall** (decision 396): 18 observables with each reserved wage and each
+  desk's threshold x = 1 − s; every household's baskets; the wall's readouts in `stats.tsv`;
+  `s[D]=V`, `RW(F)`, JA and JB on every labour market, joint in the mirror's order; the battery
+  (103 runs) and the tier3s, stocks, joint and basin families equal the registered TSVs name for
+  name; Tier 3S reads its first year's D̂ (`family tier3s`, `--first-year`).
+- **R1.** The 22 committed tapes' 2,000-tick hash streams, `tape_hash` and `world_id` equal the
+  pre-build binary's on WSL and on Windows; P2.1's generators write their tapes byte for byte.
+- **Tests**: five in `crates/agents/tests/wall.rs` and nine in `crates/probe/tests/wall.rs`
+  (WALL-RULES §6); 20 mutants, one per change undone, each killed.
+- **Readings** (WALL-RULES §7): the basin's factors 1.05^j correctly rounded (`pow_whole`), since
+  libm's `pow` is an ulp off the mirror's at some j; the joint draws keep libm's `pow` (reported
+  families); mode A's spoilage check reads produced goods only.
+- **Development runs** before E0, disclosed (WALL-RULES §6.5): six IW1 runs of 3,000 ticks and a
+  trace diff on the uncommitted build, which found one tick-1 residue (E0, next).
+- **The gates**: `scripts/gate.sh` and `scripts/gui.sh` are green on WSL (`/root/scratch/target-p23`)
+  and Windows (`D:/rustyecon-targets/p23`), 991 tests passed and 4 ignored on each; the gate hash
+  is `0x61f9c8529131ff17`, and gui.sh's hash check gives appb `0xe1fa082b26995867` and demo-gb
+  `0xfad880fe08d06645`. The stamp is `044deb1`, dirty: this build before its commit. Logs in
+  `D:/rustyecon-p23/build-wall/`.
 
 **The wall instance's registration (P2.3.1; 2026-09-30).** Branch `phase2-proper` (worktree
 `D:/rustyecon-wt/p23`, scratch `D:/rustyecon-p23/frame-wall/` and `build-wall/`). Docs only:
@@ -4584,8 +4620,8 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
         one shape with an efficiency each (369); pooled hours compared through supply or in
         total, the pool's market form the frame's call (371); type desks on pool labour (372).
         *Registered at P2.3.1:* IW1 (decisions 394–397;
-        docs/probe/results/wall/registration.md). Its build, E0, the scorer and the scored
-        wave follow, in that order.
+        docs/probe/results/wall/registration.md). *Built at P2.3.2* (docs/probe/WALL-RULES.md).
+        E0, the scorer and the scored wave follow, in that order.
       - **The open-commons instance** (1e): s(q), every type pooled (377), food as its exit good
         (375, 380), one land service (379), certified by 1e's Proposition 5 (378), the crowded
         commons' shadow rent posted (374), idle land compared in wage units, `Idle` plots read
@@ -4635,7 +4671,8 @@ crates/agents            the behaviour seam, the scripted actor, the Appendix B 
                          the many-market roles in roles/many/ (P2.1.1), the stock roles in
                          roles/stock/ (P2.2.1), CAPACITY's plant in roles/plant/ (P2.2b.1)
 crates/probe             the Phase 2 probe's harness and tape generator (P2.0.1); reads certify's
-                         measures (S2.5); the markets probe's harness, probe::markets (P2.1.1);
+                         measures (S2.5); the markets probe's harness, probe::markets (P2.1.1),
+                         with the wall's instances IW1 and IC1 (P2.3.2);
                          the stocks probe's, probe::horses (P2.2.1); the loop step's instances
                          and tapes, probe::horses::loops (P2.2b.1)
 docs/probe/RULES.md      the probe's rules, dials and lineage, as built
@@ -4660,6 +4697,12 @@ docs/probe/LOOPS-RULES.md P2.2b's build spec (P2.2b.0): the plant, the planted r
                          as built and run (§14-§16), and the reviews' fix round (§17)
 docs/probe/LOOPS.md      P2.2b's report (P2.2b.4): verdict, E0-E11, the reservation's part,
                          O14 like for like, capital's time, the reviews, what it means
+docs/probe/wall/         the wall frame's inputs, byte for byte as registered (P2.3.1):
+                         SPEC.md, SHA256SUMS and registered/ (the run-by-run outputs the scorer
+                         reads)
+docs/probe/WALL-RULES.md the wall instance's build as built (P2.3.2): the roles' three optional
+                         fields, IW1 and IC1 on unit 1d, the harness at the wall, the checks
+docs/probe/results/wall/ the wall's registration (P2.3.1) and its amendments, E0's record
 docs/probe/results/loops/ the loop step's registration (L0.8), quoting LOOP-SPEC-A1's
                          predictions and FUNDED's county, with its sha256; E0-E2 (e0.md,
                          P2.2b.2); the scored runs' README and CSVs (P2.2b.3) with the reviews'
@@ -4687,7 +4730,8 @@ crates/gui/tests/golden  the view-model goldens, one RON file per builder and po
                          (UPDATE_GOLDEN=1 rewrites them)
 tapes/gate.ron           the gate world
 tapes/appb.ron           the probe's Appendix B world, generated from the oracle
-tapes/markets-<id>.ron   the markets probe's seven worlds (I0–I3, L2, L3, G1), from the oracle
+tapes/markets-<id>.ron   the markets probe's seven worlds (I0–I3, L2, L3, G1), from the oracle;
+                         markets-iw1.ron, Phase 2 proper's wall instance, from unit 1d (P2.3.2)
 tapes/horses-<id>.ron    the stocks probe's six worlds (H1–H4, R1a, P7), from 1g's ChainEconomy
 tapes/loops-<id>.ron     the loop step's six worlds (LB1–LB3, LW1–LW3), rule B at chain8 with
                          CAPACITY's plants, from 1g's ChainEconomy (P2.2b.1)

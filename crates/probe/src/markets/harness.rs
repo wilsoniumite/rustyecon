@@ -12,6 +12,14 @@
 //!
 //! On I0 the observables, their order, the targets, D̂ and the classes are P2.0's
 //! (`crate::harness`), which stays as it was and pinned to docs/probe/results/.
+//!
+//! **At the wall** (a worker-form instance, P2.3; docs/probe/WALL-RULES.md §5): the observables
+//! add each reserved wage over r after the prices, and read each desk's threshold x_j = 1 − s_j
+//! in place of s_j, whose target 0 has no log (decision 396); the reserved labour markets' volumes
+//! are among the volumes. Every household (the provider, the workers and each reserved pop) has
+//! its baskets. The wall's own readouts (the depth, breach ticks, each desk's largest share, each
+//! pop's participation range and saturated ticks) are kept beside §7.11's statistics, reported and
+//! never scored.
 
 use super::instance::{Instance, Point};
 use super::perturb::Perturbation;
@@ -33,16 +41,34 @@ use std::collections::BTreeMap;
 
 /// The observables of an instance, in order (MARKETS-SPEC §7.1): `v`, `pi.<type>`,
 /// `pi.<category>`, `s.<category>`, `vol.<market>` in market order, `y.<category>`, `y.<type>`.
-/// On I0 this is P2.0's set O in P2.0's order.
+/// On I0 this is P2.0's set O in P2.0's order. At the wall each reserved wage `w.<type>` follows
+/// the prices, and `x.<category>` replaces `s.<category>` (the wall frame's §5.1).
 pub fn observables(inst: &Instance) -> Vec<String> {
     let mut o = vec!["v".to_string()];
     o.extend(inst.types.iter().map(|t| format!("pi.{}", t.key)));
     o.extend(inst.categories.iter().map(|c| format!("pi.{}", c.key)));
-    o.extend(inst.categories.iter().map(|c| format!("s.{}", c.key)));
+    o.extend(inst.wtypes.iter().map(|t| format!("w.{}", t.key)));
+    let technique = if inst.worker_form { "x" } else { "s" };
+    o.extend(
+        inst.categories
+            .iter()
+            .map(|c| format!("{technique}.{}", c.key)),
+    );
     o.extend(inst.markets().iter().map(|m| format!("vol.{m}")));
     o.extend(inst.categories.iter().map(|c| format!("y.{}", c.key)));
     o.extend(inst.types.iter().map(|t| format!("y.{}", t.key)));
     o
+}
+
+/// The number of prices among the observables: v, each type's, each category's and each reserved
+/// wage (the classifier's band reads them).
+pub fn price_count(inst: &Instance) -> usize {
+    1 + inst.types.len() + inst.categories.len() + inst.wtypes.len()
+}
+
+/// γ(1) = η·(g0 + g1), the schedule at the top task (k's power of 1 is 1).
+pub fn gamma_top(inst: &Instance) -> f64 {
+    inst.eta * (inst.g0 + inst.g1)
 }
 
 /// The oracle's values at one set of coefficients, per tick, relative to r = 1.
@@ -54,8 +80,9 @@ pub struct Target {
     pub volume: Vec<f64>,
     /// Y, baskets eaten.
     pub baskets: f64,
-    /// The provider's and the workers' baskets.
-    pub households: [f64; 2],
+    /// Each household's baskets, in [`Instance::households`] order: the provider's, the
+    /// workers', then each reserved pop's.
+    pub households: Vec<f64>,
     /// Each basket item's quantity eaten, z_j·Y, in item order (space last).
     pub items: Vec<f64>,
     /// Each desk's output, in desk order.
@@ -69,26 +96,40 @@ impl Target {
     /// category's good z_j·Y, and each type's market what the category desks and the other
     /// types buy of it (a type's own input is kept, not traded; MARKETS-SPEC §1.4).
     pub fn of(inst: &Instance, e: &Point, land: f64) -> Target {
-        let mut volume = vec![e.n_a, land];
+        // The pool's hours clear `labour` (N_a in unit 1c, n_D in 1d); each reserved type's
+        // market clears its reserved hours D_i (the wall frame's §5.1).
+        let mut volume = vec![e.pool, land];
         volume.extend(e.type_traded.iter().copied());
         volume.extend(e.cat_output.iter().copied());
+        if inst.worker_form {
+            volume.extend(e.hours[1..].iter().copied());
+        }
         let mut output = e.cat_output.clone();
         output.extend(e.type_services.iter().copied());
         let mut obs = vec![e.v];
         obs.extend(e.type_price.iter().copied());
         obs.extend(e.cat_price.iter().copied());
-        obs.extend(inst.categories.iter().map(|_| e.one_minus_x));
+        obs.extend(e.wage.iter().copied());
+        // The technique: 1 − x* as P2.1 reads it, or the threshold x* = 1 − (1 − x*) at the wall.
+        let technique = if inst.worker_form {
+            1.0 - e.one_minus_x
+        } else {
+            e.one_minus_x
+        };
+        obs.extend(inst.categories.iter().map(|_| technique));
         obs.extend(volume.iter().copied());
         obs.extend(output.iter().copied());
         let mut items = e.cat_output.clone();
         if let Some(h) = inst.space {
             items.push(h * e.y);
         }
+        let mut households = vec![e.provider_baskets];
+        households.extend(e.pop_baskets.iter().copied());
         Target {
             obs,
             volume,
             baskets: e.y,
-            households: [e.provider_baskets, e.worker_baskets],
+            households,
             items,
             output,
             point: e.clone(),
@@ -120,6 +161,17 @@ pub fn shock_distance(a: &Point, b: &Point) -> f64 {
     );
     pairs
         .iter()
+        .map(|(x, y)| ln(x / y).abs())
+        .fold(0.0, f64::max)
+        / TOL_FLOOR
+}
+
+/// The distance between two targets at the wall: the largest |ln| over every observable, over
+/// the tolerance, as the wall frame's mirror measures a cost shock's start (`wb.run`).
+pub fn target_distance(a: &Target, b: &Target) -> f64 {
+    a.obs
+        .iter()
+        .zip(&b.obs)
         .map(|(x, y)| ln(x / y).abs())
         .fold(0.0, f64::max)
         / TOL_FLOOR
@@ -162,13 +214,19 @@ pub struct Row {
     pub planned: Vec<f64>,
     /// Each desk's output this tick, in desk order.
     pub output: Vec<f64>,
-    /// The provider's transfer this tick: due and paid.
+    /// The provider's transfer this tick: due and paid (the sums over its transfers).
     pub transfer: [f64; 2],
-    /// The baskets each household ate (provider, workers): min_j of what it bought of each
-    /// item over z_j, as its rule eats them.
-    pub baskets: [f64; 2],
+    /// The baskets each household ate, in [`Instance::households`] order: min_j of what it
+    /// bought of each item over z_j, as its rule eats them.
+    pub baskets: Vec<f64>,
     /// The item that bound each household's baskets, if it bought any item.
-    pub binding: [Option<usize>; 2],
+    pub binding: Vec<Option<usize>>,
+    /// Each worker pop's participation this tick, its hours' share of its heads, the pool's
+    /// workers first (its own state; read at the wall).
+    pub participation: Vec<f64>,
+    /// The wall's depth at the tick's posted prices, ln(θ·w/(p_τ·γ(1))) (the wall frame's
+    /// §5.3): below 0 the machine comparison pins the wage again.
+    pub depth: f64,
     /// The tick's ledger margin.
     pub margin: f64,
     /// Whether the tick is dead: some market did not trade, or cleared less than the live
@@ -200,17 +258,22 @@ pub fn csv_header(inst: &Instance) -> String {
     for c in &inst.categories {
         h.push(format!("s_planned_{}", c.key));
     }
-    for f in [
-        "transfer_due",
-        "transfer_paid",
-        "baskets_provider",
-        "baskets_workers",
-        "bound_provider",
-        "bound_workers",
-        "ledger_margin",
-        "dead",
-    ] {
-        h.push(f.to_string());
+    h.push("transfer_due".into());
+    h.push("transfer_paid".into());
+    let households = inst.households();
+    for k in &households {
+        h.push(format!("baskets_{k}"));
+    }
+    for k in &households {
+        h.push(format!("bound_{k}"));
+    }
+    h.push("ledger_margin".into());
+    h.push("dead".into());
+    if inst.worker_form {
+        for k in &households[1..] {
+            h.push(format!("part_{k}"));
+        }
+        h.push("depth".into());
     }
     h.join(",")
 }
@@ -247,14 +310,19 @@ impl Row {
         self.planned.iter().for_each(|&x| push(x));
         push(self.transfer[0]);
         push(self.transfer[1]);
-        push(self.baskets[0]);
-        push(self.baskets[1]);
+        self.baskets.iter().for_each(|&x| push(x));
         let names = items(inst);
-        for b in self.binding {
+        for b in &self.binding {
             v.push(b.map_or("-".to_string(), |i| names[i].clone()));
         }
         v.push(format!("{:?}", self.margin));
         v.push(u8::from(self.dead).to_string());
+        if inst.worker_form {
+            for x in &self.participation {
+                v.push(format!("{x:?}"));
+            }
+            v.push(format!("{:?}", self.depth));
+        }
         v.join(",")
     }
 }
@@ -268,8 +336,11 @@ struct Ids {
     coin: GoodId,
     /// Each actor, in actor order.
     actors: Vec<ActorId>,
-    /// The households' classes: owners (the provider's) and workers.
-    classes: [ClassId; 2],
+    /// The households' classes, in [`Instance::households`] order: owners (the provider's),
+    /// workers, then each reserved pop's.
+    classes: Vec<ClassId>,
+    /// The number of desks: the actors before the households.
+    desks: usize,
 }
 
 impl Ids {
@@ -279,6 +350,7 @@ impl Ids {
         let actor = |k: &str| w.id_of::<ActorId>(k).ok_or(format!("no actor {k}"));
         let class = |k: &str| w.id_of::<ClassId>(k).ok_or(format!("no class {k}"));
         Ok(Ids {
+            desks: inst.desks().len(),
             goods: inst
                 .markets()
                 .iter()
@@ -294,7 +366,11 @@ impl Ids {
                 .iter()
                 .map(|a| actor(a))
                 .collect::<Result<_, _>>()?,
-            classes: [class("owners")?, class("workers")?],
+            classes: inst
+                .household_classes()
+                .iter()
+                .map(|k| class(k))
+                .collect::<Result<_, _>>()?,
         })
     }
 }
@@ -343,8 +419,8 @@ fn row(
     let nc = inst.categories.len();
     let mut planned = Vec::with_capacity(nc);
     let mut used = Vec::with_capacity(nc);
-    let mut output = Vec::with_capacity(ids.actors.len() - 2);
-    for (d, &a) in ids.actors.iter().take(ids.actors.len() - 2).enumerate() {
+    let mut output = Vec::with_capacity(ids.desks);
+    for (d, &a) in ids.actors.iter().take(ids.desks).enumerate() {
         match sim.actor_state(a) {
             Some(ActorState::GoodDesk(s)) if d < nc => {
                 planned.push(s.share);
@@ -355,7 +431,14 @@ fn row(
             _ => return Err(format!("actor {a} is not the desk its instance says")),
         }
     }
-    let provider = ids.actors[ids.actors.len() - 2];
+    let mut participation = Vec::with_capacity(ids.actors.len() - ids.desks - 1);
+    for &a in &ids.actors[ids.desks + 1..] {
+        match sim.actor_state(a) {
+            Some(ActorState::Workers(s)) => participation.push(s.share),
+            _ => return Err(format!("actor {a} is not the pop its instance says")),
+        }
+    }
+    let provider = ids.actors[ids.desks];
     let transfer = match o.transfers.iter().find(|(a, _, _)| *a == provider) {
         Some(&(_, due, paid)) => [due, paid],
         None => return Err("provider is not a provider".into()),
@@ -378,8 +461,8 @@ fn row(
         }
         z
     };
-    let mut baskets = [0.0; 2];
-    let mut binding = [None; 2];
+    let mut baskets = vec![0.0; ids.classes.len()];
+    let mut binding = vec![None; ids.classes.len()];
     for (h, &class) in ids.classes.iter().enumerate() {
         let mut best: Option<(f64, usize)> = None;
         for (i, &g) in ids.items.iter().enumerate() {
@@ -404,10 +487,19 @@ fn row(
     }
     let [w, rr] = [price[0], price[1]];
     let mut obs = vec![w / rr];
+    // Every other price over r, in market order: the types, the categories, then the reserved
+    // wages (the observables' order).
     obs.extend(price[2..].iter().map(|p| p / rr));
-    obs.extend(used.iter().copied());
+    if inst.worker_form {
+        obs.extend(used.iter().map(|s| 1.0 - s));
+    } else {
+        obs.extend(used.iter().copied());
+    }
     obs.extend(cleared.iter().copied());
     obs.extend(output.iter().copied());
+    // The depth at the posted prices this tick settled at (the wall frame's §5.3).
+    let tau = inst.task_type()?;
+    let depth = ln((inst.types[tau].theta * w) / (price[2 + tau] * gamma_top(inst)));
     let gap: Vec<f64> = obs
         .iter()
         .zip(&target.obs)
@@ -442,6 +534,8 @@ fn row(
         transfer,
         baskets,
         binding,
+        participation,
+        depth,
         margin: o.margin,
         dead,
     })
@@ -450,7 +544,7 @@ fn row(
 /// Mode A's per-tick check (PROBE-SPEC §4.6, MARKETS-SPEC §7.6), with fills and spoilage read
 /// relative to volume, as P2.0's: every gap at most 1e-9, every market trading with both fills
 /// at least 1 − 1e-9, and no produced good spoiling beyond 1e-9 of its volume.
-fn hold_check(row: &Row, names: &[String], markets: &[String]) -> Option<String> {
+fn hold_check(row: &Row, names: &[String], markets: &[String], produced: usize) -> Option<String> {
     if let Some(i) = (0..row.gap.len()).find(|&i| row.gap[i].is_nan() || row.gap[i] > HOLD_TOL) {
         return Some(format!(
             "tick {}: {} is {:e} from the oracle in log",
@@ -467,7 +561,9 @@ fn hold_check(row: &Row, names: &[String], markets: &[String]) -> Option<String>
                 row.tick, row.buyer_fill[m], row.seller_fill[m]
             ));
         }
-        if m >= 2 && row.spoiled[m] > HOLD_TOL * row.cleared[m] {
+        // Produced goods only: the types' and the categories' (a reserved type's hours, like
+        // the pool's, are not produced).
+        if (2..produced).contains(&m) && row.spoiled[m] > HOLD_TOL * row.cleared[m] {
             return Some(format!(
                 "tick {}: {:e} of {market} spoiled",
                 row.tick, row.spoiled[m]
@@ -696,6 +792,74 @@ pub struct Stats {
     /// For a cost shock: ln(Y′/Y) of the equilibrium change, and the trough of baskets eaten
     /// in log against Y and against Y′.
     pub depth: Option<(f64, f64, f64)>,
+    /// The wall's own readouts, at a worker-form instance (the wall frame's §5.3).
+    pub wall: Option<Wall>,
+}
+
+/// The wall's own readouts over the scored run (the wall frame's §5.3; decision 396), reported
+/// and never scored.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Wall {
+    /// The lowest depth ln(θ·w/(p_τ·γ(1))) at posted prices, and its tick.
+    pub depth_min: (f64, u64),
+    /// Breach ticks: the depth below 0.
+    pub breach: u64,
+    /// The first breach tick.
+    pub first_breach: Option<u64>,
+    /// The longest run of consecutive breach ticks.
+    pub breach_run: u64,
+    run: u64,
+    /// Each category desk's largest human share used.
+    pub share_max: Vec<f64>,
+    /// Each worker pop's participation range (lowest, highest), the pool's workers first.
+    pub participation: Vec<(f64, f64)>,
+    /// Each worker pop's saturated ticks, all its heads at work (F = 1: the support of χ).
+    pub saturated: Vec<u64>,
+    /// The worst buyer fill over every market, as the wall frame's mirror reads it.
+    pub worst_buyer_fill: f64,
+}
+
+impl Wall {
+    fn new(inst: &Instance) -> Wall {
+        Wall {
+            depth_min: (f64::INFINITY, 0),
+            breach: 0,
+            first_breach: None,
+            breach_run: 0,
+            run: 0,
+            share_max: vec![0.0; inst.categories.len()],
+            participation: vec![(f64::INFINITY, f64::NEG_INFINITY); inst.wtypes.len() + 1],
+            saturated: vec![0; inst.wtypes.len() + 1],
+            worst_buyer_fill: 1.0,
+        }
+    }
+
+    fn push(&mut self, row: &Row) {
+        Stats::trough(&mut self.depth_min, row.tick, row.depth);
+        if row.depth < 0.0 {
+            self.breach += 1;
+            self.run += 1;
+            self.breach_run = self.breach_run.max(self.run);
+            if self.first_breach.is_none() {
+                self.first_breach = Some(row.tick);
+            }
+        } else {
+            self.run = 0;
+        }
+        // The share each desk decided this tick and produced at (its state's `share`, which is
+        // its `used` after production).
+        for (m, &s) in self.share_max.iter_mut().zip(&row.planned) {
+            *m = max2(*m, s);
+        }
+        for (i, &f) in row.participation.iter().enumerate() {
+            let r = &mut self.participation[i];
+            *r = (min2(r.0, f), max2(r.1, f));
+            self.saturated[i] += u64::from(f >= 1.0);
+        }
+        for m in 0..row.buyer_fill.len() {
+            self.worst_buyer_fill = min2(self.worst_buyer_fill, row.buyer_fill[m]);
+        }
+    }
 }
 
 impl Stats {
@@ -714,6 +878,7 @@ impl Stats {
             transfer: (0.0, 0),
             worst_fill: 1.0,
             depth: None,
+            wall: inst.worker_form.then(|| Wall::new(inst)),
         }
     }
 
@@ -762,7 +927,7 @@ impl Stats {
             Stats::trough(&mut slot, row.tick, e / z);
             self.item[i] = (slot.0, self.item[i].1 + u64::from(e == 0.0));
         }
-        for h in 0..2 {
+        for h in 0..row.baskets.len() {
             if row.baskets[h] < 0.99 * t.households[h] {
                 self.binding.1 += 1;
                 if let Some(i) = row.binding[h] {
@@ -798,6 +963,9 @@ impl Stats {
         }
         self.transfer.0 += row.transfer[0] - row.transfer[1];
         self.transfer.1 += u64::from(row.transfer[1] < row.transfer[0]);
+        if let Some(w) = self.wall.as_mut() {
+            w.push(row);
+        }
     }
 }
 
@@ -874,15 +1042,21 @@ pub fn run(
     let clock_start = pert.clock_start(ticks);
     let start = pert.start();
     let t0 = target_at(clock_start)?;
-    let nt = inst.types.len();
-    let nc = inst.categories.len();
-    let n_prices = 1 + nt + nc;
-    let d0 = match start {
+    let n_prices = price_count(&inst);
+    let produced = 2 + inst.types.len() + inst.categories.len();
+    // Tier 3S (decision 229; the wall frame's §5.2): a stock or coin start reads the largest D̂
+    // of its first scored year, set below.
+    let first_year = setup.first_year_d0 && matches!(start, Start::Stocks);
+    let mut d0 = match start {
         Start::Hold | Start::Nominal => 0.0,
         Start::Prices => {
             let mut genesis_obs = vec![g.prices[0] / g.prices[1]];
             genesis_obs.extend(g.prices[2..].iter().map(|p| p / g.prices[1]));
-            genesis_obs.extend(g.shares.iter().copied());
+            if inst.worker_form {
+                genesis_obs.extend(g.shares.iter().map(|s| 1.0 - s));
+            } else {
+                genesis_obs.extend(g.shares.iter().copied());
+            }
             genesis_obs
                 .iter()
                 .zip(&t0.obs)
@@ -890,6 +1064,7 @@ pub fn run(
                 .fold(0.0, f64::max)
                 / TOL_FLOOR
         }
+        Start::Stocks if first_year => 0.0,
         Start::Stocks => {
             pert.stock_factors()
                 .iter()
@@ -897,8 +1072,12 @@ pub fn run(
                 .fold(0.0, f64::max)
                 / TOL_FLOOR
         }
+        Start::Shock if inst.worker_form => {
+            target_distance(&t0, &Target::of(&inst, &g.point, land))
+        }
         Start::Shock => shock_distance(&t0.point, &g.point),
     };
+    let year = u64::from(setup.tpy);
     let total = clock_start + ticks;
     let mut classifier = Classifier::new(ticks, names.len(), n_prices);
     let mut stats = Stats::new(&inst);
@@ -924,9 +1103,12 @@ pub fn run(
         let row = row(&sim, &inst, &ids, &report, &o, &target)?;
         each(&row);
         if hold_failure.is_none() {
-            hold_failure = hold_check(&row, &names, &markets);
+            hold_failure = hold_check(&row, &names, &markets, produced);
         }
         if row.tick >= clock_start {
+            if first_year && row.tick - clock_start < year {
+                d0 = d0.max(row.dhat);
+            }
             let logs: Vec<f64> = row.obs.iter().map(|&x| ln(x)).collect();
             classifier.push(row.dhat, &logs, row.dead);
             stats.push(&row, &o, &target, &class_names);

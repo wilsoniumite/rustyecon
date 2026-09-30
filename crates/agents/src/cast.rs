@@ -215,11 +215,15 @@ fn bought(s: &Spec) -> Vec<(GoodId, &'static str)> {
         Spec::MachDesk(d) => vec![(d.labour, "labour"), (d.land, "land")],
         Spec::BasketProvider(p) => p.basket.iter().map(|i| (i.good, "basket")).collect(),
         Spec::BasketWorkers(p) => p.basket.iter().map(|i| (i.good, "basket")).collect(),
-        Spec::CategoryDesk(d) => vec![
-            (d.labour, "labour"),
-            (d.service, "service"),
-            (d.land, "land"),
-        ],
+        Spec::CategoryDesk(d) => {
+            let mut v = vec![
+                (d.labour, "labour"),
+                (d.service, "service"),
+                (d.land, "land"),
+            ];
+            v.extend(d.reserved.iter().map(|i| (i.good, "reserved")));
+            v
+        }
         Spec::TypeDesk(d) => {
             let mut v: Vec<(GoodId, &'static str)> =
                 d.inputs.iter().map(|i| (i.good, "recipe.inputs")).collect();
@@ -425,6 +429,17 @@ impl Cast {
                 Spec::BasketProvider(p) => {
                     let pays = Some((p.transfer_to, "transfer.to"));
                     check_role(w, decl, ActorKind::Pop, Some((p.land, "land")), pays)?;
+                    // Its further transfers (P2.3): none to itself.
+                    if let Some(t) = p.more.iter().find(|t| t.to == decl.id) {
+                        let key = w
+                            .key_of(t.to)
+                            .map_or_else(|| t.to.to_string(), |k| k.to_string());
+                        return Err(invalid(
+                            decl,
+                            &format!("more[{key}].to"),
+                            "an actor does not pay itself",
+                        ));
+                    }
                     Member::BasketProvider(p.clone())
                 }
                 Spec::BasketWorkers(p) => {

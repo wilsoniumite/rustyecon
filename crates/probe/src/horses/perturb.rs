@@ -134,7 +134,9 @@ fn times_share(share: &mut ShareAt, f: f64) -> Result<(), String> {
             *g *= f;
             Ok(())
         }
-        ShareAt::At(_) => Err("the human share is set outright and then scaled".into()),
+        ShareAt::At(_) | ShareAt::Is(_) => {
+            Err("the human share is set outright and then scaled".into())
+        }
     }
 }
 

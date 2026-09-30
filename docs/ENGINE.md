@@ -939,6 +939,33 @@ engine's tick did not change: it walks `World::markets()`. Its one change is ite
    `world_id` and `tape_hash` of all thirteen horses and markets tapes. In the GUI
    (`vm::inspector::tests`): `inspector_reads_planted_states`.
 
+**Amended at P2.3.2** (2026-09-30, branch `phase2-proper`: the wall instance's build,
+docs/probe/WALL-RULES.md; decisions 394–397). Core, markets and the engine are unchanged. The
+agents crate's many-market roles gain three optional fields, each absent on every committed tape
+and left out of the raw and the resolved form when absent (L0.5's lesson), so every committed
+tape keeps its canonical form, `tape_hash` and `world_id`, and every hash stream is unchanged
+(the 22 tapes' 2,000-tick streams equal the pre-build binary's on both machines).
+
+1. `CategoryDesk.tail: Option<Key>` (a `Dimensionless` param, L^H): the hours per unit are
+   h = H + L^H, one addition, ordered on `labour` whenever the line has hours or the tail is
+   positive.
+2. `CategoryDesk.reserved: Vec<(good, coef)>`: each reserved type's hours, added to the unit cost
+   in list order, ordered at coef·q where coef is not zero, and in the Leontief and its burns. A
+   reserved good is traded, dies within the tick (M6), and is none of the desk's other goods,
+   each once.
+3. `BasketProvider.more: Vec<(to, heads)>`: further transfers of heads·P_s after `transfer`, in
+   list order, from the coin left, each to its own actor, never the provider. `ProviderState`
+   holds the sums, so `ActorState` gains no variant.
+4. Tests (§11). In agents (`tests/wall.rs`): `category_desk_buys_its_tail_and_reserved_hours`,
+   `provider_pays_every_transfer_in_list_order`, `wall_specs_are_checked_at_load`,
+   `wall_fields_at_zero_leave_every_decision` and
+   `wall_specs_round_trip_and_old_worlds_keep_their_ids`; `each_site_converts_as_registered`
+   and `many_roles_never_overbudget_or_overdraw` read the wall tape too. In probe (`tests/wall.rs`): `markets_iw1_tape_is_its_generators_output`,
+   `markets_iw1_genesis_is_unit_1d`, `markets_iw1_rest_point_is_the_oracles`,
+   `markets_iw1_holds_at_the_oracle_point`, `markets_iw1_conserves_and_is_deterministic`,
+   `wall_roles_nest_the_many_roles`, `markets_tapes_keep_their_world_ids`,
+   `wall_battery_and_families_are_the_registered_ones` and `wall_grammar_applies_as_named`.
+
 ## 0. Engine invariants
 
 Numbered so tests and reviews can cite them. Each has at least one test in §11.

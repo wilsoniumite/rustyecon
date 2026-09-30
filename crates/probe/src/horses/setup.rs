@@ -322,6 +322,7 @@ fn flow_genesis(s: &Setup) -> Result<Genesis, String> {
         },
         at_genesis: Vec::new(),
         shocks: Vec::new(),
+        first_year_d0: false,
     };
     let g = crate::markets::setup::genesis(&m)?;
     let point = inst.point(s.tpy)?;
@@ -424,6 +425,7 @@ pub fn genesis(s: &Setup) -> Result<Genesis, String> {
     let one_minus_x = match x.share {
         ShareAt::Times(f) => e.one_minus_x * f,
         ShareAt::At(xx) => 1.0 - xx,
+        ShareAt::Is(v) => v,
     };
     if !(0.0..=1.0).contains(&one_minus_x) {
         return Err(format!(

@@ -31,11 +31,14 @@ whose raw types are documented the same way in `rustyecon_agents::spec` (which a
 | 1 | 2026-09-29 | L0.4 | The maker gains an optional field, `reserve` (`Option` of a `Dimensionless` param, the reservation; see below), after `cover`. Absent, it is off and the canonical form omits it, so every tape keeps its text, `tape_hash`, `world_id` and meaning, and the number stays 1. It is the agents' spec's one field with a default, as criteria's `price_shocks` is certify's (docs/probe/HORSES-RULES.md §10). |
 | 1 | 2026-09-30 | P2.2b.1 | A good gains an optional field, `untraded` (a `bool`, absent `false`; see Currencies and untraded goods), and the type desk, the maker and the capacity desk an optional `plant` (see below), each last. Absent, each is off and the canonical form omits it, so every tape keeps its text, `tape_hash`, `world_id` and meaning, and the number stays 1. `untraded` is core's one field with a default (docs/probe/LOOPS-RULES.md §1). |
 
+| 1 | 2026-09-30 | P2.3.2 | The category desk gains two optional fields, `tail` (`Option` of a `Dimensionless` param) and `reserved` (a list of `(good, coef)`), and the basket provider one, `more` (a list of `(to, heads)`), each last (see below). Absent, each is off and the canonical form omits it, so every tape keeps its text, `tape_hash`, `world_id` and meaning, and the number stays 1 (docs/probe/WALL-RULES.md §1). |
+
 The loader reads its own version only; anything else is refused as a schema error before any
 other field is looked at. Since no field has a default, every change to the schema bumps the
 number and adds a row here; the one exception is a field whose absence is the older meaning, the
-maker's `reserve` (L0.4), a good's `untraded` and a desk's `plant` (P2.2b.1), which add a row
-and keep the number.
+maker's `reserve` (L0.4), a good's `untraded` and a desk's `plant` (P2.2b.1), and the category
+desk's `tail` and `reserved` and the provider's `more` (P2.3.2), which add a row and keep the
+number.
 
 ## Rules
 
@@ -240,6 +243,14 @@ param, live. Their lists are evaluation order, and the canonical form keeps them
 - `TypeDesk((output, labour, land, recipe: (own, inputs: [(good, coef), ...], labour, land),
   scale))`: a Desk whose recipe keeps `own` of its output and buys each input's `good`.
 - `scale` is the Appendix B roles'.
+- The wall's optional fields (P2.3.2; docs/probe/WALL-RULES.md), each absent (off) where not
+  written: a `CategoryDesk`'s `tail: Some(key)`, a `Dimensionless` param, the hours per unit at
+  tasks closed to machines, added to the line's on `labour`; its `reserved: [(good, coef), ...]`,
+  each a reserved type's hours (a good that dies within the tick, not the desk's other goods,
+  each once) at `coef` (`Dimensionless`) a unit, whatever the technique; and a
+  `BasketProvider`'s `more: [(to, heads), ...]`, further transfers of `heads`
+  (`FlowPerYear`)·P_s, paid after `transfer` in list order, each to its own actor. The wall
+  tape `tapes/markets-iw1.ron` is the worked example.
 
 ## The stock roles (P2.2.1)
 

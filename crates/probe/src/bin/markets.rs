@@ -2,7 +2,8 @@
 //!
 //! ```text
 //! markets run NAME...     [options]  run named perturbations (see `probe::markets::perturb`)
-//! markets family FAMILY   [options]  run a family: battery, stocks, joint2, joint4, basin, history
+//! markets family FAMILY   [options]  run a family: battery, tier3s, stocks, joint2, joint4, basin,
+//!                                    history (tier3s reads its first year's D̂ as its start)
 //! markets list FAMILY     [options]  print a family's run names (the battery with tier and slack)
 //! markets tape [NAME]     [options]  print the tape a run is made from
 //! markets kick NAME...    [options]  the kick set at the end of each named run (§7.5)
@@ -11,7 +12,7 @@
 //! markets point           [options]  the oracle's point, at the base and each cost target
 //!
 //! setup options (probe::markets::cli):
-//!   --inst ID              i0, i1, i2, i3, l2, l3 or g1 (default i1)
+//!   --inst ID              i0, i1, i2, i3, l2, l3, g1, or the wall's iw1 and ic1 (default i1)
 //!   --tpy N                ticks a year (default 52)
 //!   --dials c2m|c2l        the registered dial set (default c2m)
 //!   --set KEY=VALUE        set a dial; rate.*, buffer.* and adjust.* scale a family, tilt.* sets
@@ -23,17 +24,20 @@
 //!   --jobs J               run J runs at once (default 1)
 //!   --horizon H            the kick's horizon (default: the scored length)
 //!   --h X                  the probes' step in log price (default 0.01)
+//!   --first-year           a stock or coin start's distance is its first year's largest D̂
+//!                          (Tier 3S; `family tier3s` sets it)
 //! ```
 //!
 //! Each run prints one summary line: its class (PROBE-SPEC §4.5) and the reported numbers, with
-//! §7.11's transient statistics in long form in `stats.tsv`.
+//! §7.11's transient statistics in long form in `stats.tsv`; at the wall (`--inst iw1`, `ic1`)
+//! `stats.tsv` adds the wall's readouts (`wall.*`; docs/probe/WALL-RULES.md §5).
 
 use probe::harness::{Class, Summary};
 use probe::markets::cli::parse;
 use probe::markets::harness::{csv_header, items, run, Record};
 use probe::markets::instance::Instance;
 use probe::markets::kick::kick_set;
-use probe::markets::perturb::{battery, family, Perturbation};
+use probe::markets::perturb::{battery, family, tier3s, Perturbation};
 use probe::markets::probes::{elasticity, open_loop};
 use probe::markets::setup::{tape_ron, Setup};
 use probe::protocol::RUN_TICKS;
@@ -76,6 +80,7 @@ fn options(args: &[String]) -> Result<(Vec<String>, Options), String> {
             "--jobs" => o.jobs = val()?.parse().map_err(|_| "--jobs J")?,
             "--horizon" => o.horizon = Some(val()?.parse().map_err(|_| "--horizon H")?),
             "--h" => o.h = val()?.parse().map_err(|_| "--h X")?,
+            "--first-year" => o.setup.first_year_d0 = true,
             y if y.starts_with("--") => return Err(format!("unknown option {y}")),
             _ => rest.push(x.clone()),
         }
@@ -239,6 +244,29 @@ fn stats_lines(rec: &Record) -> Vec<String> {
         put("depth.trough_y0", "-", g(b));
         put("depth.trough_y1", "-", g(c));
     }
+    // The wall's own readouts (the wall frame's §5.3), reported and never scored.
+    if let Some(w) = &st.wall {
+        put("wall.depth_min", "-", g(w.depth_min.0));
+        put("wall.depth_min_tick", "-", w.depth_min.1.to_string());
+        put("wall.breach_ticks", "-", w.breach.to_string());
+        put(
+            "wall.first_breach",
+            "-",
+            w.first_breach.map_or("-".into(), |t| t.to_string()),
+        );
+        put("wall.breach_run", "-", w.breach_run.to_string());
+        for (c, s) in inst.categories.iter().zip(&w.share_max) {
+            put("wall.share_max", &c.key, g(*s));
+        }
+        for (p, (lo, hi)) in inst.households()[1..].iter().zip(&w.participation) {
+            put("wall.participation_lo", p, g(*lo));
+            put("wall.participation_hi", p, g(*hi));
+        }
+        for (p, n) in inst.households()[1..].iter().zip(&w.saturated) {
+            put("wall.saturated_ticks", p, n.to_string());
+        }
+        put("wall.worst_buyer_fill", "-", g(w.worst_buyer_fill));
+    }
     out
 }
 
@@ -318,11 +346,18 @@ fn parallel<T: Send>(
 fn print_point(inst: &Instance, tpy: u32) -> Result<(), String> {
     let show = |label: &str, i: &Instance| -> Result<(), String> {
         let e = i.point(tpy)?;
-        println!(
+        print!(
             "{}\t{label}\tx* {:?}\t1-x* {:?}\tv {:?}\tP_s {:?}\tY {:?}\tN_a {:?}\ttype prices {:?}\ttype services {:?}\ttype traded {:?}\tcategory prices {:?}\tcategory outputs {:?}\tmargin_active {}",
             i.id, e.x_star, e.one_minus_x, e.v, e.p_s, e.y, e.n_a, e.type_price, e.type_services,
             e.type_traded, e.cat_price, e.cat_output, e.margin_active
         );
+        if i.worker_form {
+            print!(
+                "\tmargin {}\tn_D {:?}\treserved wages {:?}\thours {:?}\tpop baskets {:?}\tprovider baskets {:?}",
+                e.margin, e.pool, e.wage, e.hours, e.pop_baskets, e.provider_baskets
+            );
+        }
+        println!();
         Ok(())
     };
     show("base", inst)?;
@@ -356,8 +391,15 @@ fn real_main() -> Result<bool, String> {
                 .into(),
         );
     };
-    let (rest, o) = options(&args[1..])?;
+    let (rest, mut o) = options(&args[1..])?;
     let inst = o.setup.instance.clone();
+    // Tier 3S reads its first year's largest D̂ as its start distance (decision 229).
+    if cmd == "family" && rest.iter().any(|f| f == "tier3s") {
+        if rest.len() > 1 {
+            return Err("run tier3s as a family of its own: its start distance differs".into());
+        }
+        o.setup.first_year_d0 = true;
+    }
     match cmd.as_str() {
         "point" => {
             print_point(&inst, o.setup.tpy)?;
@@ -441,7 +483,7 @@ fn real_main() -> Result<bool, String> {
         _ => {}
     }
     let names: Vec<String> = match cmd.as_str() {
-        "run" | "kick" => rest,
+        "run" | "kick" => rest.clone(),
         "family" | "list" => {
             let mut v = Vec::new();
             for f in &rest {
@@ -453,6 +495,8 @@ fn real_main() -> Result<bool, String> {
     };
     if cmd == "list" {
         let tiers = battery(&inst, o.setup.tpy)?;
+        let three_s = tier3s(&inst);
+        let in_3s = rest.iter().any(|f| f == "tier3s");
         for n in names {
             match tiers.iter().find(|r| r.name == n) {
                 Some(r) => println!(
@@ -460,6 +504,7 @@ fn real_main() -> Result<bool, String> {
                     r.tier,
                     if r.slack { "\tslack" } else { "" }
                 ),
+                None if in_3s && three_s.contains(&n) => println!("{n}\ttier 3S"),
                 None => println!("{n}"),
             }
         }

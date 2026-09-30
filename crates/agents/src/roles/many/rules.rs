@@ -15,6 +15,13 @@
 //! one outlay by [`budget_chain`] in admission's (good) order, which for Appendix B's two inputs
 //! is their list order, and so is `two_budgets`.
 //!
+//! **The wall's additions** (P2.3; docs/probe/WALL-RULES.md): a category desk's optional `tail`
+//! L^H adds to its hours per unit, h = H + L^H, one addition and none without it; its optional
+//! `reserved` inputs, each a reserved type's hours at R_ji a unit, add p_i·R_ji to its cost in
+//! list order, are ordered at R_ji·q when R_ji is not zero, and enter its Leontief; the
+//! provider's optional `more` pays further transfers N_i·P_s in list order from the coin left,
+//! its state holding the sums. With all three absent every rule is P2.1's bit for bit.
+//!
 //! The arithmetic cannot fail, as RULES §2 says of the Appendix B roles: every budget is capped
 //! by the copy of the holding and taken from it, each after the first is at most
 //! `max_remainder(outlay, spent so far)`, sells take from the same copy, and recipes run at
@@ -137,8 +144,8 @@ impl Behaviour for BasketProvider {
         // One basket per head at posted prices, N·P_s, paid from coin held; a shortfall is
         // recorded in its state (R12).
         let ps = basket_price(v, &self.basket)?;
-        let due = param(v, self.heads)? * ps;
-        let paid = due.min(dry.get(v.currency));
+        let mut due = param(v, self.heads)? * ps;
+        let mut paid = due.min(dry.get(v.currency));
         if paid > 0.0 {
             take(&mut dry, v.currency, paid)?;
             out.deltas.push(StateDelta::Transfer {
@@ -147,6 +154,24 @@ impl Behaviour for BasketProvider {
                 good: v.currency,
                 amount: Amount::Qty(paid),
             });
+        }
+        // Each further transfer in list order, N_i·P_s from the coin the copy still holds
+        // (P2.3); the state holds the sums, ((N_0·P_s) + N_1·P_s) + …, so certify's shortfall
+        // reads them all. With none, due and paid are the old numbers bit for bit.
+        for t in &self.more {
+            let due_i = param(v, t.heads)? * ps;
+            let paid_i = due_i.min(dry.get(v.currency));
+            if paid_i > 0.0 {
+                take(&mut dry, v.currency, paid_i)?;
+                out.deltas.push(StateDelta::Transfer {
+                    from: me,
+                    to: Holder::Actor(t.to),
+                    good: v.currency,
+                    amount: Amount::Qty(paid_i),
+                });
+            }
+            due += due_i;
+            paid += paid_i;
         }
         let budget = param(v, self.spend)? * dry.get(v.currency);
         basket_orders(v, &self.basket, ps, budget, &mut dry, &mut out)?;
@@ -265,6 +290,30 @@ impl Line {
     }
 }
 
+impl CategoryDesk {
+    /// The pool's hours per unit, h = H + L^H with the tail if the desk has one (P2.3): one
+    /// addition, and none without a tail, so the old path is untouched. The tail, if any, comes
+    /// back with it.
+    fn with_tail<S>(&self, v: &View<'_, S>, h: f64) -> Result<(f64, Option<f64>), AgentError> {
+        match self.tail {
+            Some(site) => {
+                let l = param(v, site)?;
+                Ok((h + l, Some(l)))
+            }
+            None => Ok((h, None)),
+        }
+    }
+
+    /// Each reserved input, in list order (P2.3): its good and its coefficient R_ji.
+    fn reserved_now<S>(&self, v: &View<'_, S>) -> Result<Vec<(GoodId, f64)>, AgentError> {
+        let mut out = Vec::with_capacity(self.reserved.len());
+        for i in &self.reserved {
+            out.push((i.good, param(v, i.coef)?));
+        }
+        Ok(out)
+    }
+}
+
 impl Behaviour for CategoryDesk {
     type Own = GoodDeskState;
 
@@ -286,10 +335,19 @@ impl Behaviour for CategoryDesk {
         let s = s0 + param(v, self.adjust)? * (target - s0);
         let line = Line::read(v, self)?;
         let (h, m) = line.tasks(&t, s);
+        let (h, tail) = self.with_tail(v, h)?;
         let ms = m / theta;
         let b = param(v, self.direct_land)?;
-        // Unit cost at posted prices; the markup p/c is 1 at rest (M2j).
-        let c = ((w * h) + (pt * ms)) + (r * b);
+        // Unit cost at posted prices, then each reserved type's hours at its own wage, in list
+        // order (P2.3); the markup p/c is 1 at rest (M2j).
+        let mut reserved = Vec::with_capacity(self.reserved.len());
+        for (g, coef) in self.reserved_now(v)? {
+            reserved.push((g, coef, price(v, g)?));
+        }
+        let mut c = ((w * h) + (pt * ms)) + (r * b);
+        for &(_, coef, pr) in &reserved {
+            c += pr * coef;
+        }
         let margin = Margin {
             cost: c,
             markup: p / c,
@@ -307,30 +365,27 @@ impl Behaviour for CategoryDesk {
         let offered = offer(&mut dry, self.output, v.own.get(self.output))?;
         out.orders.push(sell(v, self.output, offered));
         // An order for every input the category can use, at quantity 0 where the planned x
-        // makes its coefficient 0: hours, the task services, and land.
-        let mut lines: Vec<(GoodId, f64)> = Vec::with_capacity(3);
-        if line.all_human() > 0.0 {
-            lines.push((self.labour, h * q));
+        // makes its coefficient 0: hours (with a positive tail, whatever x), the task services,
+        // land, and each reserved input whose coefficient is not zero. Each line carries its
+        // price, and its budget is p·(coef·q).
+        let mut lines: Vec<(GoodId, f64, f64)> = Vec::with_capacity(3 + reserved.len());
+        if line.all_human() > 0.0 || tail.is_some_and(|l| l > 0.0) {
+            lines.push((self.labour, h * q, w));
         }
         if line.has_tasks() {
-            lines.push((self.service, ms * q));
+            lines.push((self.service, ms * q, pt));
         }
         if b > 0.0 {
-            lines.push((self.land, b * q));
+            lines.push((self.land, b * q, r));
         }
-        let mut wants = Vec::with_capacity(lines.len());
-        for &(g, qty) in &lines {
-            let pg = if g == self.labour {
-                w
-            } else if g == self.service {
-                pt
-            } else {
-                r
-            };
-            wants.push((g, pg * qty));
+        for &(g, coef, pr) in &reserved {
+            if coef > 0.0 {
+                lines.push((g, coef * q, pr));
+            }
         }
+        let wants: Vec<(GoodId, f64)> = lines.iter().map(|&(g, qty, pg)| (g, pg * qty)).collect();
         let budgets = budget_chain(outlay, &wants, &mut dry, v.currency)?;
-        for ((g, qty), bud) in lines.into_iter().zip(budgets) {
+        for ((g, qty, _), bud) in lines.into_iter().zip(budgets) {
             out.orders.push(buy(v, g, qty, bud));
         }
         out.deltas.push(set(
@@ -350,19 +405,27 @@ impl Behaviour for CategoryDesk {
         let planned = v.own_state.share;
         let line = Line::read(v, self)?;
         let (h, m) = line.tasks(&t, planned);
+        let (h, _) = self.with_tail(v, h)?;
         let ms = m / param(v, self.theta)?;
         let b = param(v, self.direct_land)?;
-        let y = leontief(&[
-            (v.own.get(self.labour), h),
-            (v.own.get(self.service), ms),
-            (v.own.get(self.land), b),
-        ])?;
+        let reserved = self.reserved_now(v)?;
+        let mut inputs = Vec::with_capacity(3 + reserved.len());
+        inputs.push((v.own.get(self.labour), h));
+        inputs.push((v.own.get(self.service), ms));
+        inputs.push((v.own.get(self.land), b));
+        for &(g, coef) in &reserved {
+            inputs.push((v.own.get(g), coef));
+        }
+        let y = leontief(&inputs)?;
         let me = Holder::Actor(v.me);
         let mut out = Vec::new();
         if y > 0.0 {
             burn(me, self.labour, h * y, Provenance::Production, &mut out);
             burn(me, self.service, ms * y, Provenance::Production, &mut out);
             burn(me, self.land, b * y, Provenance::Production, &mut out);
+            for (g, coef) in reserved {
+                burn(me, g, coef * y, Provenance::Production, &mut out);
+            }
             out.push(StateDelta::Mint {
                 to: me,
                 good: self.output,

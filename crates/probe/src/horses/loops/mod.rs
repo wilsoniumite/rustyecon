@@ -1252,6 +1252,7 @@ pub fn genesis(s: &Setup) -> Result<Genesis, String> {
     let one_minus_x = match xd.share {
         ShareAt::Times(f) => e.one_minus_x * f,
         ShareAt::At(x) => 1.0 - x,
+        ShareAt::Is(v) => v,
     };
     if !(0.0..=1.0).contains(&one_minus_x) {
         return Err(format!(

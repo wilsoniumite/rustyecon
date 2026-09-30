@@ -23,6 +23,7 @@ const APPB: &str = include_str!("../../../tapes/appb.ron");
 const I0: &str = include_str!("../../../tapes/markets-i0.ron");
 const I2: &str = include_str!("../../../tapes/markets-i2.ron");
 const L3: &str = include_str!("../../../tapes/markets-l3.ron");
+const IW1: &str = include_str!("../../../tapes/markets-iw1.ron");
 const CLOSE: f64 = 1e-14;
 
 type W = World<Agents>;
@@ -168,8 +169,10 @@ fn many_roles_never_overbudget_or_overdraw() {
     // pass admission after its own transfers apply, and every burn in produce fits its holding.
     // The draws span twelve decades of price and coin, spending shares that round to exactly 1,
     // and markups tilted by up to 8, on I2 (space in the basket, a chain of types, a zero own
-    // input) and L3 (desks that buy land, types that buy each other's services).
-    for text in [I2, L3] {
+    // input) and L3 (desks that buy land, types that buy each other's services); and on the
+    // wall tape IW1 (P2.3), whose desks buy a tail and reserved hours and whose provider pays
+    // further transfers.
+    for text in [I2, L3, IW1] {
         let (w, genesis, cast) = load(text);
         let goods = traded(&w);
         let coin = good(&w, "coin");

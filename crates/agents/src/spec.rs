@@ -476,7 +476,7 @@ impl Spec {
             Spec::MachDesk(d) => d.sites(&mut out),
             Spec::BasketProvider(p) => p.sites(w, &mut out),
             Spec::BasketWorkers(p) => p.sites(w, &mut out),
-            Spec::CategoryDesk(d) => d.sites(&mut out),
+            Spec::CategoryDesk(d) => d.sites(w, &mut out),
             Spec::TypeDesk(d) => d.sites(w, &mut out),
             Spec::Maker(d) => d.sites(w, &mut out),
             Spec::CapacityDesk(d) => d.sites(w, &mut out),

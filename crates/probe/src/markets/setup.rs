@@ -8,7 +8,7 @@
 //! actor's stationary coin under the dials (MARKETS-SPEC §5.4). No agent reads the oracle
 //! (R13). `tapes/markets-<id>.ron` is `tape_ron(&Setup::registered(id, 52))`, checked by a test.
 
-use super::instance::{Instance, Point};
+use super::instance::{Instance, Point, WALL_BASIS};
 use crate::setup::{clock, OneSided, START};
 use rustyecon_core::{num, FlowPerYear, RatePerYear};
 
@@ -52,6 +52,10 @@ impl Dials {
             })
         };
         rate("rate.labour".into(), 5.2);
+        // Each reserved type's labour market at labour's rate (decision 364: C2 per role).
+        for t in &inst.wtypes {
+            rate(format!("rate.{}", t.market()), 5.2);
+        }
         rate("rate.land".into(), 1.3);
         for t in &inst.types {
             rate(format!("rate.{}", t.key), 1.3);
@@ -162,6 +166,8 @@ pub enum ShareAt {
     Times(f64),
     /// 1 − x for this x.
     At(f64),
+    /// This share exactly (the wall's `s[D]=V`, decision 396).
+    Is(f64),
 }
 
 /// A displacement of genesis from the oracle's point, by factors, each in its list's order.
@@ -218,6 +224,10 @@ pub struct Setup {
     pub at_genesis: Vec<(String, f64)>,
     /// Dated coefficient changes, in tick order.
     pub shocks: Vec<Shock>,
+    /// Whether a stock or coin displacement's start distance is the largest D̂ of its first
+    /// scored year (Tier 3S, decision 229 as 368 and 397 carry it to the wall), not |ln F| over
+    /// the tolerance (P2.1's stocks family). No tape reads it.
+    pub first_year_d0: bool,
 }
 
 impl Setup {
@@ -232,6 +242,7 @@ impl Setup {
             displace: Displacement::none(&instance),
             at_genesis: Vec::new(),
             shocks: Vec::new(),
+            first_year_d0: false,
             instance,
         })
     }
@@ -303,7 +314,10 @@ pub fn basket_price(inst: &Instance, cat_price: &[f64], r: f64) -> f64 {
 }
 
 /// Genesis for a setup (MARKETS-SPEC §5.4): the oracle's point with each actor's stationary
-/// coin, in the operation order that makes I0's genesis appb's bit for bit.
+/// coin, in the operation order that makes I0's genesis appb's bit for bit. A worker-form
+/// instance (the wall frame's §3.6) takes each pop's hours from unit 1d's `WorkerEq::hours`,
+/// and each reserved wage as its labour market's price; the provider's transfer is
+/// τ = ((N·P_s) + N_1·P_s) + …, summed in pop order as its rule pays it.
 pub fn genesis(s: &Setup) -> Result<Genesis, String> {
     let inst = &s.instance;
     let e = inst.point(s.tpy)?;
@@ -314,8 +328,21 @@ pub fn genesis(s: &Setup) -> Result<Genesis, String> {
     let t = c.flow(FlowPerYear(inst.land));
     let (w, r) = (e.v, 1.0);
     let ps = basket_price(inst, &e.cat_price, r);
-    let tau = n * ps;
-    let hours = n * (num::ln1p(w / ps) / inst.chi_max).min(1.0);
+    let tau_w = n * ps;
+    let hours = if inst.worker_form {
+        e.hours[0]
+    } else {
+        n * (num::ln1p(w / ps) / inst.chi_max).min(1.0)
+    };
+    // Each reserved pop's transfer N_i·P_s, and the provider's whole transfer.
+    let mut tau = tau_w;
+    let mut reserved_pops = Vec::with_capacity(inst.wtypes.len());
+    for (i, wt) in inst.wtypes.iter().enumerate() {
+        let tq = c.flow(FlowPerYear(wt.workers)) * ps;
+        tau += tq;
+        let spend = d.get("spend.workers")?;
+        reserved_pops.push((tq + e.wage[i] * e.hours[i + 1]) / share(spend));
+    }
     let mut stationary = Vec::new();
     for (j, cat) in inst.categories.iter().enumerate() {
         let v = d.get(&format!("buffer.desk.{}.cash", cat.key))?;
@@ -335,11 +362,13 @@ pub fn genesis(s: &Setup) -> Result<Genesis, String> {
         stationary.push(cost * e.type_services[k] / share(v));
     }
     stationary.push(tau + (r * t - tau) / share(d.get("spend.provider")?));
-    stationary.push((tau + w * hours) / share(d.get("spend.workers")?));
+    stationary.push((tau_w + w * hours) / share(d.get("spend.workers")?));
+    stationary.extend(reserved_pops);
     let x = &s.displace;
     let mut prices = vec![w, r];
     prices.extend(e.type_price.iter().copied());
     prices.extend(e.cat_price.iter().copied());
+    prices.extend(e.wage.iter().copied());
     if x.price.len() != prices.len()
         || x.share.len() != inst.categories.len()
         || x.coin.len() != stationary.len()
@@ -355,6 +384,7 @@ pub fn genesis(s: &Setup) -> Result<Genesis, String> {
         let v = match *sh {
             ShareAt::Times(f) => e.one_minus_x * f,
             ShareAt::At(xx) => 1.0 - xx,
+            ShareAt::Is(v) => v,
         };
         if !(0.0..=1.0).contains(&v) {
             return Err(format!("the genesis human share {v} is outside [0, 1]"));
@@ -383,6 +413,8 @@ fn f(x: f64) -> String {
 
 const ROLE: &str =
     "Assumed(\"MARKETS-SPEC §2: the probe's rules carried to many markets (docs/probe/MARKETS-RULES.md)\")";
+const WALL_ROLE: &str = "Assumed(\"the wall frame's §3: the many-market roles with the tail, the \
+     reserved hours and further transfers (docs/probe/WALL-RULES.md)\")";
 
 /// The tape's text, one line at a time.
 struct Lines(Vec<String>);
@@ -408,18 +440,52 @@ fn list(v: &[f64]) -> String {
 /// The tape of a setup, as RON text with its derivation in the header.
 pub fn tape_ron(s: &Setup) -> Result<String, String> {
     let g = genesis(s)?;
-    let e = &g.point;
-    let c = clock(s.tpy)?;
-    let base = &s.instance;
     let inst = s.tape_instance()?;
-    let tau = inst.task_type()?;
-    let n = c.flow(FlowPerYear(inst.workers));
-    let t = c.flow(FlowPerYear(inst.land));
-    let markets = inst.markets();
     let mut out = Lines(Vec::new());
     let o = &mut out;
     let name = format!("markets-{}", inst.id);
+    let header = if inst.worker_form {
+        wall_header(s, &g, &inst)?
+    } else {
+        p21_header(s, &g, &inst)?
+    };
+    for line in header {
+        o.line(line);
+    }
+    let one_sided = match s.one_sided {
+        OneSided::Saturate => "Saturate",
+        OneSided::Hold => "Hold",
+    };
     for line in [
+        "Tape(".to_string(),
+        "    schema: 1,".into(),
+        "    header: (".into(),
+        format!("        name: \"{name}\","),
+        format!("        start: \"{START}\","),
+        format!("        ticks_per_year: {},", s.tpy),
+        format!(
+            "        market: (rule: Imbalance, one_sided: {one_sided}, ema_time_constant: \
+             \"price.ema_tc\"),"
+        ),
+        "        ledger: (rel_flow: \"ledger.rel_flow\", rel_stock: \"ledger.rel_stock\"),".into(),
+        "    ),".into(),
+        "    params: [".into(),
+        "        // The ledger's tolerances, as in the gate world (A12).".into(),
+    ] {
+        o.line(line);
+    }
+    body(s, &g, &inst, o)?;
+    let mut text = out.0.join("\n");
+    text.push('\n');
+    Ok(text)
+}
+
+/// The header of a P2.1 tape: its derivation from unit 1c.
+fn p21_header(s: &Setup, g: &Genesis, inst: &Instance) -> Result<Vec<String>, String> {
+    let e = &g.point;
+    let c = clock(s.tpy)?;
+    let base = &s.instance;
+    Ok(vec![
         format!(
             "// The markets probe's {} world (MARKETS-SPEC §1; docs/probe/MARKETS-RULES.md): {},",
             inst.id.to_uppercase(),
@@ -479,31 +545,104 @@ pub fn tape_ron(s: &Setup) -> Result<String, String> {
         "// No agent reads the oracle at run time (R13): it seeds genesis here and scores runs in"
             .into(),
         "// the harness (crates/probe), outside the Sim.".into(),
-    ] {
-        o.line(line);
-    }
-    let one_sided = match s.one_sided {
-        OneSided::Saturate => "Saturate",
-        OneSided::Hold => "Hold",
-    };
-    for line in [
-        "Tape(".to_string(),
-        "    schema: 1,".into(),
-        "    header: (".into(),
-        format!("        name: \"{name}\","),
-        format!("        start: \"{START}\","),
-        format!("        ticks_per_year: {},", s.tpy),
+    ])
+}
+
+/// The header of a wall tape (P2.3; docs/probe/WALL-RULES.md §4): its derivation from unit 1d.
+fn wall_header(s: &Setup, g: &Genesis, inst: &Instance) -> Result<Vec<String>, String> {
+    let e = &g.point;
+    let c = clock(s.tpy)?;
+    let base = &s.instance;
+    let mut heads = vec![f(c.flow(FlowPerYear(base.workers)))];
+    heads.extend(
+        base.wtypes
+            .iter()
+            .map(|t| f(c.flow(FlowPerYear(t.workers)))),
+    );
+    Ok(vec![
         format!(
-            "        market: (rule: Imbalance, one_sided: {one_sided}, ema_time_constant: \
-             \"price.ema_tc\"),"
+            "// The wall world {} (docs/probe/wall/SPEC.md; docs/probe/WALL-RULES.md):",
+            inst.id.to_uppercase(),
         ),
-        "        ledger: (rel_flow: \"ledger.rel_flow\", rel_stock: \"ledger.rel_stock\"),".into(),
-        "    ),".into(),
-        "    params: [".into(),
-        "        // The ledger's tolerances, as in the gate world (A12).".into(),
-    ] {
-        o.line(line);
-    }
+        format!("// {},", inst.title),
+        "// run by the four many-market roles with the wall's optional fields (a category desk's"
+            .into(),
+        "// tail and reserved hours, the provider's further transfers), for P2.3 (2026-09-30)."
+            .into(),
+        "//".into(),
+        "// Generated: do not edit. `cargo run -p rustyecon-probe --bin markets-tape -- --inst"
+            .into(),
+        format!(
+            "// {} <path>` writes it, and the test `markets_iw1_tape_is_its_generators_output` checks",
+            inst.id
+        ),
+        "// this file against the generator.".into(),
+        "//".into(),
+        "// Genesis is the oracle's equilibrium (mode A): crates/oracle unit 1d,".into(),
+        format!(
+            "// WorkerEconomy::solve, at the instance's per-tick values, N = {} by worker type and",
+            list_s(&heads)
+        ),
+        format!(
+            "// T = {} at {} ticks a year, the machine's flow recipe as its operating recipe (δ = J = 1,",
+            f(c.flow(FlowPerYear(base.land))),
+            s.tpy
+        ),
+        "// ρ = 0), gives".into(),
+        format!(
+            "//   margin {}, x* = {}, 1 - x* = {},",
+            e.margin,
+            f(e.x_star),
+            f(e.one_minus_x)
+        ),
+        format!("//   v = w/r = {}, P_s/r = {}, Y = {},", f(e.v), f(e.p_s), f(e.y)),
+        format!("//   the pool's hours n_D = {},", f(e.pool)),
+        format!("//   reserved wages {},", list(&e.wage)),
+        format!("//   hours by worker type {},", list(&e.hours)),
+        format!(
+            "//   type prices {} and services {},",
+            list(&e.type_price),
+            list(&e.type_services)
+        ),
+        format!(
+            "//   category prices {} and outputs {}.",
+            list(&e.cat_price),
+            list(&e.cat_output)
+        ),
+        "// The genesis prices are those ratios with r = 1 coin, each reserved wage its labour"
+            .into(),
+        "// market's price. Each desk holds one tick's output, each category desk's human share is"
+            .into(),
+        "// 1 - x*, and each actor's coin is its stationary balance under the dials,".into(),
+        format!(
+            "// share(v) = 1 - exp(-v/{}) (MARKETS-SPEC §5.4; the wall frame's §3.6):",
+            s.tpy
+        ),
+        "//   category desk  p_j*y_j/share(turnover)".into(),
+        "//   type desk      (sum_l a_kl*p_l + lam_k*w + b_k*r)*X_k/share(turnover)".into(),
+        "//   provider       tau + (r*T - tau)/share(spend.provider), tau = ((N*P_s) + N_1*P_s) + ..."
+            .into(),
+        "//   each pop       (N_i*P_s + w_i*hours_i)/share(spend.workers), hours_i unit 1d's".into(),
+        format!("// giving {} in actor order", list(&g.stationary)),
+        format!("// ({}).", inst.actors().join(", ")),
+        "// No agent reads the oracle at run time (R13): it seeds genesis here and scores runs in"
+            .into(),
+        "// the harness (crates/probe), outside the Sim.".into(),
+    ])
+}
+
+fn list_s(v: &[String]) -> String {
+    format!("[{}]", v.join(", "))
+}
+
+/// A tape's params, goods, nodes, classes, actors, genesis and events.
+fn body(s: &Setup, g: &Genesis, inst: &Instance, o: &mut Lines) -> Result<(), String> {
+    let c = clock(s.tpy)?;
+    let tau = inst.task_type()?;
+    let n = c.flow(FlowPerYear(inst.workers));
+    let t = c.flow(FlowPerYear(inst.land));
+    let markets = inst.markets();
+    let role = if inst.worker_form { WALL_ROLE } else { ROLE };
     o.param(
         "ledger.rel_flow",
         1e-12,
@@ -516,9 +655,19 @@ pub fn tape_ron(s: &Setup) -> Result<String, String> {
         "Dimensionless",
         "Assumed(\"July REL_STOCK, as the gate world\")",
     );
-    o.line("        // The instance (MARKETS-SPEC §1.2, §2.9).");
+    if inst.worker_form {
+        o.line("        // The instance (the wall frame's §2.1, §3.5).");
+    } else {
+        o.line("        // The instance (MARKETS-SPEC §1.2, §2.9).");
+    }
     for (key, value, unit, basis) in inst.params()? {
-        o.param(&key, value, unit, &format!("Literature(\"{basis}\")"));
+        // The wall frame's own numbers are its calibration, assumed; the rest are literature.
+        let kind = if basis == WALL_BASIS {
+            "Assumed"
+        } else {
+            "Literature"
+        };
+        o.param(&key, value, unit, &format!("{kind}(\"{basis}\")"));
     }
     o.line("        // Structure: every produced good lasts one tick (MARKETS-SPEC §2.1).");
     o.param(
@@ -550,9 +699,16 @@ pub fn tape_ron(s: &Setup) -> Result<String, String> {
     o.line("        (key: \"coin\", life: Indefinite, price_rate: None),");
     o.line("        (key: \"labour\", life: Instant, price_rate: Some(\"rate.labour\")),");
     o.line("        (key: \"land\", life: Instant, price_rate: Some(\"rate.land\")),");
-    for m in &markets[2..] {
+    let produced = 2 + inst.types.len() + inst.categories.len();
+    for m in &markets[2..produced] {
         o.line(format!(
             "        (key: \"{m}\", life: Years(\"life.one_tick\"), price_rate: Some(\"rate.{m}\")),"
+        ));
+    }
+    // Each reserved type's hours, Instant as the pool's are (the wall frame's §3.5).
+    for m in &markets[produced..] {
+        o.line(format!(
+            "        (key: \"{m}\", life: Instant, price_rate: Some(\"rate.{m}\")),"
         ));
     }
     o.line("    ],");
@@ -563,8 +719,7 @@ pub fn tape_ron(s: &Setup) -> Result<String, String> {
         .iter()
         .map(|d| format!("\"{d}_desks\""))
         .collect();
-    classes.push("\"owners\"".into());
-    classes.push("\"workers\"".into());
+    classes.extend(inst.household_classes().iter().map(|k| format!("\"{k}\"")));
     o.line(format!("    classes: [{}],", classes.join(", ")));
     o.line("    actors: [");
     let scale = |desk: &str| {
@@ -583,7 +738,7 @@ pub fn tape_ron(s: &Setup) -> Result<String, String> {
             .map(|s_| format!("\"inst.{}.mu.{}\"", cat.key, s_ + 1))
             .collect();
         o.line(format!(
-            "        (key: \"desk.{0}\", kind: Desk, class: \"{0}_desks\", home: \"home\", basis: {ROLE},",
+            "        (key: \"desk.{0}\", kind: Desk, class: \"{0}_desks\", home: \"home\", basis: {role},",
             cat.key
         ));
         o.line("         spec: CategoryDesk((");
@@ -609,6 +764,30 @@ pub fn tape_ron(s: &Setup) -> Result<String, String> {
             f(g.shares[j])
         ));
         o.line(scale(&cat.key));
+        // The wall's optional fields (P2.3), written only where the category has them.
+        if cat.tail > 0.0 {
+            o.line(format!(
+                "            tail: Some(\"inst.{}.tail\"),",
+                cat.key
+            ));
+        }
+        let reserved: Vec<String> = inst
+            .wtypes
+            .iter()
+            .zip(&cat.reserved)
+            .filter(|(_, r)| **r > 0.0)
+            .map(|(w, _)| {
+                format!(
+                    "(good: \"{}\", coef: \"inst.{}.reserved.{}\")",
+                    w.market(),
+                    cat.key,
+                    w.key
+                )
+            })
+            .collect();
+        if !reserved.is_empty() {
+            o.line(format!("            reserved: [{}],", reserved.join(", ")));
+        }
         o.line("         ))),");
     }
     for (k, ty) in inst.types.iter().enumerate() {
@@ -625,7 +804,7 @@ pub fn tape_ron(s: &Setup) -> Result<String, String> {
             })
             .collect();
         o.line(format!(
-            "        (key: \"desk.{0}\", kind: Desk, class: \"{0}_desks\", home: \"home\", basis: {ROLE},",
+            "        (key: \"desk.{0}\", kind: Desk, class: \"{0}_desks\", home: \"home\", basis: {role},",
             ty.key
         ));
         o.line("         spec: TypeDesk((");
@@ -653,24 +832,66 @@ pub fn tape_ron(s: &Setup) -> Result<String, String> {
     let basket = format!("            basket: [{}],", items.join(", "));
     for line in [
         format!(
-            "        (key: \"provider\", kind: Pop, class: \"owners\", home: \"home\", basis: {ROLE},"
+            "        (key: \"provider\", kind: Pop, class: \"owners\", home: \"home\", basis: {role},"
         ),
         "         spec: BasketProvider((".into(),
         "            land: \"land\", endowment: \"inst.land\",".into(),
         "            transfer: (to: \"workers\", heads: \"inst.workers\"),".into(),
         basket.clone(),
         "            spend: \"spend.provider\",".into(),
-        "         ))),".into(),
+    ] {
+        o.line(line);
+    }
+    // The further transfers, one per reserved pop in order (P2.3), written only if any.
+    let more: Vec<String> = inst
+        .wtypes
+        .iter()
+        .map(|w| format!("(to: \"{}\", heads: \"inst.{}.workers\")", w.pop(), w.key))
+        .collect();
+    if !more.is_empty() {
+        o.line(format!("            more: [{}],", more.join(", ")));
+    }
+    o.line("         ))),");
+    let mut pops = vec![(
+        "workers".to_string(),
+        "workers".to_string(),
+        "labour".to_string(),
+        "inst.workers".to_string(),
+        "inst.chi_max".to_string(),
+    )];
+    for w in &inst.wtypes {
+        pops.push((
+            w.pop(),
+            format!("{}_workers", w.key),
+            w.market(),
+            format!("inst.{}.workers", w.key),
+            format!("inst.{}.chi_max", w.key),
+        ));
+    }
+    for (key, class, labour, heads, chi) in pops {
+        for line in [
+            format!(
+                "        (key: \"{key}\", kind: Pop, class: \"{class}\", home: \"home\", basis: {role},"
+            ),
+            "         spec: BasketWorkers((".into(),
+            format!("            labour: \"{labour}\", heads: \"{heads}\", chi_max: \"{chi}\","),
+            basket.clone(),
+            "            spend: \"spend.workers\",".into(),
+            "         ))),".into(),
+        ] {
+            o.line(line);
+        }
+    }
+    let genesis_basis = if inst.worker_form {
         format!(
-            "        (key: \"workers\", kind: Pop, class: \"workers\", home: \"home\", basis: {ROLE},"
-        ),
-        "         spec: BasketWorkers((".into(),
-        "            labour: \"labour\", heads: \"inst.workers\", chi_max: \"inst.chi_max\",".into(),
-        basket,
-        "            spend: \"spend.workers\",".into(),
-        "         ))),".into(),
-        "    ],".into(),
-        "    genesis: (".into(),
+            "        basis: Approximate(\"oracle unit 1d (crates/oracle, WorkerEconomy) at the wall \
+             frame's {}, N = {} for the pool and T = {} per tick; stationary coins per the wall \
+             frame's §3.6; written by rustyecon-probe's markets-tape\"),",
+            inst.id.to_uppercase(),
+            f(n),
+            f(t)
+        )
+    } else {
         format!(
             "        basis: Approximate(\"oracle unit 1c (crates/oracle, P1.5) at MARKETS-SPEC's {}, \
              N = {} and T = {} per tick; stationary coins per MARKETS-SPEC §5.4; written by \
@@ -678,7 +899,12 @@ pub fn tape_ron(s: &Setup) -> Result<String, String> {
             inst.id.to_uppercase(),
             f(n),
             f(t)
-        ),
+        )
+    };
+    for line in [
+        "    ],".to_string(),
+        "    genesis: (".into(),
+        genesis_basis,
         "        prices: [".into(),
     ] {
         o.line(line);
@@ -699,14 +925,12 @@ pub fn tape_ron(s: &Setup) -> Result<String, String> {
         ));
     }
     let nd = inst.desks().len();
-    o.line(format!(
-        "            (holder: \"provider\", goods: [(\"coin\", {})]),",
-        f(g.coin[nd])
-    ));
-    o.line(format!(
-        "            (holder: \"workers\", goods: [(\"coin\", {})]),",
-        f(g.coin[nd + 1])
-    ));
+    for (i, h) in inst.households().iter().enumerate() {
+        o.line(format!(
+            "            (holder: \"{h}\", goods: [(\"coin\", {})]),",
+            f(g.coin[nd + i])
+        ));
+    }
     o.line("        ],");
     o.line("    ),");
     o.line("    events: [");
@@ -730,7 +954,5 @@ pub fn tape_ron(s: &Setup) -> Result<String, String> {
     o.line("    ],");
     o.line("    recurring: [],");
     o.line(")");
-    let mut text = out.0.join("\n");
-    text.push('\n');
-    Ok(text)
+    Ok(())
 }

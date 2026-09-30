@@ -13,7 +13,7 @@
 use crate::setup::clock;
 use oracle::{
     Category as OCategory, MachineParams, MachineType, PowerSchedule, Recipe, Regime,
-    UniformWorkCost,
+    UniformWorkCost, WorkerEconomy, WorkerParams, WorkerType,
 };
 use rustyecon_core::FlowPerYear;
 
@@ -28,6 +28,38 @@ pub struct Category {
     pub land: f64,
     /// μ_js, hours by hand per unit per unit length of line, one per segment.
     pub density: Vec<f64>,
+    /// L^H_j, the pool's hours per unit at tasks closed to machines (unit 1d's human-required
+    /// tail; the wall frame's §2.1); 0 for none, as in every P2.1 instance.
+    pub tail: f64,
+    /// R_ji, each reserved worker type's hours per unit, in [`Instance::wtypes`] order; empty,
+    /// or 0 for a type, for none.
+    pub reserved: Vec<f64>,
+}
+
+/// A reserved-only worker type (unit 1d with ε 0; the wall frame's §2.1, decision 394): its own
+/// pop `workers.<key>` in class `<key>_workers`, selling only its reserved hours on its own
+/// labour market `labour.<key>`, with params `inst.<key>.workers` and `inst.<key>.chi_max`.
+/// Its support is one basket a head, paid by the provider's `more` transfer.
+#[derive(Debug, Clone, PartialEq)]
+pub struct WorkerKind {
+    /// Its key.
+    pub key: String,
+    /// N_i, potential hours per year.
+    pub workers: f64,
+    /// χ_max,i.
+    pub chi_max: f64,
+}
+
+impl WorkerKind {
+    /// Its labour market's good.
+    pub fn market(&self) -> String {
+        format!("labour.{}", self.key)
+    }
+
+    /// Its pop's actor.
+    pub fn pop(&self) -> String {
+        format!("workers.{}", self.key)
+    }
 }
 
 /// A machine type, with its flow recipe (unit-1c.md §2; decision 67).
@@ -95,6 +127,16 @@ pub struct Instance {
     pub category_basis: String,
     /// The basis of the machine types' coefficients.
     pub type_basis: String,
+    /// The basis of the scalars (N, T, χ_max, the schedule) and of the worker types.
+    pub scalar_basis: String,
+    /// The reserved-only worker types, in order, beside the pool's workers (the wall, P2.3).
+    /// Empty in every P2.1 instance.
+    pub wtypes: Vec<WorkerKind>,
+    /// Whether the oracle is unit 1d's `WorkerEconomy` (the wall instances, P2.3: worker types,
+    /// the tail and reserved hours) rather than unit 1c's `MachineEconomy` (P2.1's, whose
+    /// genesis and pins stay 1c's). It also sets the harness's form: each desk's threshold
+    /// x_j = 1 − s_j observed in place of s_j, and each reserved wage (decision 396).
+    pub worker_form: bool,
 }
 
 /// The scalars' basis, and 1a's machine's.
@@ -106,6 +148,8 @@ fn cat(key: &str, weight: f64, land: f64, density: &[f64]) -> Category {
         weight,
         land,
         density: density.to_vec(),
+        tail: 0.0,
+        reserved: Vec::new(),
     }
 }
 
@@ -234,6 +278,9 @@ const GAP_BASIS: &str = "crates/oracle/docs/unit-1b.md §3.3, the gap economy (C
 const MACH_BASIS: &str = "SSRN 7226858 App. B via laborformal 31b3482";
 const CHAIN_BASIS: &str = "crates/oracle/docs/unit-1c.md §3.3 M4, operating recipes, flow";
 const LOOP_BASIS: &str = "crates/oracle/docs/unit-1c.md §3.3 M4, operating + build at δ = J = 1";
+/// The wall instances' basis: the frame's own calibration, which the tape writes as `Assumed`.
+pub const WALL_BASIS: &str =
+    "docs/probe/wall/SPEC.md §2.1: unit-1d.md §3.3 B with E7's three worker types (frame-wall)";
 
 impl Instance {
     fn make(
@@ -261,6 +308,65 @@ impl Instance {
             coefs,
             category_basis: category_basis.into(),
             type_basis: type_basis.into(),
+            scalar_basis: SCALARS.into(),
+            wtypes: Vec::new(),
+            worker_form: false,
+        }
+    }
+
+    /// The wall frame's IW1 (docs/probe/wall/SPEC.md §2.1; decision 394), with the entrant's
+    /// χ_max given: unit 1d's B economy (services with a human-required tail, goods, space 1,
+    /// Appendix B's machine, η 0.5) with E7's three worker types, the trained and the master
+    /// reserved-only. At χ_max 1 it is IW1, at 0.25 the line control IC1 (decision 397).
+    fn wall(id: &str, title: &str, chi_max: f64) -> Instance {
+        let services = Category {
+            tail: 0.1,
+            reserved: vec![0.04, 0.0],
+            ..cat("services", 1.0, 0.0, &[0.75])
+        };
+        let goods = Category {
+            reserved: vec![0.0, 0.03],
+            ..cat("goods", 1.0, 0.0, &[1.0])
+        };
+        let wkind = |key: &str, workers: f64| WorkerKind {
+            key: key.into(),
+            workers,
+            chi_max: 2.0,
+        };
+        Instance {
+            id: id.into(),
+            title: title.into(),
+            workers: 130.0,
+            land: 520.0,
+            chi_max,
+            eta: 0.5,
+            g0: 0.2,
+            g1: 0.8,
+            k: 1.0,
+            edges: Vec::new(),
+            categories: vec![services, goods],
+            space: Some(1.0),
+            types: mach().0,
+            coefs: vec![
+                land_mach(),
+                coef(
+                    "tail.services",
+                    "inst.services.tail",
+                    "0.1",
+                    ["0.11", "0.09", "0.2", "0.05"],
+                ),
+                coef(
+                    "res.services.trained",
+                    "inst.services.reserved.trained",
+                    "0.04",
+                    ["0.044", "0.036", "0.08", "0.02"],
+                ),
+            ],
+            category_basis: WALL_BASIS.into(),
+            type_basis: MACH_BASIS.into(),
+            scalar_basis: WALL_BASIS.into(),
+            wtypes: vec![wkind("trained", 52.0), wkind("master", 26.0)],
+            worker_form: true,
         }
     }
 
@@ -347,12 +453,29 @@ impl Instance {
                 mach(),
                 vec![land_mach()],
             ),
-            _ => return Err(format!("no instance {id}: i0, i1, i2, i3, l2, l3 or g1")),
+            "iw1" => Instance::wall(
+                "iw1",
+                "unit 1d's B economy with E7's three worker types: a solved wall",
+                1.0,
+            ),
+            "ic1" => Instance::wall(
+                "ic1",
+                "IW1 with the entrant's chi_max 0.25: the task margin active, a control",
+                0.25,
+            ),
+            _ => {
+                return Err(format!(
+                    "no instance {id}: i0, i1, i2, i3, l2, l3, g1, iw1 or ic1"
+                ))
+            }
         })
     }
 
-    /// Every registered instance's id, in MARKETS-SPEC §1.1's order.
+    /// Every registered instance of the markets probe (P2.1), in MARKETS-SPEC §1.1's order.
     pub const IDS: [&'static str; 7] = ["i0", "i1", "i2", "i3", "l2", "l3", "g1"];
+
+    /// Phase 2 proper's wall instances (P2.3): IW1 and its line control IC1.
+    pub const WALL_IDS: [&'static str; 2] = ["iw1", "ic1"];
 
     /// The number of segments of the task line.
     pub fn segments(&self) -> usize {
@@ -375,12 +498,29 @@ impl Instance {
     }
 
     /// The markets, in the harness's order: labour, land, each type's service, each category's
-    /// good. For I0 this is P2.0's order, [labour, land, mach, good].
+    /// good, then each reserved worker type's labour. For I0 this is P2.0's order, [labour,
+    /// land, mach, good].
     pub fn markets(&self) -> Vec<String> {
         let mut m = vec!["labour".to_string(), "land".to_string()];
         m.extend(self.types.iter().map(|t| t.key.clone()));
         m.extend(self.categories.iter().map(|c| c.key.clone()));
+        m.extend(self.wtypes.iter().map(WorkerKind::market));
         m
+    }
+
+    /// The households, in the harness's order: the provider, the workers, then each reserved
+    /// worker type's pop.
+    pub fn households(&self) -> Vec<String> {
+        let mut h = vec!["provider".to_string(), "workers".to_string()];
+        h.extend(self.wtypes.iter().map(WorkerKind::pop));
+        h
+    }
+
+    /// The households' classes, in [`Instance::households`] order.
+    pub fn household_classes(&self) -> Vec<String> {
+        let mut c = vec!["owners".to_string(), "workers".to_string()];
+        c.extend(self.wtypes.iter().map(|t| format!("{}_workers", t.key)));
+        c
     }
 
     /// The desks, in the harness's order: each category's, then each type's, by key.
@@ -390,12 +530,11 @@ impl Instance {
         d
     }
 
-    /// The actors, in the harness's order: `desk.<key>` for each desk, then the provider and
-    /// the workers. For I0 this is P2.0's order.
+    /// The actors, in the harness's order: `desk.<key>` for each desk, then the households
+    /// ([`Instance::households`]). For I0 this is P2.0's order.
     pub fn actors(&self) -> Vec<String> {
         let mut a: Vec<String> = self.desks().iter().map(|d| format!("desk.{d}")).collect();
-        a.push("provider".into());
-        a.push("workers".into());
+        a.extend(self.households());
         a
     }
 
@@ -405,7 +544,7 @@ impl Instance {
     pub fn params(&self) -> Result<Vec<(String, f64, &'static str, String)>, String> {
         let tau = self.task_type()?;
         let mut out = Vec::new();
-        let scal = SCALARS.to_string();
+        let scal = self.scalar_basis.clone();
         out.push((
             "inst.workers".into(),
             self.workers,
@@ -421,6 +560,20 @@ impl Instance {
             ("inst.k", self.k),
         ] {
             out.push((k.into(), v, "Dimensionless", scal.clone()));
+        }
+        for t in &self.wtypes {
+            out.push((
+                format!("inst.{}.workers", t.key),
+                t.workers,
+                "FlowPerYear",
+                scal.clone(),
+            ));
+            out.push((
+                format!("inst.{}.chi_max", t.key),
+                t.chi_max,
+                "Dimensionless",
+                scal.clone(),
+            ));
         }
         for (s, e) in self.edges.iter().enumerate() {
             out.push((
@@ -451,6 +604,24 @@ impl Instance {
                     "Dimensionless",
                     b.clone(),
                 ));
+            }
+            if c.tail > 0.0 {
+                out.push((
+                    format!("inst.{}.tail", c.key),
+                    c.tail,
+                    "Dimensionless",
+                    b.clone(),
+                ));
+            }
+            for (t, r) in self.wtypes.iter().zip(&c.reserved) {
+                if *r > 0.0 {
+                    out.push((
+                        format!("inst.{}.reserved.{}", c.key, t.key),
+                        *r,
+                        "Dimensionless",
+                        b.clone(),
+                    ));
+                }
             }
         }
         if let Some(h) = self.space {
@@ -532,6 +703,13 @@ impl Instance {
                     match field {
                         "weight" => c.weight = value,
                         "land" => c.land = value,
+                        "tail" => c.tail = value,
+                        _ => return Err(bad()),
+                    }
+                } else if let Some(t) = self.wtypes.iter_mut().find(|t| t.key == who) {
+                    match field {
+                        "workers" => t.workers = value,
+                        "chi_max" => t.chi_max = value,
                         _ => return Err(bad()),
                     }
                 } else {
@@ -560,6 +738,19 @@ impl Instance {
                 *s.checked_sub(1)
                     .and_then(|i| c.density.get_mut(i))
                     .ok_or_else(bad)? = value;
+            }
+            ["inst", who, "reserved", other] => {
+                let i = self
+                    .wtypes
+                    .iter()
+                    .position(|t| t.key == other)
+                    .ok_or_else(bad)?;
+                let c = self
+                    .categories
+                    .iter_mut()
+                    .find(|c| c.key == who)
+                    .ok_or_else(bad)?;
+                *c.reserved.get_mut(i).ok_or_else(bad)? = value;
             }
             ["inst", who, "in", other] => {
                 let l = self
@@ -655,9 +846,53 @@ impl Instance {
         })
     }
 
+    /// Unit 1d's parameters at `tpy` ticks a year (the wall frame's §3.6), for a worker-form
+    /// instance: [`Instance::machine_params`]'s categories, space, machine types and schedule,
+    /// with the worker types in pop order, the pool's workers first (N, χ_max, ε 1, ν 1) and
+    /// each reserved-only type after them (N_i, χ_max,i, ε 0, ν 1); the tail as each category's
+    /// human-required hours; and each category's reserved hours in the type's column, the
+    /// pool's column and space's row zero.
+    pub fn worker_params(&self, tpy: u32) -> Result<WorkerParams, String> {
+        let c = clock(tpy)?;
+        let mut w = WorkerParams::from_machines(self.machine_params(tpy)?);
+        let kind = |workers: f64, chi_max: f64, efficiency: f64| WorkerType {
+            workers: c.flow(FlowPerYear(workers)),
+            work_cost: UniformWorkCost { chi_max },
+            efficiency,
+            support: 1.0,
+        };
+        w.worker_types = vec![kind(self.workers, self.chi_max, 1.0)];
+        w.worker_types
+            .extend(self.wtypes.iter().map(|t| kind(t.workers, t.chi_max, 0.0)));
+        let n_cats = w.categories.len();
+        let n_workers = w.worker_types.len();
+        w.human_required = vec![0.0; n_cats];
+        w.reserved = vec![vec![0.0; n_workers]; n_cats];
+        for (j, cat) in self.categories.iter().enumerate() {
+            w.human_required[j] = cat.tail;
+            for (i, r) in cat.reserved.iter().enumerate() {
+                if i + 1 >= n_workers {
+                    return Err(format!(
+                        "{}: {} has reserved hours for {} worker types, and there are {}",
+                        self.id,
+                        cat.key,
+                        cat.reserved.len(),
+                        self.wtypes.len()
+                    ));
+                }
+                w.reserved[j][i + 1] = *r;
+            }
+        }
+        Ok(w)
+    }
+
     /// The oracle's interior equilibrium at `tpy` ticks a year, per tick, every price relative
-    /// to r = 1 (unit 1c, which is 1b's and 1a's where they apply).
+    /// to r = 1: unit 1c's (which is 1b's and 1a's where they apply), or unit 1d's
+    /// `WorkerEconomy::solve` for a worker-form instance.
     pub fn point(&self, tpy: u32) -> Result<Point, String> {
+        if self.worker_form {
+            return self.worker_point(tpy);
+        }
         let e = oracle::MachineEconomy::new(self.machine_params(tpy)?)
             .map_err(|e| format!("{}: {e}", self.id))?;
         let q = match e.solve().map_err(|e| format!("{}: {e}", self.id))? {
@@ -671,21 +906,8 @@ impl Instance {
             }
         };
         let c = self.categories.len();
-        let n_types = self.types.len();
         let services: Vec<f64> = q.types.iter().map(|t| t.services).collect();
-        // What each type's market clears: its task services sold to the category desks, and
-        // what the other types buy of it; a type's own input is kept, not traded.
-        let traded = (0..n_types)
-            .map(|k| {
-                let mut v = q.types[k].task_services;
-                for (l, t) in self.types.iter().enumerate() {
-                    if l != k {
-                        v += t.row[k] * services[l];
-                    }
-                }
-                v
-            })
-            .collect();
+        let traded = self.traded(&q.types, &services);
         Ok(Point {
             x_star: q.x_star,
             one_minus_x: q.one_minus_x_star,
@@ -702,6 +924,80 @@ impl Instance {
             provider_baskets: q.provider_baskets,
             margin_active: q.margin_active,
             tie: q.tie.is_some(),
+            pool: q.n_a,
+            wage: Vec::new(),
+            hours: vec![q.n_a],
+            pop_baskets: vec![q.worker_baskets],
+            margin: String::new(),
+        })
+    }
+
+    /// What each type's market clears: its task services sold to the category desks, and what
+    /// the other types buy of it; a type's own input is kept, not traded.
+    fn traded(&self, types: &[oracle::TypeEq], services: &[f64]) -> Vec<f64> {
+        (0..types.len())
+            .map(|k| {
+                let mut v = types[k].task_services;
+                for (l, t) in self.types.iter().enumerate() {
+                    if l != k {
+                        v += t.row[k] * services[l];
+                    }
+                }
+                v
+            })
+            .collect()
+    }
+
+    /// Unit 1d's interior equilibrium (the wall frame's §3.6).
+    fn worker_point(&self, tpy: u32) -> Result<Point, String> {
+        let c = clock(tpy)?;
+        let e = WorkerEconomy::new(self.worker_params(tpy)?)
+            .map_err(|e| format!("{}: {e}", self.id))?;
+        let q = match e.solve().map_err(|e| format!("{}: {e}", self.id))? {
+            Regime::Interior(q) => q,
+            other => {
+                return Err(format!(
+                    "{}: no interior equilibrium ({})",
+                    self.id,
+                    other.name()
+                ))
+            }
+        };
+        let nc = self.categories.len();
+        let services: Vec<f64> = q.types.iter().map(|t| t.services).collect();
+        let traded = self.traded(&q.types, &services);
+        // Each worker pop's baskets: its support, N_i·ν_i with ν_i 1, and its wage bill over P_s.
+        let heads: Vec<f64> = std::iter::once(self.workers)
+            .chain(self.wtypes.iter().map(|t| t.workers))
+            .map(|n| c.flow(FlowPerYear(n)))
+            .collect();
+        let pop_baskets = q
+            .workers
+            .iter()
+            .zip(&heads)
+            .map(|(w, n)| n + w.wage * w.hours / q.p_s)
+            .collect();
+        Ok(Point {
+            x_star: q.x_star,
+            one_minus_x: q.one_minus_x_star,
+            v: q.v,
+            p_s: q.p_s,
+            y: q.y,
+            n_a: q.n_a,
+            cat_price: q.categories[..nc].iter().map(|j| j.price).collect(),
+            cat_output: q.categories[..nc].iter().map(|j| j.output).collect(),
+            type_price: q.types.iter().map(|t| t.price).collect(),
+            type_services: services,
+            type_traded: traded,
+            worker_baskets: q.worker_baskets,
+            provider_baskets: q.provider_baskets,
+            margin_active: q.margin_active,
+            tie: q.tie.is_some(),
+            pool: q.n_pool,
+            wage: q.workers[1..].iter().map(|w| w.wage).collect(),
+            hours: q.workers.iter().map(|w| w.hours).collect(),
+            pop_baskets,
+            margin: format!("{:?}", q.margin),
         })
     }
 }
@@ -739,4 +1035,16 @@ pub struct Point {
     pub margin_active: bool,
     /// Whether x\* sits at a tie between task types.
     pub tie: bool,
+    /// The pool's hours, which the `labour` market clears: n_D in unit 1d, N_a in 1c.
+    pub pool: f64,
+    /// Each reserved worker type's wage v_i, in [`Instance::wtypes`] order (empty in 1c).
+    pub wage: Vec<f64>,
+    /// Hours worked by each worker pop, the pool's workers first (unit 1d's
+    /// `WorkerEq::hours`; N_a alone in 1c).
+    pub hours: Vec<f64>,
+    /// Each worker pop's baskets, its support plus its wage bill over P_s, the pool's workers
+    /// first (the workers' baskets alone in 1c).
+    pub pop_baskets: Vec<f64>,
+    /// Unit 1d's margin (`Wall`, `Line`, …), empty in 1c.
+    pub margin: String,
 }

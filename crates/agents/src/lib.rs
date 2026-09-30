@@ -32,7 +32,7 @@ pub use ext::{
 };
 pub use roles::many::spec::{
     BasketProvider, BasketWorkers, CategoryDesk, Input, Item, RawBasketProvider, RawBasketWorkers,
-    RawCategoryDesk, RawInput, RawItem, RawLine, RawTypeDesk, RawTypeRecipe, TypeDesk,
+    RawCategoryDesk, RawInput, RawItem, RawLine, RawTypeDesk, RawTypeRecipe, Transfer, TypeDesk,
 };
 pub use roles::plant::rules::{PlantedCapacity, PlantedMaker, PlantedType};
 pub use roles::plant::spec::{Plant, PlantOrder, PlantTarget, RawPlant};

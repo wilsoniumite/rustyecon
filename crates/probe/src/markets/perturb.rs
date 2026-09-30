@@ -6,12 +6,14 @@
 //! | `hold` | nothing: mode A |
 //! | `p[M]*F`, `w*F`, `r*F` | market M's genesis price times F (`w` is labour's, `r` land's) |
 //! | `s[D]*F` | category desk D's genesis human share 1 − x times F |
+//! | `s[D]=V` | category desk D's genesis human share set to V exactly (the wall's; P2.3) |
 //! | `x*/2` | every category desk's x = x\*/2 |
-//! | `JA(F)` | w and every good and type price times F, r fixed; every s times F |
-//! | `JB(F)` | w times F, every type price times 1/F, every good price times F, every s times 1/F |
+//! | `JA(F)` | w (every labour market's price) and every good and type price times F, r fixed; every s times F |
+//! | `JB(F)` | w (every labour market's price) times F, every type price times 1/F, every good price times F, every s times 1/F |
 //! | `N(F)` | every price times F, coin unchanged: a real-balance shock |
 //! | `RC(F)` | the first half of the categories' prices times F, the rest times 1/F |
 //! | `RT(F)` | the first type's price times F, the second's times 1/F |
+//! | `RW(F)` | the pool's wage times F, each reserved wage times 1/F (several labour markets; P2.3) |
 //! | `C=V@genesis` | the cost coefficient C (by its §1.5 name or its param) is V from tick 0; genesis stays at the registered point |
 //! | `C=V@dated` | C becomes V by a dated `SetParam` at tick L/4 of a mode-A run; the scored clock restarts there |
 //! | `coin.A*F` | actor A's genesis coin times F |
@@ -21,7 +23,9 @@
 //!
 //! On I0 the grammar is P2.0's with the markets named: `p[mach]` is `pm`, `p[good]` is `p`,
 //! `s[good]` is `s`, `stock.mach` is `mach`, `land.mach` is `b`, and `joint` draws in P2.0's
-//! order.
+//! order. At the wall (a worker-form instance, the wall frame's §5.2) `joint` draws in the
+//! frame's mirror's market order, labour, land, the categories, the types, then the reserved
+//! labour markets, and the battery and families are the frame's, named as its mirror names them.
 
 use super::instance::Instance;
 use super::setup::{Setup, ShareAt, Shock};
@@ -40,12 +44,14 @@ enum Term {
     Hold,
     Price(String, f64),
     Share(String, f64),
+    ShareIs(String, f64),
     XHalf,
     Ja(f64),
     Jb(f64),
     Nominal(f64),
     Rc(f64),
     Rt(f64),
+    Rw(f64),
     Genesis(String, String),
     Dated(String, String),
     Coin(String, f64),
@@ -93,10 +99,14 @@ fn term(t: &str) -> Result<Term, String> {
         ("N", Term::Nominal),
         ("RC", Term::Rc),
         ("RT", Term::Rt),
+        ("RW", Term::Rw),
     ] {
         if let Some(a) = call(t, name) {
             return Ok(make(number(a)?));
         }
+    }
+    if let Some((d, v)) = t.strip_prefix("s[").and_then(|r| r.split_once("]=")) {
+        return Ok(Term::ShareIs(d.to_string(), number(v)?));
     }
     if let Some(a) = call(t, "joint") {
         let (f, seed) = a.split_once(',').ok_or("joint(F,SEED)")?;
@@ -177,7 +187,9 @@ fn times_share(share: &mut ShareAt, f: f64) -> Result<(), String> {
             *g *= f;
             Ok(())
         }
-        ShareAt::At(_) => Err("the human share is set outright and then scaled".into()),
+        ShareAt::At(_) | ShareAt::Is(_) => {
+            Err("the human share is set outright and then scaled".into())
+        }
     }
 }
 
@@ -251,17 +263,22 @@ impl Perturbation {
         let types: Vec<String> = inst.types.iter().map(|t| t.key.clone()).collect();
         let actors = inst.actors();
         let desks = inst.desks();
-        let (nt, nc) = (types.len(), cats.len());
+        let (nt, nc, nw) = (types.len(), cats.len(), inst.wtypes.len());
         let x = &mut s.displace;
-        // Market m's index in `price`: labour 0, land 1, types from 2, categories after them.
+        // Market m's index in `price`: labour 0, land 1, types from 2, categories after them,
+        // then the reserved labour markets.
         let type_at = |k: usize| 2 + k;
         let cat_at = |j: usize| 2 + nt + j;
+        let wage_at = |i: usize| 2 + nt + nc + i;
         for t in &self.terms {
             match t {
                 Term::Hold => {}
                 Term::Price(m, f) => x.price[index(&markets, m, "market")?] *= f,
                 Term::Share(d, f) => {
                     times_share(&mut x.share[index(&cats, d, "category desk")?], *f)?
+                }
+                Term::ShareIs(d, v) => {
+                    x.share[index(&cats, d, "category desk")?] = ShareAt::Is(*v);
                 }
                 Term::XHalf => {
                     let e = inst.point(s.tpy)?;
@@ -277,6 +294,10 @@ impl Perturbation {
                     for j in 0..nc {
                         x.price[cat_at(j)] *= f;
                     }
+                    // Every labour market's price is scaled as w is (the wall frame's §5.2).
+                    for i in 0..nw {
+                        x.price[wage_at(i)] *= f;
+                    }
                     for sh in x.share.iter_mut() {
                         times_share(sh, *f)?;
                     }
@@ -289,8 +310,20 @@ impl Perturbation {
                     for j in 0..nc {
                         x.price[cat_at(j)] *= f;
                     }
+                    for i in 0..nw {
+                        x.price[wage_at(i)] *= f;
+                    }
                     for sh in x.share.iter_mut() {
                         times_share(sh, 1.0 / f)?;
+                    }
+                }
+                Term::Rw(f) => {
+                    if nw == 0 {
+                        return Err("RW needs several labour markets".into());
+                    }
+                    x.price[0] *= f;
+                    for i in 0..nw {
+                        x.price[wage_at(i)] /= f;
                     }
                 }
                 Term::Nominal(f) => {
@@ -341,8 +374,19 @@ impl Perturbation {
                 Term::Joint(f, seed) => {
                     let mut g = SplitMix(*seed);
                     let mut draw = |base: f64| rustyecon_core::num::pow(base, g.signed());
-                    for p in x.price.iter_mut() {
-                        *p *= draw(*f);
+                    // The draw order: the markets' order, or at the wall the frame's mirror's
+                    // (labour, land, the categories, the types, the reserved labour markets).
+                    let order: Vec<usize> = if inst.worker_form {
+                        let mut o = vec![0, 1];
+                        o.extend((0..nc).map(cat_at));
+                        o.extend((0..nt).map(type_at));
+                        o.extend((0..nw).map(wage_at));
+                        o
+                    } else {
+                        (0..x.price.len()).collect()
+                    };
+                    for m in order {
+                        x.price[m] *= draw(*f);
                     }
                     for sh in x.share.iter_mut() {
                         let fs = draw(2.0);
@@ -408,6 +452,9 @@ pub fn slack(inst: &Instance, j: usize, x_star: f64, x: f64) -> bool {
 /// are two types, at ±5%, ±20%, ×2 and ×0.5; x\*/2; and each registered cost coefficient at
 /// ×1.1, ×0.9, ×2 and ×0.5, at genesis and dated. Slack runs are marked.
 pub fn battery(inst: &Instance, tpy: u32) -> Result<Vec<Run>, String> {
+    if inst.worker_form {
+        return Ok(wall_battery(inst));
+    }
     let e = inst.point(tpy)?;
     let mut out = Vec::new();
     let mut push = |name: String, tier: u8, slack: bool| out.push(Run { name, tier, slack });
@@ -449,10 +496,113 @@ pub fn battery(inst: &Instance, tpy: u32) -> Result<Vec<Run>, String> {
     Ok(out)
 }
 
+/// x^j for a whole j, correctly rounded: the power in double-double arithmetic (each product's
+/// rounding error kept by a fused multiply-add and carried), a double-double reciprocal for
+/// j < 0, and one rounding to a double at the end. The wall frame's mirror names its basin runs
+/// by Python's `1.05 ** j`, which is correctly rounded at every j in ±1 … ±43 (checked against
+/// exact rationals), where libm's `pow` is an ulp off at some; so the wall's basin family
+/// carries the registered names. P2.1's basin keeps `num::pow`.
+pub fn pow_whole(x: f64, j: i32) -> f64 {
+    let (mut hi, mut lo) = (1.0_f64, 0.0_f64);
+    for _ in 0..j.unsigned_abs() {
+        let p = hi * x;
+        let e = rustyecon_core::num::fma(hi, x, -p) + lo * x;
+        (hi, lo) = rustyecon_core::num::two_sum(p, e);
+    }
+    if j >= 0 {
+        return hi + lo;
+    }
+    let q1 = 1.0 / hi;
+    let r = rustyecon_core::num::fma(-q1, hi, 1.0) - q1 * lo;
+    q1 + r / hi
+}
+
+/// The shares `s[D]=V` takes at the wall, with their tiers (the wall frame's §5.2).
+pub const WALL_SHARES: [(&str, u8); 3] = [("0.05", 1), ("0.2", 2), ("0.5", 3)];
+
+/// The wall's registered battery (the wall frame's §5.2; decision 396), in its mirror's order and
+/// with its names (`wb.run_list`): each market's price at the six factors, factor by factor; each
+/// category desk's share set to 0.05, 0.2 and 0.5; JA, JB, N, RC and RW at the six factors;
+/// x\*/2; and each registered cost coefficient at ×1.1, ×0.9, ×2 and ×0.5, at genesis and dated.
+/// The markets are named in the mirror's order: labour, land, the categories, the types, the
+/// reserved labour markets. No run is slack.
+pub fn wall_battery(inst: &Instance) -> Vec<Run> {
+    let mut out = Vec::new();
+    let mut push = |name: String, tier: u8| {
+        out.push(Run {
+            name,
+            tier,
+            slack: false,
+        })
+    };
+    for (fs, _, tier) in FACTORS {
+        for m in wall_markets(inst) {
+            push(format!("p[{m}]*{fs}"), tier);
+        }
+    }
+    for c in &inst.categories {
+        for (v, tier) in WALL_SHARES {
+            push(format!("s[{}]={v}", c.key), tier);
+        }
+    }
+    for shape in ["JA", "JB", "N", "RC", "RW"] {
+        for (fs, _, tier) in FACTORS {
+            push(format!("{shape}({fs})"), tier);
+        }
+    }
+    push("x*/2".into(), 3);
+    for c in &inst.coefs {
+        for (k, v) in c.values.iter().enumerate() {
+            let tier = if k < 2 { 2 } else { 3 };
+            push(format!("{}={v}@genesis", c.name), tier);
+            push(format!("{}={v}@dated", c.name), tier);
+        }
+    }
+    out
+}
+
+/// The markets in the wall frame's mirror's order: labour, land, the categories, the types, then
+/// the reserved labour markets.
+pub fn wall_markets(inst: &Instance) -> Vec<String> {
+    let mut m = vec!["labour".to_string(), "land".to_string()];
+    m.extend(inst.categories.iter().map(|c| c.key.clone()));
+    m.extend(inst.types.iter().map(|t| t.key.clone()));
+    m.extend(inst.wtypes.iter().map(|t| t.market()));
+    m
+}
+
+/// Tier 3S (decisions 229, 368 and 397; the wall frame's §5.2): each desk's stock, each desk's
+/// coin, and each household's coin (the workers, each reserved pop, then the provider), at ×0.5
+/// and ×2, in its mirror's order (`run_battery.tier3s_names`). Its start distance is the largest
+/// D̂ of its first year (`Setup::first_year_d0`).
+pub fn tier3s(inst: &Instance) -> Vec<String> {
+    let mut v = Vec::new();
+    for d in inst.desks() {
+        for f in ["0.5", "2"] {
+            v.push(format!("stock.{d}*{f}"));
+        }
+    }
+    for d in inst.desks() {
+        for f in ["0.5", "2"] {
+            v.push(format!("coin.desk.{d}*{f}"));
+        }
+    }
+    let mut pops = vec!["workers".to_string()];
+    pops.extend(inst.wtypes.iter().map(|t| t.pop()));
+    pops.push("provider".into());
+    for a in pops {
+        for f in ["0.5", "2"] {
+            v.push(format!("coin.{a}*{f}"));
+        }
+    }
+    v
+}
+
 /// The added families (MARKETS-SPEC §7.10), each a list of run names.
 pub fn family(inst: &Instance, tpy: u32, name: &str) -> Result<Vec<String>, String> {
     Ok(match name {
         "battery" => battery(inst, tpy)?.into_iter().map(|r| r.name).collect(),
+        "tier3s" => tier3s(inst),
         // §7.10 item 5.
         "stocks" => {
             let mut v = Vec::new();
@@ -474,6 +624,12 @@ pub fn family(inst: &Instance, tpy: u32, name: &str) -> Result<Vec<String>, Stri
             for f in ["0.1", "2"] {
                 v.push(format!("coin.workers*{f}"));
             }
+            // Each reserved pop's coin, as the workers' (the wall frame's §5.2).
+            for t in &inst.wtypes {
+                for f in ["0.1", "2"] {
+                    v.push(format!("coin.{}*{f}", t.pop()));
+                }
+            }
             for f in ["0.5", "2"] {
                 v.push(format!("coin.provider*{f}"));
             }
@@ -489,6 +645,30 @@ pub fn family(inst: &Instance, tpy: u32, name: &str) -> Result<Vec<String>, Stri
         },
         // §7.10 item 7: 1.05^j out to ×/÷8 for w, r, the largest-share good, each type, and
         // the technique of the desk with the most tasks at x* (s only while s ≤ 1).
+        // At the wall (the wall frame's §5.2): w, r, the largest-share good, each type and each
+        // reserved wage, named p[M] as its mirror names them; the technique has no displacement
+        // at s* = 0, so none is taken.
+        "basin" if inst.worker_form => {
+            let e = inst.point(tpy)?;
+            let share = |j: usize| inst.categories[j].weight * e.cat_price[j];
+            let big = (0..inst.categories.len())
+                .max_by(|&a, &b| share(a).total_cmp(&share(b)))
+                .ok_or("no category")?;
+            let mut vars = vec!["labour".to_string(), "land".to_string()];
+            vars.push(inst.categories[big].key.clone());
+            vars.extend(inst.types.iter().map(|t| t.key.clone()));
+            vars.extend(inst.wtypes.iter().map(|t| t.market()));
+            let mut v = Vec::new();
+            for var in vars {
+                for j in -43i32..=43 {
+                    if j != 0 {
+                        let f = pow_whole(1.05, j);
+                        v.push(format!("p[{var}]*{f:?}"));
+                    }
+                }
+            }
+            v
+        }
         "basin" => {
             let e = inst.point(tpy)?;
             let mut vars: Vec<String> = vec!["w".into(), "r".into()];

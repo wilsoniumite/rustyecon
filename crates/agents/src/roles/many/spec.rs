@@ -8,7 +8,8 @@
 //! Every coefficient and dial is a registered param referenced by key and read at use time (R4,
 //! E1), so a dated `SetParam` retargets the actor. The only inline number is genesis state: the
 //! category desk's genesis human share 1 − x, and a step rule's genesis scale. Every field is
-//! required and none has a default but the type desk's `plant` (P2.2b), whose absence is off.
+//! required and none has a default but the type desk's `plant` (P2.2b) and the category desk's
+//! `tail` and `reserved` and the provider's `more` (P2.3), whose absence is off.
 //!
 //! **Lists keep the order written.** A basket's items, a category's segments and a type's bought
 //! services are evaluated in list order: P_s is summed from 0.0 in item order, a desk's budgets
@@ -59,6 +60,13 @@ pub struct RawBasketProvider {
     /// Param key, unit `RatePerYear`, live: the share of its coin, after the transfer, spent on
     /// baskets each tick. Required, no default.
     pub spend: Key,
+    /// Further transfers, N_i·P_s each, paid after `transfer` in list order, each to its own
+    /// actor (not the provider and not `transfer`'s), with its own `heads` param (P2.3; the wall
+    /// frame's §3.3; docs/probe/WALL-RULES.md). Empty or absent is none; empty is not written,
+    /// so every tape written before the field keeps its canonical text, `tape_hash` and
+    /// `world_id`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub more: Vec<RawTransfer>,
 }
 
 /// The basket workers (a Pop), as the tape writes it: the Appendix B workers with a basket of
@@ -124,9 +132,25 @@ pub struct RawCategoryDesk {
     pub technique: crate::roles::spec::RawTechnique,
     /// The scale rule. Required, no default.
     pub scale: RawScale,
+    /// `Option<Key>`: a param key, unit `Dimensionless`, live: L^H_j, the hours per unit at tasks
+    /// closed to machines that any pooled worker can do (unit 1d's human-required tail, the
+    /// paper's H), bought on `labour` beside the line's hours: the hours per unit are H + L^H
+    /// (P2.3; the wall frame's §3.2; docs/probe/WALL-RULES.md). `None` or absent is none; absent
+    /// is not written, so every tape written before the field keeps its canonical text,
+    /// `tape_hash` and `world_id`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tail: Option<Key>,
+    /// Reserved hours, in worker-type order and evaluated in list order: each `good` a reserved
+    /// type's hours, a traded good that dies within the tick and is not `output`, `labour`,
+    /// `service` or `land`, each good once; each `coef` a param key, unit `Dimensionless`, live:
+    /// R_ji, its hours per unit, whatever the technique (unit 1d's reserved tasks). Empty or
+    /// absent is none; empty is not written.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub reserved: Vec<RawInput>,
 }
 
-/// One bought service of a type desk's recipe, as the tape writes it.
+/// One bought service of a type desk's recipe, as the tape writes it; or one reserved type's
+/// hours of a category desk's (`RawCategoryDesk::reserved`).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RawInput {
@@ -201,6 +225,20 @@ pub struct BasketProvider {
     pub basket: Vec<Item>,
     /// Its spending rate, a live `RatePerYear` param read as a `Share`.
     pub spend: Site,
+    /// Its further transfers, in the order paid (P2.3). `world_id` hashes the resolved actors by
+    /// bincode, so the field is left out when empty, and a world without it keeps its
+    /// `world_id`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub more: Vec<Transfer>,
+}
+
+/// A resolved further transfer of the basket provider: N_i·P_s to `to`.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct Transfer {
+    /// The recipient.
+    pub to: ActorId,
+    /// N_i, a live `FlowPerYear` param.
+    pub heads: Site,
 }
 
 /// The resolved basket workers.
@@ -245,9 +283,16 @@ pub struct CategoryDesk {
     pub share: f64,
     /// The scale rule.
     pub scale: Scale,
+    /// L^H_j, a live `Dimensionless` param, if any (P2.3). Left out of `world_id`'s bincode when
+    /// `None`, so a world without it keeps its `world_id`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tail: Option<Site>,
+    /// The reserved hours, in evaluation order (P2.3). Left out when empty, as `tail` is.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub reserved: Vec<Input>,
 }
 
-/// A resolved bought service.
+/// A resolved bought service, or a reserved type's hours.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Input {
     /// The service.
@@ -285,9 +330,9 @@ fn site(out: &mut Vec<(String, Site)>, path: String, site: Site) {
     out.push((path, site));
 }
 
-/// A good's key in `w`, or its id when `w` does not name it.
-fn key_of(w: &World<Agents>, g: GoodId) -> String {
-    w.key_of(g).map_or_else(|| g.to_string(), Key::to_string)
+/// A good's or an actor's key in `w`, or its id when `w` does not name it.
+fn key_of<I: rustyecon_core::Keyed + std::fmt::Display>(w: &World<Agents>, id: I) -> String {
+    w.key_of(id).map_or_else(|| id.to_string(), Key::to_string)
 }
 
 fn basket_sites(w: &World<Agents>, basket: &[Item], out: &mut Vec<(String, Site)>) {
@@ -307,6 +352,9 @@ impl BasketProvider {
         site(out, "transfer.heads".into(), self.heads);
         basket_sites(w, &self.basket, out);
         site(out, "spend".into(), self.spend);
+        for t in &self.more {
+            site(out, format!("more[{}].heads", key_of(w, t.to)), t.heads);
+        }
     }
 }
 
@@ -322,7 +370,7 @@ impl BasketWorkers {
 
 impl CategoryDesk {
     /// Its sites, each with its path under the spec.
-    pub(crate) fn sites(&self, out: &mut Vec<(String, Site)>) {
+    pub(crate) fn sites(&self, w: &World<Agents>, out: &mut Vec<(String, Site)>) {
         site(out, "theta".into(), self.theta);
         site(out, "direct_land".into(), self.direct_land);
         site(out, "schedule.eta".into(), self.schedule.eta);
@@ -337,6 +385,12 @@ impl CategoryDesk {
         }
         site(out, "technique.adjust".into(), self.adjust);
         self.scale.sites(out);
+        if let Some(t) = self.tail {
+            site(out, "tail".into(), t);
+        }
+        for i in &self.reserved {
+            site(out, format!("reserved[{}].coef", key_of(w, i.good)), i.coef);
+        }
     }
 }
 
@@ -405,6 +459,24 @@ pub fn resolve_basket_provider(
     // The land it sells may be an item of its basket: space, bought on the market.
     let basket = basket(r, &raw.basket)?;
     let spend = live(r, &raw.spend, ClockMethod::Share, "spend")?;
+    // Further transfers (P2.3), each to its own recipient; that none is the provider itself is
+    // checked with the world (`Cast::new`).
+    let mut more: Vec<Transfer> = Vec::with_capacity(raw.more.len());
+    for t in &raw.more {
+        r.enter(format!("more[{}]", t.to));
+        let to = r.actor(&t.to, "to")?;
+        if to == transfer_to || more.iter().any(|m| m.to == to) {
+            return Err(r.error(
+                "to",
+                LoadErrorKind::Invalid(
+                    "a recipient named twice: each transfer goes to its own actor".into(),
+                ),
+            ));
+        }
+        let heads = live(r, &t.heads, ClockMethod::Flow, "heads")?;
+        r.leave();
+        more.push(Transfer { to, heads });
+    }
     Ok(BasketProvider {
         land,
         endowment,
@@ -412,6 +484,7 @@ pub fn resolve_basket_provider(
         heads,
         basket,
         spend,
+        more,
     })
 }
 
@@ -494,6 +567,30 @@ pub fn resolve_category_desk(
     let genesis = share(r, raw.technique.share, "share")?;
     r.leave();
     let scale = scale(r, &raw.scale)?;
+    // The human-required tail and the reserved hours (P2.3), both optional.
+    let tail = match &raw.tail {
+        Some(k) => Some(value(r, k, "tail")?),
+        None => None,
+    };
+    let mut reserved: Vec<Input> = Vec::with_capacity(raw.reserved.len());
+    for i in &raw.reserved {
+        r.enter(format!("reserved[{}]", i.good));
+        let good = traded(r, &i.good, "good")?;
+        if good == output
+            || good == labour
+            || good == service
+            || good == land
+            || reserved.iter().any(|o| o.good == good)
+        {
+            return Err(r.error(
+                "good",
+                LoadErrorKind::Invalid("a good named twice in one role".into()),
+            ));
+        }
+        let coef = value(r, &i.coef, "coef")?;
+        r.leave();
+        reserved.push(Input { good, coef });
+    }
     Ok(CategoryDesk {
         output,
         labour,
@@ -507,6 +604,8 @@ pub fn resolve_category_desk(
         adjust,
         share: genesis,
         scale,
+        tail,
+        reserved,
     })
 }
 
