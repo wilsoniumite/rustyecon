@@ -19,9 +19,9 @@ tolerance 1e-3 in log on the 18 observables; Tiers 3 and 3S again at 10·L.
 39/39), Tier 3S (20/20), Tiers 3 and 3S again at 10·L (39/39, 20/20), and all 13 kick sets. The
 scorer read 15,304 lines at IW1 and IC1: 8,682 pass, 6,621 are reported and not scored, and **one
 fails**: E6's "every CONVERGED run ends at the wall", at four runs at 365 ticks a year, whose
-displaced shares stall at 70 subnormal ulps (3.46e-322) where the registered text gives the 52-a-
-year stall, 10 ulps (5e-323). The cause is arithmetic, below; I read it as the wall, not as a
-refutation, and flag that reading for review.
+displaced shares stall at 70 subnormal ulps (3.46e-322) where the registered text gives the
+52-a-year stall, 10 ulps (5e-323). The cause is arithmetic, below; I read it as the wall, not as a
+refutation, and flag that reading for review (O108).
 
 The engine is the mirror to a degree the bands do not need. In all 1,208 compared runs (IW1's
 1,085 and IC1's 123):
