@@ -284,7 +284,10 @@ fn every_v2_lens_is_a_measure_lens_rs_defines() {
         };
         assert!(keys.contains(&want), "{want}");
     }
-    // Nineteen of v1's rows are kept whole; six change.
+    // Six of v1's rows change what they read. Nine more keep v1's reading, with a domain or a
+    // note from the engine's run to 1901 (D2.5; decision 332 amended): on the second pass the
+    // run departs further from its oracle than v1's did, so v1's domains saturated and two of
+    // its notes were false there. The other ten are v1's rows whole.
     let changed = [
         "price.hday",
         "no.trade",
@@ -293,16 +296,43 @@ fn every_v2_lens_is_a_measure_lens_rs_defines() {
         "gap.oracle",
         "gap.wage",
     ];
+    let rescaled = [
+        "wage.goods",
+        "rent.goods",
+        "share.land",
+        "share.labour",
+        "frontier.x",
+        "price.good",
+        "relief.burden",
+        "shortfall",
+        "rationing",
+    ];
     let mut kept = 0;
+    let mut noted = 0;
     for l in &v1 {
         if let Some(x) = v2.iter().find(|x| x.key == l.key) {
-            if !changed.contains(&l.key.as_str()) {
+            if rescaled.contains(&l.key.as_str()) {
+                let same = |y: &rustyecon_worldgen::tables::Lens| {
+                    let mut y = y.clone();
+                    y.domain = (0.0, 0.0);
+                    y.note = String::new();
+                    y
+                };
+                assert_eq!(same(x), same(l), "{}: only the domain and note move", l.key);
+                assert!(
+                    x.domain.0 <= l.domain.0 && l.domain.1 <= x.domain.1,
+                    "{}",
+                    l.key
+                );
+                assert!(x.note.contains("the engine's run"), "{}: {}", l.key, x.note);
+                noted += 1;
+            } else if !changed.contains(&l.key.as_str()) {
                 assert_eq!(x, l, "{} is v1's row", l.key);
                 kept += 1;
             }
         }
     }
-    assert_eq!(kept, 19);
+    assert_eq!((kept, noted), (10, 9));
     for l in &v2 {
         let m = Measure::of(&l.key).unwrap_or_else(|| panic!("{} names no measure", l.key));
         if l.scale == Scale::Diverging {

@@ -13,6 +13,31 @@ it line by line against the registration: [../registration.md](../registration.m
   `scripts/gate.sh`. No rule, tolerance, run list, scoring tool or binary changed after the first
   result was read. No engine or compiler bug was found, so there is no fix commit and no rerun.
 
+**Corrected at D2.5 (2026-09-30), after the two bounded reviews.** No scored line, class, count or
+verdict moves. Four statements were wrong or incomplete as written:
+- **What had been read before A1.** A1 §A1.3 says no long-run output of the stage had been read,
+  and that the long-run test had run only with the history removed. That is false. The long run
+  had been run and read before D2.4: D2.2 pinned its final hash through 1901 (`demo_v2_pin`), D2.3
+  timed the GUI to 1901, and D2.3b's table and two screenshots of the herd against its equilibrium
+  (WORLD-V2 §16) came from the engine's run of the committed tape. The E5 scorer (D2.4) was written
+  after that. E5's lines and tolerances are the registration's of D2.0, unchanged, and the engine
+  meets them to printed precision. A1 is left as registered (its sha256 stands); this note
+  corrects it.
+- **The horse's lowest price.** The 0.200 of target and the maker's 0.212 in "Prediction against
+  result" are posted prices, on ticks when the maker withheld and no horse traded, as the
+  registration read them (over every tick). The map's horse-price lens shows no value on such a
+  tick. In the West Riding 1900 J_b × 0.5 run, rerun on Windows with every tick written (D2.5's
+  world review), the low 0.2003 falls at tick 36 with no trade; the lowest on a tick with a trade
+  is 0.2188 (tick 35), and the markup's lowest is 0.2304 over all ticks and 0.2501 over traded
+  ones.
+- **"Healthy."** The long run has no dead, idle, no-order or withheld tick, and its ledger closes.
+  That is all the word meant. It is not near its equilibrium: the county medians' median D̂ is 116.7
+  against v1's 10.8, about 11 times, and the battery's own time to tolerance is on the history's
+  scale (median 3,010 ticks, 58 years; largest 5,661, 109 years). The section is renamed below.
+- **Capital's lowest herds** were quoted from every 13th tick. Read every tick
+  ([long-run-engine.csv](long-run-engine.csv)): Glamorgan 0.717 (1863.3), Lanarkshire 0.725
+  (1850.8), Durham 0.728 (1863.3), Renfrewshire 0.743 (1779.3), Lancashire 0.743 (1851.5).
+
 Conditions of every number here, unless its line says otherwise:
 - stage v2a.1 as registered: rule A, δ 8% a year, ω 0.85, κ 52, ρ 0, J_b 1, C2g, s_K 2δ, the
   maker's cover of 4 weeks and reservation ψ 0.25, ex-post assignment, 52 ticks a year;
@@ -110,7 +135,7 @@ the same code, and they are reported, not scored (decision 359). The table is
 | most dead ticks 277 (Suffolk 1825, b × 0.5 dated); most in one run by market: horse-days 277, fodder 46, the good 37, land 21, labour 9 | the same |
 | idle horse market in 19,589 runs, at most 418 ticks (Lancashire 1900, heads × 2); at most 88 ticks without an order | the same |
 | the reservation acts in 2,803 runs; at most 49 withheld ticks (Lanarkshire 1900, heads × 2) | the same |
-| the horse's lowest price 0.200 of target (West Riding 1900, JB × 0.5); the maker's lowest markup 0.212 (Selkirkshire 1875, b × 2) | the same |
+| the horse's lowest price 0.200 of target (West Riding 1900, JB × 0.5); the maker's lowest markup 0.212 (Selkirkshire 1875, b × 2) | the same; both posted on a tick when the maker withheld and no horse traded (corrected at D2.5, above) |
 | the horse's highest price 7.65 of target (Lancashire 1900, b × 0.5) | not read: the harness writes `pk_high` only for the loop step's instances |
 | transfer shortfall in 5,905 runs, at most 2,142 ticks (Clackmannanshire 1825, b × 2 dated); in 106 of the 482 b × 2 runs | the same |
 | lowest baskets 0.311 of Y\* (Norfolk 1800, r × 0.5); heads 0.544 to 1.90 of target | the same |
@@ -147,7 +172,7 @@ its rounding floor. At Aberdeenshire 1750 a 1e-9 kick meets that floor, 3.3e-5 o
 4,000 ticks (77 years) after it. That happens while the faster modes still lead, at 0.82–0.84 a
 year. So the engine's g reads the kick's early decay, not the slowest mode. [fig4](../figs/fig4_kicks.png).
 
-## The long run's health
+## The long run: no dead, idle or withheld tick, and far from equilibrium
 
 **The run.** [long-run.csv](long-run.csv) sets the engine beside the mirror by county;
 [long-run-engine.csv](long-run-engine.csv) is the engine's full table.
@@ -174,6 +199,9 @@ are the thin-funded counties of WORLD-V2 §4, as registered (O82).
 - The largest D̂ at any tick is 543.5 (Glamorgan).
 - By the first tick of 1901 the median county is at 60.4 and Glamorgan at 362.4.
 - Peeblesshire runs closest, with a median of 38.2.
+- Against v1's run (county medians' median 10.8, WORLD.md §8) the second pass runs about 11 times
+  further from its equilibrium, and its capital settles on the history's own time scale: in the
+  battery a shocked county-date takes a median of 58 years to come within tolerance, and up to 109.
 
 [fig2](../figs/fig2_long_run_dhat.png).
 
@@ -182,8 +210,10 @@ are the thin-funded counties of WORLD-V2 §4, as registered (O82).
 [capital-lag.csv](capital-lag.csv) and [fig3](../figs/fig3_long_run_heads.png). The herd is the
 installed heads over their equilibrium at the params in force, sampled every 13th tick. The engine's
 series equals the mirror's within 2.0e-14 in every county.
-- **Coal and textile** (26 counties). The herd falls lowest: 0.718 in Glamorgan in 1861, 0.726 in
-  Lanarkshire in 1851, 0.729 in Durham in 1864, 0.744 in Lancashire in 1851. The median county of
+- **Coal and textile** (26 counties). The herd falls lowest. Sampled every 13th tick: 0.718 in
+  Glamorgan in 1861, 0.726 in Lanarkshire in 1851, 0.729 in Durham in 1864, 0.744 in Lancashire in
+  1851. Read every tick: Glamorgan 0.717 (1863), Lanarkshire 0.725 (1850), Durham 0.728 (1863),
+  Renfrewshire 0.743 (1779), Lancashire 0.743 (1851). The median county of
   the class is below 0.9 for 69 years. 20 of the 26 are still more than 5% short in 1901 (median
   herd 0.91).
 - **London's ring** (7). Down to 0.764 (Middlesex, 1827). The median county is below 0.9 for 62
@@ -236,6 +266,11 @@ find a fixed one, as the battery shows.
     envelopes, the long run's tables and every exit file;
   - `gathered-scored.tar.gz`;
   - `pre/`: the elasticity probe and mode A before the wave.
+- **The kick envelopes' names.** The wave wrote them as `envelope-demo:county.gla@1850-hold.tsv`, on
+  WSL. On Windows a colon in a file name opens an alternate data stream, so every county-date's
+  envelope would go into one file. From D2.5 the harness writes
+  `envelope-demo_county.gla_1850-hold.tsv` (`probe::horses::report::envelope_name`); the archive
+  keeps the wave's names, and no tool here reads them. The wave's jobs ran on WSL only.
 
 ## Files
 

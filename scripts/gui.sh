@@ -14,6 +14,8 @@
 #      and G1's gates name run by name and passed, so a renamed test cannot drop out;
 #   3b. on Linux (WSL), G1's measurement by name: a_200_point_sweep_builds_in_under_16_ms, an
 #      ignored test, must run and pass (docs/GUI.md §9, G1's gate: median of 20, under 16 ms);
+#   3c. on every machine, the second pass's lens domains against the engine's run to 1901 by
+#      name: lens_v2_domains_hold_the_engines_long_run, an ignored test, must run and pass (D2.5);
 #   4. the cli's hashes: gui_equals_cli writes the GUI path's hashes of tapes/gate.ron (2,080
 #      ticks) and tapes/appb.ron (20,000), gui_equals_cli_demo_gb those of tapes/demo-gb.ron and
 #      gui_equals_cli_demo_gb_v2 those of tapes/demo-gb-v2.ron (7,852 each, through the first
@@ -71,7 +73,13 @@ step() { printf '\n== gui: %s\n' "$*"; }
 # of the legend and the credit, and the ranked values painted whole under a long lens name.
 # D2.3 (the second pass's map, docs/demo/WORLD-V2.md §7) adds the v2 lens values against the
 # engine, the horse's price with no value on an idle tick, the v2 map's values against its table,
-# its layout, the lens table per tape, and the v2 tape's hashes against the cli's.
+# its layout, the lens table per tape, and the v2 tape's hashes against the cli's. D2.5, after the
+# second pass's verification, adds nine: the whole app on the v2 tape (every lens, a county's
+# causes), the sidebar and card whole at the app's window sizes, the legend, title and scale bar
+# whole, ψ where the run puts it, the card's lines as painted, the horse's price and its windows
+# tick by tick through a withholding, the fitted view after a resize, the v2 map's colours and
+# credit, and every glyph in its font; and the lens domains against the engine's long run, an
+# ignored test run by name below.
 named=(
     gui_equals_cli
     failed_run_shows_its_ledger_line
@@ -168,6 +176,15 @@ named=(
     the_v2_map_is_fitted_clear_and_its_values_whole
     the_map_takes_the_lens_table_of_its_tape
     gui_equals_cli_demo_gb_v2
+    the_v2_app_shows_every_lens_and_a_countys_causes
+    the_v2_sidebar_and_card_are_whole_at_the_apps_window_sizes
+    the_v2_legend_title_and_scale_bar_are_whole
+    the_legend_marks_psi_where_the_run_puts_it
+    the_card_paints_its_causes_and_the_herds_readings
+    the_horse_price_and_its_windows_follow_the_market_tick_by_tick
+    the_fitted_view_follows_a_resized_window
+    the_v2_map_paints_its_lens_colours_and_its_credit
+    every_glyph_the_map_paints_is_in_its_font
 )
 
 step "toolchain (rust-toolchain.toml)"
@@ -214,6 +231,22 @@ if [ "$(uname -s)" = "Linux" ]; then
 else
     step "G1's sweep measurement: gated on Linux only, skipped here"
 fi
+
+# D2.5 (docs/demo/WORLD-V2.md §16; decision 332, amended): every lens of the second pass's table,
+# for every county at every report tick to 1901, read from the GUI's record of the engine's run,
+# lies inside its domain. An ignored test (two to five minutes), run here by name on every machine.
+step "the second pass's lens domains against the engine's run to 1901, by name"
+long="$(cargo test --locked --release -p rustyecon-gui --test map_v2 -- --ignored --exact \
+    lens_v2_domains_hold_the_engines_long_run --nocapture 2>&1)" || {
+    printf '%s\n' "$long"
+    exit 1
+}
+if ! grep -q "^test lens_v2_domains_hold_the_engines_long_run \.\.\. ok$" <<<"$long"; then
+    printf '%s\n' "$long"
+    echo "gui: lens_v2_domains_hold_the_engines_long_run did not run and pass" >&2
+    exit 1
+fi
+grep -E '^(rationing|price\.hday|relief\.burden|recorded) ' <<<"$long" || true
 
 step "the cli's hashes, against the GUI's"
 cargo build --locked --release -p rustyecon-cli

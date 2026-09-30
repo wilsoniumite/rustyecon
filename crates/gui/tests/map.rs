@@ -40,7 +40,11 @@
 //! - `the_fitted_view_leaves_every_county_clear`: every region's painted box is clear of the
 //!   legend's and the credit's painted rects at four window sizes, Cornwall and Devon by name.
 //! - `the_ranked_values_are_painted_whole`: under the longest lens name and unit, every value
-//!   the ranked table shows is painted whole across, down to a 480-point window.
+//!   the ranked table shows is painted whole across, down to a 480-point window; from D2.5 also
+//!   on one line.
+//!
+//! At D2.5 the colour checks moved to `common::mapcheck`, which the second pass's tests share
+//! (tests/map_v2.rs), and the legend's reference mark is `|`.
 
 mod common;
 
@@ -1042,168 +1046,24 @@ fn the_scales_are_the_neutral_palettes() {
     }
 }
 
-/// Whether two colours are within `tol` in every channel.
-fn near(a: egui::Color32, b: egui::Color32, tol: u8) -> bool {
-    [(a.r(), b.r()), (a.g(), b.g()), (a.b(), b.b())]
-        .iter()
-        .all(|(x, y)| x.abs_diff(*y) <= tol)
-}
-
-/// The map's colours, and its legend, against the lens: each region painted in its lens colour,
-/// each legend segment in the colour of its place on the scale, each region's colour inside the
-/// legend's segment at its value, each mark where the view-model puts it, and the reference
-/// marked and named only where it lies on the scale.
+/// The map's colours, and its legend, against the lens (`common::mapcheck::check_colours`,
+/// which the second pass's tests share since D2.5).
 fn check_colours(h: &Harness<'static, Pane1>, store: &Store, what: &str) {
     let f = h.state().map.frame().clone();
-    let l = lens(f.lens.as_deref().expect("a lens was drawn"));
-    let vm = lens_vm(store, l, f.tick.expect("a tick"));
-    let mut wrong = Vec::new();
-    for (d, r) in f.regions.iter().zip(&vm.regions) {
-        let at = r.at.expect("a value");
-        if d.colour != ui_map::colour(&vm.scale, at) {
-            wrong.push(r.key.clone());
-        }
-    }
-    assert!(
-        wrong.is_empty(),
-        "{what}, {}: painted in another colour: {wrong:?}",
-        l.key
+    common::mapcheck::check_colours(
+        &f,
+        &h.output().shapes,
+        store,
+        lenses(),
+        atlas(),
+        geo(),
+        what,
     );
-    let lg = &f.legend;
-    assert_eq!(lg.segments.len(), 64, "{what}");
-    for &(a, b, c) in &lg.segments {
-        assert_eq!(
-            c,
-            ui_map::colour(&vm.scale, (a + b) / 2.0),
-            "{what}, {}",
-            l.key
-        );
-    }
-    for (d, r) in f.regions.iter().zip(&vm.regions) {
-        let at = r.at.expect("a value");
-        let &(a, b, c) = lg
-            .segments
-            .iter()
-            .find(|(a, b, _)| *a <= at && at <= *b)
-            .expect("a segment holds every place on the scale");
-        let (ca, cb) = (ui_map::colour(&vm.scale, a), ui_map::colour(&vm.scale, b));
-        let spread = [(ca.r(), cb.r()), (ca.g(), cb.g()), (ca.b(), cb.b())]
-            .iter()
-            .map(|(x, y)| x.abs_diff(*y))
-            .max()
-            .unwrap_or(0);
-        assert!(
-            near(d.colour, c, spread + 1),
-            "{what}, {}: {} is {:?}, the legend at {at} {c:?}",
-            l.key,
-            r.key,
-            d.colour
-        );
-    }
-    assert_eq!(lg.marks.len(), vm.legend.len(), "{what}");
-    for (&(value, along), t) in lg.marks.iter().zip(&vm.legend) {
-        assert_eq!(value, t.value);
-        assert!(
-            (along - t.at).abs() < 1e-4,
-            "{what}, {}: mark {value}",
-            l.key
-        );
-    }
-    let on_scale = vm.reference.as_ref().and_then(|r| r.at);
-    assert_eq!(
-        lg.reference.is_some(),
-        on_scale.is_some(),
-        "{what}, {}",
-        l.key
-    );
-    if let (Some(a), Some(b)) = (lg.reference, on_scale) {
-        assert!((a - b).abs() < 1e-4);
-    }
-    assert_eq!(
-        lg.head.contains('▏'),
-        on_scale.is_some(),
-        "{}: {}",
-        l.key,
-        lg.head
-    );
-    painted_colours(h, &vm, lg, what, &l.key);
-}
-
-/// The colours as painted, read from the frame's shapes rather than from what the painter
-/// recorded (G1, O26's C6, C7 and C8): every vertex of the fill mesh, region by region in the
-/// atlas's order, takes its region's lens colour; and the legend's bar is painted as 64
-/// segments left to right, each the scale's colour at its middle.
-fn painted_colours(
-    h: &Harness<'static, Pane1>,
-    vm: &LensVm,
-    lg: &ui_map::LegendFrame,
-    what: &str,
-    key: &str,
-) {
-    let mut meshes = Vec::new();
-    let mut rects = Vec::new();
-    fn walk(
-        s: &egui::Shape,
-        meshes: &mut Vec<std::sync::Arc<egui::Mesh>>,
-        rects: &mut Vec<(egui::Rect, egui::Color32)>,
-    ) {
-        match s {
-            egui::Shape::Mesh(m) => meshes.push(std::sync::Arc::clone(m)),
-            egui::Shape::Rect(r) => rects.push((r.rect, r.fill)),
-            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, meshes, rects)),
-            _ => {}
-        }
-    }
-    for c in &h.output().shapes {
-        walk(&c.shape, &mut meshes, &mut rects);
-    }
-    let n: usize = geo().fills.iter().map(|f| f.points.len()).sum();
-    let mesh = meshes
-        .iter()
-        .find(|m| m.vertices.len() == n)
-        .expect("the fill mesh is painted");
-    let mut first = 0;
-    let mut wrong = Vec::new();
-    for (f, r) in geo().fills.iter().zip(&vm.regions) {
-        let want = ui_map::colour(&vm.scale, r.at.expect("a value"));
-        let span = &mesh.vertices[first..first + f.points.len()];
-        let bad = span.iter().filter(|v| v.color != want).count();
-        if bad > 0 {
-            wrong.push(format!("{}: {bad} of {}", r.key, span.len()));
-        }
-        first += f.points.len();
-    }
-    assert!(
-        wrong.is_empty(),
-        "{what}, {key}: vertices painted in another colour: {wrong:?}"
-    );
-    let legend = lg.rect.expect("the legend was drawn");
-    let mut bar: Vec<(egui::Rect, egui::Color32)> = rects
-        .into_iter()
-        .filter(|(r, c)| c.a() > 0 && legend.contains_rect(*r) && (r.height() - 12.0).abs() < 0.01)
-        .collect();
-    bar.sort_by(|a, b| a.0.min.x.total_cmp(&b.0.min.x));
-    assert_eq!(bar.len(), 64, "{what}, {key}: the bar's segments");
-    for (k, (_, c)) in bar.iter().enumerate() {
-        let at = (k as f64 + 0.5) / 64.0;
-        assert_eq!(
-            *c,
-            ui_map::colour(&vm.scale, at),
-            "{what}, {key}: segment {k} of the bar as painted"
-        );
-    }
 }
 
 /// Drag the map by `by` from the canvas's middle, and take the pointer away.
 fn pan(h: &mut Harness<'static, Pane1>, by: egui::Vec2) {
-    let at = egui::pos2(600.0, 500.0);
-    h.drag_at(at);
-    h.step();
-    h.hover_at(at + by);
-    h.step();
-    h.drop_at(at + by);
-    h.remove_cursor();
-    h.run();
+    common::mapcheck::pan(h, egui::pos2(600.0, 500.0), by);
 }
 
 #[test]
@@ -1592,5 +1452,14 @@ fn the_ranked_values_are_painted_whole() {
             );
         }
         assert!(whole > 5, "at {w}: {whole} rows shown whole");
+        // And each value on one line (D2.5: a value too wide for its column wrapped).
+        for t in common::mapcheck::texts(&h.output().shapes) {
+            if f.rows.iter().any(|row| {
+                t.text == row.text
+                    || t.text.strip_suffix(" ↓").or(t.text.strip_suffix(" ↑")) == Some(&row.text)
+            }) {
+                assert_eq!(t.rows, 1, "at {w}: {:?} over {} rows", t.text, t.rows);
+            }
+        }
     }
 }

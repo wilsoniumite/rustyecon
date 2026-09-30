@@ -19,6 +19,11 @@
 //! - `demo_v2_runs_deterministically`: two runs give one hash stream.
 //! - `demo_v2_pin` (ignored, run by name in scripts/gate.sh): the tape through the first tick
 //!   of 1901, every event fired and the ledger closed every tick, its final hash and hash stream.
+//! - `lens_v2_domains_hold_the_oracle_range` (D2.3): every lens's domain holds the oracle's range
+//!   at every county date; the engine's run is held by the GUI's
+//!   `lens_v2_domains_hold_the_engines_long_run` (D2.5).
+//! - `v2_flow_path_is_v1` (D2.3b): the stage on the flow path runs v1's tables and history with
+//!   v1's prices, volumes and coins bit for bit (R1).
 //! - `battery_instances_are_the_harness_instances` (D2.4): the battery's county table, each
 //!   county's row in force on 1 January of the six years, is the plans' bit for bit; the
 //!   harness's point there is the compiler's chain point; its battery drops b × 2 exactly where

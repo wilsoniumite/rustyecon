@@ -51,7 +51,7 @@ use probe::horses::kick::{kick_set, slowest_mode, three_t6};
 use probe::horses::loops::{cmd as loops_cmd, Instance as LoopInstance};
 use probe::horses::perturb::{battery, family, Perturbation};
 use probe::horses::probes::{elasticity, open_loop};
-use probe::horses::report::{file_name, g, stats_fields, summary_fields, SUMMARY};
+use probe::horses::report::{envelope_name, file_name, g, stats_fields, summary_fields, SUMMARY};
 use probe::horses::setup::{tape_ron, Setup};
 use probe::protocol::RUN_TICKS;
 use std::io::Write as _;
@@ -350,7 +350,7 @@ fn real_main() -> Result<bool, String> {
             }
             if let Some(dir) = &o.csv {
                 std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
-                let path = dir.join(format!("envelope-{}-{}.tsv", inst.id, file_name(name)));
+                let path = dir.join(envelope_name(&inst.id, name));
                 let body: Vec<String> = env
                     .iter()
                     .enumerate()

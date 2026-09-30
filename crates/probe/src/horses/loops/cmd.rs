@@ -23,7 +23,7 @@ use super::probes::{elasticity, kick_set, mirror_three_t6, run_length};
 use super::{tape_ron, Setup};
 use crate::horses::cli::parse_loops;
 use crate::horses::kick::{slowest_mode, three_t6};
-use crate::horses::report::{file_name, g, SUMMARY};
+use crate::horses::report::{envelope_name, file_name, g, SUMMARY};
 use crate::protocol::RUN_TICKS;
 use std::io::Write as _;
 use std::path::PathBuf;
@@ -241,7 +241,7 @@ pub fn main(cmd: &str, args: &[String]) -> Result<bool, String> {
             }
             if let Some(dir) = &o.csv {
                 std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
-                let path = dir.join(format!("envelope-{}-{}.tsv", inst.id, file_name(name)));
+                let path = dir.join(envelope_name(&inst.id, name));
                 let body: Vec<String> = env
                     .iter()
                     .enumerate()

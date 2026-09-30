@@ -977,3 +977,41 @@ fn demo_county_table_reads_back_and_refuses_bad_rows() {
     assert!(demo::find(&rows, "demo:county.v1@1800").is_err());
     assert!(demo::find(&rows, "county.v1@1750").is_err());
 }
+
+#[test]
+fn kick_envelopes_are_named_as_windows_can_hold_them() {
+    // D2.5 (the world review's fifth minor): a kick set's envelope was written to
+    // `envelope-<instance id>-<run>.tsv`, and a demo instance's id holds a colon
+    // (`demo:county.gla@1850`), which NTFS takes for an alternate data stream: on Windows every
+    // county-date's envelope went into one file named `envelope-demo`. The name now holds no
+    // character Windows refuses in a file name, and distinct instances keep distinct names.
+    use probe::horses::report::envelope_name;
+    let mut seen = std::collections::BTreeSet::new();
+    for id in [
+        "demo:county.gla@1850",
+        "demo:county.gla@1875",
+        "demo:county.lan@1850",
+        "demo:county.v1@1750",
+        "f5",
+        "chain8",
+    ] {
+        let name = envelope_name(id, "hold");
+        assert!(
+            !name.chars().any(
+                |c| ['<', '>', ':', '"', '/', '\\', '|', '?', '*'].contains(&c) || c.is_control()
+            ),
+            "{id}: {name}"
+        );
+        assert!(
+            name.starts_with("envelope-") && name.ends_with("-hold.tsv"),
+            "{name}"
+        );
+        assert!(seen.insert(name.clone()), "{id}: {name} twice");
+    }
+    assert_eq!(
+        envelope_name("demo:county.gla@1850", "hold"),
+        "envelope-demo_county.gla_1850-hold.tsv"
+    );
+    // P2.2a's and P2.2b's ids hold no such character, so their envelopes keep their names.
+    assert_eq!(envelope_name("f5", "b*2"), "envelope-f5-bx2.tsv");
+}
