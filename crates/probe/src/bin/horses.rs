@@ -12,7 +12,11 @@
 //! horses point           [options]  the oracle's point, at the base and each cost target
 //!
 //! setup options (probe::horses::cli):
-//!   --inst ID              h1-h4, f1-f10, r1a, p7 or p8 (default h1)
+//!   --inst ID              h1-h4, f1-f10, r1a, p7 or p8 (default h1); or demo:<key>@<year>,
+//!                          a demo county-date from --counties (D2.4)
+//!   --counties PATH        the demo's county table, written by `rustyecon worldgen
+//!                          worlds/demo-gb --stage v2a1 --instances PATH`; a demo row's ψ is its
+//!                          reservation unless --reserve gives another
 //!   --tpy N                ticks a year (default 52)
 //!   --dials c2g|c2g13|c2   a registered dial set (default the instance's)
 //!   --set KEY=VALUE        set a dial; rate.*, buffer.* and adjust.* scale a family, tilt.* sets

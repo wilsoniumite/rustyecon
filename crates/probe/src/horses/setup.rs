@@ -208,7 +208,13 @@ impl Setup {
     /// The registered setup of an instance at `tpy` ticks a year: its dials, Saturate, the
     /// registered variants, genesis at the oracle's point (mode A).
     pub fn registered(id: &str, tpy: u32) -> Result<Setup, String> {
-        let instance = Instance::named(id)?;
+        Setup::of(Instance::named(id)?, tpy)
+    }
+
+    /// The setup of `instance` at `tpy` ticks a year as [`Setup::registered`] makes it: its
+    /// dials, Saturate, the registered variants, mode A. A demo instance (D2.4) comes from its
+    /// county table, not from a registered id.
+    pub fn of(instance: Instance, tpy: u32) -> Result<Setup, String> {
         let dials = dials(&instance, &instance.dials)?;
         Ok(Setup {
             tpy,

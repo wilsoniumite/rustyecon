@@ -27,7 +27,8 @@ use clap::{ArgGroup, Args, Parser, Subcommand, ValueEnum};
 use rustyecon_engine::prelude::*;
 use rustyecon_engine::registry;
 use rustyecon_worldgen::atlas::Atlas;
-use rustyecon_worldgen::{compile, compile_stage, StageTables, Tables};
+use rustyecon_worldgen::stage::{battery_instances, compile_stage_parsed, parse_stage};
+use rustyecon_worldgen::{compile, StageTables, Tables};
 use std::fs::{self, File};
 use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
@@ -146,6 +147,11 @@ enum Cmd {
         /// the compiler writes v1's tape.
         #[arg(long, value_name = "STAGE")]
         stage: Option<String>,
+        /// With --stage, also write the battery's county instances here: each county's row in
+        /// force on 1 January of the battery's six years, for `horses --counties FILE`
+        /// (docs/demo/WORLD-V2.md §11.3).
+        #[arg(long, value_name = "FILE", requires = "stage")]
+        instances: Option<PathBuf>,
     },
     /// Print the licence and attribution of the data this binary bundles: the county atlas,
     /// data/atlas/gb.atlas.ron, under the ODbL 1.0 (data/atlas/LICENSE and ATTRIBUTION).
@@ -598,7 +604,12 @@ fn run(cmd: Cmd) -> Result<(), Exit> {
             out,
             telemetry,
         } => certify_run(&tape, criteria.as_deref(), until, &out, telemetry),
-        Cmd::Worldgen { dir, out, stage } => worldgen(&dir, out.as_deref(), stage.as_deref()),
+        Cmd::Worldgen {
+            dir,
+            out,
+            stage,
+            instances,
+        } => worldgen(&dir, out.as_deref(), stage.as_deref(), instances.as_deref()),
         Cmd::Licences => {
             print!("{}", rustyecon_worldgen::atlas::licences());
             Ok(())
@@ -608,8 +619,14 @@ fn run(cmd: Cmd) -> Result<(), Exit> {
 
 /// Compile the world in `dir` (crates/worldgen): the cli reads the tables and writes the tape;
 /// the compiler reads no file. The tape is loaded and resolved before it is written, and its
-/// `tape_hash` printed.
-fn worldgen(dir: &Path, out: Option<&Path>, stage: Option<&str>) -> Result<(), Exit> {
+/// `tape_hash` printed. With a stage and `instances`, the battery's county instances are written
+/// there too (docs/demo/WORLD-V2.md §11.3).
+fn worldgen(
+    dir: &Path,
+    out: Option<&Path>,
+    stage: Option<&str>,
+    instances: Option<&Path>,
+) -> Result<(), Exit> {
     let read = |name: &str| {
         let path = dir.join(name);
         fs::read_to_string(&path).map_err(|e| io_error("cannot read", &path, e))
@@ -622,8 +639,9 @@ fn worldgen(dir: &Path, out: Option<&Path>, stage: Option<&str>) -> Result<(), E
         lenses: read(Tables::FILES[4])?,
     };
     let atlas = Atlas::gb().map_err(|e| Exit::new(LOAD, format!("{e}")))?;
-    let compiled = match stage {
-        None => compile(&tables, &atlas),
+    let load = |e: rustyecon_worldgen::CompileError| Exit::new(LOAD, format!("{e}"));
+    let (compiled, rows) = match stage {
+        None => (compile(&tables, &atlas).map_err(load)?, None),
         Some(key) => {
             let [types, settings, lenses] = StageTables::files(key);
             let st = StageTables {
@@ -632,10 +650,15 @@ fn worldgen(dir: &Path, out: Option<&Path>, stage: Option<&str>) -> Result<(), E
                 stage: read(&settings)?,
                 lenses: read(&lenses)?,
             };
-            compile_stage(&tables, &st, &atlas)
+            let parsed = parse_stage(&st).map_err(load)?;
+            let c = compile_stage_parsed(&tables, &parsed, &atlas).map_err(load)?;
+            let rows = match instances {
+                Some(_) => Some(battery_instances(&c, &parsed).map_err(load)?),
+                None => None,
+            };
+            (c, rows)
         }
-    }
-    .map_err(|e| Exit::new(LOAD, format!("{e}")))?;
+    };
     let tape = Tape::from_ron(&compiled.tape).map_err(|e| {
         Exit::new(
             LOAD,
@@ -704,6 +727,14 @@ fn worldgen(dir: &Path, out: Option<&Path>, stage: Option<&str>) -> Result<(), E
     if let Some(path) = out {
         write_atomic(path, compiled.tape.as_bytes())?;
         println!("wrote {}", path.display());
+    }
+    if let (Some(path), Some(text)) = (instances, rows) {
+        write_atomic(path, text.as_bytes())?;
+        println!(
+            "wrote {}: the battery's {} county instances",
+            path.display(),
+            text.lines().filter(|l| !l.starts_with('#')).count() - 1
+        );
     }
     Ok(())
 }

@@ -934,3 +934,31 @@ and computes nothing (U6). The map takes a tape's lens table by the tape's name 
   At genesis every county rests at its equilibrium (the herd's gap and the markup are 0 to
   2e-16). Through the century the fast-growing counties' herds fall behind, and their horse-days
   carry a markup, the rent that buys more (§6, §8); by 1901 the median county is 2% short.
+
+**D2.4 (2026-09-30): the battery's harness, the scorer and E0–E2, before any scored run.**
+- **The county-dates on the harness** (§11.3): `rustyecon worldgen worlds/demo-gb --stage v2a1
+  --instances PATH` writes each county's row in force on 1 January of the six years (558 rows,
+  `stage::battery_instances`), and `horses --counties PATH --inst demo:<key>@<year>` runs one as
+  F5's economy on that row, with the row's ψ as the reservation (`probe::horses::demo`). The rows
+  are the plans' bit for bit, the harness's point at each is the compiler's chain point, and its
+  battery drops b × 2 exactly where `v2/targets.csv` is unfunded: 51,260 runs
+  (`battery_instances_are_the_harness_instances`). They equal the mirror's inputs to the bit.
+- **The long run's scorer** (§11.4): `long_run` in `crates/worldgen/tests/demo_v2.rs` scores every
+  county every tick against its 1g point at the params in force, as `d2_long.py` scores the mirror,
+  and writes the per-county table and every 13th tick. With the history removed it reads the rest
+  point: D̂ below 1e-6, every ratio 1 to 1e-9, no dead, idle, withheld or short tick
+  (`the_long_run_scorer_reads_the_rest_point`). `demo_v2_runs_to_1901` runs it to 1901; it joins
+  `scripts/gate.sh` after the wave (decision 358).
+- **The scorer, gather script and job list**, committed before the first job (decision 311):
+  `v2/results/tools/`. The self-test writes the mirror's own outputs in the gathered tables, and
+  the scorer passes all 21 lines on them and reproduces the registration's aggregates (ticks to
+  tolerance median 3,010, p90 4,526, largest 5,661; 6,479 runs with a dead tick; 2,803 where the
+  reservation acts). The readings are `score.py`'s header (decision 359).
+- **Before any scored run** ([v2/registration-A1.md](v2/registration-A1.md)): the engine's
+  elasticity probe gives 200·τ_max above 84,000 at 501 of 558 county-dates (land's τ 409–471
+  ticks), so amendment A1 sets L at each county-date to the larger of 84,000 and that, 84,000 to
+  95,000 (decision 356). E2's mode A PASSES at all 558 (largest gap 8.4e-14). E0 at five counties:
+  nothing parts at tick 1; hold and w × 2 agree within 2.2e-13; at the six funded b × 2 targets the
+  runs part after the maker's withholding, on the horse market's cancellation, and grow through
+  the flip-flop of offer and order to 8.5e-2 on its volume and 7e-3 elsewhere, which the mirror
+  itself reaches when moved 25 ulps (decision 357, O90).

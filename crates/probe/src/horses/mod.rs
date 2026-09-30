@@ -13,6 +13,8 @@
 //!   oracle, classifies the run, and keeps §7.11's transient and stock statistics.
 //! - [`kick`]: the kick set at a run's end (§7.5), and the engine's slowest mode for L (§7.4).
 //! - [`cli`]: the options the two binaries share.
+//! - [`demo`]: the demo's county instances (D2.4; docs/demo/WORLD-V2.md §11.3), read from the
+//!   table the demo's compiler writes, for `--inst demo:<key>@<year>`.
 //! - [`probes`]: §7.8's one-tick elasticity probe and the open-loop probe.
 //! - [`loops`]: the loop step (P2.2b; docs/probe/LOOPS-RULES.md §7, §8): rule B at chain8 with
 //!   CAPACITY's plants, the flow control, their oracle point, their tapes and their harness.
@@ -22,6 +24,7 @@
 //! this harness shares; on R1a this harness nests it (`horses_r1a_nests_i0`).
 
 pub mod cli;
+pub mod demo;
 pub mod harness;
 pub mod instance;
 pub mod kick;

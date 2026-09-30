@@ -19,6 +19,13 @@
 //! - `demo_v2_runs_deterministically`: two runs give one hash stream.
 //! - `demo_v2_pin` (ignored, run by name in scripts/gate.sh): the tape through the first tick
 //!   of 1901, every event fired and the ledger closed every tick, its final hash and hash stream.
+//! - `battery_instances_are_the_harness_instances` (D2.4): the battery's county table, each
+//!   county's row in force on 1 January of the six years, is the plans' bit for bit; the
+//!   harness's point there is the compiler's chain point; its battery drops b × 2 exactly where
+//!   the registered targets are unfunded, 51,260 runs.
+//! - `demo_v2_runs_to_1901` (D2.4; ignored, run by name in scripts/gate.sh): the long run scored
+//!   against each county's moving oracle point as the registration's mirror scores it
+//!   (WORLD-V2 §11.4), its table written for the scorer; no dead tick in any county.
 
 use oracle::{ChainEconomy, Regime};
 use probe::horses::instance::{Config, County as ProbeCounty, Instance as Horse, Keys};
@@ -625,29 +632,35 @@ fn runs(sim: &Sim, c: &Compiled, r0: &rustyecon_engine::prelude::TickReport) -> 
                     actor("desk.fodder"),
                 ],
                 lines: goods.map(|g| index[&(node, g)]),
-                target: [
-                    e.v,
-                    e.pf,
-                    e.pk,
-                    e.ph,
-                    e.p,
-                    e.one_minus_x,
-                    e.n_a,
-                    t,
-                    e.qf,
-                    e.sold,
-                    e.task_hours,
-                    e.good,
-                    e.good,
-                    e.task_hours,
-                    e.made,
-                    e.qf,
-                    e.capacity,
-                    e.serving,
-                ],
+                target: target_of(e, t),
             }
         })
         .collect()
+}
+
+/// The 18 observables' targets at a chain point `e`, with land `t` a tick: the oracle's point in
+/// [`observables`]' order (the horse market's volume is the heads sold, q_b·(1 − δ·a/κ)).
+fn target_of(e: &ChainPoint, t: f64) -> [f64; 18] {
+    [
+        e.v,
+        e.pf,
+        e.pk,
+        e.ph,
+        e.p,
+        e.one_minus_x,
+        e.n_a,
+        t,
+        e.qf,
+        e.sold,
+        e.task_hours,
+        e.good,
+        e.good,
+        e.task_hours,
+        e.made,
+        e.qf,
+        e.capacity,
+        e.serving,
+    ]
 }
 
 #[test]
@@ -997,4 +1010,691 @@ fn v2_flow_path_is_v1() {
     }
     assert!(fired > 0, "v1's history fired in the ten years");
     println!("{compared} coins and 520 ticks of 372 market lines equal; {fired} events fired");
+}
+
+#[test]
+fn battery_instances_are_the_harness_instances() {
+    // WORLD-V2 §11.3 (D2.4): the battery's county table, which `rustyecon worldgen … --stage
+    // v2a1 --instances PATH` writes and `horses --counties PATH` reads, holds each county's
+    // instance in force on 1 January of the six years bit for bit, with the stage's machine type
+    // and ψ. The harness's point at each row is the compiler's chain point in force from that
+    // month, bit for bit, and its battery is P2.2a's 93 runs less the b × 2 pair exactly where
+    // the registered targets (docs/demo/v2/targets.csv) are unfunded: 51,260 runs in all.
+    use probe::horses::demo;
+    use probe::horses::perturb::battery;
+    use rustyecon_worldgen::stage::{battery_instances, BATTERY_YEARS};
+    use std::collections::BTreeSet;
+    let c = compiled();
+    let s = stage();
+    let text = battery_instances(c, &s).unwrap_or_else(|e| panic!("{e}"));
+    let rows = demo::parse(&text).unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(rows.len(), 6 * 93);
+    let registered = std::fs::read_to_string(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../docs/demo/v2/targets.csv"
+    ))
+    .unwrap_or_else(|e| panic!("targets.csv: {e}"));
+    let mut unfunded: BTreeSet<(String, i32)> = BTreeSet::new();
+    for line in registered.lines().skip(1) {
+        let f: Vec<&str> = line.split(',').collect();
+        let year: i32 = f[2].parse().unwrap_or_else(|_| panic!("{line}"));
+        if f[5] == "false" {
+            assert_eq!(f[3], "2", "only b × 2 is ever unfunded: {line}");
+            unfunded.insert((f[0].to_string(), year));
+        }
+    }
+    assert_eq!(unfunded.len(), 317);
+    let mut scored = 0usize;
+    for p in &c.counties {
+        let key = &p.county.key;
+        for y in BATTERY_YEARS {
+            let month = i64::from(y - c.world.start.y) * 12;
+            let row =
+                demo::find(&rows, &format!("demo:{key}@{y}")).unwrap_or_else(|e| panic!("{e}"));
+            let h = &row.instance;
+            let inst = p.instance_at(month);
+            let n = h.county;
+            let ours = [
+                n.workers, n.land, n.space, n.eta, n.g0, n.g1, n.k, n.a, n.lam, n.b, n.chi_max,
+            ];
+            assert_eq!(ours.map(f64::to_bits), inst.map(f64::to_bits), "{key}@{y}");
+            assert_eq!(
+                (h.delta, h.omega, h.kappa, row.psi),
+                (s.machine.delta, s.machine.omega, s.machine.kappa, 0.25),
+                "{key}@{y}"
+            );
+            // The point: the compiler's chain point in force from the first of that January.
+            let k = p.points.iter().take_while(|(m, _)| *m <= month).count();
+            let e = &p.chain[k];
+            let t = h.point(52).unwrap_or_else(|e| panic!("{key}@{y}: {e}"));
+            for (what, a, b) in [
+                ("x*", e.x_star, t.x_star),
+                ("v", e.v, t.v),
+                ("p", e.p, t.p),
+                ("pf", e.pf, t.pf),
+                ("pk", e.pk, t.pk),
+                ("ph", e.ph, t.ph),
+                ("y", e.y, t.y),
+                ("made", e.made, t.made),
+                ("capacity", e.capacity, t.capacity),
+                ("serving", e.serving, t.serving),
+            ] {
+                assert_eq!(a.to_bits(), b.to_bits(), "{key}@{y}: {what}");
+            }
+            // The battery: the unfunded b × 2 pair dropped, as registered.
+            let list = battery(h, 52).unwrap_or_else(|e| panic!("{key}@{y}: {e}"));
+            let has_b2 = list.iter().any(|r| r.name == "b*2@genesis");
+            assert_eq!(
+                has_b2,
+                !unfunded.contains(&(key.clone(), y)),
+                "{key}@{y}: b × 2"
+            );
+            assert_eq!(list.len(), if has_b2 { 93 } else { 91 }, "{key}@{y}");
+            scored += list.len();
+        }
+    }
+    assert_eq!(scored, 51_260);
+    // Through the command line's parse: the row's instance, C2g, and its ψ as the reservation.
+    let path = std::env::temp_dir().join(format!("rustyecon-d24-{}.tsv", std::process::id()));
+    std::fs::write(&path, &text).unwrap_or_else(|e| panic!("{e}"));
+    let args: Vec<String> = [
+        "--inst",
+        "demo:county.lan@1850",
+        "--counties",
+        path.to_str().unwrap_or_else(|| panic!("a path")),
+    ]
+    .map(String::from)
+    .to_vec();
+    let a = probe::horses::cli::parse(&args, &[]).unwrap_or_else(|e| panic!("{e}"));
+    let _ = std::fs::remove_file(&path);
+    let row = demo::find(&rows, "demo:county.lan@1850").unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(a.setup.instance, row.instance);
+    assert_eq!(a.setup.reserve, Some(0.25));
+    assert_eq!(
+        a.setup.dials,
+        dials(&row.instance, "c2g").unwrap_or_else(|e| panic!("{e}"))
+    );
+    assert!(a.rest.is_empty());
+}
+
+/// A county in the long run (WORLD-V2 §11.4): its ids, its targets by tick, and what the scorer
+/// keeps, as the mirror's `d2_long.py` keeps it (registration §3.4).
+struct Long {
+    run: Run,
+    name: String,
+    provider: ActorId,
+    maker: rustyecon_engine::rustyecon_agents::Maker,
+    /// For genesis and each step date: the report tick it is in force from, the 18 targets, Y\*,
+    /// every installed head at the point, and h.
+    points: Vec<(u64, [f64; 18], f64, f64, f64)>,
+    /// The index of the point in force.
+    at: usize,
+    dead: u64,
+    dead_by: [u64; 5],
+    idle: u64,
+    zero_orders: u64,
+    withheld: u64,
+    short: u64,
+    unpaid: f64,
+    low: (f64, usize, u64),
+    baskets: f64,
+    heads_lo: (f64, u64),
+    heads_hi: (f64, u64),
+    hc_lo: f64,
+    hc_hi: f64,
+    plan_lo: f64,
+    plan_hi: f64,
+    pk_lo: f64,
+    pk_hi: (f64, u64),
+    mu_lo: (f64, u64),
+    qr_lo: f64,
+    qr_hi: f64,
+    ph_over_o: f64,
+    util_lo: f64,
+    dh: Vec<f64>,
+    fast: Vec<f64>,
+    stock: Vec<f64>,
+    end: [f64; 2],
+}
+
+impl Long {
+    fn new(
+        run: Run,
+        name: String,
+        provider: ActorId,
+        maker: rustyecon_engine::rustyecon_agents::Maker,
+        points: Vec<(u64, [f64; 18], f64, f64, f64)>,
+        until: usize,
+    ) -> Long {
+        Long {
+            run,
+            name,
+            provider,
+            maker,
+            points,
+            at: 0,
+            dead: 0,
+            dead_by: [0; 5],
+            idle: 0,
+            zero_orders: 0,
+            withheld: 0,
+            short: 0,
+            unpaid: 0.0,
+            low: (f64::INFINITY, 0, 0),
+            baskets: f64::INFINITY,
+            heads_lo: (f64::INFINITY, 0),
+            heads_hi: (0.0, 0),
+            hc_lo: f64::INFINITY,
+            hc_hi: 0.0,
+            plan_lo: f64::INFINITY,
+            plan_hi: 0.0,
+            pk_lo: f64::INFINITY,
+            pk_hi: (0.0, 0),
+            mu_lo: (f64::INFINITY, 0),
+            qr_lo: f64::INFINITY,
+            qr_hi: f64::NEG_INFINITY,
+            ph_over_o: f64::INFINITY,
+            util_lo: f64::INFINITY,
+            dh: Vec::with_capacity(until),
+            fast: Vec::with_capacity(until),
+            stock: Vec::with_capacity(until),
+            end: [0.0; 2],
+        }
+    }
+}
+
+/// The markets a dead tick is judged on: indices into [`observables`], into a county's market
+/// lines, and the mirror's names; labour, land, fodder, horse-days and the good (the horse
+/// market is idle, not dead).
+const DEAD: [(usize, usize, &str); 5] = [
+    (6, 0, "L"),
+    (7, 1, "R"),
+    (8, 2, "Fo"),
+    (10, 4, "H"),
+    (11, 5, "G"),
+];
+
+/// The mirror's percentile: the sorted values' element at ⌊q·n⌋.
+fn pct(v: &[f64], q: f64) -> f64 {
+    let mut s = v.to_vec();
+    s.sort_by(f64::total_cmp);
+    let i = ((q * s.len() as f64) as usize).min(s.len() - 1);
+    s[i]
+}
+
+/// A long run, scored: every county's readouts, the scorer's two tables, and what the run did.
+struct LongRun {
+    counties: Vec<Long>,
+    /// `long-run.csv`: a row a county, in the registered long-run.csv's first 22 columns, then
+    /// the extras.
+    table: String,
+    /// `series.csv`: every 13th tick of every county.
+    series: String,
+    fired: usize,
+    fired_at_end: usize,
+    margin: f64,
+    final_hash: u64,
+    stream_hash: u64,
+    secs: f64,
+    sim: Sim,
+}
+
+/// Run the compiled world `c`'s tape `t` for `until` ticks and score every county every tick
+/// against its own oracle point at the params in force (1g: the compiler's chain point after the
+/// county's last step date), as the registration's mirror (`d2_long.py`) scores it: D̂ over
+/// P2.2a's observables without the horse market's volume; dead ticks (labour, land, fodder,
+/// horse-days or the good below half its oracle volume, or not trading); idle horse-market
+/// ticks, ticks without an order and ticks the maker withheld; transfer shortfalls; troughs;
+/// the heads against the oracle and the desk's own target; the horse's price and the two
+/// markups. Nothing it reads reaches the run (R13).
+fn long_run(c: &Compiled, t: &Tape, until: u64) -> LongRun {
+    use probe::horses::harness::maker_readout;
+    use rustyecon_engine::prelude::{ClassId, SideTag};
+    use rustyecon_engine::rustyecon_agents::Spec;
+    use rustyecon_worldgen::history;
+    let t0 = std::time::Instant::now();
+    let s = stage();
+    let mut sim = Sim::new(t).unwrap_or_else(|e| panic!("{e}"));
+    let w = sim.world().clone();
+    let cl = clock(&c.world);
+    let (kappa, delta) = s.machine.per_tick(&cl);
+    let class = |k: &str| w.id_of::<ClassId>(k).unwrap_or_else(|| panic!("{k}"));
+    let classes = [class("owners"), class("workers")];
+    let good = |k: &str| w.id_of::<GoodId>(k).unwrap_or_else(|| panic!("{k}"));
+    let goods = MARKETS.map(good);
+    let items = [good("good"), good("land")];
+    let mut counties: Vec<Long> = Vec::new();
+    let mut stream = Vec::with_capacity(8 * until as usize);
+    let mut fired = 0usize;
+    let mut fired_at_end = 0usize;
+    let mut margin = 0.0_f64;
+    let mut series = String::from(
+        "county,tick,dhat,prices_dhat,heads_dhat,heads_over_oracle,capacity_over_oracle,\
+         capacity_over_desk_target,horse_price_over_target,maker_markup,hday_markup,\
+         good_over_target\n",
+    );
+    for tick in 0..until {
+        let r = sim.step().unwrap_or_else(|e| panic!("tick {tick}: {e}"));
+        stream.extend_from_slice(&r.hash.to_le_bytes());
+        fired += r.events.len();
+        margin = margin.max(r.audit.max_margin);
+        if tick + 1 == until {
+            fired_at_end = r.events.len();
+        }
+        if tick == 0 {
+            for (run, p) in runs(&sim, c, &r).into_iter().zip(&c.counties) {
+                assert_eq!(run.key, p.county.key);
+                let k = &p.county.key;
+                let provider = w
+                    .id_of::<ActorId>(&format!("{k}.provider"))
+                    .unwrap_or_else(|| panic!("{k}.provider"));
+                let maker = w
+                    .actors
+                    .iter()
+                    .find(|a| a.id == run.actors[2])
+                    .and_then(|a| match &a.spec {
+                        Spec::Maker(m) => Some(m.clone()),
+                        _ => None,
+                    })
+                    .unwrap_or_else(|| panic!("{k}: no maker"));
+                let land_space = |inst: &Instance| {
+                    (
+                        cl.flow(FlowPerYear(inst[Param::Land.index()])),
+                        inst[Param::Space.index()],
+                    )
+                };
+                let mut points = Vec::with_capacity(p.chain.len());
+                let (tl, h) = land_space(&p.county.genesis);
+                let e = &p.chain[0];
+                points.push((0, target_of(e, tl), e.y, e.hours / kappa, h));
+                for (j, (m, _)) in p.points.iter().enumerate() {
+                    let date =
+                        Date::parse(&history::date(&c.world, *m)).unwrap_or_else(|e| panic!("{e}"));
+                    let fires = cl.tick_of(date).unwrap_or_else(|e| panic!("{e}"));
+                    let (tl, h) = land_space(&p.instance_at(*m));
+                    let e = &p.chain[j + 1];
+                    points.push((fires, target_of(e, tl), e.y, e.hours / kappa, h));
+                }
+                assert!(points.windows(2).all(|x| x[0].0 <= x[1].0), "{k}");
+                counties.push(Long::new(
+                    run,
+                    p.county.name.clone(),
+                    provider,
+                    maker,
+                    points,
+                    until as usize,
+                ));
+            }
+            assert_eq!(counties.len(), 93);
+        }
+        // What each household class bought of each basket item at each node this tick.
+        let mut bought: BTreeMap<(NodeId, usize, usize), f64> = BTreeMap::new();
+        for l in &r.rationing {
+            if l.side != SideTag::Buy {
+                continue;
+            }
+            let (Some(h), Some(i)) = (
+                classes.iter().position(|x| *x == l.class),
+                items.iter().position(|x| *x == l.good),
+            ) else {
+                continue;
+            };
+            *bought.entry((l.node, h, i)).or_insert(0.0) += l.filled;
+        }
+        for cty in &mut counties {
+            while cty.at + 1 < cty.points.len() && cty.points[cty.at + 1].0 <= tick {
+                cty.at += 1;
+            }
+            let (_, tg, y_star, heads_star, h) = cty.points[cty.at];
+            cty.run.target = tg;
+            let o = observables(&sim, &r, &cty.run);
+            let gap: Vec<f64> = o
+                .iter()
+                .zip(&tg)
+                .map(|(x, y)| {
+                    if *x > 0.0 && x.is_finite() {
+                        num::ln(x / y).abs()
+                    } else {
+                        f64::INFINITY
+                    }
+                })
+                .collect();
+            let max = |from: usize, to: usize| {
+                (from..to)
+                    .filter(|&i| i != 9)
+                    .map(|i| gap[i])
+                    .fold(0.0, f64::max)
+                    / 1e-3
+            };
+            let dh = max(0, 18);
+            cty.dh.push(dh);
+            cty.fast.push(max(0, 6));
+            cty.stock.push(max(16, 18));
+            let l = cty.run.lines.map(|i| &r.markets[i]);
+            let mut dead = false;
+            for (m, &(i, line, _)) in DEAD.iter().enumerate() {
+                let ratio = o[i] / tg[i];
+                if ratio < cty.low.0 {
+                    cty.low = (ratio, m, tick);
+                }
+                if ratio < 0.5 || !l[line].trades() {
+                    cty.dead_by[m] += 1;
+                    dead = true;
+                }
+            }
+            cty.dead += u64::from(dead);
+            cty.idle += u64::from(o[9] < 0.5 * tg[9]);
+            let cap = match sim.actor_state(cty.run.actors[1]) {
+                Some(ActorState::Capacity(x)) => *x,
+                other => panic!("{}: {other:?}", cty.run.key),
+            };
+            cty.zero_orders += u64::from(cap.order <= 0.0);
+            let price_of = |g: GoodId| goods.iter().position(|x| *x == g).map(|i| l[i].price);
+            let res = maker_readout(&sim, &cty.maker, &price_of).unwrap_or_else(|e| panic!("{e}"));
+            cty.withheld += u64::from(res.withholds);
+            if res.markup < cty.mu_lo.0 {
+                cty.mu_lo = (res.markup, tick);
+            }
+            if let Some(ActorState::Provider(pv)) = sim.actor_state(cty.provider) {
+                if pv.paid < pv.due {
+                    cty.short += 1;
+                    cty.unpaid += (pv.due - pv.paid) / pv.due;
+                }
+            }
+            // Baskets eaten: each household's scarcest item over its weight, as the harness
+            // reads them (the good 1, land h).
+            let mut eaten = 0.0;
+            for hh in 0..2 {
+                let got = |i: usize| bought.get(&(cty.run.node, hh, i)).copied().unwrap_or(0.0);
+                let g = num::max_scale(got(0), 1.0).unwrap_or_else(|e| panic!("{e}"));
+                let sp = num::max_scale(got(1), h).unwrap_or_else(|e| panic!("{e}"));
+                eaten += g.min(sp);
+            }
+            cty.baskets = cty.baskets.min(eaten / y_star);
+            let heads = (o[16] + o[17]) / heads_star;
+            if heads < cty.heads_lo.0 {
+                cty.heads_lo = (heads, tick);
+            }
+            if heads > cty.heads_hi.0 {
+                cty.heads_hi = (heads, tick);
+            }
+            let hc = o[16] / tg[16];
+            cty.hc_lo = cty.hc_lo.min(hc);
+            cty.hc_hi = cty.hc_hi.max(hc);
+            let plan = if cap.target > 0.0 {
+                cap.held / cap.target
+            } else {
+                f64::INFINITY
+            };
+            cty.plan_lo = cty.plan_lo.min(plan);
+            cty.plan_hi = cty.plan_hi.max(plan);
+            let pk = o[2] / tg[2];
+            cty.pk_lo = cty.pk_lo.min(pk);
+            if pk > cty.pk_hi.0 {
+                cty.pk_hi = (pk, tick);
+            }
+            // The horse-day's markup over its full cost at posted prices; the running cost is a
+            // unit of fodder (run.fodder 1, run.labour 0), summed as the capacity desk sums it.
+            let running = (0.0 + 1.0 * l[2].price) + 0.0 * l[0].price;
+            let full = running + delta * l[3].price / kappa;
+            let qr = l[4].price / full - 1.0;
+            cty.qr_lo = cty.qr_lo.min(qr);
+            cty.qr_hi = cty.qr_hi.max(qr);
+            cty.ph_over_o = cty.ph_over_o.min(l[4].price / running);
+            if cap.held > 0.0 {
+                cty.util_lo = cty.util_lo.min(o[13] / (kappa * cap.held));
+            }
+            cty.end = [dh, heads];
+            if tick % 13 == 0 {
+                series.push_str(&format!(
+                    "{},{tick},{dh:e},{:e},{:e},{heads:e},{hc:e},{plan:e},{pk:e},{:e},{qr:e},{:e}\n",
+                    cty.run.key,
+                    cty.fast[cty.fast.len() - 1],
+                    cty.stock[cty.stock.len() - 1],
+                    res.markup,
+                    o[11] / tg[11]
+                ));
+            }
+        }
+    }
+    let secs = t0.elapsed().as_secs_f64();
+    let final_hash = sim.hash();
+    let stream_hash = fnv1a_64(&stream);
+    let mut table = String::from(
+        "county,name,dead,idle_horse,zero_orders,withheld,shortfall_ticks,\
+         lowest_cleared_over_target,lowest_market,dhat_median,dhat_p90,dhat_max,\
+         prices_dhat_median,heads_dhat_median,heads_over_oracle_min,heads_over_oracle_max,\
+         heads_over_oracle_1901,capacity_over_desk_target_min,horse_price_over_target_max,\
+         maker_markup_min,quasi_rent_max,dhat_1901,dead_L,dead_R,dead_Fo,dead_H,dead_G,\
+         lowest_cleared_tick,dhat_max_tick,heads_min_tick,heads_max_tick,\
+         capacity_over_oracle_min,capacity_over_oracle_max,capacity_over_desk_target_max,\
+         horse_price_over_target_min,horse_price_max_tick,maker_markup_min_tick,\
+         quasi_rent_min,lowest_baskets_over_Y,shortfall_unpaid_mean,hday_over_running_min,\
+         utilisation_min\n",
+    );
+    for cty in &counties {
+        let dmax = cty.dh.iter().copied().fold(0.0, f64::max);
+        let dmax_at = cty.dh.iter().position(|&x| x == dmax).unwrap_or(0);
+        let unpaid = if cty.short > 0 {
+            cty.unpaid / cty.short as f64
+        } else {
+            0.0
+        };
+        let row = [
+            cty.run.key.clone(),
+            cty.name.clone(),
+            cty.dead.to_string(),
+            cty.idle.to_string(),
+            cty.zero_orders.to_string(),
+            cty.withheld.to_string(),
+            cty.short.to_string(),
+            format!("{:e}", cty.low.0),
+            DEAD[cty.low.1].2.to_string(),
+            format!("{:e}", pct(&cty.dh, 0.5)),
+            format!("{:e}", pct(&cty.dh, 0.9)),
+            format!("{dmax:e}"),
+            format!("{:e}", pct(&cty.fast, 0.5)),
+            format!("{:e}", pct(&cty.stock, 0.5)),
+            format!("{:e}", cty.heads_lo.0),
+            format!("{:e}", cty.heads_hi.0),
+            format!("{:e}", cty.end[1]),
+            format!("{:e}", cty.plan_lo),
+            format!("{:e}", cty.pk_hi.0),
+            format!("{:e}", cty.mu_lo.0),
+            format!("{:e}", cty.qr_hi),
+            format!("{:e}", cty.end[0]),
+            cty.dead_by[0].to_string(),
+            cty.dead_by[1].to_string(),
+            cty.dead_by[2].to_string(),
+            cty.dead_by[3].to_string(),
+            cty.dead_by[4].to_string(),
+            cty.low.2.to_string(),
+            dmax_at.to_string(),
+            cty.heads_lo.1.to_string(),
+            cty.heads_hi.1.to_string(),
+            format!("{:e}", cty.hc_lo),
+            format!("{:e}", cty.hc_hi),
+            format!("{:e}", cty.plan_hi),
+            format!("{:e}", cty.pk_lo),
+            cty.pk_hi.1.to_string(),
+            cty.mu_lo.1.to_string(),
+            format!("{:e}", cty.qr_lo),
+            format!("{:e}", cty.baskets),
+            format!("{unpaid:e}"),
+            format!("{:e}", cty.ph_over_o),
+            format!("{:e}", cty.util_lo),
+        ];
+        table.push_str(&row.join(","));
+        table.push('\n');
+    }
+    LongRun {
+        counties,
+        table,
+        series,
+        fired,
+        fired_at_end,
+        margin,
+        final_hash,
+        stream_hash,
+        secs,
+        sim,
+    }
+}
+
+#[test]
+fn the_long_run_scorer_reads_the_rest_point() {
+    // D2.4, before any scored run (decision 311): the long run's scorer on the stage with the
+    // history removed, where every county rests at its oracle point, reads that point: D̂ at
+    // rounding, the heads, the horse's price, the capacity desk's holding against its own
+    // target, the baskets eaten and the maker's markup each 1 to 1e-9, the horse-day's markup 0,
+    // and no dead, idle, no-order, withheld or short tick, for two years.
+    let mut tb = tables();
+    tb.history = tb
+        .history
+        .lines()
+        .next()
+        .map_or(String::new(), |h| format!("{h}\n"));
+    let c = compile_stage(&tb, &stage_tables(), &atlas()).unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(c.summary.events, 0);
+    let t = Tape::from_ron(&c.tape).unwrap_or_else(|e| panic!("{e}"));
+    let lr = long_run(&c, &t, 104);
+    assert_eq!(lr.fired, 0);
+    assert!(lr.margin <= 1.0);
+    let one = |x: f64, what: &str, k: &str| {
+        assert!((x - 1.0).abs() <= 1e-9, "{k}: {what} {x}");
+    };
+    for cty in &lr.counties {
+        let k = &cty.run.key;
+        assert_eq!(cty.dh.len(), 104);
+        let dmax = cty.dh.iter().copied().fold(0.0, f64::max);
+        assert!(dmax <= 1e-6, "{k}: D-hat {dmax}");
+        assert_eq!(
+            (cty.dead, cty.idle, cty.zero_orders, cty.withheld, cty.short),
+            (0, 0, 0, 0, 0),
+            "{k}"
+        );
+        for (what, x) in [
+            ("lowest cleared", cty.low.0),
+            ("heads low", cty.heads_lo.0),
+            ("heads high", cty.heads_hi.0),
+            ("capacity low", cty.hc_lo),
+            ("capacity high", cty.hc_hi),
+            ("desk's target low", cty.plan_lo),
+            ("desk's target high", cty.plan_hi),
+            ("horse price low", cty.pk_lo),
+            ("horse price high", cty.pk_hi.0),
+            ("maker's markup", cty.mu_lo.0),
+            ("baskets", cty.baskets),
+            ("utilisation", cty.util_lo),
+            ("heads at the end", cty.end[1]),
+        ] {
+            one(x, what, k);
+        }
+        assert!(
+            cty.qr_lo.abs() <= 1e-9 && cty.qr_hi.abs() <= 1e-9,
+            "{k}: quasi-rent"
+        );
+    }
+    // A row a county, and every 13th tick of each in the series.
+    assert_eq!(lr.table.lines().count(), 94);
+    assert_eq!(lr.series.lines().count(), 1 + 93 * 8);
+    let head: Vec<&str> = lr
+        .table
+        .lines()
+        .next()
+        .unwrap_or_default()
+        .split(',')
+        .collect();
+    assert_eq!(head.len(), 42);
+    assert!(lr.table.lines().all(|l| l.split(',').count() == 42));
+}
+
+#[test]
+#[ignore = "the long run, scored: 1 to 2 minutes in release; scripts/gate.sh runs it by name"]
+fn demo_v2_runs_to_1901() {
+    // WORLD-V2 §11.4 (D2.4): the 93-node run from genesis through the first tick of 1901, scored
+    // by `long_run` as the registration's mirror scores it. It prints a line a county, and with
+    // DEMO_V2_LONG_OUT set it writes long-run.csv and series.csv there for the scorer
+    // (docs/demo/v2/results/). It asserts what must hold (every event fired, the ledger closed,
+    // the pin's hashes, the plans' params at the end) and the registration's refutation for the
+    // long run: no dead tick in any county. Every other line is the scorer's (§11.5's E5).
+    use rustyecon_engine::prelude::ParamId;
+    let c = compiled();
+    let s = stage();
+    let t = tape();
+    let cl = clock(&c.world);
+    let end = cl.tick_of(c.world.end).unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(end, 7_851);
+    let until = end + 1;
+    let lr = long_run(c, t, until);
+    let mut all = Vec::new();
+    for cty in &lr.counties {
+        all.extend_from_slice(&cty.dh);
+        println!(
+            "{:<11} D-hat median {:>7.2} max {:>7.1}  dead {}  idle {}  withheld {}  short {}  \
+             heads {:.3}-{:.3}  lowest {:.3} {}",
+            cty.run.key,
+            pct(&cty.dh, 0.5),
+            cty.dh.iter().copied().fold(0.0, f64::max),
+            cty.dead,
+            cty.idle,
+            cty.withheld,
+            cty.short,
+            cty.heads_lo.0,
+            cty.heads_hi.0,
+            cty.low.0,
+            DEAD[cty.low.1].2
+        );
+    }
+    let mut medians: Vec<f64> = lr.counties.iter().map(|x| pct(&x.dh, 0.5)).collect();
+    medians.sort_by(f64::total_cmp);
+    println!(
+        "\n{} counties, {until} ticks, {} events fired ({} in the horizon's tick), largest \
+         ledger margin {:e}: final hash 0x{:016x}, hash stream 0x{:016x}; the county medians' \
+         median D-hat {:.2}, the county-ticks' {:.2}; {:.1} s",
+        lr.counties.len(),
+        lr.fired,
+        lr.fired_at_end,
+        lr.margin,
+        lr.final_hash,
+        lr.stream_hash,
+        medians[medians.len() / 2],
+        pct(&all, 0.5),
+        lr.secs
+    );
+    if let Some(dir) = std::env::var_os("DEMO_V2_LONG_OUT") {
+        let dir = std::path::PathBuf::from(dir);
+        std::fs::create_dir_all(&dir).unwrap_or_else(|e| panic!("{e}"));
+        for (name, body) in [("long-run.csv", &lr.table), ("series.csv", &lr.series)] {
+            std::fs::write(dir.join(name), body).unwrap_or_else(|e| panic!("{name}: {e}"));
+        }
+        println!("wrote {}", dir.display());
+    }
+    // Every event fired, the ledger closed every tick, and the run is the pinned one.
+    assert_eq!(lr.fired, t.events.len());
+    assert!(lr.fired_at_end > 0);
+    assert!(lr.margin <= 1.0);
+    assert_eq!(
+        (lr.final_hash, lr.stream_hash),
+        (FINAL_HASH, STREAM_HASH),
+        "final 0x{:016x}, stream 0x{:016x}",
+        lr.final_hash,
+        lr.stream_hash
+    );
+    // At the end every county's params are its plan's instance in force from 1901-01-01, mapped.
+    let w = lr.sim.world();
+    let last = i64::from(c.world.end.y - c.world.start.y) * 12;
+    for (cty, p) in lr.counties.iter().zip(&c.counties) {
+        let want = stage_instance(&p.instance_at(last), &s.machine, &cl);
+        for q in StageParam::ALL {
+            let key = format!("{}.{}", cty.run.key, q.key(&s.machine.key));
+            let id = w.id_of::<ParamId>(&key).unwrap_or_else(|| panic!("{key}"));
+            let got = lr.sim.param(id).unwrap_or_else(|| panic!("{key}"));
+            assert_eq!(got.to_bits(), want[q.index()].to_bits(), "{key}");
+        }
+    }
+    // The registration's refutation for the long run (§4): a dead tick in any county.
+    for cty in &lr.counties {
+        assert_eq!(cty.dead, 0, "{}: {} dead ticks", cty.run.key, cty.dead);
+    }
 }

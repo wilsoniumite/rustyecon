@@ -1,0 +1,15 @@
+# E0's sensitivity check (read after E0's output; not a scoring rule): the mirror moved at tick T0 by up to E relative
+# E = 2e-14:
+county.gla@1850 b*2@genesis: 8 twins moved by up to 2e-14 relative at tick 60: largest gap 9.982e-07 (median twin 5.971e-07); but the horse volume 9.437e-08 (median 5.645e-08)
+county.gla@1750 b*2@genesis: 8 twins moved by up to 2e-14 relative at tick 60: largest gap 1.130e-04 (median twin 6.299e-05); but the horse volume 1.082e-05 (median 6.032e-06)
+county.lan@1850 b*2@genesis: 8 twins moved by up to 2e-14 relative at tick 50: largest gap 1.068e-09 (median twin 7.818e-10); but the horse volume 1.182e-10 (median 8.640e-11)
+county.lan@1750 b*2@genesis: 8 twins moved by up to 2e-14 relative at tick 60: largest gap 2.066e-03 (median twin 1.177e-03); but the horse volume 1.733e-04 (median 9.901e-05)
+county.sut@1750 b*2@genesis: 8 twins moved by up to 2e-14 relative at tick 50: largest gap 2.662e-03 (median twin 1.969e-03); but the horse volume 2.552e-04 (median 1.886e-04)
+county.sut@1850 b*2@genesis: 8 twins moved by up to 2e-14 relative at tick 1: largest gap 2.743e-04 (median twin 2.039e-04); but the horse volume 2.820e-05 (median 2.096e-05)
+# E = 5e-13:
+county.lan@1750 b*2@genesis: 8 twins moved by up to 5e-13 relative at tick 60: largest gap 6.522e-02 (median twin 2.489e-02); but the horse volume 6.355e-03 (median 2.066e-03)
+county.sut@1750 b*2@genesis: 8 twins moved by up to 5e-13 relative at tick 50: largest gap 3.944e-02 (median twin 2.514e-02); but the horse volume 3.959e-03 (median 2.478e-03)
+county.lan@1850 b*2@genesis: 8 twins moved by up to 5e-13 relative at tick 50: largest gap 1.467e-08 (median twin 4.389e-09); but the horse volume 1.621e-09 (median 4.776e-10)
+county.gla@1750 b*2@genesis: 8 twins moved by up to 5e-13 relative at tick 60: largest gap 2.745e-03 (median twin 1.562e-03); but the horse volume 2.632e-04 (median 1.497e-04)
+county.sut@1850 b*2@genesis: 8 twins moved by up to 5e-13 relative at tick 1: largest gap 7.261e-03 (median twin 3.726e-03); but the horse volume 7.437e-04 (median 3.836e-04)
+county.gla@1850 b*2@genesis: 8 twins moved by up to 5e-13 relative at tick 60: largest gap 1.050e-05 (median twin 6.054e-06); but the horse volume 9.924e-07 (median 5.723e-07)

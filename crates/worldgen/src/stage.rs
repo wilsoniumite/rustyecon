@@ -795,6 +795,62 @@ pub fn compile_stage_parsed(
     })
 }
 
+/// The battery's dates (WORLD-V2 §11.3; decision 335): each county's instance in force on 1
+/// January of these years, as v1's §3.3 took them.
+pub const BATTERY_YEARS: [i32; 6] = [1750, 1800, 1825, 1850, 1875, 1900];
+
+/// The battery's county instances (WORLD-V2 §11.3; D2.4), as `rustyecon worldgen worlds/demo-gb
+/// --stage v2a1 --instances PATH` writes them for `horses --counties PATH --inst
+/// demo:<key>@<year>`: a tab-separated table, one row a county and battery year in county order,
+/// the county's v1 row in force from the first of that January on (after that month's steps,
+/// [`Plan::instance_at`]), the stage's machine type and the maker's reservation. Rust writes a
+/// double's shortest round-trip form, so every number reads back bit for bit; the probe reads the
+/// table without depending on worldgen.
+pub fn battery_instances(c: &Compiled, s: &Stage) -> Result<String, CompileError> {
+    let psi = s
+        .dial("reserve.maker")
+        .ok_or_else(|| CompileError::new("the stage", "no reserve.maker dial"))?;
+    let m = &s.machine;
+    let mut out = String::new();
+    out.push_str(&format!(
+        "# {}: each county's instance in force on 1 January of {} (docs/demo/WORLD-V2.md 11.3),\n",
+        c.world.name,
+        BATTERY_YEARS.map(|y| y.to_string()).join(", ")
+    ));
+    out.push_str(
+        "# for `horses --counties PATH --inst demo:<id>`. N and T a year; delta and kappa a year.\n",
+    );
+    let mut head = vec!["id", "county", "name", "year", "month"];
+    head.extend(Param::ALL.iter().map(|p| p.column()));
+    head.extend(["delta", "omega", "kappa", "psi"]);
+    out.push_str(&head.join("\t"));
+    out.push('\n');
+    for p in &c.counties {
+        for y in BATTERY_YEARS {
+            let month: Month = i64::from(y - c.world.start.y) * 12;
+            if month < 0 || y > c.world.end.y {
+                return Err(CompileError::new(
+                    format!("battery year {y}"),
+                    "outside the history",
+                ));
+            }
+            let inst = p.instance_at(month);
+            let mut row = vec![
+                format!("{}@{y}", p.county.key),
+                p.county.key.clone(),
+                p.county.name.clone(),
+                y.to_string(),
+                month.to_string(),
+            ];
+            row.extend(inst.iter().map(|v| format!("{v:?}")));
+            row.extend([m.delta, m.omega, m.kappa, psi].map(|v| format!("{v:?}")));
+            out.push_str(&row.join("\t"));
+            out.push('\n');
+        }
+    }
+    Ok(out)
+}
+
 /// The stage's markets at every node, in the order its genesis lists their prices: labour, land,
 /// fodder, the horse, its hours (horse-days) and the good (HORSES-SPEC §7.1's order).
 pub const MARKETS: [&str; 6] = ["labour", "land", "fodder", "horse", "traction", "good"];

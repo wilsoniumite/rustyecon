@@ -15,7 +15,9 @@ merged. **The demo's second pass is built through D2.3b** ("Where things stand")
 remainder fixed (D2.1); the stage in the compiler, `tapes/demo-gb-v2.ron` and its pin
 `0x45b7c1201f8ae633` (D2.2); the 36 lenses, `oracle_gap` and the map on the v2 tape (D2.3); the
 flow path nesting v1 bit for bit, and 16 screenshots of the map (D2.3b). v1's tape and pin are
-unchanged. Decisions 343–355 and O89; the battery and the long run's scoring (D2.4) are next.
+unchanged. Decisions 343–355 and O89. **D2.4 has its harness, scorer and job list committed
+before any scored run**, with E0–E2 run and amendment A1 (L per county-date); decisions 356–359
+and O90. The wave (the battery, the kick sets and the long run, scored) is next.
 **The demo's second pass is designed** (D2.0, docs only; "Where things stand";
 [docs/demo/WORLD-V2.md](docs/demo/WORLD-V2.md)): D-G12 taken, GOODS-CHAIN's stage v2a.1 (rule
 A's horse and fodder) on all 93 counties at C2g and 52 ticks a year with the maker's reservation,
@@ -147,6 +149,29 @@ v2a.1 on every county (D-G12 taken by Claude, decision 320, open to veto), whose
 is next on `demo-v2`. "Next steps" has each.
 
 ## Where things stand
+
+**The battery's harness, the scorer and E0–E2, before any scored run (D2.4; 2026-09-30).**
+Branch `demo-v2`, scratch `D:/rustyecon-d2/run/`; [docs/demo/WORLD-V2.md](docs/demo/WORLD-V2.md)
+§16, [docs/demo/v2/registration-A1.md](docs/demo/v2/registration-A1.md).
+- **The harness runs the demo's county-dates**: `rustyecon worldgen worlds/demo-gb --stage v2a1
+  --instances PATH` writes the 558 rows (each county in force on 1 January of 1750, 1800, 1825,
+  1850, 1875 and 1900), and `horses --counties PATH --inst demo:<key>@<year>` runs one, with the
+  row's ψ as the maker's reservation. The rows are the plans' and the mirror's bit for bit, and
+  the harness's battery drops b × 2 exactly where the registration does: 51,260 runs.
+- **The long run's scorer** is `long_run` in `crates/worldgen/tests/demo_v2.rs`: every county every
+  tick against its moving 1g point, as the mirror scores it. It reads the rest point right with
+  the history removed (`the_long_run_scorer_reads_the_rest_point`). `demo_v2_runs_to_1901` runs it
+  to 1901 and joins `scripts/gate.sh` after the wave (decision 358).
+- **The wave's scorer and job list are committed before the first job** (decision 311):
+  `docs/demo/v2/results/tools/` (make_jobs, job, longjob, gather, score and its self-test, which
+  passes every line on the mirror's own outputs and reproduces the registration's numbers).
+- **Before any scored run**: the engine's elasticity probe puts 200·τ_max above 84,000 at 501 of
+  558 county-dates (land's τ, 409–471 ticks), so amendment A1 lengthens L there, to 85,000–95,000
+  (decision 356). E2's mode A PASSES at all 558 (8.4e-14). E0: nothing parts at tick 1; hold and
+  w × 2 agree within 2.2e-13; the six b × 2 runs part after the maker's withholding, through the
+  horse market's flip-flop, up to 8.5e-2 on its volume, beyond the mirror's ulp spread but
+  within its spread at 25 ulps. Reported as a miss, not re-read (decision 357, O90).
+- Decisions 356–359, O90. Both gates green on WSL and Windows. Next: the wave (E2–E5).
 
 **The flow path nests v1, and the map's screenshots (D2.3b; 2026-09-30).** Branch `demo-v2`;
 [docs/demo/WORLD-V2.md](docs/demo/WORLD-V2.md) §16.
@@ -3582,6 +3607,27 @@ standing word and open to veto.
 355. **The map's screenshots are the GUI's map pane at a clean commit, cropped and quantized**
      (D2.3b): 16 PNGs of about 65 KB, four chain lenses at four dates, rendered headlessly at
      1,600 × 1,000. Alternative: v1's two full windows at 680 KB each.
+356. **The battery's L is each county-date's own, by amendment A1** (D2.4; registration-A1.md;
+     WORLD-V2 §11.3; decision 282): the larger of 84,000 and the engine's 200·τ_max rounded up to
+     a thousand ticks (`run_length`), 84,000–95,000; dated shocks at L/4 and the kicks' horizon L.
+     The predictions stand as registered. Alternative: one length, 95,000, everywhere.
+357. **E0's miss at the six b × 2 runs is reported, not re-read, and the wave goes on** (D2.4):
+     the registration stops the run only for a parting at tick 1, and none parts there. The
+     mirror moved 25 ulps before the flip-flop parts as far as the engine does; that check was
+     made after the output and is disclosed, not a rule. Alternative: an amendment accepting
+     partings within the mirror's own spread, or no wave until the partings are explained.
+358. **The long run's scorer is a worldgen test, `demo_v2_runs_to_1901`, and it joins
+     `scripts/gate.sh` only after the wave** (D2.4; decision 311): no gate before the scorer's
+     commit runs a scored job. It asserts the pin's hashes, every event fired, the ledger, the
+     plans' params at the end and the registration's refutation (no dead tick), and writes the
+     table `score.py` reads; every other long-run line is the scorer's. Alternative: gate it at
+     D2.4's commit.
+359. **The registered lines are read as `score.py` states them, before the wave** (D2.4): E3's
+     "at most three runs a county-date within 25%" charges a run beyond 10% once and lets none
+     pass 25% (decision 305's reading); dead ticks are the union count, within 5 or 10%; the
+     baskets against the mirror's full precision; E5's 5% is relative; §3.3's and §3.4's
+     aggregates are computed by the same code from both sides and reported, not scored.
+     Alternative: score the aggregates too.
 
 ## Open — your calls
 
@@ -4455,6 +4501,14 @@ O89 on are the build's (D2.1 onward), in this branch's range.
   plots its recorded series (the herd, its target, the maker's stock, prices), not a lens's value
   over time, so the herd's catch-up on `horses.vs.oracle` is read off the map date by date. G2's
   plots take a lens series when `crates/observe` exists.
+- **O90. E0 misses at b × 2 after the maker withholds** (D2.4; registration-A1.md §A1.3). At the
+  five E0 counties' funded b × 2 targets, the engine and the mirror agree to 1e-13 until the
+  maker's offer becomes a small difference (its finished stock less its cover band, 1/24 of it at
+  Lancashire 1750). The market then clears the offer one tick and the order the next, and the gap
+  grows about 1.5 times a tick to 8.5e-2 on the horse market's volume and 7e-3 on the other
+  observables. That is beyond the mirror's own ulp spread (6.2e-4) but within its spread when it
+  is moved 25 ulps before the flip-flop. It is O55's chatter seen from the side of rounding. It
+  does not stop a run; E3 scores those runs as registered.
 
 ## Corrections logged (A3; ADDENDUM §1.4)
 
