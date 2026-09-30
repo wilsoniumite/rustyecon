@@ -1,0 +1,5 @@
+c1n p[mach]*0.5: first parting above 1e-12 at tick 41; before it, the largest gap by kind: D:4.4e-15 S:9.6e-13 coin:2.9e-14 participation:9.2e-13 price:1.2e-14 ratio:1.2e-14 share:5.6e-16 stock:9.6e-13 volume:9.6e-13
+the mirror against itself, genesis wage x (1 + 1e-15): largest |ln| 4.670e-08 at (78, 'labour_S')
+the mirror against itself, genesis wage x (1 + 3e-15): largest |ln| 2.187e-14 at (31, 'y.shelter')
+the mirror against itself, genesis wage x (1 + 1e-14): largest |ln| 2.831e-07 at (78, 'labour_S')
+the mirror against itself, genesis wage x (1 + 3e-14): largest |ln| 8.407e-08 at (78, 'labour_S')

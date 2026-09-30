@@ -20,7 +20,10 @@ Tier 3S added from the same mirror; decisions 398–399, O96 amended, O100–O10
 built** (P2.3.6; [docs/probe/COMMONS-RULES.md](docs/probe/COMMONS-RULES.md)): the workers'
 optional `exit`, C1, C2 and C1N on unit 1e, `tapes/markets-c1.ron` and `markets-c2.ron`, the
 harness at the commons and 16 tests, with every committed tape's text, ids and streams unchanged.
-E0, the scorer and the scored wave are next.
+**E0–E2 pass** (P2.3.7–P2.3.9; [docs/probe/results/commons/e0.md](docs/probe/results/commons/e0.md)):
+the engine is the mirror's map to 2.6e-14 at C1 and C2; the negative control's trap run parts from
+tick 41 while staying the mirror's one-step map, under amendments A1 and A2 (A2 written after the
+official run, disclosed). The scorer and the scored wave are next.
 **The wall instance IW1 is built, and E0–E2 pass** (P2.3.2–P2.3.4; "Where things
 stand"; [docs/probe/WALL-RULES.md](docs/probe/WALL-RULES.md),
 [docs/probe/results/wall/e0.md](docs/probe/results/wall/e0.md)): the roles' three optional
@@ -161,6 +164,36 @@ many-market roles (O27), which may now start from the goods chain's stage v2a.1 
 on D-G12. "Next steps" has each.
 
 ## Where things stand
+
+**The open-commons instances' E0–E2, before any scored run (P2.3.7–P2.3.9; 2026-09-30).** Branch
+`phase2-proper`, scratch `D:/rustyecon-p23/build-commons/e0/`. The record:
+[docs/probe/results/commons/e0.md](docs/probe/results/commons/e0.md), with its outputs in `e0/`.
+- **E0 at C1 and C2**: the committed build (`d666f2d`) against the frame's mirror `cm.py`, seven
+  runs of 2,000 ticks, agrees within 2.6e-14 in log in every price, ratio, share, stock, coin, S
+  and D; the workers' participation within 1.0e-14; the plots' regime, rented land and shadow
+  rent equal the mirror's at every tick, through the regime switches. The joint draws are the
+  mirror's (O106's per-seed predictions stand).
+- **E0's trap run.** The negative control's `p[mach]*0.5` parts from tick 41 and by 1.6e-7 at tick
+  78, and runs away at the mirror's tick, 284. The engine is the mirror's one-step map within
+  2.3e-15 at every tick, and before the parting its prices and coins agree within 1.2e-14 and
+  2.9e-14: near zero participation F = ln1p((w − e)/(P_s + e))/χ_max is a small difference of
+  large numbers, and the trap's inflation carries it.
+- **A1** (P2.3.7, `d666f2d`; [registration-A1.md](docs/probe/results/commons/registration-A1.md),
+  sha256 `4fefa0a4…f98e`), written after the development trace diff and committed before the
+  official run, reads such a run. Its second condition named a mirror move of 1e-15, which parts
+  the mirror by 4.7e-8, short of the engine's 1.6e-7, as A1's own evidence said. **A2** (P2.3.8,
+  `bdd9e78`; [registration-A2.md](docs/probe/results/commons/registration-A2.md), sha256
+  `a4d08a07…1eee`), written after the official run and disclosed as such, replaces it: before the
+  first parting every price and coin within 1e-13. Under A1 alone E0 would not pass on that run.
+- **E1 holds** (P2.3.6): every committed tape's text, ids and stream on both machines, the pins,
+  the nesting tests.
+- **E2 holds.** The rest point within 1e-12 at 78 points. Mode A at L passes: largest gaps 2.0e-15
+  (C1) and 5.6e-16 (C2) at 52 a year, 3.1e-14 and 2.2e-16 at 12, 5.1e-15 and 6.7e-16 at 365. The
+  base kick sets pass (largest tail gain 1.3e-5). The engine's elasticity probe gives the frame's
+  τ to the printed digit (care's 703.3 and 705.4 ticks), so L is the registered 141,000 and
+  142,000.
+- **Next** (next step 7): the scorer, its gather script and job list committed before the wave
+  (decision 311), then the scored wave E3–E9 on C1, C2 and C1N, beside the wall's.
 
 **The open-commons instances' build (P2.3.6; 2026-09-30).** Branch `phase2-proper` (worktree
 `D:/rustyecon-wt/p23`, scratch `D:/rustyecon-p23/build-commons/`). As built:
@@ -4810,7 +4843,9 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
         chooses it, and it is registered and built before the instance's registration (O96).
         *Registered at P2.3.5:* C1 and C2, with the scan's answer, the commons as no market,
         built into the same step (decisions 398–399; docs/probe/results/commons/registration.md).
-        The build, E0, the scorer and the scored wave follow, in that order.
+        *Built at P2.3.6* (docs/probe/COMMONS-RULES.md); *E0–E2 pass at P2.3.9* under
+        amendments A1 and A2 (docs/probe/results/commons/e0.md). The scorer and the scored wave
+        follow, in that order.
    3. **Later**: the 1750-like instance takes the common basket (388), 1f's tax bases and
       closure if it has a government (382–386), C2g for any machine stock (391), capital's time
       unscored (392), and each addendum of O95 before the feature that needs it.

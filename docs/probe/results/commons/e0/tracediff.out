@@ -1,0 +1,59 @@
+E0: the engine against cm.py, 2000 ticks, C2m, 52 a year (label build-commons, 2026-09-30)
+Gaps are |ln(engine/mirror)|; the commons' regime, T_p and r_o/r are compared apart.
+run	ticks	worst	at (tick, name, engine, mirror)	the mirror against itself, one ulp apart	worst by kind	partings above 1e-12	regime ticks unequal	T_p worst (abs)	r_o/r worst (abs)	the mirror's regimes
+c1 hold	2000	2.887e-15	(24, 'coin_provider', 19.929208142680345, 19.9292081426804)	2.220e-15	D:1.8e-15 S:1.1e-15 coin:2.9e-15 participation:0.0e+00 price:2.0e-15 ratio:2.0e-15 share:0.0e+00 stock:1.1e-15 volume:1.1e-15	0	0	0.000e+00	2.887e-15	{'Crowded': 2000}
+c1 p[labour]*2	2000	1.565e-14	(173, 'mach_S', 3.348840824757332, 3.348840824757384)	1.554e-14	D:1.0e-14 S:1.6e-14 coin:1.0e-14 participation:1.3e-15 price:7.4e-15 ratio:7.7e-15 share:2.0e-15 stock:1.1e-14 volume:1.2e-14	0	0	1.110e-16	1.543e-14	{'Commons': 11, 'Crowded': 1968, 'Enclosed': 21}
+c1 JB(0.5)	2000	2.598e-14	(9, 'y.manufactures', 0.03646876601658604, 0.03646876601658509)	1.310e-14	D:8.4e-15 S:2.6e-14 coin:1.4e-14 participation:1.1e-15 price:8.4e-15 ratio:7.5e-15 share:3.4e-15 stock:2.6e-14 volume:2.6e-14	0	0	5.551e-17	2.054e-14	{'Crowded': 1871, 'Commons': 117, 'Enclosed': 12}
+c1 commons=48.6@genesis	2000	1.454e-14	(230, 'y.shelter', 4.516178718731586, 4.516178718731652)	1.232e-14	D:7.1e-15 S:1.5e-14 coin:1.1e-14 participation:6.9e-15 price:1.1e-14 ratio:9.5e-15 share:4.3e-15 stock:1.5e-14 volume:1.2e-14	0	0	0.000e+00	0.000e+00	{'Commons': 2000}
+c1 commons=12.15@genesis	2000	1.599e-14	(1972, 'coin_provider', 20.2951028482948, 20.295102848294476)	1.643e-14	D:9.5e-15 S:1.1e-14 coin:1.6e-14 participation:1.0e-14 price:7.1e-15 ratio:1.1e-14 share:1.8e-15 stock:1.1e-14 volume:1.0e-14	0	0	9.992e-16	0.000e+00	{'Enclosed': 2000}
+c2 hold	2000	8.882e-16	(5, 'coin_desk.mach', 20.768373008526833, 20.768373008526815)	5.551e-16	D:4.4e-16 S:4.4e-16 coin:8.9e-16 participation:0.0e+00 price:0.0e+00 ratio:0.0e+00 share:0.0e+00 stock:6.7e-16 volume:3.3e-16	0	0	0.000e+00	0.000e+00	{'Commons': 2000}
+c2 p[labour]*2	2000	1.377e-14	(1015, 'coin_provider', 19.93264319106842, 19.932643191068145)	1.521e-14	D:9.3e-15 S:1.2e-14 coin:1.4e-14 participation:7.5e-15 price:7.8e-15 ratio:9.5e-15 share:1.1e-15 stock:1.2e-14 volume:1.1e-14	0	0	0.000e+00	0.000e+00	{'Commons': 2000}
+c1n p[mach]*0.5	285	1.620e-07	(78, 'labour_S', 0.07064275277444579, 0.07064274133330053)	5.742e-12	D:1.8e-08 S:1.6e-07 coin:1.8e-08 participation:1.6e-07 price:5.7e-09 ratio:5.7e-09 share:5.6e-16 stock:5.2e-10 volume:9.0e-08	5784	0	1.545e-09	4.441e-16	{'Commons': 7, 'Crowded': 7, 'Enclosed': 271}
+
+The joint draws:
+c1 joint(2,1)	prices 0.000e+00	shares 0.000e+00 (largest |ln| harness/mirror)
+c1 joint(4,1)	prices 0.000e+00	shares 0.000e+00 (largest |ln| harness/mirror)
+c2 joint(2,1)	prices 0.000e+00	shares 0.000e+00 (largest |ln| harness/mirror)
+c2 joint(4,1)	prices 2.220e-16	shares 0.000e+00 (largest |ln| harness/mirror)
+
+Every parting above 1e-12 (the first 40 a run):
+c1n p[mach]*0.5	tick 41	y.manufactures	engine 0.15610610968639124	mirror 0.1561061096860042	absolute 3.871e-13	mirror one ulp apart 6.661e-16
+c1n p[mach]*0.5	tick 41	y.food	engine 0.08181382842412513	mirror 0.08181382842392207	absolute 2.031e-13	mirror one ulp apart 6.661e-16
+c1n p[mach]*0.5	tick 41	y.care	engine 0.013685591536863205	mirror 0.013685591536829292	absolute 3.391e-14	mirror one ulp apart 6.661e-16
+c1n p[mach]*0.5	tick 41	y.shelter	engine 0.037302271898560585	mirror 0.03730227189846795	absolute 9.263e-14	mirror one ulp apart 6.661e-16
+c1n p[mach]*0.5	tick 41	vol.labour	engine 0.021155039083996748	mirror 0.021155039084052963	absolute 5.622e-14	mirror one ulp apart 0.000e+00
+c1n p[mach]*0.5	tick 41	vol.mach	engine 0.08471415441634972	mirror 0.08471415441613958	absolute 2.101e-13	mirror one ulp apart 6.661e-16
+c1n p[mach]*0.5	tick 41	y.mach	engine 0.21566671210230057	mirror 0.21566671210287666	absolute 5.761e-13	mirror one ulp apart 4.441e-16
+c1n p[mach]*0.5	tick 41	labour_S	engine 0.021155039083996748	mirror 0.021155039084052963	absolute 5.622e-14	mirror one ulp apart 0.000e+00
+c1n p[mach]*0.5	tick 41	mach_S	engine 0.08471415441634972	mirror 0.08471415441613958	absolute 2.101e-13	mirror one ulp apart 6.661e-16
+c1n p[mach]*0.5	tick 41	part_workers	engine 0.005288759770999187	mirror 0.005288759771013241	absolute 1.405e-14	mirror one ulp apart 0.000e+00
+c1n p[mach]*0.5	tick 42	y.manufactures	engine 0.15376083693305176	mirror 0.15376083693413523	absolute 1.083e-12	mirror one ulp apart 7.772e-16
+c1n p[mach]*0.5	tick 42	y.food	engine 0.07959521817827925	mirror 0.07959521817884085	absolute 5.616e-13	mirror one ulp apart 1.110e-15
+c1n p[mach]*0.5	tick 42	y.care	engine 0.013180816122476569	mirror 0.013180816122569489	absolute 9.292e-14	mirror one ulp apart 2.220e-16
+c1n p[mach]*0.5	tick 42	y.shelter	engine 0.03596493137967444	mirror 0.035964931379928344	absolute 2.539e-13	mirror one ulp apart 6.661e-16
+c1n p[mach]*0.5	tick 42	vol.labour	engine 0.019651623816691124	mirror 0.019651623816521684	absolute 1.694e-13	mirror one ulp apart 2.220e-16
+c1n p[mach]*0.5	tick 42	vol.manufactures	engine 0.15610610968639124	mirror 0.1561061096860042	absolute 3.871e-13	mirror one ulp apart 6.661e-16
+c1n p[mach]*0.5	tick 42	vol.food	engine 0.08181382842412513	mirror 0.08181382842392207	absolute 2.031e-13	mirror one ulp apart 6.661e-16
+c1n p[mach]*0.5	tick 42	vol.care	engine 0.013685591536863205	mirror 0.013685591536829292	absolute 3.391e-14	mirror one ulp apart 6.661e-16
+c1n p[mach]*0.5	tick 42	vol.shelter	engine 0.037302271898560585	mirror 0.03730227189846795	absolute 9.263e-14	mirror one ulp apart 6.661e-16
+c1n p[mach]*0.5	tick 42	vol.mach	engine 0.08295631752070425	mirror 0.08295631752128915	absolute 5.849e-13	mirror one ulp apart 6.661e-16
+c1n p[mach]*0.5	tick 42	y.mach	engine 0.2045820713690923	mirror 0.2045820713673202	absolute 1.772e-12	mirror one ulp apart 4.441e-16
+c1n p[mach]*0.5	tick 42	labour_S	engine 0.019651623816691124	mirror 0.019651623816521684	absolute 1.694e-13	mirror one ulp apart 2.220e-16
+c1n p[mach]*0.5	tick 42	manufactures_S	engine 0.15610610968639124	mirror 0.1561061096860042	absolute 3.871e-13	mirror one ulp apart 6.661e-16
+c1n p[mach]*0.5	tick 42	food_S	engine 0.08181382842412513	mirror 0.08181382842392207	absolute 2.031e-13	mirror one ulp apart 6.661e-16
+c1n p[mach]*0.5	tick 42	care_S	engine 0.013685591536863205	mirror 0.013685591536829292	absolute 3.391e-14	mirror one ulp apart 6.661e-16
+c1n p[mach]*0.5	tick 42	shelter_S	engine 0.037302271898560585	mirror 0.03730227189846795	absolute 9.263e-14	mirror one ulp apart 6.661e-16
+c1n p[mach]*0.5	tick 42	mach_S	engine 0.08295631752070426	mirror 0.08295631752128915	absolute 5.849e-13	mirror one ulp apart 6.661e-16
+c1n p[mach]*0.5	tick 42	part_workers	engine 0.004912905954172781	mirror 0.004912905954130421	absolute 4.236e-14	mirror one ulp apart 2.220e-16
+c1n p[mach]*0.5	tick 43	y.manufactures	engine 0.14467409985628277	mirror 0.14467409985293503	absolute 3.348e-12	mirror one ulp apart 1.332e-15
+c1n p[mach]*0.5	tick 43	y.food	engine 0.07409199608370387	mirror 0.07409199608198758	absolute 1.716e-12	mirror one ulp apart 1.110e-15
+c1n p[mach]*0.5	tick 43	y.care	engine 0.01214134679606114	mirror 0.012141346795780144	absolute 2.810e-13	mirror one ulp apart 8.882e-16
+c1n p[mach]*0.5	tick 43	y.shelter	engine 0.03319566214318548	mirror 0.03319566214241617	absolute 7.693e-13	mirror one ulp apart 8.882e-16
+c1n p[mach]*0.5	tick 43	vol.labour	engine 0.01935080277553838	mirror 0.01935080277610091	absolute 5.625e-13	mirror one ulp apart 0.000e+00
+c1n p[mach]*0.5	tick 43	vol.manufactures	engine 0.15376083693305176	mirror 0.15376083693413523	absolute 1.083e-12	mirror one ulp apart 7.772e-16
+c1n p[mach]*0.5	tick 43	vol.food	engine 0.07959521817827925	mirror 0.07959521817884085	absolute 5.616e-13	mirror one ulp apart 1.110e-15
+c1n p[mach]*0.5	tick 43	vol.care	engine 0.013180816122476569	mirror 0.013180816122569489	absolute 9.292e-14	mirror one ulp apart 2.220e-16
+c1n p[mach]*0.5	tick 43	vol.shelter	engine 0.03596493137967444	mirror 0.035964931379928344	absolute 2.539e-13	mirror one ulp apart 6.661e-16
+c1n p[mach]*0.5	tick 43	vol.mach	engine 0.07765995469461742	mirror 0.0776599546928195	absolute 1.798e-12	mirror one ulp apart 1.110e-15
+c1n p[mach]*0.5	tick 43	y.mach	engine 0.20569017036539214	mirror 0.2056901703713951	absolute 6.003e-12	mirror one ulp apart 2.220e-16
+c1n p[mach]*0.5	tick 43	labour_S	engine 0.01935080277553838	mirror 0.01935080277610091	absolute 5.625e-13	mirror one ulp apart 0.000e+00

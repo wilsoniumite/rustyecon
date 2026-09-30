@@ -1,0 +1,38 @@
+build-commons mutant sweep (2026-09-30): mutate_c.py, 30 mutants, three passes on WSL release.
+Pass 1 (mutants.out, stopped cleanly by SIGINT after C8 to relaunch detached; files restored):
+C1 the workers ignore their exit: KILLED fails: plots_rent_enclosed_land, commons_rest_at_the_oracle, commons_hold_at_the_oracle_point, harness_reads_the_rule_the_workers_act_on
+C2 the commons regime tests the paid supply: KILLED fails: plots_rent_enclosed_land, commons_rule_is_unit_1e_supply, commons_hold_at_the_oracle_point, commons_rest_at_the_oracle
+C3 e_r rounded twice, not by fma: SURVIVED
+C4 a crowded commons offers n(0): KILLED fails: plots_rent_enclosed_land, commons_rule_is_unit_1e_supply, commons_rest_at_the_oracle, commons_hold_at_the_oracle_point
+C5 the plots rent without the commons: KILLED fails: plots_rent_enclosed_land, commons_rule_is_unit_1e_supply, commons_rest_at_the_oracle
+C6 the split rents plots: KILLED fails: plots_rent_enclosed_land, commons_rule_is_unit_1e_supply, harness_reads_the_rule_the_workers_act_on
+C7 a plot pays at equality: KILLED fails: plots_rent_enclosed_land, many_roles_never_overbudget_or_overdraw, commons_rule_is_unit_1e_supply, harness_reads_the_rule_the_workers_act_on
+C8 no land order for the plots: KILLED fails: plots_rent_enclosed_land, commons_rest_at_the_oracle, harness_reads_the_rule_the_workers_act_on
+Pass 2 (mutants2.out, C3 and C9-C30; plots_rent_enclosed_land had gained its 2,000 fma draws):
+C3 e_r rounded twice, not by fma: KILLED fails: plots_rent_enclosed_land
+C9 the baskets ignore the plots' rent: KILLED fails: plots_rent_enclosed_land, commons_rest_at_the_oracle
+C10 the rent is not capped by the coin: KILLED fails: plots_rent_enclosed_land, many_roles_never_overbudget_or_overdraw
+C11 produce leaves the plots' land: KILLED fails: plots_rent_enclosed_land
+C12 the state holds hours/N: KILLED fails: workers_without_exit_are_p21s
+C13 the resolved exit is written when absent: KILLED fails: commons_specs_round_trip_and_old_worlds_keep_their_ids, wall_specs_round_trip_and_old_worlds_keep_their_ids, commons_leave_the_other_markets_tapes_ids, markets_tapes_keep_their_world_ids
+C14 the raw exit is written when absent: KILLED fails: commons_specs_round_trip_and_old_worlds_keep_their_ids, commons_leave_the_other_markets_tapes_ids, markets_tapes_keep_their_world_ids
+C15 the exit good need not be in the basket: KILLED fails: exit_is_checked_at_load
+C16 the plots' land may be a basket item: SURVIVED
+C17 the plots' land need not be Instant: KILLED fails: exit_is_checked_at_load
+C18 the plots' land need not be the provider's: KILLED fails: exit_is_checked_at_load
+C19 no land for every plot: KILLED fails: exit_is_checked_at_load
+C20 the workers' genesis coin leaves out the rent: KILLED fails: commons_genesis_is_unit_1e, commons_rest_at_the_oracle
+C21 the land target is the registered T: KILLED fails: commons_grammar_applies_as_named
+C22 the commons' start distance is point-based: SURVIVED
+C23 the shadow rent's inverse misread: KILLED fails: commons_rest_at_the_oracle
+C24 the split read as its own label: KILLED fails: commons_rule_is_unit_1e_supply
+C25 joint draws in the markets' order at the commons: KILLED fails: commons_grammar_applies_as_named
+C26 enclosure leaves the commons: KILLED fails: commons_grammar_applies_as_named
+C27 a share past 1 is kept: KILLED fails: commons_grammar_applies_as_named, commons_battery_and_families_are_the_registered_ones
+C28 the history family cycles land.mach alone: KILLED fails: commons_battery_and_families_are_the_registered_ones
+C29 the exit good is the first category: KILLED fails: commons_battery_and_families_are_the_registered_ones, commons_points_are_the_registered_ones, commons_tapes_are_their_generators_output, commons_genesis_is_unit_1e, commons_rule_is_unit_1e_supply, commons_hold_at_the_oracle_point, commons_rest_at_the_oracle
+C30 the provider's target baskets leave out the plots' rent: KILLED fails: commons_genesis_is_unit_1e
+Pass 3 (mutants3.out, the two survivors after their tests were strengthened: exit_is_checked_at_load reads the basket-item message, commons_grammar_applies_as_named checks the start distance at all 26 shocks):
+C16 the plots' land may be a basket item: KILLED fails: exit_is_checked_at_load
+C22 the commons' start distance is point-based: KILLED fails: commons_grammar_applies_as_named
+Final: 30 of 30 killed by the committed tests (C3, C16 and C22 by the strengthened ones).

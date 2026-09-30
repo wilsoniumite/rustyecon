@@ -1,0 +1,2 @@
+markets binary: 6c6fea749bcd094fda2923ae100223cd2620580e1c010551ffed411efcd59bca
+SHA256SUMS entries not OK: 0

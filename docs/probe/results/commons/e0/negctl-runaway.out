@@ -1,0 +1,2 @@
+run	class	d0	E1	E2	E3	E4	kappa	max_W	last	in_tol_from	dead	dead_W	dead_F	band_v	r_end	peak_dhat	peak_tick	worst_fill	low_baskets	low_baskets_tick	no_basket_ticks	transfer_short	transfer_short_ticks	depth_eq	depth_trough_y0	depth_trough_y1	lowest_market	mode_a	why
+p[mach]*0.5	DIVERGED	6.931472e2	inf	NaN	NaN	NaN	NaN	NaN	inf	-	281	0	0	NaN	1.841700e-3	inf	46	0.000000e0	0.000000e0	47	238	1.334087e8	269	-	-	-	labour:0.000000e0	-	the price of shelter left the runaway bound at tick 284: 1.0142708523566369e6 of genesis
