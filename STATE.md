@@ -10,8 +10,14 @@ the tape's schema is [docs/TAPE.md](docs/TAPE.md), and the GUI's design is
 **Collaboration:** as in laborformal. Sequencing, engineering and drafting are delegated to
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
-**State as of:** 2026-09-30, on branch `phase2-plants` from `reboot` at `8b07c8a`, not pushed or
-merged. **P2.2b, the loops, is closed** (P2.2b.4; "Where things stand";
+**State as of:** 2026-09-30, on branch `phase2-proper` from `reboot` at `f7d1eae`, not pushed or
+merged. **Phase 2 proper opens with its rulings** (P2.3.0, docs only; "Where things stand"): the
+decisions next step 7 waited on are taken by Claude on your word as decisions 360–393, each open
+to veto, with the probe reports' recommendations (MARKETS §6 keeps 67 and 70); O95 and O96 are
+new. It opens on two loop-free instances at C2m, 52 ticks a year and ρ 0: a solved wall under
+1d's dependence form, and an open commons under s(q) with idle land at zero rent (next step 7).
+Before it, on branch `phase2-plants` from `reboot` at `8b07c8a`, now in `reboot` at `f7d1eae`:
+**P2.2b, the loops, is closed** (P2.2b.4; "Where things stand";
 [docs/probe/LOOPS.md](docs/probe/LOOPS.md)): GO for rule B's horse loop at chain8 at C2g and 52
 ticks a year, with CAPACITY's plant on every loop desk and the maker's reservation together, as
 its two reviews narrow it. Both reviews found that the verdict holds. Their three majors and five
@@ -127,12 +133,30 @@ left, O37; unit 1g in the lab, O38); your rulings on 1g's decisions and its re-c
 rulings on P2.2b's decisions 286–311 (the loops, closed GO at chain8) and on 284 as 308 narrows
 it; on the goods chain's line, storable running goods (O51) and a funded steam county (O62)
 before a loop enters the 1750-like instance by its own registration; Phase 2 proper on loop-free
-wall and commons instances, after your rulings on the
-decisions that bind it; the demo's second pass, with goods, machine types and carriers, on the
+wall and commons instances, whose rulings Claude took at P2.3.0 (decisions 360–393, open to
+veto); the demo's second pass, with goods, machine types and carriers, on the
 many-market roles (O27), which may now start from the goods chain's stage v2a.1 on your ruling
 on D-G12. "Next steps" has each.
 
 ## Where things stand
+
+**Phase 2 proper's rulings (P2.3.0; 2026-09-30).** Branch `phase2-proper` (worktree
+`D:/rustyecon-wt/p23`) from `reboot` at `f7d1eae`. Docs only: this file.
+- **The rulings.** Next step 7 waited on 34 rulings: 61, 67 and 70 from 1b and 1c, 118–123 from
+  the markets probe, those of 1d–1f marked "Binds Phase 2", 179 (D-G1) and 186 from 1g, and
+  GOODS-CHAIN's D-G13 to D-G15. Claude took them on your word as decisions 360–393, each open to
+  veto. 30 are taken as proposed, some with what they mean for the agents: the pool's market
+  form is the frame's call (371), and a crowded commons' shadow rent must be posted (374). Four
+  are amended: O22's families run first and the new instances carry a stocks tier (368); the
+  wall's distance from each edge is registered (370); the commons instance is certified by 1e's
+  Proposition 5 (378); and ρ 0 extends to Phase 2 proper's first instances (393).
+- **What they fix for this run.** The wall instance takes 1d's dependence form, since a walled
+  type has no solve under s(q) (377). The commons instance takes s(q), every type pooled, food as
+  its exit good. Both run at C2m, 52 ticks a year and ρ 0, with the fixed basket in the oracle
+  and the agents (364, 366, 387, 393). Machine stocks, when they come, run at C2g (391).
+- **New open items.** O95 lists the oracle addenda that later instances need. O96 is the land
+  market at zero rent, whose remedy a mirror scan chooses before the commons instance is
+  registered.
 
 **P2.2b's reviews, fix round and report (P2.2b.4; 2026-09-30). P2.2b is closed.** Branch
 `phase2-plants` (worktree `D:/rustyecon-wt/p2b`, scratch `D:/rustyecon-p2b/fix-report/`). The
@@ -2915,6 +2939,7 @@ Decisions 220–239 are the stocks probe's (P2.2a, 2026-09-28, branch `phase2-go
 docs/probe/HORSES.md §6). 220–233 are HORSES-SPEC §9's, taken as the frame registered them before
 any run, each with what the run found; 234–239 are the report's. GOODS-CHAIN's D-G2 to D-G8,
 D-G11 and D-G13 to D-G15 were taken as proposed, not ruled; they stay yours (next step 6).
+*Amended at P2.3.0:* D-G11 was ruled by Claude as 285, and D-G13 to D-G15 as 391–393.
 
 220. **The instances** (HORSES-SPEC §1.1): A0, Appendix B's county under GOODS-CHAIN's rule A, at δ
      10% and 8% a year and ω ½ and 1, J_b 1 tick, ρ 0, carries the verdict (H1–H4); δ 4% (P2),
@@ -3334,6 +3359,154 @@ on your standing word and open to veto.
      `runs.tsv` byte for byte with `gather_gz.py`, and `score_fc.py` fails E11's aggregate closed.
      Alternative: the scratch stamp, as at P2.2b.3.
 
+Decisions 360–393 are P2.3.0's (2026-09-30, branch `phase2-proper` from `reboot` at `f7d1eae`):
+the rulings next step 7 named before Phase 2 proper, taken by Claude on your word of 2026-09-26
+("I leave all those calls up to you") and 2026-09-27 ("You can keep going beyond the gates"). They
+are 61, 67 and 70 (1b, 1c); 118–123 (the markets probe); 135, 137, 139, 140, 147, 149, 151,
+153–155, 158, 160, 161, 162, 164, 165, 167–169 and 173 (1d–1f); 179 (which is D-G1) and 186 (1g);
+and GOODS-CHAIN's D-G13 to D-G15. The probe reports' recommendations weigh: MARKETS §6 keeps 67 and
+70. Each line says whether the ruling is taken as proposed or amended, why, and the alternative.
+All are open to veto; a veto of one reopens the instance or the oracle unit it names, not a
+committed run. This line numbers 360–399 and O95–O109; other lines number below them.
+
+360. **61 taken: cells stay out of the equilibrium, and their addendum will be 1b's.** Phase 2
+     proper's instances keep 1a's continuous line, on which the markets probe's desks converge and
+     every stability number rests (MARKETS §6); human-required work enters as 1d's hours, not as
+     cells. When an instance first needs the agents' own cells, a 1b addendum solves the
+     marginal cell's split (1b's cell block already prices cells, and machine types enter only
+     through π), nests through 1c–1g (decision 63) and gets a probe of its own (O95).
+     Alternative: a 1c addendum, before any instance needs it.
+361. **67 taken, as 179 rewords it.** Machine recipes use machine services, labour and land only,
+     so the wall and commons instances carry no loop, as I1–I3 carried none; the markets probe's
+     GO depends on it (MARKETS §6). Alternative: machines built from categories (G5), which gives
+     every multi-category instance the goods-and-machines loop P2.1 found NO-GO.
+362. **70 taken: multiple equilibria are refused.** It held on every markets instance, and the
+     agents' zero is a dead state, not an equilibrium. Phase 2 proper uses only economies the
+     oracle solves with one equilibrium, so each run has one point to reach (378 for the priced
+     form). Alternative: report every equilibrium and let Phase 2 say which the agents reach,
+     which needs a basin map per instance first.
+363. **118 taken: P2.1 stays closed, many markets GO for loop-free economies, a loop NO-GO, no
+     fallback.** A11's kill condition is not met, and P2.2a and P2.2b since passed on stocks and
+     plants. Alternative: read the loop's NO-GO as A11's failing mode B.
+364. **119 taken: C2m is the default for flow instances, and C2L is not adopted.** The wall and
+     commons instances run at C2m, C2 per role, so each labour market takes labour's 5.2 a year;
+     instances with machine stocks run at C2g (391). Alternative: C2L's type rates and tilt, never
+     run on I1–I3.
+365. **120 taken as 284 amends it and 308 narrows it.** No instance of this run carries a loop of
+     produced inputs; a loop enters Phase 2 only on plants, with the reservation on, through its
+     own registration. Alternative: 120 as first written, every loop in Phase 3.
+366. **121 taken: the weekly tick is Phase 2 proper's default** (and, by 237, the floor with
+     machine stocks). At 12 a year I2 is unstable and I1 needs 13 times the years. Alternative:
+     monthly ticks with the dials restated per tick length, which needs a probe of its own.
+367. **122 taken: the markets report keeps its task's names**, MARKETS-RULES.md as registered.
+     Alternative: amend MARKETS-RULES §7 as well.
+368. **123 taken, amended: O22's families run first, and a stocks tier joins the new verdicts.**
+     The families run on I1–I3 as registered, stocks first, before the wall and commons
+     batteries. The two new instances carry a stocks tier in the verdict (every desk's coin and
+     stock × 0.5 and × 2, P2.2a's Tier 3S, decision 229), since O22 finds stocks matter most for
+     the chain and the zero. Alternative: 123 as written, with stocks a family.
+369. **135 taken: worker types share one capability shape, with an efficiency each and reserved
+     tasks.** The wall instance's desks carry productivity by type in this form: ε_i times the
+     common line, and cells reserved to one type. Alternative: a schedule per type, whose
+     I-dimensional solve has no uniqueness proof.
+370. **137 taken, amended: the wall instance is a solved wall, with its distance from each edge
+     registered.** It sits strictly inside its stretch: the pool's wage above v(1) and below the
+     ceiling where 1d turns `LaborShort`, or a type at its wall with its wage above ε_i·v and
+     short of a reserved shortage's edge. The frame registers both gaps at genesis and at every
+     cost target, since a shocked point at either edge has a vertical supply the agents may not
+     reach, and near the ceiling a wage ill-conditioned in the data (O30). Alternative: 137 as
+     written, the gaps unregistered.
+371. **139 taken: per-type hours are compared through each type's supply at the oracle's wages,
+     or in total.** Pooled types are perfect substitutes, so who works which pool task is no
+     oracle output. Whether the pool trades as one market in efficiency hours or as one market
+     per type is the frame's call; neither split is scored. Alternative: per-type hours by task,
+     which the model does not determine.
+372. **140 taken: machine recipes buy pool labour only.** The wall instance's type desks buy pool
+     hours. Trained machine builders couple the walk and the (O, V) system and wait for a 1d
+     addendum (O95). Alternative: that addendum before the wall instance.
+373. **147 taken: parcels are efficiency units.** A tape's parcel quality scales its service, and
+     the commons instance compares land in totals, not by which parcel idles, which the oracle
+     sets by convention. Alternative: a Ricardian working cost per acre, which no source gives.
+374. **149 taken: one participation rule for both exit forms.** Under s(q) a pop's share is
+     F(ln((ν·P_s + w)/(ν·P_s + p_g·s(q)))), at the rent its plot pays: 0 on a commons with room,
+     the shadow rent when it is crowded, the market's rent on enclosed land. Agents read only
+     posted prices (R13), so a crowded commons' shadow rent must be posted, a price that moves
+     with plot demand and pays no one (156); how is the frame's. Alternative: a rule per form.
+375. **151 taken: the exit good is one category, named on the tape.** The commons instance names
+     food, a category with tasks and direct land, and q = r/p_g in its units. Alternative: a
+     bundle of goods.
+376. **153 taken: idle land at zero rent is compared in wage units.** The commons instance rests
+     neither on a free good's absent outputs nor on the walk's ceiling, which is refused. The
+     agents' land market at zero rent needs an answer first: under `Saturate` its unsold price
+     falls to the runaway bound. It is chosen without a clamp by a mirror scan and registered
+     before its build, as L0 chose the maker's reservation (O96). Alternative: 1d's
+     `LaborShort` refusal kept, with no idle-land instance.
+377. **154 taken: no reserved tasks under the priced form, for now.** The wall instance needs a
+     walled type, since only a walled type's labour market has a price of its own (371), so it
+     takes 1d's dependence form, the named alternative with its own gate (ADDENDUM A8); the
+     commons instance under s(q) pools every type. A walled type under s(q) needs 1e's addendum
+     before the 1750-like instance carries one (O95). Alternative: that addendum first, and the
+     wall instance under s(q).
+378. **155 taken, amended: the commons instance is chosen certified.** Where the priced form lets
+     supply fall, the count is exact only under 1e's Proposition 5 (ρ 0, an exit good with
+     direct land, h_i ≤ s₀,i·b̄_g and h_i·ℓ₀ ≤ ε_i, one plot-taking type on a crowded commons);
+     elsewhere two equilibria inside one scan cell go unseen (O30). The verdict instance meets
+     Proposition 5; an uncertified one is a family, checked first on a scan 16 times finer.
+     Alternative: 155 as written, any instance the scan finds unique.
+379. **158 taken: one land service.** Both instances have one scarce land class; a region with
+     two needs 1e's addendum or 1f's substitution first (O95). Alternative: SSRN A.1's vector of
+     non-produced services now.
+380. **160 taken: a free exit good at r = 0 is decided at the wall's end.** It binds only an exit
+     good of land alone; the commons instance's food embodies labour, so its plots are decided as
+     before. Alternative: §4.6 read literally, which breaks the junction.
+381. **161 taken: free plots on idle land are `ExitLand::Idle`.** The harness reads `Idle` as
+     plots free on idle enclosed land at r = 0, and `Enclosed` as closed by price with no
+     suitable land idle. Alternative: `Commons`, or `Enclosed` by convention.
+382. **162 taken: the tax bases** (payroll on gross wages, consumption on final purchases at
+     producer value, rent on market rent in money). No instance of this run has a government;
+     the 1750-like instance's tapes use these bases. Alternative: a tax on every purchase, which
+     breaks the ledger.
+383. **164 taken: the budget closes by the owners' levy (RentRate).** Relief in baskets, the poor
+     law, is RentRate's; a tape that gives every rate needs Dividend or a deficit. Alternative:
+     Dividend as the default closure.
+384. **165 taken: a transfer supplements the support unless the tape says it replaces it,** and
+     the agents' participation rule reads it so. Alternative: replacement by default.
+385. **167 taken: walled types only under RentRate and without in-work benefits.** A trained type
+     at its wall under Speenhamland needs an addendum (O95). Alternative: that addendum before
+     the 1750-like instance.
+386. **168 taken: the path's start is evaluated, and `SurplusLabour` refused.** An agent economy
+     whose in-work benefit overfills it has no point to reach and is not an instance.
+     Alternative: 1a–1e's positive start assumed, which miscounts a benefit-driven start.
+387. **169 taken: the price-responsive basket is a CES with the basket's weights, the fixed basket
+     the default.** Every instance of this run uses the fixed basket in the oracle and in the
+     agents' basket provider, as I0–I3 did; a CES instance needs the agents' households on the
+     same rule, and the dependence form (170). Alternative: Stone-Geary around a subsistence
+     basket (PLAN §3.2), which needs an oracle addendum (O95).
+388. **173 taken: a basket per worker type is deferred.** The 1750-like instance takes the common
+     basket in the oracle and the agents. Owners buying domestic service need 1f's addendum,
+     which breaks eq 11 and needs its own uniqueness (O95). Alternative: that addendum before the
+     1750-like instance.
+389. **179 (D-G1) taken: decision 67 reworded.** Machines are durable goods built from and run on
+     goods, and their recipes never use a category (E1); 67's mathematics is kept. The loop-free
+     instances keep 67's letter, a special case; the goods chain's keep E1. Alternative: G5,
+     machines from categories.
+390. **186 taken: E2 enforced, G1 not approximated.** Hearth coal and carters' fodder wait for G1,
+     which D-G9 builds with the goods chain's 1750-like instance. Alternative: G1 now.
+391. **D-G13 taken, reconciled with 119: C2g for instances with machine stocks.** C2g puts the
+     machine and hour markets at C2L's type rate, 5.2 a year, land at 0.1625 and every tilt at
+     0, not C2L's 1; P2.2a and P2.2b are GO on it. Flow instances stay at C2m (364). So the goods
+     chain's 1750-like instance registers at C2g (step 6's item 3; decision 308) unless its own
+     scan finds otherwise. Alternative: C2 with M1 at s_K 0, for 1a's maker only.
+392. **D-G14 taken: capital inertia under the cash rule is a named departure (R6).** Engels'
+     pause, the gap's closing time, the windfall and the waterfall stay unscored until a rule
+     meets GOODS-CHAIN §3.4's lifting criterion; each stock's 5% time is registered (309). No
+     instance of this run holds a stock. Alternative: score them now against the agents' own
+     timing.
+393. **D-G15 taken, extended: ρ 0 for v2a and the stocks probes, with factor shares unscored at
+     ρ 0, and for Phase 2 proper's first instances too.** They are the flow case (M9), where 70's
+     uniqueness and Proposition 5 are proved. Interest waits for the mirror's runs with fuel, wet
+     M3 and J_b > 1. Alternative: a registered ρ now, uniqueness measured, not proved.
+
 ## Open — your calls
 
 - **The GUI's decisions**, 22–34 (D1–D13): G0 carried them out, none vetoed; a veto now reopens
@@ -3349,28 +3522,28 @@ on your standing word and open to veto.
   marks the run; (3) BalanceWatch's bars are absolute on the imbalance, a number in [−1, 1],
   read as allowed by A12; (4) C11 edited probe code that REPORT cites at `55c9e88`, guarded by
   its pins; (6) the kick's horizon is one L, so an instability slower than L passes.
-- **Decisions 59–75 and 135–178** (Phase 1), open to veto. Those that bind Phase 2 proper:
-  from 1b and 1c, cells in the equilibrium (61) and machines built from categories (67), each a
-  1c addendum if ruled in, and whether multiple equilibria are refused or all reported (70),
-  which decides what Phase 2 compares the agents against and which 155 makes matter for the
-  default exit form; from 1d, one shape with an efficiency per type (135), a solved wall as the
-  wall instance (137), type hours compared through supply or in total (139), machine recipes on
-  pool labour (140); from 1e, parcels as efficiency units (147), the participation rule under
-  the default form (149), one exit good the tape names (151), idle land in wage units (153), no
-  reserved tasks with the priced form (154), multiple equilibria where support is low (155), one
-  land service (158), a free exit good at r = 0 (160), `Idle` plots (161); from 1f, the tax
-  bases (162), the closure (164), supplement or replace (165), walled types and in-work
-  benefits (167), `SurplusLabour` (168), one consumption rule for the oracle and the agents
-  (169), one basket for every type (173). 172 binds Phase 3, and 177 Phases 6–8. The markets
-  probe recommends keeping 67 for Phase 2 proper: its GO depends on it, and a veto would give
-  every multi-category instance a goods-and-machines loop, the structure it found NO-GO, and so
-  put those instances behind Phase 3. It confirmed 70 on every instance and leaves 61 to a
-  probe of its own (MARKETS §6). GOODS-CHAIN, outside the repository ("Where things stand"),
-  proposes rewording 67 so that machines are goods built from and run on goods, its mathematics
-  kept (D-G1), and asks for a ruling on each of its D-G1 to D-G15.
-- **Decisions 118–123** (the many-markets probe's), open to veto, with MARKETS-SPEC §9's frame
-  decisions M1–M9. Of its questions, Q1 is answered by 120 and Q2 by the GO at 52 a year. Q3, a
-  switch between machine types, waits for durable machines; Q4, category inputs, is untested.
+- **Decisions 360–393** (P2.3.0, branch `phase2-proper`, 2026-09-30): the rulings Phase 2
+  proper waited on, taken by Claude on your word, each open to veto, one line each with its
+  alternative. 30 are taken as proposed; 123, 137, 155 and D-G15 are amended (368, 370, 378,
+  393). The ones that shape this run: O22's families first and a stocks tier in the new
+  verdicts (368); the wall instance under 1d's dependence form, its distance from each edge
+  registered (377, 370); the commons instance certified by 1e's Proposition 5, its shadow rent
+  posted, its zero-rent land market's remedy chosen by a mirror scan first (378, 374, 376, O96);
+  C2m, 52 ticks a year, ρ 0 and the fixed basket (364, 366, 393, 387). For later: C2g for the
+  goods chain's stock instances (391), the common basket for the 1750-like instance (388), and
+  the oracle addenda of O95.
+- **Decisions 59–75 and 135–178** (Phase 1), open to veto. Those that bound Phase 2 proper (61,
+  67, 70; 135, 137, 139, 140; 147, 149, 151, 153–155, 158, 160, 161; 162, 164, 165, 167–169,
+  173) are ruled by Claude at P2.3.0 as 360–393, with the markets probe's advice: keep 67 (its
+  GO depends on it) and 70 (it held on every instance), and leave 61 to a probe of its own
+  (MARKETS §6). 172 binds Phase 3, and 177 Phases 6–8. GOODS-CHAIN, outside the repository
+  ("Where things stand"), proposes D-G1 to D-G15: D-G1 is 179 (ruled as 389), D-G10 is 180,
+  D-G11 is 285, and D-G13 to D-G15 are ruled as 391–393.
+- **Decisions 118–123** (the many-markets probe's), with MARKETS-SPEC §9's frame decisions
+  M1–M9: 118–123 are ruled by Claude at P2.3.0 as 363–368, open to veto; M1–M9 stay open to
+  veto as the frame states them. Of its questions, Q1 is answered by 120 and Q2 by the GO at 52
+  a year. Q3, a switch between machine types, waits for durable machines; Q4, category inputs,
+  is untested.
 - **Decisions 76–81** (G0.1's first part), **82–89** (its second part), **90–96** (its
   verification fixes), **97–108** (G0.2), **109–113** (its verification fixes) and **114–117**
   (G0's close), open to veto.
@@ -3414,17 +3587,17 @@ on your standing word and open to veto.
     a log panel and a breakpoint in use, and a snapshot's PNG carries its banner. The smoke
     mode's p90 was 1.22 and 1.78 ms running. If it fails your look, a G1.12 fixes it on top of
     `reboot`'s line.
-- **Decisions 179–190** (unit 1g's, track 1g), open to veto. The ones that bind Phase 2: 179,
-  decision 67 reworded (D-G1: machines are durable goods built from and run on goods, never
-  from a category, E1), and 186, E2 enforced and G1 not approximated (hearth coal and carters'
-  fodder wait for G1). 180 (D-G10) amends 71 and keeps every result of 1c bit for bit; 181, the
-  mapping per period in the oracle, leaves where tapes are built to O32.
+- **Decisions 179–190** (unit 1g's, track 1g), open to veto. The two that bind Phase 2 are
+  ruled by Claude at P2.3.0: 179, decision 67 reworded (D-G1), as 389, and 186, E2 enforced and
+  G1 not approximated, as 390. 180 (D-G10) amends 71 and keeps every result of 1c bit for bit;
+  181, the mapping per period in the oracle, leaves where tapes are built to O32.
 - **Decisions 200–219** (G1's, branch `g1`), open to veto. The ones that shape later work: the
   lab's form outside the model and the session (201), the fields read from the oracle's `Debug`
   rather than a `Point::outputs()` in the oracle (202), goldens paired by name (204), the
   breakpoints' semantics (209), and G0's leftovers deferred to a G1 second part (217).
 - **Decisions 220–239** (the stocks probe's, branch `phase2-goods`), open to veto, with
-  GOODS-CHAIN's D-G1 to D-G15, which the probe took as proposed and which are still yours. The
+  GOODS-CHAIN's D-G2 to D-G8, which the probe took as proposed, and D-G9 and D-G12, all still
+  yours (D-G1, D-G11 and D-G13 to D-G15 are ruled by Claude as 389, 285 and 391–393). The
   ones that shape later work: C2g and its fodder rate (226), windows from the slowest mode (228),
   the probe's closing reading (234), O14 compared like for like (235), the idle market's remedy
   before the loops and the goods-chain 1750-like instance (236), and weekly ticks as the floor
@@ -4145,6 +4318,32 @@ O79 on are P2.2b.4's ([docs/probe/LOOPS.md](docs/probe/LOOPS.md); `docs/probe/LO
   later registration or report that scores dead ticks should print the machine market's idle
   ticks, its no-order ticks and the maker's lowest coin in the same table.
 
+O95 on are Phase 2 proper's (P2.3.0, branch `phase2-proper`; this line's range is O95–O109).
+
+- **O95. The oracle addenda that later instances need** (decisions 360, 372, 377, 379, 385, 387,
+  388; P2.3.0). The wall and commons instances need none. Each is a spec, a generator and
+  goldens, as units 1d–1g were, with nesting bit for bit, before the first instance that needs
+  it:
+  - cells in the equilibrium, the marginal cell's split (a 1b addendum, 360), with a probe of its
+    own, before an instance on the agents' own cells;
+  - a reserved type in machine recipes (1d, 372), before trained machine builders;
+  - reserved tasks under the priced form, 1e §2.9's fixed point in Y (377), before a walled type
+    under s(q), the eras' trained type in the 1750-like instance;
+  - a second scarce land class (1e §9, 379), before a region has two;
+  - walled types under in-work benefits (1f §2.8, 385), before Speenhamland;
+  - a basket per worker type (1f §10, 388), before owners buy domestic service, and Stone-Geary
+    around a subsistence basket (387) if the agents' consumption rule is to be PLAN §3.2's.
+- **O96. The land market at zero rent** (decision 376; MARKETS §6; next step 7). At an idle-land
+  point the oracle's rent is 0 and the market's land is not all used. In the agents' land market
+  there, demand stays below supply at every positive rent, so under `Saturate` the unsold price
+  falls without end, past the harness's runaway bound (1e-6 of genesis; MARKETS-RULES §5). It
+  needs an answer without a clamp (R3); a step on the seller's offer is allowed, as L0's maker's
+  reservation is (IDLE.md). The candidates are chosen by a mirror scan, and the one chosen is
+  registered with its predictions and built before the commons instance's registration. PLAN
+  §3.1 puts an idle parcel's reservation rent at zero, so a remedy with a positive floor moves
+  the point off r = 0 (GOODS-CHAIN's open question 2); the comparison is in wage units (decision
+  153).
+
 ## Corrections logged (A3; ADDENDUM §1.4)
 
 REVIEW.md is kept as written; these of its claims do not hold.
@@ -4260,7 +4459,7 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
    Loops enter Phase 2 on plants, each loop instance through its own registration (decision 284,
    amending 120, narrowed by 308), and machine stocks come forward for the goods chain (decision
    285, D-G11), all taken by Claude on your word and open to veto.
-7. **Phase 2 proper** (PLAN Phase 2), after your rulings on the decisions that bind it: 61, 67
+7. **Phase 2 proper** (PLAN Phase 2), after the rulings on the decisions that bind it: 61, 67
    and 70 from 1b and 1c, 118–123 from the markets probe, and 135, 137, 139, 140, 147, 149, 151,
    153–155, 158, 160–162, 164, 165, 167–169 and 173 from 1d–1f, and 179 and 186 from 1g for the
    goods chain's instances. The markets probe recommends keeping 67 and 70 (MARKETS §6). It
@@ -4284,6 +4483,27 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
    untested risk. The risks now are paths (O14, O24) and the new margins of 1d and 1e: several
    labour markets and the wall at x\* = 1. O30's precision sets the bands of any comparison
    against them.
+
+   *Amended at P2.3.0 (2026-09-30):* the rulings are taken, by Claude on your word, as decisions
+   360–393, each open to veto. What they set for this run, on branch `phase2-proper`:
+   1. **O22's families first**, on I1–I3 as registered, stocks first (368).
+   2. **Two instances at C2m, 52 ticks a year and ρ 0**, the fixed basket in the oracle and the
+      agents, no loop and no government (361, 364–366, 387, 393). Each carries a stocks tier in
+      its verdict (368) and is registered, trace-diffed and scored as P2.2a and P2.2b were, its
+      scorer committed before its wave (decision 311).
+      - **The wall instance** (1d): a trained type walled on its reserved tasks beside pooled
+        types, so 1d's dependence form, the named alternative (377); a solved wall with its
+        distance from each edge registered at genesis and at every cost target (370); types in
+        one shape with an efficiency each (369); pooled hours compared through supply or in
+        total, the pool's market form the frame's call (371); type desks on pool labour (372).
+      - **The open-commons instance** (1e): s(q), every type pooled (377), food as its exit good
+        (375, 380), one land service (379), certified by 1e's Proposition 5 (378), the crowded
+        commons' shadow rent posted (374), idle land compared in wage units, `Idle` plots read
+        as such (376, 381). Its zero-rent land market's remedy comes first: a mirror scan
+        chooses it, and it is registered and built before the instance's registration (O96).
+   3. **Later**: the 1750-like instance takes the common basket (388), 1f's tax bases and
+      closure if it has a government (382–386), C2g for any machine stock (391), capital's time
+      unscored (392), and each addendum of O95 before the feature that needs it.
 8. **The demo's second pass, on the many-market roles** (O27; WORLD.md §7). It takes O26 first,
    the clock held to 52 among it. Then come goods as unit 1b's categories and machine types as
    unit 1c's, on the many-market roles at C2m with no loop of produced inputs, with genesis from
