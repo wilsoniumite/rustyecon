@@ -143,6 +143,25 @@ is next on `demo-v2`. "Next steps" has each.
 
 ## Where things stand
 
+**The lenses and the map on the second pass (D2.3; 2026-09-30).** Branch `demo-v2`, scratch
+`D:/rustyecon-d2/build/`; [docs/demo/WORLD-V2.md](docs/demo/WORLD-V2.md) §16.
+- **36 lenses** in `worlds/demo-gb/lenses-v2a1.csv`: the chain's 11 first (horses per head and
+  since 1750, against their equilibrium and the desk's target, fodder's price, the horse's price
+  over its replacement cost, the horse-day's markup, land to fodder and to the working stock, the
+  reservation's and the idle market's ticks), then v1's 25 with six changed. The map takes a
+  tape's table by its name. Every measure is `crates/worldgen/src/lens.rs`'s; the GUI gathers.
+- **`oracle_gap` in worldgen** (decisions 331, 348, 352): 1g at the county's recorded params, kept
+  by its params; the gap, the wage's gap and the herd against its equilibrium have values on the
+  v2 tape. The horse's price has no value on a tick when no horse traded, and its legend marks ψ
+  (decisions 333, 349). The selected county's card names what carries its gap (decision 351).
+- **Tests:** every lens for every county at three ticks against a Sim's own numbers (10,044
+  values, the markups against the rules' own formulas); an idle county's horse price; each
+  domain against the oracle's range; the ranked table against the map; the layout on the v2
+  store; the lens table per tape; the GUI path's v2 hashes against the cli's (R16).
+- **Speed** (O85, Windows, a shared machine): v2 to 1901 in 27.6–27.9 s in the GUI, 281–284
+  ticks a second, frame p90 10.1–10.3 ms; v1 on the same build and load 16.5 s, p90 9.8–9.9 ms.
+- Decisions 348–353, O89. Both gates green on WSL and Windows.
+
 **The stage is in the compiler (D2.2; 2026-09-30).** Branch `demo-v2`, scratch
 `D:/rustyecon-d2/build/`. `rustyecon worldgen worlds/demo-gb --stage v2a1` compiles
 `tapes/demo-gb-v2.ron` from v1's tables and two new ones (`machine_types.csv`, `stage-v2a1.csv`);
@@ -3518,6 +3537,25 @@ standing word and open to veto.
 347. **The stage names its lens table at D2.2 and reads it at D2.3**: `stage-v2a1.csv` names
      `lenses-v2a1.csv`, and the cli reads `machine_types.csv` and `stage-v2a1.csv` with `--stage`.
      Alternative: build the lens table with the compiler, in one step.
+348. **The second pass's oracle lenses are worldgen's `oracle_gap`, marked `oracle` in their lens
+     table; v1's stay `observe` and without a value** (D2.3; decision 331). v1's table and lens
+     goldens are unchanged. Alternative: bring v1's gap lenses forward on 1a as well.
+349. **A diverging scale may centre on any reference inside its domain** (D2.3): the horse's price
+     over its replacement cost centres on 1 over [0, 2]; the check had required a domain across 0.
+     Alternative: show the markup's log, centred on 0.
+350. **The chain's eleven lenses come first in the second pass's table, as the group "Horses and
+     fodder"**, so keys 1 to 0 pick the first ten; the opening lens stays the wage in land
+     (WORLD-V2 §7.2). Alternative: v1's order with the chain's appended.
+351. **The gap lens's bands are named in its note, shown under the legend, and ψ is painted on the
+     horse price's legend from the run's param** (WORLD-V2 §8 items 1 and 3; D2.3). The selected
+     county's card names the three observables furthest from equilibrium beside the herd's three
+     readings. Alternative: named bands painted on the bar, for which a 480-point legend has no
+     room.
+352. **`oracle_gap` solves on the frame's thread and keeps each point by its params**, a
+     process-wide memo (D2.3; O86): a county's params change at most once a month of the history.
+     Alternative: solve on the run's worker and send the targets with each batch.
+353. **The second pass's hashes through the GUI path equal the cli's, in `scripts/gui.sh`**
+     (`gui_equals_cli_demo_gb_v2`; R16). Alternative: v1's alone.
 
 ## Open — your calls
 
@@ -4378,6 +4416,13 @@ O81–O94.
   "horses"; v2a.4's engine good and G3's recipe choice replace it.
 - **O88. The history's pace is v1's.** It was bounded for a flow machine (WORLD.md §4.4), and
   nothing in it was re-dated for capital's time.
+
+O89 on are the build's (D2.1 onward), in this branch's range.
+
+- **O89. A lens over the run is not charted** (WORLD-V2 §8 item 4). The selected county's card
+  plots its recorded series (the herd, its target, the maker's stock, prices), not a lens's value
+  over time, so the herd's catch-up on `horses.vs.oracle` is read off the map date by date. G2's
+  plots take a lens series when `crates/observe` exists.
 
 ## Corrections logged (A3; ADDENDUM §1.4)
 

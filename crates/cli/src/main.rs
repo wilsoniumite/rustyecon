@@ -134,8 +134,8 @@ enum Cmd {
     /// docs/demo/WORLD.md): read DIR/world.csv, counties.csv, regions.csv, history.csv and
     /// lenses.csv, check them, solve every county's oracle at genesis and after every step,
     /// and write the tape to --out. Without --out it checks and reports only. With --stage it
-    /// also reads the stage's machine_types.csv and stage-<STAGE>.csv and compiles the goods
-    /// chain's stage (docs/demo/WORLD-V2.md).
+    /// also reads the stage's machine_types.csv, stage-<STAGE>.csv and lenses-<STAGE>.csv, and
+    /// compiles the goods chain's stage (docs/demo/WORLD-V2.md).
     Worldgen {
         /// The world's directory, such as worlds/demo-gb.
         dir: PathBuf,
@@ -625,11 +625,12 @@ fn worldgen(dir: &Path, out: Option<&Path>, stage: Option<&str>) -> Result<(), E
     let compiled = match stage {
         None => compile(&tables, &atlas),
         Some(key) => {
-            let [types, settings] = StageTables::files(key);
+            let [types, settings, lenses] = StageTables::files(key);
             let st = StageTables {
                 key: key.to_string(),
                 machine_types: read(&types)?,
                 stage: read(&settings)?,
+                lenses: read(&lenses)?,
             };
             compile_stage(&tables, &st, &atlas)
         }

@@ -870,3 +870,38 @@ compiles `tapes/demo-gb-v2.ron`; `crates/worldgen/src/chain.rs` holds rule A and
   reservation, ex-ante assignment, an unknown machine type or stage, δ, ω or J_b out of range, rule
   B, a county's machine type not the horse, a clock off 52, and an unfunded date with its county
   and date (Surrey's population raised 30% over 1830–1834).
+
+**D2.3 (2026-09-30): the lenses and the map.** `worlds/demo-gb/lenses-v2a1.csv` holds the 36
+lenses of §7: the chain's 11 first, as the group "Horses and fodder", then v1's 25 with six changed.
+`crates/worldgen/src/lens.rs` defines every measure; the GUI gathers a county's recorded numbers
+and computes nothing (U6). The map takes a tape's lens table by the tape's name (`lens::for_tape`).
+- **The oracle lenses come forward** (decision 331): `lens::oracle_gap` solves 1g from the params
+  the run recorded, outside any `Sim`, and keeps each point by its params (decision 352). v1's two
+  oracle lenses stay without a value on v1's tape (decision 348).
+- **The horse's price** (decision 333) is the maker's net markup by its rule's own sum, with no value
+  on a tick when no horse traded; the county's card says "idle: no horse traded this tick; the
+  posted price is X of the replacement cost", and the legend marks ψ from the run's param. A
+  diverging scale may now centre on 1 (decision 349).
+- **Capital's lag, legible** (§8; decisions 350, 351): the selected county's card names the three
+  observables furthest from their equilibrium, with signs, beside the herd against its equilibrium,
+  against the desk's target, and the horse-day's markup. The gap lens's bands are named in its
+  note, shown under the legend. The chart of a lens over the run (§8 item 4) is not built (O89).
+- **Held by tests.** `demo_v2_lens_values_equal_the_engine`: every one of the 36 lenses for every
+  county at report ticks 0, 51 and 259, 10,044 values, against a Sim's own report, params and
+  states, the maker's markup against `maker_reservation` and the horse-day's against the capacity
+  desk's recipe, the oracle lenses against 1g at the Sim's params, to 1e-12.
+  `price_horse_has_no_value_on_an_idle_tick`: Bedfordshire's desk starts with three times its
+  herd, orders none, and no horse trades. `lens_v2_domains_hold_the_oracle_range`: each domain
+  holds the oracle's range at every county date (horses per head 1.31 to 8.25, fodder's price
+  0.2625 to 0.680, land to the working stock 0.570 to 0.857, v1's to the digit).
+  `v2_map_values_equal_table` and `the_v2_map_is_fitted_clear_and_its_values_whole`: G4's gate and
+  D2.1's layout on the v2 store. `gui_equals_cli_demo_gb_v2`: the GUI path's hashes of the v2 tape
+  to 1901 are the cli's (R16), in `scripts/gui.sh`.
+- **The GUI's speed** (O85; Windows, release, the smoke mode `rustyecon-gui --smoke 7852`, on a
+  machine shared with another branch's builds in WSL; `D:/rustyecon-d2/build/speed/`): v2 reaches
+  1901 in 27.6 and 27.9 s, 281–284 ticks or 5.4 model years a second, frame p50 7.7–7.9 ms and
+  p90 10.1–10.3 ms while running, p90 8.9–9.0 ms paused. v1 on the same build and load: 16.5 s
+  twice, p90 9.8–9.9 ms running and 8.9–9.3 ms paused (the design's 7.4 ms and 5.8–6.1 ms were
+  measured on a quieter machine). So v2 costs 1.68 times v1's time a tick in the GUI (§9.4
+  estimated 1.57), and its frame about 0.3 ms more at p90. Through the cli: 27.0 s on Windows,
+  and on WSL the pin's run takes 27–28 s, 280–290 ticks a second.

@@ -27,10 +27,11 @@ use rustyecon_core::{fnv1a_64, num, Basis, Date, FlowPerYear};
 use rustyecon_engine::prelude::{ActorId, ActorState, GoodId, NodeId, Sim, Tape};
 use rustyecon_engine::registry;
 use rustyecon_worldgen::atlas::Atlas;
-use rustyecon_worldgen::chain::{self, MachineType};
+use rustyecon_worldgen::chain::{self, ChainPoint, MachineType};
 use rustyecon_worldgen::compile::{clock, Compiled, MAX_YEAR};
+use rustyecon_worldgen::lens::{value, ChainReadings, Measure, Readings, WindowTick};
 use rustyecon_worldgen::stage::{
-    chain_params, parse_stage, stage_genesis, Stage, StageParam, C2G, MARKETS,
+    chain_params, parse_stage, stage_genesis, stage_instance, Stage, StageParam, C2G, MARKETS,
 };
 use rustyecon_worldgen::tables::{Instance, Param};
 use rustyecon_worldgen::{compile_stage, StageTables, Tables};
@@ -66,6 +67,7 @@ fn stage_tables() -> StageTables {
         key: "v2a1".to_string(),
         machine_types: read("machine_types.csv"),
         stage: read("stage-v2a1.csv"),
+        lenses: read("lenses-v2a1.csv"),
     }
 }
 
@@ -771,4 +773,123 @@ fn demo_v2_pin() {
         (FINAL_HASH, STREAM_HASH),
         "final 0x{final_hash:016x}, stream 0x{stream_hash:016x}"
     );
+}
+
+/// A county's second-pass readings at its chain point `e` under instance `inst`, as a run at
+/// rest would record them: prices with r = 1, every market cleared at its equilibrium volume,
+/// the desks' outputs and stocks at rest, the capacity desk at its target, the provider paying
+/// all it owes, nothing rationed, every market trading, the maker's markup 1.
+fn at_rest_v2(e: &ChainPoint, inst: &Instance, s: &Stage) -> Readings {
+    let c = clock(&compiled().world);
+    let n = c.flow(FlowPerYear(inst[Param::Workers.index()]));
+    let t = c.flow(FlowPerYear(inst[Param::Land.index()]));
+    let si = stage_instance(inst, &s.machine, &c);
+    let (kappa, delta) = s.machine.per_tick(&c);
+    let mut params = inst.map(Some);
+    for p in [Param::A, Param::Lam, Param::B] {
+        params[p.index()] = None;
+    }
+    let coef = [
+        StageParam::FodderLand,
+        StageParam::OwnHours,
+        StageParam::HorseLabour,
+        StageParam::HorseLand,
+    ]
+    .map(|q| Some(si[q.index()]));
+    let due = n * e.p_s;
+    let mut chain = ChainReadings {
+        price_fodder: Some(e.pf),
+        price_horse: Some(e.pk),
+        cleared_fodder: Some(e.qf),
+        cleared_horse: Some(e.sold),
+        horse_traded: Some(true),
+        coef,
+        kappa: Some(kappa),
+        delta: Some(delta),
+        run_fodder: Some(1.0),
+        run_labour: Some(0.0),
+        psi: s.dial("reserve.maker"),
+        used: Some(e.one_minus_x),
+        out_good: Some(e.good),
+        out_hours: Some(e.task_hours),
+        out_horse: Some(e.made),
+        out_fodder: Some(e.qf),
+        held: Some(e.capacity),
+        target: Some(e.capacity),
+        serving: Some(e.serving),
+        clock: Some(c),
+        window: Vec::new(),
+    };
+    let prices = [Some(e.v), Some(1.0), Some(e.ph), Some(e.p)];
+    chain.window = vec![WindowTick {
+        horse_traded: true,
+        markup: chain.markup_inputs(&prices),
+        psi: chain.psi,
+    }];
+    Readings {
+        prices,
+        cleared: [Some(e.n_a), Some(t), Some(e.task_hours), Some(e.good)],
+        params,
+        n_tick: Some(n),
+        share: Some(e.one_minus_x),
+        due: Some(due),
+        paid: Some(due),
+        rationing: vec![(1.0, 1.0)],
+        traded: vec![true],
+        chain: Some(chain),
+    }
+}
+
+#[test]
+fn lens_v2_domains_hold_the_oracle_range() {
+    // WORLD-V2 §7 (decision 332): each lens's domain is fixed before any run, from the oracle's
+    // range over every county at genesis and after every step date, with a margin. The range is
+    // computed through the lenses' own measures at each county's chain point and must lie
+    // inside the domain; the margins are printed. At rest the dynamic lenses read their rest
+    // values (a markup 1 or 0, a ratio to target 0, a count 0), inside their domains too; the
+    // three oracle lenses read 0 at rest and are held by the mirror's long run (§6) instead.
+    let s = stage();
+    let lenses = rustyecon_worldgen::lens::demo_gb_v2().unwrap_or_else(|e| panic!("{e}"));
+    let mut lines = Vec::new();
+    for l in &lenses {
+        let m = Measure::of(&l.key).unwrap_or_else(|| panic!("{}: no measure", l.key));
+        if m.level().needs_observe() {
+            continue;
+        }
+        let (mut lo, mut hi) = (f64::INFINITY, f64::NEG_INFINITY);
+        let (mut at_lo, mut at_hi) = (String::new(), String::new());
+        for plan in &compiled().counties {
+            let first = at_rest_v2(&plan.chain[0], &plan.county.genesis, &s);
+            let months = std::iter::once(0).chain(plan.points.iter().map(|(m, _)| *m));
+            for (month, e) in months.zip(&plan.chain) {
+                let x = at_rest_v2(e, &plan.instance_at(month), &s);
+                let v = value(m, &x, Some(&first)).unwrap_or_else(|e| panic!("{}: {e}", l.key));
+                let at = format!("{} {}", plan.county.key, month);
+                if v < lo {
+                    (lo, at_lo) = (v, at.clone());
+                }
+                if v > hi {
+                    (hi, at_hi) = (v, at);
+                }
+            }
+        }
+        let (a, b) = l.domain;
+        let span = |x: f64, y: f64| match l.scale {
+            rustyecon_worldgen::tables::Scale::SequentialLog => {
+                (num::ln(y) - num::ln(x)) / (num::ln(b) - num::ln(a))
+            }
+            _ => (y - x) / (b - a),
+        };
+        let line = format!(
+            "{:<22} domain [{a}, {b}]  oracle [{lo:.4} ({at_lo}), {hi:.4} ({at_hi})]  margins \
+             {:.2} below, {:.2} above",
+            l.key,
+            span(a, lo),
+            span(hi, b)
+        );
+        println!("{line}");
+        assert!(a <= lo && hi <= b, "{line}");
+        lines.push(line);
+    }
+    assert_eq!(lines.len(), 33, "every lens but the three oracle lenses");
 }

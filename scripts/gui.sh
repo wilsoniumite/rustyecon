@@ -15,8 +15,9 @@
 #   3b. on Linux (WSL), G1's measurement by name: a_200_point_sweep_builds_in_under_16_ms, an
 #      ignored test, must run and pass (docs/GUI.md §9, G1's gate: median of 20, under 16 ms);
 #   4. the cli's hashes: gui_equals_cli writes the GUI path's hashes of tapes/gate.ron (2,080
-#      ticks) and tapes/appb.ron (20,000), and gui_equals_cli_demo_gb those of tapes/demo-gb.ron
-#      (7,852, through the first tick of 1901, with the lean catalogue), and the body of
+#      ticks) and tapes/appb.ron (20,000), gui_equals_cli_demo_gb those of tapes/demo-gb.ron and
+#      gui_equals_cli_demo_gb_v2 those of tapes/demo-gb-v2.ron (7,852 each, through the first
+#      tick of 1901, with the lean catalogue), and the body of
 #      `rustyecon run <tape> --until <T> --hashes` must equal them byte for byte, both binaries
 #      built --release on this machine;
 #      and the same for the two branches the editor's tests materialise and run (G0.2):
@@ -68,6 +69,9 @@ step() { printf '\n== gui: %s\n' "$*"; }
 # Ratio steps, what the lab's charts and the waterfall lend and paint, an event before a date,
 # the credit's clamp, and the session's format. D2.1 (O39's remainder) adds the fitted view clear
 # of the legend and the credit, and the ranked values painted whole under a long lens name.
+# D2.3 (the second pass's map, docs/demo/WORLD-V2.md §7) adds the v2 lens values against the
+# engine, the horse's price with no value on an idle tick, the v2 map's values against its table,
+# its layout, the lens table per tape, and the v2 tape's hashes against the cli's.
 named=(
     gui_equals_cli
     failed_run_shows_its_ledger_line
@@ -158,6 +162,12 @@ named=(
     a_session_round_trips_and_refuses_what_it_does_not_know
     the_fitted_view_leaves_every_county_clear
     the_ranked_values_are_painted_whole
+    demo_v2_lens_values_equal_the_engine
+    price_horse_has_no_value_on_an_idle_tick
+    v2_map_values_equal_table
+    the_v2_map_is_fitted_clear_and_its_values_whole
+    the_map_takes_the_lens_table_of_its_tape
+    gui_equals_cli_demo_gb_v2
 )
 
 step "toolchain (rust-toolchain.toml)"
@@ -208,7 +218,7 @@ fi
 step "the cli's hashes, against the GUI's"
 cargo build --locked --release -p rustyecon-cli
 bin="$CARGO_TARGET_DIR/release/rustyecon"
-for spec in gate:2080 appb:20000 demo-gb:7852; do
+for spec in gate:2080 appb:20000 demo-gb:7852 demo-gb-v2:7852; do
     name="${spec%%:*}"
     until="${spec##*:}"
     "$bin" run "tapes/$name.ron" --until "$until" --hashes "$work/$name.cli" >"$work/$name.out"

@@ -269,3 +269,70 @@ fn gui_equals_cli_demo_gb() {
         std::fs::write(&path, body).expect("the hash file is written");
     }
 }
+
+#[test]
+fn gui_equals_cli_demo_gb_v2() {
+    // U4 on the second pass's tape (D2.3, 2026-09-30; docs/demo/WORLD-V2.md): the frontend runs
+    // tapes/demo-gb-v2.ron through a ThreadDriver with the lean catalogue, by steps of 1 and 7
+    // and a run-until, to the first tick of 1901, and hashes as the engine does at every tick;
+    // `scripts/gui.sh` diffs the written `demo-gb-v2.hashes` against `rustyecon run`'s (R16:
+    // the frontend observes, the tape decides).
+    let text = std::fs::read_to_string(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../tapes/demo-gb-v2.ron"
+    ))
+    .expect("tapes/demo-gb-v2.ron");
+    let t = tape_of(&text);
+    assert_eq!(Catalogue::for_nodes(t.nodes.len()), Catalogue::Lean);
+    let mut d = driver();
+    let mut log = Vec::new();
+    d.send(Cmd::Catalogue(Catalogue::Lean));
+    d.send(Cmd::Load {
+        tape: Box::new(t.clone()),
+        from: None,
+    });
+    wait_for(&mut d, &mut log, |o| matches!(o, Obs::Loaded { .. }));
+    d.send(Cmd::Step(1));
+    assert_eq!(wait_paused(&mut d, &mut log), (1, PauseReason::Stepped));
+    d.send(Cmd::Step(7));
+    assert_eq!(wait_paused(&mut d, &mut log), (8, PauseReason::Stepped));
+    d.send(Cmd::Run {
+        until: Some(DEMO_TICKS),
+        max_tps: None,
+    });
+    assert_eq!(
+        wait_paused(&mut d, &mut log),
+        (DEMO_TICKS, PauseReason::Reached(DEMO_TICKS))
+    );
+    drop(d);
+    let mut ticks = Vec::new();
+    for o in &log {
+        if let Obs::Batch(b) = o {
+            ticks.extend(b.rows.iter().map(|r| (r.tick, r.hash)));
+        }
+    }
+    assert_eq!(ticks.len() as u64, DEMO_TICKS, "one row a tick");
+    assert!(ticks.iter().enumerate().all(|(i, r)| r.0 == i as u64));
+    let mut store = Store::default();
+    for o in log {
+        store.ingest(o).expect("every observation ingests");
+    }
+    assert_eq!(store.tick(), DEMO_TICKS);
+    let reference = reference_hashes(&t, DEMO_TICKS);
+    let got: Vec<u64> = ticks.iter().map(|r| r.1).collect();
+    assert_eq!(
+        got, reference,
+        "the GUI's demo-gb-v2 hashes are the engine's"
+    );
+    assert_eq!(store.hashes(), reference.as_slice());
+    // The v2 pin (demo_v2_pin): the final state's hash after the tick into 1901.
+    assert_eq!(got.last().copied(), Some(0x45b7_c120_1f8a_e633));
+    if let Some(dir) = std::env::var_os("RUSTYECON_GUI_HASHES") {
+        let mut body = String::new();
+        for (tick, hash) in &ticks {
+            body.push_str(&Manifest::line(tick + 1, *hash));
+        }
+        let path = std::path::Path::new(&dir).join("demo-gb-v2.hashes");
+        std::fs::write(&path, body).expect("the hash file is written");
+    }
+}

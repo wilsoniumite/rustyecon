@@ -216,6 +216,7 @@ fn at_rest(e: &Eq1a, inst: &Instance) -> Readings {
         paid: Some(e.support_cost),
         rationing: vec![(1.0, 1.0)],
         traded: vec![true],
+        chain: None,
     }
 }
 

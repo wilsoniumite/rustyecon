@@ -35,6 +35,7 @@ use egui::{
 use egui_extras::{Column, TableBuilder};
 use rustyecon_engine::prelude::Key;
 use rustyecon_worldgen::atlas::{Atlas, Country, Part};
+use rustyecon_worldgen::lens as wl;
 use rustyecon_worldgen::tables::Lens;
 use std::collections::BTreeMap;
 
@@ -350,12 +351,15 @@ pub struct LegendFrame {
     pub head: String,
     /// Its box, once drawn.
     pub rect: Option<Rect>,
+    /// Where along the bar each further named mark was drawn (the maker's reservation ψ on
+    /// the horse's price), from 0 to 1.
+    pub named: Vec<f64>,
 }
 
 /// The map's state between frames.
 pub struct MapState {
     geo: Option<Result<Geo, String>>,
-    lenses: Option<Result<Vec<Lens>, String>>,
+    lenses: Option<(wl::Kind, Result<Vec<Lens>, String>)>,
     /// The lens shown, by key.
     pub lens: String,
     view: Option<View>,
@@ -403,25 +407,41 @@ impl MapState {
         g.as_ref().map_err(Clone::clone)
     }
 
-    /// The demo world's lenses, read on first use.
+    /// v1's lenses, read on first use.
     pub fn lenses(&mut self) -> Result<&[Lens], String> {
-        let l = self
-            .lenses
-            .get_or_insert_with(|| rustyecon_worldgen::lens::demo_gb().map_err(|e| e.to_string()));
-        l.as_deref().map_err(Clone::clone)
+        self.lenses_for(wl::V1_TAPE)
     }
 
-    /// Read the atlas and the lenses, once.
+    /// The lenses of the tape named `tape` (`lens::for_tape`: the second pass's for its tape,
+    /// v1's for any other), read when the table changes.
+    pub fn lenses_for(&mut self, tape: &str) -> Result<&[Lens], String> {
+        let kind = wl::Kind::of_tape(tape);
+        if self.lenses.as_ref().map(|(k, _)| *k) != Some(kind) {
+            self.lenses = Some((kind, wl::for_tape(tape).map_err(|e| e.to_string())));
+        }
+        match &self.lenses {
+            Some((_, Ok(l))) => Ok(l),
+            Some((_, Err(e))) => Err(e.clone()),
+            None => Err("no lens table".to_string()),
+        }
+    }
+
+    /// Read the atlas and v1's lenses, once.
     pub fn ready(&mut self) -> Result<(), String> {
+        self.ready_for(wl::V1_TAPE)
+    }
+
+    /// Read the atlas and the lenses of the tape named `tape`.
+    pub fn ready_for(&mut self, tape: &str) -> Result<(), String> {
         self.geo()?;
-        self.lenses()?;
+        self.lenses_for(tape)?;
         Ok(())
     }
 
     /// The atlas and the lenses, once read.
     pub fn parts(&self) -> Option<(&Geo, &[Lens])> {
         match (&self.geo, &self.lenses) {
-            (Some(Ok(g)), Some(Ok(l))) => Some((g, l)),
+            (Some(Ok(g)), Some((_, Ok(l)))) => Some((g, l)),
             _ => None,
         }
     }
@@ -1218,6 +1238,24 @@ fn legend(p: &egui::Painter, rect: Rect, lens: &LensVm, ink: &Ink) -> (LegendFra
         font,
         ink.text,
     );
+    // Further named marks, above the bar: the maker's reservation ψ on the horse's price.
+    for m in &lens.marks {
+        if let Some(at) = m.at {
+            let x = bar.min.x + at as f32 * bar.width();
+            p.line_segment(
+                [pos2(x, bar.min.y - 4.0), pos2(x, bar.max.y)],
+                Stroke::new(1.0, ink.text),
+            );
+            p.text(
+                pos2(x + 2.0, bar.min.y - 3.0),
+                Align2::LEFT_BOTTOM,
+                "ψ",
+                FontId::proportional(10.0),
+                ink.text,
+            );
+            drawn.named.push(along(x));
+        }
+    }
     drawn.head = head;
     drawn.rect = Some(r);
     (drawn, r)
@@ -1344,6 +1382,12 @@ fn sidebar(
     if let Some(why) = &lens.unavailable {
         ui.colored_label(ui.visuals().warn_fg_color, why);
     }
+    for m in &lens.marks {
+        ui.weak(&m.text);
+    }
+    if !lens.note.is_empty() {
+        ui.small(&lens.note);
+    }
     ui.label(when(lens)).on_hover_text(run_line(lens));
     let [run, ids] = run_lines(lens);
     ui.small(run);
@@ -1394,6 +1438,22 @@ fn county_card(
             (None, Some(why)) => ui.weak(format!("{}: no value: {why}", lens.name)),
             (None, None) => ui.weak(format!("{}: no value", lens.name)),
         };
+    }
+    // What carries its gap to its equilibrium, beside the herd's own readings (WORLD-V2 §8,
+    // item 2): a county short of horses shows a positive markup, the rent that buys more.
+    if !c.causes.is_empty() {
+        ui.weak("What carries its gap, ln(observed / equilibrium):");
+        for cause in &c.causes {
+            ui.label(format!("  {} {:+.3}", cause.observable, cause.gap));
+        }
+        for key in ["horses.vs.oracle", "horses.vs.plan", "hday.markup"] {
+            if let Some(l) = c.lenses.iter().find(|l| l.key == key) {
+                match l.value {
+                    Some(v) => ui.label(format!("  {}: {v:+.3}", l.name)),
+                    None => ui.weak(format!("  {}: {}", l.name, l.why.as_deref().unwrap_or("–"))),
+                };
+            }
+        }
     }
     egui::CollapsingHeader::new("Every lens")
         .id_salt("map-county-lenses")

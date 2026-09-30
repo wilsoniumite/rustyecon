@@ -29,7 +29,7 @@ use crate::chain::{self, ChainParams, ChainPoint, MachineType};
 use crate::compile::{clock, plan_county, Compiled, Plan, Summary, MAX_YEAR};
 use crate::csv::Table;
 use crate::history::{self, Month, Step};
-use crate::tables::{self, Dial, Instance, Param, Parsed, Ramp, Tables, World};
+use crate::tables::{self, Dial, Instance, Lens, Param, Parsed, Ramp, Tables, World};
 use crate::CompileError;
 use rustyecon_core::{num, Clock, FlowPerYear, RatePerYear, Years};
 use std::collections::BTreeMap;
@@ -44,12 +44,18 @@ pub struct StageTables {
     pub machine_types: String,
     /// `stage-<key>.csv`.
     pub stage: String,
+    /// The stage's lens table, `lenses-<key>.csv` (D2.3).
+    pub lenses: String,
 }
 
 impl StageTables {
     /// The file names of stage `key`, in the order of the fields.
-    pub fn files(key: &str) -> [String; 2] {
-        ["machine_types.csv".to_string(), format!("stage-{key}.csv")]
+    pub fn files(key: &str) -> [String; 3] {
+        [
+            "machine_types.csv".to_string(),
+            format!("stage-{key}.csv"),
+            StageTables::lens_file(key),
+        ]
     }
 
     /// The name of stage `key`'s lens table.
@@ -137,6 +143,8 @@ pub struct Stage {
     pub assign: String,
     /// The lens table's file name.
     pub lenses: String,
+    /// The lens table, read and checked (D2.3).
+    pub lens_rows: Vec<Lens>,
     /// The dials, in [`STAGE_DIALS`] order.
     pub dials: Vec<Dial>,
 }
@@ -561,6 +569,7 @@ pub fn parse_stage(st: &StageTables) -> Result<Stage, CompileError> {
     if let Some((key, (_, _, _, w))) = rows.into_iter().next() {
         return Err(CompileError::new(w, format!("unknown row `{key}`")));
     }
+    let lens_rows = tables::parse_lens_table(&lenses, &st.lenses)?;
     Ok(Stage {
         key: st.key.clone(),
         name,
@@ -568,6 +577,7 @@ pub fn parse_stage(st: &StageTables) -> Result<Stage, CompileError> {
         machine,
         assign,
         lenses,
+        lens_rows,
         dials,
     })
 }
@@ -663,7 +673,7 @@ pub fn compile_stage_parsed(
         ramps,
         ..
     } = tables::parse(tables, atlas)?;
-    let lenses = Vec::new();
+    let lenses = stage.lens_rows.clone();
     let c = clock(&world);
     for county in &counties {
         if county.machine_types != [stage.machine.key.as_str()] {

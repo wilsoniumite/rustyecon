@@ -484,8 +484,14 @@ pub enum LensSource {
     Param,
     /// The actors' states, which the GUI's Extractor records.
     Extractor,
-    /// The oracle, through `crates/observe` (not built yet).
+    /// The actors' states and the params together (the second pass, D2.3).
+    ExtractorParam,
+    /// The oracle, through `crates/observe` (not built yet): v1's oracle lenses, which have no
+    /// value until it is.
     Observe,
+    /// The oracle at the county's params in force through worldgen's `lens::oracle_gap`,
+    /// `crates/observe`'s in waiting (the second pass, D2.3; decision 331).
+    Oracle,
 }
 
 /// A row of `lenses.csv`: one of the map's lenses.
@@ -1221,8 +1227,8 @@ const LENS_COLUMNS: [&str; 11] = [
     "note",
 ];
 
-fn lenses(text_: &str) -> Result<Vec<Lens>, CompileError> {
-    let t = Table::parse("lenses.csv", text_, &LENS_COLUMNS)?;
+fn lenses(file: &str, text_: &str) -> Result<Vec<Lens>, CompileError> {
+    let t = Table::parse(file, text_, &LENS_COLUMNS)?;
     let mut keys = BTreeSet::new();
     let mut out = Vec::new();
     for r in &t.rows {
@@ -1282,7 +1288,10 @@ fn lenses(text_: &str) -> Result<Vec<Lens>, CompileError> {
             && match scale {
                 Scale::Sequential => true,
                 Scale::SequentialLog => lo > 0.0,
-                Scale::Diverging => lo < 0.0 && hi > 0.0,
+                // A diverging scale may centre on any reference inside its domain, checked
+                // below: 0 for a log difference, 1 for a ratio such as the horse's price over
+                // its replacement cost (D2.3).
+                Scale::Diverging => true,
             };
         if !ok {
             return Err(CompileError::new(
@@ -1311,12 +1320,15 @@ fn lenses(text_: &str) -> Result<Vec<Lens>, CompileError> {
             "report+param" => LensSource::ReportParam,
             "param" => LensSource::Param,
             "extractor" => LensSource::Extractor,
+            "extractor+param" => LensSource::ExtractorParam,
             "observe" => LensSource::Observe,
+            "oracle" => LensSource::Oracle,
             s => {
                 return Err(CompileError::new(
                     &wr,
                     format!(
-                        "source `{s}` is not report, report+param, param, extractor or observe"
+                        "source `{s}` is not report, report+param, param, extractor, \
+                         extractor+param, observe or oracle"
                     ),
                 ))
             }
@@ -1340,7 +1352,12 @@ fn lenses(text_: &str) -> Result<Vec<Lens>, CompileError> {
 /// Read and check `lenses.csv` alone. The GUI's map reads the bundled table through
 /// [`crate::lens::demo_gb`].
 pub fn parse_lenses(text: &str) -> Result<Vec<Lens>, CompileError> {
-    lenses(text)
+    lenses("lenses.csv", text)
+}
+
+/// Read and check a lens table named `file` (`lenses-v2a1.csv`, D2.3), as [`parse_lenses`].
+pub fn parse_lens_table(file: &str, text: &str) -> Result<Vec<Lens>, CompileError> {
+    lenses(file, text)
 }
 
 /// Read and check every table against the atlas.
@@ -1349,7 +1366,7 @@ pub fn parse(tables: &Tables, atlas: &Atlas) -> Result<Parsed, CompileError> {
     counties(&tables.counties, atlas)?;
     let counties = regions(&tables.regions, atlas, &world)?;
     let ramps = history(&tables.history, &world, &counties)?;
-    let lenses = lenses(&tables.lenses)?;
+    let lenses = lenses("lenses.csv", &tables.lenses)?;
     Ok(Parsed {
         world,
         counties,

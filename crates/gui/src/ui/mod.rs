@@ -435,7 +435,11 @@ impl egui_tiles::Behavior<Pane> for Panes<'_> {
                     None => loading(ui),
                 }
             }
-            Pane::Map => match self.state.map.ready() {
+            Pane::Map => match self.state.map.ready_for(
+                store
+                    .world()
+                    .map_or(rustyecon_worldgen::lens::V1_TAPE, |w| &w.name),
+            ) {
                 Err(e) => {
                     ui.colored_label(ui.visuals().error_fg_color, e);
                 }
