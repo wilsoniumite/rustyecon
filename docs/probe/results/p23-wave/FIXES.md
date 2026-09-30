@@ -9,3 +9,12 @@ Dated 2026-09-30, label `run`. `SHA256SUMS` records the files as committed befor
 
 The job runner's quoting and the dated-commons fix are in [rerun/](rerun/README.md) (P2.3.12,
 P2.3.13); they changed no file of this directory.
+
+## Files added after the wave (P2.3.15)
+
+- `BIN.sha256`: the two binaries' sha256 and the wave's `runs.jsonl`'s.
+- `score.out`: `score.py`'s printout on `runs.jsonl` (as fixed at P2.3.14).
+- `lines.csv.gz`: every line the scorer read, 59,788 (step, instance, set, run, what, registered,
+  engine, band, status).
+- `plots.py`: the small plots in `docs/probe/figs/wall/` and `docs/probe/figs/commons/`, from the
+  tables and the archived runs. Not a scorer; written after the scoring.

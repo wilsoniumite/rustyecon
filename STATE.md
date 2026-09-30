@@ -11,7 +11,18 @@ the tape's schema is [docs/TAPE.md](docs/TAPE.md), and the GUI's design is
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
 **State as of:** 2026-09-30, on branch `phase2-proper` from `reboot` at `f7d1eae`, not pushed or
-merged. **The open-commons instances C1 and C2 are registered** (P2.3.5, docs only; "Where things
+merged. **Phase 2 proper's first scored wave is run: IW1, C1 and C2 are GO, as registered**
+(P2.3.10–P2.3.15; "Where things stand";
+[docs/probe/results/wall/README.md](docs/probe/results/wall/README.md),
+[docs/probe/results/commons/README.md](docs/probe/results/commons/README.md)): 3,721 jobs on
+WSL, every class and every tick to tolerance the mirror's in 3,633 compared runs, the subsistence
+trap exactly where the mirror put it, no refutation criterion met on one reading taken after the
+result (O108, open to veto). 124 of 59,788 lines fail, none a class, a tick or a verdict: the
+runaway bound's reference (O107), two end-of-run lines registered against the wrong value (O108).
+Three faults of the machinery were found and fixed in their own commits, each disclosed: the wall's
+basket count before the wave (P2.3.10), dated shocks of the commons (P2.3.12) and the runner's
+quoting (P2.3.13) during it. O22's families on I1–I3 are still to run (O109). The reviews are next.
+**The open-commons instances C1 and C2 are registered** (P2.3.5, docs only; "Where things
 stand"; [docs/probe/results/commons/registration.md](docs/probe/results/commons/registration.md)):
 the frame `frame-commons` (I1 with one priced worker type in food and a commons the workers hold,
 full at C1 and with room at C2; the commons no market, its plots given out by the participation
@@ -165,8 +176,29 @@ on D-G12. "Next steps" has each.
 
 ## Where things stand
 
-**The first scored wave's scorer and job list, committed before it (P2.3.10–P2.3.11;
-2026-09-30).** Branch `phase2-proper`, label `run`, scratch `D:/rustyecon-p23/run/`.
+**Phase 2 proper's first scored wave: IW1, C1 and C2 are GO (P2.3.10–P2.3.15; 2026-09-30).**
+Branch `phase2-proper`, label `run`, scratch `D:/rustyecon-p23/run/`, raw runs
+`D:/rustyecon-p23/runs/`. The records: [docs/probe/results/wall/README.md](docs/probe/results/wall/README.md)
+and [docs/probe/results/commons/README.md](docs/probe/results/commons/README.md); the machinery in
+[docs/probe/results/p23-wave/](docs/probe/results/p23-wave/README.md).
+- **The verdicts, as registered.** IW1 GO: mode A, Tiers 1–3 26/26, 38/38, 39/39, Tier 3S 20/20,
+  Tiers 3 and 3S again at 10·L, 13/13 kick sets; the base's envelope decays at 0.5338 a year
+  (0.534 registered). C1 and C2 GO: every non-vacuous run of Tiers 1–3 and 3S CONVERGED at L and
+  10·L, C2's six VACUOUS runs VACUOUS, 26/26 kick sets. The subsistence trap falls exactly where
+  the mirror put it, 203 runs name for name (joint, basin, tilt 1, C1's land.mach history at tick
+  7,788, C1N's nine), and nowhere in the verdict battery. No refutation criterion is met, on one
+  reading taken after the result (O108, open to veto).
+- **The engine is the mirror.** In 3,633 compared runs every class is the mirror's, and every
+  tick to tolerance of the 3,397 CONVERGED ones is the mirror's to the tick; troughs, depths,
+  dead and breach ticks, regime ticks and switches, the thresholds' return, the edges (5.6e-16)
+  all the mirror's or within its printed digits.
+- **The lines.** 59,788 read: 37,073 pass, 22,591 reported, **124 fail**, none a class, a tick
+  to tolerance or a verdict: 65 runaway ticks of trap runs at the commons, where the harness
+  holds the bound to the displaced genesis and the mirror to the undisplaced point (O107; the
+  mirror on the harness's reference gives the engine's tick in 190 of 195); 58 shadow rents at the
+  end at C1 at 12 and 365 a year, read against the mirror's early-stopped value, up to 7.0e-8 off
+  the oracle's where the engine is within 3.0e-13 (O108); and E6's "every CONVERGED run ends at
+  the wall" at four runs at 365 a year, whose shares stall at 70 subnormal ulps, not 10 (O108).
 - **P2.3.10, the harness's baskets count every household.** While the scorer was written, the
   markets harness's baskets eaten over Y\* were found to sum the provider's and the workers'
   baskets only, P2.1's two households; at the wall (IW1, IC1) they left out the trained and the
@@ -193,7 +225,21 @@ on D-G12. "Next steps" has each.
   passed, 4 ignored; the pins unmoved). COMMONS-RULES §4, amended. The wave ran to its end
   unchanged; the 54 jobs run again on the fixed binary, with an R1 check of 24 untouched jobs
   byte for byte ([rerun/](docs/probe/results/p23-wave/rerun/README.md)).
-- **Next:** the rerun, the gather and the scoring, and the report.
+- **P2.3.13, the runner kept the jobs' quotes.** The wave ended at 10:08 with 703 jobs never
+  started: its runner, `xargs -I{} bash -c '{}'`, stripped the job lines' quotes, so every run name
+  with a parenthesis (JA, JB, N, RC, RW, joint, cycle) was a shell syntax error before its job
+  script. They ran from 10:17 on the binary their list names, with `xargs -d '
+'`; every run's
+  printed name is its job's. Nothing had been scored.
+- **P2.3.14**: one column of the commons' `verdicts.csv` (kick sets passed, 1/13 for 13/13); no
+  line moved (`p23-wave/FIXES.md`).
+- **P2.3.15, the scoring.** 3,721 jobs and 24 R1 checks, every exit 0; `runs.jsonl` regenerates
+  from the gzipped archive byte for byte. Tables and READMEs in `results/wall/` and
+  `results/commons/`, plots in `figs/wall/` and `figs/commons/`, diagnostics in
+  `results/commons/diag/`. Open items O107–O109; O106 closed.
+- **Next** (next step 7): the reviews of this wave and its report; O22's families on I1–I3
+  (O109); your rulings on O107 and O108; then the 1750-like instance, which waits for the trap's
+  remedy (O100) and the addenda of O95.
 
 **The open-commons instances' E0–E2, before any scored run (P2.3.7–P2.3.9; 2026-09-30).** Branch
 `phase2-proper`, scratch `D:/rustyecon-p23/build-commons/e0/`. The record:
@@ -4709,7 +4755,29 @@ O95 on are Phase 2 proper's (P2.3.0, branch `phase2-proper`; this line's range i
 - **O106. The joint family's draws** (the frame's O102). The mirror draws in its own market order;
   the registration's reading makes the harness draw in the same order at C1 and C2, and E0 checks
   it. If E0 finds the draws unequal, the per-seed predictions fall and the counts are the
-  prediction (C1 4/60 and 12/40, C2 0/60 and 8/40), within 25%.
+  prediction (C1 4/60 and 12/40, C2 0/60 and 8/40), within 25%. *Closed at P2.3.9 and P2.3.15:*
+  E0 found the draws equal, and every seed's class is the mirror's.
+- **O107. The runaway bound's reference** (P2.3.15; results/commons/README.md). PROBE-SPEC §4.5's
+  bound, every posted price within [1e-6, 1e6] × genesis, is read by the harness against the run's
+  displaced genesis prices (since P2.1) and by the commons mirror's runner against the undisplaced
+  point. In the trap, where labour's or food's price was displaced, the runaway ticks differ by up
+  to 29 ticks (10.5%), and 65 lines of the commons fail the registered 5%; the mirror against the
+  harness's reference gives the engine's tick in 190 of 195 trap runs and one tick apart in 5.
+  Classes do not move. A registration that scores runaway ticks should name the reference; the
+  harness's (displaced) is the one every P2 wave has used. Alternative: read the bound against the
+  oracle's point in the harness, which moves every runaway tick P2.1–P2.3 reported.
+- **O108. Two end-of-run lines registered against the wrong value** (P2.3.15). (1) The wall's E6:
+  a displaced share stalls where a·s rounds to 0, at 10 subnormal ulps (5e-323) at 52 ticks a year
+  but 70 (3.46e-322) at 365, so four runs at 365 a year fail the scorer's "at most 5e-323" line,
+  with their thresholds at 1.0 exactly and every labour market trading. Read after the result as
+  the wall, not a refutation of "a desk's share not back to 0"; **open to veto.** (2) The commons'
+  r_o at the end within 1e-9 of the mirror's, which the mirror reads where it stopped early: at 12
+  and 365 a year that is up to 7.0e-8 off the oracle's, so 58 lines at C1 fail while the engine
+  ends within 3.0e-13 of the oracle's. A registration should put an end value against the oracle,
+  or run its mirror to L. Neither changes a class, a tick or a verdict.
+- **O109. O22's families on I1–I3 are still unrun** (decision 368 orders them before the wall and
+  commons batteries). P2.3's wave ran the two frames' registered protocols only; the families
+  there have no registered predictions and are reported. They are their own wave, stocks first.
 
 ## Corrections logged (A3; ADDENDUM §1.4)
 
@@ -4865,7 +4933,8 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
         total, the pool's market form the frame's call (371); type desks on pool labour (372).
         *Registered at P2.3.1:* IW1 (decisions 394–397;
         docs/probe/results/wall/registration.md). *Built at P2.3.2* (docs/probe/WALL-RULES.md).
-        E0, the scorer and the scored wave follow, in that order.
+        E0, the scorer and the scored wave follow, in that order. *E0–E2 pass at P2.3.4; scored
+        at P2.3.15:* GO (docs/probe/results/wall/README.md).
       - **The open-commons instance** (1e): s(q), every type pooled (377), food as its exit good
         (375, 380), one land service (379), certified by 1e's Proposition 5 (378), the crowded
         commons' shadow rent posted (374), idle land compared in wage units, `Idle` plots read
@@ -4875,7 +4944,8 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
         built into the same step (decisions 398–399; docs/probe/results/commons/registration.md).
         *Built at P2.3.6* (docs/probe/COMMONS-RULES.md); *E0–E2 pass at P2.3.9* under
         amendments A1 and A2 (docs/probe/results/commons/e0.md). The scorer and the scored wave
-        follow, in that order.
+        follow, in that order. *Scored at P2.3.15:* C1 and C2 GO
+        (docs/probe/results/commons/README.md).
    3. **Later**: the 1750-like instance takes the common basket (388), 1f's tax bases and
       closure if it has a government (382–386), C2g for any machine stock (391), capital's time
       unscored (392), and each addendum of O95 before the feature that needs it.

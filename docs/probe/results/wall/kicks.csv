@@ -1,0 +1,14 @@
+target,passed,gain_tail,gain_peak,kicks
+hold,True,8.326672e-06,2.210616,14
+land.mach=0.44@dated,True,6.217249e-06,2.198235,14
+land.mach=0.36@dated,True,6.661338e-06,2.300802,14
+land.mach=0.8@dated,True,6.217249e-06,2.104057,14
+land.mach=0.2@dated,True,5.32907e-06,2.737513,14
+tail.services=0.11@dated,True,6.217248e-06,2.302737,14
+tail.services=0.09@dated,True,6.661338e-06,2.193858,14
+tail.services=0.2@dated,True,1.065814e-05,2.772343,14
+tail.services=0.05@dated,True,6.217249e-06,2.154433,14
+res.services.trained=0.044@dated,True,4.996004e-06,2.276231,14
+res.services.trained=0.036@dated,True,6.217248e-06,2.182632,14
+res.services.trained=0.08@dated,True,9.325874e-06,2.702264,14
+res.services.trained=0.02@dated,True,4.884982e-06,2.139011,14

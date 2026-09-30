@@ -1,0 +1,2 @@
+inst,verdict,prediction,Tier 1,Tier 2,Tier 3,Tier 3S,Tier 3 at 10L,Tier 3S at 10L,kicks,refutations
+iw1,GO,GO,26/26,38/38,39/39,20/20,39/39,20/20,13/13 PASS,"CONVERGED runs ending at the wall (every share 0 or at most 5e-323, x = 1)"

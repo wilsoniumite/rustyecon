@@ -1,0 +1,2 @@
+step,inst,set,run,what,registered,engine,band,status
+E6,iw1,all,-,"CONVERGED runs ending at the wall (every share 0 or at most 5e-323, x = 1)",all,1082/1086,all,fail

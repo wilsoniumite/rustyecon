@@ -1,0 +1,114 @@
+lines by instance and step:
+  c1       E2      pass 5, reported 4
+  c1       E3      pass 2554, reported 1464
+  c1       E4      pass 567, reported 293
+  c1       E5      fail 31, pass 5733, reported 3603
+  c1       E6      pass 260
+  c1       E7      pass 3139, reported 1537
+  c1       E8      fail 58, pass 2018, reported 864
+  c1       E9      pass 57, reported 24
+  c1n      E9      fail 1, pass 1345, reported 610
+  c2       E2      pass 5, reported 4
+  c2       E3      pass 2177, reported 1362
+  c2       E4      pass 501, reported 283
+  c2       E5      fail 33, pass 4978, reported 3631
+  c2       E6      pass 488
+  c2       E7      pass 2717, reported 1451
+  c2       E8      pass 1786, reported 816
+  c2       E9      pass 59, reported 24
+  commons  refute  pass 2
+  ic1      E8      pass 2, reported 1442
+  iw1      E2      pass 6
+  iw1      E3      pass 995, reported 647
+  iw1      E4      pass 15, reported 1
+  iw1      E5      pass 12
+  iw1      E6      fail 1, pass 19
+  iw1      E7      pass 7514, reported 4531
+  iw1      E9      pass 118
+  iw1      refute  pass 1
+all lines: {'pass': 37073, 'reported': 22591, 'fail': 124}
+the wall: IW1 GO ; refutations: ['CONVERGED runs ending at the wall (every share 0 or at most 5e-323, x = 1)']
+the commons: c1 GO
+the commons: c2 GO
+the commons' refutations: none
+124 lines fail or are missing
+   E6	iw1	all	-	CONVERGED runs ending at the wall (every share 0 or at most 5e-323, x = 1)	all	1082/1086	all
+   E5	c1	joint4	joint(4,6)	runaway tick	316	294	5%
+   E5	c1	joint4	joint(4,12)	runaway tick	258	275	5%
+   E5	c1	joint4	joint(4,17)	runaway tick	295	279	5%
+   E5	c1	joint4	joint(4,22)	runaway tick	266	282	5%
+   E5	c1	basin	p[labour]*0.12270440108	runaway tick	277	248	5%
+   E5	c1	basin	p[labour]*0.128839621134	runaway tick	277	248	5%
+   E5	c1	basin	p[labour]*0.181290285353	runaway tick	277	257	5%
+   E5	c1	basin	p[labour]*0.149147966415	runaway tick	277	252	5%
+   E5	c1	basin	p[labour]*0.156605364736	runaway tick	277	253	5%
+   E5	c1	basin	p[labour]*0.135281602191	runaway tick	277	250	5%
+   E5	c1	basin	p[labour]*0.172657414622	runaway tick	277	254	5%
+   E5	c1	basin	p[labour]*0.1420456823	runaway tick	277	251	5%
+   E5	c1	basin	p[labour]*0.164435632973	runaway tick	277	255	5%
+   E5	c1	basin	p[labour]*0.19035479962	runaway tick	277	256	5%
+   E5	c1	basin	p[labour]*0.199872539601	runaway tick	277	258	5%
+   E5	c1	basin	p[labour]*0.209866166581	runaway tick	277	259	5%
+   E5	c1	basin	p[labour]*0.22035947491	runaway tick	277	260	5%
+   E5	c1	basin	p[food]*3.22509994371	runaway tick	257	271	5%
+   E5	c1	basin	p[food]*3.3863549409	runaway tick	256	270	5%
+   E5	c1	basin	p[food]*3.73345632234	runaway tick	254	267	5%
+   E5	c1	basin	p[food]*4.11613559538	runaway tick	252	265	5%
+   E5	c1	basin	p[food]*4.53803949391	runaway tick	250	264	5%
+   E5	c1	basin	p[food]*5.00318854203	runaway tick	249	262	5%
+   E5	c1	basin	p[food]*5.79181613597	runaway tick	246	259	5%
+   E5	c1	basin	p[food]*6.08140694277	runaway tick	245	258	5%
+   E5	c1	basin	p[food]*6.38547728991	runaway tick	244	257	5%
+   E5	c1	basin	p[food]*6.7047511544	runaway tick	243	257	5%
+   E5	c1	basin	p[food]*7.03998871212	runaway tick	242	255	5%
+   E5	c1	basin	p[food]*8.14966693287	runaway tick	239	252	5%
+   E5	c1	basin	p[food]*7.76158755512	runaway tick	240	253	5%
+   E5	c1	basin	p[food]*7.39198814773	runaway tick	241	254	5%
+   E8	c1	tpy12	b.food=0.54@genesis	r_o/r at the end (Crowded target)	0.23810539697778826	0.23810539533337458	1e-9 relative
+   E8	c1	tpy12	b.food=0.54@dated	r_o/r at the end (Crowded target)	0.2381053968785152	0.23810539533337924	1e-9 relative
+   E8	c1	tpy365	p[land]*0.95	r_o/r at the end (Crowded target)	0.4379200676875568	0.43792004726671063	1e-9 relative
+   E8	c1	tpy365	p[food]*1.05	r_o/r at the end (Crowded target)	0.43792006146479256	0.4379200472667019	1e-9 relative
+   E8	c1	tpy365	p[manufactures]*1.2	r_o/r at the end (Crowded target)	0.437920075716632	0.437920047266733	1e-9 relative
+   E8	c1	tpy365	p[labour]*0.95	r_o/r at the end (Crowded target)	0.4379200482571329	0.4379200472667453	1e-9 relative
+   E8	c1	tpy365	p[labour]*0.8	r_o/r at the end (Crowded target)	0.4379200663743953	0.4379200472667156	1e-9 relative
+   E8	c1	tpy365	p[land]*1.05	r_o/r at the end (Crowded target)	0.4379200766464209	0.43792004726672984	1e-9 relative
+   E8	c1	tpy365	p[care]*1.05	r_o/r at the end (Crowded target)	0.43792004898144865	0.4379200472667237	1e-9 relative
+   E8	c1	tpy365	p[labour]*1.2	r_o/r at the end (Crowded target)	0.4379200481240289	0.4379200472667247	1e-9 relative
+   E8	c1	tpy365	p[manufactures]*0.95	r_o/r at the end (Crowded target)	0.4379200607101577	0.4379200472666972	1e-9 relative
+   E8	c1	tpy365	p[manufactures]*1.05	r_o/r at the end (Crowded target)	0.437920049553951	0.4379200472666908	1e-9 relative
+   E8	c1	tpy365	p[manufactures]*0.8	r_o/r at the end (Crowded target)	0.43792004791114386	0.4379200472667461	1e-9 relative
+   E8	c1	tpy365	p[food]*0.95	r_o/r at the end (Crowded target)	0.43792007740177824	0.4379200472667547	1e-9 relative
+   E8	c1	tpy365	p[food]*1.2	r_o/r at the end (Crowded target)	0.4379200477682552	0.4379200472667482	1e-9 relative
+   E8	c1	tpy365	p[care]*0.95	r_o/r at the end (Crowded target)	0.43792005532197836	0.4379200472667364	1e-9 relative
+   E8	c1	tpy365	p[land]*1.2	r_o/r at the end (Crowded target)	0.4379200489355407	0.4379200472667404	1e-9 relative
+   E8	c1	tpy365	p[care]*1.2	r_o/r at the end (Crowded target)	0.43792007729171145	0.4379200472667439	1e-9 relative
+   E8	c1	tpy365	p[care]*0.8	r_o/r at the end (Crowded target)	0.43792007784517173	0.43792004726675243	1e-9 relative
+   E8	c1	tpy365	p[land]*0.8	r_o/r at the end (Crowded target)	0.4379200478528634	0.43792004726675615	1e-9 relative
+   E8	c1	tpy365	p[shelter]*0.95	r_o/r at the end (Crowded target)	0.43792007273456085	0.4379200472667013	1e-9 relative
+   E8	c1	tpy365	p[shelter]*1.05	r_o/r at the end (Crowded target)	0.437920070794042	0.43792004726669553	1e-9 relative
+   E8	c1	tpy365	p[shelter]*1.2	r_o/r at the end (Crowded target)	0.4379200771544838	0.43792004726671	1e-9 relative
+   E8	c1	tpy365	p[shelter]*0.8	r_o/r at the end (Crowded target)	0.4379200483213635	0.4379200472667474	1e-9 relative
+   E8	c1	tpy365	s[food]*0.95	r_o/r at the end (Crowded target)	0.4379200769661668	0.43792004726675315	1e-9 relative
+   E8	c1	tpy365	p[mach]*1.05	r_o/r at the end (Crowded target)	0.43792004819635133	0.43792004726673067	1e-9 relative
+   E8	c1	tpy365	p[mach]*0.95	r_o/r at the end (Crowded target)	0.437920048584807	0.43792004726674305	1e-9 relative
+   E8	c1	tpy365	s[food]*1.05	r_o/r at the end (Crowded target)	0.43792004796251216	0.43792004726673456	1e-9 relative
+   E8	c1	tpy365	p[mach]*1.2	r_o/r at the end (Crowded target)	0.43792004877676166	0.4379200472667247	1e-9 relative
+   E8	c1	tpy365	s[food]*0.8	r_o/r at the end (Crowded target)	0.43792007482105777	0.43792004726674816	1e-9 relative
+   E8	c1	tpy365	s[shelter]*0.95	r_o/r at the end (Crowded target)	0.4379200483364914	0.4379200472667472	1e-9 relative
+   E8	c1	tpy365	s[care]*0.95	r_o/r at the end (Crowded target)	0.4379200545019818	0.4379200472667063	1e-9 relative
+   E8	c1	tpy365	s[shelter]*1.05	r_o/r at the end (Crowded target)	0.43792005976858395	0.4379200472667115	1e-9 relative
+   E8	c1	tpy365	s[shelter]*0.8	r_o/r at the end (Crowded target)	0.4379200483251122	0.437920047266661	1e-9 relative
+   E8	c1	tpy365	p[mach]*0.8	r_o/r at the end (Crowded target)	0.4379200709778793	0.43792004726669453	1e-9 relative
+   E8	c1	tpy365	JB(1.05)	r_o/r at the end (Crowded target)	0.4379200486524549	0.43792004726676087	1e-9 relative
+   E8	c1	tpy365	N(1.05)	r_o/r at the end (Crowded target)	0.4379200482658361	0.4379200472667429	1e-9 relative
+   E8	c1	tpy365	JB(1.2)	r_o/r at the end (Crowded target)	0.43792005663832145	0.4379200472667174	1e-9 relative
+   E8	c1	tpy365	JA(1.2)	r_o/r at the end (Crowded target)	0.43792004843690113	0.4379200472667406	1e-9 relative
+   E8	c1	tpy365	N(1.2)	r_o/r at the end (Crowded target)	0.43792005214310203	0.437920047266677	1e-9 relative
+   E8	c1	tpy365	N(0.95)	r_o/r at the end (Crowded target)	0.4379200486274606	0.43792004726666034	1e-9 relative
+   E8	c1	tpy365	s[food]*1.2	r_o/r at the end (Crowded target)	0.43792004849528543	0.4379200472667248	1e-9 relative
+   E8	c1	tpy365	JB(0.8)	r_o/r at the end (Crowded target)	0.43792007436779806	0.43792004726673717	1e-9 relative
+   E8	c1	tpy365	N(0.8)	r_o/r at the end (Crowded target)	0.4379200558743726	0.4379200472666979	1e-9 relative
+   E8	c1	tpy365	JA(0.95)	r_o/r at the end (Crowded target)	0.4379200485705566	0.43792004726671996	1e-9 relative
+   E8	c1	tpy365	RC(1.05)	r_o/r at the end (Crowded target)	0.4379200481643994	0.4379200472667399	1e-9 relative
+   E8	c1	tpy365	JA(0.8)	r_o/r at the end (Crowded target)	0.4379200773685611	0.43792004726666955	1e-9 relative
+   E8	c1	tpy365	RC(0.95)	r_o/r at the end (Crowded target)	0.43792007238125086	0.43792004726670847	1e-9 relative

@@ -1,0 +1,124 @@
+step,inst,set,run,what,registered,engine,band,status
+E5,c1,joint4,"joint(4,6)",runaway tick,316,294,5%,fail
+E5,c1,joint4,"joint(4,12)",runaway tick,258,275,5%,fail
+E5,c1,joint4,"joint(4,17)",runaway tick,295,279,5%,fail
+E5,c1,joint4,"joint(4,22)",runaway tick,266,282,5%,fail
+E5,c1,basin,p[labour]*0.12270440108,runaway tick,277,248,5%,fail
+E5,c1,basin,p[labour]*0.128839621134,runaway tick,277,248,5%,fail
+E5,c1,basin,p[labour]*0.181290285353,runaway tick,277,257,5%,fail
+E5,c1,basin,p[labour]*0.149147966415,runaway tick,277,252,5%,fail
+E5,c1,basin,p[labour]*0.156605364736,runaway tick,277,253,5%,fail
+E5,c1,basin,p[labour]*0.135281602191,runaway tick,277,250,5%,fail
+E5,c1,basin,p[labour]*0.172657414622,runaway tick,277,254,5%,fail
+E5,c1,basin,p[labour]*0.1420456823,runaway tick,277,251,5%,fail
+E5,c1,basin,p[labour]*0.164435632973,runaway tick,277,255,5%,fail
+E5,c1,basin,p[labour]*0.19035479962,runaway tick,277,256,5%,fail
+E5,c1,basin,p[labour]*0.199872539601,runaway tick,277,258,5%,fail
+E5,c1,basin,p[labour]*0.209866166581,runaway tick,277,259,5%,fail
+E5,c1,basin,p[labour]*0.22035947491,runaway tick,277,260,5%,fail
+E5,c1,basin,p[food]*3.22509994371,runaway tick,257,271,5%,fail
+E5,c1,basin,p[food]*3.3863549409,runaway tick,256,270,5%,fail
+E5,c1,basin,p[food]*3.73345632234,runaway tick,254,267,5%,fail
+E5,c1,basin,p[food]*4.11613559538,runaway tick,252,265,5%,fail
+E5,c1,basin,p[food]*4.53803949391,runaway tick,250,264,5%,fail
+E5,c1,basin,p[food]*5.00318854203,runaway tick,249,262,5%,fail
+E5,c1,basin,p[food]*5.79181613597,runaway tick,246,259,5%,fail
+E5,c1,basin,p[food]*6.08140694277,runaway tick,245,258,5%,fail
+E5,c1,basin,p[food]*6.38547728991,runaway tick,244,257,5%,fail
+E5,c1,basin,p[food]*6.7047511544,runaway tick,243,257,5%,fail
+E5,c1,basin,p[food]*7.03998871212,runaway tick,242,255,5%,fail
+E5,c1,basin,p[food]*8.14966693287,runaway tick,239,252,5%,fail
+E5,c1,basin,p[food]*7.76158755512,runaway tick,240,253,5%,fail
+E5,c1,basin,p[food]*7.39198814773,runaway tick,241,254,5%,fail
+E8,c1,tpy12,b.food=0.54@genesis,r_o/r at the end (Crowded target),0.23810539697778826,0.23810539533337458,1e-9 relative,fail
+E8,c1,tpy12,b.food=0.54@dated,r_o/r at the end (Crowded target),0.2381053968785152,0.23810539533337924,1e-9 relative,fail
+E8,c1,tpy365,p[land]*0.95,r_o/r at the end (Crowded target),0.4379200676875568,0.43792004726671063,1e-9 relative,fail
+E8,c1,tpy365,p[food]*1.05,r_o/r at the end (Crowded target),0.43792006146479256,0.4379200472667019,1e-9 relative,fail
+E8,c1,tpy365,p[manufactures]*1.2,r_o/r at the end (Crowded target),0.437920075716632,0.437920047266733,1e-9 relative,fail
+E8,c1,tpy365,p[labour]*0.95,r_o/r at the end (Crowded target),0.4379200482571329,0.4379200472667453,1e-9 relative,fail
+E8,c1,tpy365,p[labour]*0.8,r_o/r at the end (Crowded target),0.4379200663743953,0.4379200472667156,1e-9 relative,fail
+E8,c1,tpy365,p[land]*1.05,r_o/r at the end (Crowded target),0.4379200766464209,0.43792004726672984,1e-9 relative,fail
+E8,c1,tpy365,p[care]*1.05,r_o/r at the end (Crowded target),0.43792004898144865,0.4379200472667237,1e-9 relative,fail
+E8,c1,tpy365,p[labour]*1.2,r_o/r at the end (Crowded target),0.4379200481240289,0.4379200472667247,1e-9 relative,fail
+E8,c1,tpy365,p[manufactures]*0.95,r_o/r at the end (Crowded target),0.4379200607101577,0.4379200472666972,1e-9 relative,fail
+E8,c1,tpy365,p[manufactures]*1.05,r_o/r at the end (Crowded target),0.437920049553951,0.4379200472666908,1e-9 relative,fail
+E8,c1,tpy365,p[manufactures]*0.8,r_o/r at the end (Crowded target),0.43792004791114386,0.4379200472667461,1e-9 relative,fail
+E8,c1,tpy365,p[food]*0.95,r_o/r at the end (Crowded target),0.43792007740177824,0.4379200472667547,1e-9 relative,fail
+E8,c1,tpy365,p[food]*1.2,r_o/r at the end (Crowded target),0.4379200477682552,0.4379200472667482,1e-9 relative,fail
+E8,c1,tpy365,p[care]*0.95,r_o/r at the end (Crowded target),0.43792005532197836,0.4379200472667364,1e-9 relative,fail
+E8,c1,tpy365,p[land]*1.2,r_o/r at the end (Crowded target),0.4379200489355407,0.4379200472667404,1e-9 relative,fail
+E8,c1,tpy365,p[care]*1.2,r_o/r at the end (Crowded target),0.43792007729171145,0.4379200472667439,1e-9 relative,fail
+E8,c1,tpy365,p[care]*0.8,r_o/r at the end (Crowded target),0.43792007784517173,0.43792004726675243,1e-9 relative,fail
+E8,c1,tpy365,p[land]*0.8,r_o/r at the end (Crowded target),0.4379200478528634,0.43792004726675615,1e-9 relative,fail
+E8,c1,tpy365,p[shelter]*0.95,r_o/r at the end (Crowded target),0.43792007273456085,0.4379200472667013,1e-9 relative,fail
+E8,c1,tpy365,p[shelter]*1.05,r_o/r at the end (Crowded target),0.437920070794042,0.43792004726669553,1e-9 relative,fail
+E8,c1,tpy365,p[shelter]*1.2,r_o/r at the end (Crowded target),0.4379200771544838,0.43792004726671,1e-9 relative,fail
+E8,c1,tpy365,p[shelter]*0.8,r_o/r at the end (Crowded target),0.4379200483213635,0.4379200472667474,1e-9 relative,fail
+E8,c1,tpy365,s[food]*0.95,r_o/r at the end (Crowded target),0.4379200769661668,0.43792004726675315,1e-9 relative,fail
+E8,c1,tpy365,p[mach]*1.05,r_o/r at the end (Crowded target),0.43792004819635133,0.43792004726673067,1e-9 relative,fail
+E8,c1,tpy365,p[mach]*0.95,r_o/r at the end (Crowded target),0.437920048584807,0.43792004726674305,1e-9 relative,fail
+E8,c1,tpy365,s[food]*1.05,r_o/r at the end (Crowded target),0.43792004796251216,0.43792004726673456,1e-9 relative,fail
+E8,c1,tpy365,p[mach]*1.2,r_o/r at the end (Crowded target),0.43792004877676166,0.4379200472667247,1e-9 relative,fail
+E8,c1,tpy365,s[food]*0.8,r_o/r at the end (Crowded target),0.43792007482105777,0.43792004726674816,1e-9 relative,fail
+E8,c1,tpy365,s[shelter]*0.95,r_o/r at the end (Crowded target),0.4379200483364914,0.4379200472667472,1e-9 relative,fail
+E8,c1,tpy365,s[care]*0.95,r_o/r at the end (Crowded target),0.4379200545019818,0.4379200472667063,1e-9 relative,fail
+E8,c1,tpy365,s[shelter]*1.05,r_o/r at the end (Crowded target),0.43792005976858395,0.4379200472667115,1e-9 relative,fail
+E8,c1,tpy365,s[shelter]*0.8,r_o/r at the end (Crowded target),0.4379200483251122,0.437920047266661,1e-9 relative,fail
+E8,c1,tpy365,p[mach]*0.8,r_o/r at the end (Crowded target),0.4379200709778793,0.43792004726669453,1e-9 relative,fail
+E8,c1,tpy365,JB(1.05),r_o/r at the end (Crowded target),0.4379200486524549,0.43792004726676087,1e-9 relative,fail
+E8,c1,tpy365,N(1.05),r_o/r at the end (Crowded target),0.4379200482658361,0.4379200472667429,1e-9 relative,fail
+E8,c1,tpy365,JB(1.2),r_o/r at the end (Crowded target),0.43792005663832145,0.4379200472667174,1e-9 relative,fail
+E8,c1,tpy365,JA(1.2),r_o/r at the end (Crowded target),0.43792004843690113,0.4379200472667406,1e-9 relative,fail
+E8,c1,tpy365,N(1.2),r_o/r at the end (Crowded target),0.43792005214310203,0.437920047266677,1e-9 relative,fail
+E8,c1,tpy365,N(0.95),r_o/r at the end (Crowded target),0.4379200486274606,0.43792004726666034,1e-9 relative,fail
+E8,c1,tpy365,s[food]*1.2,r_o/r at the end (Crowded target),0.43792004849528543,0.4379200472667248,1e-9 relative,fail
+E8,c1,tpy365,JB(0.8),r_o/r at the end (Crowded target),0.43792007436779806,0.43792004726673717,1e-9 relative,fail
+E8,c1,tpy365,N(0.8),r_o/r at the end (Crowded target),0.4379200558743726,0.4379200472666979,1e-9 relative,fail
+E8,c1,tpy365,JA(0.95),r_o/r at the end (Crowded target),0.4379200485705566,0.43792004726671996,1e-9 relative,fail
+E8,c1,tpy365,RC(1.05),r_o/r at the end (Crowded target),0.4379200481643994,0.4379200472667399,1e-9 relative,fail
+E8,c1,tpy365,JA(0.8),r_o/r at the end (Crowded target),0.4379200773685611,0.43792004726666955,1e-9 relative,fail
+E8,c1,tpy365,RC(0.95),r_o/r at the end (Crowded target),0.43792007238125086,0.43792004726670847,1e-9 relative,fail
+E8,c1,tpy365,JB(0.95),r_o/r at the end (Crowded target),0.43792004859125055,0.4379200472667462,1e-9 relative,fail
+E8,c1,tpy365,RC(0.8),r_o/r at the end (Crowded target),0.437920049368503,0.4379200472667473,1e-9 relative,fail
+E8,c1,tpy365,b.food=0.54@genesis,r_o/r at the end (Crowded target),0.238105401877075,0.23810539533330677,1e-9 relative,fail
+E8,c1,tpy365,land.mach=0.36@genesis,r_o/r at the end (Crowded target),0.6569881392356669,0.6569881384969972,1e-9 relative,fail
+E8,c1,tpy365,land.mach=0.44@genesis,r_o/r at the end (Crowded target),0.21948636949505013,0.21948636806998517,1e-9 relative,fail
+E8,c1,tpy365,b.food=0.66@genesis,r_o/r at the end (Crowded target),0.6331821033130999,0.6331821024425119,1e-9 relative,fail
+E8,c1,tpy365,b.food=0.66@dated,r_o/r at the end (Crowded target),0.63318210331128,0.6331821024425252,1e-9 relative,fail
+E8,c1,tpy365,land.mach=0.36@dated,r_o/r at the end (Crowded target),0.6569881392359875,0.6569881384969974,1e-9 relative,fail
+E8,c1,tpy365,land.mach=0.44@dated,r_o/r at the end (Crowded target),0.21948636949041764,0.21948636806995475,1e-9 relative,fail
+E8,c1,tpy365,b.food=0.54@dated,r_o/r at the end (Crowded target),0.2381054018796721,0.23810539533335262,1e-9 relative,fail
+E5,c2,joint4,"joint(4,12)",runaway tick,259,280,5%,fail
+E5,c2,joint4,"joint(4,3)",runaway tick,304,280,5%,fail
+E5,c2,joint4,"joint(4,22)",runaway tick,268,284,5%,fail
+E5,c2,joint4,"joint(4,39)",runaway tick,265,279,5%,fail
+E5,c2,basin,p[labour]*0.128839621134,runaway tick,277,258,5%,fail
+E5,c2,basin,p[labour]*0.12270440108,runaway tick,277,257,5%,fail
+E5,c2,basin,p[labour]*0.135281602191,runaway tick,277,258,5%,fail
+E5,c2,basin,p[labour]*0.1420456823,runaway tick,277,258,5%,fail
+E5,c2,basin,p[labour]*0.156605364736,runaway tick,277,260,5%,fail
+E5,c2,basin,p[labour]*0.149147966415,runaway tick,277,259,5%,fail
+E5,c2,basin,p[labour]*0.164435632973,runaway tick,277,262,5%,fail
+E5,c2,basin,p[labour]*0.181290285353,runaway tick,277,263,5%,fail
+E5,c2,basin,p[labour]*0.172657414622,runaway tick,277,263,5%,fail
+E5,c2,basin,p[food]*3.22509994371,runaway tick,255,277,5%,fail
+E5,c2,basin,p[food]*3.73345632234,runaway tick,252,272,5%,fail
+E5,c2,basin,p[food]*3.55567268794,runaway tick,253,275,5%,fail
+E5,c2,basin,p[food]*3.3863549409,runaway tick,254,275,5%,fail
+E5,c2,basin,p[food]*3.92012913846,runaway tick,252,272,5%,fail
+E5,c2,basin,p[food]*4.11613559538,runaway tick,251,273,5%,fail
+E5,c2,basin,p[food]*4.32194237515,runaway tick,250,272,5%,fail
+E5,c2,basin,p[food]*4.53803949391,runaway tick,249,270,5%,fail
+E5,c2,basin,p[food]*4.7649414686,runaway tick,248,269,5%,fail
+E5,c2,basin,p[food]*5.51601536759,runaway tick,245,266,5%,fail
+E5,c2,basin,p[food]*5.25334796914,runaway tick,246,267,5%,fail
+E5,c2,basin,p[food]*5.00318854203,runaway tick,247,269,5%,fail
+E5,c2,basin,p[food]*6.7047511544,runaway tick,241,262,5%,fail
+E5,c2,basin,p[food]*5.79181613597,runaway tick,244,264,5%,fail
+E5,c2,basin,p[food]*6.38547728991,runaway tick,242,263,5%,fail
+E5,c2,basin,p[food]*6.08140694277,runaway tick,243,265,5%,fail
+E5,c2,basin,p[food]*7.03998871212,runaway tick,240,261,5%,fail
+E5,c2,basin,p[food]*7.76158755512,runaway tick,238,258,5%,fail
+E5,c2,basin,p[food]*7.39198814773,runaway tick,239,259,5%,fail
+E5,c2,basin,p[food]*8.14966693287,runaway tick,237,260,5%,fail
+E9,c1n,L,JB(2),runaway tick,279,293,5%,fail

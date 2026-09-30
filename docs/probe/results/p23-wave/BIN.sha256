@@ -1,0 +1,3 @@
+3f957fb0d95b1522eb69214b0fec458eedd7aa1699069e735fe775c335b62371  /root/scratch/p23-run/markets (the wave: built in WSL release from 198554a, P2.3.11)
+be3266abcf5e35f20b20158800a731ef948a518b42d9319d275e6332dd0542e9  /root/scratch/p23-run2/markets (the rerun and the R1 check: built in WSL release from c4adbf8, P2.3.12)
+f9fc7416bdad5725910b1043e8e1bce7f9e8054c91d9168708730e1ed3c1ea79  runs.jsonl (gather.py over jobs.txt, from /root/scratch/p23-runs and again from D:/rustyecon-p23/runs; archived as D:/rustyecon-p23/runs/runs.jsonl.gz)

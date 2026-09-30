@@ -1,0 +1,13 @@
+run,what,registered,engine,detail
+s[services]=0.05,thresholds back (tick),78,78,-
+s[goods]=0.05,thresholds back (tick),78,78,-
+s[services]=0.2,thresholds back (tick),105,105,-
+s[goods]=0.2,thresholds back (tick),105,105,-
+s[services]=0.5,thresholds back (tick),124,124,-
+s[goods]=0.5,thresholds back (tick),124,124,-
+x*/2,thresholds back (tick),124,124,-
+JB(0.5),thresholds back (tick),102,102,-
+-,runs off the wall at the end,0,4,tpy365/s[goods]=0.05:goods=3.46e-322; tpy365/s[goods]=0.2:goods=3.46e-322; tpy365/s[services]=0.05:services=3.46e-322; tpy365/s[services]=0.2:services=3.46e-322
+-,runs with a labour market dead at the end,0,0,
+-,never-displaced shares not 0.0,0,0,
+-,displaced shares not at 5e-323 at the end,0,0,
