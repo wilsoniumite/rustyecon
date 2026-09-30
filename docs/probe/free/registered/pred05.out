@@ -1,0 +1,106 @@
+== IL1/zp05
+   modeA           1 runs {'VACUOUS': 1}; peak D-hat 0; most dead ticks 0; lowest baskets/Y* 1.000
+   modeA12         1 runs {'VACUOUS': 1}; peak D-hat 0; most dead ticks 0; lowest baskets/Y* 1.000
+   modeA365        1 runs {'VACUOUS': 1}; peak D-hat 0; most dead ticks 0; lowest baskets/Y* 1.000
+   battery T1     25 runs {'CONVERGED': 25}; ticks to tol median 281, slowest 474; peak D-hat 1573; most dead ticks 34; lowest baskets/Y* 0.207
+   battery T2     37 runs {'CONVERGED': 33, 'VACUOUS': 4}; ticks to tol median 334, slowest 570; peak D-hat 3118; most dead ticks 48; lowest baskets/Y* 0.044
+   battery T3     38 runs {'CONVERGED': 36, 'VACUOUS': 2}; ticks to tol median 516, slowest 678; peak D-hat 5774; most dead ticks 119; lowest baskets/Y* 0.003
+   tier3x10       38 runs {'CONVERGED': 36, 'VACUOUS': 2}; ticks to tol median 516, slowest 678; peak D-hat 5774; most dead ticks 119; lowest baskets/Y* 0.003
+   tier3s         22 runs {'CONVERGED': 22}; ticks to tol median 356, slowest 547; peak D-hat 1253; most dead ticks 2; lowest baskets/Y* 0.286; first-year D-hat least 32.0
+   tier3sx10      22 runs {'CONVERGED': 22}; ticks to tol median 356, slowest 547; peak D-hat 1253; most dead ticks 2; lowest baskets/Y* 0.286; first-year D-hat least 32.0
+   stocks         39 runs {'CONVERGED': 39}; ticks to tol median 392, slowest 662; peak D-hat 3912; most dead ticks 103; lowest baskets/Y* 0.000
+   joint2         60 runs {'CONVERGED': 60}; ticks to tol median 540, slowest 658; peak D-hat 2645; most dead ticks 96; lowest baskets/Y* 0.000
+   joint4         40 runs {'CONVERGED': 39, 'DIVERGED': 1}; ticks to tol median 645, slowest 834; peak D-hat 4221; most dead ticks 255; lowest baskets/Y* 0.000
+         DIVERGED  joint(4,10)                runaway at t=254
+   tpy12 T1       25 runs {'CONVERGED': 25}; ticks to tol median 111, slowest 341; peak D-hat 1444; most dead ticks 9; lowest baskets/Y* 0.276
+   tpy12 T2       37 runs {'CONVERGED': 33, 'VACUOUS': 4}; ticks to tol median 127, slowest 450; peak D-hat 2684; most dead ticks 21; lowest baskets/Y* 0.068
+   tpy365 T1      25 runs {'CONVERGED': 25}; ticks to tol median 1799, slowest 3116; peak D-hat 1658; most dead ticks 225; lowest baskets/Y* 0.191
+   tpy365 T2      37 runs {'CONVERGED': 33, 'VACUOUS': 4}; ticks to tol median 2052, slowest 3792; peak D-hat 3228; most dead ticks 321; lowest baskets/Y* 0.040
+   dial family   646 runs {'CONVERGED': 612, 'VACUOUS': 34}; ticks to tol median 507, slowest 917; peak D-hat 7122; most dead ticks 151; lowest baskets/Y* 0.000
+      adjust x0.75 {'CONVERGED': 36, 'VACUOUS': 2} median 516 slowest 716
+      adjust x0.9  {'CONVERGED': 36, 'VACUOUS': 2} median 516 slowest 684
+      adjust x1.1  {'CONVERGED': 36, 'VACUOUS': 2} median 516 slowest 678
+      adjust x1.25 {'CONVERGED': 36, 'VACUOUS': 2} median 516 slowest 678
+      buffer x0.75 {'CONVERGED': 36, 'VACUOUS': 2} median 516 slowest 670
+      buffer x0.9  {'CONVERGED': 36, 'VACUOUS': 2} median 516 slowest 674
+      buffer x1.1  {'CONVERGED': 36, 'VACUOUS': 2} median 516 slowest 682
+      buffer x1.25 {'CONVERGED': 36, 'VACUOUS': 2} median 517 slowest 693
+      rate x0.75   {'CONVERGED': 36, 'VACUOUS': 2} median 673 slowest 917
+      rate x0.9    {'CONVERGED': 36, 'VACUOUS': 2} median 570 slowest 756
+      rate x1.1    {'CONVERGED': 36, 'VACUOUS': 2} median 471 slowest 623
+      rate x1.25   {'CONVERGED': 36, 'VACUOUS': 2} median 414 slowest 571
+      tilt 0.05    {'CONVERGED': 36, 'VACUOUS': 2} median 520 slowest 683
+      tilt 0.1     {'CONVERGED': 36, 'VACUOUS': 2} median 522 slowest 689
+      tilt 0.25    {'CONVERGED': 36, 'VACUOUS': 2} median 517 slowest 707
+      tilt 0.5     {'CONVERGED': 36, 'VACUOUS': 2} median 515 slowest 742
+      tilt 1       {'CONVERGED': 36, 'VACUOUS': 2} median 518 slowest 825
+   free-able market over the battery: ticks free per run 1-4001; runs that start priced and go free: 3, first free tick 1-4; most switches 6 (JB(2))
+   PL base                         Idle      0.988687 half-life 61; kick bar PL^(0.9L) = e^-573.4 passes; held ['land']
+   PL land.mach x1.1               Idle      0.988687 half-life 61; kick bar PL^(0.9L) = e^-573.4 passes; held ['land']
+   PL land.mach x0.9               Idle      0.988687 half-life 61; kick bar PL^(0.9L) = e^-573.4 passes; held ['land']
+   PL land.mach x2                 Idle      0.988687 half-life 61; kick bar PL^(0.9L) = e^-573.4 passes; held ['land']
+   PL land.mach x0.5               Idle      0.988687 half-life 61; kick bar PL^(0.9L) = e^-573.4 passes; held ['land']
+   PL b.food x1.1                  Idle      0.988687 half-life 61; kick bar PL^(0.9L) = e^-573.4 passes; held ['land']
+   PL b.food x0.9                  Idle      0.988687 half-life 61; kick bar PL^(0.9L) = e^-573.4 passes; held ['land']
+   PL b.food x2                    Idle      0.988687 half-life 61; kick bar PL^(0.9L) = e^-573.4 passes; held ['land']
+   PL b.food x0.5                  Idle      0.988687 half-life 61; kick bar PL^(0.9L) = e^-573.4 passes; held ['land']
+   PL inst.land x1.1               Idle      0.988687 half-life 61; kick bar PL^(0.9L) = e^-573.4 passes; held ['land']
+   PL inst.land x0.9               Idle      0.988687 half-life 61; kick bar PL^(0.9L) = e^-573.4 passes; held ['land']
+   PL inst.land x2                 Idle      0.988687 half-life 61; kick bar PL^(0.9L) = e^-573.4 passes; held ['land']
+   PL inst.land x0.5               Enclosed  0.989993 half-life 69; kick bar PL^(0.9L) = e^-506.9 passes; held []
+== CT2/zp05
+   modeA           1 runs {'VACUOUS': 1}; peak D-hat 0; most dead ticks 0; lowest baskets/Y* 1.000
+   modeA12         1 runs {'VACUOUS': 1}; peak D-hat 0; most dead ticks 0; lowest baskets/Y* 1.000
+   modeA365        1 runs {'VACUOUS': 1}; peak D-hat 0; most dead ticks 0; lowest baskets/Y* 1.000
+   battery T1     30 runs {'CONVERGED': 30}; ticks to tol median 306, slowest 498; peak D-hat 439; most dead ticks 0; lowest baskets/Y* 0.675
+   battery T2     42 runs {'CONVERGED': 40, 'VACUOUS': 2}; ticks to tol median 354, slowest 5080; peak D-hat 1840; most dead ticks 82; lowest baskets/Y* 0.185
+   battery T3     43 runs {'CONVERGED': 41, 'VACUOUS': 2}; ticks to tol median 512, slowest 3357; peak D-hat 7593; most dead ticks 151; lowest baskets/Y* 0.000
+   tier3x10       43 runs {'CONVERGED': 41, 'VACUOUS': 2}; ticks to tol median 512, slowest 3357; peak D-hat 7593; most dead ticks 151; lowest baskets/Y* 0.000
+   tier3s         24 runs {'CONVERGED': 24}; ticks to tol median 342, slowest 543; peak D-hat 1253; most dead ticks 46; lowest baskets/Y* 0.286; first-year D-hat least 65.1
+   tier3sx10      24 runs {'CONVERGED': 24}; ticks to tol median 342, slowest 543; peak D-hat 1253; most dead ticks 46; lowest baskets/Y* 0.286; first-year D-hat least 65.1
+   stocks         41 runs {'CONVERGED': 41}; ticks to tol median 420, slowest 561; peak D-hat 3912; most dead ticks 99; lowest baskets/Y* 0.000
+   joint2         60 runs {'CONVERGED': 60}; ticks to tol median 546, slowest 661; peak D-hat 9937; most dead ticks 180; lowest baskets/Y* 0.000
+   joint4         40 runs {'CONVERGED': 33, 'DIVERGED': 7}; ticks to tol median 594, slowest 890; peak D-hat 13558; most dead ticks 277; lowest baskets/Y* 0.000
+         DIVERGED  joint(4,10)                runaway at t=254
+         DIVERGED  joint(4,12)                runaway at t=259
+         DIVERGED  joint(4,18)                runaway at t=268
+         DIVERGED  joint(4,21)                runaway at t=269
+         DIVERGED  joint(4,22)                runaway at t=269
+         DIVERGED  joint(4,34)                runaway at t=276
+         DIVERGED  joint(4,39)                runaway at t=266
+   tpy12 T1       30 runs {'CONVERGED': 30}; ticks to tol median 860, slowest 1310; peak D-hat 466; most dead ticks 0; lowest baskets/Y* 0.628
+   tpy12 T2       42 runs {'CONVERGED': 40, 'VACUOUS': 2}; ticks to tol median 1052, slowest 1398; peak D-hat 1340; most dead ticks 18; lowest baskets/Y* 0.293
+   tpy365 T1      30 runs {'CONVERGED': 30}; ticks to tol median 1968, slowest 2404; peak D-hat 483; most dead ticks 0; lowest baskets/Y* 0.617
+   tpy365 T2      42 runs {'CONVERGED': 40, 'VACUOUS': 2}; ticks to tol median 2294, slowest 35674; peak D-hat 1736; most dead ticks 524; lowest baskets/Y* 0.204
+   dial family   731 runs {'CONVERGED': 697, 'VACUOUS': 34}; ticks to tol median 483, slowest 18365; peak D-hat 12243; most dead ticks 223; lowest baskets/Y* 0.000
+      adjust x0.75 {'CONVERGED': 41, 'VACUOUS': 2} median 517 slowest 6900
+      adjust x0.9  {'CONVERGED': 41, 'VACUOUS': 2} median 513 slowest 4673
+      adjust x1.1  {'CONVERGED': 41, 'VACUOUS': 2} median 510 slowest 2220
+      adjust x1.25 {'CONVERGED': 41, 'VACUOUS': 2} median 509 slowest 969
+      buffer x0.75 {'CONVERGED': 41, 'VACUOUS': 2} median 607 slowest 9247
+      buffer x0.9  {'CONVERGED': 41, 'VACUOUS': 2} median 541 slowest 1907
+      buffer x1.1  {'CONVERGED': 41, 'VACUOUS': 2} median 490 slowest 10915
+      buffer x1.25 {'CONVERGED': 41, 'VACUOUS': 2} median 424 slowest 13714
+      rate x0.75   {'CONVERGED': 41, 'VACUOUS': 2} median 502 slowest 18365
+      rate x0.9    {'CONVERGED': 41, 'VACUOUS': 2} median 516 slowest 13240
+      rate x1.1    {'CONVERGED': 41, 'VACUOUS': 2} median 493 slowest 717
+      rate x1.25   {'CONVERGED': 41, 'VACUOUS': 2} median 485 slowest 1562
+      tilt 0.05    {'CONVERGED': 41, 'VACUOUS': 2} median 450 slowest 3587
+      tilt 0.1     {'CONVERGED': 41, 'VACUOUS': 2} median 392 slowest 3534
+      tilt 0.25    {'CONVERGED': 41, 'VACUOUS': 2} median 357 slowest 2752
+      tilt 0.5     {'CONVERGED': 41, 'VACUOUS': 2} median 309 slowest 3749
+      tilt 1       {'CONVERGED': 41, 'VACUOUS': 2} median 420 slowest 649
+   free-able market over the battery: ticks free per run 1-4001; runs that start priced and go free: 0, first free tick None-None; most switches 2 (p[land]*2)
+   PL base                         Commons   0.985886 half-life 49; kick bar PL^(0.9L) = e^-1803.8 passes; held ['commons']
+   PL land.mach x1.1               Commons   0.985869 half-life 49; kick bar PL^(0.9L) = e^-1806.0 passes; held ['commons']
+   PL land.mach x0.9               Commons   0.987057 half-life 53; kick bar PL^(0.9L) = e^-1653.2 passes; held ['commons']
+   PL land.mach x2                 Commons   0.985744 half-life 48; kick bar PL^(0.9L) = e^-1822.1 passes; held ['commons']
+   PL land.mach x0.5               Commons   0.987912 half-life 57; kick bar PL^(0.9L) = e^-1543.3 passes; held ['commons']
+   PL b.food x1.1                  Commons   0.985899 half-life 49; kick bar PL^(0.9L) = e^-1802.2 passes; held ['commons']
+   PL b.food x0.9                  Commons   0.985855 half-life 49; kick bar PL^(0.9L) = e^-1807.8 passes; held ['commons']
+   PL b.food x2                    Crowded   0.999846 half-life 4493; kick bar PL^(0.9L) = e^-19.6 passes; held []
+   PL b.food x0.5                  Commons   0.985484 half-life 47; kick bar PL^(0.9L) = e^-1855.6 passes; held ['commons']
+   PL exit.To x1.1                 Commons   0.985886 half-life 49; kick bar PL^(0.9L) = e^-1803.8 passes; held ['commons']
+   PL exit.To x0.9                 Crowded   0.998697 half-life 532; kick bar PL^(0.9L) = e^-165.4 passes; held []
+   PL exit.To x2                   Commons   0.985886 half-life 49; kick bar PL^(0.9L) = e^-1803.8 passes; held ['commons']
+   PL exit.To x0.5                 Enclosed  0.987107 half-life 53; kick bar PL^(0.9L) = e^-1646.8 passes; held ['commons']

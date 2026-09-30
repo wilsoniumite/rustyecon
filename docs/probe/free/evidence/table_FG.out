@@ -1,0 +1,12 @@
+| CT2/zp05 | VACUOUS, D-hat 8.9e-13 | 30/30 CONVERGED; ticks to tol 306 (498) | 40/40 CONVERGED (+2 VACUOUS); ticks to tol 354 (5080) | 41/41 CONVERGED (+2 VACUOUS); ticks to tol 512 (3357) | 697/697 CONVERGED (+34 VACUOUS); ticks to tol 483 (18365) |
+| CT2/zp15 |  | 0/0 CONVERGED | 0/0 CONVERGED | 0/0 CONVERGED | 697/697 CONVERGED (+34 VACUOUS); ticks to tol 483 (7404) |
+| IL1/zp05 | VACUOUS, D-hat 2.2e-13 | 25/25 CONVERGED; ticks to tol 281 (474) | 33/33 CONVERGED (+4 VACUOUS); ticks to tol 334 (570) | 36/36 CONVERGED (+2 VACUOUS); ticks to tol 516 (678) | 612/612 CONVERGED (+34 VACUOUS); ticks to tol 507 (917) |
+| IL1/zp15 |  | 0/0 CONVERGED | 0/0 CONVERGED | 0/0 CONVERGED | 610/612 CONVERGED (+34 VACUOUS) 2 DEAD; ticks to tol 500 (915) |
+
+CT2/zp05: free-able market's end state as the oracle's in 808 CONVERGED runs, not in 0
+CT2/zp15: free-able market's end state as the oracle's in 697 CONVERGED runs, not in 0
+IL1/zp05: free-able market's end state as the oracle's in 706 CONVERGED runs, not in 0
+IL1/zp15: free-able market's end state as the oracle's in 610 CONVERGED runs, not in 0
+   DEAD      inst.land=260@dated        in 1: tilt 1
+   DEAD      inst.land=260@genesis      in 1: tilt 1
+

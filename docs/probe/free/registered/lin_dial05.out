@@ -1,0 +1,108 @@
+IL1/zp05   base                               C2m          Idle      PL 0.988687 (half-life 61 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   base                               rate x0.75   Idle      PL 0.991467 (half-life 81 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   base                               buffer x0.75 Idle      PL 0.988687 (half-life 61 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   base                               adjust x0.75 Idle      PL 0.988687 (half-life 61 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   base                               rate x0.9    Idle      PL 0.989795 (half-life 68 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   base                               buffer x0.9  Idle      PL 0.988687 (half-life 61 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   base                               adjust x0.9  Idle      PL 0.988687 (half-life 61 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   base                               rate x1.1    Idle      PL 0.987584 (half-life 55 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   base                               buffer x1.1  Idle      PL 0.988687 (half-life 61 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   base                               adjust x1.1  Idle      PL 0.988687 (half-life 61 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   base                               rate x1.25   Idle      PL 0.985939 (half-life 49 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   base                               buffer x1.25 Idle      PL 0.988687 (half-life 61 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   base                               adjust x1.25 Idle      PL 0.988687 (half-life 61 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   base                               tilt 0.05    Idle      PL 0.988858 (half-life 62 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   base                               tilt 0.1     Idle      PL 0.989024 (half-life 63 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   base                               tilt 0.25    Idle      PL 0.989491 (half-life 66 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   base                               tilt 0.5     Idle      PL 0.990183 (half-life 70 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   base                               tilt 1       Idle      PL 0.991314 (half-life 79 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   inst.land x0.5 (wall)              C2m          Enclosed  PL 0.989993 (half-life 69 ticks) held [] drift 0.0e+00
+IL1/zp05   inst.land x0.5 (wall)              rate x0.75   Enclosed  PL 0.992783 (half-life 96 ticks) held [] drift 0.0e+00
+IL1/zp05   inst.land x0.5 (wall)              buffer x0.75 Enclosed  PL 0.989362 (half-life 65 ticks) held [] drift 0.0e+00
+IL1/zp05   inst.land x0.5 (wall)              adjust x0.75 Enclosed  PL 0.989993 (half-life 69 ticks) held [] drift 0.0e+00
+IL1/zp05   inst.land x0.5 (wall)              rate x0.9    Enclosed  PL 0.991135 (half-life 78 ticks) held [] drift 0.0e+00
+IL1/zp05   inst.land x0.5 (wall)              buffer x0.9  Enclosed  PL 0.989778 (half-life 67 ticks) held [] drift 0.0e+00
+IL1/zp05   inst.land x0.5 (wall)              adjust x0.9  Enclosed  PL 0.989993 (half-life 69 ticks) held [] drift 0.0e+00
+IL1/zp05   inst.land x0.5 (wall)              rate x1.1    Enclosed  PL 0.988817 (half-life 62 ticks) held [] drift 0.0e+00
+IL1/zp05   inst.land x0.5 (wall)              buffer x1.1  Enclosed  PL 0.990172 (half-life 70 ticks) held [] drift 0.0e+00
+IL1/zp05   inst.land x0.5 (wall)              adjust x1.1  Enclosed  PL 0.989993 (half-life 69 ticks) held [] drift 0.0e+00
+IL1/zp05   inst.land x0.5 (wall)              rate x1.25   Enclosed  PL 0.986996 (half-life 53 ticks) held [] drift 0.0e+00
+IL1/zp05   inst.land x0.5 (wall)              buffer x1.25 Enclosed  PL 0.990393 (half-life 72 ticks) held [] drift 0.0e+00
+IL1/zp05   inst.land x0.5 (wall)              adjust x1.25 Enclosed  PL 0.989993 (half-life 69 ticks) held [] drift 0.0e+00
+IL1/zp05   inst.land x0.5 (wall)              tilt 0.05    Enclosed  PL 0.990033 (half-life 69 ticks) held [] drift 0.0e+00
+IL1/zp05   inst.land x0.5 (wall)              tilt 0.1     Enclosed  PL 0.990079 (half-life 70 ticks) held [] drift 0.0e+00
+IL1/zp05   inst.land x0.5 (wall)              tilt 0.25    Enclosed  PL 0.990257 (half-life 71 ticks) held [] drift 0.0e+00
+IL1/zp05   inst.land x0.5 (wall)              tilt 0.5     Enclosed  PL 0.990564 (half-life 73 ticks) held [] drift 0.0e+00
+IL1/zp05   inst.land x0.5 (wall)              tilt 1       Enclosed  PL 0.991129 (half-life 78 ticks) held [] drift 1.1e-16
+CT2/zp05   base                               C2m          Commons   PL 0.985886 (half-life 49 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   base                               rate x0.75   Commons   PL 0.984877 (half-life 45 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   base                               buffer x0.75 Commons   PL 0.989371 (half-life 65 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   base                               adjust x0.75 Commons   PL 0.985757 (half-life 48 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   base                               rate x0.9    Commons   PL 0.985337 (half-life 47 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   base                               buffer x0.9  Commons   PL 0.987367 (half-life 55 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   base                               adjust x0.9  Commons   PL 0.985837 (half-life 49 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   base                               rate x1.1    Commons   PL 0.986423 (half-life 51 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   base                               buffer x1.1  Commons   PL 0.984388 (half-life 44 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   base                               adjust x1.1  Commons   PL 0.985939 (half-life 49 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   base                               rate x1.25   Commons   PL 0.987038 (half-life 53 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   base                               buffer x1.25 Commons   PL 0.982064 (half-life 38 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   base                               adjust x1.25 Commons   PL 0.985993 (half-life 49 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   base                               tilt 0.05    Commons   PL 0.984065 (half-life 43 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   base                               tilt 0.1     Commons   PL 0.982277 (half-life 39 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   base                               tilt 0.25    Commons   PL 0.978506 (half-life 32 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   base                               tilt 0.5     Commons   PL 0.976564 (half-life 29 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   base                               tilt 1       Commons   PL 0.983250 (half-life 41 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   commons x0.9 (Crowded)             C2m          Crowded   PL 0.998697 (half-life 532 ticks) held [] drift 0.0e+00
+CT2/zp05   commons x0.9 (Crowded)             rate x0.75   Crowded   PL 0.999024 (half-life 710 ticks) held [] drift 0.0e+00
+CT2/zp05   commons x0.9 (Crowded)             buffer x0.75 Crowded   PL 0.998696 (half-life 531 ticks) held [] drift 0.0e+00
+CT2/zp05   commons x0.9 (Crowded)             adjust x0.75 Crowded   PL 0.998696 (half-life 531 ticks) held [] drift 0.0e+00
+CT2/zp05   commons x0.9 (Crowded)             rate x0.9    Crowded   PL 0.998828 (half-life 591 ticks) held [] drift 0.0e+00
+CT2/zp05   commons x0.9 (Crowded)             buffer x0.9  Crowded   PL 0.998697 (half-life 532 ticks) held [] drift 0.0e+00
+CT2/zp05   commons x0.9 (Crowded)             adjust x0.9  Crowded   PL 0.998697 (half-life 532 ticks) held [] drift 0.0e+00
+CT2/zp05   commons x0.9 (Crowded)             rate x1.1    Crowded   PL 0.998566 (half-life 483 ticks) held [] drift 0.0e+00
+CT2/zp05   commons x0.9 (Crowded)             buffer x1.1  Crowded   PL 0.998697 (half-life 532 ticks) held [] drift 0.0e+00
+CT2/zp05   commons x0.9 (Crowded)             adjust x1.1  Crowded   PL 0.998697 (half-life 532 ticks) held [] drift 0.0e+00
+CT2/zp05   commons x0.9 (Crowded)             rate x1.25   Crowded   PL 0.998369 (half-life 425 ticks) held [] drift 0.0e+00
+CT2/zp05   commons x0.9 (Crowded)             buffer x1.25 Crowded   PL 0.998698 (half-life 532 ticks) held [] drift 0.0e+00
+CT2/zp05   commons x0.9 (Crowded)             adjust x1.25 Crowded   PL 0.998698 (half-life 532 ticks) held [] drift 0.0e+00
+CT2/zp05   commons x0.9 (Crowded)             tilt 0.05    Crowded   PL 0.998697 (half-life 532 ticks) held [] drift 0.0e+00
+CT2/zp05   commons x0.9 (Crowded)             tilt 0.1     Crowded   PL 0.998697 (half-life 532 ticks) held [] drift 0.0e+00
+CT2/zp05   commons x0.9 (Crowded)             tilt 0.25    Crowded   PL 0.998696 (half-life 531 ticks) held [] drift 0.0e+00
+CT2/zp05   commons x0.9 (Crowded)             tilt 0.5     Crowded   PL 0.998696 (half-life 531 ticks) held [] drift 0.0e+00
+CT2/zp05   commons x0.9 (Crowded)             tilt 1       Crowded   PL 0.998696 (half-life 531 ticks) held [] drift 0.0e+00
+CT2/zp05   b.food x2 (Crowded, r_o 0.0118 r)  C2m          Crowded   PL 0.999846 (half-life 4493 ticks) held [] drift 0.0e+00
+CT2/zp05   b.food x2 (Crowded, r_o 0.0118 r)  rate x0.75   Crowded   PL 0.999884 (half-life 5990 ticks) held [] drift 0.0e+00
+CT2/zp05   b.food x2 (Crowded, r_o 0.0118 r)  buffer x0.75 Crowded   PL 0.999846 (half-life 4493 ticks) held [] drift 0.0e+00
+CT2/zp05   b.food x2 (Crowded, r_o 0.0118 r)  adjust x0.75 Crowded   PL 0.999846 (half-life 4490 ticks) held [] drift 0.0e+00
+CT2/zp05   b.food x2 (Crowded, r_o 0.0118 r)  rate x0.9    Crowded   PL 0.999861 (half-life 4993 ticks) held [] drift 0.0e+00
+CT2/zp05   b.food x2 (Crowded, r_o 0.0118 r)  buffer x0.9  Crowded   PL 0.999846 (half-life 4493 ticks) held [] drift 0.0e+00
+CT2/zp05   b.food x2 (Crowded, r_o 0.0118 r)  adjust x0.9  Crowded   PL 0.999846 (half-life 4493 ticks) held [] drift 0.0e+00
+CT2/zp05   b.food x2 (Crowded, r_o 0.0118 r)  rate x1.1    Crowded   PL 0.999830 (half-life 4084 ticks) held [] drift 0.0e+00
+CT2/zp05   b.food x2 (Crowded, r_o 0.0118 r)  buffer x1.1  Crowded   PL 0.999846 (half-life 4493 ticks) held [] drift 0.0e+00
+CT2/zp05   b.food x2 (Crowded, r_o 0.0118 r)  adjust x1.1  Crowded   PL 0.999846 (half-life 4493 ticks) held [] drift 0.0e+00
+CT2/zp05   b.food x2 (Crowded, r_o 0.0118 r)  rate x1.25   Crowded   PL 0.999807 (half-life 3591 ticks) held [] drift 0.0e+00
+CT2/zp05   b.food x2 (Crowded, r_o 0.0118 r)  buffer x1.25 Crowded   PL 0.999846 (half-life 4493 ticks) held [] drift 0.0e+00
+CT2/zp05   b.food x2 (Crowded, r_o 0.0118 r)  adjust x1.25 Crowded   PL 0.999846 (half-life 4493 ticks) held [] drift 0.0e+00
+CT2/zp05   b.food x2 (Crowded, r_o 0.0118 r)  tilt 0.05    Crowded   PL 0.999846 (half-life 4493 ticks) held [] drift 0.0e+00
+CT2/zp05   b.food x2 (Crowded, r_o 0.0118 r)  tilt 0.1     Crowded   PL 0.999846 (half-life 4493 ticks) held [] drift 0.0e+00
+CT2/zp05   b.food x2 (Crowded, r_o 0.0118 r)  tilt 0.25    Crowded   PL 0.999846 (half-life 4493 ticks) held [] drift 0.0e+00
+CT2/zp05   b.food x2 (Crowded, r_o 0.0118 r)  tilt 0.5     Crowded   PL 0.999846 (half-life 4493 ticks) held [] drift 0.0e+00
+CT2/zp05   b.food x2 (Crowded, r_o 0.0118 r)  tilt 1       Crowded   PL 0.999846 (half-life 4490 ticks) held [] drift 0.0e+00
+CT2/zp05   commons x0.5 (Enclosed)            C2m          Enclosed  PL 0.987107 (half-life 53 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   commons x0.5 (Enclosed)            rate x0.75   Enclosed  PL 0.985809 (half-life 48 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   commons x0.5 (Enclosed)            buffer x0.75 Enclosed  PL 0.990276 (half-life 71 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   commons x0.5 (Enclosed)            adjust x0.75 Enclosed  PL 0.987124 (half-life 53 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   commons x0.5 (Enclosed)            rate x0.9    Enclosed  PL 0.986566 (half-life 51 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   commons x0.5 (Enclosed)            buffer x0.9  Enclosed  PL 0.988445 (half-life 60 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   commons x0.5 (Enclosed)            adjust x0.9  Enclosed  PL 0.987097 (half-life 53 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   commons x0.5 (Enclosed)            rate x1.1    Enclosed  PL 0.987656 (half-life 56 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   commons x0.5 (Enclosed)            buffer x1.1  Enclosed  PL 0.985678 (half-life 48 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   commons x0.5 (Enclosed)            adjust x1.1  Enclosed  PL 0.987107 (half-life 53 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   commons x0.5 (Enclosed)            rate x1.25   Enclosed  PL 0.988233 (half-life 59 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   commons x0.5 (Enclosed)            buffer x1.25 Enclosed  PL 0.983450 (half-life 42 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   commons x0.5 (Enclosed)            adjust x1.25 Enclosed  PL 0.987071 (half-life 53 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   commons x0.5 (Enclosed)            tilt 0.05    Enclosed  PL 0.985308 (half-life 47 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   commons x0.5 (Enclosed)            tilt 0.1     Enclosed  PL 0.983550 (half-life 42 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   commons x0.5 (Enclosed)            tilt 0.25    Enclosed  PL 0.979835 (half-life 34 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   commons x0.5 (Enclosed)            tilt 0.5     Enclosed  PL 1.056562 (half-life inf ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   commons x0.5 (Enclosed)            tilt 1       Enclosed  PL 1.072023 (half-life inf ticks) held ['commons'] drift 0.0e+00

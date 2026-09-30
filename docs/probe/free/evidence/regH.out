@@ -1,0 +1,29 @@
+== CT2/zp05 joint2: 60 runs {'CONVERGED': 60}; ticks to tol median 546, slowest 661
+== CT2/zp05 joint4: 40 runs {'CONVERGED': 33, 'DIVERGED': 7}; ticks to tol median 594, slowest 890
+      DIVERGED  T0 joint(4,10)                    err runaway at t=254 dead 255 final D-hat inf free {'commons': 29} sw {'commons': 58} end {'commons': 0.0}
+      DIVERGED  T0 joint(4,12)                    err runaway at t=259 dead 260 final D-hat inf free {'commons': 29} sw {'commons': 58} end {'commons': 0.0}
+      DIVERGED  T0 joint(4,18)                    err runaway at t=268 dead 269 final D-hat inf free {'commons': 29} sw {'commons': 57} end {'commons': 0.0005322542838173646}
+      DIVERGED  T0 joint(4,21)                    err runaway at t=269 dead 270 final D-hat inf free {'commons': 23} sw {'commons': 45} end {'commons': 0.0008385886554331012}
+      DIVERGED  T0 joint(4,22)                    err runaway at t=269 dead 270 final D-hat inf free {'commons': 32} sw {'commons': 40} end {'commons': 0.0}
+      DIVERGED  T0 joint(4,34)                    err runaway at t=276 dead 277 final D-hat inf free {'commons': 31} sw {'commons': 52} end {'commons': 0.0}
+      DIVERGED  T0 joint(4,39)                    err runaway at t=266 dead 267 final D-hat inf free {'commons': 37} sw {'commons': 53} end {'commons': 0.0005322542838173647}
+== CT2/zp05 modeA12: 1 runs {'VACUOUS': 1}
+== CT2/zp05 modeA365: 1 runs {'VACUOUS': 1}
+== CT2/zp05 stocks: 41 runs {'CONVERGED': 41}; ticks to tol median 420, slowest 561
+== CT2/zp05 tier3s: 24 runs {'CONVERGED': 24}; ticks to tol median 342, slowest 543
+== CT2/zp05 tier3sx10: 24 runs {'CONVERGED': 24}; ticks to tol median 342, slowest 543
+== CT2/zp05 tier3x10: 43 runs {'CONVERGED': 41, 'VACUOUS': 2}; ticks to tol median 512, slowest 3357
+== CT2/zp05 tpy12: 72 runs {'CONVERGED': 70, 'VACUOUS': 2}; ticks to tol median 983, slowest 1398
+== CT2/zp05 tpy365: 72 runs {'CONVERGED': 70, 'VACUOUS': 2}; ticks to tol median 2067, slowest 35674
+== IL1/zp05 joint2: 60 runs {'CONVERGED': 60}; ticks to tol median 540, slowest 658
+== IL1/zp05 joint4: 40 runs {'DIVERGED': 1, 'CONVERGED': 39}; ticks to tol median 645, slowest 834
+      DIVERGED  T0 joint(4,10)                    err runaway at t=254 dead 255 final D-hat inf free {'land': 255} sw {'land': 0} end {'land': 0.0}
+== IL1/zp05 modeA12: 1 runs {'VACUOUS': 1}
+== IL1/zp05 modeA365: 1 runs {'VACUOUS': 1}
+== IL1/zp05 stocks: 39 runs {'CONVERGED': 39}; ticks to tol median 392, slowest 662
+== IL1/zp05 tier3s: 22 runs {'CONVERGED': 22}; ticks to tol median 356, slowest 547
+== IL1/zp05 tier3sx10: 22 runs {'CONVERGED': 22}; ticks to tol median 356, slowest 547
+== IL1/zp05 tier3x10: 38 runs {'CONVERGED': 36, 'VACUOUS': 2}; ticks to tol median 516, slowest 678
+== IL1/zp05 tpy12: 62 runs {'CONVERGED': 58, 'VACUOUS': 4}; ticks to tol median 124, slowest 450
+== IL1/zp05 tpy365: 62 runs {'CONVERGED': 58, 'VACUOUS': 4}; ticks to tol median 1840, slowest 3792
+725 runs in 97 s

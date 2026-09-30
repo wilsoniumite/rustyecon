@@ -49,6 +49,13 @@ mirror within 1.35e-13 in all seventeen registered runs, the pool shares within 
 the switch both ways, with no parting above 1e-12 but the wall's A1 residue and no amendment;
 mode A, the kick sets and L as registered. The scorer and the scored wave (E1's never-pooled
 runs, E3–E9) are next.
+**A zero price markets can hold is registered** (P2.4.10, docs only; "Where things stand";
+[docs/probe/results/free/registration.md](docs/probe/results/free/registration.md)): a mirror
+scan of O96's and O101's candidates chose the free step, an optional per-good price step
+p′ = p·e^(kx) + (c·p_ref)·expm1(kx) that posts 0 where that is not positive, at c 0.5 with
+labour the reference; it adds no state and moves no equilibrium. Two new instances on I1's
+economy, IL1 (idle enclosed land at r = 0) and CT2 (two plot-taking types sharing one commons
+traded on a market), are predicted GO. Decisions 416–423 and O124–O129; the build and E0 are next.
 Before it, on branch `phase2-proper` from `reboot` at `f7d1eae`:
 **Phase 2 proper's first session is reported** (P2.3.16;
 [docs/probe/PHASE2-S1.md](docs/probe/PHASE2-S1.md)): both reviews find the verdicts hold, and
@@ -224,6 +231,48 @@ types and carriers, on the many-market roles (O27), which may now start from the
 stage v2a.1 on your ruling on D-G12. "Next steps" has each.
 
 ## Where things stand
+
+**A zero price markets can hold: the free step, registered (P2.4.10; 2026-09-30).** Branch
+`phase2-s2`, label `build-free`, scratch `D:/rustyecon-p24/build-free/`; the scan's
+`D:/rustyecon-p24/scan-free/`. Docs only:
+[docs/probe/results/free/registration.md](docs/probe/results/free/registration.md), the scan's
+frame in [docs/probe/free/](docs/probe/free/), and this file.
+- **The scan** (`SPEC.md`, sha256 `ef6c888f…3a04`, LF; `SHA256SUMS`, 170 entries, each checked).
+  PHASE2-S1 §6 item D. The mirror `fm.py` is the commons frame's registered `cm.py` with the
+  scan's additions, and equals it bit for bit where they are off (33 checks). It ran four
+  candidates on two new instances, 21,693 runs: Saturate (the control), the one-sided free state
+  (the brief's example, which never acts where a good has buyers), a snap to 0 below φ of the
+  wage, and the free step at nine values of c.
+- **The choice: the free step at c 0.5** (decisions 416, 417). p′ = p·e^(kx) + (c·p_ref)·expm1(kx),
+  p_ref labour's posted price; a step to 0 or below posts 0, and at 0 the price stays while supply
+  is at least demand and leaves 0 by itself when demand exceeds it. No state; absent, or at c 0,
+  it is Saturate bit for bit. Its rest set is complementary slackness (p ≥ 0, S ≥ D,
+  p·(S − D) = 0), so it moves no equilibrium and needs no oracle addendum. Every battery run
+  converges for c in [0.3, 2] and every dial run for c in [0.3, 1]; below, the commons' slow mode
+  at a small rent fails the kick bar, and above, reopening from 0 overshoots and the land market
+  cycles. c was first picked as 1 and moved to 0.5 once the c 1.5 and 2 dial runs mapped the upper
+  edge (disclosed).
+- **The instances** (decisions 418, 419). IL1: I1's economy with few workers, one priced type in
+  food (N 10.4 a year, χ_max 2, s₀ 6, h 2.7) taking plots free on idle enclosed land; 37% of the
+  land idles, x\* 1, funded under a stated transfer (the provider pays its rent income, 0 at
+  r = 0). CT2: two plot-taking types, C2's exit and (0.25, 0.1125), 104 a year each, sharing a
+  commons of 19.5 a year traded on a market the pops hold half each. The worktree's oracle, an
+  independent 50-digit solve and the mirror's f64 oracle agree within 6.5e-16 at all 26 targets
+  (r_o within 4.8e-13); one sign change at every target on a scan 16 times finer.
+- **The predictions** (SPEC §9): IL1 GO, Tiers 1–3 25/25, 33/33, 36/36, Tier 3S 22/22; CT2 GO,
+  30/30, 40/40, 41/41, 24/24; both again at 10·L; every kick bar passes (the tightest e^-19.6 at
+  CT2's b.food × 2); the dial family 612/612 and 697/697; every CONVERGED run ends with its
+  free-able market at the oracle's price, 0 or positive. The families put 1 of 40 (IL1) and 7 of 40
+  (CT2) joint4 runs in the subsistence trap, as Saturate does (O100).
+- **Readings declared before the build** (registration §3): the field and its dial `free.<good>`;
+  the step's arithmetic; zero allowed for a free-able good only (update, apply, genesis, the
+  checkpoint's book); admission at a price of 0; the load checks; the kick set skips a market at 0;
+  the pops' `exit.market`, their rule, orders and budget (the commons' rent paid from what the
+  baskets leave, the mirror's arithmetic), produce; IL1 and CT2, their genesis and tapes; IL1's
+  observables are 21, not SPEC §6.4's miscounted 20; its starts, the runaway bound, mode A and the
+  dead-tick rule, the readouts `free.*`, Tier 3S and the families, E0's comparison, and the GUI.
+- **Decisions 416–423 and O124–O129**, below; O96 and O101 amended. **Next:** the build, then E0
+  against the registered traces before any scored run.
 
 **The type switch at the wall: E0–E2, before any scored run (P2.4.9; 2026-09-30).** Branch
 `phase2-s2`, label `build-switch`, scratch `D:/rustyecon-p24/build-switch/e0/`. The record:
@@ -4334,6 +4383,46 @@ each open to veto; the alternative named is the registered one (R6).
      targets are IW1's). *Alternative:* a 0.2 bound, which would drop tail.services 0.11 and
      res.services.trained 0.036, the targets nearest the switch.
 
+Decisions 416–423 are P2.4.10's (2026-09-30), the free scan's FG1–FG8
+(`docs/probe/free/SPEC.md` §11), numbered at its registration. Claude's, on your delegation,
+each open to veto; the alternative named is the registered one (R6).
+
+416. **The free step is the zero price markets hold (O96, O101)** (FG1; the scan's §5, §6.1): an
+     optional per-good field, p′ = p·e^(kx) + (c·p_ref)·expm1(kx), posting 0 where that is not
+     positive; a buy at a price of 0 is feasible in full; off when absent, bit for bit. The main
+     risk is a reading, not a run: whether "a step below 0 posts 0" is a floor under R3 (the
+     scan's §8, §10; it holds a price at no value but 0, which is the oracle's wherever it binds at
+     rest, and without it no scanned rule reaches 0 in finite time). *Alternative:* the snap (φ
+     0.001 of the wage), exact at 0 and above φ·w, slow at small rents, with no rest point below
+     φ·w.
+417. **c 0.5, labour's posted price the reference, a live tape param** (FG2; the scan's §4.5,
+     §5). The window on both instances' batteries and dial families at C2m is [0.3, 1]; c was
+     first picked as 1 and moved after the c 1.5 and 2 dial runs (disclosed). *Alternative:* c 1,
+     inside the window but at most 1.5 from its upper edge.
+418. **IL1 is Phase 2's idle-land instance, under the stated transfer** (FG3; the scan's §3.2):
+     the provider pays its rent income, 0 at r = 0, and the workers' support is their own
+     household's; the oracle's `funded` false is disclosed. It tests decisions 153, 161, 376 and
+     381, and ends 398's deferral. *Alternative:* 376's "no idle-land instance" until a 1f
+     transfer funds the support.
+419. **CT2 is Phase 2's several-types commons (O101)** (FG4; the scan's §6.3): the commons is
+     traded on a market the pops hold in equal shares and offer, each filling its own share first
+     at r_o ≥ r̂, with the free step; the workers' exit gains an optional `market`. *Alternative:* a
+     commons actor, a new role that holds and offers the commons and spends its rent.
+420. **One plot-taking type keeps decision 398's rule** (FG5; the scan's §4.4): the market form is
+     2.5–3.6 times slower at C1. *Alternative:* the market form everywhere.
+421. **IL1's harness is in wage units** (FG6; the scan's §6.4): its observables are prices over w,
+     thresholds, cleared volumes and outputs (21, the mirror's; the SPEC's "20" is a miscount,
+     registration §3); p[land]=V at 0.00125, 0.005 and 0.025 of w; the targets `inst.land` and, at
+     CT2, `exit.To`; a free-able market's runaway bound [0, 1e6 × its scale]; the regime read from
+     posted prices. *Alternative:* rent units with r/w an observable, which has no log at 0.
+422. **The verdict for IL1 and CT2 is P2.1's with Tier 3S, the kick sets and the free-able
+     market's end state** (FG7; the scan's §9.1); the dial family and the families reported.
+     *Alternative:* the dial family in the verdict (PLAN's "green with margin").
+423. **Decision 160 stays untested** (FG8): a land-alone exit good is free at r = 0 too, and the
+     workers' branch test r·h < p_g·Δ reads 0 < 0 there, so they would take the floor where 160
+     decides at the wall's end; the rule would need the desk's recipe (R13), and the roles have no
+     land-alone category. *Alternative:* a land-only category and a limit rule now.
+
 ## Open — your calls
 
 - **The GUI's decisions**, 22–34 (D1–D13): G0 carried them out, none vetoed; a veto now reopens
@@ -4386,6 +4475,11 @@ each open to veto; the alternative named is the registered one (R6).
   O97's (409), its rate 26 a year (410), one optional field and one appended state (411), IS1 as
   the instance (412), IS2 a reported control (413), the harness at the switch (414), and the
   switch distance registered, not bounded (415). Each open to veto before the build.
+- **Decisions 416–423** (P2.4.10, 2026-09-30): the free scan's choice, the free step as the zero
+  price markets hold (416; its main risk the reading of "posts 0" under R3), c 0.5 with labour
+  the reference (417), IL1 under the stated transfer (418), CT2 and the pops' commons market
+  (419), one plot-taking type keeping 398's rule (420), IL1's harness in wage units (421), the
+  verdict (422), and decision 160 left untested (423). Each open to veto before the build.
 - **Decisions 59–75 and 135–178** (Phase 1), open to veto. Those that bound Phase 2 proper (61,
   67, 70; 135, 137, 139, 140; 147, 149, 151, 153–155, 158, 160, 161; 162, 164, 165, 167–169,
   173) are ruled by Claude at P2.3.0 as 360–393, with the markets probe's advice: keep 67 (its
@@ -5223,6 +5317,10 @@ O95 on are Phase 2 proper's (P2.3.0, branch `phase2-proper`; this line's range i
   read), not a new behavioural rule. Under `Saturate` an unsold land price falls geometrically
   toward the oracle's 0 while the real side converges; it fails only the log bound and the
   positive range. A prerequisite of the 1750-like instance if it has idle land or a shared commons.
+  *Amended at P2.4.10:* scanned (`docs/probe/free/SPEC.md`): the free step at c 0.5 is chosen and
+  registered on IL1, idle enclosed land at r = 0 under the stated transfer (decisions 416–418);
+  Saturate runs away, the one-sided free state never acts, the snap has no rest point for a price
+  in (0, φ·w). Closed when IL1 is scored.
 - **O97. A type that sells reserved and pool hours** (the wall frame's OW1; decision 394). 1d's
   pooled type with reserved work (E1, E4), pooled types with ε ≠ 1, and support ν ≠ 1 (decision
   138): IW1 has none. Each needs a rule that splits a pop's hours between two markets, or scales
@@ -5275,6 +5373,10 @@ O95 on are Phase 2 proper's (P2.3.0, branch `phase2-proper`; this line's range i
   because its price cannot reach 0 (decision 398 as amended); with a free-good state a commons
   market might serve several types in every regime, though at C1 it is 18 times slower locally
   than the rule (half-life 876 ticks against 49).
+  *Amended at P2.4.10:* scanned with O96 (`docs/probe/free/SPEC.md`): CT2's two plot-taking types
+  share a commons traded on a market they hold in equal shares, with the free step (decisions 416,
+  417, 419); one type keeps 398's rule (420). The Enclosed regime with several pops is exact only
+  where every pop spills past its share (O124). Closed when CT2 is scored.
 - **O102. The Enclosed regime's accounts** (the frame's O98). Plots on enclosed land pay rent in
   money, not in kind (decision 152's home account). The households' split of baskets differs from
   the home account's by r·T_p/P_s, and the provider's baskets from the oracle's; the market
@@ -5384,6 +5486,27 @@ O110 on are Phase 2 proper's second session's (P2.4, branch `phase2-s2`; its ran
   form-free; but a walled type under s(q) needs 1e's addendum first (O95, decision 377), and
   `pool` with `exit` is refused until a scan runs them together. The 1750-like trained type
   needs both.
+- **O124. The Enclosed regime with several pops** (P2.4.10; the free scan's OF1). Each pop fills
+  its own share of the commons first at r_o ≥ r; that is exact only where every pop's plots exceed
+  its share at r. Where one pop's fit while another's spill, r_o has no rest and orbits r
+  (argued; no CT2 target is there). And the Enclosed point has a switch at r_o = r with a
+  continuum of rest points above it (the scan's §4.4): a land kick larger than the commons' gap
+  above r (0.13–0.81% at the runs' ends) crosses the switch, and is reported, not scored.
+- **O125. c per instance** (OF2). The window's upper edge is set by the smallest positive price
+  the market must reopen to (c·p_ref·(e^k − 1) against r\*), the lower by the slowest positive
+  rent (the kick bar). The 1750-like instance registers its own c after its own scan. The free
+  step also changes a positive price's step to k·(1 + c·p_ref/p), a dial interaction.
+- **O126. IL1's accounts** (OF3). The provider's baskets are 0 in the agents and −0.2 in the
+  oracle's books; only the split between households differs, as O102's does at C1's Enclosed
+  targets.
+- **O127. The commons' slow mode at a small rent** (OF4). CT2's b.food × 2 (r_o 0.0118·r) has a
+  half-life of 4,493 ticks at c 0.5, and CT2's Crowded band is narrow (the commons 17.09–18.20 a
+  year).
+- **O128. The one-sided free state never acts where a good has buyers** (OF5). A market with no
+  buyers at all (O54's switched-off technique) is where it would, and it is unscanned.
+- **O129. The regime readout of a commons market** (OF6) comes from its posted price (0, below r,
+  at or above r), not from bids against offers, which differ by rounding at rest (8 of the
+  mirror's Crowded runs read `Commons` that way).
 
 ## Corrections logged (A3; ADDENDUM §1.4)
 
