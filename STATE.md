@@ -60,8 +60,9 @@ traded on a market), are predicted GO. Decisions 416–423 and O124–O129. **It
 `next_price_free` and admission at a price of 0 in markets, the kick's reading of a free market
 in certify, the workers' exit's optional `market` in the agents, IL1 and CT2 with
 `tapes/markets-il1.ron` and `markets-ct2.ron`, the harness in wage units and at the commons market,
-and 18 tests, with every committed tape's text, ids and streams unchanged. E0 on the committed
-build is next.
+and 18 tests, with every committed tape's text, ids and streams unchanged. Amendment A1
+(P2.4.12, before E0) lets E0 pass a parting at a free price near 0 when the step and the volumes
+are the mirror's from the engine's own state. E0 on the committed build is next.
 Before it, on branch `phase2-proper` from `reboot` at `f7d1eae`:
 **Phase 2 proper's first session is reported** (P2.3.16;
 [docs/probe/PHASE2-S1.md](docs/probe/PHASE2-S1.md)): both reviews find the verdicts hold, and
@@ -237,6 +238,25 @@ types and carriers, on the many-market roles (O27), which may now start from the
 stage v2a.1 on your ruling on D-G12. "Next steps" has each.
 
 ## Where things stand
+
+**A zero price markets can hold: amendment A1 (P2.4.12; 2026-09-30).** Docs only, before E0 on
+the committed build and any scored run:
+[docs/probe/results/free/registration-A1.md](docs/probe/results/free/registration-A1.md), sha256
+`d5309e11…d536` in `registration-A1.sha256`.
+- **What it changes.** E0 as registered asks every value within 1e-12 in log of the mirror's
+  traces. A1 passes a parting above that in a run when it is the free-able market's posted price,
+  or a coin, on a tick where that price is positive and below 1e-3 of c·p_ref, and, over the whole
+  run, the free step recomputed from the engine's own inputs gives its next price within 4 ulps,
+  one tick of the mirror from the engine's own state gives that market's S and D within 1e-12
+  relative, and the free ticks are the trace's exactly. Every other value must agree as registered.
+- **Why.** The development trace diff found one such parting, IL1's `JB(2)` at tick 32: land's
+  last positive price before it goes free, 6.05e-5 of w, and the provider's coin, by 1.06e-12. The
+  machine desk's budget chain cuts land's budget by an ulp of its outlay, 6.57e-14 of land at r =
+  1.85e-4 of w (N6); the free step there is a difference of numbers three times its result, and
+  turns that into 9.9e-13 in one step. The engine's step is the mirror's bit for bit from its own
+  inputs, and its S and D are the mirror's within 6.7e-15 from its own state.
+- **What it does not change**: no prediction, band, class, criterion or family; the scorer's
+  inputs.
 
 **A zero price markets can hold: the build (P2.4.11; 2026-09-30).** Branch `phase2-s2`, label
 `build-free`, scratch `D:/rustyecon-p24/build-free/`. As built:
