@@ -1,0 +1,1378 @@
+E,inst,what,registered,engine,tolerance,verdict
+E3,lb1,"verdict (every run CONVERGED, mode A PASS)",GO; 20/20 24/24 25/25 28/28 28/28,GO; 20/20 24/24 25/25 (25/25) 28/28 (28/28) 28/28; mode A PASS (8.9e-16),every class exactly,PASS
+E3,lb2,"verdict (every run CONVERGED, mode A PASS)",GO; 20/20 24/24 25/25 28/28 28/28,GO; 20/20 24/24 25/25 (25/25) 28/28 (28/28) 28/28; mode A PASS (2.4e-15),every class exactly,PASS
+E3,lb3,"verdict (every run CONVERGED, mode A PASS)",GO; 20/20 24/24 25/25 28/28 28/28,GO; 20/20 24/24 25/25 (25/25) 28/28 (28/28) 28/28; mode A PASS (5.6e-16),every class exactly,PASS
+E8,lw1,"verdict (every run CONVERGED, mode A PASS)",GO; 18/18 22/22 23/23 20/20 20/20,GO; 18/18 22/22 23/23 (23/23) 20/20 (20/20) 20/20; mode A PASS (2.2e-16),every class exactly,PASS
+E8,lw2,"verdict (every run CONVERGED, mode A PASS)",GO; 18/18 22/22 23/23 20/20 20/20,GO; 18/18 22/22 23/23 (23/23) 20/20 (20/20) 20/20; mode A PASS (2.0e-15),every class exactly,PASS
+E8,lw3,"verdict (every run CONVERGED, mode A PASS)",GO; 18/18 22/22 23/23 20/20 20/20,GO; 18/18 22/22 23/23 (23/23) 20/20 (20/20) 20/20; mode A PASS (8.9e-16),every class exactly,PASS
+E10,lf1,"verdict (every run CONVERGED, mode A PASS)",GO; 20/20 24/24 25/25 28/28 28/28,GO; 20/20 24/24 25/25 (25/25) 28/28 (28/28) 28/28; mode A PASS (8.9e-16),every class exactly,PASS
+E10,lf2,"verdict (every run CONVERGED, mode A PASS)",GO; 20/20 24/24 25/25 28/28 28/28,GO; 20/20 24/24 25/25 (25/25) 28/28 (28/28) 28/28; mode A PASS (8.9e-16),every class exactly,PASS
+E10,lf5,"verdict (every run CONVERGED, mode A PASS)",GO; 20/20 24/24 25/25 28/28 28/28,GO; 20/20 24/24 25/25 (25/25) 28/28 (28/28) 28/28; mode A PASS (8.9e-16),every class exactly,PASS
+E10,lf7,"verdict (every run CONVERGED, mode A PASS)",GO; 20/20 24/24 25/25 28/28 28/28,GO; 20/20 24/24 25/25 (25/25) 28/28 (28/28) 28/28; mode A PASS (1.6e-15),every class exactly,PASS
+E10,lf8,"verdict (every run CONVERGED, mode A PASS)",GO; 20/20 24/24 25/25 28/28 28/28,GO; 20/20 24/24 25/25 (25/25) 28/28 (28/28) 28/28; mode A PASS (3.3e-16),every class exactly,PASS
+E10,lc1,"verdict (every run CONVERGED, mode A PASS)",GO; 20/20 24/24 25/25 28/28 28/28,GO; 20/20 24/24 25/25 (25/25) 28/28 (28/28) 28/28; mode A PASS (5.0e-15),every class exactly,PASS
+class,lb1,every run's class equals the mirror's,179 runs,179/179,exact,PASS
+class,lb2,every run's class equals the mirror's,179 runs,179/179,exact,PASS
+class,lb3,every run's class equals the mirror's,179 runs,179/179,exact,PASS
+class,lw1,every run's class equals the mirror's,147 runs,147/147,exact,PASS
+class,lw2,every run's class equals the mirror's,147 runs,147/147,exact,PASS
+class,lw3,every run's class equals the mirror's,147 runs,147/147,exact,PASS
+class,lf1,every run's class equals the mirror's,179 runs,179/179,exact,PASS
+class,lf2,every run's class equals the mirror's,179 runs,179/179,exact,PASS
+class,lf5,every run's class equals the mirror's,179 runs,179/179,exact,PASS
+class,lf7,every run's class equals the mirror's,179 runs,179/179,exact,PASS
+class,lf8,every run's class equals the mirror's,179 runs,179/179,exact,PASS
+class,lc1,every run's class equals the mirror's,179 runs,179/179,exact,PASS
+E3,lb1,T1 years median,22.2,22.23,10% (3 per instance within 25%),PASS
+E3,lb1,T1 years largest,35.1,35.1,10% (3 per instance within 25%),PASS
+E3,lb1,T1 lowest baskets,0.895,0.8947,5%,PASS
+E3,lb1,T1 dead fodder,0,0,10% or 5,PASS
+E3,lb1,T1 dead traction,0,0,10% or 5,PASS
+E3,lb1,T1 dead good,0,0,10% or 5,PASS
+E3,lb1,T1 dead land,0,0,10% or 5,PASS
+E3,lb1,T1 dead labour (reported),0,0,reported,REPORTED
+E3,lb1,T1 lowest horse price,0.726,0.7264,5%,PASS
+E3,lb1,T2 years median,30.1,30.13,10% (3 per instance within 25%),PASS
+E3,lb1,T2 years largest,43,42.98,10% (3 per instance within 25%),PASS
+E3,lb1,T2 lowest baskets,0.656,0.656,5%,PASS
+E3,lb1,T2 dead fodder,5,5,10% or 5,PASS
+E3,lb1,T2 dead traction,0,0,10% or 5,PASS
+E3,lb1,T2 dead good,0,0,10% or 5,PASS
+E3,lb1,T2 dead land,0,0,10% or 5,PASS
+E3,lb1,T2 dead labour (reported),0,0,reported,REPORTED
+E3,lb1,T2 lowest horse price,0.219,0.2192,5%,PASS
+E3,lb1,T3 years median,37,37.04,10% (3 per instance within 25%),PASS
+E3,lb1,T3 years largest,64.6,64.58,10% (3 per instance within 25%),PASS
+E3,lb1,T3 lowest baskets,0.255,0.2551,5%,PASS
+E3,lb1,T3 dead fodder,175,175,10% or 5,PASS
+E3,lb1,T3 dead traction,50,50,10% or 5,PASS
+E3,lb1,T3 dead good,18,18,10% or 5,PASS
+E3,lb1,T3 dead land,18,18,10% or 5,PASS
+E3,lb1,T3 dead labour (reported),167,167,reported,REPORTED
+E3,lb1,T3 lowest horse price,0.149,0.1487,5%,PASS
+E3,lb1,T3 @10L years median,37,37.04,10% (3 per instance within 25%),PASS
+E3,lb1,T3 @10L years largest,64.6,64.58,10% (3 per instance within 25%),PASS
+E3,lb1,T3 @10L lowest baskets,0.255,0.2551,5%,PASS
+E3,lb1,T3 @10L dead fodder,175,175,10% or 5,PASS
+E3,lb1,T3 @10L dead traction,50,50,10% or 5,PASS
+E3,lb1,T3 @10L dead good,18,18,10% or 5,PASS
+E3,lb1,T3 @10L dead land,18,18,10% or 5,PASS
+E3,lb1,T3 @10L dead labour (reported),167,167,reported,REPORTED
+E3,lb1,T3 @10L lowest horse price,0.149,0.1487,5%,PASS
+E3,lb1,T3S years median,32.7,32.73,10% (3 per instance within 25%),PASS
+E3,lb1,T3S years largest,46.6,46.56,10% (3 per instance within 25%),PASS
+E3,lb1,T3S lowest baskets,0.5,0.5,5%,PASS
+E3,lb1,T3S dead fodder,9,9,10% or 5,PASS
+E3,lb1,T3S dead traction,37,38,10% or 5,PASS
+E3,lb1,T3S dead good,0,1,10% or 5,PASS
+E3,lb1,T3S dead land,0,0,10% or 5,PASS
+E3,lb1,T3S dead labour (reported),0,0,reported,REPORTED
+E3,lb1,T3S lowest horse price,0.218,0.2179,5%,PASS
+E3,lb1,T3S @10L years median,32.7,32.73,10% (3 per instance within 25%),PASS
+E3,lb1,T3S @10L years largest,46.6,46.56,10% (3 per instance within 25%),PASS
+E3,lb1,T3S @10L lowest baskets,0.5,0.5,5%,PASS
+E3,lb1,T3S @10L dead fodder,9,9,10% or 5,PASS
+E3,lb1,T3S @10L dead traction,37,38,10% or 5,PASS
+E3,lb1,T3S @10L dead good,0,1,10% or 5,PASS
+E3,lb1,T3S @10L dead land,0,0,10% or 5,PASS
+E3,lb1,T3S @10L dead labour (reported),0,0,reported,REPORTED
+E3,lb1,T3S @10L lowest horse price,0.218,0.2179,5%,PASS
+E3,lb2,T1 years median,18,17.98,10% (3 per instance within 25%),PASS
+E3,lb2,T1 years largest,33.5,33.48,10% (3 per instance within 25%),PASS
+E3,lb2,T1 lowest baskets,0.897,0.8967,5%,PASS
+E3,lb2,T1 dead fodder,0,0,10% or 5,PASS
+E3,lb2,T1 dead traction,0,0,10% or 5,PASS
+E3,lb2,T1 dead good,0,0,10% or 5,PASS
+E3,lb2,T1 dead land,0,0,10% or 5,PASS
+E3,lb2,T1 dead labour (reported),0,0,reported,REPORTED
+E3,lb2,T1 lowest horse price,0.767,0.7673,5%,PASS
+E3,lb2,T2 years median,27.8,27.83,10% (3 per instance within 25%),PASS
+E3,lb2,T2 years largest,38,38.04,10% (3 per instance within 25%),PASS
+E3,lb2,T2 lowest baskets,0.659,0.6595,5%,PASS
+E3,lb2,T2 dead fodder,5,5,10% or 5,PASS
+E3,lb2,T2 dead traction,0,0,10% or 5,PASS
+E3,lb2,T2 dead good,0,0,10% or 5,PASS
+E3,lb2,T2 dead land,0,0,10% or 5,PASS
+E3,lb2,T2 dead labour (reported),0,0,reported,REPORTED
+E3,lb2,T2 lowest horse price,0.224,0.2239,5%,PASS
+E3,lb2,T3 years median,32.1,32.13,10% (3 per instance within 25%),PASS
+E3,lb2,T3 years largest,54,53.96,10% (3 per instance within 25%),PASS
+E3,lb2,T3 lowest baskets,0.26,0.2599,5%,PASS
+E3,lb2,T3 dead fodder,263,263,10% or 5,PASS
+E3,lb2,T3 dead traction,50,50,10% or 5,PASS
+E3,lb2,T3 dead good,18,18,10% or 5,PASS
+E3,lb2,T3 dead land,18,18,10% or 5,PASS
+E3,lb2,T3 dead labour (reported),175,175,reported,REPORTED
+E3,lb2,T3 lowest horse price,0.15,0.1495,5%,PASS
+E3,lb2,T3 @10L years median,32.1,32.13,10% (3 per instance within 25%),PASS
+E3,lb2,T3 @10L years largest,54,53.96,10% (3 per instance within 25%),PASS
+E3,lb2,T3 @10L lowest baskets,0.26,0.2599,5%,PASS
+E3,lb2,T3 @10L dead fodder,263,263,10% or 5,PASS
+E3,lb2,T3 @10L dead traction,50,50,10% or 5,PASS
+E3,lb2,T3 @10L dead good,18,18,10% or 5,PASS
+E3,lb2,T3 @10L dead land,18,18,10% or 5,PASS
+E3,lb2,T3 @10L dead labour (reported),175,175,reported,REPORTED
+E3,lb2,T3 @10L lowest horse price,0.15,0.1495,5%,PASS
+E3,lb2,T3S years median,30.2,30.21,10% (3 per instance within 25%),PASS
+E3,lb2,T3S years largest,43.4,43.4,10% (3 per instance within 25%),PASS
+E3,lb2,T3S lowest baskets,0.5,0.5,5%,PASS
+E3,lb2,T3S dead fodder,9,9,10% or 5,PASS
+E3,lb2,T3S dead traction,33,34,10% or 5,PASS
+E3,lb2,T3S dead good,0,1,10% or 5,PASS
+E3,lb2,T3S dead land,0,0,10% or 5,PASS
+E3,lb2,T3S dead labour (reported),0,0,reported,REPORTED
+E3,lb2,T3S lowest horse price,0.214,0.2141,5%,PASS
+E3,lb2,T3S @10L years median,30.2,30.21,10% (3 per instance within 25%),PASS
+E3,lb2,T3S @10L years largest,43.4,43.4,10% (3 per instance within 25%),PASS
+E3,lb2,T3S @10L lowest baskets,0.5,0.5,5%,PASS
+E3,lb2,T3S @10L dead fodder,9,9,10% or 5,PASS
+E3,lb2,T3S @10L dead traction,33,34,10% or 5,PASS
+E3,lb2,T3S @10L dead good,0,1,10% or 5,PASS
+E3,lb2,T3S @10L dead land,0,0,10% or 5,PASS
+E3,lb2,T3S @10L dead labour (reported),0,0,reported,REPORTED
+E3,lb2,T3S @10L lowest horse price,0.214,0.2141,5%,PASS
+E3,lb3,T1 years median,34.7,34.65,10% (3 per instance within 25%),PASS
+E3,lb3,T1 years largest,58.3,58.31,10% (3 per instance within 25%),PASS
+E3,lb3,T1 lowest baskets,0.891,0.8905,5%,PASS
+E3,lb3,T1 dead fodder,0,0,10% or 5,PASS
+E3,lb3,T1 dead traction,0,0,10% or 5,PASS
+E3,lb3,T1 dead good,0,0,10% or 5,PASS
+E3,lb3,T1 dead land,0,0,10% or 5,PASS
+E3,lb3,T1 dead labour (reported),0,0,reported,REPORTED
+E3,lb3,T1 lowest horse price,0.6,0.6001,5%,PASS
+E3,lb3,T2 years median,48.8,48.79,10% (3 per instance within 25%),PASS
+E3,lb3,T2 years largest,73.2,73.21,10% (3 per instance within 25%),PASS
+E3,lb3,T2 lowest baskets,0.65,0.6498,5%,PASS
+E3,lb3,T2 dead fodder,5,5,10% or 5,PASS
+E3,lb3,T2 dead traction,0,0,10% or 5,PASS
+E3,lb3,T2 dead good,0,0,10% or 5,PASS
+E3,lb3,T2 dead land,0,0,10% or 5,PASS
+E3,lb3,T2 dead labour (reported),0,0,reported,REPORTED
+E3,lb3,T2 lowest horse price,0.202,0.2019,5%,PASS
+E3,lb3,T3 years median,60.8,60.77,10% (3 per instance within 25%),PASS
+E3,lb3,T3 years largest,135.4,135.4,10% (3 per instance within 25%),PASS
+E3,lb3,T3 lowest baskets,0.245,0.2446,5%,PASS
+E3,lb3,T3 dead fodder,173,173,10% or 5,PASS
+E3,lb3,T3 dead traction,51,51,10% or 5,PASS
+E3,lb3,T3 dead good,21,21,10% or 5,PASS
+E3,lb3,T3 dead land,19,19,10% or 5,PASS
+E3,lb3,T3 dead labour (reported),148,148,reported,REPORTED
+E3,lb3,T3 lowest horse price,0.149,0.1493,5%,PASS
+E3,lb3,T3 @10L years median,60.8,60.77,10% (3 per instance within 25%),PASS
+E3,lb3,T3 @10L years largest,135.4,135.4,10% (3 per instance within 25%),PASS
+E3,lb3,T3 @10L lowest baskets,0.245,0.2446,5%,PASS
+E3,lb3,T3 @10L dead fodder,173,173,10% or 5,PASS
+E3,lb3,T3 @10L dead traction,51,51,10% or 5,PASS
+E3,lb3,T3 @10L dead good,21,21,10% or 5,PASS
+E3,lb3,T3 @10L dead land,19,19,10% or 5,PASS
+E3,lb3,T3 @10L dead labour (reported),148,148,reported,REPORTED
+E3,lb3,T3 @10L lowest horse price,0.149,0.1493,5%,PASS
+E3,lb3,T3S years median,57.6,57.56,10% (3 per instance within 25%),PASS
+E3,lb3,T3S years largest,78.6,78.58,10% (3 per instance within 25%),PASS
+E3,lb3,T3S lowest baskets,0.5,0.5,5%,PASS
+E3,lb3,T3S dead fodder,9,9,10% or 5,PASS
+E3,lb3,T3S dead traction,55,55,10% or 5,PASS
+E3,lb3,T3S dead good,0,0,10% or 5,PASS
+E3,lb3,T3S dead land,0,0,10% or 5,PASS
+E3,lb3,T3S dead labour (reported),0,0,reported,REPORTED
+E3,lb3,T3S lowest horse price,0.18,0.1796,5%,PASS
+E3,lb3,T3S @10L years median,57.6,57.56,10% (3 per instance within 25%),PASS
+E3,lb3,T3S @10L years largest,78.6,78.58,10% (3 per instance within 25%),PASS
+E3,lb3,T3S @10L lowest baskets,0.5,0.5,5%,PASS
+E3,lb3,T3S @10L dead fodder,9,9,10% or 5,PASS
+E3,lb3,T3S @10L dead traction,55,55,10% or 5,PASS
+E3,lb3,T3S @10L dead good,0,0,10% or 5,PASS
+E3,lb3,T3S @10L dead land,0,0,10% or 5,PASS
+E3,lb3,T3S @10L dead labour (reported),0,0,reported,REPORTED
+E3,lb3,T3S @10L lowest horse price,0.18,0.1796,5%,PASS
+E8,lw1,T1 years median,14.5,14.46,10% (3 per instance within 25%),PASS
+E8,lw1,T1 years largest,33.8,33.81,10% (3 per instance within 25%),PASS
+E8,lw1,T1 lowest baskets,0.897,0.8967,5%,PASS
+E8,lw1,T1 dead fodder,0,0,10% or 5,PASS
+E8,lw1,T1 dead traction,0,0,10% or 5,PASS
+E8,lw1,T1 dead good,0,0,10% or 5,PASS
+E8,lw1,T1 dead land,0,0,10% or 5,PASS
+E8,lw1,T1 dead labour (reported),0,0,reported,REPORTED
+E8,lw1,T2 years median,21.4,21.37,10% (3 per instance within 25%),PASS
+E8,lw1,T2 years largest,41.3,41.27,10% (3 per instance within 25%),PASS
+E8,lw1,T2 lowest baskets,0.662,0.6615,5%,PASS
+E8,lw1,T2 dead fodder,6,6,10% or 5,PASS
+E8,lw1,T2 dead traction,0,0,10% or 5,PASS
+E8,lw1,T2 dead good,0,0,10% or 5,PASS
+E8,lw1,T2 dead land,0,0,10% or 5,PASS
+E8,lw1,T2 dead labour (reported),0,0,reported,REPORTED
+E8,lw1,T3 years median,28,28.04,10% (3 per instance within 25%),PASS
+E8,lw1,T3 years largest,47.9,47.94,10% (3 per instance within 25%),PASS
+E8,lw1,T3 lowest baskets,0.262,0.2623,5%,PASS
+E8,lw1,T3 dead fodder,208,208,10% or 5,PASS
+E8,lw1,T3 dead traction,54,54,10% or 5,PASS
+E8,lw1,T3 dead good,21,21,10% or 5,PASS
+E8,lw1,T3 dead land,20,20,10% or 5,PASS
+E8,lw1,T3 dead labour (reported),116,116,reported,REPORTED
+E8,lw1,T3 @10L years median,28,28.04,10% (3 per instance within 25%),PASS
+E8,lw1,T3 @10L years largest,47.9,47.94,10% (3 per instance within 25%),PASS
+E8,lw1,T3 @10L lowest baskets,0.262,0.2623,5%,PASS
+E8,lw1,T3 @10L dead fodder,208,208,10% or 5,PASS
+E8,lw1,T3 @10L dead traction,54,54,10% or 5,PASS
+E8,lw1,T3 @10L dead good,21,21,10% or 5,PASS
+E8,lw1,T3 @10L dead land,20,20,10% or 5,PASS
+E8,lw1,T3 @10L dead labour (reported),116,116,reported,REPORTED
+E8,lw1,T3S years median,28.9,28.87,10% (3 per instance within 25%),PASS
+E8,lw1,T3S years largest,45.9,45.9,10% (3 per instance within 25%),PASS
+E8,lw1,T3S lowest baskets,0.5,0.5,5%,PASS
+E8,lw1,T3S dead fodder,10,10,10% or 5,PASS
+E8,lw1,T3S dead traction,5,5,10% or 5,PASS
+E8,lw1,T3S dead good,0,0,10% or 5,PASS
+E8,lw1,T3S dead land,0,0,10% or 5,PASS
+E8,lw1,T3S dead labour (reported),0,0,reported,REPORTED
+E8,lw1,T3S @10L years median,28.9,28.87,10% (3 per instance within 25%),PASS
+E8,lw1,T3S @10L years largest,45.9,45.9,10% (3 per instance within 25%),PASS
+E8,lw1,T3S @10L lowest baskets,0.5,0.5,5%,PASS
+E8,lw1,T3S @10L dead fodder,10,10,10% or 5,PASS
+E8,lw1,T3S @10L dead traction,5,5,10% or 5,PASS
+E8,lw1,T3S @10L dead good,0,0,10% or 5,PASS
+E8,lw1,T3S @10L dead land,0,0,10% or 5,PASS
+E8,lw1,T3S @10L dead labour (reported),0,0,reported,REPORTED
+E8,lw2,T1 years median,14.6,14.58,10% (3 per instance within 25%),PASS
+E8,lw2,T1 years largest,34.2,34.17,10% (3 per instance within 25%),PASS
+E8,lw2,T1 lowest baskets,0.899,0.8985,5%,PASS
+E8,lw2,T1 dead fodder,0,0,10% or 5,PASS
+E8,lw2,T1 dead traction,0,0,10% or 5,PASS
+E8,lw2,T1 dead good,0,0,10% or 5,PASS
+E8,lw2,T1 dead land,0,0,10% or 5,PASS
+E8,lw2,T1 dead labour (reported),0,0,reported,REPORTED
+E8,lw2,T2 years median,21.7,21.69,10% (3 per instance within 25%),PASS
+E8,lw2,T2 years largest,41.7,41.71,10% (3 per instance within 25%),PASS
+E8,lw2,T2 lowest baskets,0.665,0.6646,5%,PASS
+E8,lw2,T2 dead fodder,6,6,10% or 5,PASS
+E8,lw2,T2 dead traction,0,0,10% or 5,PASS
+E8,lw2,T2 dead good,0,0,10% or 5,PASS
+E8,lw2,T2 dead land,0,0,10% or 5,PASS
+E8,lw2,T2 dead labour (reported),0,0,reported,REPORTED
+E8,lw2,T3 years median,28.5,28.54,10% (3 per instance within 25%),PASS
+E8,lw2,T3 years largest,48.4,48.4,10% (3 per instance within 25%),PASS
+E8,lw2,T3 lowest baskets,0.268,0.2675,5%,PASS
+E8,lw2,T3 dead fodder,209,209,10% or 5,PASS
+E8,lw2,T3 dead traction,55,55,10% or 5,PASS
+E8,lw2,T3 dead good,21,21,10% or 5,PASS
+E8,lw2,T3 dead land,20,20,10% or 5,PASS
+E8,lw2,T3 dead labour (reported),114,114,reported,REPORTED
+E8,lw2,T3 @10L years median,28.5,28.54,10% (3 per instance within 25%),PASS
+E8,lw2,T3 @10L years largest,48.4,48.4,10% (3 per instance within 25%),PASS
+E8,lw2,T3 @10L lowest baskets,0.268,0.2675,5%,PASS
+E8,lw2,T3 @10L dead fodder,209,209,10% or 5,PASS
+E8,lw2,T3 @10L dead traction,55,55,10% or 5,PASS
+E8,lw2,T3 @10L dead good,21,21,10% or 5,PASS
+E8,lw2,T3 @10L dead land,20,20,10% or 5,PASS
+E8,lw2,T3 @10L dead labour (reported),114,114,reported,REPORTED
+E8,lw2,T3S years median,29.3,29.31,10% (3 per instance within 25%),PASS
+E8,lw2,T3S years largest,46.4,46.37,10% (3 per instance within 25%),PASS
+E8,lw2,T3S lowest baskets,0.5,0.5,5%,PASS
+E8,lw2,T3S dead fodder,10,10,10% or 5,PASS
+E8,lw2,T3S dead traction,5,5,10% or 5,PASS
+E8,lw2,T3S dead good,0,1,10% or 5,PASS
+E8,lw2,T3S dead land,0,0,10% or 5,PASS
+E8,lw2,T3S dead labour (reported),0,0,reported,REPORTED
+E8,lw2,T3S @10L years median,29.3,29.31,10% (3 per instance within 25%),PASS
+E8,lw2,T3S @10L years largest,46.4,46.37,10% (3 per instance within 25%),PASS
+E8,lw2,T3S @10L lowest baskets,0.5,0.5,5%,PASS
+E8,lw2,T3S @10L dead fodder,10,10,10% or 5,PASS
+E8,lw2,T3S @10L dead traction,5,5,10% or 5,PASS
+E8,lw2,T3S @10L dead good,0,1,10% or 5,PASS
+E8,lw2,T3S @10L dead land,0,0,10% or 5,PASS
+E8,lw2,T3S @10L dead labour (reported),0,0,reported,REPORTED
+E8,lw3,T1 years median,14.2,14.19,10% (3 per instance within 25%),PASS
+E8,lw3,T1 years largest,33.1,33.08,10% (3 per instance within 25%),PASS
+E8,lw3,T1 lowest baskets,0.893,0.8931,5%,PASS
+E8,lw3,T1 dead fodder,0,0,10% or 5,PASS
+E8,lw3,T1 dead traction,0,0,10% or 5,PASS
+E8,lw3,T1 dead good,0,0,10% or 5,PASS
+E8,lw3,T1 dead land,0,0,10% or 5,PASS
+E8,lw3,T1 dead labour (reported),0,0,reported,REPORTED
+E8,lw3,T2 years median,20.7,20.71,10% (3 per instance within 25%),PASS
+E8,lw3,T2 years largest,40.4,40.38,10% (3 per instance within 25%),PASS
+E8,lw3,T2 lowest baskets,0.657,0.6574,5%,PASS
+E8,lw3,T2 dead fodder,4,4,10% or 5,PASS
+E8,lw3,T2 dead traction,0,0,10% or 5,PASS
+E8,lw3,T2 dead good,0,0,10% or 5,PASS
+E8,lw3,T2 dead land,0,0,10% or 5,PASS
+E8,lw3,T2 dead labour (reported),0,0,reported,REPORTED
+E8,lw3,T3 years median,27,27.02,10% (3 per instance within 25%),PASS
+E8,lw3,T3 years largest,47.1,47.08,10% (3 per instance within 25%),PASS
+E8,lw3,T3 lowest baskets,0.253,0.2535,5%,PASS
+E8,lw3,T3 dead fodder,209,209,10% or 5,PASS
+E8,lw3,T3 dead traction,63,63,10% or 5,PASS
+E8,lw3,T3 dead good,22,22,10% or 5,PASS
+E8,lw3,T3 dead land,20,20,10% or 5,PASS
+E8,lw3,T3 dead labour (reported),120,120,reported,REPORTED
+E8,lw3,T3 @10L years median,27,27.02,10% (3 per instance within 25%),PASS
+E8,lw3,T3 @10L years largest,47.1,47.08,10% (3 per instance within 25%),PASS
+E8,lw3,T3 @10L lowest baskets,0.253,0.2535,5%,PASS
+E8,lw3,T3 @10L dead fodder,209,209,10% or 5,PASS
+E8,lw3,T3 @10L dead traction,63,63,10% or 5,PASS
+E8,lw3,T3 @10L dead good,22,22,10% or 5,PASS
+E8,lw3,T3 @10L dead land,20,20,10% or 5,PASS
+E8,lw3,T3 @10L dead labour (reported),120,120,reported,REPORTED
+E8,lw3,T3S years median,28,27.98,10% (3 per instance within 25%),PASS
+E8,lw3,T3S years largest,45,45.02,10% (3 per instance within 25%),PASS
+E8,lw3,T3S lowest baskets,0.5,0.5,5%,PASS
+E8,lw3,T3S dead fodder,10,10,10% or 5,PASS
+E8,lw3,T3S dead traction,5,5,10% or 5,PASS
+E8,lw3,T3S dead good,0,0,10% or 5,PASS
+E8,lw3,T3S dead land,0,0,10% or 5,PASS
+E8,lw3,T3S dead labour (reported),0,0,reported,REPORTED
+E8,lw3,T3S @10L years median,28,27.98,10% (3 per instance within 25%),PASS
+E8,lw3,T3S @10L years largest,45,45.02,10% (3 per instance within 25%),PASS
+E8,lw3,T3S @10L lowest baskets,0.5,0.5,5%,PASS
+E8,lw3,T3S @10L dead fodder,10,10,10% or 5,PASS
+E8,lw3,T3S @10L dead traction,5,5,10% or 5,PASS
+E8,lw3,T3S @10L dead good,0,0,10% or 5,PASS
+E8,lw3,T3S @10L dead land,0,0,10% or 5,PASS
+E8,lw3,T3S @10L dead labour (reported),0,0,reported,REPORTED
+E10,lf1,T1 years median,20.8,20.85,10% (3 per instance within 25%),PASS
+E10,lf1,T1 years largest,44.4,44.4,10% (3 per instance within 25%),PASS
+E10,lf1,T1 lowest baskets,0.923,0.9231,5%,PASS
+E10,lf1,T1 dead fodder,0,0,10% or 5,PASS
+E10,lf1,T1 dead traction,0,0,10% or 5,PASS
+E10,lf1,T1 dead good,0,0,10% or 5,PASS
+E10,lf1,T1 dead land,0,0,10% or 5,PASS
+E10,lf1,T1 dead labour (reported),0,0,reported,REPORTED
+E10,lf1,T1 lowest horse price,0.757,0.7572,5%,PASS
+E10,lf1,T2 years median,34,33.96,10% (3 per instance within 25%),PASS
+E10,lf1,T2 years largest,54.5,54.46,10% (3 per instance within 25%),PASS
+E10,lf1,T2 lowest baskets,0.733,0.7329,5%,PASS
+E10,lf1,T2 dead fodder,0,0,10% or 5,PASS
+E10,lf1,T2 dead traction,0,0,10% or 5,PASS
+E10,lf1,T2 dead good,0,0,10% or 5,PASS
+E10,lf1,T2 dead land,0,0,10% or 5,PASS
+E10,lf1,T2 dead labour (reported),0,0,reported,REPORTED
+E10,lf1,T2 lowest horse price,0.225,0.2245,5%,PASS
+E10,lf1,T3 years median,41.3,41.31,10% (3 per instance within 25%),PASS
+E10,lf1,T3 years largest,90.5,90.54,10% (3 per instance within 25%),PASS
+E10,lf1,T3 lowest baskets,0.373,0.3727,5%,PASS
+E10,lf1,T3 dead fodder,215,215,10% or 5,PASS
+E10,lf1,T3 dead traction,25,25,10% or 5,PASS
+E10,lf1,T3 dead good,19,19,10% or 5,PASS
+E10,lf1,T3 dead land,18,18,10% or 5,PASS
+E10,lf1,T3 dead labour (reported),237,237,reported,REPORTED
+E10,lf1,T3 lowest horse price,0.129,0.1287,5%,PASS
+E10,lf1,T3 @10L years median,41.3,41.31,10% (3 per instance within 25%),PASS
+E10,lf1,T3 @10L years largest,90.5,90.54,10% (3 per instance within 25%),PASS
+E10,lf1,T3 @10L lowest baskets,0.373,0.3727,5%,PASS
+E10,lf1,T3 @10L dead fodder,215,215,10% or 5,PASS
+E10,lf1,T3 @10L dead traction,25,25,10% or 5,PASS
+E10,lf1,T3 @10L dead good,19,19,10% or 5,PASS
+E10,lf1,T3 @10L dead land,18,18,10% or 5,PASS
+E10,lf1,T3 @10L dead labour (reported),237,237,reported,REPORTED
+E10,lf1,T3 @10L lowest horse price,0.129,0.1287,5%,PASS
+E10,lf1,T3S years median,37.5,37.46,10% (3 per instance within 25%),PASS
+E10,lf1,T3S years largest,60.3,60.27,10% (3 per instance within 25%),PASS
+E10,lf1,T3S lowest baskets,0.5,0.5,5%,PASS
+E10,lf1,T3S dead fodder,3,3,10% or 5,PASS
+E10,lf1,T3S dead traction,31,31,10% or 5,PASS
+E10,lf1,T3S dead good,0,0,10% or 5,PASS
+E10,lf1,T3S dead land,0,0,10% or 5,PASS
+E10,lf1,T3S dead labour (reported),0,0,reported,REPORTED
+E10,lf1,T3S lowest horse price,0.215,0.2145,5%,PASS
+E10,lf1,T3S @10L years median,37.5,37.46,10% (3 per instance within 25%),PASS
+E10,lf1,T3S @10L years largest,60.3,60.27,10% (3 per instance within 25%),PASS
+E10,lf1,T3S @10L lowest baskets,0.5,0.5,5%,PASS
+E10,lf1,T3S @10L dead fodder,3,3,10% or 5,PASS
+E10,lf1,T3S @10L dead traction,31,31,10% or 5,PASS
+E10,lf1,T3S @10L dead good,0,0,10% or 5,PASS
+E10,lf1,T3S @10L dead land,0,0,10% or 5,PASS
+E10,lf1,T3S @10L dead labour (reported),0,0,reported,REPORTED
+E10,lf1,T3S @10L lowest horse price,0.215,0.2145,5%,PASS
+E10,lf2,T1 years median,19.2,19.15,10% (3 per instance within 25%),PASS
+E10,lf2,T1 years largest,50,50.04,10% (3 per instance within 25%),PASS
+E10,lf2,T1 lowest baskets,0.895,0.895,5%,PASS
+E10,lf2,T1 dead fodder,0,0,10% or 5,PASS
+E10,lf2,T1 dead traction,0,0,10% or 5,PASS
+E10,lf2,T1 dead good,0,0,10% or 5,PASS
+E10,lf2,T1 dead land,0,0,10% or 5,PASS
+E10,lf2,T1 dead labour (reported),0,0,reported,REPORTED
+E10,lf2,T1 lowest horse price,0.733,0.7326,5%,PASS
+E10,lf2,T2 years median,36.4,36.38,10% (3 per instance within 25%),PASS
+E10,lf2,T2 years largest,63,63.02,10% (3 per instance within 25%),PASS
+E10,lf2,T2 lowest baskets,0.657,0.657,5%,PASS
+E10,lf2,T2 dead fodder,5,5,10% or 5,PASS
+E10,lf2,T2 dead traction,0,0,10% or 5,PASS
+E10,lf2,T2 dead good,0,0,10% or 5,PASS
+E10,lf2,T2 dead land,0,0,10% or 5,PASS
+E10,lf2,T2 dead labour (reported),0,0,reported,REPORTED
+E10,lf2,T2 lowest horse price,0.222,0.2218,5%,PASS
+E10,lf2,T3 years median,46.8,46.81,10% (3 per instance within 25%),PASS
+E10,lf2,T3 years largest,79.7,79.65,10% (3 per instance within 25%),PASS
+E10,lf2,T3 lowest baskets,0.256,0.2562,5%,PASS
+E10,lf2,T3 dead fodder,158,158,10% or 5,PASS
+E10,lf2,T3 dead traction,50,50,10% or 5,PASS
+E10,lf2,T3 dead good,18,18,10% or 5,PASS
+E10,lf2,T3 dead land,18,18,10% or 5,PASS
+E10,lf2,T3 dead labour (reported),207,207,reported,REPORTED
+E10,lf2,T3 lowest horse price,0.149,0.1489,5%,PASS
+E10,lf2,T3 @10L years median,46.8,46.81,10% (3 per instance within 25%),PASS
+E10,lf2,T3 @10L years largest,79.7,79.65,10% (3 per instance within 25%),PASS
+E10,lf2,T3 @10L lowest baskets,0.256,0.2562,5%,PASS
+E10,lf2,T3 @10L dead fodder,158,158,10% or 5,PASS
+E10,lf2,T3 @10L dead traction,50,50,10% or 5,PASS
+E10,lf2,T3 @10L dead good,18,18,10% or 5,PASS
+E10,lf2,T3 @10L dead land,18,18,10% or 5,PASS
+E10,lf2,T3 @10L dead labour (reported),207,207,reported,REPORTED
+E10,lf2,T3 @10L lowest horse price,0.149,0.1489,5%,PASS
+E10,lf2,T3S years median,44.5,44.5,10% (3 per instance within 25%),PASS
+E10,lf2,T3S years largest,71.3,71.29,10% (3 per instance within 25%),PASS
+E10,lf2,T3S lowest baskets,0.5,0.5,5%,PASS
+E10,lf2,T3S dead fodder,9,9,10% or 5,PASS
+E10,lf2,T3S dead traction,34,35,10% or 5,PASS
+E10,lf2,T3S dead good,0,1,10% or 5,PASS
+E10,lf2,T3S dead land,0,0,10% or 5,PASS
+E10,lf2,T3S dead labour (reported),0,0,reported,REPORTED
+E10,lf2,T3S lowest horse price,0.216,0.2163,5%,PASS
+E10,lf2,T3S @10L years median,44.5,44.5,10% (3 per instance within 25%),PASS
+E10,lf2,T3S @10L years largest,71.3,71.29,10% (3 per instance within 25%),PASS
+E10,lf2,T3S @10L lowest baskets,0.5,0.5,5%,PASS
+E10,lf2,T3S @10L dead fodder,9,9,10% or 5,PASS
+E10,lf2,T3S @10L dead traction,34,35,10% or 5,PASS
+E10,lf2,T3S @10L dead good,0,1,10% or 5,PASS
+E10,lf2,T3S @10L dead land,0,0,10% or 5,PASS
+E10,lf2,T3S @10L dead labour (reported),0,0,reported,REPORTED
+E10,lf2,T3S @10L lowest horse price,0.216,0.2163,5%,PASS
+E10,lf5,T1 years median,22.5,22.5,10% (3 per instance within 25%),PASS
+E10,lf5,T1 years largest,34.3,34.31,10% (3 per instance within 25%),PASS
+E10,lf5,T1 lowest baskets,0.87,0.8705,5%,PASS
+E10,lf5,T1 dead fodder,0,0,10% or 5,PASS
+E10,lf5,T1 dead traction,0,0,10% or 5,PASS
+E10,lf5,T1 dead good,0,0,10% or 5,PASS
+E10,lf5,T1 dead land,0,0,10% or 5,PASS
+E10,lf5,T1 dead labour (reported),0,0,reported,REPORTED
+E10,lf5,T1 lowest horse price,0.675,0.675,5%,PASS
+E10,lf5,T2 years median,31.7,31.73,10% (3 per instance within 25%),PASS
+E10,lf5,T2 years largest,44.3,44.35,10% (3 per instance within 25%),PASS
+E10,lf5,T2 lowest baskets,0.611,0.6105,5%,PASS
+E10,lf5,T2 dead fodder,12,12,10% or 5,PASS
+E10,lf5,T2 dead traction,8,8,10% or 5,PASS
+E10,lf5,T2 dead good,0,0,10% or 5,PASS
+E10,lf5,T2 dead land,0,0,10% or 5,PASS
+E10,lf5,T2 dead labour (reported),0,0,reported,REPORTED
+E10,lf5,T2 lowest horse price,0.245,0.2448,5%,PASS
+E10,lf5,T3 years median,36.3,36.27,10% (3 per instance within 25%),PASS
+E10,lf5,T3 years largest,51.6,51.58,10% (3 per instance within 25%),PASS
+E10,lf5,T3 lowest baskets,0.222,0.2224,5%,PASS
+E10,lf5,T3 dead fodder,249,249,10% or 5,PASS
+E10,lf5,T3 dead traction,79,79,10% or 5,PASS
+E10,lf5,T3 dead good,22,22,10% or 5,PASS
+E10,lf5,T3 dead land,18,18,10% or 5,PASS
+E10,lf5,T3 dead labour (reported),170,170,reported,REPORTED
+E10,lf5,T3 lowest horse price,0.165,0.1655,5%,PASS
+E10,lf5,T3 @10L years median,36.3,36.27,10% (3 per instance within 25%),PASS
+E10,lf5,T3 @10L years largest,51.6,51.58,10% (3 per instance within 25%),PASS
+E10,lf5,T3 @10L lowest baskets,0.222,0.2224,5%,PASS
+E10,lf5,T3 @10L dead fodder,249,249,10% or 5,PASS
+E10,lf5,T3 @10L dead traction,79,79,10% or 5,PASS
+E10,lf5,T3 @10L dead good,22,22,10% or 5,PASS
+E10,lf5,T3 @10L dead land,18,18,10% or 5,PASS
+E10,lf5,T3 @10L dead labour (reported),170,170,reported,REPORTED
+E10,lf5,T3 @10L lowest horse price,0.165,0.1655,5%,PASS
+E10,lf5,T3S years median,32.7,32.71,10% (3 per instance within 25%),PASS
+E10,lf5,T3S years largest,48.6,48.62,10% (3 per instance within 25%),PASS
+E10,lf5,T3S lowest baskets,0.5,0.5,5%,PASS
+E10,lf5,T3S dead fodder,13,13,10% or 5,PASS
+E10,lf5,T3S dead traction,78,79,10% or 5,PASS
+E10,lf5,T3S dead good,0,1,10% or 5,PASS
+E10,lf5,T3S dead land,0,0,10% or 5,PASS
+E10,lf5,T3S dead labour (reported),0,0,reported,REPORTED
+E10,lf5,T3S lowest horse price,0.188,0.1876,5%,PASS
+E10,lf5,T3S @10L years median,32.7,32.71,10% (3 per instance within 25%),PASS
+E10,lf5,T3S @10L years largest,48.6,48.62,10% (3 per instance within 25%),PASS
+E10,lf5,T3S @10L lowest baskets,0.5,0.5,5%,PASS
+E10,lf5,T3S @10L dead fodder,13,13,10% or 5,PASS
+E10,lf5,T3S @10L dead traction,78,79,10% or 5,PASS
+E10,lf5,T3S @10L dead good,0,1,10% or 5,PASS
+E10,lf5,T3S @10L dead land,0,0,10% or 5,PASS
+E10,lf5,T3S @10L dead labour (reported),0,0,reported,REPORTED
+E10,lf5,T3S @10L lowest horse price,0.188,0.1876,5%,PASS
+E10,lf7,T1 years median,19.2,19.15,10% (3 per instance within 25%),PASS
+E10,lf7,T1 years largest,38.9,38.92,10% (3 per instance within 25%),PASS
+E10,lf7,T1 lowest baskets,0.925,0.9246,5%,PASS
+E10,lf7,T1 dead fodder,0,0,10% or 5,PASS
+E10,lf7,T1 dead traction,0,0,10% or 5,PASS
+E10,lf7,T1 dead good,0,0,10% or 5,PASS
+E10,lf7,T1 dead land,0,0,10% or 5,PASS
+E10,lf7,T1 dead labour (reported),0,0,reported,REPORTED
+E10,lf7,T1 lowest horse price,0.789,0.7889,5%,PASS
+E10,lf7,T2 years median,29.5,29.48,10% (3 per instance within 25%),PASS
+E10,lf7,T2 years largest,50,50.04,10% (3 per instance within 25%),PASS
+E10,lf7,T2 lowest baskets,0.735,0.7347,5%,PASS
+E10,lf7,T2 dead fodder,0,0,10% or 5,PASS
+E10,lf7,T2 dead traction,0,0,10% or 5,PASS
+E10,lf7,T2 dead good,0,0,10% or 5,PASS
+E10,lf7,T2 dead land,0,0,10% or 5,PASS
+E10,lf7,T2 dead labour (reported),0,0,reported,REPORTED
+E10,lf7,T2 lowest horse price,0.286,0.2864,5%,PASS
+E10,lf7,T3 years median,37.2,37.21,10% (3 per instance within 25%),PASS
+E10,lf7,T3 years largest,68,68.02,10% (3 per instance within 25%),PASS
+E10,lf7,T3 lowest baskets,0.375,0.3751,5%,PASS
+E10,lf7,T3 dead fodder,196,196,10% or 5,PASS
+E10,lf7,T3 dead traction,24,24,10% or 5,PASS
+E10,lf7,T3 dead good,19,19,10% or 5,PASS
+E10,lf7,T3 dead land,18,18,10% or 5,PASS
+E10,lf7,T3 dead labour (reported),231,231,reported,REPORTED
+E10,lf7,T3 lowest horse price,0.13,0.1302,5%,PASS
+E10,lf7,T3 @10L years median,37.2,37.21,10% (3 per instance within 25%),PASS
+E10,lf7,T3 @10L years largest,68,68.02,10% (3 per instance within 25%),PASS
+E10,lf7,T3 @10L lowest baskets,0.375,0.3751,5%,PASS
+E10,lf7,T3 @10L dead fodder,196,196,10% or 5,PASS
+E10,lf7,T3 @10L dead traction,24,24,10% or 5,PASS
+E10,lf7,T3 @10L dead good,19,19,10% or 5,PASS
+E10,lf7,T3 @10L dead land,18,18,10% or 5,PASS
+E10,lf7,T3 @10L dead labour (reported),231,231,reported,REPORTED
+E10,lf7,T3 @10L lowest horse price,0.13,0.1302,5%,PASS
+E10,lf7,T3S years median,35.2,35.15,10% (3 per instance within 25%),PASS
+E10,lf7,T3S years largest,55,55.04,10% (3 per instance within 25%),PASS
+E10,lf7,T3S lowest baskets,0.5,0.5,5%,PASS
+E10,lf7,T3S dead fodder,3,3,10% or 5,PASS
+E10,lf7,T3S dead traction,30,29,10% or 5,PASS
+E10,lf7,T3S dead good,0,1,10% or 5,PASS
+E10,lf7,T3S dead land,0,0,10% or 5,PASS
+E10,lf7,T3S dead labour (reported),0,0,reported,REPORTED
+E10,lf7,T3S lowest horse price,0.208,0.2085,5%,PASS
+E10,lf7,T3S @10L years median,35.2,35.15,10% (3 per instance within 25%),PASS
+E10,lf7,T3S @10L years largest,55,55.04,10% (3 per instance within 25%),PASS
+E10,lf7,T3S @10L lowest baskets,0.5,0.5,5%,PASS
+E10,lf7,T3S @10L dead fodder,3,3,10% or 5,PASS
+E10,lf7,T3S @10L dead traction,30,29,10% or 5,PASS
+E10,lf7,T3S @10L dead good,0,1,10% or 5,PASS
+E10,lf7,T3S @10L dead land,0,0,10% or 5,PASS
+E10,lf7,T3S @10L dead labour (reported),0,0,reported,REPORTED
+E10,lf7,T3S @10L lowest horse price,0.208,0.2085,5%,PASS
+E10,lf8,T1 years median,38.8,38.75,10% (3 per instance within 25%),PASS
+E10,lf8,T1 years largest,70.3,70.27,10% (3 per instance within 25%),PASS
+E10,lf8,T1 lowest baskets,0.92,0.9197,5%,PASS
+E10,lf8,T1 dead fodder,0,0,10% or 5,PASS
+E10,lf8,T1 dead traction,0,0,10% or 5,PASS
+E10,lf8,T1 dead good,0,0,10% or 5,PASS
+E10,lf8,T1 dead land,0,0,10% or 5,PASS
+E10,lf8,T1 dead labour (reported),0,0,reported,REPORTED
+E10,lf8,T1 lowest horse price,0.661,0.661,5%,PASS
+E10,lf8,T2 years median,58.8,58.77,10% (3 per instance within 25%),PASS
+E10,lf8,T2 years largest,88.5,88.46,10% (3 per instance within 25%),PASS
+E10,lf8,T2 lowest baskets,0.73,0.7303,5%,PASS
+E10,lf8,T2 dead fodder,0,0,10% or 5,PASS
+E10,lf8,T2 dead traction,0,0,10% or 5,PASS
+E10,lf8,T2 dead good,0,0,10% or 5,PASS
+E10,lf8,T2 dead land,0,0,10% or 5,PASS
+E10,lf8,T2 dead labour (reported),0,0,reported,REPORTED
+E10,lf8,T2 lowest horse price,0.215,0.2152,5%,PASS
+E10,lf8,T3 years median,72.5,72.46,10% (3 per instance within 25%),PASS
+E10,lf8,T3 years largest,204.5,204.5,10% (3 per instance within 25%),PASS
+E10,lf8,T3 lowest baskets,0.369,0.3693,5%,PASS
+E10,lf8,T3 dead fodder,196,196,10% or 5,PASS
+E10,lf8,T3 dead traction,26,26,10% or 5,PASS
+E10,lf8,T3 dead good,19,19,10% or 5,PASS
+E10,lf8,T3 dead land,19,19,10% or 5,PASS
+E10,lf8,T3 dead labour (reported),230,230,reported,REPORTED
+E10,lf8,T3 lowest horse price,0.132,0.1321,5%,PASS
+E10,lf8,T3 @10L years median,72.5,72.46,10% (3 per instance within 25%),PASS
+E10,lf8,T3 @10L years largest,204.5,204.5,10% (3 per instance within 25%),PASS
+E10,lf8,T3 @10L lowest baskets,0.369,0.3693,5%,PASS
+E10,lf8,T3 @10L dead fodder,196,196,10% or 5,PASS
+E10,lf8,T3 @10L dead traction,26,26,10% or 5,PASS
+E10,lf8,T3 @10L dead good,19,19,10% or 5,PASS
+E10,lf8,T3 @10L dead land,19,19,10% or 5,PASS
+E10,lf8,T3 @10L dead labour (reported),230,230,reported,REPORTED
+E10,lf8,T3 @10L lowest horse price,0.132,0.1321,5%,PASS
+E10,lf8,T3S years median,64.7,64.73,10% (3 per instance within 25%),PASS
+E10,lf8,T3S years largest,102.3,102.3,10% (3 per instance within 25%),PASS
+E10,lf8,T3S lowest baskets,0.5,0.5,5%,PASS
+E10,lf8,T3S dead fodder,3,3,10% or 5,PASS
+E10,lf8,T3S dead traction,50,50,10% or 5,PASS
+E10,lf8,T3S dead good,0,0,10% or 5,PASS
+E10,lf8,T3S dead land,0,0,10% or 5,PASS
+E10,lf8,T3S dead labour (reported),0,0,reported,REPORTED
+E10,lf8,T3S lowest horse price,0.168,0.1683,5%,PASS
+E10,lf8,T3S @10L years median,64.7,64.73,10% (3 per instance within 25%),PASS
+E10,lf8,T3S @10L years largest,102.3,102.3,10% (3 per instance within 25%),PASS
+E10,lf8,T3S @10L lowest baskets,0.5,0.5,5%,PASS
+E10,lf8,T3S @10L dead fodder,3,3,10% or 5,PASS
+E10,lf8,T3S @10L dead traction,50,50,10% or 5,PASS
+E10,lf8,T3S @10L dead good,0,0,10% or 5,PASS
+E10,lf8,T3S @10L dead land,0,0,10% or 5,PASS
+E10,lf8,T3S @10L dead labour (reported),0,0,reported,REPORTED
+E10,lf8,T3S @10L lowest horse price,0.168,0.1683,5%,PASS
+E10,lc1,T1 years median,19.4,19.37,10% (3 per instance within 25%),PASS
+E10,lc1,T1 years largest,34,34.02,10% (3 per instance within 25%),PASS
+E10,lc1,T1 lowest baskets,0.936,0.9362,5%,PASS
+E10,lc1,T1 dead fodder,0,0,10% or 5,PASS
+E10,lc1,T1 dead traction,0,0,10% or 5,PASS
+E10,lc1,T1 dead good,0,0,10% or 5,PASS
+E10,lc1,T1 dead land,0,0,10% or 5,PASS
+E10,lc1,T1 dead labour (reported),0,0,reported,REPORTED
+E10,lc1,T1 lowest horse price,0.722,0.722,5%,PASS
+E10,lc1,T2 years median,28.8,28.79,10% (3 per instance within 25%),PASS
+E10,lc1,T2 years largest,41.5,41.52,10% (3 per instance within 25%),PASS
+E10,lc1,T2 lowest baskets,0.76,0.7603,5%,PASS
+E10,lc1,T2 dead fodder,0,0,10% or 5,PASS
+E10,lc1,T2 dead traction,0,0,10% or 5,PASS
+E10,lc1,T2 dead good,0,0,10% or 5,PASS
+E10,lc1,T2 dead land,0,0,10% or 5,PASS
+E10,lc1,T2 dead labour (reported),0,0,reported,REPORTED
+E10,lc1,T2 lowest horse price,0.215,0.2152,5%,PASS
+E10,lc1,T3 years median,34.7,34.73,10% (3 per instance within 25%),PASS
+E10,lc1,T3 years largest,61.4,61.44,10% (3 per instance within 25%),PASS
+E10,lc1,T3 lowest baskets,0.411,0.4108,5%,PASS
+E10,lc1,T3 dead fodder,169,169,10% or 5,PASS
+E10,lc1,T3 dead traction,27,27,10% or 5,PASS
+E10,lc1,T3 dead good,19,19,10% or 5,PASS
+E10,lc1,T3 dead land,18,18,10% or 5,PASS
+E10,lc1,T3 dead labour (reported),163,163,reported,REPORTED
+E10,lc1,T3 lowest horse price,0.153,0.1527,5%,PASS
+E10,lc1,T3 @10L years median,34.7,34.73,10% (3 per instance within 25%),PASS
+E10,lc1,T3 @10L years largest,61.4,61.44,10% (3 per instance within 25%),PASS
+E10,lc1,T3 @10L lowest baskets,0.411,0.4108,5%,PASS
+E10,lc1,T3 @10L dead fodder,169,169,10% or 5,PASS
+E10,lc1,T3 @10L dead traction,27,27,10% or 5,PASS
+E10,lc1,T3 @10L dead good,19,19,10% or 5,PASS
+E10,lc1,T3 @10L dead land,18,18,10% or 5,PASS
+E10,lc1,T3 @10L dead labour (reported),163,163,reported,REPORTED
+E10,lc1,T3 @10L lowest horse price,0.153,0.1527,5%,PASS
+E10,lc1,T3S years median,29.6,29.62,10% (3 per instance within 25%),PASS
+E10,lc1,T3S years largest,45,45.02,10% (3 per instance within 25%),PASS
+E10,lc1,T3S lowest baskets,0.5,0.5,5%,PASS
+E10,lc1,T3S dead fodder,0,0,10% or 5,PASS
+E10,lc1,T3S dead traction,26,27,10% or 5,PASS
+E10,lc1,T3S dead good,0,0,10% or 5,PASS
+E10,lc1,T3S dead land,0,0,10% or 5,PASS
+E10,lc1,T3S dead labour (reported),0,0,reported,REPORTED
+E10,lc1,T3S lowest horse price,0.186,0.1861,5%,PASS
+E10,lc1,T3S @10L years median,29.6,29.62,10% (3 per instance within 25%),PASS
+E10,lc1,T3S @10L years largest,45,45.02,10% (3 per instance within 25%),PASS
+E10,lc1,T3S @10L lowest baskets,0.5,0.5,5%,PASS
+E10,lc1,T3S @10L dead fodder,0,0,10% or 5,PASS
+E10,lc1,T3S @10L dead traction,26,27,10% or 5,PASS
+E10,lc1,T3S @10L dead good,0,0,10% or 5,PASS
+E10,lc1,T3S @10L dead land,0,0,10% or 5,PASS
+E10,lc1,T3S @10L dead labour (reported),0,0,reported,REPORTED
+E10,lc1,T3S @10L lowest horse price,0.186,0.1861,5%,PASS
+E5,lb1,b*2@genesis class,CONVERGED,CONVERGED,exact,PASS
+E5,lb1,b*2@genesis trough,0.704,0.7037,5%,PASS
+E5,lb1,b*2@genesis years to tol,46.3,46.29,10% (3 within 25%),PASS
+E5,lb1,b*2@genesis heads to 5% (years),10.1,10.08,10% (3 within 25%),PASS
+E5,lb1,b*2@genesis capacity plant to 5% (years),9.4,9.365,10% (3 within 25%),PASS
+E5,lb1,b*2@genesis fodder plant to 5% (years),8.6,8.596,10% (3 within 25%),PASS
+E5,lb1,b*2@genesis lowest horse price,0.194,0.1943,5%,PASS
+E5,lb1,b*2@genesis @10L class,CONVERGED,CONVERGED,exact,PASS
+E5,lb1,b*2@genesis @10L trough,0.704,0.7037,5%,PASS
+E5,lb1,b*2@genesis @10L years to tol,46.3,46.29,10% (3 within 25%),PASS
+E5,lb1,b*2@genesis @10L heads to 5% (years),10.1,10.08,10% (3 within 25%),PASS
+E5,lb1,b*2@genesis @10L capacity plant to 5% (years),9.4,9.365,10% (3 within 25%),PASS
+E5,lb1,b*2@genesis @10L fodder plant to 5% (years),8.6,8.596,10% (3 within 25%),PASS
+E5,lb1,b*2@genesis @10L lowest horse price,0.194,0.1943,5%,PASS
+E5,lb1,b*0.5@genesis class,CONVERGED,CONVERGED,exact,PASS
+E5,lb1,b*0.5@genesis trough,0.859,0.8585,5%,PASS
+E5,lb1,b*0.5@genesis years to tol,64.6,64.58,10% (3 within 25%),PASS
+E5,lb1,b*0.5@genesis heads to 5% (years),14.4,14.42,10% (3 within 25%),PASS
+E5,lb1,b*0.5@genesis capacity plant to 5% (years),14.2,14.19,10% (3 within 25%),PASS
+E5,lb1,b*0.5@genesis fodder plant to 5% (years),13.7,13.69,10% (3 within 25%),PASS
+E5,lb1,b*0.5@genesis lowest horse price,0.704,0.7038,5%,PASS
+E5,lb1,b*0.5@genesis @10L class,CONVERGED,CONVERGED,exact,PASS
+E5,lb1,b*0.5@genesis @10L trough,0.859,0.8585,5%,PASS
+E5,lb1,b*0.5@genesis @10L years to tol,64.6,64.58,10% (3 within 25%),PASS
+E5,lb1,b*0.5@genesis @10L heads to 5% (years),14.4,14.42,10% (3 within 25%),PASS
+E5,lb1,b*0.5@genesis @10L capacity plant to 5% (years),14.2,14.19,10% (3 within 25%),PASS
+E5,lb1,b*0.5@genesis @10L fodder plant to 5% (years),13.7,13.69,10% (3 within 25%),PASS
+E5,lb1,b*0.5@genesis @10L lowest horse price,0.704,0.7038,5%,PASS
+E5,lb2,b*2@genesis class,CONVERGED,CONVERGED,exact,PASS
+E5,lb2,b*2@genesis trough,0.716,0.7158,5%,PASS
+E5,lb2,b*2@genesis years to tol,43.4,43.44,10% (3 within 25%),PASS
+E5,lb2,b*2@genesis heads to 5% (years),10.6,10.63,10% (3 within 25%),PASS
+E5,lb2,b*2@genesis capacity plant to 5% (years),11.2,11.17,10% (3 within 25%),PASS
+E5,lb2,b*2@genesis fodder plant to 5% (years),9.1,9.077,10% (3 within 25%),PASS
+E5,lb2,b*2@genesis lowest horse price,0.194,0.1939,5%,PASS
+E5,lb2,b*2@genesis @10L class,CONVERGED,CONVERGED,exact,PASS
+E5,lb2,b*2@genesis @10L trough,0.716,0.7158,5%,PASS
+E5,lb2,b*2@genesis @10L years to tol,43.4,43.44,10% (3 within 25%),PASS
+E5,lb2,b*2@genesis @10L heads to 5% (years),10.6,10.63,10% (3 within 25%),PASS
+E5,lb2,b*2@genesis @10L capacity plant to 5% (years),11.2,11.17,10% (3 within 25%),PASS
+E5,lb2,b*2@genesis @10L fodder plant to 5% (years),9.1,9.077,10% (3 within 25%),PASS
+E5,lb2,b*2@genesis @10L lowest horse price,0.194,0.1939,5%,PASS
+E5,lb2,b*0.5@genesis class,CONVERGED,CONVERGED,exact,PASS
+E5,lb2,b*0.5@genesis trough,0.863,0.8625,5%,PASS
+E5,lb2,b*0.5@genesis years to tol,54,53.96,10% (3 within 25%),PASS
+E5,lb2,b*0.5@genesis heads to 5% (years),14.1,14.06,10% (3 within 25%),PASS
+E5,lb2,b*0.5@genesis capacity plant to 5% (years),14.1,14.1,10% (3 within 25%),PASS
+E5,lb2,b*0.5@genesis fodder plant to 5% (years),13.8,13.81,10% (3 within 25%),PASS
+E5,lb2,b*0.5@genesis lowest horse price,0.791,0.7908,5%,PASS
+E5,lb2,b*0.5@genesis @10L class,CONVERGED,CONVERGED,exact,PASS
+E5,lb2,b*0.5@genesis @10L trough,0.863,0.8625,5%,PASS
+E5,lb2,b*0.5@genesis @10L years to tol,54,53.96,10% (3 within 25%),PASS
+E5,lb2,b*0.5@genesis @10L heads to 5% (years),14.1,14.06,10% (3 within 25%),PASS
+E5,lb2,b*0.5@genesis @10L capacity plant to 5% (years),14.1,14.1,10% (3 within 25%),PASS
+E5,lb2,b*0.5@genesis @10L fodder plant to 5% (years),13.8,13.81,10% (3 within 25%),PASS
+E5,lb2,b*0.5@genesis @10L lowest horse price,0.791,0.7908,5%,PASS
+E5,lb3,b*2@genesis class,CONVERGED,CONVERGED,exact,PASS
+E5,lb3,b*2@genesis trough,0.678,0.6784,5%,PASS
+E5,lb3,b*2@genesis years to tol,66.6,66.62,10% (3 within 25%),PASS
+E5,lb3,b*2@genesis heads to 5% (years),12.5,12.52,10% (3 within 25%),PASS
+E5,lb3,b*2@genesis capacity plant to 5% (years),24.3,24.29,10% (3 within 25%),PASS
+E5,lb3,b*2@genesis fodder plant to 5% (years),8.3,8.269,10% (3 within 25%),PASS
+E5,lb3,b*2@genesis lowest horse price,0.196,0.1963,5%,PASS
+E5,lb3,b*2@genesis @10L class,CONVERGED,CONVERGED,exact,PASS
+E5,lb3,b*2@genesis @10L trough,0.678,0.6784,5%,PASS
+E5,lb3,b*2@genesis @10L years to tol,66.6,66.62,10% (3 within 25%),PASS
+E5,lb3,b*2@genesis @10L heads to 5% (years),12.5,12.52,10% (3 within 25%),PASS
+E5,lb3,b*2@genesis @10L capacity plant to 5% (years),24.3,24.29,10% (3 within 25%),PASS
+E5,lb3,b*2@genesis @10L fodder plant to 5% (years),8.3,8.269,10% (3 within 25%),PASS
+E5,lb3,b*2@genesis @10L lowest horse price,0.196,0.1963,5%,PASS
+E5,lb3,b*0.5@genesis class,CONVERGED,CONVERGED,exact,PASS
+E5,lb3,b*0.5@genesis trough,0.85,0.8502,5%,PASS
+E5,lb3,b*0.5@genesis years to tol,135.4,135.4,10% (3 within 25%),PASS
+E5,lb3,b*0.5@genesis heads to 5% (years),24,24.04,10% (3 within 25%),PASS
+E5,lb3,b*0.5@genesis capacity plant to 5% (years),34.8,34.75,10% (3 within 25%),PASS
+E5,lb3,b*0.5@genesis fodder plant to 5% (years),31.7,31.67,10% (3 within 25%),PASS
+E5,lb3,b*0.5@genesis lowest horse price,0.39,0.3904,5%,PASS
+E5,lb3,b*0.5@genesis @10L class,CONVERGED,CONVERGED,exact,PASS
+E5,lb3,b*0.5@genesis @10L trough,0.85,0.8502,5%,PASS
+E5,lb3,b*0.5@genesis @10L years to tol,135.4,135.4,10% (3 within 25%),PASS
+E5,lb3,b*0.5@genesis @10L heads to 5% (years),24,24.04,10% (3 within 25%),PASS
+E5,lb3,b*0.5@genesis @10L capacity plant to 5% (years),34.8,34.75,10% (3 within 25%),PASS
+E5,lb3,b*0.5@genesis @10L fodder plant to 5% (years),31.7,31.67,10% (3 within 25%),PASS
+E5,lb3,b*0.5@genesis @10L lowest horse price,0.39,0.3904,5%,PASS
+E5,lw1,b*2@genesis class,CONVERGED,CONVERGED,exact,PASS
+E5,lw1,b*2@genesis trough,0.679,0.6787,5%,PASS
+E5,lw1,b*2@genesis years to tol,38.8,38.79,10% (3 within 25%),PASS
+E5,lw1,b*2@genesis capacity plant to 5% (years),12.4,12.37,10% (3 within 25%),PASS
+E5,lw1,b*2@genesis fodder plant to 5% (years),8.7,8.712,10% (3 within 25%),PASS
+E5,lw1,b*2@genesis @10L class,CONVERGED,CONVERGED,exact,PASS
+E5,lw1,b*2@genesis @10L trough,0.679,0.6787,5%,PASS
+E5,lw1,b*2@genesis @10L years to tol,38.8,38.79,10% (3 within 25%),PASS
+E5,lw1,b*2@genesis @10L capacity plant to 5% (years),12.4,12.37,10% (3 within 25%),PASS
+E5,lw1,b*2@genesis @10L fodder plant to 5% (years),8.7,8.712,10% (3 within 25%),PASS
+E5,lw1,b*0.5@genesis class,CONVERGED,CONVERGED,exact,PASS
+E5,lw1,b*0.5@genesis trough,0.865,0.8654,5%,PASS
+E5,lw1,b*0.5@genesis years to tol,31.5,31.5,10% (3 within 25%),PASS
+E5,lw1,b*0.5@genesis capacity plant to 5% (years),4.2,4.154,10% (3 within 25%),PASS
+E5,lw1,b*0.5@genesis fodder plant to 5% (years),12.6,12.62,10% (3 within 25%),PASS
+E5,lw1,b*0.5@genesis @10L class,CONVERGED,CONVERGED,exact,PASS
+E5,lw1,b*0.5@genesis @10L trough,0.865,0.8654,5%,PASS
+E5,lw1,b*0.5@genesis @10L years to tol,31.5,31.5,10% (3 within 25%),PASS
+E5,lw1,b*0.5@genesis @10L capacity plant to 5% (years),4.2,4.154,10% (3 within 25%),PASS
+E5,lw1,b*0.5@genesis @10L fodder plant to 5% (years),12.6,12.62,10% (3 within 25%),PASS
+E5,lw2,b*2@genesis class,CONVERGED,CONVERGED,exact,PASS
+E5,lw2,b*2@genesis trough,0.688,0.688,5%,PASS
+E5,lw2,b*2@genesis years to tol,39.2,39.19,10% (3 within 25%),PASS
+E5,lw2,b*2@genesis capacity plant to 5% (years),12.8,12.79,10% (3 within 25%),PASS
+E5,lw2,b*2@genesis fodder plant to 5% (years),9.1,9.077,10% (3 within 25%),PASS
+E5,lw2,b*2@genesis @10L class,CONVERGED,CONVERGED,exact,PASS
+E5,lw2,b*2@genesis @10L trough,0.688,0.688,5%,PASS
+E5,lw2,b*2@genesis @10L years to tol,39.2,39.19,10% (3 within 25%),PASS
+E5,lw2,b*2@genesis @10L capacity plant to 5% (years),12.8,12.79,10% (3 within 25%),PASS
+E5,lw2,b*2@genesis @10L fodder plant to 5% (years),9.1,9.077,10% (3 within 25%),PASS
+E5,lw2,b*0.5@genesis class,CONVERGED,CONVERGED,exact,PASS
+E5,lw2,b*0.5@genesis trough,0.871,0.8707,5%,PASS
+E5,lw2,b*0.5@genesis years to tol,31.9,31.88,10% (3 within 25%),PASS
+E5,lw2,b*0.5@genesis capacity plant to 5% (years),4.4,4.423,10% (3 within 25%),PASS
+E5,lw2,b*0.5@genesis fodder plant to 5% (years),12.8,12.85,10% (3 within 25%),PASS
+E5,lw2,b*0.5@genesis @10L class,CONVERGED,CONVERGED,exact,PASS
+E5,lw2,b*0.5@genesis @10L trough,0.871,0.8707,5%,PASS
+E5,lw2,b*0.5@genesis @10L years to tol,31.9,31.88,10% (3 within 25%),PASS
+E5,lw2,b*0.5@genesis @10L capacity plant to 5% (years),4.4,4.423,10% (3 within 25%),PASS
+E5,lw2,b*0.5@genesis @10L fodder plant to 5% (years),12.8,12.85,10% (3 within 25%),PASS
+E5,lw3,b*2@genesis class,CONVERGED,CONVERGED,exact,PASS
+E5,lw3,b*2@genesis trough,0.659,0.6594,5%,PASS
+E5,lw3,b*2@genesis years to tol,37.8,37.81,10% (3 within 25%),PASS
+E5,lw3,b*2@genesis capacity plant to 5% (years),11.5,11.54,10% (3 within 25%),PASS
+E5,lw3,b*2@genesis fodder plant to 5% (years),8,8.038,10% (3 within 25%),PASS
+E5,lw3,b*2@genesis @10L class,CONVERGED,CONVERGED,exact,PASS
+E5,lw3,b*2@genesis @10L trough,0.659,0.6594,5%,PASS
+E5,lw3,b*2@genesis @10L years to tol,37.8,37.81,10% (3 within 25%),PASS
+E5,lw3,b*2@genesis @10L capacity plant to 5% (years),11.5,11.54,10% (3 within 25%),PASS
+E5,lw3,b*2@genesis @10L fodder plant to 5% (years),8,8.038,10% (3 within 25%),PASS
+E5,lw3,b*0.5@genesis class,CONVERGED,CONVERGED,exact,PASS
+E5,lw3,b*0.5@genesis trough,0.854,0.854,5%,PASS
+E5,lw3,b*0.5@genesis years to tol,31,31.02,10% (3 within 25%),PASS
+E5,lw3,b*0.5@genesis capacity plant to 5% (years),3.6,3.635,10% (3 within 25%),PASS
+E5,lw3,b*0.5@genesis fodder plant to 5% (years),12.1,12.1,10% (3 within 25%),PASS
+E5,lw3,b*0.5@genesis @10L class,CONVERGED,CONVERGED,exact,PASS
+E5,lw3,b*0.5@genesis @10L trough,0.854,0.854,5%,PASS
+E5,lw3,b*0.5@genesis @10L years to tol,31,31.02,10% (3 within 25%),PASS
+E5,lw3,b*0.5@genesis @10L capacity plant to 5% (years),3.6,3.635,10% (3 within 25%),PASS
+E5,lw3,b*0.5@genesis @10L fodder plant to 5% (years),12.1,12.1,10% (3 within 25%),PASS
+E10,lf1,b*2@genesis class,CONVERGED,CONVERGED,exact,PASS
+E10,lf1,b*2@genesis trough,0.825,0.8252,5%,PASS
+E10,lf1,b*2@genesis years to tol,52.5,52.48,10% (3 within 25%),PASS
+E10,lf1,b*2@genesis heads to 5% (years),13,12.96,10% (3 within 25%),PASS
+E10,lf1,b*2@genesis capacity plant to 5% (years),12,12.02,10% (3 within 25%),PASS
+E10,lf1,b*2@genesis fodder plant to 5% (years),9.1,9.115,10% (3 within 25%),PASS
+E10,lf1,b*2@genesis @10L class,CONVERGED,CONVERGED,exact,PASS
+E10,lf1,b*2@genesis @10L trough,0.825,0.8252,5%,PASS
+E10,lf1,b*2@genesis @10L years to tol,52.5,52.48,10% (3 within 25%),PASS
+E10,lf1,b*2@genesis @10L heads to 5% (years),13,12.96,10% (3 within 25%),PASS
+E10,lf1,b*2@genesis @10L capacity plant to 5% (years),12,12.02,10% (3 within 25%),PASS
+E10,lf1,b*2@genesis @10L fodder plant to 5% (years),9.1,9.115,10% (3 within 25%),PASS
+E10,lf1,b*0.5@genesis class,CONVERGED,CONVERGED,exact,PASS
+E10,lf1,b*0.5@genesis trough,0.853,0.8529,5%,PASS
+E10,lf1,b*0.5@genesis years to tol,90.5,90.54,10% (3 within 25%),PASS
+E10,lf1,b*0.5@genesis heads to 5% (years),17.6,17.58,10% (3 within 25%),PASS
+E10,lf1,b*0.5@genesis capacity plant to 5% (years),17.3,17.27,10% (3 within 25%),PASS
+E10,lf1,b*0.5@genesis fodder plant to 5% (years),23.4,23.37,10% (3 within 25%),PASS
+E10,lf1,b*0.5@genesis @10L class,CONVERGED,CONVERGED,exact,PASS
+E10,lf1,b*0.5@genesis @10L trough,0.853,0.8529,5%,PASS
+E10,lf1,b*0.5@genesis @10L years to tol,90.5,90.54,10% (3 within 25%),PASS
+E10,lf1,b*0.5@genesis @10L heads to 5% (years),17.6,17.58,10% (3 within 25%),PASS
+E10,lf1,b*0.5@genesis @10L capacity plant to 5% (years),17.3,17.27,10% (3 within 25%),PASS
+E10,lf1,b*0.5@genesis @10L fodder plant to 5% (years),23.4,23.37,10% (3 within 25%),PASS
+E10,lf2,b*2@genesis class,CONVERGED,CONVERGED,exact,PASS
+E10,lf2,b*2@genesis trough,0.706,0.7064,5%,PASS
+E10,lf2,b*2@genesis years to tol,76.3,76.33,10% (3 within 25%),PASS
+E10,lf2,b*2@genesis heads to 5% (years),26.5,26.52,10% (3 within 25%),PASS
+E10,lf2,b*2@genesis capacity plant to 5% (years),34.4,34.37,10% (3 within 25%),PASS
+E10,lf2,b*2@genesis fodder plant to 5% (years),24.2,24.17,10% (3 within 25%),PASS
+E10,lf2,b*2@genesis @10L class,CONVERGED,CONVERGED,exact,PASS
+E10,lf2,b*2@genesis @10L trough,0.706,0.7064,5%,PASS
+E10,lf2,b*2@genesis @10L years to tol,76.3,76.33,10% (3 within 25%),PASS
+E10,lf2,b*2@genesis @10L heads to 5% (years),26.5,26.52,10% (3 within 25%),PASS
+E10,lf2,b*2@genesis @10L capacity plant to 5% (years),34.4,34.37,10% (3 within 25%),PASS
+E10,lf2,b*2@genesis @10L fodder plant to 5% (years),24.2,24.17,10% (3 within 25%),PASS
+E10,lf2,b*0.5@genesis class,CONVERGED,CONVERGED,exact,PASS
+E10,lf2,b*0.5@genesis trough,0.857,0.8575,5%,PASS
+E10,lf2,b*0.5@genesis years to tol,48.2,48.17,10% (3 within 25%),PASS
+E10,lf2,b*0.5@genesis heads to 5% (years),5.7,5.712,10% (3 within 25%),PASS
+E10,lf2,b*0.5@genesis capacity plant to 5% (years),9.8,9.827,10% (3 within 25%),PASS
+E10,lf2,b*0.5@genesis fodder plant to 5% (years),18.4,18.44,10% (3 within 25%),PASS
+E10,lf2,b*0.5@genesis @10L class,CONVERGED,CONVERGED,exact,PASS
+E10,lf2,b*0.5@genesis @10L trough,0.857,0.8575,5%,PASS
+E10,lf2,b*0.5@genesis @10L years to tol,48.2,48.17,10% (3 within 25%),PASS
+E10,lf2,b*0.5@genesis @10L heads to 5% (years),5.7,5.712,10% (3 within 25%),PASS
+E10,lf2,b*0.5@genesis @10L capacity plant to 5% (years),9.8,9.827,10% (3 within 25%),PASS
+E10,lf2,b*0.5@genesis @10L fodder plant to 5% (years),18.4,18.44,10% (3 within 25%),PASS
+E10,lf5,b*2@genesis class,CONVERGED,CONVERGED,exact,PASS
+E10,lf5,b*2@genesis trough,0.658,0.6582,5%,PASS
+E10,lf5,b*2@genesis years to tol,47,47.02,10% (3 within 25%),PASS
+E10,lf5,b*2@genesis heads to 5% (years),11,10.98,10% (3 within 25%),PASS
+E10,lf5,b*2@genesis capacity plant to 5% (years),9.9,9.885,10% (3 within 25%),PASS
+E10,lf5,b*2@genesis fodder plant to 5% (years),9.4,9.365,10% (3 within 25%),PASS
+E10,lf5,b*2@genesis @10L class,CONVERGED,CONVERGED,exact,PASS
+E10,lf5,b*2@genesis @10L trough,0.658,0.6582,5%,PASS
+E10,lf5,b*2@genesis @10L years to tol,47,47.02,10% (3 within 25%),PASS
+E10,lf5,b*2@genesis @10L heads to 5% (years),11,10.98,10% (3 within 25%),PASS
+E10,lf5,b*2@genesis @10L capacity plant to 5% (years),9.9,9.885,10% (3 within 25%),PASS
+E10,lf5,b*2@genesis @10L fodder plant to 5% (years),9.4,9.365,10% (3 within 25%),PASS
+E10,lf5,b*0.5@genesis class,CONVERGED,CONVERGED,exact,PASS
+E10,lf5,b*0.5@genesis trough,0.859,0.8585,5%,PASS
+E10,lf5,b*0.5@genesis years to tol,49,49.04,10% (3 within 25%),PASS
+E10,lf5,b*0.5@genesis heads to 5% (years),15,14.98,10% (3 within 25%),PASS
+E10,lf5,b*0.5@genesis capacity plant to 5% (years),14.8,14.77,10% (3 within 25%),PASS
+E10,lf5,b*0.5@genesis fodder plant to 5% (years),14.7,14.73,10% (3 within 25%),PASS
+E10,lf5,b*0.5@genesis @10L class,CONVERGED,CONVERGED,exact,PASS
+E10,lf5,b*0.5@genesis @10L trough,0.859,0.8585,5%,PASS
+E10,lf5,b*0.5@genesis @10L years to tol,49,49.04,10% (3 within 25%),PASS
+E10,lf5,b*0.5@genesis @10L heads to 5% (years),15,14.98,10% (3 within 25%),PASS
+E10,lf5,b*0.5@genesis @10L capacity plant to 5% (years),14.8,14.77,10% (3 within 25%),PASS
+E10,lf5,b*0.5@genesis @10L fodder plant to 5% (years),14.7,14.73,10% (3 within 25%),PASS
+E10,lf7,b*2@genesis class,CONVERGED,CONVERGED,exact,PASS
+E10,lf7,b*2@genesis trough,0.835,0.835,5%,PASS
+E10,lf7,b*2@genesis years to tol,48.3,48.27,10% (3 within 25%),PASS
+E10,lf7,b*2@genesis heads to 5% (years),13.5,13.46,10% (3 within 25%),PASS
+E10,lf7,b*2@genesis capacity plant to 5% (years),13.7,13.67,10% (3 within 25%),PASS
+E10,lf7,b*2@genesis fodder plant to 5% (years),9.6,9.635,10% (3 within 25%),PASS
+E10,lf7,b*2@genesis @10L class,CONVERGED,CONVERGED,exact,PASS
+E10,lf7,b*2@genesis @10L trough,0.835,0.835,5%,PASS
+E10,lf7,b*2@genesis @10L years to tol,48.3,48.27,10% (3 within 25%),PASS
+E10,lf7,b*2@genesis @10L heads to 5% (years),13.5,13.46,10% (3 within 25%),PASS
+E10,lf7,b*2@genesis @10L capacity plant to 5% (years),13.7,13.67,10% (3 within 25%),PASS
+E10,lf7,b*2@genesis @10L fodder plant to 5% (years),9.6,9.635,10% (3 within 25%),PASS
+E10,lf7,b*0.5@genesis class,CONVERGED,CONVERGED,exact,PASS
+E10,lf7,b*0.5@genesis trough,0.857,0.8567,5%,PASS
+E10,lf7,b*0.5@genesis years to tol,68,68.02,10% (3 within 25%),PASS
+E10,lf7,b*0.5@genesis heads to 5% (years),17.2,17.21,10% (3 within 25%),PASS
+E10,lf7,b*0.5@genesis capacity plant to 5% (years),17.2,17.25,10% (3 within 25%),PASS
+E10,lf7,b*0.5@genesis fodder plant to 5% (years),16.1,16.06,10% (3 within 25%),PASS
+E10,lf7,b*0.5@genesis @10L class,CONVERGED,CONVERGED,exact,PASS
+E10,lf7,b*0.5@genesis @10L trough,0.857,0.8567,5%,PASS
+E10,lf7,b*0.5@genesis @10L years to tol,68,68.02,10% (3 within 25%),PASS
+E10,lf7,b*0.5@genesis @10L heads to 5% (years),17.2,17.21,10% (3 within 25%),PASS
+E10,lf7,b*0.5@genesis @10L capacity plant to 5% (years),17.2,17.25,10% (3 within 25%),PASS
+E10,lf7,b*0.5@genesis @10L fodder plant to 5% (years),16.1,16.06,10% (3 within 25%),PASS
+E10,lf8,b*2@genesis class,CONVERGED,CONVERGED,exact,PASS
+E10,lf8,b*2@genesis trough,0.804,0.8043,5%,PASS
+E10,lf8,b*2@genesis years to tol,72.5,72.46,10% (3 within 25%),PASS
+E10,lf8,b*2@genesis heads to 5% (years),23.3,23.31,10% (3 within 25%),PASS
+E10,lf8,b*2@genesis capacity plant to 5% (years),24.1,24.13,10% (3 within 25%),PASS
+E10,lf8,b*2@genesis fodder plant to 5% (years),8,8.019,10% (3 within 25%),PASS
+E10,lf8,b*2@genesis @10L class,CONVERGED,CONVERGED,exact,PASS
+E10,lf8,b*2@genesis @10L trough,0.804,0.8043,5%,PASS
+E10,lf8,b*2@genesis @10L years to tol,72.5,72.46,10% (3 within 25%),PASS
+E10,lf8,b*2@genesis @10L heads to 5% (years),23.3,23.31,10% (3 within 25%),PASS
+E10,lf8,b*2@genesis @10L capacity plant to 5% (years),24.1,24.13,10% (3 within 25%),PASS
+E10,lf8,b*2@genesis @10L fodder plant to 5% (years),8,8.019,10% (3 within 25%),PASS
+E10,lf8,b*0.5@genesis class,CONVERGED,CONVERGED,exact,PASS
+E10,lf8,b*0.5@genesis trough,0.845,0.8448,5%,PASS
+E10,lf8,b*0.5@genesis years to tol,204.5,204.5,10% (3 within 25%),PASS
+E10,lf8,b*0.5@genesis heads to 5% (years),42.6,42.62,10% (3 within 25%),PASS
+E10,lf8,b*0.5@genesis capacity plant to 5% (years),54.3,54.29,10% (3 within 25%),PASS
+E10,lf8,b*0.5@genesis fodder plant to 5% (years),40.6,40.6,10% (3 within 25%),PASS
+E10,lf8,b*0.5@genesis @10L class,CONVERGED,CONVERGED,exact,PASS
+E10,lf8,b*0.5@genesis @10L trough,0.845,0.8448,5%,PASS
+E10,lf8,b*0.5@genesis @10L years to tol,204.5,204.5,10% (3 within 25%),PASS
+E10,lf8,b*0.5@genesis @10L heads to 5% (years),42.6,42.62,10% (3 within 25%),PASS
+E10,lf8,b*0.5@genesis @10L capacity plant to 5% (years),54.3,54.29,10% (3 within 25%),PASS
+E10,lf8,b*0.5@genesis @10L fodder plant to 5% (years),40.6,40.6,10% (3 within 25%),PASS
+E10,lc1,b*2@genesis class,CONVERGED,CONVERGED,exact,PASS
+E10,lc1,b*2@genesis trough,0.809,0.8087,5%,PASS
+E10,lc1,b*2@genesis years to tol,45.3,45.29,10% (3 within 25%),PASS
+E10,lc1,b*2@genesis heads to 5% (years),9.8,9.75,10% (3 within 25%),PASS
+E10,lc1,b*2@genesis capacity plant to 5% (years),9,8.981,10% (3 within 25%),PASS
+E10,lc1,b*2@genesis fodder plant to 5% (years),8.1,8.058,10% (3 within 25%),PASS
+E10,lc1,b*2@genesis @10L class,CONVERGED,CONVERGED,exact,PASS
+E10,lc1,b*2@genesis @10L trough,0.809,0.8087,5%,PASS
+E10,lc1,b*2@genesis @10L years to tol,45.3,45.29,10% (3 within 25%),PASS
+E10,lc1,b*2@genesis @10L heads to 5% (years),9.8,9.75,10% (3 within 25%),PASS
+E10,lc1,b*2@genesis @10L capacity plant to 5% (years),9,8.981,10% (3 within 25%),PASS
+E10,lc1,b*2@genesis @10L fodder plant to 5% (years),8.1,8.058,10% (3 within 25%),PASS
+E10,lc1,b*0.5@genesis class,CONVERGED,CONVERGED,exact,PASS
+E10,lc1,b*0.5@genesis trough,0.867,0.8667,5%,PASS
+E10,lc1,b*0.5@genesis years to tol,61.4,61.44,10% (3 within 25%),PASS
+E10,lc1,b*0.5@genesis heads to 5% (years),13.7,13.67,10% (3 within 25%),PASS
+E10,lc1,b*0.5@genesis capacity plant to 5% (years),13.5,13.46,10% (3 within 25%),PASS
+E10,lc1,b*0.5@genesis fodder plant to 5% (years),12.9,12.92,10% (3 within 25%),PASS
+E10,lc1,b*0.5@genesis @10L class,CONVERGED,CONVERGED,exact,PASS
+E10,lc1,b*0.5@genesis @10L trough,0.867,0.8667,5%,PASS
+E10,lc1,b*0.5@genesis @10L years to tol,61.4,61.44,10% (3 within 25%),PASS
+E10,lc1,b*0.5@genesis @10L heads to 5% (years),13.7,13.67,10% (3 within 25%),PASS
+E10,lc1,b*0.5@genesis @10L capacity plant to 5% (years),13.5,13.46,10% (3 within 25%),PASS
+E10,lc1,b*0.5@genesis @10L fodder plant to 5% (years),12.9,12.92,10% (3 within 25%),PASS
+E6,lb1,heads.capacity*2 @1L class,CONVERGED,CONVERGED,exact,PASS
+E6,lb1,heads.capacity*2 @1L dead ticks (union),0,0,no dead tick,PASS
+E6,lb1,heads.capacity*2 @1L lowest horse price,0.2179,0.2179,5%,PASS
+E6,lb1,heads.capacity*2 @1L highest horse price,2.163,2.163,5%,PASS
+E6,lb1,heads.capacity*2 @1L withheld ticks,303,303,10% (3 within 25%),PASS
+E6,lb1,heads.capacity*2 @1L years to tol,45.44,45.44,10% (3 within 25%),PASS
+E6,lb1,heads.capacity*2 @10L class,CONVERGED,CONVERGED,exact,PASS
+E6,lb1,heads.capacity*2 @10L dead ticks (union),0,0,no dead tick,PASS
+E6,lb1,heads.capacity*2 @10L lowest horse price,0.2179,0.2179,5%,PASS
+E6,lb1,heads.capacity*2 @10L highest horse price,2.163,2.163,5%,PASS
+E6,lb1,heads.capacity*2 @10L withheld ticks,303,303,10% (3 within 25%),PASS
+E6,lb1,heads.capacity*2 @10L years to tol,45.44,45.44,10% (3 within 25%),PASS
+E6,lb1,heads.capacity*10 @1L class,CONVERGED,CONVERGED,exact,PASS
+E6,lb1,heads.capacity*10 @1L dead ticks (union),0,0,no dead tick,PASS
+E6,lb1,heads.capacity*10 @1L lowest horse price,0.2195,0.2195,5%,PASS
+E6,lb1,heads.capacity*10 @1L highest horse price,3.756,3.756,5%,PASS
+E6,lb1,heads.capacity*10 @1L withheld ticks,1315,1315,10% (3 within 25%),PASS
+E6,lb1,heads.capacity*10 @1L years to tol,65.31,65.31,10% (3 within 25%),PASS
+E6,lb1,heads.capacity*10 @10L class,CONVERGED,CONVERGED,exact,PASS
+E6,lb1,heads.capacity*10 @10L dead ticks (union),0,0,no dead tick,PASS
+E6,lb1,heads.capacity*10 @10L lowest horse price,0.2195,0.2195,5%,PASS
+E6,lb1,heads.capacity*10 @10L highest horse price,3.756,3.756,5%,PASS
+E6,lb1,heads.capacity*10 @10L withheld ticks,1315,1315,10% (3 within 25%),PASS
+E6,lb1,heads.capacity*10 @10L years to tol,65.31,65.31,10% (3 within 25%),PASS
+E6,lb2,heads.capacity*2 @1L class,CONVERGED,CONVERGED,exact,PASS
+E6,lb2,heads.capacity*2 @1L dead ticks (union),0,0,no dead tick,PASS
+E6,lb2,heads.capacity*2 @1L lowest horse price,0.2141,0.2141,5%,PASS
+E6,lb2,heads.capacity*2 @1L highest horse price,2.018,2.018,5%,PASS
+E6,lb2,heads.capacity*2 @1L withheld ticks,221,221,10% (3 within 25%),PASS
+E6,lb2,heads.capacity*2 @1L years to tol,39.83,39.83,10% (3 within 25%),PASS
+E6,lb2,heads.capacity*2 @10L class,CONVERGED,CONVERGED,exact,PASS
+E6,lb2,heads.capacity*2 @10L dead ticks (union),0,0,no dead tick,PASS
+E6,lb2,heads.capacity*2 @10L lowest horse price,0.2141,0.2141,5%,PASS
+E6,lb2,heads.capacity*2 @10L highest horse price,2.018,2.018,5%,PASS
+E6,lb2,heads.capacity*2 @10L withheld ticks,221,221,10% (3 within 25%),PASS
+E6,lb2,heads.capacity*2 @10L years to tol,39.83,39.83,10% (3 within 25%),PASS
+E6,lb2,heads.capacity*10 @1L class,CONVERGED,CONVERGED,exact,PASS
+E6,lb2,heads.capacity*10 @1L dead ticks (union),0,0,no dead tick,PASS
+E6,lb2,heads.capacity*10 @1L lowest horse price,0.2188,0.2188,5%,PASS
+E6,lb2,heads.capacity*10 @1L highest horse price,3.286,3.286,5%,PASS
+E6,lb2,heads.capacity*10 @1L withheld ticks,1034,1034,10% (3 within 25%),PASS
+E6,lb2,heads.capacity*10 @1L years to tol,58.04,58.04,10% (3 within 25%),PASS
+E6,lb2,heads.capacity*10 @10L class,CONVERGED,CONVERGED,exact,PASS
+E6,lb2,heads.capacity*10 @10L dead ticks (union),0,0,no dead tick,PASS
+E6,lb2,heads.capacity*10 @10L lowest horse price,0.2188,0.2188,5%,PASS
+E6,lb2,heads.capacity*10 @10L highest horse price,3.286,3.286,5%,PASS
+E6,lb2,heads.capacity*10 @10L withheld ticks,1034,1034,10% (3 within 25%),PASS
+E6,lb2,heads.capacity*10 @10L years to tol,58.04,58.04,10% (3 within 25%),PASS
+E6,lb3,heads.capacity*2 @1L class,CONVERGED,CONVERGED,exact,PASS
+E6,lb3,heads.capacity*2 @1L dead ticks (union),0,0,no dead tick,PASS
+E6,lb3,heads.capacity*2 @1L lowest horse price,0.2211,0.2211,5%,PASS
+E6,lb3,heads.capacity*2 @1L highest horse price,2.24,2.24,5%,PASS
+E6,lb3,heads.capacity*2 @1L withheld ticks,662,662,10% (3 within 25%),PASS
+E6,lb3,heads.capacity*2 @1L years to tol,77.62,77.62,10% (3 within 25%),PASS
+E6,lb3,heads.capacity*2 @10L class,CONVERGED,CONVERGED,exact,PASS
+E6,lb3,heads.capacity*2 @10L dead ticks (union),0,0,no dead tick,PASS
+E6,lb3,heads.capacity*2 @10L lowest horse price,0.2211,0.2211,5%,PASS
+E6,lb3,heads.capacity*2 @10L highest horse price,2.24,2.24,5%,PASS
+E6,lb3,heads.capacity*2 @10L withheld ticks,662,662,10% (3 within 25%),PASS
+E6,lb3,heads.capacity*2 @10L years to tol,77.62,77.62,10% (3 within 25%),PASS
+E6,lb3,heads.capacity*10 @1L class,CONVERGED,CONVERGED,exact,PASS
+E6,lb3,heads.capacity*10 @1L dead ticks (union),0,0,no dead tick,PASS
+E6,lb3,heads.capacity*10 @1L lowest horse price,0.221,0.221,5%,PASS
+E6,lb3,heads.capacity*10 @1L highest horse price,3.565,3.565,5%,PASS
+E6,lb3,heads.capacity*10 @1L withheld ticks,2694,2694,10% (3 within 25%),PASS
+E6,lb3,heads.capacity*10 @1L years to tol,118.2,118.2,10% (3 within 25%),PASS
+E6,lb3,heads.capacity*10 @10L class,CONVERGED,CONVERGED,exact,PASS
+E6,lb3,heads.capacity*10 @10L dead ticks (union),0,0,no dead tick,PASS
+E6,lb3,heads.capacity*10 @10L lowest horse price,0.221,0.221,5%,PASS
+E6,lb3,heads.capacity*10 @10L highest horse price,3.565,3.565,5%,PASS
+E6,lb3,heads.capacity*10 @10L withheld ticks,2694,2694,10% (3 within 25%),PASS
+E6,lb3,heads.capacity*10 @10L years to tol,118.2,118.2,10% (3 within 25%),PASS
+E7,lb1,r*2 horse-day dead ticks,≤ 5 (mirror 0),0,≤ 5,PASS
+E7,lb1,r*2 dead fodder,175,175,10% or 5,PASS
+E7,lb1,r*2 dead good,11,11,10% or 5,PASS
+E7,lb1,r*2 dead land,12,12,10% or 5,PASS
+E7,lb1,r*2 fodder low,0.409,0.4093,5%,PASS
+E7,lb1,r*2 tasks' horse-days low,0.509,0.5091,5%,PASS
+E7,lb1,r*2 class,CONVERGED,CONVERGED,exact,PASS
+E7+,lb2,r*2 dead fodder,263,263,10% or 5,PASS
+E7+,lb2,r*2 dead traction,8,8,10% or 5,PASS
+E7+,lb2,r*2 dead good,10,10,10% or 5,PASS
+E7+,lb2,r*2 dead land,11,11,10% or 5,PASS
+E7+,lb2,r*2 fodder low,0.413,0.4128,5%,PASS
+E7+,lb2,r*2 tasks' horse-days low,0.487,0.4872,5%,PASS
+E7+,lb3,r*2 dead fodder,173,173,10% or 5,PASS
+E7+,lb3,r*2 dead traction,0,0,10% or 5,PASS
+E7+,lb3,r*2 dead good,12,12,10% or 5,PASS
+E7+,lb3,r*2 dead land,12,12,10% or 5,PASS
+E7+,lb3,r*2 fodder low,0.402,0.4022,5%,PASS
+E7+,lb3,r*2 tasks' horse-days low,0.527,0.5267,5%,PASS
+E7+,lc1,r*2 dead fodder,169,169,10% or 5,PASS
+E7+,lc1,r*2 dead traction,0,0,10% or 5,PASS
+E7+,lc1,r*2 dead good,11,11,10% or 5,PASS
+E7+,lc1,r*2 dead land,12,12,10% or 5,PASS
+E7+,lc1,r*2 fodder low,0.42,0.4196,5%,PASS
+E7+,lc1,r*2 tasks' horse-days low,0.526,0.5261,5%,PASS
+E7,ln7,r*2 horse-day dead ticks,≥ 100 (mirror 146),146,≥ 100,PASS
+E7,ln7,r*2 not CONVERGED,not CONVERGED (mirror ORBITING),ORBITING,not CONVERGED,PASS
+E7+,lw1,r*2 dead fodder,208,208,10% or 5,PASS
+E7+,lw1,r*2 dead traction,0,0,10% or 5,PASS
+E7+,lw1,r*2 dead good,11,11,10% or 5,PASS
+E7+,lw1,r*2 dead land,12,12,10% or 5,PASS
+E7+,lw1,r*2 fodder low,0.402,0.4022,5%,PASS
+E7+,lw1,r*2 tasks' horse-days low,0.516,0.5157,5%,PASS
+E8,lb1/lw1,"b x2 trough, stocks less flow, in log",0.036,0.03616,5% of each trough,PASS
+E8,lb1/lw1,"T1-2 median years, stocks over flow",1.36,1.361,10% on each median,PASS
+E9,lw0,O14 b x2 trough (of old Y),0.095 (ln -2.358),0.095 (ln -2.358),5%,PASS
+E9,lw0,"O14 T2 dead (union, reported)",215,215,reported,REPORTED
+E9,lw0,O14 T3 baskets median,0.435,0.4348,5%,PASS
+E9,lw0,O14 T3 baskets lowest,0.061,0.06101,5%,PASS
+E9,lw0,"O14 T3 dead (union, reported)",214,214,reported,REPORTED
+E9,lw0,O14 T3 peak D-hat (reported),3379,2.27e+05,reported,REPORTED
+E9,lw0,O14 T1-2 median years,20.3,20.35,10%,PASS
+E9,lw0,O14 T1-2 worst years,39,38.96,10%,PASS
+E8,lw1,O14 b x2 trough (of old Y),0.678 (ln -0.389),0.678 (ln -0.389),5%,PASS
+E8,lw1,"O14 T2 dead (union, reported)",6,6,reported,REPORTED
+E8,lw1,O14 T3 baskets median,0.675,0.6755,5%,PASS
+E8,lw1,O14 T3 baskets lowest,0.262,0.2623,5%,PASS
+E8,lw1,"O14 T3 dead (union, reported)",212,212,reported,REPORTED
+E8,lw1,O14 T3 peak D-hat (reported),2590,2590,reported,REPORTED
+E8,lw1,O14 T1-2 median years,19.5,19.5,10%,PASS
+E8,lw1,O14 T1-2 worst years,41.3,41.27,10%,PASS
+E8,lw2,O14 b x2 trough (of old Y),0.687 (ln -0.375),0.687 (ln -0.375),5%,PASS
+E8,lw2,"O14 T2 dead (union, reported)",6,6,reported,REPORTED
+E8,lw2,O14 T3 baskets median,0.684,0.684,5%,PASS
+E8,lw2,O14 T3 baskets lowest,0.268,0.2675,5%,PASS
+E8,lw2,"O14 T3 dead (union, reported)",210,210,reported,REPORTED
+E8,lw2,O14 T3 peak D-hat (reported),2607,2607,reported,REPORTED
+E8,lw2,O14 T1-2 median years,19.5,19.5,10%,PASS
+E8,lw2,O14 T1-2 worst years,41.7,41.71,10%,PASS
+E8,lw3,O14 b x2 trough (of old Y),0.658 (ln -0.418),0.658 (ln -0.418),5%,PASS
+E8,lw3,"O14 T2 dead (union, reported)",4,4,reported,REPORTED
+E8,lw3,O14 T3 baskets median,0.659,0.6586,5%,PASS
+E8,lw3,O14 T3 baskets lowest,0.253,0.2535,5%,PASS
+E8,lw3,"O14 T3 dead (union, reported)",217,217,reported,REPORTED
+E8,lw3,O14 T3 peak D-hat (reported),2555,2555,reported,REPORTED
+E8,lw3,O14 T1-2 median years,19.3,19.33,10%,PASS
+E8,lw3,O14 T1-2 worst years,40.4,40.38,10%,PASS
+E8,lb1,O14 b x2 trough (of old Y),0.703 (ln -0.353),0.703 (ln -0.353),5%,PASS
+E8,lb1,"O14 T2 dead (union, reported)",5,5,reported,REPORTED
+E8,lb1,O14 T3 baskets median,0.702,0.7016,5%,PASS
+E8,lb1,O14 T3 baskets lowest,0.255,0.2551,5%,PASS
+E8,lb1,"O14 T3 dead (union, reported)",244,244,reported,REPORTED
+E8,lb1,O14 T3 peak D-hat (reported),1.203e+04,1.203e+04,reported,REPORTED
+E8,lb1,O14 T1-2 median years,26.5,26.54,10%,PASS
+E8,lb1,O14 T1-2 worst years,43,42.98,10%,PASS
+E8,lb2,O14 b x2 trough (of old Y),0.715 (ln -0.336),0.715 (ln -0.336),5%,PASS
+E8,lb2,"O14 T2 dead (union, reported)",5,5,reported,REPORTED
+E8,lb2,O14 T3 baskets median,0.714,0.7135,5%,PASS
+E8,lb2,O14 T3 baskets lowest,0.26,0.2599,5%,PASS
+E8,lb2,"O14 T3 dead (union, reported)",322,322,reported,REPORTED
+E8,lb2,O14 T3 peak D-hat (reported),9440,9440,reported,REPORTED
+E8,lb2,O14 T1-2 median years,24.1,24.1,10%,PASS
+E8,lb2,O14 T1-2 worst years,38,38.04,10%,PASS
+E8,lb3,O14 b x2 trough (of old Y),0.677 (ln -0.39),0.677 (ln -0.390),5%,PASS
+E8,lb3,"O14 T2 dead (union, reported)",5,5,reported,REPORTED
+E8,lb3,O14 T3 baskets median,0.678,0.6784,5%,PASS
+E8,lb3,O14 T3 baskets lowest,0.245,0.2446,5%,PASS
+E8,lb3,"O14 T3 dead (union, reported)",232,232,reported,REPORTED
+E8,lb3,O14 T3 peak D-hat (reported),2.068e+04,2.068e+04,reported,REPORTED
+E8,lb3,O14 T1-2 median years,42.8,42.77,10%,PASS
+E8,lb3,O14 T1-2 worst years,73.2,73.21,10%,PASS
+E8,lf1,O14 b x2 trough (of old Y),0.824 (ln -0.194),0.824 (ln -0.194),5%,PASS
+E8,lf1,"O14 T2 dead (union, reported)",0,0,reported,REPORTED
+E8,lf1,O14 T3 baskets median,0.737,0.7372,5%,PASS
+E8,lf1,O14 T3 baskets lowest,0.373,0.3727,5%,PASS
+E8,lf1,"O14 T3 dead (union, reported)",315,315,reported,REPORTED
+E8,lf1,O14 T3 peak D-hat (reported),9746,9746,reported,REPORTED
+E8,lf1,O14 T1-2 median years,29.5,29.46,10%,PASS
+E8,lf1,O14 T1-2 worst years,54.5,54.46,10%,PASS
+E8,lc1,O14 b x2 trough (of old Y),0.807 (ln -0.214),0.807 (ln -0.214),5%,PASS
+E8,lc1,"O14 T2 dead (union, reported)",0,0,reported,REPORTED
+E8,lc1,O14 T3 baskets median,0.757,0.7567,5%,PASS
+E8,lc1,O14 T3 baskets lowest,0.411,0.4108,5%,PASS
+E8,lc1,"O14 T3 dead (union, reported)",237,237,reported,REPORTED
+E8,lc1,O14 T3 peak D-hat (reported),1.176e+04,1.176e+04,reported,REPORTED
+E8,lc1,O14 T1-2 median years,25,24.98,10%,PASS
+E8,lc1,O14 T1-2 worst years,41.5,41.52,10%,PASS
+E9,ln1,T1 converged count,0/20,0/20,within 2 runs,PASS
+E9,ln1,T2 converged count,0/24,0/24,within 2 runs,PASS
+E9,ln1,T3 converged count,0/25,0/25,within 2 runs,PASS
+E9,ln1,T3S converged count,0/22,0/22,within 2 runs,PASS
+E9,ln1,stocks converged count,0/22,0/22,within 2 runs,PASS
+E9,ln1,verdict NO-GO kept,NO-GO,NO-GO,exact,PASS
+E9,ln2,T1 converged count,20/20,20/20,within 2 runs,PASS
+E9,ln2,T2 converged count,22/24,22/24,within 2 runs,PASS
+E9,ln2,T3 converged count,9/25,9/25,within 2 runs,PASS
+E9,ln2,T3S converged count,21/26,21/26,within 2 runs,PASS
+E9,ln2,stocks converged count,14/26,14/26,within 2 runs,PASS
+E9,ln2,verdict NO-GO kept,NO-GO,NO-GO,exact,PASS
+E9,ln3,T1 converged count,0/20,0/20,within 2 runs,PASS
+E9,ln3,T2 converged count,0/24,0/24,within 2 runs,PASS
+E9,ln3,T3 converged count,0/25,0/25,within 2 runs,PASS
+E9,ln3,T3S converged count,0/24,0/24,within 2 runs,PASS
+E9,ln3,stocks converged count,0/24,0/24,within 2 runs,PASS
+E9,ln3,verdict NO-GO kept,NO-GO,NO-GO,exact,PASS
+E9,ln4,T1 converged count,20/20,20/20,within 2 runs,PASS
+E9,ln4,T2 converged count,24/24,24/24,within 2 runs,PASS
+E9,ln4,T3 converged count,25/25,25/25,within 2 runs,PASS
+E9,ln4,T3S converged count,26/26,26/26,within 2 runs,PASS
+E9,ln4,stocks converged count,25/26,25/26,within 2 runs,PASS
+E9,ln4,"GO in Tiers 1-3S, stocks family 25/26",GO in tiers; 25/26,tiers all converged; stocks 25/26,verdict kept; counts within 2,PASS
+E9,ln6,T1 converged count,0/20,0/20,within 2 runs,PASS
+E9,ln6,T2 converged count,0/24,0/24,within 2 runs,PASS
+E9,ln6,T3 converged count,0/25,0/25,within 2 runs,PASS
+E9,ln6,T3S converged count,0/28,0/28,within 2 runs,PASS
+E9,ln6,stocks converged count,0/28,0/28,within 2 runs,PASS
+E9,ln6,verdict NO-GO kept,NO-GO,NO-GO,exact,PASS
+E9,ln7,T1 converged count,0/20,0/20,within 2 runs,PASS
+E9,ln7,T2 converged count,0/24,0/24,within 2 runs,PASS
+E9,ln7,T3 converged count,0/25,0/25,within 2 runs,PASS
+E9,ln7,T3S converged count,0/22,0/22,within 2 runs,PASS
+E9,ln7,stocks converged count,1/22,0/22,within 2 runs,PASS
+E9,ln7,verdict NO-GO kept,NO-GO,NO-GO,exact,PASS
+E9,ln8,T1 converged count,20/20,20/20,within 2 runs,PASS
+E9,ln8,T2 converged count,18/24,18/24,within 2 runs,PASS
+E9,ln8,T3 converged count,14/25,14/25,within 2 runs,PASS
+E9,ln8,T3S converged count,16/22,16/22,within 2 runs,PASS
+E9,ln8,stocks converged count,17/22,17/22,within 2 runs,PASS
+E9,ln8,verdict NO-GO kept,NO-GO,NO-GO,exact,PASS
+E9,ln9,T1 converged count,16/20,16/20,within 2 runs,PASS
+E9,ln9,T2 converged count,8/24,8/24,within 2 runs,PASS
+E9,ln9,T3 converged count,6/25,6/25,within 2 runs,PASS
+E9,ln9,T3S converged count,10/22,10/22,within 2 runs,PASS
+E9,ln9,stocks converged count,7/22,7/22,within 2 runs,PASS
+E9,ln9,verdict NO-GO kept,NO-GO,NO-GO,exact,PASS
+E9,lf3,T1 converged count,20/20,20/20,within 2 runs,PASS
+E9,lf3,T2 converged count,24/24,24/24,within 2 runs,PASS
+E9,lf3,T3 converged count,24/25,24/25,within 2 runs,PASS
+E9,lf3,T3 @10L converged count,24/25,24/25,within 2 runs,PASS
+E9,lf3,T3S converged count,27/28,27/28,within 2 runs,PASS
+E9,lf3,T3S @10L converged count,27/28,27/28,within 2 runs,PASS
+E9,lf3,stocks converged count,25/28,25/28,within 2 runs,PASS
+E9,lf3,verdict NO-GO kept,NO-GO,NO-GO,exact,PASS
+E9,lf6,T1 converged count,11/20,11/20,within 2 runs,PASS
+E9,lf6,T2 converged count,4/24,4/24,within 2 runs,PASS
+E9,lf6,T3 converged count,3/25,3/25,within 2 runs,PASS
+E9,lf6,T3 @10L converged count,3/25,3/25,within 2 runs,PASS
+E9,lf6,T3S converged count,5/28,5/28,within 2 runs,PASS
+E9,lf6,T3S @10L converged count,5/28,5/28,within 2 runs,PASS
+E9,lf6,stocks converged count,5/28,5/28,within 2 runs,PASS
+E9,lf6,verdict NO-GO kept,NO-GO,NO-GO,exact,PASS
+E9,lw0,T1 converged count,18/18,18/18,within 2 runs,PASS
+E9,lw0,T2 converged count,22/22,22/22,within 2 runs,PASS
+E9,lw0,T3 converged count,15/23,15/23,within 2 runs,PASS
+E9,lw0,T3 @10L converged count,15/23,15/23,within 2 runs,PASS
+E9,lw0,T3S converged count,14/16,14/16,within 2 runs,PASS
+E9,lw0,T3S @10L converged count,14/16,14/16,within 2 runs,PASS
+E9,lw0,stocks converged count,12/16,12/16,within 2 runs,PASS
+E9,lw0,verdict NO-GO kept,NO-GO,NO-GO,exact,PASS
+E9,ln1,converges in no tier,0 in every tier,0/20 0/24 0/25 0/22,none,PASS
+E9,ln7,converges in no tier,0 in every tier,0/20 0/24 0/25 0/22,none,PASS
+E9,ln2,orbits in Tier 3,≥ 10 of 25 ORBITING,16,≥ 10,PASS
+E9,ln3,"DEAD in every tier but b x0.5 at genesis and dated, which orbit",all DEAD but 2 ORBITING,b*0.5@dated:ORBITING b*0.5@genesis:ORBITING; every other DEAD,exact,PASS
+E9,ln6,DEAD in every tier and in mode A,all DEAD,mode A DEAD; every run DEAD,exact,PASS
+E9,ln5,orbits in every tier,ORBITING,not run (LOOP-SPEC-A2; O51),-,NOT RUN
+E9,lf3,"diverges on r x2, heads x2, x10, workers' coin x0.02, x0.1; horse price crosses 1e-6 at 156-173",DIVERGED at 156-173,r*2@L:DIVERGED 170; r*2@10L:DIVERGED 170; heads.capacity*2@L:DIVERGED 156; heads.capacity*2@10L:DIVERGED 156; coin.workers*0.02@stocks:DIVERGED 169; coin.workers*0.1@stocks:DIVERGED 173; heads.capacity*10@stocks:DIVERGED 156,exact classes; ticks 156-173,PASS
+E9,lf3,the runs that do not converge,"r*2, heads x2 (3S), heads x10, workers' coin x0.02, x0.1 (and their 10·L twins)",heads.capacity*2@L r*2@L heads.capacity*2@10L r*2@10L coin.workers*0.02@stocks coin.workers*0.1@stocks heads.capacity*10@stocks,reported,REPORTED
+E9,lb1-lb3 psi 0,heads x2 and x10 at ψ 0 cross 1e-6 at 155-158,DIVERGED at 155-158,lb1 heads.capacity*2@L:DIVERGED 156; lb1 heads.capacity*2@10L:DIVERGED 156; lb1 heads.capacity*10@L:DIVERGED 156; lb1 heads.capacity*10@10L:DIVERGED 156; lb2 heads.capacity*2@L:DIVERGED 158; lb2 heads.capacity*2@10L:DIVERGED 158; lb2 heads.capacity*10@L:DIVERGED 156; lb2 heads.capacity*10@10L:DIVERGED 156; lb3 heads.capacity*2@L:DIVERGED 155; lb3 heads.capacity*2@10L:DIVERGED 155; lb3 heads.capacity*10@L:DIVERGED 155; lb3 heads.capacity*10@10L:DIVERGED 155,exact classes; ticks 155-158,PASS
+E9,lf6,"converges in 11, 4, 3, 5, 5",11 4 3 5 5,11/20 4/24 3/25 5/28 5/28,within 2 runs each,PASS
+E9,lw0,fails Tier 3 (15 of 23 converge),15/23,15/23,within 2 runs; not all,PASS
+E9,lb1 @12/yr,fails Tiers 1-2 (0 of 40),0/40,0/40 (the 4 cost targets besides: b*0.9@dated:ORBITING b*0.9@genesis:ORBITING b*1.1@dated:DIVERGED b*1.1@genesis:ORBITING); mode A ORBITING,within 2 runs,PASS
+E4,lb1,hold kick set decays,PASS,PASS,PASS,PASS
+E4,lb1,hold slowest mode below 1 a tick,< 1,0.9968,< 1 (a refutation),PASS
+E4,lb1,base g a year,0.847,0.8478,± 0.03 a year,PASS
+E4,lb1,bx1.1_genesis kick set decays,PASS,PASS,PASS,PASS
+E4,lb1,bx1.1_genesis slowest mode below 1 a tick,< 1,0.9969,< 1 (a refutation),PASS
+E4,lb1,bx0.9_genesis kick set decays,PASS,PASS,PASS,PASS
+E4,lb1,bx0.9_genesis slowest mode below 1 a tick,< 1,0.9969,< 1 (a refutation),PASS
+E4,lb1,bx2_genesis kick set decays,PASS,PASS,PASS,PASS
+E4,lb1,bx2_genesis slowest mode below 1 a tick,< 1,0.9973,< 1 (a refutation),PASS
+E4,lb1,bx0.5_genesis kick set decays,PASS,PASS,PASS,PASS
+E4,lb1,bx0.5_genesis slowest mode below 1 a tick,< 1,0.9979,< 1 (a refutation),PASS
+E4,lb1,kick hold (the base kick set),PASS,PASS,PASS,PASS
+E4,lb2,hold kick set decays,PASS,PASS,PASS,PASS
+E4,lb2,hold slowest mode below 1 a tick,< 1,0.9964,< 1 (a refutation),PASS
+E4,lb2,base g a year,0.83,0.831,± 0.03 a year,PASS
+E4,lb2,bx1.1_genesis kick set decays,PASS,PASS,PASS,PASS
+E4,lb2,bx1.1_genesis slowest mode below 1 a tick,< 1,0.9965,< 1 (a refutation),PASS
+E4,lb2,bx0.9_genesis kick set decays,PASS,PASS,PASS,PASS
+E4,lb2,bx0.9_genesis slowest mode below 1 a tick,< 1,0.9964,< 1 (a refutation),PASS
+E4,lb2,bx2_genesis kick set decays,PASS,PASS,PASS,PASS
+E4,lb2,bx2_genesis slowest mode below 1 a tick,< 1,0.9972,< 1 (a refutation),PASS
+E4,lb2,bx0.5_genesis kick set decays,PASS,PASS,PASS,PASS
+E4,lb2,bx0.5_genesis slowest mode below 1 a tick,< 1,0.9974,< 1 (a refutation),PASS
+E4,lb2,kick hold (the base kick set),PASS,PASS,PASS,PASS
+E4,lb3,hold kick set decays,PASS,PASS,PASS,PASS
+E4,lb3,hold slowest mode below 1 a tick,< 1,0.998,< 1 (a refutation),PASS
+E4,lb3,base g a year,0.901,0.9008,± 0.03 a year,PASS
+E4,lb3,bx1.1_genesis kick set decays,PASS,PASS,PASS,PASS
+E4,lb3,bx1.1_genesis slowest mode below 1 a tick,< 1,0.998,< 1 (a refutation),PASS
+E4,lb3,bx0.9_genesis kick set decays,PASS,PASS,PASS,PASS
+E4,lb3,bx0.9_genesis slowest mode below 1 a tick,< 1,0.9981,< 1 (a refutation),PASS
+E4,lb3,bx2_genesis kick set decays,PASS,PASS,PASS,PASS
+E4,lb3,bx2_genesis slowest mode below 1 a tick,< 1,0.9979,< 1 (a refutation),PASS
+E4,lb3,bx0.5_genesis kick set decays,PASS,PASS,PASS,PASS
+E4,lb3,bx0.5_genesis slowest mode below 1 a tick,< 1,0.999,< 1 (a refutation),PASS
+E4,lb3,kick hold (the base kick set),PASS,PASS,PASS,PASS
+E4,lw1,hold kick set decays,PASS,PASS,PASS,PASS
+E4,lw1,hold slowest mode below 1 a tick,< 1,0.9968,< 1 (a refutation),PASS
+E4,lw1,base g a year,0.836,0.8463,± 0.03 a year,PASS
+E4,lw1,bx1.1_genesis kick set decays,PASS,PASS,PASS,PASS
+E4,lw1,bx1.1_genesis slowest mode below 1 a tick,< 1,0.997,< 1 (a refutation),PASS
+E4,lw1,bx0.9_genesis kick set decays,PASS,PASS,PASS,PASS
+E4,lw1,bx0.9_genesis slowest mode below 1 a tick,< 1,0.9967,< 1 (a refutation),PASS
+E4,lw1,bx2_genesis kick set decays,PASS,PASS,PASS,PASS
+E4,lw1,bx2_genesis slowest mode below 1 a tick,< 1,0.9974,< 1 (a refutation),PASS
+E4,lw1,bx0.5_genesis kick set decays,PASS,PASS,PASS,PASS
+E4,lw1,bx0.5_genesis slowest mode below 1 a tick,< 1,0.9961,< 1 (a refutation),PASS
+E4,lw1,kick hold (the base kick set),PASS,PASS,PASS,PASS
+E11,lb1,JB(2) ticks at the bound (peak),22 (1.18),22 (1.18),10% or 5; peak within 5% may cross or not,PASS
+E11,lb1,"JB(2) converges, not at the bound at tick 0",CONVERGED; z(0) < 1,CONVERGED; z(0) 0.863,exact,PASS
+E11,lb1,N(0.5) ticks at the bound (peak),238 (1.86),238 (1.86),10% or 5; peak within 5% may cross or not,PASS
+E11,lb1,"N(0.5) converges, not at the bound at tick 0",CONVERGED; z(0) < 1,CONVERGED; z(0) 0.443,exact,PASS
+E11,lb1,coin.workers*2 ticks at the bound (peak),82 (1.19),82 (1.19),10% or 5; peak within 5% may cross or not,PASS
+E11,lb1,"coin.workers*2 converges, not at the bound at tick 0",CONVERGED; z(0) < 1,CONVERGED; z(0) 0.443,exact,PASS
+E11,lb1,heads.capacity*0.1 ticks at the bound (peak),45 (1.05),45 (1.05),10% or 5; peak within 5% may cross or not,PASS
+E11,lb1,"heads.capacity*0.1 converges, not at the bound at tick 0",CONVERGED; z(0) < 1,CONVERGED; z(0) 0.443,exact,PASS
+E11,lb1,r*0.5 ticks at the bound (peak),262 (2.05),262 (2.05),10% or 5; peak within 5% may cross or not,PASS
+E11,lb1,"r*0.5 converges, not at the bound at tick 0",CONVERGED; z(0) < 1,CONVERGED; z(0) 0.863,exact,PASS
+E11,lb1,no run starts at the bound,none,none,none,PASS
+E11,lb2,JB(2) ticks at the bound (peak),24 (1.22),24 (1.22),10% or 5; peak within 5% may cross or not,PASS
+E11,lb2,"JB(2) converges, not at the bound at tick 0",CONVERGED; z(0) < 1,CONVERGED; z(0) 0.893,exact,PASS
+E11,lb2,N(0.5) ticks at the bound (peak),250 (1.95),250 (1.95),10% or 5; peak within 5% may cross or not,PASS
+E11,lb2,"N(0.5) converges, not at the bound at tick 0",CONVERGED; z(0) < 1,CONVERGED; z(0) 0.459,exact,PASS
+E11,lb2,coin.workers*2 ticks at the bound (peak),98 (1.25),98 (1.25),10% or 5; peak within 5% may cross or not,PASS
+E11,lb2,"coin.workers*2 converges, not at the bound at tick 0",CONVERGED; z(0) < 1,CONVERGED; z(0) 0.459,exact,PASS
+E11,lb2,heads.capacity*0.1 ticks at the bound (peak),48 (1.05),48 (1.05),10% or 5; peak within 5% may cross or not,PASS
+E11,lb2,"heads.capacity*0.1 converges, not at the bound at tick 0",CONVERGED; z(0) < 1,CONVERGED; z(0) 0.459,exact,PASS
+E11,lb2,r*0.5 ticks at the bound (peak),273 (2.13),273 (2.13),10% or 5; peak within 5% may cross or not,PASS
+E11,lb2,"r*0.5 converges, not at the bound at tick 0",CONVERGED; z(0) < 1,CONVERGED; z(0) 0.893,exact,PASS
+E11,lb2,no run starts at the bound,none,none,none,PASS
+E11,lb3,JB(2) ticks at the bound (peak),18 (1.11),18 (1.11),10% or 5; peak within 5% may cross or not,PASS
+E11,lb3,"JB(2) converges, not at the bound at tick 0",CONVERGED; z(0) < 1,CONVERGED; z(0) 0.802,exact,PASS
+E11,lb3,N(0.5) ticks at the bound (peak),219 (1.68),219 (1.68),10% or 5; peak within 5% may cross or not,PASS
+E11,lb3,"N(0.5) converges, not at the bound at tick 0",CONVERGED; z(0) < 1,CONVERGED; z(0) 0.411,exact,PASS
+E11,lb3,coin.workers*2 ticks at the bound (peak),28 (1.03),28 (1.03),10% or 5; peak within 5% may cross or not,PASS
+E11,lb3,"coin.workers*2 converges, not at the bound at tick 0",CONVERGED; z(0) < 1,CONVERGED; z(0) 0.411,exact,PASS
+E11,lb3,heads.capacity*0.1 ticks at the bound (peak),48 (1.07),48 (1.07),10% or 5; peak within 5% may cross or not,PASS
+E11,lb3,"heads.capacity*0.1 converges, not at the bound at tick 0",CONVERGED; z(0) < 1,CONVERGED; z(0) 0.411,exact,PASS
+E11,lb3,r*0.5 ticks at the bound (peak),247 (1.89),247 (1.89),10% or 5; peak within 5% may cross or not,PASS
+E11,lb3,"r*0.5 converges, not at the bound at tick 0",CONVERGED; z(0) < 1,CONVERGED; z(0) 0.802,exact,PASS
+E11,lb3,no run starts at the bound,none,none,none,PASS
+E11,lw1,JB(2) ticks at the bound (peak),26 (1.23),26 (1.23),10% or 5; peak within 5% may cross or not,PASS
+E11,lw1,"JB(2) converges, not at the bound at tick 0",CONVERGED; z(0) < 1,CONVERGED; z(0) 0.863,exact,PASS
+E11,lw1,N(0.5) ticks at the bound (peak),242 (2.10),242 (2.10),10% or 5; peak within 5% may cross or not,PASS
+E11,lw1,"N(0.5) converges, not at the bound at tick 0",CONVERGED; z(0) < 1,CONVERGED; z(0) 0.443,exact,PASS
+E11,lw1,coin.workers*2 ticks at the bound (peak),106 (1.35),106 (1.35),10% or 5; peak within 5% may cross or not,PASS
+E11,lw1,"coin.workers*2 converges, not at the bound at tick 0",CONVERGED; z(0) < 1,CONVERGED; z(0) 0.443,exact,PASS
+E11,lw1,r*0.5 ticks at the bound (peak),264 (2.28),264 (2.28),10% or 5; peak within 5% may cross or not,PASS
+E11,lw1,"r*0.5 converges, not at the bound at tick 0",CONVERGED; z(0) < 1,CONVERGED; z(0) 0.863,exact,PASS
+E11,lw1,no run starts at the bound,none,none,none,PASS
+E11,lw2,JB(2) ticks at the bound (peak),29 (1.28),29 (1.28),10% or 5; peak within 5% may cross or not,PASS
+E11,lw2,"JB(2) converges, not at the bound at tick 0",CONVERGED; z(0) < 1,CONVERGED; z(0) 0.893,exact,PASS
+E11,lw2,N(0.5) ticks at the bound (peak),256 (2.15),256 (2.15),10% or 5; peak within 5% may cross or not,PASS
+E11,lw2,"N(0.5) converges, not at the bound at tick 0",CONVERGED; z(0) < 1,CONVERGED; z(0) 0.459,exact,PASS
+E11,lw2,coin.desk.good*0.02 ticks at the bound (peak),8 (1.02),8 (1.02),10% or 5; peak within 5% may cross or not,PASS
+E11,lw2,"coin.desk.good*0.02 converges, not at the bound at tick 0",CONVERGED; z(0) < 1,CONVERGED; z(0) 0.459,exact,PASS
+E11,lw2,coin.workers*2 ticks at the bound (peak),120 (1.40),120 (1.40),10% or 5; peak within 5% may cross or not,PASS
+E11,lw2,"coin.workers*2 converges, not at the bound at tick 0",CONVERGED; z(0) < 1,CONVERGED; z(0) 0.459,exact,PASS
+E11,lw2,r*0.5 ticks at the bound (peak),279 (2.34),279 (2.34),10% or 5; peak within 5% may cross or not,PASS
+E11,lw2,"r*0.5 converges, not at the bound at tick 0",CONVERGED; z(0) < 1,CONVERGED; z(0) 0.893,exact,PASS
+E11,lw2,no run starts at the bound,none,none,none,PASS
+E11,lw3,JB(2) ticks at the bound (peak),21 (1.14),21 (1.14),10% or 5; peak within 5% may cross or not,PASS
+E11,lw3,"JB(2) converges, not at the bound at tick 0",CONVERGED; z(0) < 1,CONVERGED; z(0) 0.802,exact,PASS
+E11,lw3,N(0.5) ticks at the bound (peak),214 (2.00),214 (2.00),10% or 5; peak within 5% may cross or not,PASS
+E11,lw3,"N(0.5) converges, not at the bound at tick 0",CONVERGED; z(0) < 1,CONVERGED; z(0) 0.411,exact,PASS
+E11,lw3,coin.workers*2 ticks at the bound (peak),81 (1.26),81 (1.26),10% or 5; peak within 5% may cross or not,PASS
+E11,lw3,"coin.workers*2 converges, not at the bound at tick 0",CONVERGED; z(0) < 1,CONVERGED; z(0) 0.411,exact,PASS
+E11,lw3,r*0.5 ticks at the bound (peak),238 (2.15),238 (2.15),10% or 5; peak within 5% may cross or not,PASS
+E11,lw3,"r*0.5 converges, not at the bound at tick 0",CONVERGED; z(0) < 1,CONVERGED; z(0) 0.802,exact,PASS
+E11,lw3,no run starts at the bound,none,none,none,PASS
+run,lb1,"dead ticks by market, every run",179 runs,179/179,10% or 5,PASS
+run,lb1,"lowest baskets, every run (O70)",179 runs,179/179,5%,PASS
+run,lb1,"lowest horse price, every run",179 runs,179/179,5%,PASS
+run,lb1,"bound ticks, every run at L",126 runs,126/126,10% or 5,PASS
+run,lb2,"dead ticks by market, every run",179 runs,179/179,10% or 5,PASS
+run,lb2,"lowest baskets, every run (O70)",179 runs,179/179,5%,PASS
+run,lb2,"lowest horse price, every run",179 runs,179/179,5%,PASS
+run,lb2,"bound ticks, every run at L",126 runs,126/126,10% or 5,PASS
+run,lb3,"dead ticks by market, every run",179 runs,179/179,10% or 5,PASS
+run,lb3,"lowest baskets, every run (O70)",179 runs,179/179,5%,PASS
+run,lb3,"lowest horse price, every run",179 runs,179/179,5%,PASS
+run,lb3,"bound ticks, every run at L",126 runs,126/126,10% or 5,PASS
+run,lw1,"dead ticks by market, every run",147 runs,147/147,10% or 5,PASS
+run,lw1,"lowest baskets, every run (O70)",147 runs,147/147,5%,PASS
+run,lw1,"bound ticks, every run at L",104 runs,104/104,10% or 5,PASS
+run,lw2,"dead ticks by market, every run",147 runs,147/147,10% or 5,PASS
+run,lw2,"lowest baskets, every run (O70)",147 runs,147/147,5%,PASS
+run,lw2,"bound ticks, every run at L",104 runs,104/104,10% or 5,PASS
+run,lw3,"dead ticks by market, every run",147 runs,147/147,10% or 5,PASS
+run,lw3,"lowest baskets, every run (O70)",147 runs,147/147,5%,PASS
+run,lw3,"bound ticks, every run at L",104 runs,104/104,10% or 5,PASS
+run,lf1,"dead ticks by market, every run",179 runs,179/179,10% or 5,PASS
+run,lf1,"lowest baskets, every run (O70)",179 runs,179/179,5%,PASS
+run,lf1,"lowest horse price, every run",179 runs,179/179,5%,PASS
+run,lf1,"bound ticks, every run at L",126 runs,126/126,10% or 5,PASS
+run,lf2,"dead ticks by market, every run",179 runs,179/179,10% or 5,PASS
+run,lf2,"lowest baskets, every run (O70)",179 runs,179/179,5%,PASS
+run,lf2,"lowest horse price, every run",179 runs,179/179,5%,PASS
+run,lf2,"bound ticks, every run at L",126 runs,126/126,10% or 5,PASS
+run,lf5,"dead ticks by market, every run",179 runs,179/179,10% or 5,PASS
+run,lf5,"lowest baskets, every run (O70)",179 runs,179/179,5%,PASS
+run,lf5,"lowest horse price, every run",179 runs,179/179,5%,PASS
+run,lf5,"bound ticks, every run at L",126 runs,126/126,10% or 5,PASS
+run,lf7,"dead ticks by market, every run",179 runs,179/179,10% or 5,PASS
+run,lf7,"lowest baskets, every run (O70)",179 runs,179/179,5%,PASS
+run,lf7,"lowest horse price, every run",179 runs,179/179,5%,PASS
+run,lf7,"bound ticks, every run at L",126 runs,126/126,10% or 5,PASS
+run,lf8,"dead ticks by market, every run",179 runs,179/179,10% or 5,PASS
+run,lf8,"lowest baskets, every run (O70)",179 runs,179/179,5%,PASS
+run,lf8,"lowest horse price, every run",179 runs,179/179,5%,PASS
+run,lf8,"bound ticks, every run at L",126 runs,126/126,10% or 5,PASS
+run,lc1,"dead ticks by market, every run",179 runs,179/179,10% or 5,PASS
+run,lc1,"lowest baskets, every run (O70)",179 runs,179/179,5%,PASS
+run,lc1,"lowest horse price, every run",179 runs,179/179,5%,PASS
+run,lc1,"bound ticks, every run at L",126 runs,126/126,10% or 5,PASS
+ticks,lb1,runs with ticks or years beyond 10%,"≤ 3 runs, each within 25%",0,≤ 3 runs within 25%,PASS
+ticks,lb2,runs with ticks or years beyond 10%,"≤ 3 runs, each within 25%",0,≤ 3 runs within 25%,PASS
+ticks,lb3,runs with ticks or years beyond 10%,"≤ 3 runs, each within 25%",0,≤ 3 runs within 25%,PASS
+ticks,lw1,runs with ticks or years beyond 10%,"≤ 3 runs, each within 25%",0,≤ 3 runs within 25%,PASS
+ticks,lw2,runs with ticks or years beyond 10%,"≤ 3 runs, each within 25%",0,≤ 3 runs within 25%,PASS
+ticks,lw3,runs with ticks or years beyond 10%,"≤ 3 runs, each within 25%",0,≤ 3 runs within 25%,PASS
+ticks,lf1,runs with ticks or years beyond 10%,"≤ 3 runs, each within 25%",0,≤ 3 runs within 25%,PASS
+ticks,lf2,runs with ticks or years beyond 10%,"≤ 3 runs, each within 25%",0,≤ 3 runs within 25%,PASS
+ticks,lf5,runs with ticks or years beyond 10%,"≤ 3 runs, each within 25%",0,≤ 3 runs within 25%,PASS
+ticks,lf7,runs with ticks or years beyond 10%,"≤ 3 runs, each within 25%",0,≤ 3 runs within 25%,PASS
+ticks,lf8,runs with ticks or years beyond 10%,"≤ 3 runs, each within 25%",0,≤ 3 runs within 25%,PASS
+ticks,lc1,runs with ticks or years beyond 10%,"≤ 3 runs, each within 25%",0,≤ 3 runs within 25%,PASS
+refute,lb1-lb3,a class change at LB1-LB3,none,none,none,PASS
+refute,lb1-lb3,a runaway of the horse price at LB1-LB3 with ψ 0.25,none,none,none,PASS
+refute,all,a converged run ending more than 1e-12 off its oracle point,none,"none; worst lb1 9.1e-14, lb2 7.9e-14, lb3 1.6e-13, lc1 7.6e-14, lf1 9.4e-14, lf2 1.4e-13, lf3 9.1e-14, lf5 1.0e-13, lf6 1.2e-13, lf7 1.3e-13, lf8 1.9e-13, ln1 2.2e-16, ln2 7.2e-14, ln3 2.2e-16, ln4 1.2e-13, ln7 2.0e-15, ln8 8.8e-14, ln9 8.4e-14, lw0 7.6e-14, lw1 1.2e-13, lw2 1.0e-13, lw3 9.7e-14",1e-12,PASS
+refute,all,a θ = 1 tape differing from the plant-free tape,none,E1 (P2.2b.2): none,bit for bit,PASS
+refute,"lb1-lb3, lw1",the engine's slowest mode above 1 at any target,none,none; largest 0.998971,< 1,PASS

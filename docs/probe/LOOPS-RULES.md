@@ -12,6 +12,10 @@ spec as P2.2b.0 wrote it.
 step made, where it departs from §8–§10 and §13, and what E0, E1 and E2 found
 ([results/loops/e0.md](results/loops/e0.md)). E0 passes and needs no amendment.
 
+**Amended at P2.2b.3 (2026-09-30): as run.** §16 says how E3–E11 were run and scored, and where
+that reads §8.6 and §9 ([results/loops/README.md](results/loops/README.md)). Every prediction
+holds and no refutation criterion was hit.
+
 P2.2b asks whether rule B's horse runs on the engine as the mirror registered it. Fodder is
 raised with horse-days (the loop). The horses are held by M3's wet capacity desk and bred by M2
 from bought fodder. CAPACITY's plant, y = K^(1−θ)·z^θ, sits on the fodder desk, on the capacity
@@ -52,6 +56,7 @@ This file says:
 - the files and the order of work (§13);
 - the build as built (§14, P2.2b.1);
 - the harness as built, and E0–E2 (§15, P2.2b.2).
+- the scored runs as run (§16, P2.2b.3).
 
 ## 1. What changes, and what does not
 
@@ -1185,3 +1190,54 @@ The numbers are in [results/loops/e0.md](results/loops/e0.md).
 ### 15.5 Decisions and open items
 
 Decisions 302–304 and open items O75–O76 are in STATE.md. O73 is closed.
+
+## 16. The scored runs as run (P2.2b.3, 2026-09-30)
+
+Label `run`, scratch `D:/rustyecon-p2b/run/`, raw runs `D:/rustyecon-p2b/runs/`. The results:
+[results/loops/README.md](results/loops/README.md). The harness is P2.2b.2's (`3205025`),
+unchanged; no engine bug was found, so nothing was fixed or rerun.
+
+### 16.1 How §9 was run
+
+- One `horses` process per run, 46 at a time on WSL, 3,549 runs and 24 kick-set jobs in 74
+  minutes (`make_jobs.py`, `job.sh`, `jobs.txt`).
+- At each instance: `hold` at L; the battery at L; Tier 3 and 3S again at 10·L at every instance
+  but the LN ones (§8.6), so at LF3, LF6 and LW0 too; the stocks family at L.
+- E4: `horses slowest` at the base and at b × 1.1, 0.9, 2 and 0.5 at genesis, and `horses kick
+  hold`, at LB1–LB3 and LW1, each `--ticks L --horizon L`.
+- E6: heads × 10 at 10·L at LB1–LB3 besides the stocks family's run at L, since E6 names both
+  lengths.
+- E9: heads × 2 and × 10 with `--reserve none` at LB1–LB3 at L and at 10·L; LB1 at 12 ticks a year,
+  `hold` and Tiers 1–2.
+
+### 16.2 Where it reads §8.6 and §9
+
+1. **LB1 at 12 ticks a year runs 49,000 ticks**, §8.6's L·tpy/52 rounded up to a thousand (the
+   mirror's, `lm_extra:38`). `horses elasticity --tpy 12` prints 38,000 by §15.2 item 4's rule.
+   The longer was taken. The runs orbit or diverge either way.
+2. **E9's "0 of 40" at 12 a year** is read on the mirror's 40 runs. The engine's Tiers 1–2 hold
+   44: its battery has the four Tier-2 cost targets, which `lm_extra` leaves out. They are
+   reported: none converges.
+3. **"Every class exactly"** is read run by run: each run's class against the mirror's run of the
+   same name.
+4. **"Three runs per instance allowed within 25%"** charges a run once when any of its tick or
+   year readouts (ticks to tolerance, the heads' and plants' 5% ticks, the withheld ticks) is
+   beyond 10%. The tiers' medians and largest are scored at 10% and charge no run. No run was
+   charged.
+5. **The registered values** are A1's tables, parsed from the registered file, and, run by run,
+   the mirror's outputs they were made from (`lm_battery_<ID>.json`, `lm_extra.json`,
+   `lm_kick.json`). The parsed §7.1 equals the JSON's aggregates in all 48 rows.
+6. **The scorer** (`score.py`) was stamped (`SCORE.sha256`) before any scored output was read,
+   and first scored the mirror's own outputs (`selftest.py`). A timing run of LB1 r × 2 at L was
+   read before it was written.
+
+### 16.3 What it found
+
+All 1,276 scored lines pass; 100 are reported, not scored; LN5 is not run. At the 12 GO
+instances the engine is the mirror to the tick in ticks to tolerance, withheld ticks and ticks at
+labour's bound, in every run. Dead ticks part by one tick in 13 runs (26 with their 10·L twins):
+each is a market at exactly half its target at tick 0 or 1, where the last ulp decides (O77).
+
+### 16.4 Decisions and open items
+
+Decisions 305–306 and open items O77–O78 are in STATE.md. O72 is closed.

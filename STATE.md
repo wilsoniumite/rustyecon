@@ -11,7 +11,14 @@ the tape's schema is [docs/TAPE.md](docs/TAPE.md), and the GUI's design is
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
 **State as of:** 2026-09-30, on branch `phase2-plants` from `reboot` at `8b07c8a`, not pushed or
-merged. **P2.2b's harness is built and E0–E2 pass** (P2.2b.2; "Where things stand"). The rule-B
+merged. **P2.2b's scored runs pass** (P2.2b.3; "Where things stand";
+[docs/probe/results/loops/README.md](docs/probe/results/loops/README.md)): E3–E11 ran as
+registered, 3,549 runs and 24 kick sets on WSL, and every one of the 1,276 scored lines holds. LB1,
+LB2 and LB3 are GO, as are the flow controls LW1–LW3 and the families LF1, LF2, LF5, LF7, LF8 and
+LC1; every negative control keeps its verdict; no refutation criterion was hit. At the GO
+instances the engine is the mirror to the tick in every run's ticks to tolerance. Decisions
+305–306, O77–O78; O72 closed. The reviews and the report (`docs/probe/LOOPS.md`) are next.
+**P2.2b's harness is built and E0–E2 pass** (P2.2b.2). The rule-B
 harness is `probe::horses::loops`, which `horses` runs for a loop id. E0's trace diff against the
 registered mirror with the carry passes: nothing parts at tick 1, and the only partings are the
 horse market's cancellation. So the registration stands, with no amendment. E1's nesting holds,
@@ -117,6 +124,41 @@ many-market roles (O27), which may now start from the goods chain's stage v2a.1 
 on D-G12. "Next steps" has each.
 
 ## Where things stand
+
+**P2.2b's scored runs (P2.2b.3; 2026-09-30).** Branch `phase2-plants` (worktree
+`D:/rustyecon-wt/p2b`, scratch `D:/rustyecon-p2b/run/`, raw runs `D:/rustyecon-p2b/runs/`). The
+results: [docs/probe/results/loops/README.md](docs/probe/results/loops/README.md), its CSVs and
+[docs/probe/figs/loops/](docs/probe/figs/loops/). As run: LOOPS-RULES §16.
+- **The runs.** LOOP-SPEC-A1 §A1.5's E3–E11 as LOOPS-RULES §9 names them, on P2.2b.2's harness
+  (`3205025`, `horses` sha256 `e0e8f2a6…893a`), unchanged. 3,549 runs and 24 kick-set jobs, one
+  process each, 46 at a time on WSL: 74 minutes, about 2.3 billion ticks. Every job exited 0.
+- **The scoring.** `score.py` was stamped before any scored output was read and first scored the
+  mirror's own outputs. It reads A1's tables from the registered file and the mirror's run-by-run
+  outputs. 1,377 lines: 1,276 pass, 100 reported, LN5 not run (A2). **None fails.**
+- **E3.** LB1–LB3 GO: 20/20, 24/24, 25/25 (25/25), 28/28 (28/28) and 28/28 each; all 537 runs
+  CONVERGED. A1 §7.1's years, lowest baskets, dead ticks by market and horse price lows hold to
+  their printed precision, but for four one-tick ties.
+- **E4.** Every kick set decays (24 of 24). Base g 0.8478, 0.8310, 0.9008 and 0.8463 a year at
+  LB1–LB3 and LW1, against 0.847, 0.830, 0.901 and 0.836; the largest g at any target is 0.998971
+  a tick (LB3, b × 0.5).
+- **E5–E7.** A1 §7.2's cost shocks, §7.3's glut (withheld 303, 1,315; 221, 1,034; 662, 2,694) and
+  §7.5's pass-through (LB1 r × 2: 0 horse-day dead ticks, fodder 175, good 11, land 12; LN7 146,
+  ORBITING) hold to their printed precision.
+- **E8.** LW1–LW3 GO. O14 like for like: stocks lift the b × 2 trough by 0.0362 in log and take
+  1.361 times the flow control's median years (registered 0.036 and 1.36).
+- **E9.** Every control keeps its verdict, with A1's converged counts in every tier but LN7's
+  stocks family (0/22 against 1/22, within 2). Every named outcome holds: LF3's five runaways at
+  ticks 156–173; ψ 0's at 155–158; LB1 at 12 a year 0 of 40.
+- **E10, E11.** The six families GO with A1's numbers; LF4 is not built. The 28 runs at labour's
+  bound have A1's ticks and peaks; none starts there, and each converges.
+- **The engine is the mirror** at the 12 GO instances, in 2,052 runs: every class, every tick to
+  tolerance, every withheld tick and every tick at the bound; lowest baskets within 2.4e-6 and
+  horse prices within 1.0e-5. Dead ticks part by one tick in 13 runs (26 with their 10·L twins),
+  each a market at exactly half its target at tick 0 or 1 (O77).
+- **No refutation:** no class change or runaway at LB1–LB3; the largest end gap of a converged
+  run 1.9e-13; the largest slowest mode 0.998971 a tick.
+- **No code changed**, so no gate ran; the pins and streams are P2.2b.2's.
+- **Decisions 305–306 and O77–O78**, below. O72 is closed.
 
 **P2.2b's harness, and E0–E2 (P2.2b.2; 2026-09-30).** Branch `phase2-plants` (worktree
 `D:/rustyecon-wt/p2b`, scratch `D:/rustyecon-p2b/build-harness/` and `D:/rustyecon-p2b/e0/`).
@@ -3180,6 +3222,20 @@ and open to veto.
      Alternative: the demand side only. Then LB1 b × 2 (3.9e-12) and the two fixed-plant runs
      (1.7e-12, 2.4e-12) would be partings to write up, though they are the same rounding.
 
+305–306 are P2.2b.3's (`docs/probe/LOOPS-RULES.md` §16.2), taken by Claude on your standing word
+and open to veto.
+
+305. **A1's tolerances are read run by run.** "Every class exactly" compares each run with the
+     mirror's run of the same name. "Three runs per instance within 25%" charges a run once when
+     any of its tick or year readouts is beyond 10%; the tiers' medians and largest are scored at
+     10% and charge no run. The registered values are A1's tables and, run by run, the mirror
+     outputs they were made from. Alternative: score the tables' aggregates alone. The verdict is
+     the same (no run was charged, every aggregate holds).
+306. **LB1 at 12 ticks a year runs 49,000 ticks**, LOOPS-RULES §8.6's L·tpy/52 (the mirror's),
+     not the 38,000 that `horses elasticity --tpy 12` prints; and E9's "0 of 40" is read on the
+     mirror's 40 runs, the engine's four Tier-2 cost targets reported beside them. Alternative:
+     38,000 and 0 of 44. Every one of the 45 runs orbits or diverges either way.
+
 ## Open — your calls
 
 - **The GUI's decisions**, 22–34 (D1–D13): G0 carried them out, none vetoed; a veto now reopens
@@ -3888,9 +3944,12 @@ O69 on are P2.2b's (`docs/probe/LOOPS-RULES.md` §12).
   part.
 - **O71. LN5 and LF4 are registered and unrun** (LOOP-SPEC-A2; decision 291). They run when O51's
   roles exist, against A1's numbers.
-- **O72. The run's cost.** L is 202,000–232,000 ticks and Tier 3 and 3S run again at 10·L: about
-  2.3 million ticks for each of 53 runs per verdict instance, beside E4's kick sets at H = L. One
-  LB1 run at 10·L should be timed on WSL before the waves are planned. Timed at P2.2b.2: LB1
+- **O72. The run's cost.** Closed at P2.2b.3: the whole protocol, 3,549 runs and 24 kick sets,
+  took 74 minutes on 46 WSL threads; a 10·L run took 220–400 s there, three to six times its 65 s
+  alone, as the threads share cores. As first written: L is 202,000–232,000 ticks and Tier 3 and
+  3S run again at 10·L, about 2.3 million ticks for each of 53 runs per verdict instance, beside
+  E4's kick sets at H = L; one LB1 run at 10·L should be timed on WSL before the waves are
+  planned. Timed at P2.2b.2: LB1
   w × 2 at 10·L (2,110,000 ticks) takes 65 s on one WSL core, 4.6 MB resident. So one verdict
   instance's Tier 3 and 3S at 10·L (53 runs) take about an hour of one core.
 
@@ -3920,6 +3979,19 @@ O75 on are P2.2b.2's (`docs/probe/LOOPS-RULES.md` §15).
   horse market's volume cancels, since the two sides round apart every tick, not once. The trace
   diff now also reports the mirror with an ulp each tick, which covers every parting. Later trace
   diffs (the goods chain's next stages) should report both.
+
+O77 on are P2.2b.3's (`docs/probe/LOOPS-RULES.md` §16).
+
+- **O77. The dead bar's ties.** A stock or coin at × 0.5 can leave its market at exactly half its
+  target at tick 0 or 1 (the good at 0.49999999999999983 of Y\* after the good desk's coin
+  × 0.5), and the last ulp then decides whether the tick is dead. The engine and the mirror part
+  there by one
+  tick in 13 runs (26 with their 10·L twins), inside the 5-tick tolerance. A later bar compared
+  across two codes should expect it, or count a market dead below half its target less a margin.
+- **O78. Two fits of one kick envelope.** The engine's g (P2.2a's reading, to ten times the
+  rounding floor) and the mirror's `lm_kick` (to 1e-4 of the peak over 30,000 ticks) agree within
+  0.005 a year at LB1–LB3 but part by 0.010–0.016 at LW1, inside E4's 0.03. A registration that
+  needs g finer than 0.02 should fix one reading for both sides.
 
 ## Corrections logged (A3; ADDENDUM §1.4)
 
@@ -4014,10 +4086,11 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
    3. **The harness's rule-B readouts, and E0–E2** (P2.2b.2): **done**, 2026-09-30
       (LOOPS-RULES §15; [results/loops/e0.md](docs/probe/results/loops/e0.md)). E0's trace diff
       passes with no amendment; E1 and mode A hold.
-   4. **The scored runs** (P2.2b.3): E3–E11 of LOOP-SPEC-A1 §A1.5 at LB1–LB3, the flow controls
-      LW1–LW3, the families and the negative controls, in waves on WSL. L is 202,000–232,000,
-      with Tiers 3 and 3S again at 10·L; one LB1 run at 10·L takes 65 s on one core (O72). Then
-      the same bounded reviews as P2.2a, and the report `docs/probe/LOOPS.md`.
+   4. **The scored runs** (P2.2b.3): **done**, 2026-09-30 (LOOPS-RULES §16;
+      [results/loops/README.md](docs/probe/results/loops/README.md)). E3–E11 hold, every scored
+      line; LB1–LB3 GO; no refutation.
+   5. **The reviews and the report** (P2.2b.4): the same bounded reviews as P2.2a, and the report
+      `docs/probe/LOOPS.md` in HORSES.md's shape. LN5 and LF4 wait for O51 (O71).
 
    Loops enter Phase 2 on plants (decision 284, amending 120) and machine stocks come forward
    for the goods chain (decision 285, D-G11), both taken by Claude on your word and open to veto.

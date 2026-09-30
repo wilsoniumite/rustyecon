@@ -1,0 +1,13 @@
+inst,run,scale,cls,why,m_cls,m_why
+lb1,heads.capacity*10,10L,DIVERGED,the price of horse left the runaway bound at tick 156: 9.189813578979501e-7 of genesis,DIVERGED,runaway pK at 156
+lb1,heads.capacity*2,10L,DIVERGED,the price of horse left the runaway bound at tick 156: 9.189813578979501e-7 of genesis,DIVERGED,runaway pK at 156
+lb1,heads.capacity*10,L,DIVERGED,the price of horse left the runaway bound at tick 156: 9.189813578979501e-7 of genesis,DIVERGED,runaway pK at 156
+lb1,heads.capacity*2,L,DIVERGED,the price of horse left the runaway bound at tick 156: 9.189813578979501e-7 of genesis,DIVERGED,runaway pK at 156
+lb2,heads.capacity*10,10L,DIVERGED,the price of horse left the runaway bound at tick 156: 9.189813578979495e-7 of genesis,DIVERGED,runaway pK at 156
+lb2,heads.capacity*2,10L,DIVERGED,the price of horse left the runaway bound at tick 158: 9.62106388932239e-7 of genesis,DIVERGED,runaway pK at 158
+lb2,heads.capacity*10,L,DIVERGED,the price of horse left the runaway bound at tick 156: 9.189813578979495e-7 of genesis,DIVERGED,runaway pK at 156
+lb2,heads.capacity*2,L,DIVERGED,the price of horse left the runaway bound at tick 158: 9.62106388932239e-7 of genesis,DIVERGED,runaway pK at 158
+lb3,heads.capacity*10,10L,DIVERGED,the price of horse left the runaway bound at tick 155: 9.189813578979498e-7 of genesis,DIVERGED,runaway pK at 155
+lb3,heads.capacity*2,10L,DIVERGED,the price of horse left the runaway bound at tick 155: 9.189813578979498e-7 of genesis,DIVERGED,runaway pK at 155
+lb3,heads.capacity*10,L,DIVERGED,the price of horse left the runaway bound at tick 155: 9.189813578979498e-7 of genesis,DIVERGED,runaway pK at 155
+lb3,heads.capacity*2,L,DIVERGED,the price of horse left the runaway bound at tick 155: 9.189813578979498e-7 of genesis,DIVERGED,runaway pK at 155
