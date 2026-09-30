@@ -244,6 +244,28 @@ stage v2a.1 on your ruling on D-G12. "Next steps" has each.
 
 ## Where things stand
 
+**The B–D waves' machinery and scorers, before the waves (P2.4.14; 2026-09-30).** Branch
+`phase2-s2`, label `run`, scratch `D:/rustyecon-p24/run/`. Committed before any job of the trap's,
+the switch's or the free step's scored wave (decision 311):
+[docs/probe/results/p24-wave/](docs/probe/results/p24-wave/README.md), the job list (10,194 jobs:
+trap 4,770, switch 3,071, free 2,353; about 1,731 million ticks), the job and runner scripts, the
+gather script, three scorers and their self-test. (This block was written after that commit and
+lands with the next one; the commit itself carried no STATE change.)
+- **The scorers** read each registration's bands line by line (the trap's SPEC §8 with the
+  commons frame's §5.6; the switch's §7, the wall frame's; the free step's §9.3), with its verdict
+  rule and refutation criteria. Eleven readings are declared before the waves (README): among
+  them the switch's walled end, where the registration's "at most 1e-300" is contradicted by its
+  own full-L run (land.mach 0.8's trained ends at 1.47e-252), scored as written beside the
+  refutation's wall-side reading; the switch's envelope at tail.services 0.11, reported (the
+  harness has no genesis at a target's point without code); E1's peak D̂ at the harness's printed
+  digits.
+- **The self-test** on the mirrors' records: no line fails in any of the three, the only missing
+  lines are those only an engine run to L gives; a negative control each fails exactly its planted
+  lines and names the refutations.
+- **No code changes.** Wave A (the families) runs meanwhile on its own binary, the P2.4.2 build,
+  sha256 `be3266ab…42e9`, rebuilt from a `git archive` export of `66ae453`. The B–D binary, built
+  from an export of `2b68736`, is sha256 `aa97c626…88d4`, the free E0's.
+
 **A zero price markets can hold: E0–E2 pass (P2.4.13; 2026-09-30).** Docs only, before any scored
 run: [docs/probe/results/free/e0.md](docs/probe/results/free/e0.md), its outputs in
 `docs/probe/results/free/e0/`. `markets` built at `f5fd1c5`, clean (sha256 `aa97c626…88d4`).
