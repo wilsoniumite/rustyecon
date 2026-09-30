@@ -1,0 +1,34 @@
+lines by instance and step:
+  c1       E2      pass 5, reported 4
+  c1       E3      pass 2554, reported 1464
+  c1       E4      pass 567, reported 293
+  c1       E5      pass 5764, reported 3603
+  c1       E6      pass 260
+  c1       E7      pass 3139, reported 1537
+  c1       E8      pass 2076, reported 864
+  c1       E9      pass 57, reported 24
+  c1n      E9      pass 1346, reported 610
+  c2       E2      pass 5, reported 4
+  c2       E3      pass 2177, reported 1362
+  c2       E4      pass 501, reported 283
+  c2       E5      pass 5011, reported 3631
+  c2       E6      pass 488
+  c2       E7      pass 2717, reported 1451
+  c2       E8      pass 1786, reported 816
+  c2       E9      pass 59, reported 24
+  commons  refute  pass 2
+  ic1      E8      pass 2, reported 1442
+  iw1      E2      pass 6
+  iw1      E3      pass 995, reported 647
+  iw1      E4      pass 15, reported 1
+  iw1      E5      pass 12
+  iw1      E6      pass 20
+  iw1      E7      pass 7514, reported 4531
+  iw1      E9      pass 118
+  iw1      refute  pass 1
+all lines: {'pass': 37197, 'reported': 22591}
+the wall: IW1 GO ; refutations: none
+the commons: c1 GO
+the commons: c2 GO
+the commons' refutations: none
+0 lines fail or are missing

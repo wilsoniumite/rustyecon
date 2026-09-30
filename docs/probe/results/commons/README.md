@@ -31,6 +31,41 @@ fail**, of two kinds, neither a class and neither a tick to tolerance:
   by more than 1e-9: the mirror's is read where it stopped early, 1.1e-9 to 7.0e-8 from the
   oracle's, and the engine's at L is within 3.0e-13 of the oracle's (below).
 
+The committed scorer's printout (`../p23-wave/score.out`) reads "the commons: c1 GO", "the commons:
+c2 GO" and "the commons' refutations: none".
+
+*Amended at P2.3.16 (2026-09-30, label `fix-report`, after the two reviews):*
+- **C1's GO is a point result at C2m.** The fidelity review ran C1's Tier 3 with the dials moved
+  (6,000 ticks, on the P2.3.12 binary; a DIVERGED class is decisive by then, a CONVERGED one is
+  the shorter horizon's). With every price rate × 0.9 it is 41/43: `p[mach]*0.5` and `JB(2)` fall
+  into the subsistence trap. With every buffer × 1.1 it is 42/43, `JB(2)` in the trap.
+  `p[mach]*0.5` also diverges at rate × 0.8, buffer × 1.25, adjust × 2, tilt 0.15–0.75 and 12
+  ticks a year; it converges at rate × 1.25, buffer × 0.8, adjust × 0.5 and × 1.5, and tilt 0.05
+  and 0.1. `JB(2)` diverges at each ±25% move tried. On the basin grid the machine price's edge
+  is between × 0.481 (the last CONVERGED) and × 0.458, so the verdict run at × 0.5 is 0.04–0.06 in
+  log from the trap; every other basin direction at C1 and C2 has 0.23 or more. So C1 would be
+  LOCAL at those dials. C2 (41 + 2 VACUOUS) and IW1 keep their Tier 3 at the same moves, and
+  I1's `p[mach]*0.5` and `JB(2)` converge at every ±25% move. A spot check at P2.3.16 reran nine
+  of these moves (C1, C2, I1, IW1) and C1's two runs at C2m on the same binary, and got the
+  review's class in all eleven (`D:/rustyecon-p23/fix-report/spot/`). The review's reading: at
+  rest the exit is worth 0.529 of the wage at C1 and 0.354 at C2, and the trap sits closer where
+  the exit is worth more.
+- **What the commons answer covers.** The rule gives out one plot-taking pop's commons. It posts
+  no price at zero rent, so no land market at zero rent runs here; idle enclosed land at r = 0
+  (decisions 153, 160, 161, 376, 381) is in no instance and untested; several types sharing a
+  commons need O101.
+- **The failed lines, by amendment.** Dated amendment A3 ([registration-A3.md](registration-A3.md))
+  holds the runaway ticks to the harness's reference (O107, ruled) and r_o at the end to the
+  oracle's (O108). Written after the result and disclosed. Under it (`score.py --amended`,
+  `../p23-wave/score-amended.out`) all 123 lines pass, no passing line fails, and the classes,
+  ticks and verdicts are as scored.
+- **The commons as a market** (SPEC §1.3–§1.4, the named alternative). Where the commons has room,
+  `Saturate` takes its price down geometrically toward the oracle's r_o\* = 0 while the real
+  observables converge (within 1.1e-7 to 3.0e-7 in log when it crosses the bound). "Runs away" in
+  SPEC §1.4 means it fails the log-scale runaway bound and, later, the price step's positive range;
+  it is a limit of what a market can post, not an economic divergence. What the alternative lacks
+  is a zero price markets can hold (O96).
+
 Apart from those two readings, the engine is the mirror in everything the bands read. In all 2,425
 compared runs:
 - every class is the mirror's, the 202 trap runs among them, name for name;
@@ -121,7 +156,11 @@ of the 987 Crowded ends is within 3.0e-13.
   `runs.jsonl` from them byte for byte (sha256 `f9fc7416…ea79`).
 - **The scorer** and its readings are unchanged but for one table column, the kick sets passed in
   `verdicts.csv`, which read 1/13 for 13/13 (P2.3.14, `../p23-wave/FIXES.md`); no line moved.
-  Nothing in the harness, the rules or the protocol changed after a result was read.
+  Nothing in the harness, the rules or the protocol changed after a scored result was read.
+  *Amended at P2.3.16:* that sentence is scoped to the scored wave. E0's amendment A1 was written
+  after a development trace diff showed the negative control's trap run parting, and committed
+  before E0's official run; A2 replaced A1's second condition after the official run showed it
+  unmet ([registration-A2.md](registration-A2.md)); A3 came after the wave and the reviews.
 
 ## The details
 

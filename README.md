@@ -89,8 +89,9 @@ manifests they gave.
   amendments: certification, the manifest, telemetry and the GUI's engine asks.
 - [docs/TAPE.md](docs/TAPE.md): the tape's schema, with the gate tape as its example.
 - [docs/probe/](docs/probe/): the Phase 2 probe's rules (RULES.md) and report (REPORT.md), and
-  the markets probe's rules (MARKETS-RULES.md) and report (MARKETS.md), and the stocks probe's
-  rules (HORSES-RULES.md) and report (HORSES.md).
+  the markets probe's rules (MARKETS-RULES.md) and report (MARKETS.md), the stocks probe's
+  rules (HORSES-RULES.md) and report (HORSES.md), and Phase 2 proper's first session's rules
+  (WALL-RULES.md, COMMONS-RULES.md) and report (PHASE2-S1.md).
 - [docs/spine/](docs/spine/): the data spine's notes (DATA_NOTES.md) and Breakpoint B's
   pre-look (EYEBALL.md).
 - [docs/GUI.md](docs/GUI.md): the GUI's design (A14): its rules, architecture, panels, editor,

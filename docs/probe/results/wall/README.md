@@ -21,7 +21,25 @@ scorer read 15,304 lines at IW1 and IC1: 8,682 pass, 6,621 are reported and not 
 fails**: E6's "every CONVERGED run ends at the wall", at four runs at 365 ticks a year, whose
 displaced shares stall at 70 subnormal ulps (3.46e-322) where the registered text gives the
 52-a-year stall, 10 ulps (5e-323). The cause is arithmetic, below; I read it as the wall, not as a
-refutation, and flag that reading for review (O108).
+refutation, and flag that reading for review (O108). The committed scorer's printout
+(`../p23-wave/score.out`) says it as scored: "the wall: IW1 GO ; refutations: ['CONVERGED runs
+ending at the wall (every share 0 or at most 5e-323, x = 1)']".
+
+*Amended at P2.3.16 (2026-09-30, label `fix-report`, after the two reviews):*
+- **What the GO covers.** IW1's trained and master sell only their reserved hours (ε 0, decision
+  394), so each type trades on one market and no agent chooses between the pool and its reserved
+  market. The GO certifies three labour markets and a pool wage set by its own clearing at the
+  wall. It does not test 1d's type margin v_i = max(ε_i·v, ζ_i·ν_i·P_s), the switch between
+  pooled and walled, which a rule that splits a pop's hours needs first (O97). With E's
+  efficiencies the trained would join the pool at 4 of the 12 targets.
+- **The failed line, by amendment.** Dated amendment A2 ([registration-A2.md](registration-A2.md))
+  states the stall at each tick length (2, 10 and 70 ulps at 12, 52 and 365 a year). Written after
+  the result and disclosed; both reviews found the reading right. Under it (`score.py
+  --amended`, `../p23-wave/score-amended.out`) the line passes, nothing else at the wall moves,
+  and no refutation criterion is met. O108 stays open to veto.
+- **Robustness beyond the registration** (the fidelity review, 6,000-tick runs on the P2.3.12
+  binary): IW1's Tier 3 is 39/39 at every price rate × 0.9 and every buffer × 1.1, and JB(0.5)
+  converges at rate × 0.8, buffer × 1.25, adjust × 2 and tilt 1. Reported, not scored.
 
 The engine is the mirror to a degree the bands do not need. In all 1,208 compared runs (IW1's
 1,085 and IC1's 123):
@@ -96,7 +114,10 @@ frame's own account of the stall, not met.
 - **The scorer** (`../p23-wave/score.py`, committed before the wave) and its readings
   (`../p23-wave/README.md`) are unchanged but for one table column at the commons (P2.3.14,
   `../p23-wave/FIXES.md`). Nothing in the harness, the rules or the protocol changed after a
-  result was read.
+  scored result was read. *Amended at P2.3.16:* that sentence is scoped to the scored wave. E0's
+  amendment A1 ([registration-A1.md](registration-A1.md)) was written after a development trace
+  diff showed the tick-1 residue, and committed before E0's official run; A2 came after the wave
+  and the reviews, and the scorer's `--amended` reads it (FIXES.md).
 
 ## The details
 

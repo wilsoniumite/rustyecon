@@ -11,7 +11,16 @@ the tape's schema is [docs/TAPE.md](docs/TAPE.md), and the GUI's design is
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
 **State as of:** 2026-09-30, on branch `phase2-proper` from `reboot` at `f7d1eae`, not pushed or
-merged. **Phase 2 proper's first scored wave is run: IW1, C1 and C2 are GO, as registered**
+merged. **Phase 2 proper's first session is reported** (P2.3.16;
+[docs/probe/PHASE2-S1.md](docs/probe/PHASE2-S1.md)): both reviews find the verdicts hold, and
+narrow them. C1's GO is a point result at C2m (at ±10% of the rate or buffer dials two of its
+Tier-3 runs fall into the subsistence trap), IW1's covers reserved-only types, and the zero-rent
+answer covers one plot-taking type. The 124 failed lines are re-read by dated amendments A2 and
+A3, written after the wave (O107 ruled, O108 answered, both open to veto); decisions 397–399 are
+amended, since the line's range is used up. Next: one registered wave of O22's families and the
+dial neighbourhood, the trap's remedy (O100), O97's rule and a free-good state (O96, O101), then
+the 1750-like instance as a flow instance.
+**Phase 2 proper's first scored wave is run: IW1, C1 and C2 are GO, as registered**
 (P2.3.10–P2.3.15; "Where things stand";
 [docs/probe/results/wall/README.md](docs/probe/results/wall/README.md),
 [docs/probe/results/commons/README.md](docs/probe/results/commons/README.md)): 3,721 jobs on
@@ -21,7 +30,8 @@ result (O108, open to veto). 124 of 59,788 lines fail, none a class, a tick or a
 runaway bound's reference (O107), two end-of-run lines registered against the wrong value (O108).
 Three faults of the machinery were found and fixed in their own commits, each disclosed: the wall's
 basket count before the wave (P2.3.10), dated shocks of the commons (P2.3.12) and the runner's
-quoting (P2.3.13) during it. O22's families on I1–I3 are still to run (O109). The reviews are next.
+quoting (P2.3.13) during it. O22's families on I1–I3 are still to run (O109).
+The reviews followed (P2.3.16).
 **The open-commons instances C1 and C2 are registered** (P2.3.5, docs only; "Where things
 stand"; [docs/probe/results/commons/registration.md](docs/probe/results/commons/registration.md)):
 the frame `frame-commons` (I1 with one priced worker type in food and a commons the workers hold,
@@ -168,13 +178,51 @@ and at the demo's map; G1's remainder (what G0 moved to it, O36; the five majors
 left, O37; unit 1g in the lab, O38); your rulings on 1g's decisions and its re-check (O35); your
 rulings on P2.2b's decisions 286–311 (the loops, closed GO at chain8) and on 284 as 308 narrows
 it; on the goods chain's line, storable running goods (O51) and a funded steam county (O62)
-before a loop enters the 1750-like instance by its own registration; Phase 2 proper on loop-free
-wall and commons instances, whose rulings Claude took at P2.3.0 (decisions 360–393, open to
-veto); the demo's second pass, with goods, machine types and carriers, on the
-many-market roles (O27), which may now start from the goods chain's stage v2a.1 on your ruling
-on D-G12. "Next steps" has each.
+before a loop enters the 1750-like instance by its own registration; Phase 2 proper after its
+first session (the wall and commons GO at P2.3.15–P2.3.16; decisions 360–399, open to veto),
+whose next wave and prerequisites next step 7 lists; the demo's second pass, with goods, machine
+types and carriers, on the many-market roles (O27), which may now start from the goods chain's
+stage v2a.1 on your ruling on D-G12. "Next steps" has each.
 
 ## Where things stand
+
+**Phase 2 proper's first session is reported: IW1, C1 and C2 GO, narrowed by two reviews (P2.3.16;
+2026-09-30).** Branch `phase2-proper`, label `fix-report`, scratch `D:/rustyecon-p23/fix-report/`.
+The report is [docs/probe/PHASE2-S1.md](docs/probe/PHASE2-S1.md).
+- **The reviews.** Measurement and fidelity both found the verdicts hold; neither changes a class.
+  Measurement rebuilt both binaries byte for byte, reran 110 jobs byte for byte (14 on Windows),
+  reproduced `runs.jsonl`, `lines.csv` and every table, rescored 3,633 runs independently and
+  solved both instances at 50 digits: three minors. Fidelity read the roles against units 1d and
+  1e and ran the dials: two majors, three minors.
+- **The corrected verdict.** IW1 GO for reserved-only types beside one pooled type; the switch
+  between pooled and walled is untested (O97). C2 GO. **C1 GO at C2m as registered, a point
+  result**: with every price rate × 0.9 its `p[mach]*0.5` and `JB(2)` fall into the subsistence
+  trap, and with every buffer × 1.1 `JB(2)` does; the machine price's edge is 0.04–0.06 in log
+  from the verdict run. C2 and IW1 keep their Tier 3 at the same moves. A spot check reran 11
+  of the review's runs on the wave's binary and got the review's class in each. The zero-rent
+  answer covers one plot-taking type and runs no land market at zero rent (398 as amended).
+- **Registration fixes, as dated amendments written after the wave and disclosed.** The wall's A2
+  ([registration-A2.md](docs/probe/results/wall/registration-A2.md), sha256 `fb480399…aa5a`): a
+  share stalls at 2, 10 or 70 subnormal ulps at 12, 52 or 365 ticks a year. The commons' A3
+  ([registration-A3.md](docs/probe/results/commons/registration-A3.md), `b45c5ffb…c91d`): runaway
+  ticks against the harness's reference (O107, ruled) and r_o against the oracle's (O108).
+  `score.py --amended` reads both (FIXES.md): without the flag every line and table is as
+  committed, byte for byte; with it 124 lines go from fail to pass, none from pass to fail, and no
+  refutation is listed. The committed `score.out` still shows the wall's refutation line as scored.
+- **The minors.** The READMEs quote the scorer's refutation line; "nothing changed after a result
+  was read" is scoped to the scored wave, beside the E0 amendments made after an E0 result (the
+  wall's A1, the commons' A1 and A2); a shared target directory can give a stale binary (repro
+  notes); the wall's verdict carries its qualifier; the market form's "runaway" reads as a limit of
+  what a market can post; O100 gains the home-output candidate, 1e's open question 6.
+- **Decisions and open items.** The range 360–399 and O95–O109 is used up, so the rulings are
+  dated amendments of 397–399; O14, O21–O24, O30, O96, O97, O100, O101, O107 (closed), O108
+  (answered) and O109 are amended. Next step 7 is rewritten.
+- **No code changed.** `score.py` gained a flag; the gates are green on WSL and Windows
+  (1,009 passed, 4 ignored; gate `0x61f9c8529131ff17`, appb `0xe1fa082b26995867`, demo-gb
+  `0xfad880fe08d06645`).
+- **Next** (next step 7): one registered wave of O22's families on I1–I3 and the
+  dial-neighbourhood family on C1, C2 and IW1; the trap's remedy (O100); O97's rule and a
+  free-good state (O96, O101); then the 1750-like instance, first as a flow instance.
 
 **Phase 2 proper's first scored wave: IW1, C1 and C2 are GO (P2.3.10–P2.3.15; 2026-09-30).**
 Branch `phase2-proper`, label `run`, scratch `D:/rustyecon-p23/run/`, raw runs
@@ -239,7 +287,8 @@ and [docs/probe/results/commons/README.md](docs/probe/results/commons/README.md)
   `results/commons/diag/`. Open items O107–O109; O106 closed.
 - **Next** (next step 7): the reviews of this wave and its report; O22's families on I1–I3
   (O109); your rulings on O107 and O108; then the 1750-like instance, which waits for the trap's
-  remedy (O100) and the addenda of O95.
+  remedy (O100) and the addenda of O95. *Amended at P2.3.16:* and for O96, O97 and O101 (the
+  fidelity review); O107 and O108 are answered by amendments A2 and A3, open to veto.
 
 **The open-commons instances' E0–E2, before any scored run (P2.3.7–P2.3.9; 2026-09-30).** Branch
 `phase2-proper`, scratch `D:/rustyecon-p23/build-commons/e0/`. The record:
@@ -3829,6 +3878,16 @@ to veto; the alternative named is the registered one (R6).
      CONVERGED, Tiers 3 and 3S again at 10·L; every target's kick set passes; O22's families are
      reported, stocks first; L comes from the engine's elasticity probe; the scorer is committed
      before the wave (311). Alternatives: no control; score the families as well.
+     *Amended at P2.3.16* (label `fix-report`, after the wave and its two reviews, disclosed; open
+     to veto): (1) E6's "every CONVERGED run ends at the wall" and the refutation "a desk's share
+     not back to 0" read each share against its own tick length's stall, 2, 10 or 70 subnormal
+     ulps at 12, 52 or 365 ticks a year, by the wall's amendment A2
+     (docs/probe/results/wall/registration-A2.md, sha256 `fb480399…aa5a`; O108 part 1), which the
+     scorer reads with `--amended`. (2) IW1's GO is read with 394's limit: reserved-only types
+     beside one pooled type, so 1d's switch between pooled and walled, v_i = max(ε_i·v,
+     ζ_i·ν_i·P_s), is untested until O97's rule. (3) The next wave registers a dial-neighbourhood
+     family on IW1's Tier 3 as on C1's (399). Alternative: the committed scorer's reading, under
+     which the four 365-a-year runs refute the frame.
 
 Decisions 398–399 are P2.3.5's (2026-09-30): the commons frame's proposals 360–371
 (`docs/probe/commons/SPEC.md` §7), numbered at its registration and grouped, since two numbers of
@@ -3851,6 +3910,17 @@ named is the registered one (R6).
      commons as a market under `Saturate`, exact while crowded or spilling and running away where
      it has room; the shadow rent by bisection; plots rented in kind through an untraded home
      good; a joint land order for space and plots; ν a param and the regime in state.
+     *Amended at P2.3.16* (the fidelity review's second major and fourth minor; open to veto):
+     what the answer covers. It gives out one plot-taking pop's commons and posts nothing at zero
+     rent, so no land market at zero rent runs in Phase 2 yet: idle enclosed land at r = 0 is in
+     no instance, and 153, 160, 161, 376 and 381 are untested. In effect 376's named alternative
+     ("no idle-land instance") holds for now; the deferral is forced, since the oracle's own
+     `funded` flag is false on the idle stretch at ρ 0. The alternative "the commons as a market
+     under `Saturate` … running away where it has room" is read as: its price falls
+     geometrically toward the oracle's r_o\* = 0 while the real economy converges, and fails the
+     log-scale runaway bound and then the positive price range, a limit of what a market can post.
+     So what idle enclosed land (O96) and a shared commons (O101) need is one thing, a zero price
+     markets can hold, a free-good state, not a new behavioural rule.
 399. **The commons' targets, harness and verdict (the frame's 367 and 369–371, with 368's Tier
      3S).** The cost coefficients are land.mach, b.food and the commons at ×1.1, ×0.9, ×2, ×0.5,
      at genesis and dated; enclosure by law is a family. The harness's targets come from unit 1e's
@@ -3861,6 +3931,28 @@ named is the registered one (R6).
      code, registration §3). Alternatives: the commons shocked only by enclosure; the dependence
      form's harness, scored on prices only; the families in the verdict, which would make C1 and
      C2 LOCAL at joint4; the verdict alone (E0–E3).
+     *Amended at P2.3.16* (label `fix-report`, after the wave and its two reviews, disclosed; open
+     to veto): (1) **The runaway bound's reference is the harness's** (O107, ruled): trap runs
+     displaced at genesis are scored against the registered mirror measured on the displaced
+     genesis prices, and r_o at a Crowded end against the oracle's, not the mirror's early stop
+     (O108 part 2), by the commons' amendment A3
+     (docs/probe/results/commons/registration-A3.md, sha256 `b45c5ffb…c91d`), which the scorer
+     reads with `--amended`. Under it all 123 failed commons lines pass and none that passed fails.
+     (2) **C1's GO is a point result at C2m.** At every price rate × 0.9 two Tier-3 runs
+     (`p[mach]*0.5`, `JB(2)`) fall into the trap, and at every buffer × 1.1 one (the fidelity
+     review; PHASE2-S1 §4). C1 does not count toward PLAN's "green with margin"; C2 does. (3) The
+     trap's remedy (O100) is a prerequisite of PLAN's Phase 2 gate and of the phase diagram for
+     every instance with a priced exit, not only of the 1750-like instance. (4) The next wave
+     registers a dial-neighbourhood family, mirror first: Tier 3 of C1, C2 and IW1 at every rate,
+     buffer and adjust × 0.9, 1.1, 0.8 and 1.25, and tilt 0.05, 0.1, 0.25, 0.5 and 1, reported
+     beside the verdict.
+     (5) A hypothesis, recorded untested: the distance to the trap shrinks as the exit's value at
+     rest grows against the wage (0.529 at C1, 0.354 at C2). Alternatives: the mirror's
+     undisplaced reference in the harness, or the oracle's point, which moves every runaway tick
+     P2.1–P2.3 reported; C1 counted toward the gate as registered.
+
+Decisions 360–399 are this line's whole range, and P2.3.16 takes no new number: its rulings are
+the dated amendments of 397–399 above. A later session on this line needs a new range.
 
 ## Open — your calls
 
@@ -3896,6 +3988,12 @@ named is the registered one (R6).
   posted shadow rent (398); the commons' targets from unit 1e, the trap in the families, and the
   verdict with 368's Tier 3S, which the frame had left out (399). Each open to veto before the
   commons' scored runs.
+- **Decisions 397–399 as amended at P2.3.16** (the fix round, 2026-09-30): the wall's amendment A2
+  and the commons' A3, both written after the scored wave and disclosed, which read the 124 failed
+  lines (O107 ruled for the harness's reference; O108's two readings); IW1's GO for reserved-only
+  types; C1's GO a point result at C2m; the trap's remedy (O100) before PLAN's gate and the phase
+  diagram for priced-exit instances; the dial-neighbourhood family in the next wave; what the
+  commons answer covers (398). Each open to veto. The line's range 360–399 is used up.
 - **Decisions 59–75 and 135–178** (Phase 1), open to veto. Those that bound Phase 2 proper (61,
   67, 70; 135, 137, 139, 140; 147, 149, 151, 153–155, 158, 160, 161; 162, 164, 165, 167–169,
   173) are ruled by Claude at P2.3.0 as 360–393, with the markets probe's advice: keep 67 (its
@@ -4087,7 +4185,10 @@ when its fix is reverted, checked by mutation (the review's own mutants among th
   moves the good's equilibrium by −0.16% in log, while the good falls to 0.70 (stocks) and 0.68
   (flow) of it for about half a year, 217 and 239 times the move in log. Like for like, stocks
   lift that trough by 0.036 in log and take 1.36 times the years, 1.17 on the observables both
-  economies share (1.94 at δ 4%).
+  economies share (1.94 at δ 4%). *Amended at P2.3.16* (PHASE2-S1): at the wall a doubled tail
+  or reserved input leaves Y\* where it was yet bottoms at 0.516 and 0.500 of it (O98); at the
+  commons a path can end in the subsistence trap (O100), and C1's registered `p[mach]*0.5` sits
+  0.04–0.06 in log from it.
 - **O15. The spine scripts' default cache: done at S2.6.** The scripts read `$SPINE_ROOT`, else
   `data/spine/.cache/` beside them, which `.gitignore` keeps out; the finer overrides stand.
   With `SPINE_ROOT=D:/rustyecon-spine` every path equals the old default (checked by evaluating
@@ -4157,7 +4258,8 @@ when its fix is reverted, checked by mutation (the review's own mutants among th
 
   A keep rule that shares the shortfall does not help. The fix is a stock (Phase 3's durable
   machines, or a storable service) or entry at zero coin. Two I1 runs show the one-type cousin, a
-  tick with no machines traded and no baskets. Carried to Phase 3.
+  tick with no machines traded and no baskets. Carried to Phase 3. *Amended at P2.3.16:* the
+  cousin shows at the wall too (O99), in all 16 of the history's × 0.5 windows, each recovering.
 - **O22. The markets probe's unrun families** (decision 123). Each family is built into
   `markets family`, and the variants are flags (`--one-sided hold`, `--set tilt.*=1`):
   - stocks: every desk's coin and stock, and each type's stock ×0.01 and ×10, which matter most
@@ -4165,7 +4267,9 @@ when its fix is reverted, checked by mutation (the review's own mutants among th
   - joint2 and joint4, basin, history (`cycle`), and the `Hold` and tilt-1 variants;
   - five map cells of I3.
 
-  Phase 2 proper's battery runs them first, stocks first.
+  Phase 2 proper's battery runs them first, stocks first. *Amended at P2.3.16:* still unrun
+  (O109); the wall's and the commons' own families ran at P2.3.15. They go in the next wave,
+  registered, beside the dial-neighbourhood family (399 amended).
 - **O23. Tick length and the kick's horizon in many markets** (decision 121).
   - At 12 a year I2's point is unstable, and I1 takes a median of 90 years to reach tolerance
     (7 at 52 a year).
@@ -4174,6 +4278,9 @@ when its fix is reverted, checked by mutation (the review's own mutants among th
     other side: H = L can fail a slow stable mode as well as pass a slow unstable one.
   - The mirror's PL from random directions misses such slow cones, so a registration that
     relies on it should search for them.
+  - *Amended at P2.3.16:* IW1 is stable at 12 a year (Tiers 1–2 64/64, median 118 ticks); C1
+    and C2 converge there in a median 76–80 years (O104); C1's `p[mach]*0.5` falls into the trap
+    at 12 a year (the fidelity review, tick 71).
 - **O24. Paths in many markets** (O14; MARKETS §4). The medians are as on Appendix B, but the
   tails are deeper:
   - Tier 2's worst consumption trough is 0.28–0.34 of Y\*, against 0.54, with up to 99 dead
@@ -4183,6 +4290,9 @@ when its fix is reverted, checked by mutation (the review's own mutants among th
 
   Planned assignment turns a missing machine service into zero output while labour clears.
   Ex-post assignment, the registered alternative, is untested in many markets.
+  *Amended at P2.3.16:* at the wall land.mach × 2 bottoms at 0.165 of the new Y\* with 93 dead
+  ticks, and Tier 3's lowest baskets are 0 at IW1, C1 and C2 (117, 183 and 153 dead ticks at
+  worst); ex-post assignment is still untested (O98).
 - **O25. The illustrative marker in scoring** (branch `demo-world`, D.4, 2026-09-27;
   docs/GUI.md U5 and its block "Amended at D.4", item 8; docs/demo/WORLD.md §8). The demo
   world's tape, `tapes/demo-gb.ron`, is named `demo-gb [illustrative]` and every basis in it
@@ -4298,6 +4408,9 @@ when its fix is reverted, checked by mutation (the review's own mutants among th
   refuses one on the line (item 8); an uncertified economy's scan finds two equilibria only
   when they are more than one cell apart (§5.5); a consumption tax equals a wage tax in real
   numbers, and in f64 the two allocations agree to the supply's sensitivity (unit-1f.md §5.5).
+  *Amended at P2.3.16:* none of this bound P2.3's instances. IW1 sits at least 0.216 in log from
+  every edge at every target (ceiling 1.28), its gaps reproduced within 5.6e-16 (E9); C1 and C2
+  are certified by Proposition 5 but one target, which a 4,097-point scan covers.
 
 - **O31. The rest of the goods addendum** (GOODS-CHAIN §2, D-G9; docs/unit-1g.md §9). 1g built
   D-G10, the mapping and plants. Not built: G1 (categories buying machine-side goods; E2 is
@@ -4713,13 +4826,20 @@ O95 on are Phase 2 proper's (P2.3.0, branch `phase2-proper`; this line's range i
   cannot rest at 0 there either (the commons frame's §1.5: Saturate runs away, Hold never acts, a
   reservation orbits, a floor order leaves a continuum). It needs a funded support (a 1f transfer,
   or the workers' own) and a free-good rule for land in markets, in its own frame, when an
-  instance needs it.
+  instance needs it. *Amended at P2.3.16* (decision 398 as amended): O96 and O101 are one open
+  problem, a zero price markets can hold (a free-good state, or a "closed" market the desks can
+  read), not a new behavioural rule. Under `Saturate` an unsold land price falls geometrically
+  toward the oracle's 0 while the real side converges; it fails only the log bound and the
+  positive range. A prerequisite of the 1750-like instance if it has idle land or a shared commons.
 - **O97. A type that sells reserved and pool hours** (the wall frame's OW1; decision 394). 1d's
   pooled type with reserved work (E1, E4), pooled types with ε ≠ 1, and support ν ≠ 1 (decision
   138): IW1 has none. Each needs a rule that splits a pop's hours between two markets, or scales
   them to efficiency units, with its nesting, a mirror and its own registration before a Phase 2
   instance uses it. The eras' trained worker, who holds engines' tasks at some dials and the pool
-  at others, is such a type. It joins O95's list where it needs the oracle.
+  at others, is such a type. It joins O95's list where it needs the oracle. *Amended at P2.3.16*
+  (the fidelity review): IW1's GO does not test the switch between pooled and walled, 1d's v_i =
+  max(ε_i·v, ζ_i·ν_i·P_s); with E's efficiencies the trained would pool at 4 of IW1's 12 targets.
+  A prerequisite of the 1750-like instance, with its own mirror scan and registration.
 - **O98. At the wall, labour-demand shocks move wages, not output, but halve output on the way**
   (OW2). In the mirror tail.services × 2 and res.services.trained × 2 move Y\* by 0 in log and
   bottom at 0.516 and 0.500 of it. O14 and O24 carry this as the wall's path cost. Ex-post
@@ -4737,11 +4857,24 @@ O95 on are Phase 2 proper's (P2.3.0, branch `phase2-proper`; this line's range i
   control's Tier 3 (9); never in the verdict battery, and never at I1 (0/530). It needs a
   structural answer, chosen by its own mirror scan, before the 1750-like instance, where food is
   the exit good by decision 151. Candidates, unscanned: participation adjusting toward its target
-  at a rate, entry for food at zero output, a storable exit good (O51).
+  at a rate, entry for food at zero output, a storable exit good (O51). *Amended at P2.3.16*
+  (decision 399 as amended; PHASE2-S1 §4): the engine fell into the trap in exactly the mirror's
+  203 runs. It is a prerequisite of PLAN's Phase 2 gate and of the phase diagram for every
+  priced-exit instance: at every price rate × 0.9 two of C1's registered Tier-3 runs fall in.
+  A fourth candidate, aimed at the cause rather than the symptom: the exit is valued at food's
+  posted price, but exiters never sell, so nothing refills an empty food market. Selling home
+  output is 1e's open question 6, an oracle addendum (home food joins food's supply and rent is
+  paid in money, which moves the point through goods clearing); scan it beside the three, with
+  C1's dial neighbourhood as the measure. Hypothesis: the trap sits closer as the exit's value at
+  rest grows against the wage (0.529 at C1, 0.354 at C2).
 - **O101. A commons shared by several types** (the frame's O97). The rule gives out one pop's
   commons from that pop's own demand; several types sharing one (1e's instance T) would need each
   other's plot demand, which R13 forbids. They need the commons as a market (exact only while
-  crowded) or a commons actor. The 1750-like instance with several types needs it.
+  crowded) or a commons actor. The 1750-like instance with several types needs it. *Amended at
+  P2.3.16:* joined with O96 as one problem. Where the commons has room the market form fails
+  because its price cannot reach 0 (decision 398 as amended); with a free-good state a commons
+  market might serve several types in every regime, though at C1 it is 18 times slower locally
+  than the rule (half-life 876 ticks against 49).
 - **O102. The Enclosed regime's accounts** (the frame's O98). Plots on enclosed land pay rent in
   money, not in kind (decision 152's home account). The households' split of baskets differs from
   the home account's by r·T_p/P_s, and the provider's baskets from the oracle's; the market
@@ -4765,7 +4898,10 @@ O95 on are Phase 2 proper's (P2.3.0, branch `phase2-proper`; this line's range i
   harness's reference gives the engine's tick in 190 of 195 trap runs and one tick apart in 5.
   Classes do not move. A registration that scores runaway ticks should name the reference; the
   harness's (displaced) is the one every P2 wave has used. Alternative: read the bound against the
-  oracle's point in the harness, which moves every runaway tick P2.1–P2.3 reported.
+  oracle's point in the harness, which moves every runaway tick P2.1–P2.3 reported. *Ruled and
+  closed at P2.3.16* (decision 399 as amended, the commons' A3): the harness's reference; the
+  registered ticks are re-read from the unedited mirror on it (`diag/runaway_ref.out`), and all
+  195 such lines pass. Open to veto.
 - **O108. Two end-of-run lines registered against the wrong value** (P2.3.15). (1) The wall's E6:
   a displaced share stalls where a·s rounds to 0, at 10 subnormal ulps (5e-323) at 52 ticks a year
   but 70 (3.46e-322) at 365, so four runs at 365 a year fail the scorer's "at most 5e-323" line,
@@ -4774,10 +4910,16 @@ O95 on are Phase 2 proper's (P2.3.0, branch `phase2-proper`; this line's range i
   r_o at the end within 1e-9 of the mirror's, which the mirror reads where it stopped early: at 12
   and 365 a year that is up to 7.0e-8 off the oracle's, so 58 lines at C1 fail while the engine
   ends within 3.0e-13 of the oracle's. A registration should put an end value against the oracle,
-  or run its mirror to L. Neither changes a class, a tick or a verdict.
+  or run its mirror to L. Neither changes a class, a tick or a verdict. *Answered at P2.3.16* by
+  dated amendments written after the wave and disclosed: the wall's A2 (the stall at each tick
+  length, 2, 10 and 70 ulps) and the commons' A3 (r_o against the oracle's); `score.py --amended`
+  reads both, and under them no line of the 59,788 fails and no refutation is listed. Both
+  readings stay open to veto; the committed `score.out` keeps the scorer's own.
 - **O109. O22's families on I1–I3 are still unrun** (decision 368 orders them before the wall and
   commons batteries). P2.3's wave ran the two frames' registered protocols only; the families
   there have no registered predictions and are reported. They are their own wave, stocks first.
+  *Amended at P2.3.16:* first in next step 7, registered with their mirror predictions, beside the
+  dial-neighbourhood family on C1, C2 and IW1.
 
 ## Corrections logged (A3; ADDENDUM §1.4)
 
@@ -4894,61 +5036,43 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
    Loops enter Phase 2 on plants, each loop instance through its own registration (decision 284,
    amending 120, narrowed by 308), and machine stocks come forward for the goods chain (decision
    285, D-G11), all taken by Claude on your word and open to veto.
-7. **Phase 2 proper** (PLAN Phase 2), after the rulings on the decisions that bind it: 61, 67
-   and 70 from 1b and 1c, 118–123 from the markets probe, and 135, 137, 139, 140, 147, 149, 151,
-   153–155, 158, 160–162, 164, 165, 167–169 and 173 from 1d–1f, and 179 and 186 from 1g for the
-   goods chain's instances. The markets probe recommends keeping 67 and 70 (MARKETS §6). It
-   opens on loop-free wall and commons instances, which need neither step 5 nor step 6, with the
-   markets probe's roles, the `probe::markets` harness and C2m at 52 ticks a year (decisions
-   119–121): beside the Appendix B instance (1a), a wall-regime instance, a solved wall (1d;
-   decision 137), and an open-commons instance under the default exit form, with the commons'
-   shadow rent and idle land at zero rent (1e; decisions 149, 153, 160 and 161). The 1750-like
-   instance follows (1e and 1f, with the common basket unless a basket per type is ruled in,
-   decision 173), as the goods chain at ρ = 0 if D-G1 and D-G11 are ruled in. The agents'
-   participation rule under the default form is decision 149's, and under a government 165's.
-   Its battery runs O22's families first, stocks first. The goods chain's 1750-like instance
-   waits for the idle market's remedy (O47), since a horse-to-steam switch idles a machine
-   market by construction; P2.2a is its first engine evidence, machine stocks GO at weekly ticks
-   (the floor, decision 237) with L from the slowest mode and O14 read like for like (decision
-   235). *Amended at P2.2b.4:* the remedy is built (L0), and P2.2b is the first engine evidence
-   for a loop with plants and the reservation. A loop enters this instance only through its own
-   registration at its dials and county (decision 308; step 6's list, item 3). The commons'
-   idle land needs an answer, without a clamp, for a market at zero rent,
-   whose unsold price `Saturate` runs to the runaway bound. Many markets is no longer the first
-   untested risk. The risks now are paths (O14, O24) and the new margins of 1d and 1e: several
-   labour markets and the wall at x\* = 1. O30's precision sets the bands of any comparison
-   against them.
-
-   *Amended at P2.3.0 (2026-09-30):* the rulings are taken, by Claude on your word, as decisions
-   360–393, each open to veto. What they set for this run, on branch `phase2-proper`:
-   1. **O22's families first**, on I1–I3 as registered, stocks first (368).
-   2. **Two instances at C2m, 52 ticks a year and ρ 0**, the fixed basket in the oracle and the
-      agents, no loop and no government (361, 364–366, 387, 393). Each carries a stocks tier in
-      its verdict (368) and is registered, trace-diffed and scored as P2.2a and P2.2b were, its
-      scorer committed before its wave (decision 311).
-      - **The wall instance** (1d): a trained type walled on its reserved tasks beside pooled
-        types, so 1d's dependence form, the named alternative (377); a solved wall with its
-        distance from each edge registered at genesis and at every cost target (370); types in
-        one shape with an efficiency each (369); pooled hours compared through supply or in
-        total, the pool's market form the frame's call (371); type desks on pool labour (372).
-        *Registered at P2.3.1:* IW1 (decisions 394–397;
-        docs/probe/results/wall/registration.md). *Built at P2.3.2* (docs/probe/WALL-RULES.md).
-        E0, the scorer and the scored wave follow, in that order. *E0–E2 pass at P2.3.4; scored
-        at P2.3.15:* GO (docs/probe/results/wall/README.md).
-      - **The open-commons instance** (1e): s(q), every type pooled (377), food as its exit good
-        (375, 380), one land service (379), certified by 1e's Proposition 5 (378), the crowded
-        commons' shadow rent posted (374), idle land compared in wage units, `Idle` plots read
-        as such (376, 381). Its zero-rent land market's remedy comes first: a mirror scan
-        chooses it, and it is registered and built before the instance's registration (O96).
-        *Registered at P2.3.5:* C1 and C2, with the scan's answer, the commons as no market,
-        built into the same step (decisions 398–399; docs/probe/results/commons/registration.md).
-        *Built at P2.3.6* (docs/probe/COMMONS-RULES.md); *E0–E2 pass at P2.3.9* under
-        amendments A1 and A2 (docs/probe/results/commons/e0.md). The scorer and the scored wave
-        follow, in that order. *Scored at P2.3.15:* C1 and C2 GO
-        (docs/probe/results/commons/README.md).
-   3. **Later**: the 1750-like instance takes the common basket (388), 1f's tax bases and
-      closure if it has a government (382–386), C2g for any machine stock (391), capital's time
-      unscored (392), and each addendum of O95 before the feature that needs it.
+7. **Phase 2 proper** (PLAN Phase 2). *Rewritten at P2.3.16 (2026-09-30), branch
+   `phase2-proper`; the text it replaces, with its amendments of P2.2b.4 and P2.3.0, is at
+   `03af03f`.* The rulings it waited on are taken as decisions 360–393 (P2.3.0), open to veto. Of
+   PLAN's four stationary configurations three are green at C2m, 52 ticks a year and ρ 0, each
+   registered, trace-diffed and scored as P2.2a and P2.2b were
+   ([docs/probe/PHASE2-S1.md](docs/probe/PHASE2-S1.md)): the Appendix B instance (I0, P2.1); the
+   wall-regime instance IW1 (1d's dependence form, reserved-only types beside one pooled type,
+   394); and the open-commons instances C1 and C2 (1e's s(q), the commons no market, 398). C1's GO
+   is a point result: at ±10% of the rate or buffer dials two of its Tier-3 runs fall into the
+   subsistence trap (399 as amended). So the gate's "green with margin" and "a stable region
+   documented and referenced by the default dials" are not met; A11's kill condition is not
+   triggered. Next, in order:
+   1. **One registered wave**: O22's families on I1–I3, stocks first (368, O109), and the
+      dial-neighbourhood family on C1, C2 and IW1 (every rate, buffer and adjust × 0.9, 1.1, 0.8
+      and 1.25; tilt 0.05 to 1), each with its mirror's predictions and its scorer committed
+      first (311). It documents the stable region at the default dials as the roles stand.
+   2. **The trap's remedy** (O100), chosen by a mirror scan over four candidates (participation
+      at a rate, entry for food at zero output, a storable exit good, and home output sold, the
+      last an oracle addendum, 1e's open question 6), measured on C1's dial neighbourhood; then
+      registered and built before any further priced-exit instance and before the gate is judged.
+   3. **The rules the 1750-like instance needs**, each chosen by a mirror scan, registered and
+      built: O97's rule for a type that sells both reserved and pool hours; a zero price markets
+      can hold (O96 with O101), for idle enclosed land and a commons several types share; and
+      the addenda of O95 it uses (a walled type under s(q), 1e §2.9, decision 377; a second land
+      class if its tape has one).
+   4. **The 1750-like instance**, first as a flow instance at C2m on the many-market roles,
+      loop-free as I1–I3, IW1, C1 and C2 are (67's letter, 361), with 1e and 1f, the common basket
+      (388), 1f's tax bases and closure if it has a government (382–386) and ρ 0 (393), so that
+      its failures are the new margins' and not the chain's. Then the goods chain's version at
+      C2g (391), by its own registration, a loop only on plants with the reservation (284, 285,
+      308), after storable running goods (O51) and a funded steam county (O62).
+   5. **The phase diagram** over the stability dials (PLAN: dead, July's axis and α; step ratio,
+      buffers, stagger) on every green instance once O100's remedy is in, starting from item 1's
+      neighbourhood. Then PLAN's gate is judged, with A11's session budget (yours) for the
+      instances still to come. G2, the lenses, follows the gate.
+   The risks now: paths (O14, O24, O98), the trap (O100), and the margins no run has exercised
+   (O97; O96 with O101). O30's precision did not bind P2.3's instances.
 8. **The demo's second pass, on the many-market roles** (O27; WORLD.md §7). It takes O26 first,
    the clock held to 52 among it. Then come goods as unit 1b's categories and machine types as
    unit 1c's, on the many-market roles at C2m with no loop of produced inputs, with genesis from
@@ -5028,6 +5152,13 @@ docs/probe/COMMONS-RULES.md the open-commons instances' build as built (P2.3.6):
                          exit, C1, C2 and C1N on unit 1e, the harness at the commons, the checks
 docs/probe/results/commons/ the commons' registration (P2.3.5) with Tier 3S's mirror runs, its
                          amendments, E0's record
+docs/probe/results/p23-wave/ Phase 2 proper's first scored wave (P2.3.11-P2.3.16): the job list,
+                         gather script and scorer committed before it, its runner's reruns,
+                         lines.csv.gz, score.out, score-amended.out and FIXES.md; the scored
+                         tables and READMEs are in results/wall/ and results/commons/
+docs/probe/PHASE2-S1.md  Phase 2 proper's first session's report (P2.3.16): the verdicts on
+                         IW1, C1 and C2, the zero-rent remedy, the trap and C1's margin, the
+                         reviews, what it means for the gate and the 1750-like instance
 docs/probe/results/loops/ the loop step's registration (L0.8), quoting LOOP-SPEC-A1's
                          predictions and FUNDED's county, with its sha256; E0-E2 (e0.md,
                          P2.2b.2); the scored runs' README and CSVs (P2.2b.3) with the reviews'
@@ -5095,6 +5226,13 @@ scripts/gui.sh           the GUI's gate, run at each G-stage (G0.1); diffs the e
   --until 2080 --hashes <file>` and the same for `tapes/appb.ron --until 20000` and
   `tapes/demo-gb.ron --until 7852`, and a byte comparison of each file's body (the `#` header
   names the build and target) with WSL's.
+- **One target directory per checkout** (P2.3.16; the measurement review of P2.3's wave). Cargo
+  keys a workspace member by its path relative to the workspace root, so a `CARGO_TARGET_DIR`
+  shared by two checkouts can reuse the other's artifacts when the sources' mtimes are older than
+  the outputs (after `git archive`, or checking out an older commit), and the binary or test is
+  silently stale. Use one target directory per checkout and commit for any binary a scored run or
+  a gate uses, and record a scored binary's sha256 against a fresh build
+  (`docs/probe/results/p23-wave/BIN.sha256`, `FIXES.md`).
 - The demo world ran from a worktree, `D:/rustyecon-wt/demo` (`/mnt/d/rustyecon-wt/demo` in
   WSL), on branch `demo-world`. Its targets are `/root/scratch/target-demo-<label>` and
   `D:/rustyecon-targets/demo-<label>`. Its scratch, map research, verification and gate logs

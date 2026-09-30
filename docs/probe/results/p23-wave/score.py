@@ -5,7 +5,12 @@ registrations line by line:
 - the open commons, C1, C2 and C1N: docs/probe/commons/SPEC.md §5.5-§6.9 (E2-E9), registered at
   P2.3.5 with Tier 3S (registration §3), A1 and A2.
 Every reading of a registered tolerance that the text leaves open is README.md's, beside this file,
-fixed before the wave. Usage (WSL): python3 score.py RUNS.jsonl OUTDIR [--self-test]
+fixed before the wave. Usage (WSL): python3 score.py RUNS.jsonl OUTDIR [--self-test] [--amended]
+--amended (P2.3.16, label fix-report, written after the wave and disclosed as such) reads three kinds
+of line as the dated amendments ../wall/registration-A2.md and ../commons/registration-A3.md state
+them: the wall's E6 end share against its own tick length's stall; the commons' runaway ticks
+against the registered mirror measured on the harness's reference (../commons/diag/runaway_ref.out);
+the commons' r_o at a Crowded end against the oracle's. Without it every line is as committed.
 Writes OUTDIR/lines.tsv (every line: step, instance, set, run, what, registered, engine, band,
 status), OUTDIR/wall/*.csv and OUTDIR/commons/*.csv (the tables), and prints the tallies, the
 verdicts and the refutation criteria. A line's status is pass, fail, charged (beyond 10% and
@@ -28,6 +33,29 @@ T3S_C = os.path.join(REPO, "docs/probe/results/commons/tier3s/tier3s.jsonl")
 INF = math.inf
 TINY = 4.9406564584124654e-323      # 10 subnormal ulps, the wall's stalled share (SPEC §6.2)
 A_TECH = math.exp(-2.6 / 52.0)      # 1 - share(adjust), 0.951229...
+AMENDED = "--amended" in sys.argv   # wall A2 and commons A3 (P2.3.16); off, every line is as committed
+RUNAWAY_REF = os.path.join(REPO, "docs/probe/results/commons/diag/runaway_ref.out")
+
+
+def stall(tpy):
+    """Wall A2: the share at which s*(1 - a) stops moving, a = share(adjust) = 1 - exp(-2.6/tpy):
+    the largest k subnormal ulps with k*a below 1/2. 2, 10 and 70 ulps at 12, 52 and 365 a year."""
+    a = -math.expm1(-2.6 / tpy)
+    return (math.ceil(0.5 / a) - 1) * 5e-324
+
+
+def runaway_on_harness_reference():
+    """Commons A3: the registered mirror's runaway tick measured against the displaced genesis
+    prices (the harness's reference since P2.1), from diag/runaway_ref.out, keyed (inst, run)."""
+    out = {}
+    for line in open(RUNAWAY_REF):
+        f = line.rstrip("\n").split("\t")
+        if len(f) == 5 and f[3].startswith("mirror, displaced reference "):
+            out[(f[0], f[1])] = int(f[3].split()[-1])
+    return out
+
+
+RW_HARNESS = runaway_on_harness_reference() if AMENDED else {}
 
 WALL_CATS = ["services", "goods"]
 WALL_MARKETS = ["labour", "land", "mach", "services", "goods", "labour.trained", "labour.master"]
@@ -610,14 +638,18 @@ def wall_readouts(L_, reg, E):
                 continue
             n_end += 1
             end = e["end"]
+            # wall A2: the stall of the run's own tick length; as committed, the 52-a-year stall
+            tiny = stall({"tpy12": 12.0, "tpy365": 365.0}.get(s, 52.0)) if AMENDED else TINY
             for c in WALL_CATS:
                 sv = end.get(f"s_planned_{c}")
-                if not (sv == 0.0 or (sv is not None and 0 < sv <= TINY)) or end.get(f"x.{c}") != 1.0:
+                if not (sv == 0.0 or (sv is not None and 0 < sv <= tiny)) or end.get(f"x.{c}") != 1.0:
                     off.append(f"{s}/{run}:{c}={sv!r}")
             for mk in ("labour", "labour.trained", "labour.master"):
                 if not (end.get(f"vol.{mk}") or 0) > 0:
                     dead_end.append(f"{s}/{run}:{mk}")
-    L_.add("E6", "iw1", "all", "-", "CONVERGED runs ending at the wall (every share 0 or at most 5e-323, x = 1)",
+    L_.add("E6", "iw1", "all", "-", "CONVERGED runs ending at the wall (every share 0 or at most its tick "
+           "length's stall, x = 1; A2)" if AMENDED else
+           "CONVERGED runs ending at the wall (every share 0 or at most 5e-323, x = 1)",
            "all", f"{n_end - len(set(o.split(':')[0] for o in off))}/{n_end}", "all",
            "pass" if not off and n_end else ("missing" if not n_end else "fail"))
     L_.add("E6", "iw1", "all", "-", "CONVERGED runs with every labour market trading at the end", "all",
@@ -818,8 +850,13 @@ def score_commons(recs, L_, out):
                               ttol_engine=v["ttol"], runaway_mirror=m["runaway"],
                               runaway_engine=v["runaway"])
             if m["cls"] == v["cls"] == "DIVERGED" and m["runaway"] is not None:
-                L_.add(step, inst, s, run, "runaway tick", m["runaway"], v["runaway"], "5%",
-                       st_rel(m["runaway"], v["runaway"], 0.05))
+                if AMENDED and (inst, run) in RW_HARNESS:   # commons A3: the harness's reference
+                    L_.add(step, inst, s, run, "runaway tick", RW_HARNESS[(inst, run)], v["runaway"],
+                           "5%, the mirror on the harness's reference (A3)",
+                           st_rel(RW_HARNESS[(inst, run)], v["runaway"], 0.05))
+                else:
+                    L_.add(step, inst, s, run, "runaway tick", m["runaway"], v["runaway"], "5%",
+                           st_rel(m["runaway"], v["runaway"], 0.05))
             if m["cls"] == v["cls"] == "CONVERGED":
                 L_.add(step, inst, s, run, "ticks to tolerance", m["ttol"], v["ttol"],
                        "10% (25% for three runs an instance and step)", st_ticks(m["ttol"], v["ttol"]))
@@ -845,7 +882,10 @@ def score_commons(recs, L_, out):
                                "10% or 2 (the mirror's end regime carried to L)", st_count(mc, ec, 0.1, 2))
                 L_.add(step, inst, s, run, "regime switches", m["switches"], v["switches"], "10% or 2",
                        st_count(m["switches"], v["switches"], 0.1, 2))
-                if m["regime_star"] == "Crowded":
+                if m["regime_star"] == "Crowded" and AMENDED:   # commons A3: against the oracle's
+                    L_.add(step, inst, s, run, "r_o/r at the end (Crowded target)", m["ro_star"], v["ro_end"],
+                           "1e-9 relative, against the oracle's (A3)", st_rel(m["ro_star"], v["ro_end"], 1e-9))
+                elif m["regime_star"] == "Crowded":
                     L_.add(step, inst, s, run, "r_o/r at the end (Crowded target)", m["ro_end"], v["ro_end"],
                            "1e-9 relative", st_rel(m["ro_end"], v["ro_end"], 1e-9))
                 for k, what in (("peak", "peak D-hat"), ("worst_fill", "worst fill (mirror buyers; engine both sides)"),
