@@ -17,7 +17,8 @@ O22's families on I1–I3 and the dial neighbourhood of C1, C2 and IW1, predicte
 mirrors before any run of the wave, with decisions 400–403 and O110–O112. The mirror predicts
 every family run on I1–I3 converges and I3's five map cells are GO; at the dials C2 and IW1
 converge everywhere, and C1 falls into the subsistence trap at every price rate × 0.9 and × 0.75,
-every buffer × 1.1 and × 1.25, and every tilt of 0.25 and above. The scorer is next (decision 311).
+every buffer × 1.1 and × 1.25, and every tilt of 0.25 and above. Its job list, scorer and
+self-test are committed before the wave (P2.4.2; decision 311); the wave is next.
 Before it, on branch `phase2-proper` from `reboot` at `f7d1eae`:
 **Phase 2 proper's first session is reported** (P2.3.16;
 [docs/probe/PHASE2-S1.md](docs/probe/PHASE2-S1.md)): both reviews find the verdicts hold, and
@@ -193,6 +194,23 @@ types and carriers, on the many-market roles (O27), which may now start from the
 stage v2a.1 on your ruling on D-G12. "Next steps" has each.
 
 ## Where things stand
+
+**Wave A's machinery and scorer, before the wave (P2.4.2; 2026-09-30).** Branch `phase2-s2`, label
+`families`. Committed before any job of the wave (decision 311):
+[docs/probe/results/families-wave/](docs/probe/results/families-wave/README.md), the job list
+(6,443 jobs: 6,347 runs and 96 kick sets, about 2,260 million ticks, stocks first), the job and
+runner scripts (`xargs -d '\n'`, P2.3.13's fix), the gather script, the scorer and its self-test.
+- **The scorer** reads SPEC §5's bands line by line against `docs/probe/families/registered/`:
+  classes exactly, ticks to tolerance (10%, three a set at 25%), runaway ticks on the harness's
+  reference (5%), dead ticks, baskets, every CONVERGED run's end within 1e-12 of its point, the
+  history window by window, I3's map cells (mode A, 45 kick sets, verdicts); the dial family's
+  51 base kick sets are reported. The refutations are SPEC §5.5's.
+- **The self-test** on the mirror's own records: 32,411 lines, 24,903 pass, 1,221 reported, none
+  fails; the 6,287 missing are the end-of-run lines only an engine run to L gives. **A negative
+  control** with nine records made wrong on purpose fails exactly those ten lines and names the
+  four refutations. `gather.py` was tried on five I0 jobs, which are not in the wave.
+- **No code changes**; the binary is the `a483ed0` build, sha256 `be3266ab…42e9` (the P2.3.12
+  binary's), to be rebuilt from this commit when the wave starts. **Next:** the wave.
 
 **Wave A's registration: O22's families on I1–I3 and the dial neighbourhood (P2.4.1;
 2026-09-30).** Branch `phase2-s2` (worktree `D:/rustyecon-wt/p24`) from `reboot` at `a483ed0`,
@@ -5156,7 +5174,8 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
       and 1.25; tilt 0.05 to 1), each with its mirror's predictions and its scorer committed
       first (311). It documents the stable region at the default dials as the roles stand.
       *Registered at P2.4.1* as wave A (decisions 400–403; `docs/probe/families/SPEC.md`), with
-      × 0.75 for 0.8 and five tilts (401); its scorer next, then the wave.
+      × 0.75 for 0.8 and five tilts (401); its job list and scorer committed at P2.4.2
+      (`docs/probe/results/families-wave/`); the wave next.
    2. **The trap's remedy** (O100), chosen by a mirror scan over four candidates (participation
       at a rate, entry for food at zero output, a storable exit good, and home output sold, the
       last an oracle addendum, 1e's open question 6), measured on C1's dial neighbourhood; then
@@ -5268,6 +5287,8 @@ docs/probe/families/     wave A's frame, as registered (P2.4.1): SPEC.md (O22's 
                          I1-I3 and the dial neighbourhood of C1, C2 and IW1), SHA256SUMS and
                          registered/ (the run-by-run predictions the scorer reads, the checks)
 docs/probe/results/families/ wave A's registration (P2.4.1)
+docs/probe/results/families-wave/ wave A's machinery, committed before it (P2.4.2): the job
+                         list, job and runner scripts, gather script, scorer, self-test
 docs/probe/results/loops/ the loop step's registration (L0.8), quoting LOOP-SPEC-A1's
                          predictions and FUNDED's county, with its sha256; E0-E2 (e0.md,
                          P2.2b.2); the scored runs' README and CSVs (P2.2b.3) with the reviews'
