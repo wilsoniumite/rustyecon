@@ -126,8 +126,8 @@ reaches 1.0–1.1 by tick 20, participation falls to 0.002–0.04 and then 0, fo
 prices cross the bound at ticks 287–369.
 
 How close C1 sits to it: on the basin grid the machine price's edge lies between × 0.481 and
-× 0.458, 0.04–0.06 in log from the verdict run at × 0.5; every other basin direction at C1 and
-C2 has 0.23 or more. At rest the exit is worth 0.529 of the wage at C1 and 0.354 at C2. The
+× 0.458, 0.04–0.09 in log from the verdict run at × 0.5 (0.04–0.05 from the recheck's runs
+between the two); every other basin direction at C1 and C2 has 0.21 or more. At rest the exit is worth 0.529 of the wage at C1 and 0.354 at C2. The
 review's hypothesis, recorded untested: the trap sits closer where the exit is worth more, and a
 1750-like exit (a cottager's plot) may be worth more than C1's.
 
@@ -173,8 +173,8 @@ harness's reference); O108's readings stay open to veto.
 
 **The corrected verdict.** IW1 GO (52 ticks a year, C2m, ρ 0), for reserved-only types beside one
 pooled type; the switch between pooled and walled is untested. C2 GO. C1 GO at C2m as
-registered, a point result: at ±10% of the rate and buffer dials it would be LOCAL, through the
-subsistence trap.
+registered, a point result: at every price rate × 0.9 (two runs) or buffer × 1.1 (one) it would
+be LOCAL, through the subsistence trap; rate × 1.1 and buffer × 0.9 keep 43/43.
 
 ## 6. What this means
 

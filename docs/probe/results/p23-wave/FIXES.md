@@ -34,3 +34,12 @@ or test is then silently stale. On Windows a clone's `commons_dated_shocks_load_
 with the pre-fix error in a target shared with a `198554a` export, and passed in a fresh one. So:
 one `CARGO_TARGET_DIR` per checkout and commit for any binary a scored run or a gate uses, and
 each scored binary's sha256 recorded against a fresh build, as `BIN.sha256` does.
+
+**Added at P2.3.17 (the recheck).** `selftest.py` feeds the registered mirrors' records to the
+scorer as if they were the engine's. Without `--amended` it passes as the README says; with
+`--amended` 118 lines fail by construction: the mirror's own undisplaced runaway ticks, and its
+early-stopped r_o set against the oracle's. So a later wave that reuses this registration under
+A3 has no passing self-test until `selftest.py` reads `diag/runaway_ref.out` and the oracle's r_o,
+or the mirror is run to L. A3's runaway reading also leaves seven lines as registered (three
+tilt-1 runs, two C1N dated runs and C1N's two genesis parameter shocks); each passes with the
+engine's tick equal to the registered one.

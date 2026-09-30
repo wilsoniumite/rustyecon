@@ -42,8 +42,9 @@ c2 GO" and "the commons' refutations: none".
   `p[mach]*0.5` also diverges at rate × 0.8, buffer × 1.25, adjust × 2, tilt 0.15–0.75 and 12
   ticks a year; it converges at rate × 1.25, buffer × 0.8, adjust × 0.5 and × 1.5, and tilt 0.05
   and 0.1. `JB(2)` diverges at each ±25% move tried. On the basin grid the machine price's edge
-  is between × 0.481 (the last CONVERGED) and × 0.458, so the verdict run at × 0.5 is 0.04–0.06 in
-  log from the trap; every other basin direction at C1 and C2 has 0.23 or more. So C1 would be
+  is between × 0.481 (the last CONVERGED) and × 0.458, so the verdict run at × 0.5 is 0.04–0.09 in
+  log from the trap (0.04–0.05 from the recheck's runs between the two); every other basin
+  direction at C1 and C2 has 0.21 or more. So C1 would be
   LOCAL at those dials. C2 (41 + 2 VACUOUS) and IW1 keep their Tier 3 at the same moves, and
   I1's `p[mach]*0.5` and `JB(2)` converge at every ±25% move. A spot check at P2.3.16 reran nine
   of these moves (C1, C2, I1, IW1) and C1's two runs at C2m on the same binary, and got the

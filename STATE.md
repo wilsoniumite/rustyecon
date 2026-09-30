@@ -13,8 +13,8 @@ are a veto window for your one-word calls.
 **State as of:** 2026-09-30, on branch `phase2-proper` from `reboot` at `f7d1eae`, not pushed or
 merged. **Phase 2 proper's first session is reported** (P2.3.16;
 [docs/probe/PHASE2-S1.md](docs/probe/PHASE2-S1.md)): both reviews find the verdicts hold, and
-narrow them. C1's GO is a point result at C2m (at ±10% of the rate or buffer dials two of its
-Tier-3 runs fall into the subsistence trap), IW1's covers reserved-only types, and the zero-rent
+narrow them. C1's GO is a point result at C2m (at every price rate × 0.9 two of its Tier-3
+runs fall into the subsistence trap, and at every buffer × 1.1 one does), IW1's covers reserved-only types, and the zero-rent
 answer covers one plot-taking type. The 124 failed lines are re-read by dated amendments A2 and
 A3, written after the wave (O107 ruled, O108 answered, both open to veto); decisions 397–399 are
 amended, since the line's range is used up. Next: one registered wave of O22's families and the
@@ -197,8 +197,8 @@ The report is [docs/probe/PHASE2-S1.md](docs/probe/PHASE2-S1.md).
 - **The corrected verdict.** IW1 GO for reserved-only types beside one pooled type; the switch
   between pooled and walled is untested (O97). C2 GO. **C1 GO at C2m as registered, a point
   result**: with every price rate × 0.9 its `p[mach]*0.5` and `JB(2)` fall into the subsistence
-  trap, and with every buffer × 1.1 `JB(2)` does; the machine price's edge is 0.04–0.06 in log
-  from the verdict run. C2 and IW1 keep their Tier 3 at the same moves. A spot check reran 11
+  trap, and with every buffer × 1.1 `JB(2)` does; the machine price's edge is 0.04–0.09 in log
+  from the verdict run on the basin grid (0.04–0.05 from the recheck's runs between it). C2 and IW1 keep their Tier 3 at the same moves. A spot check reran 11
   of the review's runs on the wave's binary and got the review's class in each. The zero-rent
   answer covers one plot-taking type and runs no land market at zero rent (398 as amended).
 - **Registration fixes, as dated amendments written after the wave and disclosed.** The wall's A2
@@ -4188,7 +4188,7 @@ when its fix is reverted, checked by mutation (the review's own mutants among th
   economies share (1.94 at δ 4%). *Amended at P2.3.16* (PHASE2-S1): at the wall a doubled tail
   or reserved input leaves Y\* where it was yet bottoms at 0.516 and 0.500 of it (O98); at the
   commons a path can end in the subsistence trap (O100), and C1's registered `p[mach]*0.5` sits
-  0.04–0.06 in log from it.
+  0.04–0.09 in log from it on the grid (0.04–0.05 between it).
 - **O15. The spine scripts' default cache: done at S2.6.** The scripts read `$SPINE_ROOT`, else
   `data/spine/.cache/` beside them, which `.gitignore` keeps out; the finer overrides stand.
   With `SPINE_ROOT=D:/rustyecon-spine` every path equals the old default (checked by evaluating
@@ -5044,8 +5044,9 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
    ([docs/probe/PHASE2-S1.md](docs/probe/PHASE2-S1.md)): the Appendix B instance (I0, P2.1); the
    wall-regime instance IW1 (1d's dependence form, reserved-only types beside one pooled type,
    394); and the open-commons instances C1 and C2 (1e's s(q), the commons no market, 398). C1's GO
-   is a point result: at ±10% of the rate or buffer dials two of its Tier-3 runs fall into the
-   subsistence trap (399 as amended). So the gate's "green with margin" and "a stable region
+   is a point result: at every price rate × 0.9 two of its Tier-3 runs fall into the subsistence
+   trap, and at every buffer × 1.1 one does (399 as amended); the other side of each dial keeps
+   43/43. The zero-rent answer covers one plot-taking type. So the gate's "green with margin" and "a stable region
    documented and referenced by the default dials" are not met; A11's kill condition is not
    triggered. Next, in order:
    1. **One registered wave**: O22's families on I1–I3, stocks first (368, O109), and the
