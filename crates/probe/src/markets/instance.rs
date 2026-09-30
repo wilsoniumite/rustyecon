@@ -16,6 +16,11 @@
 //! T_o as two parcels of quality 1 (decision 399). The paced instances (P2.4; the trap's remedy,
 //! decisions 404–406) C1P, C2P and C1PN are C1, C2 and C1N with the workers' participation at a
 //! rate; the pace does not move the point, so their oracle is the same.
+//!
+//! The switch instances (P2.4; the type switch at the wall, decisions 409–415; the switch scan,
+//! docs/probe/switch/SPEC.md §2) IS1 and IS2 are IW1 with unit 1d's E efficiencies on the reserved
+//! types, trained 1.5 and master 1.8, each reserved pop switching between its own market and the
+//! pool ([`Instance::switch`]); unit 1d's `WorkerEconomy` solves them with those efficiencies.
 
 use crate::setup::clock;
 use oracle::{
@@ -44,10 +49,12 @@ pub struct Category {
     pub reserved: Vec<f64>,
 }
 
-/// A reserved-only worker type (unit 1d with ε 0; the wall frame's §2.1, decision 394): its own
-/// pop `workers.<key>` in class `<key>_workers`, selling only its reserved hours on its own
-/// labour market `labour.<key>`, with params `inst.<key>.workers` and `inst.<key>.chi_max`.
-/// Its support is one basket a head, paid by the provider's `more` transfer.
+/// A reserved worker type (unit 1d; the wall frame's §2.1, decision 394): its own pop
+/// `workers.<key>` in class `<key>_workers`, selling its reserved hours on its own labour market
+/// `labour.<key>`, with params `inst.<key>.workers` and `inst.<key>.chi_max`. Its support is one
+/// basket a head, paid by the provider's `more` transfer. At IW1 it is reserved-only (ε 0); at a
+/// switch instance (P2.4) it has pool efficiency ε > 0, `inst.<key>.efficiency`, and its pop
+/// switches between its own market and the pool.
 #[derive(Debug, Clone, PartialEq)]
 pub struct WorkerKind {
     /// Its key.
@@ -56,6 +63,8 @@ pub struct WorkerKind {
     pub workers: f64,
     /// χ_max,i.
     pub chi_max: f64,
+    /// ε_i, its pool efficiency: 0 at IW1 (reserved-only), E's at a switch instance.
+    pub efficiency: f64,
 }
 
 impl WorkerKind {
@@ -170,6 +179,11 @@ pub struct Instance {
     /// The priced exit with a commons (the open-commons instances, P2.3), solved by unit 1e's
     /// `ParcelEconomy`; `None` in every other instance.
     pub exit: Option<Commons>,
+    /// Whether each reserved pop switches between its own market and the pool (P2.4; O97's rule,
+    /// decisions 409–411; docs/probe/SWITCH-RULES.md): each reserved pop's `pool`, its
+    /// `inst.<type>.efficiency` and its dial `rate.switch.<type>` are written. True at IS1 and IS2
+    /// only.
+    pub switch: bool,
 }
 
 /// The scalars' basis, and 1a's machine's.
@@ -318,6 +332,11 @@ pub const WALL_BASIS: &str =
 /// calibration, which the tape writes as `Assumed`.
 pub const COMMONS_BASIS: &str =
     "docs/probe/commons/SPEC.md §2.1: I1 with one priced worker type in food and a commons (frame-commons)";
+/// The switch instances' basis for the reserved types' efficiencies (the switch scan's §3.7),
+/// which the tape writes as `Assumed`.
+pub const SWITCH_BASIS: &str = "scan-switch SPEC §2.1: unit-1d.md §3.3 E's efficiencies";
+/// E's efficiencies (unit-1d.md §3.3; the switch scan's §2.1): the trained's and the master's.
+pub const SWITCH_EFFICIENCY: [(&str, f64); 2] = [("trained", 1.5), ("master", 1.8)];
 
 impl Instance {
     fn make(
@@ -349,6 +368,7 @@ impl Instance {
             wtypes: Vec::new(),
             worker_form: false,
             exit: None,
+            switch: false,
         }
     }
 
@@ -428,6 +448,7 @@ impl Instance {
             key: key.into(),
             workers,
             chi_max: 2.0,
+            efficiency: 0.0,
         };
         Instance {
             id: id.into(),
@@ -464,7 +485,31 @@ impl Instance {
             wtypes: vec![wkind("trained", 52.0), wkind("master", 26.0)],
             worker_form: true,
             exit: None,
+            switch: false,
         }
+    }
+
+    /// A switch instance (P2.4; the switch scan's §2; decisions 412 and 413): IW1 with unit 1d's
+    /// E efficiencies on the reserved types (trained 1.5, master 1.8), support 1, each reserved pop
+    /// switching between its own market and the pool; the trained's reserved hours a unit of
+    /// services `trained`, and that coefficient's registered values `values`, as the scan's
+    /// mirror writes them (IS1: 0.04, IS2: 0.02).
+    fn switched(id: &str, title: &str, (trained, values): (&str, [&str; 4])) -> Instance {
+        let mut i = Instance::wall(id, title, 1.0);
+        for t in i.wtypes.iter_mut() {
+            if let Some((_, e)) = SWITCH_EFFICIENCY.iter().find(|(k, _)| *k == t.key) {
+                t.efficiency = *e;
+            }
+        }
+        i.switch = true;
+        i.categories[0].reserved[0] = trained.parse().unwrap_or(f64::NAN);
+        i.coefs[2] = coef(
+            "res.services.trained",
+            "inst.services.reserved.trained",
+            trained,
+            values,
+        );
+        i
     }
 
     /// The registered instance with this id (MARKETS-SPEC §1.1, §1.2, §1.5).
@@ -598,10 +643,22 @@ impl Instance {
                 "c1pn",
                 "C1N with the workers' participation at a rate: a stress control",
             ),
+            // The type switch at the wall (P2.4; decisions 412 and 413): IW1 with E's
+            // efficiencies, and its control with the trained pooled at its base.
+            "is1" => Instance::switched(
+                "is1",
+                "IW1 with unit 1d's E efficiencies on the reserved types: a type switch at the wall",
+                ("0.04", ["0.044", "0.036", "0.08", "0.02"]),
+            ),
+            "is2" => Instance::switched(
+                "is2",
+                "IS1 with the trained's reserved hours 0.02: the trained pooled at its base, a control",
+                ("0.02", ["0.022", "0.018", "0.04", "0.01"]),
+            ),
             _ => {
                 return Err(format!(
                     "no instance {id}: i0, i1, i2, i3, l2, l3, g1, iw1, ic1, c1, c2, c1n, c1p, \
-                     c2p or c1pn"
+                     c2p, c1pn, is1 or is2"
                 ))
             }
         })
@@ -619,6 +676,10 @@ impl Instance {
     /// Phase 2 proper's paced commons instances (P2.4, the trap's remedy): C1P, C2P and the
     /// stress control C1PN.
     pub const PACED_IDS: [&'static str; 3] = ["c1p", "c2p", "c1pn"];
+
+    /// Phase 2 proper's switch instances (P2.4, the type switch at the wall): IS1 and the
+    /// control IS2.
+    pub const SWITCH_IDS: [&'static str; 2] = ["is1", "is2"];
 
     /// The number of segments of the task line.
     pub fn segments(&self) -> usize {
@@ -729,6 +790,16 @@ impl Instance {
                 "Dimensionless",
                 scal.clone(),
             ));
+            // Its pool efficiency at a switch instance (P2.4; the switch scan's §3.7), and at no
+            // other, so IW1's params are as they were.
+            if self.switch {
+                out.push((
+                    format!("inst.{}.efficiency", t.key),
+                    t.efficiency,
+                    "Dimensionless",
+                    SWITCH_BASIS.to_string(),
+                ));
+            }
         }
         for (s, e) in self.edges.iter().enumerate() {
             out.push((
@@ -875,6 +946,7 @@ impl Instance {
                     match field {
                         "workers" => t.workers = value,
                         "chi_max" => t.chi_max = value,
+                        "efficiency" => t.efficiency = value,
                         _ => return Err(bad()),
                     }
                 } else {
@@ -1014,9 +1086,9 @@ impl Instance {
     /// Unit 1d's parameters at `tpy` ticks a year (the wall frame's §3.6), for a worker-form
     /// instance: [`Instance::machine_params`]'s categories, space, machine types and schedule,
     /// with the worker types in pop order, the pool's workers first (N, χ_max, ε 1, ν 1) and
-    /// each reserved-only type after them (N_i, χ_max,i, ε 0, ν 1); the tail as each category's
-    /// human-required hours; and each category's reserved hours in the type's column, the
-    /// pool's column and space's row zero.
+    /// each reserved type after them (N_i, χ_max,i, ε_i, ν 1: ε 0 at IW1, E's at a switch
+    /// instance); the tail as each category's human-required hours; and each category's
+    /// reserved hours in the type's column, the pool's column and space's row zero.
     pub fn worker_params(&self, tpy: u32) -> Result<WorkerParams, String> {
         let c = clock(tpy)?;
         let mut w = WorkerParams::from_machines(self.machine_params(tpy)?);
@@ -1027,8 +1099,11 @@ impl Instance {
             support: 1.0,
         };
         w.worker_types = vec![kind(self.workers, self.chi_max, 1.0)];
-        w.worker_types
-            .extend(self.wtypes.iter().map(|t| kind(t.workers, t.chi_max, 0.0)));
+        w.worker_types.extend(
+            self.wtypes
+                .iter()
+                .map(|t| kind(t.workers, t.chi_max, t.efficiency)),
+        );
         let n_cats = w.categories.len();
         let n_workers = w.worker_types.len();
         w.human_required = vec![0.0; n_cats];
@@ -1098,6 +1173,10 @@ impl Instance {
             pop_baskets: vec![q.worker_baskets],
             margin: String::new(),
             commons: None,
+            reserved: Vec::new(),
+            pooled: Vec::new(),
+            pool_share: Vec::new(),
+            switch_distance: Vec::new(),
         })
     }
 
@@ -1146,6 +1225,31 @@ impl Instance {
             .zip(&heads)
             .map(|(w, n)| n + w.wage * w.hours / q.p_s)
             .collect();
+        // Each reserved type's switch (P2.4; the switch scan's §2.2): its pool share a* = pool
+        // hours over hours where pooled with pool hours above 0, else 0 (the mirror's
+        // `pool_share_of`); its distance from the switch ln(ζ_i·P_s/(ε_i·v)) with ν_i 1, above 0
+        // at its wall (NaN at ε 0, where it has no switch).
+        let reserved: Vec<&oracle::WorkerEq> = q.workers[1..].iter().collect();
+        let pool_share = reserved
+            .iter()
+            .map(|w| {
+                if w.pooled && w.pool_hours > 0.0 {
+                    w.pool_hours / w.hours
+                } else {
+                    0.0
+                }
+            })
+            .collect();
+        let switch_distance = reserved
+            .iter()
+            .map(|w| {
+                if w.efficiency > 0.0 {
+                    rustyecon_core::num::ln(w.clearing_real_wage * q.p_s / (w.efficiency * q.v))
+                } else {
+                    f64::NAN
+                }
+            })
+            .collect();
         Ok(Point {
             x_star: q.x_star,
             one_minus_x: q.one_minus_x_star,
@@ -1168,6 +1272,10 @@ impl Instance {
             pop_baskets,
             margin: format!("{:?}", q.margin),
             commons: None,
+            reserved: reserved.iter().map(|w| w.reserved_hours).collect(),
+            pooled: reserved.iter().map(|w| w.pooled).collect(),
+            pool_share,
+            switch_distance,
         })
     }
 
@@ -1257,6 +1365,10 @@ impl Instance {
             wage: Vec::new(),
             hours: vec![supply],
             pop_baskets: vec![workers],
+            reserved: Vec::new(),
+            pooled: Vec::new(),
+            pool_share: Vec::new(),
+            switch_distance: Vec::new(),
             margin: format!("{:?}", b.margin),
             commons: Some(CommonsPoint {
                 regime: format!("{:?}", q.exit_land),
@@ -1341,4 +1453,16 @@ pub struct Point {
     pub margin: String,
     /// Unit 1e's readouts at an open-commons instance; `None` elsewhere.
     pub commons: Option<CommonsPoint>,
+    /// Each reserved worker type's reserved hours D_i (unit 1d's `WorkerEq::reserved_hours`), in
+    /// [`Instance::wtypes`] order: its own market clears them. `hours` at a wall (empty in 1c
+    /// and 1e).
+    pub reserved: Vec<f64>,
+    /// Whether each reserved type sells to the pool (unit 1d's `WorkerEq::pooled`).
+    pub pooled: Vec<bool>,
+    /// Each reserved type's pool share a\*: its pool hours over its hours where pooled with pool
+    /// hours above 0, else 0 (P2.4; the switch scan's §3.8).
+    pub pool_share: Vec<f64>,
+    /// Each reserved type's distance from its switch, ln(ζ_i·ν_i·P_s/(ε_i·v)) with ν_i 1: above 0
+    /// at its wall, below 0 pooled; NaN at ε 0 (the switch scan's §2.2).
+    pub switch_distance: Vec<f64>,
 }

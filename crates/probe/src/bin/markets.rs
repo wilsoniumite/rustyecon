@@ -14,10 +14,12 @@
 //!
 //! setup options (probe::markets::cli):
 //!   --inst ID              i0, i1, i2, i3, l2, l3, g1, the wall's iw1 and ic1, the commons'
-//!                          c1, c2 and c1n, or the paced c1p, c2p and c1pn (default i1)
+//!                          c1, c2 and c1n, the paced c1p, c2p and c1pn, or the switch's is1
+//!                          and is2 (default i1)
 //!   --tpy N                ticks a year (default 52)
 //!   --dials c2m|c2l        the registered dial set (default c2m)
-//!   --set KEY=VALUE        set a dial; rate.*, buffer.* and adjust.* scale a family, tilt.* sets
+//!   --set KEY=VALUE        set a dial; rate.*, buffer.*, adjust.* and rate.switch.* scale a
+//!                          family, tilt.* sets
 //!   --one-sided saturate|hold
 //! run options:
 //!   --ticks L              the scored length (default 20000; a dated shock adds L/4 before it)
@@ -35,7 +37,8 @@
 //! `stats.tsv` adds the wall's readouts (`wall.*`; docs/probe/WALL-RULES.md §5), and at the
 //! commons (`--inst c1`, `c2`, `c1n`) the commons' (`commons.*`; docs/probe/COMMONS-RULES.md §5);
 //! at a paced instance (`--inst c1p`, `c2p`, `c1pn`) the pace's too (`pace.*`;
-//! docs/probe/TRAP-RULES.md §4).
+//! docs/probe/TRAP-RULES.md §4); and at a switch instance (`--inst is1`, `is2`) the switch's
+//! (`switch.*`, one line a switch pop; docs/probe/SWITCH-RULES.md §4).
 
 use probe::harness::{Class, Summary};
 use probe::markets::cli::parse;
@@ -296,6 +299,17 @@ fn stats_lines(rec: &Record) -> Vec<String> {
         put("pace.low", "-", g(p.low));
         put("pace.zero_hours", "-", p.zero_hours.to_string());
     }
+    // The switch's readouts (P2.4; the switch scan's §3.9), one set a switch pop, reported and
+    // never scored.
+    if let Some(s) = &st.switch {
+        for (p, x) in inst.households()[2..].iter().zip(s) {
+            put("switch.live_ticks", p, x.live.to_string());
+            put("switch.max", p, g(x.max));
+            put("switch.band", p, x.band.to_string());
+            put("switch.end", p, g(x.end));
+            put("switch.gap_end", p, g(x.gap_end));
+        }
+    }
     out
 }
 
@@ -384,6 +398,14 @@ fn print_point(inst: &Instance, tpy: u32) -> Result<(), String> {
             print!(
                 "\tmargin {}\tn_D {:?}\treserved wages {:?}\thours {:?}\tpop baskets {:?}\tprovider baskets {:?}",
                 e.margin, e.pool, e.wage, e.hours, e.pop_baskets, e.provider_baskets
+            );
+        }
+        // The switch (P2.4): each reserved type's reserved hours, pooled flag, pool share a* and
+        // distance from its switch.
+        if i.switch {
+            print!(
+                "\treserved hours {:?}\tpooled {:?}\tpool shares {:?}\tswitch distances {:?}",
+                e.reserved, e.pooled, e.pool_share, e.switch_distance
             );
         }
         if let Some(c) = &e.commons {

@@ -1016,6 +1016,36 @@ streams equal the pre-build binary's on both machines).
    `paced_grammar_dials_and_families_are_the_registered_ones` and
    `markets_runs_the_pace_family_and_reports_the_pace`.
 
+**Amended at P2.4.8** (2026-09-30, branch `phase2-s2`: the type switch at the wall,
+docs/probe/SWITCH-RULES.md; decisions 409–415). Core, markets and the engine are unchanged. The
+basket workers gain one optional field, absent on every committed tape but the new one and left
+out of the raw and the resolved form when absent, and `ActorState` gains one variant, appended
+after `PlantedCapacity`, so every committed tape keeps its canonical form, `tape_hash` and
+`world_id`, every existing state keeps its encoding, and every hash stream is unchanged (the 27
+tapes' 2,000-tick streams equal the pre-build binary's on both machines).
+
+1. `BasketWorkers.pool: Option<(good, efficiency, rate, share)>`: the type switch at the wall.
+   A pop with a pool is a switch pop: it sells a share a of its hours to the pool's labour
+   (`good`) at ε = `efficiency` efficiency hours an hour and the rest on its own labour, and
+   moves a each tick toward the market that pays more, by the migration rule at k = `rate`/tpy
+   (`roles::many::switch`). Its state is `ActorState::SwitchWorkers { share, pool }`, starting at
+   `pool = share` (`genesis_state`); a pop without a pool keeps `Workers` and P2.3's rule bit for
+   bit, and at ε 0 the switch is structurally off.
+2. Load checks: the pool's good traded, `Instant`, not the pop's own labour and not a basket
+   item; `efficiency` a `Dimensionless` param; `rate` a `RatePerYear` param; `share` finite and in
+   [0, 1]; `pool` together with `exit` refused.
+3. Tests (§11). In agents (`tests/switch.rs`): `switch_rule_matches_the_registered_vectors`,
+   `switch_off_is_the_reserved_pop`, `switch_moves_toward_the_better_market`,
+   `switch_pool_is_checked_at_load`, `switch_state_is_checked` and
+   `switch_genesis_state_is_the_tapes`; `each_site_converts_as_registered` and
+   `many_roles_never_overbudget_or_overdraw` read IS1's tape too. In probe (`tests/switch.rs`):
+   `markets_is1_tape_is_its_generators_output`, `markets_is1_points_are_the_registered_ones`,
+   `markets_is1_rest_point_is_the_oracles`, `markets_is1_holds_at_the_oracle_point`,
+   `markets_is1_never_crossing_is_iw1`, `switch_pays_both_markets`, `harness_reads_the_switch`,
+   `switch_battery_and_families_are_the_registered_ones`,
+   `switch_grammar_and_dials_apply_as_named` and `markets_reports_the_switch`. In the GUI:
+   `inspector_reads_switch_states`.
+
 ## 0. Engine invariants
 
 Numbered so tests and reviews can cite them. Each has at least one test in §11.

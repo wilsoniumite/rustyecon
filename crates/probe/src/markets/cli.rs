@@ -16,8 +16,9 @@ pub struct SetupArgs {
 }
 
 /// The setup options: `--inst ID` (default i1), `--tpy N` (default 52), `--dials c2m|c2l`
-/// (default c2m), `--set KEY=VALUE` (repeatable; `rate.*`, `buffer.*` and `adjust.*` scale a
-/// family, `tilt.*` sets every tilt), `--one-sided saturate|hold`. Options in `takes_value` are
+/// (default c2m), `--set KEY=VALUE` (repeatable; `rate.*`, `buffer.*`, `adjust.*` and, at a
+/// switch instance, `rate.switch.*` scale a family, `tilt.*` sets every tilt),
+/// `--one-sided saturate|hold`. Options in `takes_value` are
 /// kept, with their values, in `rest`.
 pub fn parse(args: &[String], takes_value: &[&str]) -> Result<SetupArgs, String> {
     let mut inst = "i1".to_string();

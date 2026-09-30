@@ -40,7 +40,10 @@ tick toward the market that pays more, by share(k·|g|) of the worse market's ho
 g = ln(ε·w/w_i), which rests exactly at unit 1d's switch v_i = max(ε·v, ζ·ν·P_s) with both
 corners open; the instance IS1 (IW1 with 1d's E efficiencies, trained 1.5 and master 1.8) is
 predicted GO, a type crossing in 61 of its 129 battery and Tier-3S runs. Decisions 409–415 and
-O118–O123; the build and E0 are next.
+O118–O123. **It is built** (P2.4.8; [docs/probe/SWITCH-RULES.md](docs/probe/SWITCH-RULES.md)):
+the workers' optional `pool` and the appended state `SwitchWorkers`, IS1 and IS2,
+`tapes/markets-is1.ron`, the harness's observables, grammar and readouts and 17 tests, with every
+committed tape's text, ids and streams unchanged; E0 is next.
 Before it, on branch `phase2-proper` from `reboot` at `f7d1eae`:
 **Phase 2 proper's first session is reported** (P2.3.16;
 [docs/probe/PHASE2-S1.md](docs/probe/PHASE2-S1.md)): both reviews find the verdicts hold, and
@@ -216,6 +219,49 @@ types and carriers, on the many-market roles (O27), which may now start from the
 stage v2a.1 on your ruling on D-G12. "Next steps" has each.
 
 ## Where things stand
+
+**The type switch at the wall: the build (P2.4.8; 2026-09-30).** Branch `phase2-s2`, label
+`build-switch`, scratch `D:/rustyecon-p24/build-switch/`. As built:
+[docs/probe/SWITCH-RULES.md](docs/probe/SWITCH-RULES.md); ENGINE.md and TAPE.md, "Amended at P2.4.8".
+- **The roles' addition** (decision 411): one optional field, the workers' `pool` (`good`, the
+  pool's labour; `efficiency`, ε, a `Dimensionless` param; `rate`, a `RatePerYear` param read as a
+  `LogStep`; `share`, the genesis pool share in [0, 1]), and one state variant appended after
+  `PlantedCapacity`, `SwitchWorkers { share, pool }`. A pop with a pool is a switch pop
+  (`roles::many::switch`): each tick it moves its pool share a toward the market that pays more,
+  by the migration rule on g = ln(ε·w/w_i), and offers (1 − a)·n on its own market and ε·a·n to
+  the pool, n read at v = w_i + a·(ε·w − w_i). Off at ε 0 (P2.3's hours, a held); a pop without a
+  pool keeps `Workers` and P2.3's rule. No new kind or market rule; both fields skipped when
+  absent. Load checks: the pool's good traded, `Instant`, not the pop's labour or a basket item;
+  the units; the share in [0, 1]; `pool` with `exit` refused.
+- **The instances** (decisions 412, 413): IS1 and IS2, IW1 with E's efficiencies (trained 1.5,
+  master 1.8); IS2 with the trained's reserved hours 0.02. Their points are the scan's registered
+  doubles bit for bit at all 78 points, a\* and the switch distances the 50-digit solve's within
+  1e-12. The dials `rate.switch.<type>`, 26 a year, in C2m at a switch instance only, scaled by
+  `rate.*` and alone by `rate.switch.*`. The tape `tapes/markets-is1.ron`; its genesis is IW1's.
+- **The harness at a switch instance**: 20 observables (IW1's 18 and `rs.<type>`, 1 − a), each
+  reserved market's volume target its reserved hours; `sw[T]=V` (a price start); the battery's
+  six `sw[T]=V` runs (109); the CSV's `pool_<pop>` and `swgap_<pop>`, and `switch.*` in
+  `stats.tsv`; `markets point` prints a\* and the switch distances.
+- **R1.** The 27 committed tapes' 2,000-tick hash streams, `tape_hash` and `world_id` equal the
+  pre-build binary's (`b7b9242`) on WSL and Windows; the generator writes every old markets tape
+  byte for byte; with ε 0 the switch pops decide as IW1's reserved pops over 500 random states,
+  and IS1 with ε 0, or never crossing, is IW1 bit for bit over 2,000 ticks.
+- **Tests**: six in `crates/agents/tests/switch.rs`, ten in `crates/probe/tests/switch.rs` and one
+  in the GUI (SWITCH-RULES §6), and IS1's tape in two agents tests. 60 mutants,
+  one per change undone, each killed; two survived a first pass (the pool's good a basket item,
+  the live count's threshold) and their tests were strengthened before this commit.
+- **The rule vectors**: bit for bit at 21 of 24, within 2 ulps at the three where libm's `exp`
+  is an ulp off glibc's, as the registration's §3 declared.
+- **Development runs** before E0, disclosed (SWITCH-RULES §6.5): four IS1 runs of 22,000 ticks
+  gave the registered class, ticks, peak D̂ and readouts; a trace diff on the uncommitted build,
+  E0's seventeen runs, parts nowhere above 1e-12 but the wall's A1 residue (largest 1.35e-13).
+- **The gates**: `scripts/gate.sh` and `scripts/gui.sh` are green on WSL and Windows, 1,035 tests
+  passed and 4 ignored on each; gate hash `0x61f9c8529131ff17`, appb `0xe1fa082b26995867`,
+  demo-gb `0xfad880fe08d06645`. IS1's `tape_hash` `0xcfc9a45a69b23b96`, `world_id`
+  `0xdd77db99d4d45166`, 2,000-tick final `0xa4b95240fa8d8f47` on both machines. The stamp is
+  `b3b35a3`, dirty: this build before its commit.
+- **Next:** E0 on the committed build, then the scorer and the scored wave (E1, E3–E9), committed
+  before it (decision 311).
 
 **The type switch at the wall: the migration rule, registered (P2.4.7; 2026-09-30).** Branch
 `phase2-s2`, label `build-switch`, scratch `D:/rustyecon-p24/build-switch/`; the scan's
@@ -5459,7 +5505,8 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
       can hold (O96 with O101), for idle enclosed land and a commons several types share; and
       the addenda of O95 it uses (a walled type under s(q), 1e §2.9, decision 377; a second land
       class if its tape has one). *O97's rule scanned and registered at P2.4.7:* the migration
-      rule on IS1 (decisions 409–415; `docs/probe/switch/SPEC.md`); the build and E0 next.
+      rule on IS1 (decisions 409–415; `docs/probe/switch/SPEC.md`); built at P2.4.8
+      (`docs/probe/SWITCH-RULES.md`); E0, the scorer and the scored wave next.
    4. **The 1750-like instance**, first as a flow instance at C2m on the many-market roles,
       loop-free as I1–I3, IW1, C1 and C2 are (67's letter, 361), with 1e and 1f, the common basket
       (388), 1f's tax bases and closure if it has a government (382–386) and ρ 0 (393), so that
@@ -5573,6 +5620,8 @@ docs/probe/switch/       the switch scan's frame, as registered (P2.4.7): SPEC.m
                          migration rule, on IS1 and IS2), SHA256SUMS, registered/ (the run-by-run
                          predictions, points, kick sets and rule vectors the scorer and tests read)
                          and evidence/ (the scan's tables and the mirror's checks)
+docs/probe/SWITCH-RULES.md the type switch as built (P2.4.8): the workers' pool, the state
+                         SwitchWorkers, IS1 and IS2, the harness at a switch instance, the checks
 docs/probe/results/switch/ the switch's registration (P2.4.7)
 docs/probe/results/families-wave/ wave A's machinery, committed before it (P2.4.2): the job
                          list, job and runner scripts, gather script, scorer, self-test
@@ -5607,7 +5656,8 @@ tapes/markets-<id>.ron   the markets probe's seven worlds (I0–I3, L2, L3, G1),
                          markets-iw1.ron, Phase 2 proper's wall instance, from unit 1d (P2.3.2);
                          markets-c1.ron and markets-c2.ron, the open commons, from unit 1e
                          (P2.3.6); markets-c1p.ron and markets-c2p.ron, the same with the
-                         workers' participation at a rate (P2.4.5)
+                         workers' participation at a rate (P2.4.5); markets-is1.ron, IW1 with
+                         E's efficiencies and each reserved pop switching (P2.4.8)
 tapes/horses-<id>.ron    the stocks probe's six worlds (H1–H4, R1a, P7), from 1g's ChainEconomy
 tapes/loops-<id>.ron     the loop step's six worlds (LB1–LB3, LW1–LW3), rule B at chain8 with
                          CAPACITY's plants, from 1g's ChainEconomy (P2.2b.1)

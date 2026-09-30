@@ -9,6 +9,9 @@
 //!   60), buying the task type's services at efficiency θ and direct land.
 //! - **TypeDesk** (a Desk): the machine desk, buying other types' services beside hours and land.
 //!
+//! [`switch`] (P2.4; the type switch at the wall, O97) runs a `BasketWorkers` with a `pool` as a
+//! switch pop, whose state is the appended `SwitchWorkers`.
+//!
 //! They are new kinds, not changed ones: the Appendix B kinds are untouched, so `tapes/appb.ron`
 //! keeps its hash, and each new kind reuses an Appendix B kind's state (`Provider`, `Workers`,
 //! `GoodDesk`, `MachDesk`), so every reader of those states reads these. On Appendix B each rule
@@ -17,3 +20,4 @@
 
 pub mod rules;
 pub mod spec;
+pub mod switch;

@@ -34,6 +34,11 @@
 //! the rule's hours over N each tick, and they offer N times it; the plots stay the rule's.
 //! Without it the rule's hours and share are offered and kept, P2.3's bit for bit.
 //!
+//! **The type switch at the wall** (P2.4; docs/probe/SWITCH-RULES.md): the workers' optional
+//! `pool`, a second market the pop sells to at its efficiency, with the share it sells there
+//! moved by the migration rule ([`crate::roles::many::switch`]). Without it the workers take this
+//! module's path, untouched.
+//!
 //! The arithmetic cannot fail, as RULES §2 says of the Appendix B roles: every budget is capped
 //! by the copy of the holding and taken from it, each after the first is at most
 //! `max_remainder(outlay, spent so far)`, sells take from the same copy, and recipes run at
@@ -86,7 +91,7 @@ pub(crate) fn budget_chain(
 }
 
 /// P_s = Σ_j z_j·p_j at posted prices, summed from 0.0 in item order.
-fn basket_price<S>(v: &View<'_, S>, items: &[Item]) -> Result<f64, AgentError> {
+pub(crate) fn basket_price<S>(v: &View<'_, S>, items: &[Item]) -> Result<f64, AgentError> {
     basket_price_at(items, &|s| param(v, s), &|g| price(v, g))
 }
 
@@ -244,7 +249,7 @@ fn participation(
 
 /// A household's baskets: `budget` at P_s buys n = budget/P_s baskets, posted as a buy of z_j·n
 /// of each item with budget p_j·(z_j·n), cut from one budget by [`budget_chain`].
-fn basket_orders<S>(
+pub(crate) fn basket_orders<S>(
     v: &View<'_, S>,
     items: &[Item],
     ps: f64,
@@ -269,7 +274,7 @@ fn basket_orders<S>(
 
 /// A household eats min_j(held_j/z_j) baskets of what it holds, as `Consumption`, burning z_j·n
 /// of each item. What is not eaten dies at 5a: every item is a one-tick good.
-fn eat<S>(v: &View<'_, S>, items: &[Item]) -> Result<Vec<Delta>, AgentError> {
+pub(crate) fn eat<S>(v: &View<'_, S>, items: &[Item]) -> Result<Vec<Delta>, AgentError> {
     let mut held = Vec::with_capacity(items.len());
     for it in items {
         held.push((v.own.get(it.good), param(v, it.weight)?));

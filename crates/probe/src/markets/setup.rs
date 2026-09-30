@@ -8,7 +8,7 @@
 //! actor's stationary coin under the dials (MARKETS-SPEC §5.4). No agent reads the oracle
 //! (R13). `tapes/markets-<id>.ron` is `tape_ron(&Setup::registered(id, 52))`, checked by a test.
 
-use super::instance::{Instance, Point, COMMONS_BASIS, WALL_BASIS};
+use super::instance::{Instance, Point, COMMONS_BASIS, SWITCH_BASIS, WALL_BASIS};
 use crate::setup::{clock, OneSided, START};
 use rustyecon_core::{num, FlowPerYear, RatePerYear};
 
@@ -40,6 +40,10 @@ const PACE_DIAL: &str =
     "Assumed(\"the trap scan's §4: participation at land's and the types' rate\")";
 /// The pace's dial: participation's rate, a year (P2.4; decision 406).
 pub const PACE_KEY: &str = "adjust.participation.workers";
+/// The switch's dials' basis (the switch scan's §3.7; decision 410).
+const SWITCH_DIAL: &str = "Assumed(\"scan-switch SPEC §6.3\")";
+/// The switch's rate a year (the switch scan's §6.3; decision 410).
+pub const SWITCH_RATE: f64 = 26.0;
 const C2L: &str = "Assumed(\"MARKETS-SPEC C2L: type rates at labour's, markup tilt 1 (§5.2)\")";
 
 impl Dials {
@@ -61,6 +65,26 @@ impl Dials {
         for t in &inst.wtypes {
             rate(format!("rate.{}", t.market()), 5.2);
         }
+        // Each switch pop's rate at a switch instance only (P2.4; the switch scan's §3.7; decision
+        // 410): 26 a year, a `rate.*` dial, so `rate.*` scales it with the markets' rates.
+        if inst.switch {
+            for t in &inst.wtypes {
+                v.push(Dial {
+                    key: format!("rate.switch.{}", t.key),
+                    value: SWITCH_RATE,
+                    unit: "RatePerYear",
+                    basis: SWITCH_DIAL.into(),
+                });
+            }
+        }
+        let mut rate = |key: String, value: f64| {
+            v.push(Dial {
+                key,
+                value,
+                unit: "RatePerYear",
+                basis: C2M.into(),
+            })
+        };
         rate("rate.land".into(), 1.3);
         for t in &inst.types {
             rate(format!("rate.{}", t.key), 1.3);
@@ -154,11 +178,12 @@ impl Dials {
 
     /// Set a dial by key, or a family: `rate.*` scales every price rate, `buffer.*` every
     /// desk's turnover and `adjust.*` every technique rate by the value; `tilt.*` sets every
-    /// tilt to it (as P2.0's `--set` does).
+    /// tilt to it (as P2.0's `--set` does). At a switch instance `rate.*` scales the switch's
+    /// rates too, and `rate.switch.*` scales them alone (P2.4; the switch scan's `switch` dial).
     pub fn set(&mut self, key: &str, value: f64) -> Result<(), String> {
         let family = |prefix: &str, d: &Dial| d.key.starts_with(prefix);
         match key {
-            "rate.*" | "buffer.*" | "adjust.*" => {
+            "rate.*" | "buffer.*" | "adjust.*" | "rate.switch.*" => {
                 let prefix = &key[..key.len() - 1];
                 for d in self.values.iter_mut().filter(|d| family(prefix, d)) {
                     d.value *= value;
@@ -217,6 +242,9 @@ pub struct Displacement {
     pub stock: Vec<f64>,
     /// The paced workers' genesis share (P2.4); read at a paced instance only.
     pub pace: PaceAt,
+    /// Each reserved pop's genesis pool share, in [`Instance::wtypes`] order (P2.4): `None` for
+    /// the point's a\*, `Some(V)` for V exactly (`sw[T]=V`). Read at a switch instance only.
+    pub switch: Vec<Option<f64>>,
 }
 
 impl Displacement {
@@ -228,6 +256,7 @@ impl Displacement {
             coin: vec![1.0; inst.actors().len()],
             stock: vec![1.0; inst.desks().len()],
             pace: PaceAt::Times(1.0),
+            switch: vec![None; inst.wtypes.len()],
         }
     }
 }
@@ -338,6 +367,9 @@ pub struct Genesis {
     /// At a paced instance (P2.4): the workers' share at the point, S/N, and their genesis
     /// share, the tape's `pace.share`.
     pub pace: Option<(f64, f64)>,
+    /// At a switch instance (P2.4): each reserved pop's genesis pool share, the tape's
+    /// `pool.share`, in [`Instance::wtypes`] order; empty elsewhere.
+    pub switch: Vec<f64>,
 }
 
 /// The oracle point's P_s as the households' rule sums it: Σ z_j·p_j from 0.0 in item order,
@@ -468,6 +500,21 @@ pub fn genesis(s: &Setup) -> Result<Genesis, String> {
     } else {
         None
     };
+    // Each switch pop's genesis pool share (P2.4; the switch scan's §3.8): the point's a*, or V
+    // exactly (`sw[T]=V`), in [0, 1].
+    let mut switch = Vec::new();
+    if inst.switch {
+        if x.switch.len() != inst.wtypes.len() || e.pool_share.len() != inst.wtypes.len() {
+            return Err("the switch's displacement does not fit the instance".into());
+        }
+        for (at, set) in e.pool_share.iter().zip(&x.switch) {
+            let a = set.unwrap_or(*at);
+            if !(0.0..=1.0).contains(&a) {
+                return Err(format!("the genesis pool share {a} is outside [0, 1]"));
+            }
+            switch.push(a);
+        }
+    }
     Ok(Genesis {
         point: e,
         prices,
@@ -476,6 +523,7 @@ pub fn genesis(s: &Setup) -> Result<Genesis, String> {
         coin,
         stock,
         pace,
+        switch,
     })
 }
 
@@ -490,6 +538,8 @@ const WALL_ROLE: &str = "Assumed(\"the wall frame's §3: the many-market roles w
 const COMMONS_ROLE: &str =
     "Assumed(\"the commons frame's §3: the many-market roles, the workers with \
      the priced exit and their commons (docs/probe/COMMONS-RULES.md)\")";
+const SWITCH_ROLE: &str = "Assumed(\"the switch scan's §3: the wall's roles, each reserved pop \
+     switching between its own market and the pool (docs/probe/SWITCH-RULES.md)\")";
 
 /// The tape's text, one line at a time.
 struct Lines(Vec<String>);
@@ -636,23 +686,42 @@ fn wall_header(s: &Setup, g: &Genesis, inst: &Instance) -> Result<Vec<String>, S
             .iter()
             .map(|t| f(c.flow(FlowPerYear(t.workers)))),
     );
-    Ok(vec![
-        format!(
-            "// The wall world {} (docs/probe/wall/SPEC.md; docs/probe/WALL-RULES.md):",
-            inst.id.to_uppercase(),
-        ),
+    // A switch instance (P2.4; docs/probe/SWITCH-RULES.md) names its frame, its step and its
+    // test; IW1's lines are as they were.
+    let (frame, intro, test) = if inst.switch {
+        (
+            "docs/probe/switch/SPEC.md; docs/probe/SWITCH-RULES.md",
+            vec![
+                "// run by the four many-market roles with the wall's optional fields, each reserved pop"
+                    .to_string(),
+                "// switching between its own market and the pool (its optional `pool`: the type switch"
+                    .into(),
+                "// at the wall, the migration rule), for P2.4 (2026-09-30).".into(),
+            ],
+            "markets_is1_tape_is_its_generators_output",
+        )
+    } else {
+        (
+            "docs/probe/wall/SPEC.md; docs/probe/WALL-RULES.md",
+            vec![
+                "// run by the four many-market roles with the wall's optional fields (a category desk's"
+                    .to_string(),
+                "// tail and reserved hours, the provider's further transfers), for P2.3 (2026-09-30)."
+                    .into(),
+            ],
+            "markets_iw1_tape_is_its_generators_output",
+        )
+    };
+    let mut out = vec![
+        format!("// The wall world {} ({frame}):", inst.id.to_uppercase(),),
         format!("// {},", inst.title),
-        "// run by the four many-market roles with the wall's optional fields (a category desk's"
-            .into(),
-        "// tail and reserved hours, the provider's further transfers), for P2.3 (2026-09-30)."
-            .into(),
-        "//".into(),
+    ];
+    out.extend(intro);
+    out.extend([
+        "//".to_string(),
         "// Generated: do not edit. `cargo run -p rustyecon-probe --bin markets-tape -- --inst"
             .into(),
-        format!(
-            "// {} <path>` writes it, and the test `markets_iw1_tape_is_its_generators_output` checks",
-            inst.id
-        ),
+        format!("// {} <path>` writes it, and the test `{test}` checks", inst.id),
         "// this file against the generator.".into(),
         "//".into(),
         "// Genesis is the oracle's equilibrium (mode A): crates/oracle unit 1d,".into(),
@@ -702,10 +771,34 @@ fn wall_header(s: &Setup, g: &Genesis, inst: &Instance) -> Result<Vec<String>, S
         "//   each pop       (N_i*P_s + w_i*hours_i)/share(spend.workers), hours_i unit 1d's".into(),
         format!("// giving {} in actor order", list(&g.stationary)),
         format!("// ({}).", inst.actors().join(", ")),
+    ]);
+    if inst.switch {
+        let eff: Vec<f64> = base.wtypes.iter().map(|t| t.efficiency).collect();
+        out.extend([
+            format!(
+                "// The reserved types' efficiencies are {}; each reserved pop's pool share moves toward",
+                list(&eff)
+            ),
+            "// the market that pays more at the rate `rate.switch.<type>` a year (the switch scan's §3.3);"
+                .into(),
+            format!(
+                "// the point's shares a* (pool hours over hours) are {}, pooled {:?},",
+                list(&e.pool_share),
+                e.pooled
+            ),
+            format!(
+                "// switch distances {}, and the genesis shares written are {}.",
+                list(&e.switch_distance),
+                list(&g.switch)
+            ),
+        ]);
+    }
+    out.extend([
         "// No agent reads the oracle at run time (R13): it seeds genesis here and scores runs in"
-            .into(),
+            .to_string(),
         "// the harness (crates/probe), outside the Sim.".into(),
-    ])
+    ]);
+    Ok(out)
 }
 
 /// The header of an open-commons tape (P2.3; docs/probe/COMMONS-RULES.md §4): its derivation
@@ -846,7 +939,9 @@ fn body(s: &Setup, g: &Genesis, inst: &Instance, o: &mut Lines) -> Result<(), St
     let n = c.flow(FlowPerYear(inst.workers));
     let t = c.flow(FlowPerYear(inst.land));
     let markets = inst.markets();
-    let role = if inst.worker_form {
+    let role = if inst.switch {
+        SWITCH_ROLE
+    } else if inst.worker_form {
         WALL_ROLE
     } else if inst.exit.is_some() {
         COMMONS_ROLE
@@ -874,7 +969,7 @@ fn body(s: &Setup, g: &Genesis, inst: &Instance, o: &mut Lines) -> Result<(), St
     }
     for (key, value, unit, basis) in inst.params()? {
         // The wall frame's own numbers are its calibration, assumed; the rest are literature.
-        let kind = if basis == WALL_BASIS || basis == COMMONS_BASIS {
+        let kind = if basis == WALL_BASIS || basis == COMMONS_BASIS || basis == SWITCH_BASIS {
             "Assumed"
         } else {
             "Literature"
@@ -1123,6 +1218,17 @@ fn body(s: &Setup, g: &Genesis, inst: &Instance, o: &mut Lines) -> Result<(), St
                 x.good
             ));
         }
+        // Each reserved pop's pool at a switch instance (P2.4; the switch scan's §3.7), written
+        // last in its block.
+        if let (true, Some(k)) = (inst.switch, i.checked_sub(1)) {
+            let t = &inst.wtypes[k];
+            o.line(format!(
+                "            pool: Some((good: \"labour\", efficiency: \"inst.{0}.efficiency\", rate: \
+                 \"rate.switch.{0}\", share: {1})),",
+                t.key,
+                f(g.switch[k])
+            ));
+        }
         o.line("         ))),");
     }
     let genesis_basis = if inst.exit.is_some() {
@@ -1130,6 +1236,15 @@ fn body(s: &Setup, g: &Genesis, inst: &Instance, o: &mut Lines) -> Result<(), St
             "        basis: Approximate(\"oracle unit 1e (crates/oracle, ParcelEconomy) at the commons \
              frame's {}, N = {} and T = {} per tick; stationary coins per the commons frame's \
              §3.8; written by rustyecon-probe's markets-tape\"),",
+            inst.id.to_uppercase(),
+            f(n),
+            f(t)
+        )
+    } else if inst.switch {
+        format!(
+            "        basis: Approximate(\"oracle unit 1d (crates/oracle, WorkerEconomy) at the switch \
+             scan's {}, N = {} for the pool and T = {} per tick; stationary coins and pool shares \
+             per the switch scan's §3.8; written by rustyecon-probe's markets-tape\"),",
             inst.id.to_uppercase(),
             f(n),
             f(t)

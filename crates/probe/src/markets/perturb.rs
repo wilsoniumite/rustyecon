@@ -22,6 +22,7 @@
 //! | `cycle(C,P,N)` | N dated changes of C, P ticks apart from tick P, cycling ×1.1, ×0.9, ×2, ×0.5 and ×1 of its registered value |
 //! | `enclose=F@genesis`, `enclose=F@dated` | enclosure by law (the commons; P2.3): a share F of the commons T_o moved to the enclosed land T, both changed from tick 0 or at L/4 |
 //! | `part.workers*F`, `part.workers=V` | the paced workers' genesis share (P2.4): the point's S/N times F, at most 1, or V exactly |
+//! | `sw[T]=V` | the switch pop of reserved type T's genesis pool share set to V exactly (the type switch at the wall; P2.4) |
 //!
 //! On I0 the grammar is P2.0's with the markets named: `p[mach]` is `pm`, `p[good]` is `p`,
 //! `s[good]` is `s`, `stock.mach` is `mach`, `land.mach` is `b`, and `joint` draws in P2.0's
@@ -34,7 +35,10 @@
 //! and the basin's factors are written as the mirror ran them, `1.05**j` to 12 significant digits.
 //! At a paced commons instance (P2.4; the trap registration's §3) `part.workers` displaces the
 //! workers' genesis share as the scan's mirror does (`tb.displace`); its start is a stock's, so
-//! `--first-year` reads it as Tier 3S is read, and the family `pace` runs it.
+//! `--first-year` reads it as Tier 3S is read, and the family `pace` runs it. At a switch instance
+//! (P2.4; the switch registration's §3) `sw[T]=V` sets a switch pop's genesis pool share as the
+//! scan's mirror does (`swb.displace`); its start is a price start, 1 − V against 1 − a\* joining
+//! the genesis gaps (`swb.d0`), and the battery adds it for each switch pop at 0.05, 0.2 and 0.5.
 
 use super::instance::Instance;
 use super::setup::{PaceAt, Setup, ShareAt, Shock};
@@ -69,6 +73,7 @@ enum Term {
     Cycle(String, u64, u64),
     Enclose(f64, bool),
     Pace(PaceAt),
+    Switch(String, f64),
 }
 
 fn number(s: &str) -> Result<f64, String> {
@@ -118,6 +123,11 @@ fn term(t: &str) -> Result<Term, String> {
     }
     if let Some((d, v)) = t.strip_prefix("s[").and_then(|r| r.split_once("]=")) {
         return Ok(Term::ShareIs(d.to_string(), number(v)?));
+    }
+    // A switch pop's genesis pool share (P2.4), before the `C=V@when` form it would otherwise be
+    // read as.
+    if let Some((k, v)) = t.strip_prefix("sw[").and_then(|r| r.split_once("]=")) {
+        return Ok(Term::Switch(k.to_string(), number(v)?));
     }
     if let Some(a) = call(t, "joint") {
         let (f, seed) = a.split_once(',').ok_or("joint(F,SEED)")?;
@@ -476,6 +486,16 @@ impl Perturbation {
                         }
                     };
                 }
+                Term::Switch(k, v) => {
+                    if !inst.switch {
+                        return Err(format!(
+                            "{}: sw[T]=V needs an instance whose reserved pops switch (is1, is2)",
+                            inst.id
+                        ));
+                    }
+                    let keys: Vec<String> = inst.wtypes.iter().map(|t| t.key.clone()).collect();
+                    x.switch[index(&keys, k, "switch pop")?] = Some(*v);
+                }
             }
         }
         s.shocks.sort_by_key(|sh| sh.tick);
@@ -600,7 +620,8 @@ pub const WALL_SHARES: [(&str, u8); 3] = [("0.05", 1), ("0.2", 2), ("0.5", 3)];
 /// category desk's share set to 0.05, 0.2 and 0.5; JA, JB, N, RC and RW at the six factors;
 /// x\*/2; and each registered cost coefficient at ×1.1, ×0.9, ×2 and ×0.5, at genesis and dated.
 /// The markets are named in the mirror's order: labour, land, the categories, the types, the
-/// reserved labour markets. No run is slack.
+/// reserved labour markets. No run is slack. At a switch instance (P2.4; the switch scan's §3.9,
+/// `swb.run_list`) each switch pop's pool share set to 0.05, 0.2 and 0.5 follows, pop by pop.
 pub fn wall_battery(inst: &Instance) -> Vec<Run> {
     let mut out = Vec::new();
     let mut push = |name: String, tier: u8| {
@@ -631,6 +652,13 @@ pub fn wall_battery(inst: &Instance) -> Vec<Run> {
             let tier = if k < 2 { 2 } else { 3 };
             push(format!("{}={v}@genesis", c.name), tier);
             push(format!("{}={v}@dated", c.name), tier);
+        }
+    }
+    if inst.switch {
+        for t in &inst.wtypes {
+            for (v, tier) in WALL_SHARES {
+                push(format!("sw[{}]={v}", t.key), tier);
+            }
         }
     }
     out

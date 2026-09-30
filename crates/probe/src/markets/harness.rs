@@ -33,6 +33,12 @@
 //! is the paced share, the hours offered over N; the rule's share F\* at the tick's posted prices
 //! is read beside it (`part_target`), and the lag and the ticks without hours are kept as the
 //! pace's readouts (`pace.*`), reported and never scored.
+//!
+//! **At a switch instance** (P2.4; docs/probe/SWITCH-RULES.md §4): the observables add each switch
+//! pop's reserved share 1 − a after the tick (`rs.<type>`), whose target is 1 − a\* from unit 1d;
+//! each reserved market's volume target is its reserved hours D_i. Each switch pop's pool share
+//! and its gap g = ln(ε·w/w_i) at the tick's posted prices, through the rule's own function, are
+//! read each tick and kept as the switch's readouts (`switch.*`), reported and never scored.
 
 use super::instance::{Instance, Point};
 use super::perturb::Perturbation;
@@ -50,14 +56,16 @@ use rustyecon_engine::prelude::{
     ActorId, ClassId, GoodId, Holder, PriceError, RunErrorKind, SideTag, Sim, Tape, TickReport,
 };
 use rustyecon_engine::rustyecon_agents::{
-    workers_participation, ActorState, AgentError, BasketWorkers, Participation, PlotRegime, Spec,
+    switch_gap, workers_participation, ActorState, AgentError, BasketWorkers, Participation,
+    PlotRegime, Pool, Spec,
 };
 use std::collections::BTreeMap;
 
 /// The observables of an instance, in order (MARKETS-SPEC §7.1): `v`, `pi.<type>`,
 /// `pi.<category>`, `s.<category>`, `vol.<market>` in market order, `y.<category>`, `y.<type>`.
 /// On I0 this is P2.0's set O in P2.0's order. At the wall each reserved wage `w.<type>` follows
-/// the prices, and `x.<category>` replaces `s.<category>` (the wall frame's §5.1).
+/// the prices, and `x.<category>` replaces `s.<category>` (the wall frame's §5.1). At a switch
+/// instance each switch pop's reserved share `rs.<type>` comes last (P2.4; the switch scan's §3.9).
 pub fn observables(inst: &Instance) -> Vec<String> {
     let mut o = vec!["v".to_string()];
     o.extend(inst.types.iter().map(|t| format!("pi.{}", t.key)));
@@ -72,6 +80,9 @@ pub fn observables(inst: &Instance) -> Vec<String> {
     o.extend(inst.markets().iter().map(|m| format!("vol.{m}")));
     o.extend(inst.categories.iter().map(|c| format!("y.{}", c.key)));
     o.extend(inst.types.iter().map(|t| format!("y.{}", t.key)));
+    if inst.switch {
+        o.extend(inst.wtypes.iter().map(|t| format!("rs.{}", t.key)));
+    }
     o
 }
 
@@ -112,12 +123,13 @@ impl Target {
     /// types buy of it (a type's own input is kept, not traded; MARKETS-SPEC §1.4).
     pub fn of(inst: &Instance, e: &Point, land: f64) -> Target {
         // The pool's hours clear `labour` (N_a in unit 1c, n_D in 1d); each reserved type's
-        // market clears its reserved hours D_i (the wall frame's §5.1).
+        // market clears its reserved hours D_i (the wall frame's §5.1), 1d's `reserved_hours`,
+        // which is its `hours` at a wall bit for bit and less where it pools (P2.4).
         let mut volume = vec![e.pool, land];
         volume.extend(e.type_traded.iter().copied());
         volume.extend(e.cat_output.iter().copied());
         if inst.worker_form {
-            volume.extend(e.hours[1..].iter().copied());
+            volume.extend(e.reserved.iter().copied());
         }
         let mut output = e.cat_output.clone();
         output.extend(e.type_services.iter().copied());
@@ -134,6 +146,10 @@ impl Target {
         obs.extend(inst.categories.iter().map(|_| technique));
         obs.extend(volume.iter().copied());
         obs.extend(output.iter().copied());
+        // Each switch pop's reserved share at the point, 1 − a* (1 at its wall; P2.4).
+        if inst.switch {
+            obs.extend(e.pool_share.iter().map(|a| 1.0 - a));
+        }
         let mut items = e.cat_output.clone();
         if let Some(h) = inst.space {
             items.push(h * e.y);
@@ -244,6 +260,11 @@ pub struct Row {
     pub depth: f64,
     /// At the commons, the plots as the workers' rule read them this tick.
     pub plots: Option<Plots>,
+    /// At a switch instance, each switch pop's pool share a after the tick, in pop order (P2.4).
+    pub pool: Vec<f64>,
+    /// At a switch instance, each switch pop's gap g = ln(ε·w/w_i) at the prices this tick
+    /// settled at, through the rule's own `switch_gap` (P2.4).
+    pub switch_gap: Vec<f64>,
     /// The tick's ledger margin.
     pub margin: f64,
     /// Whether the tick is dead: some market did not trade, or cleared less than the live
@@ -384,6 +405,15 @@ pub fn csv_header(inst: &Instance) -> String {
     if inst.paced_exit() {
         h.push("part_target".into());
     }
+    // Each switch pop's pool share and gap (P2.4), at a switch instance only.
+    if inst.switch {
+        for k in &households[2..] {
+            h.push(format!("pool_{k}"));
+        }
+        for k in &households[2..] {
+            h.push(format!("swgap_{k}"));
+        }
+    }
     h.join(",")
 }
 
@@ -453,6 +483,11 @@ impl Row {
                     .map_or("-".to_string(), |p| format!("{:?}", p.target)),
             );
         }
+        if inst.switch {
+            for x in self.pool.iter().chain(&self.switch_gap) {
+                v.push(format!("{x:?}"));
+            }
+        }
         v.join(",")
     }
 }
@@ -473,6 +508,8 @@ struct Ids {
     desks: usize,
     /// The pool's workers' resolved spec, where they hold a priced exit (the commons).
     exit_workers: Option<BasketWorkers>,
+    /// Each reserved pop's pool, where it switches (P2.4), in pop order.
+    pools: Vec<Option<Pool>>,
 }
 
 impl Ids {
@@ -489,8 +526,22 @@ impl Ids {
                 Spec::BasketWorkers(p) if p.exit.is_some() => Some(p.clone()),
                 _ => None,
             });
+        let pools = inst
+            .wtypes
+            .iter()
+            .map(|t| {
+                w.actors
+                    .iter()
+                    .find(|a| a.key.as_str() == t.pop())
+                    .and_then(|a| match &a.spec {
+                        Spec::BasketWorkers(p) => p.pool,
+                        _ => None,
+                    })
+            })
+            .collect();
         Ok(Ids {
             exit_workers,
+            pools,
             desks: inst.desks().len(),
             goods: inst
                 .markets()
@@ -573,9 +624,15 @@ fn row(
         }
     }
     let mut participation = Vec::with_capacity(ids.actors.len() - ids.desks - 1);
+    let mut pool = Vec::new();
     for &a in &ids.actors[ids.desks + 1..] {
         match sim.actor_state(a) {
             Some(ActorState::Workers(s)) => participation.push(s.share),
+            // A switch pop (P2.4): its participation F, and its pool share a.
+            Some(ActorState::SwitchWorkers(s)) => {
+                participation.push(s.share);
+                pool.push(s.pool);
+            }
             _ => return Err(format!("actor {a} is not the pop its instance says")),
         }
     }
@@ -638,6 +695,24 @@ fn row(
     }
     obs.extend(cleared.iter().copied());
     obs.extend(output.iter().copied());
+    // Each switch pop's reserved share after the tick, 1 − a (P2.4), and its gap at the posted
+    // prices this tick settled at, with ε in force: the pool's wage is `labour`'s, its own the
+    // reserved market's (the markets' order: labour first, the reserved labour markets last).
+    let mut gaps = Vec::new();
+    if inst.switch {
+        obs.extend(pool.iter().map(|a| 1.0 - a));
+        let clock = &sim.world().clock;
+        let first = n - inst.wtypes.len();
+        for (i, p) in ids.pools.iter().enumerate() {
+            if let Some(p) = p {
+                let v = sim
+                    .param(p.efficiency.param)
+                    .ok_or("the pool's efficiency is not a param")?;
+                let eps = p.efficiency.convert(clock, v).map_err(|e| e.to_string())?;
+                gaps.push(switch_gap(eps, price[0], price[first + i]));
+            }
+        }
+    }
     // The depth at the posted prices this tick settled at (the wall frame's §5.3).
     let tau = inst.task_type()?;
     let depth = ln((inst.types[tau].theta * w) / (price[2 + tau] * gamma_top(inst)));
@@ -686,6 +761,8 @@ fn row(
         participation,
         depth,
         plots,
+        pool,
+        switch_gap: gaps,
         margin: o.margin,
         dead,
     })
@@ -948,6 +1025,54 @@ pub struct Stats {
     pub commons: Option<CommonsStats>,
     /// The pace's readouts, at a paced instance (P2.4; the trap scan's §5.4).
     pub pace: Option<PaceStats>,
+    /// Each switch pop's readouts, at a switch instance (P2.4; the switch scan's §3.9), in pop
+    /// order.
+    pub switch: Option<Vec<SwitchStats>>,
+}
+
+/// A switch pop's readouts over the scored run (P2.4; the switch scan's §3.9, the mirror's
+/// `swb.run`), reported and never scored.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct SwitchStats {
+    /// The scored ticks with its pool share above 1e-9.
+    pub live: u64,
+    /// Its largest pool share (0 if it never pools).
+    pub max: f64,
+    /// The sign changes of its gap g between scored ticks with |g| above 1e-6 (the band keeps
+    /// rounding-level flips near a pooled rest out of the count).
+    pub band: u64,
+    last: i8,
+    /// Its pool share on the last scored tick.
+    pub end: f64,
+    /// Its gap on the last scored tick.
+    pub gap_end: f64,
+}
+
+impl SwitchStats {
+    fn new() -> SwitchStats {
+        SwitchStats {
+            live: 0,
+            max: 0.0,
+            band: 0,
+            last: 0,
+            end: f64::NAN,
+            gap_end: f64::NAN,
+        }
+    }
+
+    fn push(&mut self, a: f64, g: f64) {
+        self.live += u64::from(a > 1e-9);
+        self.max = max2(self.max, a);
+        if g.abs() > 1e-6 {
+            let sign = if g > 0.0 { 1 } else { -1 };
+            if self.last != 0 && sign != self.last {
+                self.band += 1;
+            }
+            self.last = sign;
+        }
+        self.end = a;
+        self.gap_end = g;
+    }
 }
 
 /// The pace's readouts over the scored run (P2.4; the trap scan's §5.4), reported and never
@@ -1150,6 +1275,9 @@ impl Stats {
             wall: inst.worker_form.then(|| Wall::new(inst)),
             commons: None,
             pace: inst.paced_exit().then(PaceStats::new),
+            switch: inst
+                .switch
+                .then(|| vec![SwitchStats::new(); inst.wtypes.len()]),
         }
     }
 
@@ -1249,6 +1377,11 @@ impl Stats {
         if let Some(p) = self.pace.as_mut() {
             p.push(row);
         }
+        if let Some(s) = self.switch.as_mut() {
+            for ((st, &a), &g) in s.iter_mut().zip(&row.pool).zip(&row.switch_gap) {
+                st.push(a, g);
+            }
+        }
     }
 }
 
@@ -1342,11 +1475,18 @@ pub fn run(
             } else {
                 genesis_obs.extend(g.shares.iter().copied());
             }
-            genesis_obs
+            let prices = genesis_obs
                 .iter()
                 .zip(&t0.obs)
                 .map(|(o, t)| ln(o / t).abs())
-                .fold(0.0, f64::max)
+                .fold(0.0, f64::max);
+            // Each switch pop's reserved share at genesis against its target's, 1 − a against
+            // 1 − a* (P2.4; the switch scan's `swb.d0`); none elsewhere.
+            g.switch
+                .iter()
+                .zip(&t0.point.pool_share)
+                .map(|(a, at)| ln((1.0 - a) / (1.0 - at)).abs())
+                .fold(prices, f64::max)
                 / TOL_FLOOR
         }
         Start::Stocks if first_year => 0.0,

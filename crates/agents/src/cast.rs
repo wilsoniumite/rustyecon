@@ -18,14 +18,17 @@
 //! desk's only; a planted type desk has no own input, and a planted maker is on the stock path
 //! and uses no hours of its own horses. The workers' priced exit (P2.3, the commons) rents an
 //! `Instant` land, the land of the provider that pays their support, and has land for every plot.
+//! A switch pop's pool (P2.4, the type switch at the wall) is labour it mints and offers in full,
+//! so an `Instant` good, as its own labour is.
 
 use crate::behaviour::{AgentError, Behaviour, Decision, Posted, View};
 use crate::ext::{
     ActorState, Agents, CapacityState, GoodDeskState, MachDeskState, MakerState, OwnerState,
     PlantedCapacityState, PlantedMakerState, PlantedTypeState, ProviderState, ScriptState,
-    WorkersState,
+    SwitchWorkersState, WorkersState,
 };
 use crate::roles::many::spec::{BasketProvider, BasketWorkers, CategoryDesk, PricedExit, TypeDesk};
+use crate::roles::many::switch::SwitchWorkers;
 use crate::roles::plant::rules::{PlantedCapacity, PlantedMaker, PlantedType};
 use crate::roles::plant::spec::{Plant, PlantTarget};
 use crate::roles::spec::{GoodDesk, MachDesk, Provider, Scale, Workers};
@@ -55,6 +58,7 @@ enum Member {
     PlantedType(PlantedType),
     PlantedMaker(PlantedMaker),
     PlantedCapacity(PlantedCapacity),
+    SwitchWorkers(SwitchWorkers),
 }
 
 /// Every declared actor's behaviour, in `ActorId` order.
@@ -506,7 +510,14 @@ impl Cast {
                     if let Some(x) = &p.exit {
                         check_exit(w, decl, p, x)?;
                     }
-                    Member::BasketWorkers(p.clone())
+                    match &p.pool {
+                        None => Member::BasketWorkers(p.clone()),
+                        // A switch pop (P2.4): its pool's labour is minted in decide, so Instant.
+                        Some(x) => {
+                            check_role(w, decl, ActorKind::Pop, Some((x.good, "pool.good")), None)?;
+                            Member::SwitchWorkers(SwitchWorkers::new(p, x))
+                        }
+                    }
                 }
                 Spec::CategoryDesk(d) => {
                     let pays = d.scale.pays().map(|a| (a, "scale.payout.to"));
@@ -700,6 +711,7 @@ impl Cast {
             Member::PlantedType(b) => b.decide(&role_view(a, s, w, planted_type)?),
             Member::PlantedMaker(b) => b.decide(&role_view(a, s, w, planted_maker)?),
             Member::PlantedCapacity(b) => b.decide(&role_view(a, s, w, planted_capacity)?),
+            Member::SwitchWorkers(b) => b.decide(&role_view(a, s, w, switch_workers)?),
         }
     }
 
@@ -726,6 +738,7 @@ impl Cast {
             Member::PlantedType(b) => b.produce(&role_view(a, s, w, planted_type)?),
             Member::PlantedMaker(b) => b.produce(&role_view(a, s, w, planted_maker)?),
             Member::PlantedCapacity(b) => b.produce(&role_view(a, s, w, planted_capacity)?),
+            Member::SwitchWorkers(b) => b.produce(&role_view(a, s, w, switch_workers)?),
         }
     }
 
@@ -752,6 +765,7 @@ impl Cast {
             Member::PlantedType(b) => b.upkeep(&role_view(a, s, w, planted_type)?),
             Member::PlantedMaker(b) => b.upkeep(&role_view(a, s, w, planted_maker)?),
             Member::PlantedCapacity(b) => b.upkeep(&role_view(a, s, w, planted_capacity)?),
+            Member::SwitchWorkers(b) => b.upkeep(&role_view(a, s, w, switch_workers)?),
         }
     }
 }
@@ -829,6 +843,13 @@ fn planted_maker(s: &ActorState) -> Option<&PlantedMakerState> {
 fn planted_capacity(s: &ActorState) -> Option<&PlantedCapacityState> {
     match s {
         ActorState::PlantedCapacity(st) => Some(st),
+        _ => None,
+    }
+}
+
+fn switch_workers(s: &ActorState) -> Option<&SwitchWorkersState> {
+    match s {
+        ActorState::SwitchWorkers(st) => Some(st),
         _ => None,
     }
 }

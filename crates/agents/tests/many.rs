@@ -10,7 +10,7 @@
 use rustyecon_agents::cast::view;
 use rustyecon_agents::{
     ActorState, AgentDelta, Agents, Cast, Decision, GoodDeskState, MachDeskState, ProviderState,
-    RawSpec,
+    RawSpec, SwitchWorkersState,
 };
 use rustyecon_core::num;
 use rustyecon_core::{
@@ -26,6 +26,7 @@ const L3: &str = include_str!("../../../tapes/markets-l3.ron");
 const IW1: &str = include_str!("../../../tapes/markets-iw1.ron");
 const C1: &str = include_str!("../../../tapes/markets-c1.ron");
 const C1P: &str = include_str!("../../../tapes/markets-c1p.ron");
+const IS1: &str = include_str!("../../../tapes/markets-is1.ron");
 const CLOSE: f64 = 1e-14;
 
 type W = World<Agents>;
@@ -111,8 +112,18 @@ fn set_state(s: &mut S, w: &W, a: ActorId, state: ActorState) {
 }
 
 fn set_share(s: &mut S, w: &W, a: ActorId, share: f64) {
-    if let Some(ActorState::GoodDesk(st)) = s.ext().get(&a).copied() {
-        set_state(s, w, a, ActorState::GoodDesk(GoodDeskState { share, ..st }));
+    match s.ext().get(&a).copied() {
+        Some(ActorState::GoodDesk(st)) => {
+            set_state(s, w, a, ActorState::GoodDesk(GoodDeskState { share, ..st }))
+        }
+        // A switch pop's pool share (P2.4), the state its rule reads.
+        Some(ActorState::SwitchWorkers(st)) => set_state(
+            s,
+            w,
+            a,
+            ActorState::SwitchWorkers(SwitchWorkersState { pool: share, ..st }),
+        ),
+        _ => {}
     }
 }
 
@@ -176,15 +187,19 @@ fn many_roles_never_overbudget_or_overdraw() {
     // further transfers; and on the commons tape C1 (P2.3), whose workers hold a priced exit
     // and a commons drawn over six decades, so that their plots rent enclosed land in some
     // draws and they burn what they hold of it in produce; and on the paced commons tape C1P
-    // (P2.4), whose workers offer a paced share of their heads, its rate drawn with the others.
-    for text in [I2, L3, IW1, C1, C1P] {
+    // (P2.4), whose workers offer a paced share of their heads, its rate drawn with the others;
+    // and on the switch tape IS1 (P2.4), whose reserved pops sell to the pool and their own
+    // market, their pool shares at 0, 1 or uniform, their efficiencies over three decades or 0
+    // and their switch rates drawn with the others.
+    for text in [I2, L3, IW1, C1, C1P, IS1] {
         let (w, genesis, cast) = load(text);
         let goods = traded(&w);
         let coin = good(&w, "coin");
         let actors: Vec<ActorId> = cast.actors().collect();
-        let rates = params_with(&w, &["spend.", "buffer.", "adjust."]);
+        let rates = params_with(&w, &["spend.", "buffer.", "adjust.", "rate.switch."]);
         let tilts = params_with(&w, &["tilt."]);
         let commons = params_with(&w, &["inst.commons"]);
+        let efficiencies = params_with(&w, &["inst.trained.efficiency", "inst.master.efficiency"]);
         let mut d = Draws(0x2026_0927_0001);
         for i in 0..3000 {
             let mut s = genesis.clone();
@@ -223,6 +238,14 @@ fn many_roles_never_overbudget_or_overdraw() {
             }
             for key in &commons {
                 set_param(&mut s, &w, key, d.decades(-3.0, 3.0));
+            }
+            for key in &efficiencies {
+                let v = if i % 11 == 0 {
+                    0.0
+                } else {
+                    d.decades(-1.0, 2.0)
+                };
+                set_param(&mut s, &w, key, v);
             }
             decide_and_admit(&mut s, &w, &cast);
             // Produce on arbitrary inputs: each role burns within what it holds.

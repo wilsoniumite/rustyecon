@@ -424,6 +424,7 @@ fn spec_kind(s: &Spec) -> &'static str {
         Spec::GoodDesk(_) => "GoodDesk",
         Spec::MachDesk(_) => "MachDesk",
         Spec::BasketProvider(_) => "BasketProvider",
+        Spec::BasketWorkers(p) if p.pool.is_some() => "BasketWorkers, switching",
         Spec::BasketWorkers(_) => "BasketWorkers",
         Spec::CategoryDesk(_) => "CategoryDesk",
         Spec::TypeDesk(d) if d.plant.is_some() => "TypeDesk, planted",
@@ -906,5 +907,49 @@ mod tests {
         let good = w.id_of::<ActorId>("desk.good").unwrap();
         assert_eq!(spec_kind(&w.actor(good).unwrap().spec), "GoodDesk");
         assert_eq!(StateField::PlantBuilt.name(), "plant.built");
+    }
+
+    #[test]
+    fn inspector_reads_switch_states() {
+        // SWITCH-RULES §1 (P2.4): the inspector names a switch pop, a basket workers pop with a
+        // pool, and `state_fields` lists its participation share, then its pool share; a pop
+        // without a pool keeps the workers' one field.
+        let tape = Tape::from_ron(include_str!("../../../../tapes/markets-is1.ron")).unwrap();
+        let mut sim = Sim::new(&tape).unwrap();
+        sim.step().unwrap();
+        let w = sim.world().clone();
+        let fields = |key: &str| -> Vec<(StateField, f64)> {
+            let id = w.id_of::<ActorId>(key).unwrap();
+            state_fields(sim.actor_state(id).unwrap())
+        };
+        for key in ["workers.trained", "workers.master"] {
+            let id = w.id_of::<ActorId>(key).unwrap();
+            assert_eq!(
+                spec_kind(&w.actor(id).unwrap().spec),
+                "BasketWorkers, switching"
+            );
+            let f = fields(key);
+            assert_eq!(
+                f.iter().map(|(x, _)| *x).collect::<Vec<_>>(),
+                [StateField::Share, StateField::Pool],
+                "{key}"
+            );
+            assert!(f[0].1 > 0.0 && f[1].1 == 0.0, "{key}: {f:?}");
+        }
+        let id = w.id_of::<ActorId>("workers").unwrap();
+        assert_eq!(spec_kind(&w.actor(id).unwrap().spec), "BasketWorkers");
+        assert_eq!(
+            fields("workers")
+                .iter()
+                .map(|(x, _)| *x)
+                .collect::<Vec<_>>(),
+            [StateField::Share]
+        );
+        assert_eq!(StateField::Pool.name(), "pool");
+        let key = crate::run::SeriesKey {
+            measure: crate::run::Measure::State(StateField::Pool),
+            at: crate::run::At::Actor(Key::new("workers.trained").unwrap()),
+        };
+        assert_eq!(crate::vm::unit_of(&w, &key), "share");
     }
 }
