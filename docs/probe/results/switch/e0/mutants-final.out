@@ -1,0 +1,72 @@
+## shard 0/4
+R1-no-move killed by switch_moves_toward_the_better_market, switch_rule_matches_the_registered_vectors, harness_reads_the_switch, switch_pays_both_markets, markets_is1_never_crossing_is_iw1
+R5-wage-max killed by switch_rule_matches_the_registered_vectors, switch_moves_toward_the_better_market
+R9-off-moves killed by switch_off_is_the_reserved_pop
+R13-state-share killed by switch_moves_toward_the_better_market, switch_off_is_the_reserved_pop, harness_reads_the_switch, vm::inspector::tests::inspector_reads_switch_states
+S2-resolved-skip killed by paced_genesis_state_is_the_tapes, commons_leave_the_other_markets_tapes_ids
+S6-efficiency-any killed by many_roles_never_overbudget_or_overdraw, markets_is1_rest_point_is_the_oracles, harness_reads_the_switch, markets_is1_holds_at_the_oracle_point, switch_grammar_and_dials_apply_as_named, switch_pays_both_markets, markets_is1_never_crossing_is_iw1, markets_reports_the_switch, vm::inspector::tests::inspector_reads_switch_states
+S10-pool-dropped killed by each_site_converts_as_registered, markets_is1_never_crossing_is_iw1, markets_is1_rest_point_is_the_oracles, harness_reads_the_switch, switch_pays_both_markets, markets_is1_holds_at_the_oracle_point, vm::inspector::tests::inspector_reads_switch_states
+C1-instant-unchecked killed by switch_pool_is_checked_at_load
+I1-no-efficiency killed by markets_is1_points_are_the_registered_ones, switch_grammar_and_dials_apply_as_named, markets_is1_tape_is_its_generators_output, markets_is1_rest_point_is_the_oracles, markets_reports_the_switch, markets_is1_holds_at_the_oracle_point
+I5-efficiency-unset killed by markets_is1_never_crossing_is_iw1
+P2-switch-family killed by markets_reports_the_switch, switch_grammar_and_dials_apply_as_named
+H1-no-rs-names killed by harness_reads_the_switch, switch_battery_and_families_are_the_registered_ones
+H5-gap-own-wage killed by markets_is1_rest_point_is_the_oracles, harness_reads_the_switch
+H9-d0-no-switch killed by switch_grammar_and_dials_apply_as_named
+T2-battery-no-sw killed by switch_battery_and_families_are_the_registered_ones
+
+15 of 15 killed
+## shard 1/4
+R2-up-as-replicator killed by switch_rule_matches_the_registered_vectors, switch_moves_toward_the_better_market, harness_reads_the_switch, switch_pays_both_markets, markets_is1_never_crossing_is_iw1
+R6-gap-inverted killed by switch_moves_toward_the_better_market, switch_rule_matches_the_registered_vectors, markets_is1_rest_point_is_the_oracles, switch_pays_both_markets, markets_is1_never_crossing_is_iw1, markets_is1_holds_at_the_oracle_point, harness_reads_the_switch, vm::inspector::tests::inspector_reads_switch_states
+R10-off-keeps-no-a killed by switch_off_is_the_reserved_pop
+R14-no-eat killed by markets_is1_rest_point_is_the_oracles, markets_is1_holds_at_the_oracle_point
+S3-exit-allowed killed by switch_pool_is_checked_at_load
+S7-rate-share killed by switch_moves_toward_the_better_market
+E1-values-unchecked killed by switch_state_is_checked
+U1-gui-no-pool-field killed by vm::inspector::tests::inspector_reads_switch_states
+I2-not-switched killed by harness_reads_the_switch, switch_battery_and_families_are_the_registered_ones, markets_is1_tape_is_its_generators_output, switch_grammar_and_dials_apply_as_named, markets_is1_never_crossing_is_iw1, markets_is1_rest_point_is_the_oracles, markets_reports_the_switch, switch_pays_both_markets, markets_is1_holds_at_the_oracle_point
+I6-pool-share-hours killed by markets_is1_points_are_the_registered_ones, switch_grammar_and_dials_apply_as_named, markets_is1_rest_point_is_the_oracles, markets_reports_the_switch, markets_is1_holds_at_the_oracle_point
+P3-displacement-ignored killed by switch_grammar_and_dials_apply_as_named, harness_reads_the_switch
+H2-volume-hours killed by markets_is1_rest_point_is_the_oracles, markets_is1_holds_at_the_oracle_point
+H6-live-threshold killed by harness_reads_the_switch
+H10-csv-no-columns killed by harness_reads_the_switch
+T3-sw-as-coin killed by switch_grammar_and_dials_apply_as_named, harness_reads_the_switch
+
+15 of 15 killed
+## shard 2/4
+R3-down-linear killed by switch_rule_matches_the_registered_vectors, switch_moves_toward_the_better_market
+R7-pool-hours-plain killed by switch_rule_matches_the_registered_vectors, switch_moves_toward_the_better_market, markets_is1_rest_point_is_the_oracles, markets_is1_holds_at_the_oracle_point
+R11-pool-order-always killed by switch_moves_toward_the_better_market, switch_off_is_the_reserved_pop
+R15-own-mint-always killed by switch_moves_toward_the_better_market
+S4-own-labour-allowed killed by switch_pool_is_checked_at_load
+S8-share-unchecked killed by switch_pool_is_checked_at_load
+E2-shares-unbounded killed by switch_state_is_checked
+U2-gui-kind killed by vm::inspector::tests::inspector_reads_switch_states
+I3-is2-values killed by switch_battery_and_families_are_the_registered_ones, markets_is1_rest_point_is_the_oracles
+I7-reserved-hours killed by markets_is1_points_are_the_registered_ones, markets_is1_rest_point_is_the_oracles, markets_is1_holds_at_the_oracle_point
+P4-no-range-check killed by switch_grammar_and_dials_apply_as_named
+H3-target-rs-one killed by markets_is1_rest_point_is_the_oracles, markets_is1_holds_at_the_oracle_point
+H7-band-unbanded killed by harness_reads_the_switch
+H11-stats-unpushed killed by harness_reads_the_switch
+B1-bin-no-stats killed by markets_reports_the_switch
+
+15 of 15 killed
+## shard 3/4
+R4-tie-moves killed by switch_moves_toward_the_better_market, switch_rule_matches_the_registered_vectors, markets_is1_rest_point_is_the_oracles, markets_is1_holds_at_the_oracle_point
+R8-own-all killed by switch_rule_matches_the_registered_vectors, switch_moves_toward_the_better_market, markets_is1_rest_point_is_the_oracles, harness_reads_the_switch, markets_is1_holds_at_the_oracle_point
+R12-no-pool-sell killed by switch_moves_toward_the_better_market, markets_is1_rest_point_is_the_oracles, switch_pays_both_markets, markets_is1_holds_at_the_oracle_point
+S1-raw-skip killed by switch_genesis_state_is_the_tapes, commons_leave_the_other_markets_tapes_ids
+S5-basket-allowed killed by switch_pool_is_checked_at_load
+S9-sites-unlisted killed by each_site_converts_as_registered
+E3-genesis-zero killed by switch_genesis_state_is_the_tapes, markets_is1_rest_point_is_the_oracles, harness_reads_the_switch, markets_is1_holds_at_the_oracle_point
+U3-gui-unit killed by vm::inspector::tests::inspector_reads_switch_states
+I4-no-efficiency-param killed by markets_is1_tape_is_its_generators_output, harness_reads_the_switch, markets_is1_holds_at_the_oracle_point, markets_is1_rest_point_is_the_oracles, switch_grammar_and_dials_apply_as_named, switch_pays_both_markets, markets_is1_never_crossing_is_iw1, markets_reports_the_switch
+P1-dial-value killed by markets_is1_tape_is_its_generators_output, switch_grammar_and_dials_apply_as_named
+P5-share-written-zero killed by markets_is1_rest_point_is_the_oracles, harness_reads_the_switch, markets_is1_holds_at_the_oracle_point
+H4-row-rs-one killed by markets_is1_rest_point_is_the_oracles, harness_reads_the_switch, markets_is1_holds_at_the_oracle_point
+H8-max-last killed by harness_reads_the_switch
+T1-grammar-unguarded killed by switch_grammar_and_dials_apply_as_named
+B2-bin-no-point killed by markets_reports_the_switch
+
+15 of 15 killed

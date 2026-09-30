@@ -43,7 +43,12 @@ predicted GO, a type crossing in 61 of its 129 battery and Tier-3S runs. Decisio
 O118–O123. **It is built** (P2.4.8; [docs/probe/SWITCH-RULES.md](docs/probe/SWITCH-RULES.md)):
 the workers' optional `pool` and the appended state `SwitchWorkers`, IS1 and IS2,
 `tapes/markets-is1.ron`, the harness's observables, grammar and readouts and 17 tests, with every
-committed tape's text, ids and streams unchanged; E0 is next.
+committed tape's text, ids and streams unchanged. **E0–E2 pass** (P2.4.9;
+[docs/probe/results/switch/e0.md](docs/probe/results/switch/e0.md)): the engine is the scan's
+mirror within 1.35e-13 in all seventeen registered runs, the pool shares within 4.3e-15, through
+the switch both ways, with no parting above 1e-12 but the wall's A1 residue and no amendment;
+mode A, the kick sets and L as registered. The scorer and the scored wave (E1's never-pooled
+runs, E3–E9) are next.
 Before it, on branch `phase2-proper` from `reboot` at `f7d1eae`:
 **Phase 2 proper's first session is reported** (P2.3.16;
 [docs/probe/PHASE2-S1.md](docs/probe/PHASE2-S1.md)): both reviews find the verdicts hold, and
@@ -219,6 +224,28 @@ types and carriers, on the many-market roles (O27), which may now start from the
 stage v2a.1 on your ruling on D-G12. "Next steps" has each.
 
 ## Where things stand
+
+**The type switch at the wall: E0–E2, before any scored run (P2.4.9; 2026-09-30).** Branch
+`phase2-s2`, label `build-switch`, scratch `D:/rustyecon-p24/build-switch/e0/`. The record:
+[docs/probe/results/switch/e0.md](docs/probe/results/switch/e0.md), with its outputs in `e0/`.
+- **E0 passes, as registered.** The committed build (`1f38b94`) against the scan's mirror
+  `wms.py` (the migration rule at 26 a year), the spec's seventeen runs of 2,000 ticks at IS1 and
+  IS2: every price, ratio, threshold, stock, coin, S and D within 1.35e-13 in log (2.1e-14 but at
+  x\*/2's tick 2, a desk output 460 times below its rest, 2.5 ulps of its scale), each pool share
+  within 4.3e-15 absolute and its gap within 8.8e-15; the mirror one ulp from itself parts by up
+  to 8.5e-15. A type pools in sixteen of the runs. The only partings above 1e-12 are the wall's
+  A1 residue at `stock.mach*0.01`'s tick 1, so no amendment. The rule vectors pass as the
+  registration's §3 reads them.
+- **E1 holds** (P2.4.8): every committed tape's text, ids and stream on both machines, the pins,
+  the nesting tests. Its run-for-run comparison of the 68 never-pooled runs with IW1's wave is the
+  scored wave's.
+- **E2 holds.** The rest point within 1e-12 at 78 points. Mode A at L passes at 12, 52 and 365 a
+  year at IS1 and IS2, largest gaps 2.7e-15 or below, IS2's trained pooled at a\* every tick. The
+  base kick sets pass (largest tail gain 8.3e-6). The engine's elasticity probe gives the spec's
+  τ (goods' 106.4 ticks at IS1, services' 118.6 at IS2), so L is the registered 22,000 and
+  24,000.
+- **Next** (the spec's §7): the scorer, its gather script and job list committed before the wave
+  (decision 311), then the scored wave on IS1 and the control IS2.
 
 **The type switch at the wall: the build (P2.4.8; 2026-09-30).** Branch `phase2-s2`, label
 `build-switch`, scratch `D:/rustyecon-p24/build-switch/`. As built:
@@ -5506,7 +5533,7 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
       the addenda of O95 it uses (a walled type under s(q), 1e §2.9, decision 377; a second land
       class if its tape has one). *O97's rule scanned and registered at P2.4.7:* the migration
       rule on IS1 (decisions 409–415; `docs/probe/switch/SPEC.md`); built at P2.4.8
-      (`docs/probe/SWITCH-RULES.md`); E0, the scorer and the scored wave next.
+      (`docs/probe/SWITCH-RULES.md`); E0–E2 pass at P2.4.9; the scorer and the scored wave next.
    4. **The 1750-like instance**, first as a flow instance at C2m on the many-market roles,
       loop-free as I1–I3, IW1, C1 and C2 are (67's letter, 361), with 1e and 1f, the common basket
       (388), 1f's tax bases and closure if it has a government (382–386) and ρ 0 (393), so that
@@ -5622,7 +5649,7 @@ docs/probe/switch/       the switch scan's frame, as registered (P2.4.7): SPEC.m
                          and evidence/ (the scan's tables and the mirror's checks)
 docs/probe/SWITCH-RULES.md the type switch as built (P2.4.8): the workers' pool, the state
                          SwitchWorkers, IS1 and IS2, the harness at a switch instance, the checks
-docs/probe/results/switch/ the switch's registration (P2.4.7)
+docs/probe/results/switch/ the switch's registration (P2.4.7) and E0's record (P2.4.9)
 docs/probe/results/families-wave/ wave A's machinery, committed before it (P2.4.2): the job
                          list, job and runner scripts, gather script, scorer, self-test
 docs/probe/results/loops/ the loop step's registration (L0.8), quoting LOOP-SPEC-A1's
