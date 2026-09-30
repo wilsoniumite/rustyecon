@@ -24,3 +24,26 @@ else in it was changed. Then, in this directory:
   history, joint, basin, Tier 3S, C1N and the wall's, and two kick sets), run again on the new
   binary; every file they write must equal the wave's byte for byte.
 - The scorer, the gather script and the job list are unchanged.
+
+## The jobs the wave's runner never started (P2.3.13)
+
+The wave ended at 10:08 (38 minutes) with xargs' exit code 123, and gather found 703 jobs with no
+exit file, 701 of the wave's and 2 of the rerun's (and 4 of the R1 check's). The runner,
+`xargs -P 46 -I{} bash -c '{}' < jobs.txt`, as README.md names it, strips the quotes of each input
+line even with `-I`. So every job whose run name holds a parenthesis (JA, JB, N, RC, RW, `joint`,
+`cycle`) reached bash unquoted and was a syntax error before `job.sh` started: no output, no exit
+file, nothing seen. Names with brackets and stars reached bash unquoted too and ran, since bash
+leaves a glob that matches nothing as it is; `check_names.py` confirms that each of the 2,961
+runs that ran printed its job's name. So the R1 check above compared the 20 of its 24 jobs that
+ran (76 files, none differing), and it is run again in full.
+
+- `make_missing.py` → `jobs-missing.txt`: every job, from `../jobs.txt`, `jobs-rerun.txt` and
+  `jobs-r1.txt`, whose directory has no exit file, 707 in all, each as its list wrote it: the 701
+  of the wave on the wave's binary (P2.3.11), the rerun's two (`cycle(commons,1500,80)` at C1 and
+  C2) and the R1 check's four on P2.3.12's.
+- `run_missing.sh` runs them with `xargs -d '\n'`, which takes each line as it is.
+- `check_names.py` checks, on the final `runs.jsonl`, that every run and kick set ran and printed
+  its job's name.
+
+The job list, the scorer and the gather script are unchanged; the 707 jobs ran after the wave's
+other jobs had finished, and no result of the wave had been scored.
