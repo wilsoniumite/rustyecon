@@ -1,0 +1,48 @@
+C1         26/2 targets: largest log gap over 3 ticks 1.22e-15, over 300 6.00e-15; least fill 0.9999999999999951
+C1/P1.3r   26/2 targets: largest log gap over 3 ticks 1.22e-15, over 300 2.44e-15; least fill 0.9999999999999971
+C1/P0.65   26/2 targets: largest log gap over 3 ticks 1.22e-15, over 300 2.44e-15; least fill 0.9999999999999971
+C1/P1.3    26/2 targets: largest log gap over 3 ticks 1.22e-15, over 300 2.44e-15; least fill 0.9999999999999971
+C1/P2.6    26/2 targets: largest log gap over 3 ticks 1.22e-15, over 300 4.11e-15; least fill 0.9999999999999971
+C1/E0.1    26/2 targets: largest log gap over 3 ticks 1.22e-15, over 300 6.00e-15; least fill 0.9999999999999951; entrant's markup at most 0.9196
+C1/E1      26/2 targets: largest log gap over 3 ticks 1.22e-15, over 300 6.00e-15; least fill 0.9999999999999951; entrant's markup at most 0.9196
+C1/S4      26/2 targets: largest log gap over 3 ticks 1.22e-15, over 300 4.66e-15; least fill 0.9999999999999951
+C1/S13     26/2 targets: largest log gap over 3 ticks 1.22e-15, over 300 2.44e-15; least fill 0.9999999999999970
+C1/H       26/2 targets: largest log gap over 3 ticks 2.00e-15, over 300 7.88e-15; least fill 0.9999999999999907
+C2         26/2 targets: largest log gap over 3 ticks 2.22e-15, over 300 7.77e-15; least fill 0.9999999999999946
+C2/P1.3r   26/2 targets: largest log gap over 3 ticks 2.55e-15, over 300 6.22e-15; least fill 0.9999999999999956
+C2/P0.65   26/2 targets: largest log gap over 3 ticks 2.55e-15, over 300 6.22e-15; least fill 0.9999999999999956
+C2/P1.3    26/2 targets: largest log gap over 3 ticks 2.55e-15, over 300 6.22e-15; least fill 0.9999999999999956
+C2/P2.6    26/2 targets: largest log gap over 3 ticks 2.55e-15, over 300 9.88e-15; least fill 0.9999999999999918
+C2/E0.1    26/2 targets: largest log gap over 3 ticks 2.22e-15, over 300 7.77e-15; least fill 0.9999999999999946; entrant's markup at most 0.9216
+C2/E1      26/2 targets: largest log gap over 3 ticks 2.22e-15, over 300 7.77e-15; least fill 0.9999999999999946; entrant's markup at most 0.9216
+C2/S4      26/2 targets: largest log gap over 3 ticks 2.22e-15, over 300 7.77e-15; least fill 0.9999999999999925
+C2/S13     26/2 targets: largest log gap over 3 ticks 2.22e-15, over 300 6.00e-15; least fill 0.9999999999999944
+C2/H       26/2 targets: largest log gap over 3 ticks 1.67e-15, over 300 7.11e-15; least fill 0.9999999999999939
+
+home output sold (H) against the registered point, per target:
+  C1 None                         x* 0.74834 -> 0.74976; v 0.48399 -> 0.48472; S 0.5385 -> 0.5385; Y 5.7163 -> 6.2102; regime Crowded -> Crowded; home food 1.0385 = 0.167 of food; desk food 5.1717; r_o 0.4379 -> 0.4333
+  C1 ('land.mach', 0.44000000000000006) x* 0.74733 -> 0.74875; v 0.53183 -> 0.53263; S 0.5385 -> 0.5385; Y 5.6136 -> 6.1117; regime Crowded -> Crowded; home food 1.0385 = 0.170 of food; desk food 5.0732; r_o 0.2195 -> 0.2144
+  C1 ('land.mach', 0.36000000000000004) x* 0.74935 -> 0.75600; v 0.43606 -> 0.43914; S 0.5385 -> 0.5385; Y 5.8235 -> 6.3129; regime Crowded -> Crowded; home food 1.0385 = 0.164 of food; desk food 5.2744; r_o 0.6570 -> 0.6375
+  C1 ('land.mach', 0.8)           x* 0.70386 -> 0.70302; v 0.92238 -> 0.92152; S 0.8504 -> 0.8494; Y 4.9838 -> 5.4657; regime Commons -> Commons; home food 0.9452 = 0.173 of food; desk food 4.5205; r_o 0.0000 -> 0.0000
+  C1 ('land.mach', 0.2)           x* 0.87344 -> 0.87398; v 0.27440 -> 0.27454; S 0.4276 -> 0.4279; Y 6.2745 -> 6.7590; regime Enclosed -> Enclosed; home food 1.0716 = 0.159 of food; desk food 5.6873; r_o 1.0000 -> 1.0000
+  C1 ('b.food', 0.66)             x* 0.74650 -> 0.74803; v 0.48305 -> 0.48384; S 0.5385 -> 0.5385; Y 5.5314 -> 6.0429; regime Crowded -> Crowded; home food 1.0385 = 0.172 of food; desk food 5.0044; r_o 0.6332 -> 0.6282
+  C1 ('b.food', 0.54)             x* 0.75157 -> 0.76170; v 0.48566 -> 0.49087; S 0.5385 -> 0.5385; Y 5.9140 -> 6.3890; regime Crowded -> Crowded; home food 1.0385 = 0.163 of food; desk food 5.3505; r_o 0.2381 -> 0.2051
+  C1 ('b.food', 1.2)              x* 0.83183 -> 0.84295; v 0.52714 -> 0.53292; S 0.3211 -> 0.3288; Y 4.2275 -> 4.8976; regime Enclosed -> Enclosed; home food 1.1013 = 0.225 of food; desk food 3.7963; r_o 1.0000 -> 1.0000
+  C1 ('b.food', 0.3)              x* 0.74452 -> 0.74449; v 0.48203 -> 0.48202; S 0.6966 -> 0.6966; Y 6.9146 -> 7.2816; regime Commons -> Commons; home food 0.9910 = 0.136 of food; desk food 6.2906; r_o 0.0000 -> 0.0000
+  C1 ('exit.To', 26.730000000000004) x* 0.79986 -> 0.80460; v 0.51056 -> 0.51302; S 0.4669 -> 0.4710; Y 5.6966 -> 6.2011; regime Commons -> Commons; home food 1.0587 = 0.171 of food; desk food 5.1424; r_o 0.0000 -> 0.0000
+  C1 ('exit.To', 21.87)           x* 0.73405 -> 0.73445; v 0.47666 -> 0.47686; S 0.6814 -> 0.6817; Y 5.7393 -> 6.2129; regime Enclosed -> Enclosed; home food 0.9955 = 0.160 of food; desk food 5.2174; r_o 1.0000 -> 1.0000
+  C1 ('exit.To', 48.6)            x* 0.79986 -> 0.80460; v 0.51056 -> 0.51302; S 0.4669 -> 0.4710; Y 5.6966 -> 6.2011; regime Commons -> Commons; home food 1.0587 = 0.171 of food; desk food 5.1424; r_o 0.0000 -> 0.0000
+  C1 ('exit.To', 12.15)           x* 0.73288 -> 0.73321; v 0.47605 -> 0.47622; S 0.6803 -> 0.6806; Y 5.6348 -> 6.1085; regime Enclosed -> Enclosed; home food 0.9958 = 0.163 of food; desk food 5.1127; r_o 1.0000 -> 1.0000
+  C2 None                         x* 0.74350 -> 0.74414; v 0.48151 -> 0.48184; S 0.5872 -> 0.5878; Y 5.7295 -> 6.0542; regime Commons -> Commons; home food 0.6824 = 0.113 of food; desk food 5.3717; r_o 0.0000 -> 0.0000
+  C2 ('land.mach', 0.44000000000000006) x* 0.73683 -> 0.73724; v 0.52589 -> 0.52612; S 0.6431 -> 0.6435; Y 5.6438 -> 5.9659; regime Commons -> Commons; home food 0.6713 = 0.113 of food; desk food 5.2946; r_o 0.0000 -> 0.0000
+  C2 ('land.mach', 0.36000000000000004) x* 0.75257 -> 0.75712; v 0.43755 -> 0.43966; S 0.5289 -> 0.5327; Y 5.8211 -> 6.1488; regime Commons -> Commons; home food 0.6935 = 0.113 of food; desk food 5.4554; r_o 0.0000 -> 0.0000
+  C2 ('land.mach', 0.8)           x* 0.68677 -> 0.68567; v 0.90491 -> 0.90379; S 1.0106 -> 1.0093; Y 5.0515 -> 5.3561; regime Commons -> Commons; home food 0.5981 = 0.112 of food; desk food 4.7580; r_o 0.0000 -> 0.0000
+  C2 ('land.mach', 0.2)           x* 0.95718 -> 0.95463; v 0.29637 -> 0.29570; S 0.3291 -> 0.3277; Y 6.2663 -> 6.5981; regime Commons -> Commons; home food 0.7345 = 0.111 of food; desk food 5.8636; r_o 0.0000 -> 0.0000
+  C2 ('b.food', 0.66)             x* 0.74542 -> 0.74628; v 0.48249 -> 0.48294; S 0.5491 -> 0.5498; Y 5.5342 -> 5.8742; regime Commons -> Commons; home food 0.6900 = 0.117 of food; desk food 5.1842; r_o 0.0000 -> 0.0000
+  C2 ('b.food', 0.54)             x* 0.74161 -> 0.74203; v 0.48054 -> 0.48075; S 0.6280 -> 0.6284; Y 5.9389 -> 6.2475; regime Commons -> Commons; home food 0.6743 = 0.108 of food; desk food 5.5732; r_o 0.0000 -> 0.0000
+  C2 ('b.food', 1.2)              x* 0.82215 -> 0.83022; v 0.52211 -> 0.52630; S 0.3299 -> 0.3355; Y 4.2416 -> 4.6874; regime Commons -> Commons; home food 0.7329 = 0.156 of food; desk food 3.9545; r_o 0.0000 -> 0.0000
+  C2 ('b.food', 0.3)              x* 0.73436 -> 0.73394; v 0.47681 -> 0.47660; S 0.8220 -> 0.8216; Y 6.9549 -> 7.1901; regime Commons -> Commons; home food 0.6357 = 0.088 of food; desk food 6.5544; r_o 0.0000 -> 0.0000
+  C2 ('exit.To', 34.32)           x* 0.74350 -> 0.74414; v 0.48151 -> 0.48184; S 0.5872 -> 0.5878; Y 5.7295 -> 6.0542; regime Commons -> Commons; home food 0.6824 = 0.113 of food; desk food 5.3717; r_o 0.0000 -> 0.0000
+  C2 ('exit.To', 28.08)           x* 0.74350 -> 0.74414; v 0.48151 -> 0.48184; S 0.5872 -> 0.5878; Y 5.7295 -> 6.0542; regime Commons -> Commons; home food 0.6824 = 0.113 of food; desk food 5.3717; r_o 0.0000 -> 0.0000
+  C2 ('exit.To', 62.4)            x* 0.74350 -> 0.74414; v 0.48151 -> 0.48184; S 0.5872 -> 0.5878; Y 5.7295 -> 6.0542; regime Commons -> Commons; home food 0.6824 = 0.113 of food; desk food 5.3717; r_o 0.0000 -> 0.0000
+  C2 ('exit.To', 15.6)            x* 0.73568 -> 0.73603; v 0.47749 -> 0.47767; S 0.6667 -> 0.6667; Y 5.7507 -> 6.0677; regime Crowded -> Crowded; home food 0.6667 = 0.110 of food; desk food 5.4011; r_o 0.4660 -> 0.4643

@@ -1,0 +1,10 @@
+registered rule: DIVERGED runs 218 by set {('C2', 'basin'): 77, ('C2', 'joint4'): 8, ('C1', 'history'): 1, ('C1', 'basin'): 89, ('C1', 'joint4'): 12, ('C1', 'joint2'): 4, ('C1', 'dials'): 18, ('C1/N', 't3'): 9}
+zero-hour ticks in them (where recorded): min 132 max 208 ; runs recording it 217
+registered rule: CONVERGED runs with a zero-hour tick 11 of 2536
+under Pr 1.3: {'CONVERGED': 218}
+ticks to tolerance min/median/max (416, 705, 897)
+dead ticks min/median/max (32, 163, 325)
+least hours / S* min/median/max 0.0202 0.1520 0.6523
+largest e0/w min/median/max 1.143 3.495 39.853
+lowest baskets / Y* min/median/max 0.00e+00 1.05e-04 3.72e-01
+zero-hour ticks under Pr 1.3 in every run of the scan: 0

@@ -1,0 +1,9 @@
+C1P   52/yr L 141000: largest gap 2.44e-15 PASS; least fill 0.999999999999997; |share - rule's| at the end 0.0e+00; regime Crowded
+C1P   12/yr L 26000: largest gap 2.13e-14 PASS; least fill 0.999999999999985; |share - rule's| at the end 2.8e-17; regime Crowded
+C1P   365/yr L 1113000: largest gap 8.88e-16 PASS; least fill 0.999999999999999; |share - rule's| at the end 1.4e-16; regime Crowded
+C2P   52/yr L 142000: largest gap 4.44e-16 PASS; least fill 1.000000000000000; |share - rule's| at the end 0.0e+00; regime Commons
+C2P   12/yr L 26000: largest gap 1.89e-14 PASS; least fill 0.999999999999985; |share - rule's| at the end 8.3e-17; regime Commons
+C2P   365/yr L 1116000: largest gap 1.55e-15 PASS; least fill 0.999999999999984; |share - rule's| at the end 2.2e-16; regime Commons
+C1PN  52/yr L 141000: largest gap 2.22e-16 PASS; least fill 1.000000000000000; |share - rule's| at the end 0.0e+00; regime Commons
+C1PN  12/yr L 26000: largest gap 2.22e-14 PASS; least fill 0.999999999999984; |share - rule's| at the end 5.0e-16; regime Commons
+C1PN  365/yr L 1113000: largest gap 3.33e-16 PASS; least fill 1.000000000000000; |share - rule's| at the end 0.0e+00; regime Commons

@@ -19,6 +19,13 @@ every family run on I1–I3 converges and I3's five map cells are GO; at the dia
 converge everywhere, and C1 falls into the subsistence trap at every price rate × 0.9 and × 0.75,
 every buffer × 1.1 and × 1.25, and every tilt of 0.25 and above. Its job list, scorer and
 self-test are committed before the wave (P2.4.2; decision 311); the wave is next.
+**The subsistence trap's remedy is registered** (P2.4.4, docs only; "Where things stand";
+[docs/probe/results/trap/registration.md](docs/probe/results/trap/registration.md)): a mirror
+scan of O100's four candidates chose participation at a rate, the workers' optional `exit.pace`
+(their share moves 1 − exp(−1.3/tpy) of its gap to the rule's each tick), which keeps the
+oracle's point and, in the mirror, clears the trap from every scanned family at C1 and C2; the
+paced instances C1P, C2P and C1PN are predicted GO with margin at the dial neighbourhood.
+Decisions 404–408 and O113–O117. The build and E0 are next.
 Before it, on branch `phase2-proper` from `reboot` at `f7d1eae`:
 **Phase 2 proper's first session is reported** (P2.3.16;
 [docs/probe/PHASE2-S1.md](docs/probe/PHASE2-S1.md)): both reviews find the verdicts hold, and
@@ -194,6 +201,42 @@ types and carriers, on the many-market roles (O27), which may now start from the
 stage v2a.1 on your ruling on D-G12. "Next steps" has each.
 
 ## Where things stand
+
+**The subsistence trap's remedy: participation at a rate, registered (P2.4.4; 2026-09-30).**
+Branch `phase2-s2`, label `build-trap`, scratch `D:/rustyecon-p24/build-trap/`; the scan's
+`D:/rustyecon-p24/scan-trap/`. Docs only:
+[docs/probe/results/trap/registration.md](docs/probe/results/trap/registration.md), the scan's
+frame in [docs/probe/trap/](docs/probe/trap/), and this file.
+- **The scan** (`SPEC.md`, sha256 `1dba64d3…7ff7` as registered, CRLF; `SHA256SUMS`, 184 entries,
+  each checked). PHASE2-S1 §6 item B. The mirror `tm.py` is the registered `cm.py` with O100's
+  four candidates, each off by default, and equals it bit for bit with every candidate off
+  (316,948 ticks, 20,000 states). Each candidate ran C1's and C2's battery, the 17 dial settings
+  on Tier 3, joint2, joint4, basin, history and C1N's Tier 3: 2,799 runs a candidate.
+- **The mechanism.** A machine-price shock automates every desk, the exit ties the wage to
+  food's price, participation collapses, and every trapped run has 132–208 ticks with no hours.
+  With no hours the machine desk makes nothing, and its own input (a_kk 0.3) keeps a zero stock
+  at zero: the trap is absorbing.
+- **The choice: participation at a rate** (decision 404). The share of heads offering hours moves
+  a = −expm1(−1.3/tpy) of its gap to the rule's share each tick; only the hours lag, the plots
+  follow the rule. It clears every scanned family at C1 and C2 (0 of 17 dial settings, basin 0/0,
+  joint2 and joint4 0, history 81/81, C1N 0 of 43), converges all 218 of the registered rule's
+  trap runs (416–897 ticks), keeps the oracle's point and nearly its roots (0.986127, 0.986524).
+  Named alternative: home output sold (moves the point; leaves 38 and 40 basin runs trapped).
+  Rejected: the food entrant (42–44 basin runs trapped) and the storable exit good (locally
+  unstable at C1). On a held-out instance defined after the choice (C1 with a dearer exit) the
+  registered rule is LOCAL and the pace clears it.
+- **The predictions** (3,901 runs and 817 controls): C1P and C2P GO with margin, mode A passing at
+  12, 52 and 365 a year, every run CONVERGED or VACUOUS by construction, no tick without hours;
+  the controls: C1's 18 dial-neighbourhood trap runs, C1P and C2P at every tilt 2 (3 and 2 slow
+  collapses).
+- **Disclosed:** the rate was chosen on the families it is judged on (a forking path); three
+  branches were added to the mirror mid-scan, each unused by the earlier runs, and the nesting
+  check and 775 runs were rerun on the final files.
+- **Readings declared before the build** (registration §3): the field and the dial, the genesis
+  share, `part.workers*F` and `=V`, the pace family's first-year start and order, the names, the
+  tapes, the readouts `part_workers`, `part_target` and `pace.*`, E0's comparison.
+- **Decisions 404–408 and O113–O117**, below. **Next:** the build, then E0 against `tm.py`
+  before any scored run.
 
 **Wave A's machinery and scorer, before the wave (P2.4.2; 2026-09-30).** Branch `phase2-s2`, label
 `families`. Committed before any job of the wave (decision 311):
@@ -4047,6 +4090,32 @@ the registered one (R6).
      a CONVERGED run ending off its point, or a scored kick set or map-cell verdict not as
      registered. Alternative: classes only, the families being reported.
 
+Decisions 404–408 are P2.4.4's (2026-09-30), the trap scan's TR1–TR5 (`docs/probe/trap/SPEC.md`
+§10), numbered at its registration. Claude's, on your delegation, each open to veto; the
+alternative named is the registered one (R6).
+
+404. **O100's remedy is participation at a rate** (TR1; the scan's §4.1, §5): the workers'
+     optional `exit.pace`, their share moving a = −expm1(−1.3/tpy) of its gap to the rule's F\*
+     each tick, only the hours lagging, the plots the rule's T_p. It keeps the oracle's point (no
+     addendum) and is the only candidate that clears the trap from every scanned family at C1 and
+     C2. *Alternative:* home output sold, with its 1e addendum and a new instance. *Extreme:* the
+     registered rule.
+405. **The paced instances are new: C1P, C2P and C1PN** (TR2), with tapes `markets-c1p.ron` and
+     `markets-c2p.ron`; C1 and C2 stay as registered, their tapes, wave and GO unchanged (R1).
+     *Alternative:* C1 and C2 amended in place, which moves their tapes and ids.
+406. **The pace's dial is `adjust.participation.workers` at 1.3 a year in C2m** (TR3), for paced
+     instances only, scaled by `adjust.*`: land's and the types' rate, so C2m gains no new number.
+     Chosen from 0.65, 1.3, 2.6, 5.2 and 13 on the families it is judged on (disclosed). *Alternative:*
+     the technique's 2.6, which keeps one failing setting (rate × 0.75) at C1; or a family of its
+     own outside `adjust.*`.
+407. **The engine run is the scan's §8, E0–E10, and "with margin" is a verdict line** (TR4):
+     every Tier-3 run of the 17-setting neighbourhood CONVERGED or VACUOUS. *Alternative:* E10
+     reported beside the verdict, as decision 399 (4) registers the family for the roles as they
+     are.
+408. **The controls** (TR5): the registered C1's 18 dial-neighbourhood trap runs, and C1P and C2P
+     at every tilt 2 (the trap beyond the stable region); C1PN is kept as a stress control.
+     *Alternative:* C1PN as the negative control, now predicted to converge.
+
 ## Open — your calls
 
 - **The GUI's decisions**, 22–34 (D1–D13): G0 carried them out, none vetoed; a veto now reopens
@@ -4091,6 +4160,10 @@ the registered one (R6).
   wave: its composition with no new grammar (400), the dial neighbourhood's settings, tiers and L,
   which read 399(4)'s × 0.8 as × 0.75 (401), the mirrors and their runners (402), and P2.3's bands
   (403). Each open to veto before the wave's scoring.
+- **Decisions 404–408** (P2.4.4, 2026-09-30): the trap scan's choice, participation at a rate as
+  O100's remedy (404), the new paced instances C1P, C2P and C1PN (405), the dial at 1.3 a year in
+  `adjust.*` (406), the engine run with "with margin" a verdict line (407), and the controls
+  (408). Each open to veto before the build; home output sold is the named alternative.
 - **Decisions 59–75 and 135–178** (Phase 1), open to veto. Those that bound Phase 2 proper (61,
   67, 70; 135, 137, 139, 140; 147, 149, 151, 153–155, 158, 160, 161; 162, 164, 165, 167–169,
   173) are ruled by Claude at P2.3.0 as 360–393, with the markets probe's advice: keep 67 (its
@@ -4963,7 +5036,11 @@ O95 on are Phase 2 proper's (P2.3.0, branch `phase2-proper`; this line's range i
   output is 1e's open question 6, an oracle addendum (home food joins food's supply and rent is
   paid in money, which moves the point through goods clearing); scan it beside the three, with
   C1's dial neighbourhood as the measure. Hypothesis: the trap sits closer as the exit's value at
-  rest grows against the wage (0.529 at C1, 0.354 at C2).
+  rest grows against the wage (0.529 at C1, 0.354 at C2). *Amended at P2.4.4:* scanned
+  (`docs/probe/trap/SPEC.md`): participation at a rate is chosen and registered (decision 404),
+  home output sold is the named alternative, the entrant and the storable good are rejected; the
+  held-out instance (exit worth 0.696 of the wage) supports the hypothesis. Closed when the paced
+  instances are scored.
 - **O101. A commons shared by several types** (the frame's O97). The rule gives out one pop's
   commons from that pop's own demand; several types sharing one (1e's instance T) would need each
   other's plot demand, which R13 forbids. They need the commons as a market (exact only while
@@ -5040,6 +5117,23 @@ O110 on are Phase 2 proper's second session's (P2.4, branch `phase2-s2`; its ran
   setting that made a cost target slowly unstable could show as CONVERGED within L, as REPORT §5
   found at P2.0 before the kick joined the classes. The phase diagram proper (next step 7 item 5)
   should run each target's kick at each dial it maps.
+- **O113. The trap's attractor remains** (P2.4.4; the scan's O-TR1). Beyond the pace's stable
+  region (every tilt 2; at 2.6 a year, every price rate × 0.75) runs still collapse, slowly: hours
+  decay geometrically and never recover. The pace moves the boundary; it does not remove the
+  second state.
+- **O114. The machine's own input makes a zero stock absorbing** (O-TR2), whenever a tick passes
+  with no labour for it, independent of the exit. The pace removes the zero-hour ticks, not the
+  absorbing zero; a machine instance with other ways to zero labour (a strike, a zero-wage shock)
+  would meet it. O21's cousin.
+- **O115. Home output sold** (O-TR3; 1e's open question 6) stays unanswered as an oracle
+  addendum: the scan has its f64 equilibrium only (`tm.oracle_at`), unchecked at high precision,
+  and on it two of C1's targets cross care's edge.
+- **O116. The pace's rate has no data behind it** (O-TR4). 1.3 a year (half the gap in 27.7
+  weeks) was chosen for margin in the mirror; the 1750-like instance's participation rate is a
+  calibration question (R7).
+- **O117. A storable exit good as GOODS-CHAIN E1's seller is locally unstable at C1** (O-TR5;
+  the scan's §3.4: largest root 1.0009 with a cover of 13 ticks, 1.0068 with 4). O51 needs a
+  stock rule that damps before any storable running good is registered.
 
 ## Corrections logged (A3; ADDENDUM §1.4)
 

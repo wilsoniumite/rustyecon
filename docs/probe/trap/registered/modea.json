@@ -1,0 +1,101 @@
+[
+ {
+  "inst": "C1P",
+  "tpy": 52.0,
+  "L": 141000,
+  "worst": 2.4424906541753412e-15,
+  "first": null,
+  "least_fill": 0.9999999999999973,
+  "share_gap": 0.0,
+  "regime": "Crowded",
+  "verdict": "PASS"
+ },
+ {
+  "inst": "C1P",
+  "tpy": 12.0,
+  "L": 26000,
+  "worst": 2.1316282072802778e-14,
+  "first": null,
+  "least_fill": 0.9999999999999848,
+  "share_gap": 2.7755575615628914e-17,
+  "regime": "Crowded",
+  "verdict": "PASS"
+ },
+ {
+  "inst": "C1P",
+  "tpy": 365.0,
+  "L": 1113000,
+  "worst": 8.881784197001256e-16,
+  "first": null,
+  "least_fill": 0.999999999999999,
+  "share_gap": 1.3877787807814457e-16,
+  "regime": "Crowded",
+  "verdict": "PASS"
+ },
+ {
+  "inst": "C2P",
+  "tpy": 52.0,
+  "L": 142000,
+  "worst": 4.440892098500627e-16,
+  "first": null,
+  "least_fill": 0.9999999999999996,
+  "share_gap": 0.0,
+  "regime": "Commons",
+  "verdict": "PASS"
+ },
+ {
+  "inst": "C2P",
+  "tpy": 12.0,
+  "L": 26000,
+  "worst": 1.8873791418627484e-14,
+  "first": null,
+  "least_fill": 0.9999999999999846,
+  "share_gap": 8.326672684688674e-17,
+  "regime": "Commons",
+  "verdict": "PASS"
+ },
+ {
+  "inst": "C2P",
+  "tpy": 365.0,
+  "L": 1116000,
+  "worst": 1.554312234475218e-15,
+  "first": null,
+  "least_fill": 0.9999999999999842,
+  "share_gap": 2.220446049250313e-16,
+  "regime": "Commons",
+  "verdict": "PASS"
+ },
+ {
+  "inst": "C1PN",
+  "tpy": 52.0,
+  "L": 141000,
+  "worst": 2.2204460492503136e-16,
+  "first": null,
+  "least_fill": 0.9999999999999997,
+  "share_gap": 0.0,
+  "regime": "Commons",
+  "verdict": "PASS"
+ },
+ {
+  "inst": "C1PN",
+  "tpy": 12.0,
+  "L": 26000,
+  "worst": 2.2204460492502885e-14,
+  "first": null,
+  "least_fill": 0.9999999999999838,
+  "share_gap": 4.996003610813204e-16,
+  "regime": "Commons",
+  "verdict": "PASS"
+ },
+ {
+  "inst": "C1PN",
+  "tpy": 365.0,
+  "L": 1113000,
+  "worst": 3.33066907387547e-16,
+  "first": null,
+  "least_fill": 0.9999999999999997,
+  "share_gap": 0.0,
+  "regime": "Commons",
+  "verdict": "PASS"
+ }
+]
