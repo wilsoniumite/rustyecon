@@ -280,7 +280,7 @@ and neither changes a class. The report is rewritten with their findings:
   (`verify/timing.out`, `verify/wave-records/`), since `archive.sh`'s `cp -r` left the archive
   with the copy's file times; "every table byte for byte" corrected to "up to CRLF→LF"; reading 4
   predicted the switch's 88 failures in kind, not line by line (8 more of the trained's lines under
-  its conditions passed); CT2's failing kick tails (1.5–2.7e-12 in log) set beside its mode A gap.
+  its conditions passed among the pops that pooled); CT2's failing kick tails (1.5–2.7e-12 in log) set beside its mode A gap.
 - **Fidelity** (four majors, two minors, all answered with readings and one diagnostic; no code
   changed): the remedies do not combine on one pop (434); CT2's class does not read the commons'
   price, which `diag/ct2_ro.py` reads from the archive in all 1,225 CT2 runs (433: at b.food × 2
@@ -4793,7 +4793,7 @@ or a verdict.
 435. **The resting offset at a small rent is the commons market's floating-point rest set** (amends
      O127's named candidate and 429's last clause; both reviews, minor). With the other prices at
      the point, 121 of 8,001 r_o values within ±2e-11 of b.food × 2's are exact rests in the
-     mirror, 6e-13 wide in log, the same for c from 0.5 to 100 (2.9e-12 at c 0.1): about
+     mirror, 6e-13 wide in log, the same at each c scanned (0.5, 2, 4, 100) (2.9e-12 at c 0.1): about
      ulp(D)/(ε·D), the demand's elasticity in ln r_o being 4.8e-4. A 1e-9 kick read at the 1e-3
      bar resolves 1e-12 in log; the failing tails are 1.5–2.7e-12, at CT2's own mode A gap
      (5.6e-13 engine, 1.9e-12 mirror). A registered kick measure scales its kick or its bar to the
@@ -5955,7 +5955,7 @@ The range was used up at P2.4.10; P2.4.17–P2.4.21 amend items rather than add 
   mirror shows it too; its source is not established. At the slow dials a run ends above D̂ 1e-9
   at L, still falling at the registered root (the free step's A2 (c)). *Amended at P2.4.20*
   (decision 435): the source is the commons market's floating-point rest set, about ulp(D)/(ε·D)
-  wide in ln r_o (6e-13 at b.food × 2 for every c from 0.5 to 100, 2.9e-12 at c 0.1; 1.6e-13 at
+  wide in ln r_o (6e-13 at b.food × 2 at each c scanned (0.5, 2, 4, 100), 2.9e-12 at c 0.1; 1.6e-13 at
   commons × 0.9 against the engine's 1.9e-13 offset there). The free step narrows it and does not
   create it. The failing tails sit at CT2's own mode A gap (5.6e-13 engine, 1.9e-12 mirror).
 - **O128. The one-sided free state never acts where a good has buyers** (OF5). A market with no

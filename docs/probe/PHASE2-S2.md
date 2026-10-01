@@ -129,7 +129,8 @@ checked before it was read, with no run made again ([p24-wave/](results/p24-wave
   row they are within 8.4e-13. The other 88 are the trained's walled ends above 1e-300, all under
   the conditions the scorer's reading 4 named before the wave (land.mach 0.8; `rate.*` or
   `rate.switch.*` × 0.75), each on its wall side. Reading 4 predicted them in kind, not line by
-  line: 8 more of the trained's lines under those conditions passed. They stand.
+  line: under those conditions 8 more of the trained's lines whose pop pooled passed, and every
+  line whose pop never pooled. They stand.
 - **The free step, 27 lines** ([A2](results/free/registration-A2.md)). 8 end regimes were scored
   against the mirror's bids-against-offers readout, which the registration's own OF6 rules out in
   exactly those 8 runs. 3 runaway ticks were registered on the undisplaced genesis, not the
@@ -178,7 +179,7 @@ slackness). Four majors and two minors, each answered at P2.4.20–21:
   paced dial runs have lowest baskets below 0.05 of the point), no target's kick at any dial, the
   pace's rate chosen on the slice it is judged on, the held-out X4 not run on the engine.
 - Minors: the resting offset's source is the commons market's floating-point rest set, about
-  ulp(D)/(ε·D) wide, 6e-13 in log at b.food × 2 for every c from 0.5 to 100, so a larger c cannot
+  ulp(D)/(ε·D) wide, 6e-13 in log at b.food × 2 at each c scanned (0.5, 2, 4 and 100), so a larger c cannot
   remove it (decision 435; O127); the paced hours and the rule's plots can use up to 1.12·N heads
   away from rest, renting land no one farms in the Enclosed regime (TRAP-RULES §2 note; O116).
 

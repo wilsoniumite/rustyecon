@@ -393,7 +393,7 @@ fn commons_market_is_checked_at_load() {
     refuse(
         paced,
         "actors[workers.wa].spec.exit.market",
-        "does not pace",
+        "does not pace: the two were not scanned together (FREE-SPEC §6.3)",
     );
     // A pop paid by `more` has its support (decision 395): CT2's wb loads, and a pop no
     // transfer names is refused.

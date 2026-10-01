@@ -45,10 +45,10 @@ tick to tolerance or a verdict. All 236 are E5's end of a switch pop's share:
   `rate.switch.*` × 0.75 (up to 2.2e-189 and 4.8e-190). Each is on its wall side, its share below
   1e-9 with its gap below 0: the refutation's reading holds in 88 of 88. *Corrected at P2.4.20*
   (the measurement review): reading 4 named the mechanism and the conditions (land.mach 0.8;
-  `rate.*` or `rate.switch.*` × 0.75), not the lines. Under those conditions 8 more of the
-  trained's walled-end lines passed (land.mach 0.2 at either rate × 0.75, ending at 2.4e-318 to
+  `rate.*` or `rate.switch.*` × 0.75), not the lines. Under those conditions, among the pops that pooled, 8 more
+  of the trained's walled-end lines passed (land.mach 0.2 at either rate × 0.75, ending at 2.4e-318 to
   6.7e-318; land.mach 0.8 at either rate × 1.25, 1.1e-315 to 4.7e-315), and all 21 of the
-  master's. So the failures were predicted in kind, not line by line.
+  master's; the 18 trained and 97 master lines whose pop never pooled pass too, ending at 0.0. So the failures were predicted in kind, not line by line.
 
 **The engine is the mirror.** In all 2,993 scored runs of IS1 and IS2 every class is the mirror's
 and every tick to tolerance of the CONVERGED ones is the mirror's to the tick; every CONVERGED run

@@ -804,7 +804,7 @@ fn resolve_exit(
                 return Err(r.error(
                     "market",
                     LoadErrorKind::Invalid(
-                        "a pop on a commons market does not pace: the two were not scanned                          together (FREE-SPEC §6.3)"
+                        "a pop on a commons market does not pace: the two were not scanned together (FREE-SPEC §6.3)"
                             .into(),
                     ),
                 ));
