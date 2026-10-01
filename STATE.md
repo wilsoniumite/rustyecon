@@ -10,8 +10,19 @@ the tape's schema is [docs/TAPE.md](docs/TAPE.md), and the GUI's design is
 **Collaboration:** as in laborformal. Sequencing, engineering and drafting are delegated to
 Claude; checks gate absolutely; direct critique over validation. The numbered decisions below
 are a veto window for your one-word calls.
-**State as of:** 2026-09-30, on branch `phase2-s2` from `reboot` at `a483ed0`, not pushed or
-merged. **Wave A is scored: every registered line holds** (P2.4.16; "Where things stand";
+**State as of:** 2026-10-01, on branch `phase2-s2` from `reboot` at `a483ed0`, not pushed or
+merged. **Phase 2 proper's second session is reported** (P2.4.19;
+[docs/probe/PHASE2-S2.md](docs/probe/PHASE2-S2.md)): C1P and C2P are GO with margin, IS1 and IL1
+GO, CT2 LOCAL against a registered GO; every scored run's class in 16,637 jobs is the mirror's.
+**The B–D waves are scored** (P2.4.17–P2.4.18; "Where things stand"): the trap's remedy holds
+every line (O100 closed); the type switch holds but for 236 lines, 148 of them a field read at 7
+printed digits (the switch's A1, after the result) and 88 walled ends the scorer expected before
+the wave (O97 closed for a type with reserved tasks); the free step holds at IL1 (O96 closed),
+and at CT2 every run converges at every dial but two kick sets fail, a refutation criterion of its
+§10, so O101 stays open (the free step's A2 re-reads 23 of its 27 failed lines, after the result).
+The dial map over nine instances: Tier 3 holds at all 17 settings everywhere but C1 (7 trapped
+settings), which the pace restores. Decisions 425–430, open to veto.
+**Wave A is scored: every registered line holds** (P2.4.16; "Where things stand";
 [docs/probe/results/families/README.md](docs/probe/results/families/README.md)): O22's families on
 I1–I3 converge in all 3,063 runs and I3's five unrun map cells are GO; at the dial neighbourhood C2
 and IW1 converge at all 17 settings and C1 falls into the subsistence trap in exactly the
@@ -248,6 +259,64 @@ types and carriers, on the many-market roles (O27), which may now start from the
 stage v2a.1 on your ruling on D-G12. "Next steps" has each.
 
 ## Where things stand
+
+**Phase 2 proper's second session is reported (P2.4.19; 2026-10-01).** Branch `phase2-s2`, label
+`run`: [docs/probe/PHASE2-S2.md](docs/probe/PHASE2-S2.md), the session's verdicts, the dial map, the
+failures and how they were read, and what it means for the 1750-like instance and PLAN's gate.
+Decisions 425–430 (below) and the amendments of O96, O97, O100, O101, O107, O112, O122, O124,
+O127 and O129. No independent review has read it yet; P2.3.16 had two.
+
+**The B–D waves read: two amendments after the result, the dial map, the figures (P2.4.18;
+2026-10-01).** Label `run`, scratch `D:/rustyecon-p24/run/`.
+- **The switch's A1** ([docs/probe/results/switch/registration-A1.md](docs/probe/results/switch/registration-A1.md),
+  sha256 `0797960c…d6a2`): E5's pooled end read at the run's CSV's last row instead of
+  `stats.tsv`'s 7 printed digits. The 148 failed lines are within 8.4e-13 of a\* (band 1e-10), and
+  the refutation line reads 0. The 88 walled-end lines stand (reading 4, declared before the
+  wave): the trained above 1e-300 at land.mach 0.8 and at `rate.*` and `rate.switch.*` × 0.75, every
+  one on its wall side. **IS1 is GO**, no refutation ([README](docs/probe/results/switch/README.md)).
+- **The free step's A2** ([docs/probe/results/free/registration-A2.md](docs/probe/results/free/registration-A2.md),
+  `bc7e37ab…94aa8`): (a) 8 end regimes against the oracle's, as §9.2 and OF6 state it, not the
+  mirror's bids-against-offers readout; (b) 3 runaway ticks on the harness's reference, which the
+  unedited mirror gives to the tick in 8 of 8 trap runs; (c) 12 end D̂ above 1e-9 at CT2's
+  `b.food=1.2`, each still falling at the registered root at its dial (within 2e-7), which by the
+  registration's own numbers ends above 1e-9 at L. All 23 pass on A2; no line that passed fails.
+- **Four lines stand, CT2's** ([README](docs/probe/results/free/README.md)): the kick sets at
+  `b.food=1.2@dated` (tails up to 2.7e-3, bar 1e-3) and `exit.To=9.75@dated` (the commons' own
+  kicks at gain 1.0), CT2's verdict LOCAL, and `JB(2)` at tilt 1's switch count (8 against 2).
+  **IL1 is GO.** Diagnostics after the result (`docs/probe/results/p24-wave/diag/`): the Enclosed
+  kicks are the neutral direction of the continuum r_o ≥ r the registration names; at b.food × 2
+  the kicked runs settle up to 2.7e-12 in log off and stay (the same tails at H 70,500, 141,000 and
+  282,000); the free mirror run the harness's way does both. The switch count parts where pop
+  `wb`'s coin cannot cover its commons bid: the engine cuts it, the mirror spends coin it lacks
+  (12 of CT2's 1,225 runs).
+- **The dial map** ([docs/probe/results/families/README.md](docs/probe/results/families/README.md),
+  `dialmap.csv`): Tier 3 at the 17 settings holds at IW1, IS1, IS2, C2, C1P, C2P, IL1 and CT2;
+  C1 fails at 7, all restored by the pace; C1P and C2P fail at every tilt 2 (3 and 2 runs).
+- **Six figures** in `docs/probe/figs/families/`, `trap/`, `switch/`, `free/` (`plots.py`).
+
+**The B–D waves' record, checked before it was read (P2.4.17; 2026-10-01).** Label `run`. The
+trap's, the switch's and the free step's wave ran on 2026-09-30, 17:43–18:43 UTC, 10,194 jobs on
+46 WSL threads (165,123 job-seconds); the agent that ran it stopped at a usage limit after the
+scorers ran. Checked on 2026-10-01, with no run made again
+(`docs/probe/results/p24-wave/verify/`):
+- every line of the committed `jobs.txt` ran once, in its own directory, under its own name,
+  inside the wave's hour, exit 0; `runs.jsonl` holds the 10,194 jobs in order and the two
+  envelope records (10,196);
+- a fresh `git archive` export of `2b68736`, built in its own target directory, gives the wave's
+  binary, sha256 `aa97c626…88d4`, byte for byte;
+- the committed `gather.py` regenerates `runs.jsonl` (`a7808184…77bd`) byte for byte, and the three
+  committed scorers their printouts and every table;
+- the raw runs are archived at `D:/rustyecon-p24/runs/bcd/` (CSVs gzipped, 573 MB) and regenerate
+  `runs.jsonl` byte for byte; the WSL copies, the preflight's runs and the export build were then
+  deleted;
+- the trap's 731 C1 controls on this binary are wave A's (the P2.4.2 binary's) byte for byte
+  (`r1check.out`).
+As scored (the tables beside each registration, `lines.csv.gz`): **the trap** 107,209 lines,
+none failing, C1P and C2P GO with margin as registered
+([README](docs/probe/results/trap/README.md)); **the switch** 65,081 lines, 236 failing, IS1 GO,
+the refutation line "148 pooled pops more than 1e-9 relative from a\*"; **the free step** 42,231
+lines, 27 failing, IL1 GO, CT2 LOCAL, the refutation lines "12 CONVERGED runs resting off the
+oracle's point" and "2 kick sets failing". Every class in every scored run is the mirror's.
 
 **Wave A is scored: O22's families on I1–I3 and the dial neighbourhood hold as registered
 (P2.4.16; 2026-09-30).** Branch `phase2-s2`, label `run`, raw runs `D:/rustyecon-p24/runs/families/`.
@@ -4586,6 +4655,54 @@ Decision 424 is P2.4.13's (2026-09-30), from E2 of the free scan (`docs/probe/re
      move earlier frames' L at 12 a year, as the wall's and the switch's 20,000 rest on the floor.
      *Alternative:* 20,000, the probe's printed L.
 
+Decisions 425–430 are P2.4.18–P2.4.19's (2026-10-01), on the B–D waves' result
+(`docs/probe/PHASE2-S2.md`). Claude's, on your delegation, each open to veto; each was taken after
+the result it bears on, which is disclosed in every file it touches.
+
+425. **The switch's amendment A1 is the reading of E5's pooled end** (results/switch/
+     registration-A1.md): the share at the run's CSV's last row, its last tick at full precision,
+     not `stats.tsv`'s 7 printed digits; the band and the refutation stay 1e-10 and 1e-9. On it all
+     148 failed lines pass (within 8.4e-13), the refutation reads none, and **IS1 is GO**; the 88
+     walled-end lines stand as failures (reading 4). *Alternative:* the lines as scored, which
+     would read the refutation "a pooled pop's share more than 1e-9 relative from a\*" as met on
+     a print format and send the rule back to the mirror.
+426. **The free step's amendment A2 is the reading of three bands** (results/free/
+     registration-A2.md): (a) the end regime against the oracle's, as §9.2 and OF6 (O129) state
+     it; (b) the trap's runaway tick on the harness's reference, as §9.3 names it and O107's
+     ruling has it, re-measured on the unedited mirror; (c) "rests off the point" as an end D̂ that
+     has stopped falling, not one above 1e-9 at a slow root the registration itself predicts. 23 of
+     27 failed lines pass on it, none that passed fails, and the refutation line "resting off the
+     point" reads none. *Alternative:* the lines as scored.
+427. **CT2's verdict stays LOCAL, as the registered rule gives it, and O101 stays open.** Its two
+     failing kick sets are read, after the result, as the measure meeting a neutral direction
+     (the Enclosed continuum r_o ≥ r) and a resting offset of up to 2.7e-12 in log at a small rent
+     (r_o 0.0118·r), both of which the free mirror shows when run the harness's way; not as the
+     engine departing from the mirror. The verdict is not re-read: §10 counts a failing kick set
+     as a refutation, and a verdict read again after its result would turn a failed prediction
+     into a pass; A2, like the earlier after-result amendments (397–399 as amended), explains
+     lines and moves no verdict.
+     *Alternative:* CT2 GO on a kick reading that skips the neutral direction and reads a tail
+     constant in H as a rest.
+428. **IL1 is GO and O96 closes; O97 closes for a type with reserved tasks; O100 closes.** The
+     free step holds idle enclosed land at r = 0 (decision 416's reading of "posts 0" under R3
+     stays open to veto); the migration rule holds IS1's GO; participation at a rate gives C1P and
+     C2P their GO with margin. O113 (the trap beyond the edge) and O118 (a pooled type without
+     reserved tasks, ν ≠ 1) stay. *Alternative:* keep O96 open with O101, as one problem
+     (decision 398 as amended).
+429. **Before the next registration with several pops on a commons, and in every scorer from
+     now:** the mirror caps a pop's commons budget at what its baskets leave, as the engine's
+     budget chain does (FREE-RULES), so that it does not spend coin it lacks (CT2's 12 runs); a
+     scorer reads every end value at the precision the harness writes it (the CSV's last row, not
+     `stats.tsv`); a registered band is checked against the registration's own roots and full-L
+     runs before the wave (the switch's walled end, CT2's slow ends); and a kick prediction says
+     how it reads a neutral direction and a free step at a small price. *Alternative:* disclose
+     each parting as it comes.
+430. **The dial map is the session's stable region at C2m**: Tier 3 holds at all 17 settings at
+     IW1, IS1, IS2, C2, C1P, C2P, IL1 and CT2, and at 10 of them at C1. PLAN's "green with margin"
+     is met at C1P and C2P on this slice (decision 407's line), not yet as a phase diagram: only
+     the base's kick set ran at each setting (O112). The default dials stay C2m. *Alternative:*
+     no margin claimed until each target's kick runs at each dial.
+
 ## Open — your calls
 
 - **The GUI's decisions**, 22–34 (D1–D13): G0 carried them out, none vetoed; a veto now reopens
@@ -4645,6 +4762,12 @@ Decision 424 is P2.4.13's (2026-09-30), from E2 of the free scan (`docs/probe/re
   verdict (422), and decision 160 left untested (423). Each open to veto before the build.
 - **Decision 424** (P2.4.13, 2026-09-30): IL1's 12-a-year runs keep the registered L of 13,000
   ticks, not the engine probe's floor of 20,000. Open to veto before the wave.
+- **Decisions 425–430** (P2.4.18–P2.4.19, 2026-10-01), all taken after the result they bear on:
+  the switch's A1 and IS1 GO (425); the free step's A2 (426); **CT2 LOCAL and O101 open (427)**;
+  IL1 GO with O96, O97 and O100 closed (428); the mirrors' commons budget and the scorers'
+  precision before the next registration (429); the dial map as the session's stable region,
+  "green with margin" at C1P and C2P on the slice (430). Each open to veto; 427 is the one that
+  most needs your eye.
 - **Decisions 59–75 and 135–178** (Phase 1), open to veto. Those that bound Phase 2 proper (61,
   67, 70; 135, 137, 139, 140; 147, 149, 151, 153–155, 158, 160, 161; 162, 164, 165, 167–169,
   173) are ruled by Claude at P2.3.0 as 360–393, with the markets probe's advice: keep 67 (its
@@ -5487,7 +5610,10 @@ O95 on are Phase 2 proper's (P2.3.0, branch `phase2-proper`; this line's range i
   *Amended at P2.4.10:* scanned (`docs/probe/free/SPEC.md`): the free step at c 0.5 is chosen and
   registered on IL1, idle enclosed land at r = 0 under the stated transfer (decisions 416–418);
   Saturate runs away, the one-sided free state never acts, the snap has no rest point for a price
-  in (0, φ·w). Closed when IL1 is scored.
+  in (0, φ·w). Closed when IL1 is scored. *Closed at P2.4.18* (decision 428): IL1 is GO, its land
+  free on every tick at its point at 12, 52 and 365 a year, reopening where land is scarce, every
+  kick set decaying, Tier 3 holding at all 17 dial settings
+  (`docs/probe/results/free/README.md`).
 - **O97. A type that sells reserved and pool hours** (the wall frame's OW1; decision 394). 1d's
   pooled type with reserved work (E1, E4), pooled types with ε ≠ 1, and support ν ≠ 1 (decision
   138): IW1 has none. Each needs a rule that splits a pop's hours between two markets, or scales
@@ -5501,6 +5627,9 @@ O95 on are Phase 2 proper's (P2.3.0, branch `phase2-proper`; this line's range i
   registered on IS1, IW1 with E's efficiencies (decisions 409–415); the step, the replicator and
   a static split are rejected. The pooled type with reserved work is covered; a pooled type with
   ε ≠ 1 and no reserved tasks, and ν ≠ 1, are not (O118). Closed when IS1 is scored.
+  *Closed at P2.4.18* (decisions 425, 428): IS1 is GO on the switch's A1, a type crossing in the
+  registered 61 of 129 runs, the neighbourhood holding (`docs/probe/results/switch/README.md`).
+  O118 stays.
 - **O98. At the wall, labour-demand shocks move wages, not output, but halve output on the way**
   (OW2). In the mirror tail.services × 2 and res.services.trained × 2 move Y\* by 0 in log and
   bottom at 0.516 and 0.500 of it. O14 and O24 carry this as the wall's path cost. Ex-post
@@ -5531,7 +5660,9 @@ O95 on are Phase 2 proper's (P2.3.0, branch `phase2-proper`; this line's range i
   (`docs/probe/trap/SPEC.md`): participation at a rate is chosen and registered (decision 404),
   home output sold is the named alternative, the entrant and the storable good are rejected; the
   held-out instance (exit worth 0.696 of the wage) supports the hypothesis. Closed when the paced
-  instances are scored.
+  instances are scored. *Closed at P2.4.17–P2.4.18* (decision 428): C1P and C2P are GO with margin,
+  every line as registered (`docs/probe/results/trap/README.md`); the trap beyond the edge stays
+  (O113).
 - **O101. A commons shared by several types** (the frame's O97). The rule gives out one pop's
   commons from that pop's own demand; several types sharing one (1e's instance T) would need each
   other's plot demand, which R13 forbids. They need the commons as a market (exact only while
@@ -5543,7 +5674,11 @@ O95 on are Phase 2 proper's (P2.3.0, branch `phase2-proper`; this line's range i
   *Amended at P2.4.10:* scanned with O96 (`docs/probe/free/SPEC.md`): CT2's two plot-taking types
   share a commons traded on a market they hold in equal shares, with the free step (decisions 416,
   417, 419); one type keeps 398's rule (420). The Enclosed regime with several pops is exact only
-  where every pop spills past its share (O124). Closed when CT2 is scored.
+  where every pop spills past its share (O124). Closed when CT2 is scored. *Amended at P2.4.18,
+  not closed* (decision 427): CT2 is LOCAL. Every run converges to the oracle's point at every
+  dial, but its kick sets at b.food × 2 and at the Enclosed target fail
+  (`docs/probe/results/free/README.md`). What would close it: a registered kick reading at a
+  neutral direction and at a resting offset (decision 429), then CT2 again.
 - **O102. The Enclosed regime's accounts** (the frame's O98). Plots on enclosed land pay rent in
   money, not in kind (decision 152's home account). The households' split of baskets differs from
   the home account's by r·T_p/P_s, and the provider's baskets from the oracle's; the market
@@ -5570,7 +5705,9 @@ O95 on are Phase 2 proper's (P2.3.0, branch `phase2-proper`; this line's range i
   oracle's point in the harness, which moves every runaway tick P2.1–P2.3 reported. *Ruled and
   closed at P2.3.16* (decision 399 as amended, the commons' A3): the harness's reference; the
   registered ticks are re-read from the unedited mirror on it (`diag/runaway_ref.out`), and all
-  195 such lines pass. Open to veto.
+  195 such lines pass. Open to veto. *Amended at P2.4.18:* the free scan registered its trap ticks
+  on the undisplaced genesis again; its A2 (b) re-reads them on the harness's reference, where the
+  unedited mirror gives the engine's tick in 8 of 8.
 - **O108. Two end-of-run lines registered against the wrong value** (P2.3.15). (1) The wall's E6:
   a displaced share stalls where a·s rounds to 0, at 10 subnormal ulps (5e-323) at 52 ticks a year
   but 70 (3.46e-322) at 365, so four runs at 365 a year fail the scorer's "at most 5e-323" line,
@@ -5594,6 +5731,7 @@ O95 on are Phase 2 proper's (P2.3.0, branch `phase2-proper`; this line's range i
   *Closed at P2.4.16:* scored as registered, every line (docs/probe/results/families/README.md).
 
 O110 on are Phase 2 proper's second session's (P2.4, branch `phase2-s2`; its range is O110–O129).
+The range was used up at P2.4.10; P2.4.17–P2.4.19 amend items rather than add them.
 
 - **O110. The frames' joint draws are glibc's; the harness's are libm's** (P2.4.1). At C1, C2
   and IW1 the registered mirrors drew `joint(F,SEED)` with Python's `**` (glibc's `pow`); the
@@ -5612,7 +5750,9 @@ O110 on are Phase 2 proper's second session's (P2.4, branch `phase2-s2`; its ran
   base's kick set runs at each setting, and the mirror's PL is computed at the base only. A
   setting that made a cost target slowly unstable could show as CONVERGED within L, as REPORT §5
   found at P2.0 before the kick joined the classes. The phase diagram proper (next step 7 item 5)
-  should run each target's kick at each dial it maps.
+  should run each target's kick at each dial it maps. *Amended at P2.4.18* (decision 430): the
+  B–D waves ran the same slice on six more instances with the same limit; the map is in
+  `docs/probe/results/families/README.md`.
 - **O113. The trap's attractor remains** (P2.4.4; the scan's O-TR1). Beyond the pace's stable
   region (every tilt 2; at 2.6 a year, every price rate × 0.75) runs still collapse, slowly: hours
   decay geometrically and never recover. The pace moves the boundary; it does not remove the
@@ -5649,7 +5789,10 @@ O110 on are Phase 2 proper's second session's (P2.4, branch `phase2-s2`; its ran
   instance at monthly ticks may need `rate.switch` scaled.
 - **O122. The walled pool share stalls in the subnormals** (OS5): 13 ulps for the trained and 2
   for the master at 52 a year in the mirror, as the technique's share does (the wall's A2). A
-  registration that reads its end value reads it as 0 or at most 1e-300.
+  registration that reads its end value reads it as 0 or at most 1e-300. *Amended at P2.4.18:*
+  at 22,000 ticks the stall is not reached where the gap is small (land.mach 0.8, 1.5e-252) or the
+  switch slow (`rate.*` or `rate.switch.*` × 0.75, up to 2.2e-189): 88 lines of the switch's wave
+  fail as registered, every one on the wall side (the scorer's reading 4, before the wave).
 - **O123. The switch under the priced exit** (OS6). The rule compares wages only, so it is
   form-free; but a walled type under s(q) needs 1e's addendum first (O95, decision 377), and
   `pool` with `exit` is refused until a scan runs them together. The 1750-like trained type
@@ -5660,6 +5803,11 @@ O110 on are Phase 2 proper's second session's (P2.4, branch `phase2-s2`; its ran
   (argued; no CT2 target is there). And the Enclosed point has a switch at r_o = r with a
   continuum of rest points above it (the scan's §4.4): a land kick larger than the commons' gap
   above r (0.13–0.81% at the runs' ends) crosses the switch, and is reported, not scored.
+  *Amended at P2.4.18* (decisions 427, 429): at CT2's Enclosed target the kick set fails, the
+  commons' own kicks staying at gain 1.0, the continuum's neutral direction, in the engine and in
+  the mirror run the harness's way. And where a pop's coin cannot cover its commons bid the
+  engine's budget chain cuts the bid while the free mirror spends coin it lacks: 12 of CT2's 1,225
+  runs, one failed switch count.
 - **O125. c per instance** (OF2). The window's upper edge is set by the smallest positive price
   the market must reopen to (c·p_ref·(e^k − 1) against r\*), the lower by the slowest positive
   rent (the kick bar). The 1750-like instance registers its own c after its own scan. The free
@@ -5669,12 +5817,18 @@ O110 on are Phase 2 proper's second session's (P2.4, branch `phase2-s2`; its ran
   targets.
 - **O127. The commons' slow mode at a small rent** (OF4). CT2's b.food × 2 (r_o 0.0118·r) has a
   half-life of 4,493 ticks at c 0.5, and CT2's Crowded band is narrow (the commons 17.09–18.20 a
-  year).
+  year). *Amended at P2.4.18:* at b.food × 2 a kicked run settles up to 2.7e-12 in log from the
+  unkicked one and stays (the same tail at three horizons), so the kick set's tail (up to 2.7e-3)
+  fails the bar though its root is 0.999846; at commons × 0.9 the same offset passes (1.9e-4). The
+  mirror shows it too; its source is not established. At the slow dials a run ends above D̂ 1e-9
+  at L, still falling at the registered root (the free step's A2 (c)).
 - **O128. The one-sided free state never acts where a good has buyers** (OF5). A market with no
   buyers at all (O54's switched-off technique) is where it would, and it is unscanned.
 - **O129. The regime readout of a commons market** (OF6) comes from its posted price (0, below r,
   at or above r), not from bids against offers, which differ by rounding at rest (8 of the
-  mirror's Crowded runs read `Commons` that way).
+  mirror's Crowded runs read `Commons` that way). *Amended at P2.4.18:* the free step's scorer
+  compared the engine with that readout in exactly those 8 runs; its A2 (a) reads them against the
+  oracle's regime, where all 8 pass.
 
 ## Corrections logged (A3; ADDENDUM §1.4)
 
@@ -5810,14 +5964,16 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
       first (311). It documents the stable region at the default dials as the roles stand.
       *Registered at P2.4.1* as wave A (decisions 400–403; `docs/probe/families/SPEC.md`), with
       × 0.75 for 0.8 and five tilts (401); its job list and scorer committed at P2.4.2
-      (`docs/probe/results/families-wave/`); the wave next.
+      (`docs/probe/results/families-wave/`); the wave next. *Scored at P2.4.16:* every line
+      holds (O109 closed); the map over the session's nine instances at P2.4.18 (decision 430).
    2. **The trap's remedy** (O100), chosen by a mirror scan over four candidates (participation
       at a rate, entry for food at zero output, a storable exit good, and home output sold, the
       last an oracle addendum, 1e's open question 6), measured on C1's dial neighbourhood; then
       registered and built before any further priced-exit instance and before the gate is judged.
       *Scanned, registered at P2.4.4 and built at P2.4.5:* participation at a rate (decisions
       404–408; `docs/probe/trap/SPEC.md`, `docs/probe/TRAP-RULES.md`), the paced instances C1P,
-      C2P and C1PN; E0–E2 pass at P2.4.6; the scorer and the scored wave next.
+      C2P and C1PN; E0–E2 pass at P2.4.6; the scorer and the scored wave next. *Scored at
+      P2.4.17–P2.4.18:* C1P and C2P GO with margin, every line as registered (O100 closed).
    3. **The rules the 1750-like instance needs**, each chosen by a mirror scan, registered and
       built: O97's rule for a type that sells both reserved and pool hours; a zero price markets
       can hold (O96 with O101), for idle enclosed land and a commons several types share; and
@@ -5825,6 +5981,12 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
       class if its tape has one). *O97's rule scanned and registered at P2.4.7:* the migration
       rule on IS1 (decisions 409–415; `docs/probe/switch/SPEC.md`); built at P2.4.8
       (`docs/probe/SWITCH-RULES.md`); E0–E2 pass at P2.4.9; the scorer and the scored wave next.
+      *Scored at P2.4.17–P2.4.18:* IS1 GO on the switch's A1 (O97 closed for a type with
+      reserved tasks). *The free step* scanned and registered at P2.4.10, built at P2.4.11, E0–E2
+      at P2.4.13, *scored*: IL1 GO (O96 closed); CT2 LOCAL, two kick sets failing (O101 open;
+      decisions 427, 429). Next here: your ruling on CT2 (427), then a registered reading of the
+      kick at a neutral direction and at a resting offset, and the mirrors' commons budget as the
+      engine's (429), before any instance shares a commons.
    4. **The 1750-like instance**, first as a flow instance at C2m on the many-market roles,
       loop-free as I1–I3, IW1, C1 and C2 are (67's letter, 361), with 1e and 1f, the common basket
       (388), 1f's tax bases and closure if it has a government (382–386) and ρ 0 (393), so that
@@ -5835,8 +5997,11 @@ is outside the repository ("Where things stand"), and each needs your rulings fi
       buffers, stagger) on every green instance once O100's remedy is in, starting from item 1's
       neighbourhood. Then PLAN's gate is judged, with A11's session budget (yours) for the
       instances still to come. G2, the lenses, follows the gate.
-   The risks now: paths (O14, O24, O98), the trap (O100), and the margins no run has exercised
-   (O97; O96 with O101). O30's precision did not bind P2.3's instances.
+   The risks now: paths (O14, O24, O98), the trap beyond the edge (O113), a shared commons' kick
+   reading (O101, O124, O127), and the margins no run has exercised (O118, O112). O30's precision
+   did not bind P2.3's or P2.4's instances. Phase 2 proper's second session is reported
+   (`docs/probe/PHASE2-S2.md`); an independent review of its two after-result amendments, as
+   P2.3.16 had, comes before item 4.
 8. **The demo's second pass, on the many-market roles** (O27; WORLD.md §7). It takes O26 first,
    the clock held to 52 among it. Then come goods as unit 1b's categories and machine types as
    unit 1c's, on the many-market roles at C2m with no loop of produced inputs, with genesis from
@@ -5923,24 +6088,42 @@ docs/probe/results/p23-wave/ Phase 2 proper's first scored wave (P2.3.11-P2.3.16
 docs/probe/PHASE2-S1.md  Phase 2 proper's first session's report (P2.3.16): the verdicts on
                          IW1, C1 and C2, the zero-rent remedy, the trap and C1's margin, the
                          reviews, what it means for the gate and the 1750-like instance
+docs/probe/PHASE2-S2.md  Phase 2 proper's second session's report (P2.4.19): the families, the
+                         trap's remedy, the type switch, the free step, the dial map, the
+                         after-result amendments and the four lines that stand
 docs/probe/families/     wave A's frame, as registered (P2.4.1): SPEC.md (O22's families on
                          I1-I3 and the dial neighbourhood of C1, C2 and IW1), SHA256SUMS and
                          registered/ (the run-by-run predictions the scorer reads, the checks)
-docs/probe/results/families/ wave A's registration (P2.4.1)
+docs/probe/results/families/ wave A's registration (P2.4.1), its scored README and tables
+                         (P2.4.16), and the dial map over the session's nine instances
+                         (dialmap.csv, P2.4.18)
 docs/probe/trap/         the trap scan's frame, as registered (P2.4.4, LF endings): SPEC.md (O100's
                          remedy, participation at a rate), SHA256SUMS, registered/ (the run-by-run
                          predictions and controls the scorer reads) and evidence/ (the scan's
                          tables)
 docs/probe/TRAP-RULES.md the trap's remedy as built (P2.4.5): the exit's pace, C1P, C2P and C1PN,
                          the harness at a paced instance, the checks
-docs/probe/results/trap/ the trap's remedy's registration (P2.4.4) and E0's record (P2.4.6)
+docs/probe/results/trap/ the trap's remedy's registration (P2.4.4), E0's record (P2.4.6), and
+                         the scored wave's README and tables (P2.4.17-P2.4.18)
 docs/probe/switch/       the switch scan's frame, as registered (P2.4.7): SPEC.md (O97's rule, the
                          migration rule, on IS1 and IS2), SHA256SUMS, registered/ (the run-by-run
                          predictions, points, kick sets and rule vectors the scorer and tests read)
                          and evidence/ (the scan's tables and the mirror's checks)
 docs/probe/SWITCH-RULES.md the type switch as built (P2.4.8): the workers' pool, the state
                          SwitchWorkers, IS1 and IS2, the harness at a switch instance, the checks
-docs/probe/results/switch/ the switch's registration (P2.4.7) and E0's record (P2.4.9)
+docs/probe/results/switch/ the switch's registration (P2.4.7), E0's record (P2.4.9), and the
+                         scored wave's README, tables and amendment A1 (P2.4.17-P2.4.18)
+docs/probe/free/         the free scan's frame, as registered (P2.4.10): SPEC.md (O96 and O101,
+                         the free step on IL1 and CT2), SHA256SUMS, registered/ and evidence/
+docs/probe/FREE-RULES.md a zero price markets can hold as built (P2.4.11): a good's free step,
+                         the exit's market, IL1 and CT2, the harness, the checks
+docs/probe/results/free/ the free step's registration (P2.4.10), A1 (P2.4.12), E0's record
+                         (P2.4.13), and the scored wave's README, tables and A2 (P2.4.17-P2.4.18)
+docs/probe/results/p24-wave/ the B-D waves' machinery, committed before them (P2.4.14), the load
+                         check (P2.4.15), the record's checks (verify/), the scorers' printouts,
+                         the after-result re-reader (amend.py), the diagnostics (diag/), the dial
+                         map and the plots (P2.4.17-P2.4.18)
+docs/probe/figs/{families,trap,switch,free}/ the second session's figures (P2.4.18)
 docs/probe/results/families-wave/ wave A's machinery, committed before it (P2.4.2): the job
                          list, job and runner scripts, gather script, scorer, self-test
 docs/probe/results/loops/ the loop step's registration (L0.8), quoting LOOP-SPEC-A1's
