@@ -96,3 +96,42 @@ status). `fails.csv` is empty but for its header.
   wave. The raw runs were archived with their CSVs gzipped and `gather.py` regenerates
   `runs.jsonl` from the archive byte for byte (sha256 `fe868f22…8cfd`); the WSL copy was then
   deleted.
+
+## The dial-neighbourhood map across the session's instances (P2.4.18, 2026-10-01)
+
+Wave A ran the first slice of the phase diagram on C1, C2 and IW1. The B–D waves ran the same
+17 settings on the session's new instances: Tier 3 of C1P and C2P (the trap's E10), of IS1 and
+IS2 (the switch's E7 and E8) and of IL1 and CT2 (the free step's E4), and IS1's and IS2's switch
+rate alone and C1P's and C2P's every tilt 2 beside them. `../p24-wave/dialmap.py` tabulates their
+classes from the two waves' gathered runs (`dialmap.csv`; `../p24-wave/dialmap.out`). A setting
+holds where every Tier-3 run (and Tier-3S run, at C1, C2 and IW1) is CONVERGED or VACUOUS, the
+verdict battery's Tier-3 criterion at that setting.
+
+![the dial map](../../figs/families/dialmap.png)
+
+| instance | its verdict at C2m | the 17 settings that hold | beyond them |
+|---|---|---|---|
+| IW1, the wall | GO (P2.3) | all 17 | |
+| IS1, the type switch | GO | all 17 | `rate.switch.*` × 0.75–1.25: all 4 |
+| IS2, its control | reported | all 17 | |
+| C1, the open commons, full | GO, a point result (P2.3) | 10: not rate × 0.75 or × 0.9, buffer × 1.1 or × 1.25, tilt 0.25, 0.5 or 1 (18 runs in the trap) | |
+| C1P, C1 paced | GO with margin | all 17 | tilt 2: 3 runs in the trap |
+| C2, the open commons, room | GO (P2.3) | all 17 | |
+| C2P, C2 paced | GO with margin | all 17 | tilt 2: 2 runs in the trap |
+| IL1, idle land at r = 0 | GO | all 17 | |
+| CT2, two types on one commons | LOCAL (two kick sets) | all 17 | |
+
+- **Which dial moves keep each instance GO.** Every ±10% and ±25% move of the price rates, the
+  buffers and the technique rates, and every tilt from 0.05 to 1, keeps Tier 3 converging at
+  eight of the nine instances. C1 alone loses it, to the subsistence trap, at seven settings; the
+  pace (C1P) restores all seven and keeps C2's. The edge of the paced instances lies beyond the
+  slice, at a tilt of 2. CT2's dial runs all converge, but its verdict at C2m is LOCAL for its kick
+  sets, so no dial makes it GO.
+- **Lines that fail at a setting without a class failing**: IS1's walled end above 1e-300 at
+  `rate.*` and `rate.switch.*` × 0.75 and at land.mach 0.8 everywhere (the scorer's reading 4,
+  declared before the wave); CT2's `b.food=1.2` end D̂ above 1e-9 at six settings and its regime
+  readout at four (both re-read by the free step's A2, after the result); CT2's `JB(2)` at tilt 1,
+  one switch count, which stands ([../free/README.md](../free/README.md)).
+- **What the map does not cover.** Only the base's kick set ran at each setting, and only at C1,
+  C2 and IW1 (51, all PASS): a setting that made a cost target slowly unstable would show here as
+  CONVERGED (O112). The 1750-like instance is not in it.

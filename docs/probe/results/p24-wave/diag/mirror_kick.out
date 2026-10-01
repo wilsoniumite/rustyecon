@@ -1,0 +1,18 @@
+2026-10-01T06:39:49Z
+CT2 b.food=1.2@dated, kicked at tick 176250, H 70500; posted prices labour 0.551543 land 1.02156 manufactures 0.179466 food 1.48666 care 0.237222 shelter 1.07914 mach 0.623146 commons 0.0120353
+  care          -  tail 8.2012e-04  peak 1.5163e+00  at H/2 2.9432e-04  at H 8.2012e-04
+  mach          -  tail 1.6420e-04  peak 9.0767e+00  at H/2 1.8535e-02  at H 1.6420e-04
+  care          +  tail 8.2045e-05  peak 9.9883e-01  at H/2 3.6304e-04  at H 8.2045e-05
+  shelter       +  tail 6.9700e-04  peak 1.1474e+00  at H/2 7.6406e-04  at H 6.9700e-04
+  commons       +  tail 6.1506e-04  peak 9.9971e-01  at H/2 2.6297e-03  at H 6.1506e-04
+  labour        -  tail 1.1481e-03  peak 4.4532e+00  at H/2 1.8163e-03  at H 1.1481e-03
+CT2 exit.To=17.55@dated, kicked at tick 176250, H 70500; posted prices labour 0.476568 land 0.99841 manufactures 0.174113 food 0.851977 care 0.218983 shelter 1.05425 mach 0.604561 commons 0.640179
+  care          -  tail 1.6032e-04  peak 1.2545e+00  at H/2 1.6032e-04  at H 1.6032e-04
+  manufactures  +  tail 1.6365e-04  peak 9.9832e-01  at H/2 1.6365e-04  at H 1.6365e-04
+  mach          +  tail 9.1038e-06  peak 2.0827e+00  at H/2 9.1038e-06  at H 9.1038e-06
+CT2 exit.To=9.75@dated, kicked at tick 176250, H 70500; posted prices labour 0.478271 land 1.01049 manufactures 0.176137 food 0.862061 care 0.220617 shelter 1.06696 mach 0.611588 commons 1.0145
+  commons       +  tail 1.0000e+00  peak 1.0000e+00  at H/2 1.0000e+00  at H 1.0000e+00
+  commons       -  tail 1.0000e+00  peak 1.0000e+00  at H/2 1.0000e+00  at H 1.0000e+00
+  care          -  tail 1.2657e-05  peak 1.2579e+00  at H/2 1.2657e-05  at H 1.2657e-05
+exit 0
+2026-10-01T06:41:12Z

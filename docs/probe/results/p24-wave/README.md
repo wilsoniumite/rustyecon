@@ -166,3 +166,38 @@ harness's lists (`markets list`, no tick) for every set; four 3,000-tick format 
 1,000-tick every-tick run of `sw[trained]=0.5` at IS1, to read the harness's summary, `stats.tsv`
 and CSV columns for the new instances and the CSV's row alignment (reading 7). Their classes and
 ticks were not compared with any registered value, and their directories are not kept.
+
+## Files added after the waves (P2.4.17–P2.4.18, 2026-10-01)
+
+The waves ran on 2026-09-30, 17:43–18:43 UTC, 46 jobs at a time; the agent that ran them stopped
+at a usage limit after the scorers ran. On 2026-10-01 the record was checked before it was read,
+and nothing was run again:
+
+- `BIN.sha256`: the binary's sha256 (`aa97c626…88d4`) and `runs.jsonl`'s (`a7808184…77bd`).
+- `verify/`: `jobcheck.py` → `jobcheck.out` (every line of `jobs.txt` ran once, under its own name,
+  in its own directory, inside the wave's hour, exit 0; `runs.jsonl` holds one record a job in the
+  list's order plus the two envelope records, 10,196); `build.sh` → `build.out` (a fresh export of
+  `2b68736` built in its own target directory gives the wave's binary byte for byte); `regen.sh` →
+  `regen.out` (the committed `gather.py` regenerates `runs.jsonl` from the raw runs, and the three
+  committed scorers their printouts and every table, byte for byte); `archive.sh` → `archive.out`
+  (the raw runs with their CSVs gzipped, `D:/rustyecon-p24/runs/bcd/`, 60,902 files, 573 MB;
+  `gather.py` regenerates `runs.jsonl` from them byte for byte); `cleanup.sh` → `cleanup.out` (the
+  WSL copies, the staging copy, the preflight's runs and the export build deleted after that).
+- `score-trap.out`, `score-switch.out`, `score-free.out`: the committed scorers' printouts. Their
+  tables are beside each registration (`../trap/`, `../switch/`, `../free/`), `lines.csv` gzipped.
+- `r1check.py` → `r1check.out`: the trap's E9 controls (C1 at the 17 settings, this binary) against
+  wave A's same runs (the P2.4.2 binary): 731 of 731 byte for byte (README reading 11).
+- `amend.py` → `amend.out`: the failed lines re-read under the two amendments written after the
+  result, the switch's A1 and the free step's A2, into `../switch/amended.csv` and
+  `../free/amended.csv`. The scorers are unedited.
+- `diag/`: diagnostics run after the result, reported and not scored: `runaway_ref.py` (the free
+  mirror's trap runs on the harness's reference, A2 part b), `mirror_kick.py` (CT2's kick sets on
+  the free mirror the harness's way), `kick_horizon.sh` (CT2's two Crowded kick sets on the engine
+  at H 70,500 and 282,000), `ct2_switches.py` (where the engine parts from the mirror at CT2's
+  `JB(2)` at tilt 1) and `budget_short.py` (CT2's runs where a pop's coin cut its commons bid).
+- `dialmap.py` → `dialmap.out` and `../families/dialmap.csv`: the dial-neighbourhood map across
+  the session's nine instances; `plots.py`: the session's figures, `docs/probe/figs/families/`,
+  `trap/`, `switch/` and `free/`.
+
+No file listed in `SHA256SUMS` changed; `sha256sum -c SHA256SUMS` passes but for this README,
+which gained this section.
