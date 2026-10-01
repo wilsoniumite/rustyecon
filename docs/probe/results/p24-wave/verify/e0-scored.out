@@ -1,0 +1,15 @@
+2026-10-01T07:43:40Z
+aa97c626d6e266c9241f2ceb52b0f33b43352247cb6ac7c1f57ebd63f30488d4  /root/scratch/p24-bcd/markets
+tracediff_p.py 886b4f845bb28248d34bd5dff414c2fbbcd1a132b5c4c673cef7894bea359624
+tracediff_s.py 070797d7e74f9cef96bbc4283584e8c9e5ddfc5da51061e871c9fba72213296a
+tracediff_f.py ddd136716c28be85c320dbcb72429c2afa4c6fb8c985919732f51c099007ed51
+scan-trap SHA256SUMS not OK: 0
+scan-switch SHA256SUMS not OK: 0
+scan-free SHA256SUMS not OK: 0
+trap rc 0; stderr lines 0
+trap: the same as the committed e0/tracediff.out byte for byte
+switch rc 0; stderr lines 0
+switch: the same as the committed e0/tracediff.out byte for byte
+free rc 0; stderr lines 0
+free: the same as the committed e0/tracediff.out byte for byte
+2026-10-01T07:44:26Z

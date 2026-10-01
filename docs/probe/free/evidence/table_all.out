@@ -1,0 +1,584 @@
+| C1/zp01 | VACUOUS, D-hat 2.4e-12 | 30/30 CONVERGED; ticks to tol 313 (2636) | 42/42 CONVERGED; ticks to tol 1752 (10906) | 43/43 CONVERGED; ticks to tol 1612 (6376) | 0/0 CONVERGED |
+| C1/zp1 | VACUOUS, D-hat 2.4e-12 | 30/30 CONVERGED; ticks to tol 418 (1703) | 42/42 CONVERGED; ticks to tol 1347 (4570) | 43/43 CONVERGED; ticks to tol 1267 (4253) | 0/0 CONVERGED |
+| C2/zp01 | VACUOUS, D-hat 3.3e-13 | 30/30 CONVERGED; ticks to tol 310 (494) | 38/38 CONVERGED (+4 VACUOUS); ticks to tol 355 (547) | 41/41 CONVERGED (+2 VACUOUS); ticks to tol 514 (10886) | 0/0 CONVERGED |
+| C2/zp1 | VACUOUS, D-hat 3.3e-13 | 30/30 CONVERGED; ticks to tol 310 (494) | 38/38 CONVERGED (+4 VACUOUS); ticks to tol 355 (547) | 41/41 CONVERGED (+2 VACUOUS); ticks to tol 514 (4499) | 0/0 CONVERGED |
+| CT2/msat | DIVERGED, D-hat 1.7e-04 | 0/30 CONVERGED 30 DIVERGED | 1/42 CONVERGED 41 DIVERGED; ticks to tol 4135 (4135) | 1/43 CONVERGED 40 DIVERGED, 2 ORBITING; ticks to tol 457 (457) | 17/731 CONVERGED 680 DIVERGED, 34 ORBITING; ticks to tol 392 (470) |
+| CT2/zo | DIVERGED, D-hat 1.7e-04 | 0/30 CONVERGED 30 DIVERGED | 1/42 CONVERGED 41 DIVERGED; ticks to tol 4135 (4135) | 1/43 CONVERGED 40 DIVERGED, 2 ORBITING; ticks to tol 457 (457) | 17/731 CONVERGED 680 DIVERGED, 34 ORBITING; ticks to tol 392 (470) |
+| CT2/zp001 | VACUOUS, D-hat 8.9e-13 | 30/30 CONVERGED; ticks to tol 306 (498) | 40/40 CONVERGED (+2 VACUOUS); ticks to tol 354 (10893) | 39/41 CONVERGED (+2 VACUOUS) 2 ORBITING; ticks to tol 528 (770) | 663/697 CONVERGED (+34 VACUOUS) 34 ORBITING; ticks to tol 491 (975) |
+| CT2/zp01 | VACUOUS, D-hat 8.9e-13 | 30/30 CONVERGED; ticks to tol 306 (498) | 40/40 CONVERGED (+2 VACUOUS); ticks to tol 354 (7894) | 41/41 CONVERGED (+2 VACUOUS); ticks to tol 531 (57264) | 695/697 CONVERGED (+34 VACUOUS) 2 ORBITING; ticks to tol 492 (68110) |
+| CT2/zp03 | VACUOUS, D-hat 8.9e-13 | 30/30 CONVERGED; ticks to tol 306 (498) | 40/40 CONVERGED (+2 VACUOUS); ticks to tol 354 (6056) | 41/41 CONVERGED (+2 VACUOUS); ticks to tol 522 (15545) | 0/0 CONVERGED |
+| CT2/zp1 | VACUOUS, D-hat 8.9e-13 | 30/30 CONVERGED; ticks to tol 306 (498) | 40/40 CONVERGED (+2 VACUOUS); ticks to tol 354 (3708) | 41/41 CONVERGED (+2 VACUOUS); ticks to tol 512 (5405) | 697/697 CONVERGED (+34 VACUOUS); ticks to tol 481 (9275) |
+| CT2/zp15 | VACUOUS, D-hat 8.9e-13 | 30/30 CONVERGED; ticks to tol 306 (498) | 40/40 CONVERGED (+2 VACUOUS); ticks to tol 354 (2944) | 41/41 CONVERGED (+2 VACUOUS); ticks to tol 522 (5499) | 0/0 CONVERGED |
+| CT2/zp2 | VACUOUS, D-hat 8.9e-13 | 30/30 CONVERGED; ticks to tol 306 (498) | 40/40 CONVERGED (+2 VACUOUS); ticks to tol 354 (2446) | 41/41 CONVERGED (+2 VACUOUS); ticks to tol 522 (4904) | 0/0 CONVERGED |
+| CT2/zp3 | VACUOUS, D-hat 8.9e-13 | 30/30 CONVERGED; ticks to tol 306 (498) | 40/40 CONVERGED (+2 VACUOUS); ticks to tol 354 (1831) | 41/41 CONVERGED (+2 VACUOUS); ticks to tol 522 (3907) | 0/0 CONVERGED |
+| CT2/zp4 | VACUOUS, D-hat 8.9e-13 | 30/30 CONVERGED; ticks to tol 306 (498) | 40/40 CONVERGED (+2 VACUOUS); ticks to tol 354 (1463) | 41/41 CONVERGED (+2 VACUOUS); ticks to tol 522 (3248) | 0/0 CONVERGED |
+| CT2/zs2 | VACUOUS, D-hat 8.9e-13 | 30/30 CONVERGED; ticks to tol 306 (498) | 40/40 CONVERGED (+2 VACUOUS); ticks to tol 354 (10957) | 39/41 CONVERGED (+2 VACUOUS) 2 ORBITING; ticks to tol 528 (768) | 663/697 CONVERGED (+34 VACUOUS) 34 ORBITING; ticks to tol 491 (977) |
+| CT2/zs3 | VACUOUS, D-hat 8.9e-13 | 30/30 CONVERGED; ticks to tol 306 (498) | 40/40 CONVERGED (+2 VACUOUS); ticks to tol 354 (13538) | 39/41 CONVERGED (+2 VACUOUS) 2 STUCK; ticks to tol 528 (968) | 663/697 CONVERGED (+34 VACUOUS) 2 ORBITING, 32 STUCK; ticks to tol 491 (1240) |
+| IL1/msat | DIVERGED, D-hat 8.9e-04 | 0/25 CONVERGED 25 DIVERGED | 0/37 CONVERGED 37 DIVERGED | 1/38 CONVERGED 37 DIVERGED; ticks to tol 4730 (4730) | 17/646 CONVERGED 629 DIVERGED; ticks to tol 4709 (6366) |
+| IL1/zo | DIVERGED, D-hat 8.9e-04 | 0/25 CONVERGED 25 DIVERGED | 0/37 CONVERGED 37 DIVERGED | 1/38 CONVERGED 37 DIVERGED; ticks to tol 4730 (4730) | 17/646 CONVERGED 629 DIVERGED; ticks to tol 4709 (6366) |
+| IL1/zp001 | VACUOUS, D-hat 2.2e-13 | 25/25 CONVERGED; ticks to tol 286 (474) | 33/33 CONVERGED (+4 VACUOUS); ticks to tol 347 (570) | 36/36 CONVERGED (+2 VACUOUS); ticks to tol 523 (3379) | 612/612 CONVERGED (+34 VACUOUS); ticks to tol 520 (4499) |
+| IL1/zp01 | VACUOUS, D-hat 2.2e-13 | 25/25 CONVERGED; ticks to tol 281 (474) | 33/33 CONVERGED (+4 VACUOUS); ticks to tol 334 (570) | 36/36 CONVERGED (+2 VACUOUS); ticks to tol 523 (1198) | 612/612 CONVERGED (+34 VACUOUS); ticks to tol 518 (1617) |
+| IL1/zp03 | VACUOUS, D-hat 2.2e-13 | 25/25 CONVERGED; ticks to tol 281 (474) | 33/33 CONVERGED (+4 VACUOUS); ticks to tol 334 (570) | 36/36 CONVERGED (+2 VACUOUS); ticks to tol 516 (771) | 0/0 CONVERGED |
+| IL1/zp1 | VACUOUS, D-hat 2.2e-13 | 25/25 CONVERGED; ticks to tol 281 (474) | 33/33 CONVERGED (+4 VACUOUS); ticks to tol 334 (570) | 36/36 CONVERGED (+2 VACUOUS); ticks to tol 516 (678) | 612/612 CONVERGED (+34 VACUOUS); ticks to tol 502 (915) |
+| IL1/zp15 | VACUOUS, D-hat 2.2e-13 | 25/25 CONVERGED; ticks to tol 281 (474) | 33/33 CONVERGED (+4 VACUOUS); ticks to tol 334 (570) | 36/36 CONVERGED (+2 VACUOUS); ticks to tol 517 (678) | 0/0 CONVERGED |
+| IL1/zp2 | VACUOUS, D-hat 2.2e-13 | 25/25 CONVERGED; ticks to tol 281 (474) | 33/33 CONVERGED (+4 VACUOUS); ticks to tol 334 (570) | 36/36 CONVERGED (+2 VACUOUS); ticks to tol 517 (678) | 0/0 CONVERGED |
+| IL1/zp3 | VACUOUS, D-hat 2.2e-13 | 25/25 CONVERGED; ticks to tol 281 (474) | 33/33 CONVERGED (+4 VACUOUS); ticks to tol 334 (570) | 34/36 CONVERGED (+2 VACUOUS) 2 ORBITING; ticks to tol 482 (678) | 0/0 CONVERGED |
+| IL1/zp4 | VACUOUS, D-hat 2.2e-13 | 25/25 CONVERGED; ticks to tol 281 (474) | 33/33 CONVERGED (+4 VACUOUS); ticks to tol 334 (570) | 34/36 CONVERGED (+2 VACUOUS) 2 DEAD; ticks to tol 482 (678) | 0/0 CONVERGED |
+| IL1/zs2 | VACUOUS, D-hat 2.2e-13 | 25/25 CONVERGED; ticks to tol 281 (474) | 33/33 CONVERGED (+4 VACUOUS); ticks to tol 334 (570) | 34/36 CONVERGED (+2 VACUOUS) 2 ORBITING; ticks to tol 517 (697) | 578/612 CONVERGED (+34 VACUOUS) 4 DEAD, 30 ORBITING; ticks to tol 506 (966) |
+| IL1/zs3 | VACUOUS, D-hat 2.2e-13 | 25/25 CONVERGED; ticks to tol 289 (474) | 33/33 CONVERGED (+4 VACUOUS); ticks to tol 347 (570) | 36/36 CONVERGED (+2 VACUOUS); ticks to tol 526 (5573) | 610/612 CONVERGED (+34 VACUOUS) 2 ORBITING; ticks to tol 523 (7442) |
+
+C1/zp01: free-able market's end state as the oracle's in 115 CONVERGED runs, not in 0
+C1/zp1: free-able market's end state as the oracle's in 115 CONVERGED runs, not in 0
+C2/zp01: free-able market's end state as the oracle's in 109 CONVERGED runs, not in 0
+C2/zp1: free-able market's end state as the oracle's in 109 CONVERGED runs, not in 0
+CT2/msat: free-able market's end state as the oracle's in 0 CONVERGED runs, not in 0
+   DIVERGED  JA(0.5)                    in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  JA(0.8)                    in 1: battery
+   DIVERGED  JA(0.95)                   in 1: battery
+   DIVERGED  JA(1.05)                   in 1: battery
+   DIVERGED  JA(1.2)                    in 1: battery
+   DIVERGED  JA(2)                      in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  JB(0.5)                    in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  JB(0.8)                    in 1: battery
+   DIVERGED  JB(0.95)                   in 1: battery
+   DIVERGED  JB(1.05)                   in 1: battery
+   DIVERGED  JB(1.2)                    in 1: battery
+   DIVERGED  JB(2)                      in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  N(0.5)                     in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  N(0.8)                     in 1: battery
+   DIVERGED  N(0.95)                    in 1: battery
+   DIVERGED  N(1.05)                    in 1: battery
+   DIVERGED  N(1.2)                     in 1: battery
+   DIVERGED  N(2)                       in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  RC(0.5)                    in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  RC(0.8)                    in 1: battery
+   DIVERGED  RC(0.95)                   in 1: battery
+   DIVERGED  RC(1.05)                   in 1: battery
+   DIVERGED  RC(1.2)                    in 1: battery
+   DIVERGED  RC(2)                      in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  b.food=0.3@dated           in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  b.food=0.3@genesis         in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  b.food=0.54@dated          in 1: battery
+   DIVERGED  b.food=0.54@genesis        in 1: battery
+   DIVERGED  b.food=0.66@dated          in 1: battery
+   DIVERGED  b.food=0.66@genesis        in 1: battery
+   DIVERGED  b.food=1.2@dated           in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   ORBITING  b.food=1.2@genesis         in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  exit.To=17.55@dated        in 1: battery
+   DIVERGED  exit.To=21.45@dated        in 1: battery
+   DIVERGED  exit.To=21.45@genesis      in 1: battery
+   DIVERGED  exit.To=39@dated           in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  exit.To=39@genesis         in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  exit.To=9.75@dated         in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  hold                       in 1: modeA
+   DIVERGED  land.mach=0.2@dated        in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   ORBITING  land.mach=0.2@genesis      in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  land.mach=0.36@dated       in 1: battery
+   DIVERGED  land.mach=0.36@genesis     in 1: battery
+   DIVERGED  land.mach=0.44@dated       in 1: battery
+   DIVERGED  land.mach=0.44@genesis     in 1: battery
+   DIVERGED  land.mach=0.8@dated        in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  land.mach=0.8@genesis      in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[care]*0.5                in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[care]*0.8                in 1: battery
+   DIVERGED  p[care]*0.95               in 1: battery
+   DIVERGED  p[care]*1.05               in 1: battery
+   DIVERGED  p[care]*1.2                in 1: battery
+   DIVERGED  p[care]*2                  in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[food]*0.5                in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[food]*0.8                in 1: battery
+   DIVERGED  p[food]*0.95               in 1: battery
+   DIVERGED  p[food]*1.05               in 1: battery
+   DIVERGED  p[food]*1.2                in 1: battery
+   DIVERGED  p[food]*2                  in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[labour]*0.5              in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[labour]*0.8              in 1: battery
+   DIVERGED  p[labour]*0.95             in 1: battery
+   DIVERGED  p[labour]*1.05             in 1: battery
+   DIVERGED  p[labour]*1.2              in 1: battery
+   DIVERGED  p[labour]*2                in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[land]*0.5                in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[land]*0.8                in 1: battery
+   DIVERGED  p[land]*0.95               in 1: battery
+   DIVERGED  p[land]*1.05               in 1: battery
+   DIVERGED  p[land]*1.2                in 1: battery
+   DIVERGED  p[land]*2                  in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[mach]*0.5                in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[mach]*0.8                in 1: battery
+   DIVERGED  p[mach]*0.95               in 1: battery
+   DIVERGED  p[mach]*1.05               in 1: battery
+   DIVERGED  p[mach]*1.2                in 1: battery
+   DIVERGED  p[mach]*2                  in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[manufactures]*0.5        in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[manufactures]*0.8        in 1: battery
+   DIVERGED  p[manufactures]*0.95       in 1: battery
+   DIVERGED  p[manufactures]*1.05       in 1: battery
+   DIVERGED  p[manufactures]*1.2        in 1: battery
+   DIVERGED  p[manufactures]*2          in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[shelter]*0.5             in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[shelter]*0.8             in 1: battery
+   DIVERGED  p[shelter]*0.95            in 1: battery
+   DIVERGED  p[shelter]*1.05            in 1: battery
+   DIVERGED  p[shelter]*1.2             in 1: battery
+   DIVERGED  p[shelter]*2               in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  s[care]*0.5                in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  s[care]*0.8                in 1: battery
+   DIVERGED  s[care]*0.95               in 1: battery
+   DIVERGED  s[care]*1.05               in 1: battery
+   DIVERGED  s[care]*1.2                in 1: battery
+   DIVERGED  s[care]*2                  in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  s[food]*0.5                in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  s[food]*0.8                in 1: battery
+   DIVERGED  s[food]*0.95               in 1: battery
+   DIVERGED  s[food]*1.05               in 1: battery
+   DIVERGED  s[food]*1.2                in 1: battery
+   DIVERGED  s[food]*2                  in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  s[manufactures]*0.5        in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  s[manufactures]*0.8        in 1: battery
+   DIVERGED  s[manufactures]*0.95       in 1: battery
+   DIVERGED  s[manufactures]*1.05       in 1: battery
+   DIVERGED  s[manufactures]*1.2        in 1: battery
+   DIVERGED  s[manufactures]*2          in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  s[shelter]*0.5             in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  s[shelter]*0.8             in 1: battery
+   DIVERGED  s[shelter]*0.95            in 1: battery
+   DIVERGED  s[shelter]*1.05            in 1: battery
+   DIVERGED  s[shelter]*1.2             in 1: battery
+   DIVERGED  s[shelter]*2               in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  x*/2                       in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+CT2/zo: free-able market's end state as the oracle's in 19 CONVERGED runs, not in 0
+   DIVERGED  JA(0.5)                    in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  JA(0.8)                    in 1: battery
+   DIVERGED  JA(0.95)                   in 1: battery
+   DIVERGED  JA(1.05)                   in 1: battery
+   DIVERGED  JA(1.2)                    in 1: battery
+   DIVERGED  JA(2)                      in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  JB(0.5)                    in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  JB(0.8)                    in 1: battery
+   DIVERGED  JB(0.95)                   in 1: battery
+   DIVERGED  JB(1.05)                   in 1: battery
+   DIVERGED  JB(1.2)                    in 1: battery
+   DIVERGED  JB(2)                      in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  N(0.5)                     in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  N(0.8)                     in 1: battery
+   DIVERGED  N(0.95)                    in 1: battery
+   DIVERGED  N(1.05)                    in 1: battery
+   DIVERGED  N(1.2)                     in 1: battery
+   DIVERGED  N(2)                       in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  RC(0.5)                    in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  RC(0.8)                    in 1: battery
+   DIVERGED  RC(0.95)                   in 1: battery
+   DIVERGED  RC(1.05)                   in 1: battery
+   DIVERGED  RC(1.2)                    in 1: battery
+   DIVERGED  RC(2)                      in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  b.food=0.3@dated           in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  b.food=0.3@genesis         in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  b.food=0.54@dated          in 1: battery
+   DIVERGED  b.food=0.54@genesis        in 1: battery
+   DIVERGED  b.food=0.66@dated          in 1: battery
+   DIVERGED  b.food=0.66@genesis        in 1: battery
+   DIVERGED  b.food=1.2@dated           in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   ORBITING  b.food=1.2@genesis         in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  exit.To=17.55@dated        in 1: battery
+   DIVERGED  exit.To=21.45@dated        in 1: battery
+   DIVERGED  exit.To=21.45@genesis      in 1: battery
+   DIVERGED  exit.To=39@dated           in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  exit.To=39@genesis         in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  exit.To=9.75@dated         in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  hold                       in 1: modeA
+   DIVERGED  land.mach=0.2@dated        in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   ORBITING  land.mach=0.2@genesis      in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  land.mach=0.36@dated       in 1: battery
+   DIVERGED  land.mach=0.36@genesis     in 1: battery
+   DIVERGED  land.mach=0.44@dated       in 1: battery
+   DIVERGED  land.mach=0.44@genesis     in 1: battery
+   DIVERGED  land.mach=0.8@dated        in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  land.mach=0.8@genesis      in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[care]*0.5                in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[care]*0.8                in 1: battery
+   DIVERGED  p[care]*0.95               in 1: battery
+   DIVERGED  p[care]*1.05               in 1: battery
+   DIVERGED  p[care]*1.2                in 1: battery
+   DIVERGED  p[care]*2                  in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[food]*0.5                in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[food]*0.8                in 1: battery
+   DIVERGED  p[food]*0.95               in 1: battery
+   DIVERGED  p[food]*1.05               in 1: battery
+   DIVERGED  p[food]*1.2                in 1: battery
+   DIVERGED  p[food]*2                  in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[labour]*0.5              in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[labour]*0.8              in 1: battery
+   DIVERGED  p[labour]*0.95             in 1: battery
+   DIVERGED  p[labour]*1.05             in 1: battery
+   DIVERGED  p[labour]*1.2              in 1: battery
+   DIVERGED  p[labour]*2                in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[land]*0.5                in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[land]*0.8                in 1: battery
+   DIVERGED  p[land]*0.95               in 1: battery
+   DIVERGED  p[land]*1.05               in 1: battery
+   DIVERGED  p[land]*1.2                in 1: battery
+   DIVERGED  p[land]*2                  in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[mach]*0.5                in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[mach]*0.8                in 1: battery
+   DIVERGED  p[mach]*0.95               in 1: battery
+   DIVERGED  p[mach]*1.05               in 1: battery
+   DIVERGED  p[mach]*1.2                in 1: battery
+   DIVERGED  p[mach]*2                  in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[manufactures]*0.5        in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[manufactures]*0.8        in 1: battery
+   DIVERGED  p[manufactures]*0.95       in 1: battery
+   DIVERGED  p[manufactures]*1.05       in 1: battery
+   DIVERGED  p[manufactures]*1.2        in 1: battery
+   DIVERGED  p[manufactures]*2          in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[shelter]*0.5             in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[shelter]*0.8             in 1: battery
+   DIVERGED  p[shelter]*0.95            in 1: battery
+   DIVERGED  p[shelter]*1.05            in 1: battery
+   DIVERGED  p[shelter]*1.2             in 1: battery
+   DIVERGED  p[shelter]*2               in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  s[care]*0.5                in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  s[care]*0.8                in 1: battery
+   DIVERGED  s[care]*0.95               in 1: battery
+   DIVERGED  s[care]*1.05               in 1: battery
+   DIVERGED  s[care]*1.2                in 1: battery
+   DIVERGED  s[care]*2                  in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  s[food]*0.5                in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  s[food]*0.8                in 1: battery
+   DIVERGED  s[food]*0.95               in 1: battery
+   DIVERGED  s[food]*1.05               in 1: battery
+   DIVERGED  s[food]*1.2                in 1: battery
+   DIVERGED  s[food]*2                  in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  s[manufactures]*0.5        in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  s[manufactures]*0.8        in 1: battery
+   DIVERGED  s[manufactures]*0.95       in 1: battery
+   DIVERGED  s[manufactures]*1.05       in 1: battery
+   DIVERGED  s[manufactures]*1.2        in 1: battery
+   DIVERGED  s[manufactures]*2          in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  s[shelter]*0.5             in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  s[shelter]*0.8             in 1: battery
+   DIVERGED  s[shelter]*0.95            in 1: battery
+   DIVERGED  s[shelter]*1.05            in 1: battery
+   DIVERGED  s[shelter]*1.2             in 1: battery
+   DIVERGED  s[shelter]*2               in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  x*/2                       in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+CT2/zp001: free-able market's end state as the oracle's in 772 CONVERGED runs, not in 0
+   ORBITING  b.food=1.2@dated           in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   ORBITING  b.food=1.2@genesis         in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+CT2/zp01: free-able market's end state as the oracle's in 806 CONVERGED runs, not in 0
+   ORBITING  b.food=1.2@dated           in 1: rate x0.75
+   ORBITING  b.food=1.2@genesis         in 1: rate x0.75
+CT2/zp03: free-able market's end state as the oracle's in 111 CONVERGED runs, not in 0
+CT2/zp1: free-able market's end state as the oracle's in 808 CONVERGED runs, not in 0
+CT2/zp15: free-able market's end state as the oracle's in 111 CONVERGED runs, not in 0
+CT2/zp2: free-able market's end state as the oracle's in 111 CONVERGED runs, not in 0
+CT2/zp3: free-able market's end state as the oracle's in 111 CONVERGED runs, not in 0
+CT2/zp4: free-able market's end state as the oracle's in 111 CONVERGED runs, not in 0
+CT2/zs2: free-able market's end state as the oracle's in 772 CONVERGED runs, not in 0
+   ORBITING  b.food=1.2@dated           in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   ORBITING  b.food=1.2@genesis         in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+CT2/zs3: free-able market's end state as the oracle's in 772 CONVERGED runs, not in 0
+   ORBITING  b.food=1.2@dated           in 1: rate x1.25
+   STUCK     b.food=1.2@dated           in 17: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   ORBITING  b.food=1.2@genesis         in 1: rate x1.25
+   STUCK     b.food=1.2@genesis         in 17: battery, rate x0.75, adjust x0.75, buffer x0.75, rate x0.9, buffer x0.9 ...
+IL1/msat: free-able market's end state as the oracle's in 0 CONVERGED runs, not in 0
+   DIVERGED  JA(0.5)                    in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  JA(0.8)                    in 1: battery
+   DIVERGED  JA(0.95)                   in 1: battery
+   DIVERGED  JA(1.05)                   in 1: battery
+   DIVERGED  JA(1.2)                    in 1: battery
+   DIVERGED  JA(2)                      in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  JB(0.5)                    in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  JB(0.8)                    in 1: battery
+   DIVERGED  JB(0.95)                   in 1: battery
+   DIVERGED  JB(1.05)                   in 1: battery
+   DIVERGED  JB(1.2)                    in 1: battery
+   DIVERGED  JB(2)                      in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  N(0.5)                     in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  N(0.8)                     in 1: battery
+   DIVERGED  N(0.95)                    in 1: battery
+   DIVERGED  N(1.05)                    in 1: battery
+   DIVERGED  N(1.2)                     in 1: battery
+   DIVERGED  N(2)                       in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  RC(0.5)                    in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  RC(0.8)                    in 1: battery
+   DIVERGED  RC(0.95)                   in 1: battery
+   DIVERGED  RC(1.05)                   in 1: battery
+   DIVERGED  RC(1.2)                    in 1: battery
+   DIVERGED  RC(2)                      in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  b.food=0.3@dated           in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  b.food=0.3@genesis         in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  b.food=0.54@dated          in 1: battery
+   DIVERGED  b.food=0.54@genesis        in 1: battery
+   DIVERGED  b.food=0.66@dated          in 1: battery
+   DIVERGED  b.food=0.66@genesis        in 1: battery
+   DIVERGED  b.food=1.2@dated           in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  b.food=1.2@genesis         in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  hold                       in 1: modeA
+   DIVERGED  inst.land=1040@dated       in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  inst.land=1040@genesis     in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  inst.land=260@dated        in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  inst.land=468@dated        in 1: battery
+   DIVERGED  inst.land=468@genesis      in 1: battery
+   DIVERGED  inst.land=572@dated        in 1: battery
+   DIVERGED  inst.land=572@genesis      in 1: battery
+   DIVERGED  land.mach=0.2@dated        in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  land.mach=0.2@genesis      in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  land.mach=0.36@dated       in 1: battery
+   DIVERGED  land.mach=0.36@genesis     in 1: battery
+   DIVERGED  land.mach=0.44@dated       in 1: battery
+   DIVERGED  land.mach=0.44@genesis     in 1: battery
+   DIVERGED  land.mach=0.8@dated        in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  land.mach=0.8@genesis      in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[care]*0.5                in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[care]*0.8                in 1: battery
+   DIVERGED  p[care]*0.95               in 1: battery
+   DIVERGED  p[care]*1.05               in 1: battery
+   DIVERGED  p[care]*1.2                in 1: battery
+   DIVERGED  p[care]*2                  in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[food]*0.5                in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[food]*0.8                in 1: battery
+   DIVERGED  p[food]*0.95               in 1: battery
+   DIVERGED  p[food]*1.05               in 1: battery
+   DIVERGED  p[food]*1.2                in 1: battery
+   DIVERGED  p[food]*2                  in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[labour]*0.5              in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[labour]*0.8              in 1: battery
+   DIVERGED  p[labour]*0.95             in 1: battery
+   DIVERGED  p[labour]*1.05             in 1: battery
+   DIVERGED  p[labour]*1.2              in 1: battery
+   DIVERGED  p[labour]*2                in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[land]=0.00125            in 1: battery
+   DIVERGED  p[land]=0.005              in 1: battery
+   DIVERGED  p[land]=0.025              in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[mach]*0.5                in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[mach]*0.8                in 1: battery
+   DIVERGED  p[mach]*0.95               in 1: battery
+   DIVERGED  p[mach]*1.05               in 1: battery
+   DIVERGED  p[mach]*1.2                in 1: battery
+   DIVERGED  p[mach]*2                  in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[manufactures]*0.5        in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[manufactures]*0.8        in 1: battery
+   DIVERGED  p[manufactures]*0.95       in 1: battery
+   DIVERGED  p[manufactures]*1.05       in 1: battery
+   DIVERGED  p[manufactures]*1.2        in 1: battery
+   DIVERGED  p[manufactures]*2          in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[shelter]*0.5             in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[shelter]*0.8             in 1: battery
+   DIVERGED  p[shelter]*0.95            in 1: battery
+   DIVERGED  p[shelter]*1.05            in 1: battery
+   DIVERGED  p[shelter]*1.2             in 1: battery
+   DIVERGED  p[shelter]*2               in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  s[care]=0.05               in 1: battery
+   DIVERGED  s[care]=0.2                in 1: battery
+   DIVERGED  s[care]=0.5                in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  s[food]=0.05               in 1: battery
+   DIVERGED  s[food]=0.2                in 1: battery
+   DIVERGED  s[food]=0.5                in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  s[manufactures]=0.05       in 1: battery
+   DIVERGED  s[manufactures]=0.2        in 1: battery
+   DIVERGED  s[manufactures]=0.5        in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  s[shelter]=0.05            in 1: battery
+   DIVERGED  s[shelter]=0.2             in 1: battery
+   DIVERGED  s[shelter]=0.5             in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  x*/2                       in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+IL1/zo: free-able market's end state as the oracle's in 18 CONVERGED runs, not in 0
+   DIVERGED  JA(0.5)                    in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  JA(0.8)                    in 1: battery
+   DIVERGED  JA(0.95)                   in 1: battery
+   DIVERGED  JA(1.05)                   in 1: battery
+   DIVERGED  JA(1.2)                    in 1: battery
+   DIVERGED  JA(2)                      in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  JB(0.5)                    in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  JB(0.8)                    in 1: battery
+   DIVERGED  JB(0.95)                   in 1: battery
+   DIVERGED  JB(1.05)                   in 1: battery
+   DIVERGED  JB(1.2)                    in 1: battery
+   DIVERGED  JB(2)                      in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  N(0.5)                     in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  N(0.8)                     in 1: battery
+   DIVERGED  N(0.95)                    in 1: battery
+   DIVERGED  N(1.05)                    in 1: battery
+   DIVERGED  N(1.2)                     in 1: battery
+   DIVERGED  N(2)                       in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  RC(0.5)                    in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  RC(0.8)                    in 1: battery
+   DIVERGED  RC(0.95)                   in 1: battery
+   DIVERGED  RC(1.05)                   in 1: battery
+   DIVERGED  RC(1.2)                    in 1: battery
+   DIVERGED  RC(2)                      in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  b.food=0.3@dated           in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  b.food=0.3@genesis         in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  b.food=0.54@dated          in 1: battery
+   DIVERGED  b.food=0.54@genesis        in 1: battery
+   DIVERGED  b.food=0.66@dated          in 1: battery
+   DIVERGED  b.food=0.66@genesis        in 1: battery
+   DIVERGED  b.food=1.2@dated           in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  b.food=1.2@genesis         in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  hold                       in 1: modeA
+   DIVERGED  inst.land=1040@dated       in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  inst.land=1040@genesis     in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  inst.land=260@dated        in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  inst.land=468@dated        in 1: battery
+   DIVERGED  inst.land=468@genesis      in 1: battery
+   DIVERGED  inst.land=572@dated        in 1: battery
+   DIVERGED  inst.land=572@genesis      in 1: battery
+   DIVERGED  land.mach=0.2@dated        in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  land.mach=0.2@genesis      in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  land.mach=0.36@dated       in 1: battery
+   DIVERGED  land.mach=0.36@genesis     in 1: battery
+   DIVERGED  land.mach=0.44@dated       in 1: battery
+   DIVERGED  land.mach=0.44@genesis     in 1: battery
+   DIVERGED  land.mach=0.8@dated        in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  land.mach=0.8@genesis      in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[care]*0.5                in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[care]*0.8                in 1: battery
+   DIVERGED  p[care]*0.95               in 1: battery
+   DIVERGED  p[care]*1.05               in 1: battery
+   DIVERGED  p[care]*1.2                in 1: battery
+   DIVERGED  p[care]*2                  in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[food]*0.5                in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[food]*0.8                in 1: battery
+   DIVERGED  p[food]*0.95               in 1: battery
+   DIVERGED  p[food]*1.05               in 1: battery
+   DIVERGED  p[food]*1.2                in 1: battery
+   DIVERGED  p[food]*2                  in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[labour]*0.5              in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[labour]*0.8              in 1: battery
+   DIVERGED  p[labour]*0.95             in 1: battery
+   DIVERGED  p[labour]*1.05             in 1: battery
+   DIVERGED  p[labour]*1.2              in 1: battery
+   DIVERGED  p[labour]*2                in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[land]=0.00125            in 1: battery
+   DIVERGED  p[land]=0.005              in 1: battery
+   DIVERGED  p[land]=0.025              in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[mach]*0.5                in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[mach]*0.8                in 1: battery
+   DIVERGED  p[mach]*0.95               in 1: battery
+   DIVERGED  p[mach]*1.05               in 1: battery
+   DIVERGED  p[mach]*1.2                in 1: battery
+   DIVERGED  p[mach]*2                  in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[manufactures]*0.5        in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[manufactures]*0.8        in 1: battery
+   DIVERGED  p[manufactures]*0.95       in 1: battery
+   DIVERGED  p[manufactures]*1.05       in 1: battery
+   DIVERGED  p[manufactures]*1.2        in 1: battery
+   DIVERGED  p[manufactures]*2          in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[shelter]*0.5             in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  p[shelter]*0.8             in 1: battery
+   DIVERGED  p[shelter]*0.95            in 1: battery
+   DIVERGED  p[shelter]*1.05            in 1: battery
+   DIVERGED  p[shelter]*1.2             in 1: battery
+   DIVERGED  p[shelter]*2               in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  s[care]=0.05               in 1: battery
+   DIVERGED  s[care]=0.2                in 1: battery
+   DIVERGED  s[care]=0.5                in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  s[food]=0.05               in 1: battery
+   DIVERGED  s[food]=0.2                in 1: battery
+   DIVERGED  s[food]=0.5                in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  s[manufactures]=0.05       in 1: battery
+   DIVERGED  s[manufactures]=0.2        in 1: battery
+   DIVERGED  s[manufactures]=0.5        in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  s[shelter]=0.05            in 1: battery
+   DIVERGED  s[shelter]=0.2             in 1: battery
+   DIVERGED  s[shelter]=0.5             in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DIVERGED  x*/2                       in 18: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+IL1/zp001: free-able market's end state as the oracle's in 706 CONVERGED runs, not in 0
+IL1/zp01: free-able market's end state as the oracle's in 706 CONVERGED runs, not in 0
+IL1/zp03: free-able market's end state as the oracle's in 94 CONVERGED runs, not in 0
+IL1/zp1: free-able market's end state as the oracle's in 706 CONVERGED runs, not in 0
+IL1/zp15: free-able market's end state as the oracle's in 94 CONVERGED runs, not in 0
+IL1/zp2: free-able market's end state as the oracle's in 94 CONVERGED runs, not in 0
+IL1/zp3: free-able market's end state as the oracle's in 92 CONVERGED runs, not in 0
+   ORBITING  inst.land=260@dated        in 1: battery
+   ORBITING  inst.land=260@genesis      in 1: battery
+IL1/zp4: free-able market's end state as the oracle's in 92 CONVERGED runs, not in 0
+   DEAD      inst.land=260@dated        in 1: battery
+   DEAD      inst.land=260@genesis      in 1: battery
+IL1/zs2: free-able market's end state as the oracle's in 670 CONVERGED runs, not in 0
+   DEAD      inst.land=260@dated        in 2: tilt 0.5, tilt 1
+   ORBITING  inst.land=260@dated        in 16: battery, buffer x0.75, rate x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+   DEAD      inst.land=260@genesis      in 2: tilt 1, tilt 0.5
+   ORBITING  inst.land=260@genesis      in 16: battery, rate x0.75, buffer x0.75, adjust x0.75, rate x0.9, buffer x0.9 ...
+IL1/zs3: free-able market's end state as the oracle's in 704 CONVERGED runs, not in 0
+   ORBITING  inst.land=260@dated        in 1: tilt 1
+   ORBITING  inst.land=260@genesis      in 1: tilt 1
+
+PL IL1/zp1    base                               C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp1    land.mach x1.1                     C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp1    land.mach x0.9                     C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp1    land.mach x2                       C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp1    land.mach x0.5                     C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp1    b.food x1.1                        C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp1    b.food x0.9                        C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp1    b.food x2                          C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp1    b.food x0.5                        C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp1    inst.land x1.1                     C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp1    inst.land x0.9                     C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp1    inst.land x2                       C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp1    inst.land x0.5                     C2m          Enclosed  0.988833 (half-life 62) held []
+PL CT2/zp1    base                               C2m          Commons   0.985886 (half-life 49) held ['commons']
+PL CT2/zp1    land.mach x1.1                     C2m          Commons   0.985869 (half-life 49) held ['commons']
+PL CT2/zp1    land.mach x0.9                     C2m          Commons   0.987057 (half-life 53) held ['commons']
+PL CT2/zp1    land.mach x2                       C2m          Commons   0.985744 (half-life 48) held ['commons']
+PL CT2/zp1    land.mach x0.5                     C2m          Commons   0.987912 (half-life 57) held ['commons']
+PL CT2/zp1    b.food x1.1                        C2m          Commons   0.985899 (half-life 49) held ['commons']
+PL CT2/zp1    b.food x0.9                        C2m          Commons   0.985855 (half-life 49) held ['commons']
+PL CT2/zp1    b.food x2                          C2m          Crowded   0.999698 (half-life 2291) held []
+PL CT2/zp1    b.food x0.5                        C2m          Commons   0.985484 (half-life 47) held ['commons']
+PL CT2/zp1    exit.To x1.1                       C2m          Commons   0.985886 (half-life 49) held ['commons']
+PL CT2/zp1    exit.To x0.9                       C2m          Crowded   0.998342 (half-life 418) held []
+PL CT2/zp1    exit.To x2                         C2m          Commons   0.985886 (half-life 49) held ['commons']
+PL CT2/zp1    exit.To x0.5                       C2m          Enclosed  0.987107 (half-life 53) held ['commons']
+PL IL1/zp4    base                               C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp4    land.mach x1.1                     C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp4    land.mach x0.9                     C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp4    land.mach x2                       C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp4    land.mach x0.5                     C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp4    b.food x1.1                        C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp4    b.food x0.9                        C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp4    b.food x2                          C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp4    b.food x0.5                        C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp4    inst.land x1.1                     C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp4    inst.land x0.9                     C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp4    inst.land x2                       C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp4    inst.land x0.5                     C2m          Enclosed  0.987735 (half-life 56) held []
+PL CT2/zp4    base                               C2m          Commons   0.985886 (half-life 49) held ['commons']
+PL CT2/zp4    land.mach x1.1                     C2m          Commons   0.985869 (half-life 49) held ['commons']
+PL CT2/zp4    land.mach x0.9                     C2m          Commons   0.987057 (half-life 53) held ['commons']
+PL CT2/zp4    land.mach x2                       C2m          Commons   0.985744 (half-life 48) held ['commons']
+PL CT2/zp4    land.mach x0.5                     C2m          Commons   0.987912 (half-life 57) held ['commons']
+PL CT2/zp4    b.food x1.1                        C2m          Commons   0.985899 (half-life 49) held ['commons']
+PL CT2/zp4    b.food x0.9                        C2m          Commons   0.985855 (half-life 49) held ['commons']
+PL CT2/zp4    b.food x2                          C2m          Crowded   0.998801 (half-life 578) held []
+PL CT2/zp4    b.food x0.5                        C2m          Commons   0.985484 (half-life 47) held ['commons']
+PL CT2/zp4    exit.To x1.1                       C2m          Commons   0.985886 (half-life 49) held ['commons']
+PL CT2/zp4    exit.To x0.9                       C2m          Crowded   0.996196 (half-life 182) held []
+PL CT2/zp4    exit.To x2                         C2m          Commons   0.985886 (half-life 49) held ['commons']
+PL CT2/zp4    exit.To x0.5                       C2m          Enclosed  0.987107 (half-life 53) held ['commons']
+PL IL1/zp01   base                               C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp01   land.mach x1.1                     C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp01   land.mach x0.9                     C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp01   land.mach x2                       C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp01   land.mach x0.5                     C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp01   b.food x1.1                        C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp01   b.food x0.9                        C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp01   b.food x2                          C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp01   b.food x0.5                        C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp01   inst.land x1.1                     C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp01   inst.land x0.9                     C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp01   inst.land x2                       C2m          Idle      0.988687 (half-life 61) held ['land']
+PL IL1/zp01   inst.land x0.5                     C2m          Enclosed  0.994122 (half-life 118) held []
+PL CT2/zp01   base                               C2m          Commons   0.985886 (half-life 49) held ['commons']
+PL CT2/zp01   land.mach x1.1                     C2m          Commons   0.985869 (half-life 49) held ['commons']
+PL CT2/zp01   land.mach x0.9                     C2m          Commons   0.987057 (half-life 53) held ['commons']
+PL CT2/zp01   land.mach x2                       C2m          Commons   0.985744 (half-life 48) held ['commons']
+PL CT2/zp01   land.mach x0.5                     C2m          Commons   0.987912 (half-life 57) held ['commons']
+PL CT2/zp01   b.food x1.1                        C2m          Commons   0.985899 (half-life 49) held ['commons']
+PL CT2/zp01   b.food x0.9                        C2m          Commons   0.985855 (half-life 49) held ['commons']
+PL CT2/zp01   b.food x2                          C2m          Crowded   0.999964 (half-life 19274) held []
+PL CT2/zp01   b.food x0.5                        C2m          Commons   0.985484 (half-life 47) held ['commons']
+PL CT2/zp01   exit.To x1.1                       C2m          Commons   0.985886 (half-life 49) held ['commons']
+PL CT2/zp01   exit.To x0.9                       C2m          Crowded   0.998981 (half-life 680) held []
+PL CT2/zp01   exit.To x2                         C2m          Commons   0.985886 (half-life 49) held ['commons']
+PL CT2/zp01   exit.To x0.5                       C2m          Enclosed  0.987107 (half-life 53) held ['commons']

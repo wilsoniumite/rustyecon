@@ -28,14 +28,18 @@ pub use cast::Cast;
 pub use ext::{
     ActorState, AgentDelta, Agents, CapacityState, GoodDeskState, MachDeskState, MakerState,
     OwnerState, PlantState, PlantedCapacityState, PlantedMakerState, PlantedTypeState,
-    ProviderState, RawAgentAction, ScriptState, WorkersState,
+    ProviderState, RawAgentAction, ScriptState, SwitchWorkersState, WorkersState,
 };
-pub use roles::many::rules::{workers_participation, Participation, PlotRegime};
+pub use roles::many::rules::{
+    pop_market, pop_market_participation, workers_participation, Participation, PlotRegime,
+    PopMarket,
+};
 pub use roles::many::spec::{
-    BasketProvider, BasketWorkers, CategoryDesk, Input, Item, PricedExit, RawBasketProvider,
-    RawBasketWorkers, RawCategoryDesk, RawInput, RawItem, RawLine, RawPricedExit, RawTypeDesk,
-    RawTypeRecipe, Transfer, TypeDesk,
+    BasketProvider, BasketWorkers, CategoryDesk, Input, Item, Pace, Pool, PricedExit,
+    RawBasketProvider, RawBasketWorkers, RawCategoryDesk, RawInput, RawItem, RawLine, RawPace,
+    RawPool, RawPricedExit, RawTypeDesk, RawTypeRecipe, Transfer, TypeDesk,
 };
+pub use roles::many::switch::{switch_gap, switch_move, switch_split, Split, SwitchWorkers};
 pub use roles::plant::rules::{PlantedCapacity, PlantedMaker, PlantedType};
 pub use roles::plant::spec::{Plant, PlantOrder, PlantTarget, RawPlant};
 pub use roles::spec::{

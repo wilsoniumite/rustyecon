@@ -15,6 +15,11 @@
 //!   sides posted, the residual is events and rounding, and a rate set moves nothing (G1's
 //!   verification).
 //!
+//! A good with a free step (amended at P2.4.11; FREE-SPEC §6.1) is explained by markets' own
+//! `next_price_free`, from its posted price, its reference's recorded price and its scale's
+//! recorded value; its waterfall's step is ln(p′/p) of that step where both prices are positive,
+//! so the shift c·p_ref·expm1(kx) is explained and not left in the residual.
+//!
 //! Every number is recorded, the result of markets' own function, or a display transform of
 //! those: a product, a sum, a difference, a log through the engine's `num` (U6).
 
@@ -22,7 +27,7 @@ use super::{date, describe, report_tick};
 use crate::run::{At, Measure, SeriesKey, Store};
 use rustyecon_engine::num;
 use rustyecon_engine::prelude::*;
-use rustyecon_engine::rustyecon_markets::{imbalance, next_price};
+use rustyecon_engine::rustyecon_markets::{imbalance, next_price, next_price_free};
 use serde::Serialize;
 
 /// Whether the world's price rule is `Ratio`, read by the name the tape gives it, as the
@@ -71,6 +76,66 @@ pub struct ExplainerVm {
     pub equal: Option<bool>,
     /// ln(next/p), the step in the log price.
     pub log_step: Option<f64>,
+    /// The free step's inputs, for a good with one (P2.4.11); left out of the view otherwise.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub free: Option<FreeVm>,
+}
+
+/// A free step's inputs at one tick (FREE-SPEC §6.1): p′ = p·e^(kx) + shift·expm1(kx), 0 where
+/// that is not positive, shift = c·p_ref.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct FreeVm {
+    /// The reference good.
+    pub reference: Key,
+    /// p_ref, its recorded price at the tick.
+    pub reference_price: f64,
+    /// The scale's param.
+    pub scale: Key,
+    /// c, its recorded value at the tick.
+    pub scale_value: f64,
+    /// c·p_ref.
+    pub shift: f64,
+}
+
+/// A good's free step at `tick`, from what the run recorded: its reference, p_ref, its scale and
+/// c; `None` for a good without one; an error where an input is not recorded.
+fn free_at(
+    store: &Store,
+    w: &World,
+    node: &Key,
+    good: &Key,
+    tick: u64,
+) -> Result<Option<FreeVm>, String> {
+    let Some(f) = w
+        .id_of::<GoodId>(good.as_str())
+        .and_then(|g| w.good(g))
+        .and_then(|d| d.free)
+    else {
+        return Ok(None);
+    };
+    let reference = w
+        .key_of(f.reference)
+        .cloned()
+        .ok_or("the free step's reference has no key")?;
+    let scale = w
+        .key_of(f.scale.param)
+        .cloned()
+        .ok_or("the free step's scale has no key")?;
+    let at = At::Market {
+        node: node.clone(),
+        good: reference.clone(),
+    };
+    let reference_price = series(store, Measure::Price, &at, tick)
+        .ok_or_else(|| format!("the price of {reference} is not recorded at tick {tick}"))?;
+    let scale_value = series(store, Measure::Param, &At::Param(scale.clone()), tick)
+        .ok_or_else(|| format!("the scale {scale} is not recorded at tick {tick}"))?;
+    Ok(Some(FreeVm {
+        reference,
+        reference_price,
+        scale,
+        scale_value,
+        shift: scale_value * reference_price,
+    }))
 }
 
 fn series(store: &Store, measure: Measure, at: &At, tick: u64) -> Option<f64> {
@@ -123,7 +188,11 @@ pub fn explain(store: &Store, node: &Key, good: &Key, tick: u64) -> Result<Expla
         .convert(&w.clock, rate_value)
         .map_err(|e| format!("the rate {rate} per tick: {e}"))?;
     let x = imbalance(supply, demand);
-    let next = next_price(w.market.rule, w.market.one_sided, price, k, supply, demand);
+    let free = free_at(store, w, node, good, tick)?;
+    let next = match &free {
+        Some(f) => next_price_free(w.market.one_sided, price, k, supply, demand, f.shift),
+        None => next_price(w.market.rule, w.market.one_sided, price, k, supply, demand),
+    };
     let recorded = series(store, Measure::NextPrice, &at, tick);
     Ok(ExplainerVm {
         tick,
@@ -144,6 +213,7 @@ pub fn explain(store: &Store, node: &Key, good: &Key, tick: u64) -> Result<Expla
         recorded,
         equal: recorded.map(|r| r.to_bits() == next.to_bits()),
         log_step: (next > 0.0 && price > 0.0).then(|| num::ln(next / price)),
+        free,
     })
 }
 
@@ -237,6 +307,10 @@ pub fn waterfall(
         at: At::Param(rate.clone()),
     });
     let start = store.start();
+    let free = w
+        .id_of::<GoodId>(good.as_str())
+        .and_then(|g| w.good(g))
+        .is_some_and(|d| d.free.is_some());
     let p0 = price
         .at(start)
         .ok_or("p is not recorded at the first tick")?;
@@ -259,7 +333,8 @@ pub fn waterfall(
             .and_then(|s| s.at(t))
             .zip(demand.and_then(|s| s.at(t)));
         // The tick's step in the log price by the rule: k·x under `Imbalance`, from the rate at
-        // the tick; ln(D/S) under `Ratio`, which ignores k and holds a one-sided market.
+        // the tick; ln(D/S) under `Ratio`, which ignores k and holds a one-sided market; for a
+        // good with a free step (P2.4.11), ln(p′/p) of that step where both prices are positive.
         let step = volumes.and_then(|(s, d)| {
             if ratio {
                 Some(if s > 0.0 && d > 0.0 {
@@ -270,7 +345,14 @@ pub fn waterfall(
             } else {
                 let v = rates.and_then(|r| r.at(t))?;
                 let k = site.convert(&w.clock, v).ok()?;
-                Some(k * imbalance(s, d))
+                if free {
+                    let f = free_at(store, w, node, good, t).ok()??;
+                    let q = price.at(t)?;
+                    let next = next_price_free(w.market.one_sided, q, k, s, d, f.shift);
+                    (q > 0.0 && next > 0.0).then(|| num::ln(next / q))
+                } else {
+                    Some(k * imbalance(s, d))
+                }
             }
         });
         match (step, volumes) {
@@ -342,7 +424,14 @@ pub fn waterfall(
         .collect();
     let level = num::ln(p / p0);
     Ok(WaterfallVm {
-        term: if ratio { "ln(D/S)" } else { "k·x" }.to_string(),
+        term: if ratio {
+            "ln(D/S)"
+        } else if free {
+            "ln(p′/p) of the free step"
+        } else {
+            "k·x"
+        }
+        .to_string(),
         start,
         tick,
         p0,

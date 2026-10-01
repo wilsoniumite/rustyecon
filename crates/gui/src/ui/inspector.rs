@@ -212,11 +212,29 @@ pub fn explainer(ui: &mut egui::Ui, e: &ExplainerVm) {
                 ),
             );
             row(ui, "k·x", format!("{:?}", e.kx));
-            row(
-                ui,
-                &format!("next_price({}, {}, p, k, S, D)", e.rule, e.one_sided),
-                format!("{:?}", e.next),
-            );
+            // A free step (P2.4.11; FREE-SPEC §6.1): its shift c·p_ref, and markets' own step.
+            match &e.free {
+                Some(f) => {
+                    row(
+                        ui,
+                        &format!("c·p_ref = {}·p[{}]", f.scale, f.reference),
+                        format!(
+                            "{:?}·{:?} = {:?}",
+                            f.scale_value, f.reference_price, f.shift
+                        ),
+                    );
+                    row(
+                        ui,
+                        &format!("next_price_free({}, p, k, S, D, c·p_ref)", e.one_sided),
+                        format!("{:?}", e.next),
+                    );
+                }
+                None => row(
+                    ui,
+                    &format!("next_price({}, {}, p, k, S, D)", e.rule, e.one_sided),
+                    format!("{:?}", e.next),
+                ),
+            }
             match (e.recorded, e.equal) {
                 (Some(r), Some(eq)) => {
                     let said = if eq {

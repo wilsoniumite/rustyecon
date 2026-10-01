@@ -6,7 +6,7 @@
 //! ```
 //!
 //! Options (`probe::markets::cli`): `--inst ID` (i0, i1, i2, i3, l2, l3, g1, iw1, ic1, c1, c2,
-//! c1n; default i1),
+//! c1n, c1p, c2p, c1pn, is1, is2, il1, ct2; default i1),
 //! `--tpy N`, `--dials c2m|c2l`, `--set KEY=VALUE`, `--one-sided saturate|hold`; `--perturb NAME`
 //! applies a named run, with `--ticks L` dating a `C=V@dated` shock at L/4. With no option but
 //! `--inst` the text is the registered tape, `tapes/markets-<id>.ron`; with any other, it opens

@@ -1,0 +1,4 @@
+worktree HEAD: 7ddec3875d8b64c68d6a5caf9c59b0dcb658c621 (P2.4.5), clean
+markets binary: 9d805e69ffb528021a5dcbfdf7451f363be73c1fcd904ff55397bd0a70c48309
+the scan's SHA256SUMS entries not OK: 0
+tm.py: 79c5118569400c2254792acb25a8dc541387989993c2833eb130eb58447b8804

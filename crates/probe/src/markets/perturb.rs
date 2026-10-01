@@ -21,6 +21,9 @@
 //! | `joint(F,SEED)` | every price times F^u, then every s times 2^u, u uniform on [−1, 1] from a fixed generator seeded by SEED |
 //! | `cycle(C,P,N)` | N dated changes of C, P ticks apart from tick P, cycling ×1.1, ×0.9, ×2, ×0.5 and ×1 of its registered value |
 //! | `enclose=F@genesis`, `enclose=F@dated` | enclosure by law (the commons; P2.3): a share F of the commons T_o moved to the enclosed land T, both changed from tick 0 or at L/4 |
+//! | `part.workers*F`, `part.workers=V` | the paced workers' genesis share (P2.4): the point's S/N times F, at most 1, or V exactly |
+//! | `sw[T]=V` | the switch pop of reserved type T's genesis pool share set to V exactly (the type switch at the wall; P2.4) |
+//! | `p[M]=V` | market M's genesis price set to V times labour's, after the factors (a zero price markets can hold; P2.4) |
 //!
 //! On I0 the grammar is P2.0's with the markets named: `p[mach]` is `pm`, `p[good]` is `p`,
 //! `s[good]` is `s`, `stock.mach` is `mach`, `land.mach` is `b`, and `joint` draws in P2.0's
@@ -31,9 +34,22 @@
 //! its mirror's order, labour, land, the categories, then the type; the battery and families are
 //! named and ordered as its mirror's (`battery_c.run_list`), the commons' coefficient `commons`;
 //! and the basin's factors are written as the mirror ran them, `1.05**j` to 12 significant digits.
+//! At a paced commons instance (P2.4; the trap registration's §3) `part.workers` displaces the
+//! workers' genesis share as the scan's mirror does (`tb.displace`); its start is a stock's, so
+//! `--first-year` reads it as Tier 3S is read, and the family `pace` runs it. At a switch instance
+//! (P2.4; the switch registration's §3) `sw[T]=V` sets a switch pop's genesis pool share as the
+//! scan's mirror does (`swb.displace`); its start is a price start, 1 − V against 1 − a\* joining
+//! the genesis gaps (`swb.d0`), and the battery adds it for each switch pop at 0.05, 0.2 and 0.5.
+//! At a free instance (P2.4; the free registration's §3) the battery is the free scan's mirror's
+//! (`fb.run_list`): at IL1, in wage units, each price but land's at the six factors, land's set by
+//! `p[land]=V` at 0.00125, 0.005 and 0.025 of w, each desk's share set as the wall's; at CT2 the
+//! commons battery's order. CT2's `exit.To` sets each commoner's share to V/2, two changes at one
+//! tick; `coin.workers` there scales both commoners' coins, as the mirror's; `joint` draws the
+//! commons' price last (O106); and at IL1, whose provider holds no coin, Tier 3S and stocks have
+//! no provider's coin.
 
 use super::instance::Instance;
-use super::setup::{Setup, ShareAt, Shock};
+use super::setup::{PaceAt, Setup, ShareAt, Shock};
 use crate::perturb::Start;
 
 /// A parsed run: its terms, and the name it was parsed from.
@@ -64,6 +80,9 @@ enum Term {
     Joint(f64, u64),
     Cycle(String, u64, u64),
     Enclose(f64, bool),
+    Pace(PaceAt),
+    Switch(String, f64),
+    PriceIs(String, f64),
 }
 
 fn number(s: &str) -> Result<f64, String> {
@@ -114,6 +133,15 @@ fn term(t: &str) -> Result<Term, String> {
     if let Some((d, v)) = t.strip_prefix("s[").and_then(|r| r.split_once("]=")) {
         return Ok(Term::ShareIs(d.to_string(), number(v)?));
     }
+    // A price set outright, V times labour's (P2.4), before the `C=V@when` form.
+    if let Some((m, v)) = t.strip_prefix("p[").and_then(|r| r.split_once("]=")) {
+        return Ok(Term::PriceIs(m.to_string(), number(v)?));
+    }
+    // A switch pop's genesis pool share (P2.4), before the `C=V@when` form it would otherwise be
+    // read as.
+    if let Some((k, v)) = t.strip_prefix("sw[").and_then(|r| r.split_once("]=")) {
+        return Ok(Term::Switch(k.to_string(), number(v)?));
+    }
     if let Some(a) = call(t, "joint") {
         let (f, seed) = a.split_once(',').ok_or("joint(F,SEED)")?;
         return Ok(Term::Joint(number(f)?, integer(seed)?));
@@ -132,6 +160,14 @@ fn term(t: &str) -> Result<Term, String> {
     if let Some(r) = bracket(t, "s") {
         let (d, f) = r?;
         return Ok(Term::Share(d.to_string(), f));
+    }
+    // The paced workers' genesis share (P2.4), before the `C=V@when` form it would otherwise be
+    // read as.
+    if let Some(f) = t.strip_prefix("part.workers*") {
+        return Ok(Term::Pace(PaceAt::Times(number(f)?)));
+    }
+    if let Some(v) = t.strip_prefix("part.workers=") {
+        return Ok(Term::Pace(PaceAt::Is(number(v)?)));
     }
     if let Some((c, rest)) = t.split_once('=') {
         let (v, when) = rest.split_once('@').ok_or("C=V@genesis or C=V@dated")?;
@@ -227,7 +263,8 @@ impl Perturbation {
             let this = match t {
                 Term::Hold => Start::Hold,
                 Term::Nominal(_) => Start::Nominal,
-                Term::Coin(..) | Term::Stock(..) => Start::Stocks,
+                // The paced share is a state, as a stock or a coin (P2.4).
+                Term::Coin(..) | Term::Stock(..) | Term::Pace(_) => Start::Stocks,
                 Term::Genesis(..) | Term::Dated(..) | Term::Cycle(..) | Term::Enclose(..) => {
                     Start::Shock
                 }
@@ -253,6 +290,20 @@ impl Perturbation {
                 _ => None,
             })
             .collect()
+    }
+
+    /// Whether the run's only terms are JA: a nominal move in wage units, where land's price is
+    /// the one JA leaves and it is 0 (P2.4; the free scan's `fb.run`: never VACUOUS at IL1).
+    pub fn ja_only(&self) -> bool {
+        !self.terms.is_empty() && self.terms.iter().all(|t| matches!(t, Term::Ja(_)))
+    }
+
+    /// Whether the run sets land's genesis price outright (`p[land]=V`, P2.4): its start has no
+    /// log observable at r = 0, so the free scan's mirror reads its distance as infinite.
+    pub fn sets_land(&self) -> bool {
+        self.terms
+            .iter()
+            .any(|t| matches!(t, Term::PriceIs(m, _) if m == "land"))
     }
 
     /// Whether the run has a dated shock, which restarts the scored clock at L/4.
@@ -291,6 +342,7 @@ impl Perturbation {
             match t {
                 Term::Hold => {}
                 Term::Price(m, f) => x.price[index(&markets, m, "market")?] *= f,
+                Term::PriceIs(m, v) => x.set[index(&markets, m, "market")?] = Some(*v),
                 Term::Share(d, f) => {
                     times_share(&mut x.share[index(&cats, d, "category desk")?], *f)?
                 }
@@ -373,18 +425,28 @@ impl Perturbation {
                         .coef(c)
                         .map(|c| c.param.clone())
                         .or_else(|_| inst.get(c).map(|_| c.clone()))?;
-                    s.at_genesis.push((param, number(v)?));
+                    // CT2's `exit.To` is one change per commoner (P2.4); any other is itself.
+                    s.at_genesis.extend(inst.changes_for(&param, number(v)?));
                 }
                 Term::Dated(c, v) => {
                     let param = inst
                         .coef(c)
                         .map(|c| c.param.clone())
                         .or_else(|_| inst.get(c).map(|_| c.clone()))?;
-                    s.shocks.push(Shock {
-                        tick: ticks / 4,
-                        param,
-                        value: number(v)?,
-                    });
+                    for (param, value) in inst.changes_for(&param, number(v)?) {
+                        s.shocks.push(Shock {
+                            tick: ticks / 4,
+                            param,
+                            value,
+                        });
+                    }
+                }
+                // At a commons market (P2.4) `coin.workers` is every commoner's coin, as the free
+                // scan's mirror scales them together.
+                Term::Coin(a, f) if a == "workers" && !inst.commoners.is_empty() => {
+                    for k in &inst.commoners {
+                        x.coin[index(&actors, &k.pop(), "actor")?] *= f;
+                    }
                 }
                 Term::Coin(a, f) => x.coin[index(&actors, a, "actor")?] *= f,
                 Term::Stock(d, f) => x.stock[index(&desks, d, "desk")?] *= f,
@@ -393,12 +455,16 @@ impl Perturbation {
                     let mut draw = |base: f64| rustyecon_core::num::pow(base, g.signed());
                     // The draw order: the markets' order, or at the wall and the commons the
                     // frame's mirror's (labour, land, the categories, the types, the reserved
-                    // labour markets).
-                    let order: Vec<usize> = if inst.worker_form || inst.exit.is_some() {
+                    // labour markets), then the commons' market where pops trade it (P2.4, the
+                    // free scan's mirror; O106).
+                    let order: Vec<usize> = if inst.worker_form || inst.parcel() {
                         let mut o = vec![0, 1];
                         o.extend((0..nc).map(cat_at));
                         o.extend((0..nt).map(type_at));
                         o.extend((0..nw).map(wage_at));
+                        if !inst.commoners.is_empty() {
+                            o.push(wage_at(nw));
+                        }
                         o
                     } else {
                         (0..x.price.len()).collect()
@@ -445,6 +511,32 @@ impl Perturbation {
                             value: base * CYCLE[(k % 5) as usize],
                         });
                     }
+                }
+                Term::Pace(at) => {
+                    if !inst.paced_exit() {
+                        return Err(format!(
+                            "{}: part.workers needs an instance whose workers' participation is \
+                             paced (c1p, c2p, c1pn)",
+                            inst.id
+                        ));
+                    }
+                    x.pace = match (x.pace, *at) {
+                        (PaceAt::Times(g), PaceAt::Times(f)) => PaceAt::Times(g * f),
+                        (_, PaceAt::Is(v)) => PaceAt::Is(v),
+                        (PaceAt::Is(_), PaceAt::Times(_)) => {
+                            return Err("the workers' share is set outright and then scaled".into())
+                        }
+                    };
+                }
+                Term::Switch(k, v) => {
+                    if !inst.switch {
+                        return Err(format!(
+                            "{}: sw[T]=V needs an instance whose reserved pops switch (is1, is2)",
+                            inst.id
+                        ));
+                    }
+                    let keys: Vec<String> = inst.wtypes.iter().map(|t| t.key.clone()).collect();
+                    x.switch[index(&keys, k, "switch pop")?] = Some(*v);
                 }
             }
         }
@@ -497,7 +589,10 @@ pub fn battery(inst: &Instance, tpy: u32) -> Result<Vec<Run>, String> {
     if inst.worker_form {
         return Ok(wall_battery(inst));
     }
-    if inst.exit.is_some() {
+    if inst.wage_units {
+        return Ok(idle_battery(inst));
+    }
+    if inst.parcel() {
         return commons_battery(inst, tpy);
     }
     let e = inst.point(tpy)?;
@@ -570,7 +665,8 @@ pub const WALL_SHARES: [(&str, u8); 3] = [("0.05", 1), ("0.2", 2), ("0.5", 3)];
 /// category desk's share set to 0.05, 0.2 and 0.5; JA, JB, N, RC and RW at the six factors;
 /// x\*/2; and each registered cost coefficient at ×1.1, ×0.9, ×2 and ×0.5, at genesis and dated.
 /// The markets are named in the mirror's order: labour, land, the categories, the types, the
-/// reserved labour markets. No run is slack.
+/// reserved labour markets. No run is slack. At a switch instance (P2.4; the switch scan's §3.9,
+/// `swb.run_list`) each switch pop's pool share set to 0.05, 0.2 and 0.5 follows, pop by pop.
 pub fn wall_battery(inst: &Instance) -> Vec<Run> {
     let mut out = Vec::new();
     let mut push = |name: String, tier: u8| {
@@ -601,6 +697,13 @@ pub fn wall_battery(inst: &Instance) -> Vec<Run> {
             let tier = if k < 2 { 2 } else { 3 };
             push(format!("{}={v}@genesis", c.name), tier);
             push(format!("{}={v}@dated", c.name), tier);
+        }
+    }
+    if inst.switch {
+        for t in &inst.wtypes {
+            for (v, tier) in WALL_SHARES {
+                push(format!("sw[{}]={v}", t.key), tier);
+            }
         }
     }
     out
@@ -649,6 +752,57 @@ pub fn commons_battery(inst: &Instance, tpy: u32) -> Result<Vec<Run>, String> {
         }
     }
     Ok(out)
+}
+
+/// The land prices `p[land]=V` takes at IL1, in units of w, with their tiers (the free scan's
+/// §6.4: the rents that raise the basket's cost by about 5%, 20% and 100%).
+pub const IDLE_LAND: [(&str, u8); 3] = [("0.00125", 1), ("0.005", 2), ("0.025", 3)];
+
+/// IL1's battery in wage units (the free scan's §6.4; `fb.run_list`), in its mirror's order and
+/// names: each market's price but land's at the six factors, market by market (labour, the
+/// categories, the type); land's price set to 0.00125, 0.005 and 0.025 of w; each category desk's
+/// share set to 0.05, 0.2 and 0.5; JA, JB, N and RC at the six factors; x\*/2; and each registered
+/// cost coefficient at ×1.1, ×0.9, ×2 and ×0.5, at genesis and dated. 100 runs; none is slack.
+pub fn idle_battery(inst: &Instance) -> Vec<Run> {
+    let mut out = Vec::new();
+    let mut push = |name: String, tier: u8| {
+        out.push(Run {
+            name,
+            tier,
+            slack: false,
+        })
+    };
+    for m in wall_markets(inst).into_iter().filter(|m| m != "land") {
+        for (fs, _, tier) in FACTORS {
+            push(format!("p[{m}]*{fs}"), tier);
+        }
+    }
+    for (v, tier) in IDLE_LAND {
+        push(format!("p[land]={v}"), tier);
+    }
+    for c in &inst.categories {
+        for (v, tier) in WALL_SHARES {
+            push(format!("s[{}]={v}", c.key), tier);
+        }
+    }
+    let mut shapes = vec!["JA", "JB", "N"];
+    if inst.categories.len() > 1 {
+        shapes.push("RC");
+    }
+    for shape in shapes {
+        for (fs, _, tier) in FACTORS {
+            push(format!("{shape}({fs})"), tier);
+        }
+    }
+    push("x*/2".into(), 3);
+    for c in &inst.coefs {
+        for (k, v) in c.values.iter().enumerate() {
+            let tier = if k < 2 { 2 } else { 3 };
+            push(format!("{}={v}@genesis", c.name), tier);
+            push(format!("{}={v}@dated", c.name), tier);
+        }
+    }
+    out
 }
 
 /// Python's `%.12g` of x (the commons mirror's basin names, `battery_c`): x to 12 significant
@@ -717,7 +871,10 @@ pub fn tier3s(inst: &Instance) -> Vec<String> {
     }
     let mut pops = vec!["workers".to_string()];
     pops.extend(inst.wtypes.iter().map(|t| t.pop()));
-    pops.push("provider".into());
+    // IL1's provider holds no coin (P2.4; the free scan's `tier3s_jobs`): it has no such run.
+    if !inst.wage_units {
+        pops.push("provider".into());
+    }
     for a in pops {
         for f in ["0.5", "2"] {
             v.push(format!("coin.{a}*{f}"));
@@ -725,6 +882,16 @@ pub fn tier3s(inst: &Instance) -> Vec<String> {
     }
     v
 }
+
+/// The pace family (P2.4; the trap scan's §8 E4, in its order): the paced workers' genesis share
+/// at 0.1, 0.5 and 2 times the point's S/N, and at 0 and 1.
+pub const PACE_FAMILY: [&str; 5] = [
+    "part.workers*0.1",
+    "part.workers*0.5",
+    "part.workers*2",
+    "part.workers=0",
+    "part.workers=1",
+];
 
 /// The added families (MARKETS-SPEC §7.10), each a list of run names.
 pub fn family(inst: &Instance, tpy: u32, name: &str) -> Result<Vec<String>, String> {
@@ -758,8 +925,11 @@ pub fn family(inst: &Instance, tpy: u32, name: &str) -> Result<Vec<String>, Stri
                     v.push(format!("coin.{}*{f}", t.pop()));
                 }
             }
-            for f in ["0.5", "2"] {
-                v.push(format!("coin.provider*{f}"));
+            // IL1's provider holds no coin (P2.4; the free scan's `stocks_jobs`).
+            if !inst.wage_units {
+                for f in ["0.5", "2"] {
+                    v.push(format!("coin.provider*{f}"));
+                }
             }
             v
         }
@@ -776,6 +946,8 @@ pub fn family(inst: &Instance, tpy: u32, name: &str) -> Result<Vec<String>, Stri
             Some(c) => vec![format!("cycle({},1500,80)", c.name)],
             None => Vec::new(),
         },
+        // The trap scan's §8 E4 (P2.4): the paced share at genesis, at a paced instance.
+        "pace" if inst.paced_exit() => PACE_FAMILY.iter().map(|r| r.to_string()).collect(),
         // The commons frame's §5.4 item 7: enclosure by law, half and all of the commons.
         "enclose" if inst.exit.is_some() => {
             let mut v = Vec::new();

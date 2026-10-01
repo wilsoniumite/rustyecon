@@ -1,0 +1,3 @@
+c1: 100 draw sets; the harness's tape equals the base times glibc's factors in 43, times libm 0.2.16's in 100
+c2: 100 draw sets; the harness's tape equals the base times glibc's factors in 40, times libm 0.2.16's in 100
+iw1: 100 draw sets; the harness's tape equals the base times glibc's factors in 46, times libm 0.2.16's in 100

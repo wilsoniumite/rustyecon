@@ -1,0 +1,83 @@
+
+## is1
+
+| set | runs | classes | ticks to tol, median (slowest, run) | peak D-hat med / worst | worst dead (run) | lowest baskets over Y* (run) | lowest depth (run); breach runs | runs a type pooled (a > 1e-9) | largest pool share T / M | most gap sign changes (|g| > 1e-6) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| battery tier 1 | 28 | CONVERGED 28 | 338.0 (452, JA(0.95)) | 55 / 370 | 0 (p[land]*1.05) | 0.694 (s[goods]=0.05) | +0.840 (JB(0.95)); breaches 0 | 5 | 0.141 / 0.040 | 2 |
+| battery tier 2 | 40 | CONVERGED 40 | 446.0 (575, JA(0.8)) | 224 / 1113 | 8 (s[services]=0.2) | 0.330 (s[goods]=0.2) | +0.496 (JB(0.8)); breaches 0 | 16 | 0.508 / 0.178 | 12 |
+| battery tier 3 | 41 | CONVERGED 41 | 561 (734, tail.services=0.2@genesis) | 861 / 7110 | 117 (JA(0.5)) | 0.002 (x*/2) | -0.444 (JB(0.5)); breaches 1 | 34 | 0.973 / 0.843 | 44 |
+| tier3s | 20 | CONVERGED 20 | 404.0 (558, coin.desk.mach*2) | 506 / 1253 | 8 (coin.desk.services*2) | 0.286 (stock.mach*0.5) | +0.643 (coin.desk.mach*0.5); breaches 0 | 6 | 0.100 / 0.000 | 2 |
+| tier3L10 | 61 | CONVERGED 61 | 538 (734, tail.services=0.2@genesis) | 693 / 7110 | 117 (JA(0.5)) | 0.002 (x*/2) | -0.444 (JB(0.5)); breaches 1 | 40 | 0.973 / 0.843 | 44 |
+| stocks | 31 | CONVERGED 31 | 457 (635, coin.desk.services*0.02) | 693 / 3912 | 84 (coin.desk.services*0.02) | 0.000 (stock.mach*0.01) | +0.090 (coin.desk.mach*0.02); breaches 0 | 13 | 0.459 / 0.831 | 4 |
+| joint2 | 60 | CONVERGED 60 | 581.5 (734, joint(2,45)) | 1269 / 3475 | 145 (joint(2,45)) | 0.032 (joint(2,21)) | -0.275 (joint(2,41)); breaches 3 | 57 | 0.955 / 0.805 | 5 |
+| joint4 | 40 | CONVERGED 40 | 665.5 (853, joint(4,21)) | 3519 / 7247 | 204 (joint(4,21)) | 0.000 (joint(4,3)) | -1.339 (joint(4,10)); breaches 16 | 40 | 0.999 / 0.984 | 8 |
+| basin | 516 | CONVERGED 516 | 572.0 (1012, p[mach]*0.12270440108003683) | 1371 / 9590 | 250 (p[mach]*0.12270440108003683) | 0.000 (p[labour]*0.14204568230027764) | -1.189 (p[mach]*8.14966693287331); breaches 90 | 405 | 1.000 / 0.999 | 14 |
+| tpy12 | 68 | CONVERGED 68 | 118.5 (187, JA(0.8)) | 138 / 926 | 1 (s[goods]=0.2) | 0.401 (s[goods]=0.2) | +0.496 (JB(0.8)); breaches 0 | 21 | 0.487 / 0.137 | 14 |
+| tpy365 | 68 | CONVERGED 68 | 2566.5 (3949, JA(0.8)) | 142 / 1271 | 56 (s[services]=0.2) | 0.281 (s[goods]=0.2) | +0.496 (JB(0.8)); breaches 0 | 19 | 0.513 / 0.193 | 8 |
+| hold | 68 | CONVERGED 68 | 369.0 (575, JA(0.8)) | 140 / 1113 | 8 (s[services]=0.2) | 0.330 (s[goods]=0.2) | +0.496 (JB(0.8)); breaches 0 | 21 | 0.508 / 0.178 | 12 |
+| nbhd adjust 0.75 | 41 | CONVERGED 41 | 561 (734, tail.services=0.2@genesis) | 842 / 3654 | 117 (JA(0.5)) | 0.000 (x*/2) | -0.444 (JB(0.5)); breaches 1 | 34 | 0.973 / 0.843 | 44 |
+| nbhd adjust 0.9 | 41 | CONVERGED 41 | 561 (734, tail.services=0.2@genesis) | 842 / 3654 | 117 (JA(0.5)) | 0.000 (x*/2) | -0.444 (JB(0.5)); breaches 1 | 34 | 0.973 / 0.843 | 44 |
+| nbhd adjust 1.1 | 41 | CONVERGED 41 | 561 (734, tail.services=0.2@genesis) | 861 / 6254 | 117 (JA(0.5)) | 0.004 (x*/2) | -0.444 (JB(0.5)); breaches 1 | 34 | 0.973 / 0.843 | 44 |
+| nbhd adjust 1.25 | 41 | CONVERGED 41 | 561 (734, tail.services=0.2@genesis) | 861 / 5626 | 117 (JA(0.5)) | 0.008 (x*/2) | -0.444 (JB(0.5)); breaches 1 | 34 | 0.973 / 0.843 | 44 |
+| nbhd buffer 0.75 | 41 | CONVERGED 41 | 560 (712, tail.services=0.2@genesis) | 815 / 3656 | 112 (JA(0.5)) | 0.000 (x*/2) | -0.444 (JB(0.5)); breaches 1 | 34 | 0.973 / 0.843 | 58 |
+| nbhd buffer 0.9 | 41 | CONVERGED 41 | 567 (734, tail.services=0.2@genesis) | 820 / 3655 | 115 (JA(0.5)) | 0.000 (x*/2) | -0.444 (JB(0.5)); breaches 1 | 34 | 0.973 / 0.843 | 54 |
+| nbhd buffer 1.1 | 41 | CONVERGED 41 | 557 (729, tail.services=0.2@genesis) | 917 / 6375 | 119 (JA(0.5)) | 0.004 (x*/2) | -0.444 (JB(0.5)); breaches 1 | 34 | 0.973 / 0.843 | 42 |
+| nbhd buffer 1.25 | 41 | CONVERGED 41 | 550 (721, tail.services=0.2@genesis) | 972 / 5817 | 122 (JA(0.5)) | 0.007 (x*/2) | -0.444 (JB(0.5)); breaches 1 | 35 | 0.973 / 0.843 | 42 |
+| nbhd rate 0.75 | 41 | CONVERGED 41 | 748 (986, tail.services=0.2@genesis) | 916 / 3621 | 170 (JA(0.5)) | 0.000 (x*/2) | -0.444 (JB(0.5)); breaches 1 | 35 | 0.972 / 0.836 | 56 |
+| nbhd rate 0.9 | 41 | CONVERGED 41 | 614 (807, tail.services=0.2@genesis) | 869 / 3641 | 134 (JA(0.5)) | 0.000 (x*/2) | -0.444 (JB(0.5)); breaches 1 | 34 | 0.972 / 0.841 | 42 |
+| nbhd rate 1.1 | 41 | CONVERGED 41 | 515 (652, tail.services=0.2@genesis) | 823 / 5076 | 104 (JA(0.5)) | 0.014 (x*/2) | -0.444 (JB(0.5)); breaches 1 | 34 | 0.973 / 0.845 | 58 |
+| nbhd rate 1.25 | 41 | CONVERGED 41 | 446 (566, tail.services=0.2@genesis) | 815 / 4216 | 89 (JA(0.5)) | 0.025 (RW(2)) | -0.444 (JB(0.5)); breaches 1 | 34 | 0.974 / 0.849 | 60 |
+| nbhd tilt 0.05 | 41 | CONVERGED 41 | 556 (731, tail.services=0.2@genesis) | 827 / 4472 | 117 (JA(0.5)) | 0.026 (RW(2)) | -0.444 (JB(0.5)); breaches 1 | 34 | 0.973 / 0.842 | 40 |
+| nbhd tilt 0.1 | 41 | CONVERGED 41 | 550 (725, tail.services=0.2@genesis) | 830 / 3807 | 116 (JA(0.5)) | 0.026 (RW(2)) | -0.444 (JB(0.5)); breaches 1 | 34 | 0.973 / 0.842 | 38 |
+| nbhd tilt 0.25 | 41 | CONVERGED 41 | 528 (699, tail.services=0.2@genesis) | 838 / 3664 | 113 (JA(0.5)) | 0.026 (RW(2)) | -0.444 (JB(0.5)); breaches 1 | 34 | 0.973 / 0.840 | 44 |
+| nbhd tilt 0.5 | 41 | CONVERGED 41 | 497 (685, tail.services=0.2@genesis) | 957 / 3674 | 108 (JA(0.5)) | 0.025 (RW(2)) | -0.444 (JB(0.5)); breaches 1 | 34 | 0.974 / 0.837 | 44 |
+| nbhd tilt 1 | 41 | CONVERGED 41 | 461 (667, tail.services=0.2@genesis) | 1256 / 3700 | 97 (JA(0.5)) | 0.025 (RW(2)) | -0.444 (JB(0.5)); breaches 1 | 34 | 0.974 / 0.832 | 38 |
+| switch switch 0.75 | 41 | CONVERGED 41 | 562 (733, tail.services=0.2@genesis) | 887 / 9767 | 118 (JA(0.5)) | 0.000 (x*/2) | -0.444 (JB(0.5)); breaches 1 | 34 | 0.944 / 0.780 | 34 |
+| switch switch 0.9 | 41 | CONVERGED 41 | 561 (736, tail.services=0.2@genesis) | 870 / 7575 | 118 (JA(0.5)) | 0.001 (x*/2) | -0.444 (JB(0.5)); breaches 1 | 34 | 0.964 / 0.816 | 38 |
+| switch switch 1.1 | 41 | CONVERGED 41 | 562 (730, tail.services=0.2@genesis) | 854 / 6795 | 117 (JA(0.5)) | 0.003 (x*/2) | -0.444 (JB(0.5)); breaches 1 | 34 | 0.979 / 0.865 | 58 |
+| switch switch 1.25 | 41 | CONVERGED 41 | 562 (726, tail.services=0.2@genesis) | 848 / 6455 | 117 (JA(0.5)) | 0.004 (x*/2) | -0.444 (JB(0.5)); breaches 1 | 34 | 0.986 / 0.893 | 64 |
+
+### is1: the cost shocks and the switch's own displacements
+
+| run | class | ticks to tol | dead | lowest baskets | end pool share T / M | largest T / M | gap sign changes T / M |
+|---|---|---|---|---|---|---|---|
+| land.mach=0.2@dated | CONVERGED | 559 | 0 | 0.569 | 9.79667e-78 / 0 | 0.162 / 0.000 | 2 / 0 |
+| land.mach=0.2@genesis | CONVERGED | 559 | 0 | 0.569 | 9.71636e-78 / 0 | 0.161 / 0.000 | 2 / 0 |
+| land.mach=0.36@dated | CONVERGED | 343 | 0 | 0.935 | 0 / 0 | 0.000 / 0.000 | 0 / 0 |
+| land.mach=0.36@genesis | CONVERGED | 343 | 0 | 0.935 | 0 / 0 | 0.000 / 0.000 | 0 / 0 |
+| land.mach=0.44@dated | CONVERGED | 470 | 0 | 0.815 | 0 / 0 | 0.000 / 0.000 | 0 / 0 |
+| land.mach=0.44@genesis | CONVERGED | 470 | 0 | 0.815 | 0 / 0 | 0.000 / 0.000 | 0 / 0 |
+| land.mach=0.8@dated | CONVERGED | 566 | 94 | 0.164 | 4.39702e-46 / 0 | 0.330 / 0.000 | 2 / 0 |
+| land.mach=0.8@genesis | CONVERGED | 566 | 94 | 0.165 | 4.44205e-46 / 0 | 0.330 / 0.000 | 2 / 0 |
+| res.services.trained=0.02@dated | CONVERGED | 415 | 0 | 0.815 | 0.391428 / 0 | 0.554 / 0.000 | 33 / 0 |
+| res.services.trained=0.02@genesis | CONVERGED | 415 | 0 | 0.816 | 0.391428 / 0 | 0.554 / 0.000 | 33 / 0 |
+| res.services.trained=0.036@dated | CONVERGED | 311 | 0 | 0.957 | 0.0356713 / 0 | 0.043 / 0.000 | 12 / 0 |
+| res.services.trained=0.036@genesis | CONVERGED | 310 | 0 | 0.957 | 0.0356713 / 0 | 0.043 / 0.000 | 12 / 0 |
+| res.services.trained=0.044@dated | CONVERGED | 369 | 0 | 0.909 | 0 / 0 | 0.000 / 0.000 | 0 / 0 |
+| res.services.trained=0.044@genesis | CONVERGED | 369 | 0 | 0.909 | 0 / 0 | 0.000 / 0.000 | 0 / 0 |
+| res.services.trained=0.08@dated | CONVERGED | 575 | 0 | 0.500 | 0 / 0 | 0.000 / 0.000 | 0 / 0 |
+| res.services.trained=0.08@genesis | CONVERGED | 576 | 0 | 0.500 | 0 / 0 | 0.000 / 0.000 | 0 / 0 |
+| sw[master]=0.05 | CONVERGED | 212 | 0 | 0.951 | 0 / 9.88131e-324 | 0.000 / 0.040 | 0 / 0 |
+| sw[master]=0.2 | CONVERGED | 318 | 0 | 0.809 | 0 / 9.88131e-324 | 0.000 / 0.158 | 0 / 0 |
+| sw[master]=0.5 | CONVERGED | 362 | 0 | 0.543 | 0 / 9.88131e-324 | 0.000 / 0.395 | 0 / 0 |
+| sw[trained]=0.05 | CONVERGED | 320 | 0 | 0.949 | 2.12196e-66 / 0 | 0.048 / 0.000 | 0 / 0 |
+| sw[trained]=0.2 | CONVERGED | 427 | 0 | 0.799 | 2.66966e-66 / 0 | 0.193 / 0.000 | 0 / 0 |
+| sw[trained]=0.5 | CONVERGED | 470 | 0 | 0.505 | 2.38154e-66 / 0 | 0.482 / 0.000 | 0 / 0 |
+| tail.services=0.05@dated | CONVERGED | 384 | 0 | 0.925 | 0 / 0 | 0.000 / 0.000 | 0 / 0 |
+| tail.services=0.05@genesis | CONVERGED | 384 | 0 | 0.925 | 0 / 0 | 0.000 / 0.000 | 0 / 0 |
+| tail.services=0.09@dated | CONVERGED | 285 | 0 | 0.985 | 0 / 0 | 0.000 / 0.000 | 0 / 0 |
+| tail.services=0.09@genesis | CONVERGED | 285 | 0 | 0.985 | 0 / 0 | 0.000 / 0.000 | 0 / 0 |
+| tail.services=0.11@dated | CONVERGED | 452 | 0 | 0.917 | 0.00703105 / 0 | 0.019 / 0.000 | 2 / 0 |
+| tail.services=0.11@genesis | CONVERGED | 452 | 0 | 0.918 | 0.00703105 / 0 | 0.019 / 0.000 | 2 / 0 |
+| tail.services=0.2@dated | CONVERGED | 729 | 15 | 0.449 | 0.286088 / 0.0496716 | 0.518 / 0.309 | 42 / 28 |
+| tail.services=0.2@genesis | CONVERGED | 734 | 16 | 0.449 | 0.286088 / 0.0496716 | 0.520 / 0.303 | 44 / 28 |
+
+## is2
+
+| set | runs | classes | ticks to tol, median (slowest, run) | peak D-hat med / worst | worst dead (run) | lowest baskets over Y* (run) | lowest depth (run); breach runs | runs a type pooled (a > 1e-9) | largest pool share T / M | most gap sign changes (|g| > 1e-6) |
+|---|---|---|---|---|---|---|---|---|---|---|
+
+### is2: the cost shocks and the switch's own displacements
+
+| run | class | ticks to tol | dead | lowest baskets | end pool share T / M | largest T / M | gap sign changes T / M |
+|---|---|---|---|---|---|---|---|

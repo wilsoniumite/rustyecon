@@ -10,7 +10,10 @@
 //! add three, `Maker`, `Capacity` and `Owner`, appended after `MachDesk` for the same reason. The
 //! three planted desks of P2.2b add three more, `PlantedType`, `PlantedMaker` and
 //! `PlantedCapacity`, appended after `Owner`: each nests its kind's state beside one
-//! [`PlantState`] (decision 287), and a desk without a plant keeps its old variant.
+//! [`PlantState`] (decision 287), and a desk without a plant keeps its old variant. The type
+//! switch at the wall (P2.4, decision 411) adds `SwitchWorkers`, appended after
+//! `PlantedCapacity`: a switch pop's participation share and its pool share; a pop without a
+//! pool keeps `Workers`.
 
 use crate::spec::{self, RawSpec, Spec};
 use rustyecon_core::num::is_clean;
@@ -47,6 +50,8 @@ pub enum ActorState {
     PlantedMaker(PlantedMakerState),
     /// A planted capacity desk's state (P2.2b).
     PlantedCapacity(PlantedCapacityState),
+    /// A switch pop's state (P2.4; the switch scan's §3.4).
+    SwitchWorkers(SwitchWorkersState),
 }
 
 /// A scripted actor's state.
@@ -67,11 +72,24 @@ pub struct ProviderState {
 }
 
 /// The workers' record of their last offer: the participation share s, so N·s hours were
-/// offered. 0 before the first tick.
+/// offered. 0 before the first tick, or, for paced workers (P2.4), their pace's genesis share,
+/// which their rule reads as its own state.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct WorkersState {
     /// The share of potential hours offered, in [0, 1].
     pub share: f64,
+}
+
+/// A switch pop's state (P2.4; O97's rule, decision 411; the switch scan's §3.4): its
+/// participation share, a record as `WorkersState::share` is, and its pool share, which its rule
+/// reads and moves.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct SwitchWorkersState {
+    /// F, the share of its heads' potential hours offered, in [0, 1]. 0 before the first tick.
+    pub share: f64,
+    /// a, the share of its hours sold to the pool, in [0, 1]: its pool's genesis share before the
+    /// first tick.
+    pub pool: f64,
 }
 
 /// A good desk's state. `share` is its technique; the rest are records, except a step rule's
@@ -253,6 +271,7 @@ impl ActorState {
             ActorState::PlantedType(s) => planted(ActorState::MachDesk(s.desk), &s.plant),
             ActorState::PlantedMaker(s) => planted(ActorState::Maker(s.desk), &s.plant),
             ActorState::PlantedCapacity(s) => planted(ActorState::Capacity(s.desk), &s.plant),
+            ActorState::SwitchWorkers(s) => vec![("share", s.share), ("pool", s.pool)],
         }
     }
 
@@ -262,6 +281,7 @@ impl ActorState {
             ActorState::Workers(s) => vec![("share", s.share)],
             ActorState::GoodDesk(s) => vec![("share", s.share), ("used", s.used)],
             ActorState::Owner(s) => vec![("share", s.share), ("used", s.used)],
+            ActorState::SwitchWorkers(s) => vec![("share", s.share), ("pool", s.pool)],
             _ => Vec::new(),
         }
     }
@@ -350,7 +370,23 @@ pub(crate) fn genesis_state(spec: &Spec) -> ActorState {
             due: 0.0,
             paid: 0.0,
         }),
-        Spec::BasketWorkers(_) => ActorState::Workers(WorkersState { share: 0.0 }),
+        // A switch pop (P2.4; the switch scan's §3.4) has the appended variant exactly when its
+        // spec has a pool, its pool share at the pool's genesis share.
+        Spec::BasketWorkers(p) if p.pool.is_some() => {
+            ActorState::SwitchWorkers(SwitchWorkersState {
+                share: 0.0,
+                pool: p.pool.map_or(0.0, |pool| pool.share),
+            })
+        }
+        // Paced workers (P2.4; the trap scan's §5.1) start at their pace's genesis share, which
+        // their rule reads; every other pop's share is a record, 0 before the first tick.
+        Spec::BasketWorkers(p) => ActorState::Workers(WorkersState {
+            share: p
+                .exit
+                .as_ref()
+                .and_then(|x| x.pace)
+                .map_or(0.0, |pace| pace.share),
+        }),
         Spec::CategoryDesk(d) => ActorState::GoodDesk(GoodDeskState {
             share: d.share,
             used: d.share,

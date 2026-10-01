@@ -1,0 +1,85 @@
+aa97c626d6e266c9241f2ceb52b0f33b43352247cb6ac7c1f57ebd63f30488d4  /root/scratch/p24-bcd/markets
+== /root/scratch/p24-diag/b.food_1.2_dated-H282000
+rc 0
+run	at	horizon	pass	kicks	largest_gain_tail	largest_gain_peak	notes
+b.food=1.2@dated	176250	282000	FAIL	16	2.688738e-3	9.076693e0	kick home/care - at tick 176250: the kick did not decay: gain 0.0026887381957319298 in the tail, 1.5162602694597278 at its peak; kick home
+market	sign	size	gain_tail	gain_peak	error
+home/care	+	1.000000e-9	6.339373e-4	1.000000e0	
+home/care	-	1.000000e-9	2.688738e-3	1.516260e0	
+home/commons	+	1.000000e-9	2.287059e-4	1.000000e0	
+home/commons	-	1.000000e-9	3.241851e-5	1.000000e0	
+home/food	+	1.000000e-9	1.761258e-3	1.833745e0	
+home/food	-	1.000000e-9	1.654010e-3	2.766576e0	
+home/labour	+	1.000000e-9	4.287681e-4	1.000000e0	
+home/labour	-	9.999999e-10	1.505019e-3	4.453241e0	
+home/land	+	1.000000e-9	5.158096e-4	8.639073e0	
+home/land	-	1.000000e-9	3.398393e-4	2.987774e0	
+home/mach	+	1.000000e-9	2.238209e-4	3.069967e0	
+home/mach	-	9.999999e-10	2.440493e-3	9.076693e0	
+home/manufactures	+	1.000000e-9	3.264055e-4	1.000000e0	
+home/manufactures	-	1.000000e-9	2.264411e-3	1.261863e0	
+home/shelter	+	1.000000e-9	2.059464e-3	1.147425e0	
+home/shelter	-	1.000000e-9	1.818989e-3	1.742015e0	
+== /root/scratch/p24-diag/b.food_1.2_dated-H70500
+rc 0
+run	at	horizon	pass	kicks	largest_gain_tail	largest_gain_peak	notes
+b.food=1.2@dated	176250	70500	FAIL	16	2.688738e-3	9.076693e0	kick home/care - at tick 176250: the kick did not decay: gain 0.0026887381957319298 in the tail, 1.5162602694597278 at its peak; kick home/
+market	sign	size	gain_tail	gain_peak	error
+home/care	+	1.000000e-9	6.339373e-4	1.000000e0	
+home/care	-	1.000000e-9	2.688738e-3	1.516260e0	
+home/commons	+	1.000000e-9	2.287059e-4	1.000000e0	
+home/commons	-	1.000000e-9	3.241851e-5	1.000000e0	
+home/food	+	1.000000e-9	1.761258e-3	1.833745e0	
+home/food	-	1.000000e-9	1.654010e-3	2.766576e0	
+home/labour	+	1.000000e-9	4.287681e-4	1.000000e0	
+home/labour	-	9.999999e-10	1.505019e-3	4.453241e0	
+home/land	+	1.000000e-9	5.158096e-4	8.639073e0	
+home/land	-	1.000000e-9	3.398393e-4	2.987774e0	
+home/mach	+	1.000000e-9	2.238209e-4	3.069967e0	
+home/mach	-	9.999999e-10	2.440493e-3	9.076693e0	
+home/manufactures	+	1.000000e-9	3.264055e-4	1.000000e0	
+home/manufactures	-	1.000000e-9	2.264411e-3	1.261863e0	
+home/shelter	+	1.000000e-9	2.059464e-3	1.147425e0	
+home/shelter	-	1.000000e-9	1.818989e-3	1.742015e0	
+== /root/scratch/p24-diag/exit.To_17.55_dated-H282000
+rc 0
+run	at	horizon	pass	kicks	largest_gain_tail	largest_gain_peak	notes
+exit.To=17.55@dated	176250	282000	PASS	16	1.905143e-4	5.564366e0	kick home/care + at tick 176250: tape_hash 0xa94b088de9f8246b; kick home/care - at tick 176250: tape_hash 0x526d38d912fca618; kick home
+market	sign	size	gain_tail	gain_peak	error
+home/care	+	1.000000e-9	1.667555e-4	1.000000e0	
+home/care	-	1.000000e-9	1.871836e-4	1.254498e0	
+home/commons	+	1.000000e-9	1.814104e-4	1.000000e0	
+home/commons	-	1.000000e-9	1.021405e-5	1.000000e0	
+home/food	+	1.000000e-9	1.856293e-4	1.145772e0	
+home/food	-	1.000000e-9	1.862954e-4	1.000000e0	
+home/labour	+	1.000000e-9	1.727507e-4	1.305260e0	
+home/labour	-	1.000000e-9	1.847411e-4	3.635196e0	
+home/land	+	1.000000e-9	1.900702e-4	4.507556e0	
+home/land	-	1.000000e-9	2.509104e-5	1.000000e0	
+home/mach	+	1.000000e-9	9.214850e-6	2.082653e0	
+home/mach	-	1.000000e-9	1.791900e-4	5.564366e0	
+home/manufactures	+	1.000000e-9	1.905143e-4	1.000000e0	
+home/manufactures	-	1.000000e-9	1.856293e-4	1.264626e0	
+home/shelter	+	1.000000e-9	1.727507e-4	1.000000e0	
+home/shelter	-	1.000000e-9	1.820766e-4	1.471433e0	
+== /root/scratch/p24-diag/exit.To_17.55_dated-H70500
+rc 0
+run	at	horizon	pass	kicks	largest_gain_tail	largest_gain_peak	notes
+exit.To=17.55@dated	176250	70500	PASS	16	1.905143e-4	5.564366e0	kick home/care + at tick 176250: tape_hash 0xa94b088de9f8246b; kick home/care - at tick 176250: tape_hash 0x526d38d912fca618; kick home/
+market	sign	size	gain_tail	gain_peak	error
+home/care	+	1.000000e-9	1.667555e-4	1.000000e0	
+home/care	-	1.000000e-9	1.871836e-4	1.254498e0	
+home/commons	+	1.000000e-9	1.814104e-4	1.000000e0	
+home/commons	-	1.000000e-9	1.021405e-5	1.000000e0	
+home/food	+	1.000000e-9	1.856293e-4	1.145772e0	
+home/food	-	1.000000e-9	1.862954e-4	1.000000e0	
+home/labour	+	1.000000e-9	1.727507e-4	1.305260e0	
+home/labour	-	1.000000e-9	1.847411e-4	3.635196e0	
+home/land	+	1.000000e-9	1.900702e-4	4.507556e0	
+home/land	-	1.000000e-9	2.509104e-5	1.000000e0	
+home/mach	+	1.000000e-9	9.214850e-6	2.082653e0	
+home/mach	-	1.000000e-9	1.791900e-4	5.564366e0	
+home/manufactures	+	1.000000e-9	1.905143e-4	1.000000e0	
+home/manufactures	-	1.000000e-9	1.856293e-4	1.264626e0	
+home/shelter	+	1.000000e-9	1.727507e-4	1.000000e0	
+home/shelter	-	1.000000e-9	1.820766e-4	1.471433e0	

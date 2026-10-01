@@ -50,8 +50,8 @@ pub use units::{
     Years,
 };
 pub use world::{
-    ActorDecl, ChannelDef, Firing, GoodDef, KeyIndex, Keyed, Life, MarketConfig, NodeDef, OneSided,
-    PriceRule, Recurring, Schedule, ScheduleParam, Tolerances, World,
+    ActorDecl, ChannelDef, Firing, FreeStep, GoodDef, KeyIndex, Keyed, Life, MarketConfig, NodeDef,
+    OneSided, PriceRule, Recurring, Schedule, ScheduleParam, Tolerances, World,
 };
 
 #[cfg(test)]

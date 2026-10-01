@@ -1,0 +1,21 @@
+R1-no-move killed by switch_rule_matches_the_registered_vectors, switch_moves_toward_the_better_market, harness_reads_the_switch, switch_pays_both_markets, markets_is1_never_crossing_is_iw1
+R2-up-as-replicator killed by switch_rule_matches_the_registered_vectors, switch_moves_toward_the_better_market, harness_reads_the_switch, switch_pays_both_markets, markets_is1_never_crossing_is_iw1
+R3-down-linear killed by switch_rule_matches_the_registered_vectors, switch_moves_toward_the_better_market
+R4-tie-moves killed by switch_rule_matches_the_registered_vectors, switch_moves_toward_the_better_market, markets_is1_rest_point_is_the_oracles, markets_is1_holds_at_the_oracle_point
+R5-wage-max killed by switch_rule_matches_the_registered_vectors, switch_moves_toward_the_better_market
+Traceback (most recent call last):
+  File "/mnt/d/rustyecon-p24/build-switch/mutants/mutate_s.py", line 229, in <module>
+    main()
+  File "/mnt/d/rustyecon-p24/build-switch/mutants/mutate_s.py", line 211, in main
+    r = sh(t)
+  File "/mnt/d/rustyecon-p24/build-switch/mutants/mutate_s.py", line 191, in sh
+    return subprocess.run(["bash", "-lc", ENV + f"cd {ROOT} && " + cmd], capture_output=True,
+  File "/usr/lib/python3.10/subprocess.py", line 505, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+  File "/usr/lib/python3.10/subprocess.py", line 1154, in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+  File "/usr/lib/python3.10/subprocess.py", line 2021, in _communicate
+    ready = selector.select(timeout)
+  File "/usr/lib/python3.10/selectors.py", line 416, in select
+    fd_event_list = self._selector.poll(timeout)
+KeyboardInterrupt

@@ -1,0 +1,33 @@
+I0         hold   3000 ticks: bit for bit
+I0         w*2    3000 ticks: bit for bit
+I0         w*0.5  3000 ticks: bit for bit
+I1         hold   3000 ticks: bit for bit
+I1         w*2    3000 ticks: bit for bit
+I1         w*0.5  3000 ticks: bit for bit
+C1         hold   3000 ticks: bit for bit
+C1         w*2    3000 ticks: bit for bit
+C1         w*0.5  3000 ticks: bit for bit
+C2         hold   3000 ticks: bit for bit
+C2         w*2    3000 ticks: bit for bit
+C2         w*0.5  3000 ticks: bit for bit
+C1/msat    hold   3000 ticks: bit for bit
+C1/msat    w*2    3000 ticks: bit for bit
+C1/msat    w*0.5  3000 ticks: bit for bit
+C2/msatg   hold   3000 ticks: bit for bit
+C2/msatg   w*2    3000 ticks: bit for bit
+C2/msatg   w*0.5  3000 ticks: bit for bit
+I1         land     free step c = 0 against none, hold   3000 ticks: bit for bit
+I1         land     free step c = 0 against none, w*2    3000 ticks: bit for bit
+I1         land     free step c = 0 against none, w*0.5  3000 ticks: bit for bit
+C1/msat    commons  free step c = 0 against none, hold   3000 ticks: bit for bit
+C1/msat    commons  free step c = 0 against none, w*2    3000 ticks: bit for bit
+C1/msat    commons  free step c = 0 against none, w*0.5  3000 ticks: bit for bit
+C2/msatg   commons  free step c = 0 against none, hold   3000 ticks: bit for bit
+C2/msatg   commons  free step c = 0 against none, w*2    3000 ticks: bit for bit
+C2/msatg   commons  free step c = 0 against none, w*0.5  3000 ticks: bit for bit
+C1/msat    as one pop on a commons market against cm's msat, hold   3000 ticks: bit for bit
+C1/msat    as one pop on a commons market against cm's msat, w*2    3000 ticks: bit for bit
+C1/msat    as one pop on a commons market against cm's msat, w*0.5  3000 ticks: bit for bit
+C2/msatg   as one pop on a commons market against cm's msat, hold   3000 ticks: bit for bit
+C2/msatg   as one pop on a commons market against cm's msat, w*2    3000 ticks: bit for bit
+C2/msatg   as one pop on a commons market against cm's msat, w*0.5  3000 ticks: bit for bit

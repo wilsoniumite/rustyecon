@@ -11,9 +11,9 @@
 mod common;
 
 use certify::battery::{
-    balance, conservation, determinism, kick, kick_gain, runaway, settles, trade_windows, trades,
-    BalanceBars, BalanceWatch, DeterminismInputs, KickBars, KickSegment, KickedRun, ResumeRun,
-    SettlesBars, Sign,
+    balance, conservation, determinism, kick, kick_gain, kick_gain_free, runaway, settles,
+    trade_windows, trades, BalanceBars, BalanceWatch, DeterminismInputs, KickBars, KickSegment,
+    KickedRun, ResumeRun, SettlesBars, Sign,
 };
 use certify::{segments, BatteryResult, Limit, Obs};
 use common::*;
@@ -70,6 +70,7 @@ fn one_kick(h: usize, gap: impl Fn(usize) -> f64) -> Vec<KickSegment> {
     vec![KickSegment {
         segment: 0,
         at: 1000,
+        free: Vec::new(),
         runs: Ok((
             base,
             vec![KickedRun {
@@ -102,6 +103,7 @@ fn a_world_without_markets_fails_no_samples() {
                 segment: 0,
                 at: 100,
                 runs: Ok((vec![Vec::new(); 10], Vec::new())),
+                free: Vec::new(),
             }],
             &bars(10, 2),
             &n,
@@ -884,4 +886,54 @@ fn a_kick_that_swings_out_and_back_fails() {
             SIZE * num::exp(-(t as f64) / 3.0)
         }
     }));
+}
+
+#[test]
+fn a_free_markets_zero_prices_read_a_gap_of_zero() {
+    // Amended at P2.4.11 (FREE-SPEC §6.1, §4.4): a market whose good has a free step may post 0
+    // in the base continuation and in a kicked run; there equal prices read a gap of 0, so the
+    // other markets' kick scores alone. Every other market keeps |ln(p_kick/p_base)|, and 0/0
+    // there still fails closed (`batteries_fail_closed_on_nonfinite_samples`); a free market
+    // moved off 0 by a kick reads an infinite gap.
+    let h = 100;
+    let base: Vec<Vec<f64>> = (0..h).map(|_| vec![1.0, 0.0]).collect();
+    let kicked: Vec<Vec<f64>> = (0..h)
+        .map(|t| vec![1.0 + SIZE * num::exp(-(t as f64)), 0.0])
+        .collect();
+    let free = kick_gain_free(&base, &kicked, 10, &[false, true]).unwrap();
+    let alone = kick_gain(
+        &base.iter().map(|p| vec![p[0]]).collect::<Vec<_>>(),
+        &kicked.iter().map(|p| vec![p[0]]).collect::<Vec<_>>(),
+        10,
+    )
+    .unwrap();
+    assert_eq!(free, alone);
+    assert!(kick_gain(&base, &kicked, 10).unwrap().gain_tail.is_nan());
+    assert!(kick_gain_free(&base, &kicked, 10, &[true, false])
+        .unwrap()
+        .gain_tail
+        .is_nan());
+    let mut moved = kicked.clone();
+    moved[50][1] = 1e-9;
+    assert!(kick_gain_free(&base, &moved, 10, &[false, true])
+        .unwrap()
+        .gain_peak
+        .is_infinite());
+    // The verdict reads the segment's mask.
+    let seg = |free: Vec<bool>| KickSegment {
+        segment: 0,
+        at: 1000,
+        runs: Ok((
+            base.clone(),
+            vec![KickedRun {
+                market: 0,
+                sign: Sign::Up,
+                tape_hash: 7,
+                prices: Ok(kicked.clone()),
+            }],
+        )),
+        free,
+    };
+    passed(&kick(&[seg(vec![false, true])], &bars(100, 10), &names(2)));
+    assert!(!kick(&[seg(Vec::new())], &bars(100, 10), &names(2)).pass);
 }

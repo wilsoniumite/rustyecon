@@ -1,0 +1,9 @@
+instance run | the mirror, bound at the undisplaced genesis (as registered) | at the displaced genesis (the harness's)
+ct2 joint(4,10) | DIVERGED 254 | DIVERGED 256
+ct2 joint(4,12) | DIVERGED 259 | DIVERGED 279
+ct2 joint(4,18) | DIVERGED 268 | DIVERGED 264
+ct2 joint(4,21) | DIVERGED 269 | DIVERGED 263
+ct2 joint(4,22) | DIVERGED 269 | DIVERGED 284
+ct2 joint(4,34) | DIVERGED 276 | DIVERGED 279
+ct2 joint(4,39) | DIVERGED 266 | DIVERGED 279
+il1 joint(4,10) | DIVERGED 254 | DIVERGED 269

@@ -7,10 +7,13 @@
 //!
 //! Every coefficient and dial is a registered param referenced by key and read at use time (R4,
 //! E1), so a dated `SetParam` retargets the actor. The only inline number is genesis state: the
-//! category desk's genesis human share 1 − x, and a step rule's genesis scale. Every field is
+//! category desk's genesis human share 1 − x, a step rule's genesis scale, the paced workers'
+//! genesis share and a switch pop's genesis pool share. Every field is
 //! required and none has a default but the type desk's `plant` (P2.2b), the category desk's
-//! `tail` and `reserved` and the provider's `more` (P2.3, the wall), and the workers' `exit`
-//! (P2.3, the commons), whose absence is off.
+//! `tail` and `reserved` and the provider's `more` (P2.3, the wall), the workers' `exit` (P2.3,
+//! the commons), the exit's `pace` (P2.4, the trap's remedy), the workers' `pool` (P2.4, the
+//! type switch at the wall) and the exit's `market` (P2.4, the commons as a market), whose
+//! absence is off.
 //!
 //! **Lists keep the order written.** A basket's items, a category's segments and a type's bought
 //! services are evaluated in list order: P_s is summed from 0.0 in item order, a desk's budgets
@@ -94,6 +97,33 @@ pub struct RawBasketWorkers {
     /// before the field keeps its canonical text, `tape_hash` and `world_id`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub exit: Option<RawPricedExit>,
+    /// `Option<RawPool>`: the type switch at the wall (P2.4; O97's rule, decision 409; the switch
+    /// scan's §3; docs/probe/SWITCH-RULES.md): the pop sells a share of its hours on the pool's
+    /// labour market at its efficiency, and the rest on its own. `None` or absent is a pop on one
+    /// market, P2.3's role bit for bit; absent is not written, so every tape written before the
+    /// field keeps its canonical text, `tape_hash` and `world_id`. Not with `exit`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pool: Option<RawPool>,
+}
+
+/// The pool a switch pop may sell to (the switch scan's §3.2), as the tape writes it: its hours
+/// sold there count ε efficiency hours each, and the share of its hours it sells there, its own
+/// state, moves toward the market that pays more (the migration rule, §3.3).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RawPool {
+    /// Good key: the pool's labour, an `Instant` traded good, not the pop's own `labour` and not
+    /// an item of its basket. Required, no default.
+    pub good: Key,
+    /// Param key, unit `Dimensionless`, live: ε, efficiency hours per hour in the pool. At 0 the
+    /// switch is off. Required, no default.
+    pub efficiency: Key,
+    /// Param key, unit `RatePerYear`, live, read as a `LogStep`: k = rate/tpy, the switch's rate.
+    /// Required, no default.
+    pub rate: Key,
+    /// `f64`, dimensionless, in [0, 1]: the pool share at genesis, a₀, genesis state (the
+    /// generator writes the point's pool hours over hours). Required, no default.
+    pub share: f64,
 }
 
 /// The priced exit with a commons (the commons frame's §3.1, §3.4; decisions 149 and 398), as the
@@ -120,6 +150,36 @@ pub struct RawPricedExit {
     /// Good key: land, an `Instant` traded good some role is endowed with and sells, for plots
     /// rented on enclosed land; not an item of the workers' basket. Required, no default.
     pub land: Key,
+    /// `Option<RawPace>`: participation at a rate (P2.4; O100's remedy, decision 404; the trap
+    /// scan's §5; docs/probe/TRAP-RULES.md). `None` or absent: the workers offer the rule's hours
+    /// each tick, P2.3's role bit for bit; absent is not written, so every tape written before the
+    /// field keeps its canonical text, `tape_hash` and `world_id`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pace: Option<RawPace>,
+    /// `Option<Key>`: a good key, the commons as a market (P2.4; FREE-SPEC §6.3, decision 419;
+    /// docs/probe/FREE-RULES.md): a traded `Instant` good with a free step, not in the pop's basket.
+    /// The pop holds its share of the commons (`commons`, T_o,i) as an endowment each tick and
+    /// offers it there, and bids there for its plots at the posted plot rent. `None` or absent: the
+    /// commons is no market and the rule gives out its plots, P2.3's role bit for bit; absent is not
+    /// written, so every tape written before the field keeps its canonical text, `tape_hash` and
+    /// `world_id`. Not with `pace`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub market: Option<Key>,
+}
+
+/// Participation at a rate, as the tape writes it: the technique's form on the workers' share
+/// (the trap scan's §5.1). Each tick the share of the heads offering hours moves a share of its
+/// gap to the participation rule's share at posted prices, instead of jumping to it.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RawPace {
+    /// Param key, unit `RatePerYear`, live, read as a `Share` (as a technique's `adjust`):
+    /// a = −expm1(−rate/tpy), the share of its gap to the rule's share the workers' share closes
+    /// each tick. Required, no default.
+    pub adjust: Key,
+    /// `f64`, dimensionless, in [0, 1]: the workers' share at genesis, F₀, genesis state (the
+    /// generator writes the point's S/N). Required, no default.
+    pub share: f64,
 }
 
 /// A category's place on the shared task line (decision 60), as the tape writes it: the
@@ -292,6 +352,24 @@ pub struct BasketWorkers {
     /// `world_id`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub exit: Option<PricedExit>,
+    /// The pool they may switch to, if any (P2.4, O97). `world_id` hashes the resolved actors by
+    /// bincode, so the field is left out when it is `None`, and a world without it keeps its
+    /// `world_id`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pool: Option<Pool>,
+}
+
+/// The resolved pool of a switch pop.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct Pool {
+    /// The pool's labour.
+    pub good: GoodId,
+    /// ε, a live `Dimensionless` param.
+    pub efficiency: Site,
+    /// k, a live `RatePerYear` param read as a `LogStep`.
+    pub rate: Site,
+    /// The pool share at genesis, in [0, 1].
+    pub share: f64,
 }
 
 /// The resolved priced exit with a commons.
@@ -309,6 +387,23 @@ pub struct PricedExit {
     pub commons: Site,
     /// The land plots rent on enclosed land.
     pub land: GoodId,
+    /// Participation at a rate, if any (P2.4). `world_id` hashes the resolved actors by bincode,
+    /// so the field is left out when it is `None`, and a world without it keeps its `world_id`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pace: Option<Pace>,
+    /// The commons as a market, if it is one (P2.4; FREE-SPEC §6.3): its good. Left out of
+    /// `world_id`'s bincode when `None`, as `pace` is.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub market: Option<GoodId>,
+}
+
+/// The resolved participation at a rate.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct Pace {
+    /// a, a live `RatePerYear` param read as a `Share`.
+    pub adjust: Site,
+    /// The workers' share at genesis, in [0, 1].
+    pub share: f64,
 }
 
 /// The resolved category desk.
@@ -425,6 +520,13 @@ impl BasketWorkers {
             site(out, "exit.floor".into(), x.floor);
             site(out, "exit.plot".into(), x.plot);
             site(out, "exit.commons".into(), x.commons);
+            if let Some(p) = &x.pace {
+                site(out, "exit.pace.adjust".into(), p.adjust);
+            }
+        }
+        if let Some(p) = &self.pool {
+            site(out, "pool.efficiency".into(), p.efficiency);
+            site(out, "pool.rate".into(), p.rate);
         }
     }
 }
@@ -569,6 +671,22 @@ pub fn resolve_basket_workers(
         Some(x) => Some(resolve_exit(x, labour, &basket, r)?),
         None => None,
     };
+    // The switch with the priced exit is refused until a scan runs them together (the switch
+    // scan's §3.6; O123).
+    if raw.pool.is_some() && exit.is_some() {
+        return Err(r.error(
+            "pool",
+            LoadErrorKind::Invalid(
+                "a pop with a priced exit does not switch: the exit's commons rule was not scanned \
+                 with the switch (the switch scan's §3.6)"
+                    .into(),
+            ),
+        ));
+    }
+    let pool = match &raw.pool {
+        Some(p) => Some(resolve_pool(p, labour, &basket, r)?),
+        None => None,
+    };
     Ok(BasketWorkers {
         labour,
         heads,
@@ -576,6 +694,42 @@ pub fn resolve_basket_workers(
         basket,
         spend,
         exit,
+        pool,
+    })
+}
+
+/// Resolve a switch pop's pool (the switch scan's §3.6, the checks by the spec alone): the pool's
+/// labour a traded good, not the pop's own and not a basket item; ε a `Dimensionless` param; the
+/// rate a `RatePerYear` param (the resolver's `UnitMismatch`; its value finite and not negative,
+/// the registry's); the genesis share finite and in [0, 1]. That the pool's labour is `Instant`
+/// is checked with the world (`Cast::new`), as the pop's own labour is.
+fn resolve_pool(
+    raw: &RawPool,
+    labour: GoodId,
+    basket: &[Item],
+    r: &mut Resolver<'_>,
+) -> Result<Pool, LoadError> {
+    r.enter("pool");
+    let good = traded(r, &raw.good, "good")?;
+    if good == labour || basket.iter().any(|it| it.good == good) {
+        return Err(r.error(
+            "good",
+            LoadErrorKind::Invalid(
+                "a good named twice in one role: the pool's labour is not the pop's own labour \
+                 or a basket item"
+                    .into(),
+            ),
+        ));
+    }
+    let efficiency = value(r, &raw.efficiency, "efficiency")?;
+    let rate = live(r, &raw.rate, ClockMethod::LogStep, "rate")?;
+    let genesis = share(r, raw.share, "share")?;
+    r.leave();
+    Ok(Pool {
+        good,
+        efficiency,
+        rate,
+        share: genesis,
     })
 }
 
@@ -615,6 +769,50 @@ fn resolve_exit(
     let floor = value(r, &raw.floor, "floor")?;
     let plot = value(r, &raw.plot, "plot")?;
     let commons = live(r, &raw.commons, ClockMethod::Flow, "commons")?;
+    // Participation at a rate (the trap scan's §5.3): the rate a `RatePerYear` param (the
+    // resolver's `UnitMismatch`; its value finite and not negative, the registry's), the genesis
+    // share finite and in [0, 1].
+    let pace = match &raw.pace {
+        Some(p) => {
+            r.enter("pace");
+            let adjust = live(r, &p.adjust, ClockMethod::Share, "adjust")?;
+            let genesis = share(r, p.share, "share")?;
+            r.leave();
+            Some(Pace {
+                adjust,
+                share: genesis,
+            })
+        }
+        None => None,
+    };
+    // The commons as a market (P2.4; FREE-SPEC §6.3), checked by the spec alone: a traded good,
+    // none of the pop's other goods, and not with a pace (the two were not scanned together).
+    // That it is `Instant` and has a free step is checked with the world (`Cast::new`).
+    let market = match &raw.market {
+        Some(k) => {
+            let m = traded(r, k, "market")?;
+            if m == labour || m == good || m == land || basket.iter().any(|it| it.good == m) {
+                return Err(r.error(
+                    "market",
+                    LoadErrorKind::Invalid(
+                        "a good named twice in one role: the commons' market is none of the pop's                          labour, basket, exit good or plots' land"
+                            .into(),
+                    ),
+                ));
+            }
+            if pace.is_some() {
+                return Err(r.error(
+                    "market",
+                    LoadErrorKind::Invalid(
+                        "a pop on a commons market does not pace: the two were not scanned together (FREE-SPEC §6.3)"
+                            .into(),
+                    ),
+                ));
+            }
+            Some(m)
+        }
+        None => None,
+    };
     r.leave();
     Ok(PricedExit {
         good,
@@ -623,6 +821,8 @@ fn resolve_exit(
         plot,
         commons,
         land,
+        pace,
+        market,
     })
 }
 

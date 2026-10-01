@@ -461,6 +461,63 @@ mod tests {
     }
 
     #[test]
+    fn a_free_price_of_zero_checkpoints_and_no_other_does() {
+        // Amended at P2.4.11 (FREE-SPEC §6.1): a book price or EMA of +0.0 decodes, since a good
+        // with a free step may post it and the book has no world to tell such a good from
+        // another; validation against the world refuses it for every other good, and −0.0 still
+        // does not decode.
+        let (w, s) = evolved();
+        let (town, bread) = (w.id_of("town").unwrap(), good(&w, "bread"));
+        let mut zero = cp_of(&w, s.clone());
+        let i = zero.state.book.index(town, bread).unwrap();
+        zero.state.book.set_price(i, 0.0);
+        for back in [
+            Checkpoint::<TestExt>::from_bytes(&zero.to_bytes()),
+            Checkpoint::<TestExt>::from_ron(&zero.to_ron()),
+        ] {
+            let back = back.expect("a clean 0 decodes");
+            assert!(matches!(
+                back.validate(&w),
+                Err(CoreError::BadValue { value, .. }) if value == 0.0
+            ));
+        }
+        let mut ema = cp_of(&w, s.clone());
+        ema.state.book.set_ema(i, 0.0);
+        assert!(matches!(
+            Checkpoint::<TestExt>::from_bytes(&ema.to_bytes())
+                .unwrap()
+                .validate(&w),
+            Err(CoreError::BadValue { .. })
+        ));
+        let mut neg = cp_of(&w, s);
+        neg.state.book.set_price(i, -0.0);
+        assert!(matches!(
+            Checkpoint::<TestExt>::from_bytes(&neg.to_bytes()),
+            Err(CheckpointError::Decode(_))
+        ));
+        // With a free step on bread its price of 0 checkpoints and validates.
+        let text = testkit::ext_text()
+            .replace(
+                r#"(key: "bread", life: Years("life.bread"), price_rate: Some("rate.bread")),"#,
+                r#"(key: "bread", life: Years("life.bread"), price_rate: Some("rate.bread"), free: Some((reference: "grain", scale: "free.bread"))),"#,
+            )
+            .replace(
+                r#"(key: "pension.period","#,
+                r#"(key: "free.bread", value: 0.5, unit: Dimensionless, basis: Assumed("c")),
+        (key: "pension.period","#,
+            );
+        let t: Tape<TestExt> = Tape::from_ron(&text).expect("the free fixture parses");
+        let (wf, sf) = crate::tape::resolve(&t).expect("the free fixture resolves");
+        assert!(wf.free_step(good(&wf, "bread")).is_some());
+        let mut cp = cp_of(&wf, sf);
+        let i = cp.state.book.index(town, good(&wf, "bread")).unwrap();
+        cp.state.book.set_price(i, 0.0);
+        cp.state.book.set_ema(i, 0.0);
+        let back = Checkpoint::<TestExt>::from_bytes(&cp.to_bytes()).unwrap();
+        back.validate(&wf).expect("a free price of 0 validates");
+    }
+
+    #[test]
     fn checkpoint_rejects_nan_and_unknown_ids() {
         let (w, s) = evolved();
         let (mill, bread) = (holder(&w, "mill"), good(&w, "bread"));

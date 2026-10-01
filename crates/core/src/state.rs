@@ -40,7 +40,9 @@ impl TryFrom<BookRepr> for MarketBook {
     type Error = String;
 
     /// Loading rejects a book whose columns differ in length, and any value that is not finite
-    /// or has its sign bit set, or a price or EMA that is not positive.
+    /// or has its sign bit set. A price or EMA of +0.0 decodes (amended at P2.4.11): a good with a
+    /// free step may post it (FREE-SPEC §6.1), and the book has no world to tell such a good from
+    /// another, so [`SimState::validate`] refuses a zero price or EMA of any other good.
     fn try_from(r: BookRepr) -> Result<MarketBook, String> {
         let n = r.price.len();
         if r.ema.len() != n || r.supply.len() != n || r.demand.len() != n {
@@ -49,16 +51,13 @@ impl TryFrom<BookRepr> for MarketBook {
         if (r.n_goods == 0 && n != 0) || (r.n_goods != 0 && !n.is_multiple_of(r.n_goods as usize)) {
             return Err("book length is not a multiple of its goods".into());
         }
-        for (what, col, positive) in [
-            ("price", &r.price, true),
-            ("ema", &r.ema, true),
-            ("supply", &r.supply, false),
-            ("demand", &r.demand, false),
+        for (what, col) in [
+            ("price", &r.price),
+            ("ema", &r.ema),
+            ("supply", &r.supply),
+            ("demand", &r.demand),
         ] {
-            if let Some(v) = col
-                .iter()
-                .find(|&&v| !is_clean(v) || (positive && v == 0.0))
-            {
+            if let Some(v) = col.iter().find(|&&v| !is_clean(v)) {
                 return Err(format!("book {what} {v:e} is not allowed"));
             }
         }
@@ -279,6 +278,20 @@ impl<E: Ext> SimState<E> {
                     .book
                     .quote(n.id, g.id)
                     .ok_or(CoreError::UnknownGood(g.id))?;
+                // A market's price and EMA are positive, or +0.0 where its good has a free step
+                // (amended at P2.4.11; the book's decode lets a clean 0 through).
+                if w.has_market(g.id)
+                    && !(w.price_allowed(g.id, q.price) && w.price_allowed(g.id, q.ema))
+                {
+                    return Err(CoreError::BadValue {
+                        what: "a book price or EMA",
+                        value: if w.price_allowed(g.id, q.price) {
+                            q.ema
+                        } else {
+                            q.price
+                        },
+                    });
+                }
                 if !w.has_market(g.id)
                     && (q.price != 1.0 || q.ema != 1.0 || q.supply != 0.0 || q.demand != 0.0)
                 {

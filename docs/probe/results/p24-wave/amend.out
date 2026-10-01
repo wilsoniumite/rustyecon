@@ -1,0 +1,21 @@
+switch: 1142 lines re-read
+  switch A1: as scored fail, on the amendment pass: 148
+  switch A1: as scored reported, on the amendment reported: 994
+  lines that passed as scored and fail on the amendment: 0
+free: 2231 lines re-read
+  free A2 (a): as scored fail, on the amendment pass: 8
+  free A2 (a): as scored pass, on the amendment pass: 2203
+  free A2 (b): as scored fail, on the amendment pass: 3
+  free A2 (b): as scored pass, on the amendment pass: 5
+  free A2 (c): as scored fail, on the amendment pass: 12
+  lines that passed as scored and fail on the amendment: 0
+switch after the amendments: fail 88, pass 31508, reported 33485
+  still failing: E5 is1 L: E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300: 2
+  still failing: E5 is1 nbhd: E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300: 56
+  still failing: E5 is1 swrate: E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300: 30
+free after the amendments: fail 4, pass 33550, reported 8677
+  still failing: E3 ct2 kick: kick set decays (gain_tail at most 1e-3): 2
+  still failing: E3 ct2 verdict: CT2's verdict: 1
+  still failing: E4 ct2 dial: its free/priced switches: commons: 1
+switch refutations read again: 0 switch pops ending on the wrong side of their switch (as scored); 0 pooled pops more than 1e-9 relative from a* at the CSV's last row
+free refutations read again: 0 CONVERGED runs resting off the oracle's point; the 2 failing kick sets stand (CT2 b.food=1.2@dated, exit.To=9.75@dated), and with them CT2's verdict, LOCAL

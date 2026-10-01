@@ -1,0 +1,15 @@
+| CT2/zp03 |  | 0/0 CONVERGED | 0/0 CONVERGED | 0/0 CONVERGED | 697/697 CONVERGED (+34 VACUOUS); ticks to tol 488 (30140) |
+| CT2/zp2 |  | 0/0 CONVERGED | 0/0 CONVERGED | 0/0 CONVERGED | 697/697 CONVERGED (+34 VACUOUS); ticks to tol 483 (6170) |
+| IL1/zp03 |  | 0/0 CONVERGED | 0/0 CONVERGED | 0/0 CONVERGED | 612/612 CONVERGED (+34 VACUOUS); ticks to tol 507 (1051) |
+| IL1/zp2 |  | 0/0 CONVERGED | 0/0 CONVERGED | 0/0 CONVERGED | 603/612 CONVERGED (+34 VACUOUS) 4 DEAD, 1 DIVERGED, 4 ORBITING; ticks to tol 497 (915) |
+
+CT2/zp03: free-able market's end state as the oracle's in 697 CONVERGED runs, not in 0
+CT2/zp2: free-able market's end state as the oracle's in 697 CONVERGED runs, not in 0
+IL1/zp03: free-able market's end state as the oracle's in 612 CONVERGED runs, not in 0
+IL1/zp2: free-able market's end state as the oracle's in 603 CONVERGED runs, not in 0
+   DIVERGED  JB(2)                      in 1: tilt 1
+   DEAD      inst.land=260@dated        in 2: tilt 0.5, tilt 1
+   ORBITING  inst.land=260@dated        in 2: rate x1.25, tilt 0.25
+   DEAD      inst.land=260@genesis      in 2: tilt 0.5, tilt 1
+   ORBITING  inst.land=260@genesis      in 2: rate x1.25, tilt 0.25
+

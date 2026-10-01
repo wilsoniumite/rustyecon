@@ -28,6 +28,27 @@
 //! through the workers' own rule (`workers_participation`) at the tick's posted prices and the
 //! params in force, so the readouts cannot part from what the workers did; they are kept beside
 //! §7.11's statistics, reported and never scored.
+//!
+//! **At a paced commons instance** (P2.4; docs/probe/TRAP-RULES.md §4): the workers' state share
+//! is the paced share, the hours offered over N; the rule's share F\* at the tick's posted prices
+//! is read beside it (`part_target`), and the lag and the ticks without hours are kept as the
+//! pace's readouts (`pace.*`), reported and never scored.
+//!
+//! **At a switch instance** (P2.4; docs/probe/SWITCH-RULES.md §4): the observables add each switch
+//! pop's reserved share 1 − a after the tick (`rs.<type>`), whose target is 1 − a\* from unit 1d;
+//! each reserved market's volume target is its reserved hours D_i. Each switch pop's pool share
+//! and its gap g = ln(ε·w/w_i) at the tick's posted prices, through the rule's own function, are
+//! read each tick and kept as the switch's readouts (`switch.*`), reported and never scored.
+//!
+//! **At a free instance** (P2.4; docs/probe/FREE-RULES.md §5): a market may post 0. At IL1 the
+//! harness reads in wage units (decision 421): every price over w, each desk's threshold
+//! x_j = 1 − s_j, the cleared volumes (land's target the land in use, T_m + T_p) and the outputs,
+//! 21 observables, as the free scan's mirror (`fb.targets_of`). At CT2 the commons' price and
+//! volume are not observed and its trade is out of the dead-tick rule, as the mirror's. A
+//! free-able market's runaway bound is [0, 1e6 × max(its genesis price, its reference's)], mode
+//! A does not read its fills while it posts 0, and its readouts (`free.*`: the ticks at 0, the
+//! first, the switches, the end over its reference against the oracle's, the regime at the end)
+//! are kept beside §7.11's statistics, reported and never scored.
 
 use super::instance::{Instance, Point};
 use super::perturb::Perturbation;
@@ -45,35 +66,49 @@ use rustyecon_engine::prelude::{
     ActorId, ClassId, GoodId, Holder, PriceError, RunErrorKind, SideTag, Sim, Tape, TickReport,
 };
 use rustyecon_engine::rustyecon_agents::{
-    workers_participation, ActorState, AgentError, BasketWorkers, Participation, PlotRegime, Spec,
+    pop_market_participation, switch_gap, workers_participation, ActorState, AgentError,
+    BasketWorkers, Participation, PlotRegime, Pool, PopMarket, Spec,
 };
 use std::collections::BTreeMap;
 
 /// The observables of an instance, in order (MARKETS-SPEC §7.1): `v`, `pi.<type>`,
 /// `pi.<category>`, `s.<category>`, `vol.<market>` in market order, `y.<category>`, `y.<type>`.
 /// On I0 this is P2.0's set O in P2.0's order. At the wall each reserved wage `w.<type>` follows
-/// the prices, and `x.<category>` replaces `s.<category>` (the wall frame's §5.1).
+/// the prices, and `x.<category>` replaces `s.<category>` (the wall frame's §5.1). At a switch
+/// instance each switch pop's reserved share `rs.<type>` comes last (P2.4; the switch scan's §3.9).
 pub fn observables(inst: &Instance) -> Vec<String> {
-    let mut o = vec!["v".to_string()];
+    // In wage units (IL1, P2.4) every price is over w and v = w/r, infinite at r = 0, is none.
+    let mut o = if inst.wage_units {
+        Vec::new()
+    } else {
+        vec!["v".to_string()]
+    };
     o.extend(inst.types.iter().map(|t| format!("pi.{}", t.key)));
     o.extend(inst.categories.iter().map(|c| format!("pi.{}", c.key)));
     o.extend(inst.wtypes.iter().map(|t| format!("w.{}", t.key)));
-    let technique = if inst.worker_form { "x" } else { "s" };
+    let technique = if inst.worker_form || inst.wage_units {
+        "x"
+    } else {
+        "s"
+    };
     o.extend(
         inst.categories
             .iter()
             .map(|c| format!("{technique}.{}", c.key)),
     );
-    o.extend(inst.markets().iter().map(|m| format!("vol.{m}")));
+    o.extend(inst.observed_markets().iter().map(|m| format!("vol.{m}")));
     o.extend(inst.categories.iter().map(|c| format!("y.{}", c.key)));
     o.extend(inst.types.iter().map(|t| format!("y.{}", t.key)));
+    if inst.switch {
+        o.extend(inst.wtypes.iter().map(|t| format!("rs.{}", t.key)));
+    }
     o
 }
 
-/// The number of prices among the observables: v, each type's, each category's and each reserved
-/// wage (the classifier's band reads them).
+/// The number of prices among the observables: v (none in wage units), each type's, each
+/// category's and each reserved wage (the classifier's band reads them).
 pub fn price_count(inst: &Instance) -> usize {
-    1 + inst.types.len() + inst.categories.len() + inst.wtypes.len()
+    usize::from(!inst.wage_units) + inst.types.len() + inst.categories.len() + inst.wtypes.len()
 }
 
 /// γ(1) = η·(g0 + g1), the schedule at the top task (k's power of 1 is 1).
@@ -86,7 +121,8 @@ pub fn gamma_top(inst: &Instance) -> f64 {
 pub struct Target {
     /// The observables' values, in [`observables`] order.
     pub obs: Vec<f64>,
-    /// Each market's cleared volume, in market order.
+    /// Each market's cleared volume, in market order (the commons' at a commons market last, its
+    /// commons used).
     pub volume: Vec<f64>,
     /// Y, baskets eaten.
     pub baskets: f64,
@@ -106,29 +142,57 @@ impl Target {
     /// category's good z_j·Y, and each type's market what the category desks and the other
     /// types buy of it (a type's own input is kept, not traded; MARKETS-SPEC §1.4).
     pub fn of(inst: &Instance, e: &Point, land: f64) -> Target {
+        // In wage units (IL1, P2.4) land clears the land in use, T_m + T_p, as the free scan's
+        // mirror reads it (`fb.targets_of`); elsewhere the enclosed land T.
+        let land = match (&e.commons, inst.wage_units) {
+            (Some(k), true) => k.market_land + k.rented,
+            _ => land,
+        };
         // The pool's hours clear `labour` (N_a in unit 1c, n_D in 1d); each reserved type's
-        // market clears its reserved hours D_i (the wall frame's §5.1).
+        // market clears its reserved hours D_i (the wall frame's §5.1), 1d's `reserved_hours`,
+        // which is its `hours` at a wall bit for bit and less where it pools (P2.4).
         let mut volume = vec![e.pool, land];
         volume.extend(e.type_traded.iter().copied());
         volume.extend(e.cat_output.iter().copied());
         if inst.worker_form {
-            volume.extend(e.hours[1..].iter().copied());
+            volume.extend(e.reserved.iter().copied());
+        }
+        let observed = volume.len();
+        // The commons' market clears the commons used (P2.4), unobserved.
+        if !inst.commoners.is_empty() {
+            volume.push(e.commons.as_ref().map_or(f64::NAN, |k| k.occupied));
         }
         let mut output = e.cat_output.clone();
         output.extend(e.type_services.iter().copied());
-        let mut obs = vec![e.v];
-        obs.extend(e.type_price.iter().copied());
-        obs.extend(e.cat_price.iter().copied());
-        obs.extend(e.wage.iter().copied());
-        // The technique: 1 − x* as P2.1 reads it, or the threshold x* = 1 − (1 − x*) at the wall.
-        let technique = if inst.worker_form {
+        // Every price over r, v first; in wage units every price over w, the point's v (1 on the
+        // idle stretch, where the point is in wage units), and no v.
+        let mut obs = if inst.wage_units {
+            let w = e.v;
+            let mut o: Vec<f64> = e.type_price.iter().map(|p| p / w).collect();
+            o.extend(e.cat_price.iter().map(|p| p / w));
+            o.extend(e.wage.iter().map(|p| p / w));
+            o
+        } else {
+            let mut o = vec![e.v];
+            o.extend(e.type_price.iter().copied());
+            o.extend(e.cat_price.iter().copied());
+            o.extend(e.wage.iter().copied());
+            o
+        };
+        // The technique: 1 − x* as P2.1 reads it, or the threshold x* = 1 − (1 − x*) at the wall
+        // and in wage units.
+        let technique = if inst.worker_form || inst.wage_units {
             1.0 - e.one_minus_x
         } else {
             e.one_minus_x
         };
         obs.extend(inst.categories.iter().map(|_| technique));
-        obs.extend(volume.iter().copied());
+        obs.extend(volume[..observed].iter().copied());
         obs.extend(output.iter().copied());
+        // Each switch pop's reserved share at the point, 1 − a* (1 at its wall; P2.4).
+        if inst.switch {
+            obs.extend(e.pool_share.iter().map(|a| 1.0 - a));
+        }
         let mut items = e.cat_output.clone();
         if let Some(h) = inst.space {
             items.push(h * e.y);
@@ -239,6 +303,17 @@ pub struct Row {
     pub depth: f64,
     /// At the commons, the plots as the workers' rule read them this tick.
     pub plots: Option<Plots>,
+    /// At a switch instance, each switch pop's pool share a after the tick, in pop order (P2.4).
+    pub pool: Vec<f64>,
+    /// At a switch instance, each switch pop's gap g = ln(ε·w/w_i) at the prices this tick
+    /// settled at, through the rule's own `switch_gap` (P2.4).
+    pub switch_gap: Vec<f64>,
+    /// At a free instance (P2.4): the free-able market's posted price this tick, its next price,
+    /// and its reference's next price.
+    pub free: Option<[f64; 3]>,
+    /// At a commons market (P2.4): each commoner's decision through its own rule at the prices
+    /// this tick settled at, in pop order.
+    pub pops: Vec<PopMarket>,
     /// The tick's ledger margin.
     pub margin: f64,
     /// Whether the tick is dead: some market did not trade, or cleared less than the live
@@ -257,6 +332,9 @@ pub struct Plots {
     pub rent: f64,
     /// T_p, the enclosed land the plots rent.
     pub rented: f64,
+    /// The rule's share F\* = hours/N at the tick's posted prices, the share paced workers move
+    /// toward (P2.4; the trap scan's §5.4 `part_target`); the rule's own share without a pace.
+    pub target: f64,
 }
 
 /// The shadow rent r_o of the workers' plots, a readout that nobody receives (the commons
@@ -308,11 +386,55 @@ pub fn plots_now(
     );
     let chi = par(workers.chi_max).map_err(f)?;
     let (s0, h) = (par(x.gross).map_err(f)?, par(x.plot).map_err(f)?);
+    // r_o/r; on idle land (r = 0, P2.4) a plot pays 0, and the ratio reads 0.
+    let ro = shadow_rent(&p, chi, w, pg, s0, h, r);
     Ok(Some(Plots {
         regime: p.regime,
-        rent: shadow_rent(&p, chi, w, pg, s0, h, r) / r,
+        rent: if r > 0.0 { ro / r } else { 0.0 },
         rented: p.plots,
+        target: p.hours / p.heads,
     }))
+}
+
+/// Each commoner's decision on the commons' market (P2.4; FREE-SPEC §6.3), through its own rule
+/// from `sim`'s params in force and the posted prices `price_of`, in pop order.
+pub fn pops_now(
+    sim: &Sim,
+    pops: &[BasketWorkers],
+    price_of: &dyn Fn(GoodId) -> Option<f64>,
+) -> Result<Vec<PopMarket>, String> {
+    let clock = &sim.world().clock;
+    let par = |s: Site| -> Result<f64, AgentError> {
+        let v = sim
+            .param(s.param)
+            .ok_or(AgentError::Core(CoreError::UnknownParam(s.param)))?;
+        s.convert(clock, v).map_err(AgentError::Core)
+    };
+    let pr = |g: GoodId| -> Result<f64, AgentError> {
+        price_of(g)
+            .ok_or_else(|| AgentError::Core(CoreError::Shape(format!("no posted price for {g}"))))
+    };
+    let mut out = Vec::with_capacity(pops.len());
+    for p in pops {
+        match pop_market_participation(p, &par, &pr).map_err(|e| e.to_string())? {
+            Some(d) => out.push(d),
+            None => return Err("a commoner without a commons market".into()),
+        }
+    }
+    Ok(out)
+}
+
+/// The regime of a commons market read from its posted price (P2.4; the free scan's §6.4, OF6):
+/// `Commons` at 0, `Crowded` below r, `Enclosed` at or above it; never from bids against offers,
+/// which differ by rounding at rest.
+pub fn commons_regime(ro: f64, r: f64) -> &'static str {
+    if ro == 0.0 {
+        "Commons"
+    } else if ro < r {
+        "Crowded"
+    } else {
+        "Enclosed"
+    }
 }
 
 /// The regime's name as the frame's mirror labels it (`cm.exit_rule`): the split is `Crowded`.
@@ -369,6 +491,35 @@ pub fn csv_header(inst: &Instance) -> String {
     if inst.exit.is_some() {
         for k in ["part_workers", "regime", "ro_over_r", "plots_rented"] {
             h.push(k.into());
+        }
+    }
+    // The rule's share beside the paced share (P2.4), at a paced instance only.
+    if inst.paced_exit() {
+        h.push("part_target".into());
+    }
+    // Each switch pop's pool share and gap (P2.4), at a switch instance only.
+    if inst.switch {
+        for k in &households[2..] {
+            h.push(format!("pool_{k}"));
+        }
+        for k in &households[2..] {
+            h.push(format!("swgap_{k}"));
+        }
+    }
+    // The free-able market's posted and next price and its reference's next (P2.4), and at a
+    // commons market its regime from the posted price and each commoner's bid, offer and net
+    // rent r_o·(bid − offer).
+    if let Some(f) = &inst.free {
+        for k in ["posted", "next", "ref_next"] {
+            h.push(format!("free_{}_{k}", f.good));
+        }
+    }
+    if !inst.commoners.is_empty() {
+        h.push("commons_regime".into());
+        for k in &inst.commoners {
+            for q in ["bid", "offer", "net"] {
+                h.push(format!("commons_{q}_{}", k.pop()));
+            }
         }
     }
     h.join(",")
@@ -433,6 +584,33 @@ impl Row {
                 None => v.extend(["-".to_string(), "-".into(), "-".into()]),
             }
         }
+        if inst.paced_exit() {
+            v.push(
+                self.plots
+                    .as_ref()
+                    .map_or("-".to_string(), |p| format!("{:?}", p.target)),
+            );
+        }
+        if inst.switch {
+            for x in self.pool.iter().chain(&self.switch_gap) {
+                v.push(format!("{x:?}"));
+            }
+        }
+        if inst.free.is_some() {
+            match self.free {
+                Some(f) => v.extend(f.iter().map(|x| format!("{x:?}"))),
+                None => v.extend(["-".to_string(), "-".into(), "-".into()]),
+            }
+        }
+        if !inst.commoners.is_empty() {
+            let ro = self.price.last().copied().unwrap_or(f64::NAN);
+            v.push(commons_regime(ro, self.price[1]).to_string());
+            for p in &self.pops {
+                v.push(format!("{:?}", p.bid));
+                v.push(format!("{:?}", p.offer));
+                v.push(format!("{:?}", ro * (p.bid - p.offer)));
+            }
+        }
         v.join(",")
     }
 }
@@ -453,6 +631,12 @@ struct Ids {
     desks: usize,
     /// The pool's workers' resolved spec, where they hold a priced exit (the commons).
     exit_workers: Option<BasketWorkers>,
+    /// Each reserved pop's pool, where it switches (P2.4), in pop order.
+    pools: Vec<Option<Pool>>,
+    /// Each commoner's resolved spec, at a commons market (P2.4), in pop order.
+    commoners: Vec<BasketWorkers>,
+    /// The free-able market's index and its reference's, in market order (P2.4).
+    free: Option<(usize, usize)>,
 }
 
 impl Ids {
@@ -469,8 +653,38 @@ impl Ids {
                 Spec::BasketWorkers(p) if p.exit.is_some() => Some(p.clone()),
                 _ => None,
             });
+        let pools = inst
+            .wtypes
+            .iter()
+            .map(|t| {
+                w.actors
+                    .iter()
+                    .find(|a| a.key.as_str() == t.pop())
+                    .and_then(|a| match &a.spec {
+                        Spec::BasketWorkers(p) => p.pool,
+                        _ => None,
+                    })
+            })
+            .collect();
+        let commoners = inst
+            .commoners
+            .iter()
+            .map(|k| {
+                w.actors
+                    .iter()
+                    .find(|a| a.key.as_str() == k.pop())
+                    .and_then(|a| match &a.spec {
+                        Spec::BasketWorkers(p) => Some(p.clone()),
+                        _ => None,
+                    })
+                    .ok_or(format!("no commoner {}", k.pop()))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(Ids {
             exit_workers,
+            pools,
+            commoners,
+            free: inst.free_market(),
             desks: inst.desks().len(),
             goods: inst
                 .markets()
@@ -553,9 +767,15 @@ fn row(
         }
     }
     let mut participation = Vec::with_capacity(ids.actors.len() - ids.desks - 1);
+    let mut pool = Vec::new();
     for &a in &ids.actors[ids.desks + 1..] {
         match sim.actor_state(a) {
             Some(ActorState::Workers(s)) => participation.push(s.share),
+            // A switch pop (P2.4): its participation F, and its pool share a.
+            Some(ActorState::SwitchWorkers(s)) => {
+                participation.push(s.share);
+                pool.push(s.pool);
+            }
             _ => return Err(format!("actor {a} is not the pop its instance says")),
         }
     }
@@ -607,17 +827,42 @@ fn row(
         }
     }
     let [w, rr] = [price[0], price[1]];
-    let mut obs = vec![w / rr];
+    // The observed markets: every one but the commons' at a commons market, which is last (P2.4).
+    let nobs = inst.observed_markets().len();
     // Every other price over r, in market order: the types, the categories, then the reserved
-    // wages (the observables' order).
-    obs.extend(price[2..].iter().map(|p| p / rr));
-    if inst.worker_form {
+    // wages (the observables' order); in wage units (IL1, P2.4) every price over w and no v.
+    let mut obs = if inst.wage_units {
+        price[2..nobs].iter().map(|p| p / w).collect()
+    } else {
+        let mut o = vec![w / rr];
+        o.extend(price[2..nobs].iter().map(|p| p / rr));
+        o
+    };
+    if inst.worker_form || inst.wage_units {
         obs.extend(used.iter().map(|s| 1.0 - s));
     } else {
         obs.extend(used.iter().copied());
     }
-    obs.extend(cleared.iter().copied());
+    obs.extend(cleared[..nobs].iter().copied());
     obs.extend(output.iter().copied());
+    // Each switch pop's reserved share after the tick, 1 − a (P2.4), and its gap at the posted
+    // prices this tick settled at, with ε in force: the pool's wage is `labour`'s, its own the
+    // reserved market's (the markets' order: labour first, the reserved labour markets last).
+    let mut gaps = Vec::new();
+    if inst.switch {
+        obs.extend(pool.iter().map(|a| 1.0 - a));
+        let clock = &sim.world().clock;
+        let first = n - inst.wtypes.len();
+        for (i, p) in ids.pools.iter().enumerate() {
+            if let Some(p) = p {
+                let v = sim
+                    .param(p.efficiency.param)
+                    .ok_or("the pool's efficiency is not a param")?;
+                let eps = p.efficiency.convert(clock, v).map_err(|e| e.to_string())?;
+                gaps.push(switch_gap(eps, price[0], price[first + i]));
+            }
+        }
+    }
     // The depth at the posted prices this tick settled at (the wall frame's §5.3).
     let tau = inst.task_type()?;
     let depth = ln((inst.types[tau].theta * w) / (price[2 + tau] * gamma_top(inst)));
@@ -641,7 +886,22 @@ fn row(
         })
         .collect();
     let dhat = gap.iter().fold(0.0, |a: f64, &g| a.max(g)) / TOL_FLOOR;
-    let dead = (0..n).any(|m| !trades[m] || cleared[m] < LIVE_FLOOR * target.volume[m]);
+    let dead = (0..nobs).any(|m| !trades[m] || cleared[m] < LIVE_FLOOR * target.volume[m]);
+    // The free-able market's posted and next price and its reference's next (P2.4).
+    let next = |m: usize| {
+        r.markets
+            .iter()
+            .find(|l| l.good == ids.goods[m])
+            .map_or(f64::NAN, |l| l.next_price)
+    };
+    let free = ids.free.map(|(m, rf)| [price[m], next(m), next(rf)]);
+    // Each commoner's decision, through its rule at the prices this tick settled at (P2.4).
+    let pops = if ids.commoners.is_empty() {
+        Vec::new()
+    } else {
+        let price_of = |g: GoodId| o.markets.iter().find(|l| l.good == g).map(|l| l.price);
+        pops_now(sim, &ids.commoners, &price_of)?
+    };
     Ok(Row {
         tick: r.tick,
         price,
@@ -666,6 +926,10 @@ fn row(
         participation,
         depth,
         plots,
+        pool,
+        switch_gap: gaps,
+        free,
+        pops,
         margin: o.margin,
         dead,
     })
@@ -673,8 +937,16 @@ fn row(
 
 /// Mode A's per-tick check (PROBE-SPEC §4.6, MARKETS-SPEC §7.6), with fills and spoilage read
 /// relative to volume, as P2.0's: every gap at most 1e-9, every market trading with both fills
-/// at least 1 − 1e-9, and no produced good spoiling beyond 1e-9 of its volume.
-fn hold_check(row: &Row, names: &[String], markets: &[String], produced: usize) -> Option<String> {
+/// at least 1 − 1e-9, and no produced good spoiling beyond 1e-9 of its volume. A free-able market
+/// posting 0 (P2.4) must trade, and its fills are not read: its sellers' rationing at a price of 0
+/// is its idle part.
+fn hold_check(
+    row: &Row,
+    names: &[String],
+    markets: &[String],
+    produced: usize,
+    free: Option<usize>,
+) -> Option<String> {
     if let Some(i) = (0..row.gap.len()).find(|&i| row.gap[i].is_nan() || row.gap[i] > HOLD_TOL) {
         return Some(format!(
             "tick {}: {} is {:e} from the oracle in log",
@@ -684,6 +956,9 @@ fn hold_check(row: &Row, names: &[String], markets: &[String], produced: usize) 
     for (m, market) in markets.iter().enumerate() {
         if !row.trades[m] {
             return Some(format!("tick {}: {market} did not trade", row.tick));
+        }
+        if free == Some(m) && row.price[m] == 0.0 {
+            continue;
         }
         if rationed(row.buyer_fill[m], HOLD_TOL) || rationed(row.seller_fill[m], HOLD_TOL) {
             return Some(format!(
@@ -926,6 +1201,200 @@ pub struct Stats {
     pub wall: Option<Wall>,
     /// The commons' readouts, at an open-commons instance (the commons frame's §3.8).
     pub commons: Option<CommonsStats>,
+    /// The pace's readouts, at a paced instance (P2.4; the trap scan's §5.4).
+    pub pace: Option<PaceStats>,
+    /// Each switch pop's readouts, at a switch instance (P2.4; the switch scan's §3.9), in pop
+    /// order.
+    pub switch: Option<Vec<SwitchStats>>,
+    /// The free-able market's readouts, at a free instance (P2.4; the free scan's §6.4).
+    pub free: Option<FreeStats>,
+}
+
+/// A free-able market's readouts over the scored run (P2.4; the free scan's §6.4, the mirror's
+/// `fb.run`), reported and never scored.
+#[derive(Debug, Clone, PartialEq)]
+pub struct FreeStats {
+    /// The scored ticks whose posted price is 0 (the mirror's `free_ticks`).
+    pub ticks: u64,
+    /// The first such scored tick, counted from the scored clock's start (`free_first`).
+    pub first: Option<u64>,
+    /// Switches between 0 and a positive price, posted to next (`free_switches`).
+    pub switches: u64,
+    /// Its next price over its reference's on the last scored tick (`free_end`).
+    pub end: f64,
+    /// The oracle's at the target in force on the last scored tick: r/w (IL1) or r_o/w (CT2).
+    pub star: f64,
+    /// The regime on each scored tick, counted by label, and the switches between labels: at IL1
+    /// through the workers' rule, `Idle` where it says `Enclosed` at r = 0; at CT2 from the
+    /// commons' posted price ([`commons_regime`]).
+    pub regimes: BTreeMap<&'static str, u64>,
+    /// Switches between regime labels.
+    pub regime_switches: u64,
+    last: Option<&'static str>,
+    /// The regime on the last scored tick.
+    pub regime_end: String,
+    /// The target's regime on the last scored tick: unit 1e's `ExitLand` by name.
+    pub regime_star: String,
+    /// The provider's lowest coin after a tick, absolute (IL1's is 0 while land is free).
+    pub provider_coin_low: f64,
+    /// The largest `seen` tick index, for `first`.
+    seen: u64,
+}
+
+impl FreeStats {
+    fn new() -> FreeStats {
+        FreeStats {
+            ticks: 0,
+            first: None,
+            switches: 0,
+            end: f64::NAN,
+            star: f64::NAN,
+            regimes: BTreeMap::new(),
+            regime_switches: 0,
+            last: None,
+            regime_end: String::new(),
+            regime_star: String::new(),
+            provider_coin_low: f64::INFINITY,
+            seen: 0,
+        }
+    }
+
+    fn push(&mut self, row: &Row, t: &Target, provider: usize) {
+        if let Some([posted, next, ref_next]) = row.free {
+            if posted == 0.0 {
+                self.ticks += 1;
+                if self.first.is_none() {
+                    self.first = Some(self.seen);
+                }
+            }
+            if (next == 0.0 && posted > 0.0) || (next > 0.0 && posted == 0.0) {
+                self.switches += 1;
+            }
+            self.end = next / ref_next;
+        }
+        self.seen += 1;
+        // The oracle's price over its reference: r_o/w at a commons market, r/w otherwise.
+        let e = &t.point;
+        self.star = match &e.commons {
+            Some(k) if !row.pops.is_empty() => k.plot_rent / e.v,
+            _ => e.rent / e.v,
+        };
+        let label = if !row.pops.is_empty() {
+            let ro = row.price.last().copied().unwrap_or(f64::NAN);
+            Some(commons_regime(ro, row.price[1]))
+        } else {
+            row.plots
+                .as_ref()
+                .map(|p| match (p.regime, row.price[1] == 0.0) {
+                    (PlotRegime::Enclosed, true) => "Idle",
+                    (r, _) => mirror_regime(r),
+                })
+        };
+        if let Some(label) = label {
+            *self.regimes.entry(label).or_insert(0) += 1;
+            if self.last.is_some_and(|l| l != label) {
+                self.regime_switches += 1;
+            }
+            self.last = Some(label);
+            self.regime_end = label.to_string();
+        }
+        if let Some(k) = &e.commons {
+            self.regime_star = k.regime.clone();
+        }
+        if let Some(&c) = row.coin.get(provider) {
+            self.provider_coin_low = min2(self.provider_coin_low, c);
+        }
+    }
+}
+
+/// A switch pop's readouts over the scored run (P2.4; the switch scan's §3.9, the mirror's
+/// `swb.run`), reported and never scored.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct SwitchStats {
+    /// The scored ticks with its pool share above 1e-9.
+    pub live: u64,
+    /// Its largest pool share (0 if it never pools).
+    pub max: f64,
+    /// The sign changes of its gap g between scored ticks with |g| above 1e-6 (the band keeps
+    /// rounding-level flips near a pooled rest out of the count).
+    pub band: u64,
+    last: i8,
+    /// Its pool share on the last scored tick.
+    pub end: f64,
+    /// Its gap on the last scored tick.
+    pub gap_end: f64,
+}
+
+impl SwitchStats {
+    fn new() -> SwitchStats {
+        SwitchStats {
+            live: 0,
+            max: 0.0,
+            band: 0,
+            last: 0,
+            end: f64::NAN,
+            gap_end: f64::NAN,
+        }
+    }
+
+    fn push(&mut self, a: f64, g: f64) {
+        self.live += u64::from(a > 1e-9);
+        self.max = max2(self.max, a);
+        if g.abs() > 1e-6 {
+            let sign = if g > 0.0 { 1 } else { -1 };
+            if self.last != 0 && sign != self.last {
+                self.band += 1;
+            }
+            self.last = sign;
+        }
+        self.end = a;
+        self.gap_end = g;
+    }
+}
+
+/// The pace's readouts over the scored run (P2.4; the trap scan's §5.4), reported and never
+/// scored: how far the paced share F (the workers' state, the hours offered over N) lags the
+/// rule's share F\* at the tick's posted prices, and the ticks with no hours offered.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PaceStats {
+    /// The largest |ln(F/F\*)| (0 where both are 0, infinite where one alone is).
+    pub gap_max: f64,
+    /// The least F/F\* (1 where both are 0, infinite where F\* alone is).
+    pub low: f64,
+    /// The ticks with labour's supply 0: no hours offered.
+    pub zero_hours: u64,
+}
+
+impl PaceStats {
+    fn new() -> PaceStats {
+        PaceStats {
+            gap_max: 0.0,
+            low: f64::INFINITY,
+            zero_hours: 0,
+        }
+    }
+
+    fn push(&mut self, row: &Row) {
+        if let (Some(&f), Some(p)) = (row.participation.first(), &row.plots) {
+            let ratio = if p.target > 0.0 {
+                f / p.target
+            } else if f == 0.0 {
+                1.0
+            } else {
+                f64::INFINITY
+            };
+            let gap = if ratio > 0.0 {
+                ln(ratio).abs()
+            } else {
+                f64::INFINITY
+            };
+            self.gap_max = max2(self.gap_max, gap);
+            self.low = min2(self.low, ratio);
+        }
+        if let Some(&s) = row.supply.first() {
+            self.zero_hours += u64::from(s <= 0.0);
+        }
+    }
 }
 
 /// The commons' readouts over the scored run (the commons frame's §3.8; `battery_c.run`'s),
@@ -992,8 +1461,14 @@ impl CommonsStats {
             self.star = c.regime.clone();
             self.rent_star = c.plot_rent;
         }
+        // Over its genesis coin; at IL1, whose provider holds none (P2.4), the coin itself.
         if let Some(&c) = row.coin.get(provider) {
-            self.provider_coin_low = min2(self.provider_coin_low, c / self.provider_genesis);
+            let rel = if self.provider_genesis > 0.0 {
+                c / self.provider_genesis
+            } else {
+                c
+            };
+            self.provider_coin_low = min2(self.provider_coin_low, rel);
         }
     }
 }
@@ -1082,6 +1557,11 @@ impl Stats {
             depth: None,
             wall: inst.worker_form.then(|| Wall::new(inst)),
             commons: None,
+            pace: inst.paced_exit().then(PaceStats::new),
+            switch: inst
+                .switch
+                .then(|| vec![SwitchStats::new(); inst.wtypes.len()]),
+            free: inst.free.as_ref().map(|_| FreeStats::new()),
         }
     }
 
@@ -1178,6 +1658,18 @@ impl Stats {
             // The provider's coin: the first household, after the desks.
             c.push(row, t, t.output.len());
         }
+        if let Some(p) = self.pace.as_mut() {
+            p.push(row);
+        }
+        if let Some(s) = self.switch.as_mut() {
+            for ((st, &a), &g) in s.iter_mut().zip(&row.pool).zip(&row.switch_gap) {
+                st.push(a, g);
+            }
+        }
+        if let Some(f) = self.free.as_mut() {
+            // The provider's coin: the first household, after the desks.
+            f.push(row, t, t.output.len());
+        }
     }
 }
 
@@ -1254,39 +1746,64 @@ pub fn run(
         Ok(t)
     };
     let clock_start = pert.clock_start(ticks);
-    let start = pert.start();
+    // JA alone is a nominal move in wage units (IL1, P2.4): it moves every price but land's, which
+    // is 0, by one factor, so it is never VACUOUS there, as N is not (the free scan's `fb.run`).
+    let start = match pert.start() {
+        Start::Prices if inst.wage_units && pert.ja_only() => Start::Nominal,
+        s => s,
+    };
     let t0 = target_at(clock_start)?;
     let n_prices = price_count(&inst);
     let produced = 2 + inst.types.len() + inst.categories.len();
     // Tier 3S (decision 229; the wall frame's §5.2): a stock or coin start reads the largest D̂
     // of its first scored year, set below.
     let first_year = setup.first_year_d0 && matches!(start, Start::Stocks);
+    let nobs = inst.observed_markets().len();
     let mut d0 = match start {
         Start::Hold | Start::Nominal => 0.0,
+        // A land price set outright has no log observable at r = 0 (P2.4; the free scan's
+        // `fb.run`, whose distance for `p[land]=V` is infinite).
+        Start::Prices if pert.sets_land() => f64::INFINITY,
         Start::Prices => {
-            let mut genesis_obs = vec![g.prices[0] / g.prices[1]];
-            genesis_obs.extend(g.prices[2..].iter().map(|p| p / g.prices[1]));
-            if inst.worker_form {
+            // Over r, or over w in wage units (P2.4); the commons' price is no observable.
+            let mut genesis_obs = if inst.wage_units {
+                g.prices[2..nobs].iter().map(|p| p / g.prices[0]).collect()
+            } else {
+                let mut o = vec![g.prices[0] / g.prices[1]];
+                o.extend(g.prices[2..nobs].iter().map(|p| p / g.prices[1]));
+                o
+            };
+            if inst.worker_form || inst.wage_units {
                 genesis_obs.extend(g.shares.iter().map(|s| 1.0 - s));
             } else {
                 genesis_obs.extend(g.shares.iter().copied());
             }
-            genesis_obs
+            let prices = genesis_obs
                 .iter()
                 .zip(&t0.obs)
                 .map(|(o, t)| ln(o / t).abs())
-                .fold(0.0, f64::max)
+                .fold(0.0, f64::max);
+            // Each switch pop's reserved share at genesis against its target's, 1 − a against
+            // 1 − a* (P2.4; the switch scan's `swb.d0`); none elsewhere.
+            g.switch
+                .iter()
+                .zip(&t0.point.pool_share)
+                .map(|(a, at)| ln((1.0 - a) / (1.0 - at)).abs())
+                .fold(prices, f64::max)
                 / TOL_FLOOR
         }
         Start::Stocks if first_year => 0.0,
         Start::Stocks => {
+            // A paced share's displacement (P2.4) counts as a stock's factor, its genesis share
+            // over the point's S/N; elsewhere there is none.
+            let pace = g.pace.map_or(0.0, |(at, share)| ln(share / at).abs());
             pert.stock_factors()
                 .iter()
                 .map(|f| ln(*f).abs())
-                .fold(0.0, f64::max)
+                .fold(pace, f64::max)
                 / TOL_FLOOR
         }
-        Start::Shock if inst.worker_form || inst.exit.is_some() => {
+        Start::Shock if inst.worker_form || inst.parcel() => {
             target_distance(&t0, &Target::of(&inst, &g.point, land))
         }
         Start::Shock => shock_distance(&t0.point, &g.point),
@@ -1320,7 +1837,7 @@ pub fn run(
         let row = row(&sim, &inst, &ids, &report, &o, &target)?;
         each(&row);
         if hold_failure.is_none() {
-            hold_failure = hold_check(&row, &names, &markets, produced);
+            hold_failure = hold_check(&row, &names, &markets, produced, ids.free.map(|f| f.0));
         }
         if row.tick >= clock_start {
             if first_year && row.tick - clock_start < year {
@@ -1331,9 +1848,19 @@ pub fn run(
             stats.push(&row, &o, &target, &class_names);
         }
         // The runaway bound (PROBE-SPEC §4.5): every posted price within [1e-6, 1e6] times its
-        // genesis value, by certify's relative bound (A12).
+        // genesis value, by certify's relative bound (A12); a free-able market's within
+        // [0, 1e6 × max(its genesis price, its reference's)] (P2.4; the free scan's §6.4).
         let away = ids.goods.iter().enumerate().find_map(|(m, &gid)| {
             let l = report.markets.iter().find(|l| l.good == gid)?;
+            if let Some((fm, rf)) = ids.free.filter(|f| f.0 == m) {
+                let bound = RUNAWAY * g.prices[fm].max(g.prices[rf]);
+                return (!(l.next_price >= 0.0 && l.next_price <= bound)).then(|| {
+                    format!(
+                        "the price of {} left the runaway bound at tick {}: {:e}, above {bound:e}",
+                        markets[m], report.tick, l.next_price
+                    )
+                });
+            }
             let rel = l.next_price / g.prices[m];
             (!within_bound(rel, RUNAWAY)).then(|| {
                 format!(
@@ -1354,7 +1881,12 @@ pub fn run(
         let low = stats.baskets.0 * target_at(clock_start)?.baskets;
         stats.depth = Some((ln(y1 / y0), ln(low / y0), ln(low / y1)));
     }
-    let r_end = last.as_ref().map_or(f64::NAN, |r| r.price[1]) / g.prices[1];
+    // r at the end over its genesis value; in wage units, where r starts at 0 (P2.4), r/w.
+    let r_end = if inst.wage_units {
+        last.as_ref().map_or(f64::NAN, |r| r.price[1] / r.price[0])
+    } else {
+        last.as_ref().map_or(f64::NAN, |r| r.price[1]) / g.prices[1]
+    };
     let summary = classifier.summary(&stop, d0, start, r_end);
     Ok(Record {
         name: name.to_string(),

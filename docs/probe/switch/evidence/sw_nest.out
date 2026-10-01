@@ -1,0 +1,44 @@
+IW1 no rule              None                               hold                       BIT FOR BIT over 3000 ticks 
+IW1 no rule              None                               p[labour]*2                BIT FOR BIT over 3000 ticks 
+IW1 no rule              None                               JB(0.5)                    BIT FOR BIT over 3000 ticks 
+IW1 no rule              None                               x*/2                       BIT FOR BIT over 3000 ticks 
+IW1 no rule              None                               s[goods]=0.5               BIT FOR BIT over 3000 ticks 
+IW1 no rule              None                               RW(2)                      BIT FOR BIT over 3000 ticks 
+IW1 no rule              None                               p[labour.trained]*0.5      BIT FOR BIT over 3000 ticks 
+IW1 no rule              None                               coin.workers.master*0.1    BIT FOR BIT over 3000 ticks 
+IW1 no rule              None                               stock.mach*0.01            BIT FOR BIT over 3000 ticks 
+IW1 no rule              ('land.mach', '0.8')               hold                       BIT FOR BIT over 3000 ticks 
+IW1 no rule              ('tail.services', '0.2')           hold                       BIT FOR BIT over 3000 ticks 
+IW1 no rule              ('res.services.trained', '0.02')   hold                       BIT FOR BIT over 3000 ticks 
+IW1 rule present, eps 0  None                               hold                       BIT FOR BIT over 3000 ticks 
+IW1 rule present, eps 0  None                               p[labour]*2                BIT FOR BIT over 3000 ticks 
+IW1 rule present, eps 0  None                               JB(0.5)                    BIT FOR BIT over 3000 ticks 
+IW1 rule present, eps 0  None                               x*/2                       BIT FOR BIT over 3000 ticks 
+IW1 rule present, eps 0  None                               s[goods]=0.5               BIT FOR BIT over 3000 ticks 
+IW1 rule present, eps 0  None                               RW(2)                      BIT FOR BIT over 3000 ticks 
+IW1 rule present, eps 0  None                               p[labour.trained]*0.5      BIT FOR BIT over 3000 ticks 
+IW1 rule present, eps 0  None                               coin.workers.master*0.1    BIT FOR BIT over 3000 ticks 
+IW1 rule present, eps 0  None                               stock.mach*0.01            BIT FOR BIT over 3000 ticks 
+IW1 rule present, eps 0  ('land.mach', '0.8')               hold                       BIT FOR BIT over 3000 ticks 
+IW1 rule present, eps 0  ('tail.services', '0.2')           hold                       BIT FOR BIT over 3000 ticks 
+IW1 rule present, eps 0  ('res.services.trained', '0.02')   hold                       BIT FOR BIT over 3000 ticks 
+I0 hold       BIT FOR BIT over 3000 ticks
+I0 w*2        BIT FOR BIT over 3000 ticks
+I0 JB(0.5)    BIT FOR BIT over 3000 ticks
+I1 hold       BIT FOR BIT over 3000 ticks
+I1 w*2        BIT FOR BIT over 3000 ticks
+I1 JB(0.5)    BIT FOR BIT over 3000 ticks
+I2 hold       BIT FOR BIT over 3000 ticks
+I2 w*2        BIT FOR BIT over 3000 ticks
+I2 JB(0.5)    BIT FOR BIT over 3000 ticks
+I3 hold       BIT FOR BIT over 3000 ticks
+I3 w*2        BIT FOR BIT over 3000 ticks
+I3 JB(0.5)    BIT FOR BIT over 3000 ticks
+IS1 mig on, hold                       BIT FOR BIT with IW1 over 3000 ticks
+IS1 mig on, p[labour]*0.95             BIT FOR BIT with IW1 over 3000 ticks
+IS1 mig on, p[labour]*0.8              BIT FOR BIT with IW1 over 3000 ticks
+IS1 mig on, p[labour.trained]*1.2      BIT FOR BIT with IW1 over 3000 ticks
+IS1 mig on, p[labour.master]*2         BIT FOR BIT with IW1 over 3000 ticks
+IS1 mig on, coin.workers.trained*0.5   BIT FOR BIT with IW1 over 3000 ticks
+IS1 mig on, p[goods]*1.05              BIT FOR BIT with IW1 over 3000 ticks
+runs: 43

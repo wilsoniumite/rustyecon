@@ -186,6 +186,11 @@ pub fn kick_segment(
             let (Some(nk), Some(gk)) = (world.key_of(node), world.key_of(good)) else {
                 return Err(format!("{} has no keys", names.market(m)));
             };
+            // A market posting 0 at T, a free good (amended at P2.4.11; FREE-SPEC §4.4), has no
+            // log price to kick: ×(1 ± size) leaves it 0. The others' kicks read it.
+            if cp.state().price(node, good) == Some(0.0) {
+                continue;
+            }
             for sign in [Sign::Up, Sign::Down] {
                 let factor = match sign {
                     Sign::Up => 1.0 + bars.size,
@@ -211,5 +216,15 @@ pub fn kick_segment(
         }
         Ok((base_prices, runs))
     })();
-    KickSegment { segment, at, runs }
+    // Which markets' goods have a free step (FREE-SPEC §6.1): their prices may be 0.
+    let free = world
+        .markets()
+        .map(|(_, g)| world.free_step(g).is_some())
+        .collect();
+    KickSegment {
+        segment,
+        at,
+        runs,
+        free,
+    }
 }

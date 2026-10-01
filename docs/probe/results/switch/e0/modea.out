@@ -1,0 +1,72 @@
+is1 tpy 52 L 22000	run	class	d0	E1	E2	E3	E4	kappa	max_W	last	in_tol_from	dead	dead_W	dead_F	band_v	r_end	peak_dhat	peak_tick	worst_fill	low_baskets	low_baskets_tick	no_basket_ticks	transfer_short	transfer_short_ticks	depth_eq	depth_trough_y0	depth_trough_y1	lowest_market	mode_a	why
+is1 tpy 52 L 22000	hold	CONVERGED	0.000000e0	3.330669e-13	3.330669e-13	3.330669e-13	3.330669e-13	NaN	3.330669e-13	3.330669e-13	0	0	0	0	1.000000e0	1.000000e0	3.330669e-13	0	1.000000e0	1.000000e0	1	0	0.000000e0	0	-	-	-	land:1.000000e0	PASS	
+is1 tpy 52	hold	switch.live_ticks	workers.trained	0
+is1 tpy 52	hold	switch.max	workers.trained	0.000000e0
+is1 tpy 52	hold	switch.band	workers.trained	0
+is1 tpy 52	hold	switch.end	workers.trained	0.000000e0
+is1 tpy 52	hold	switch.gap_end	workers.trained	-7.366479e-2
+is1 tpy 52	hold	switch.live_ticks	workers.master	0
+is1 tpy 52	hold	switch.max	workers.master	0.000000e0
+is1 tpy 52	hold	switch.band	workers.master	0
+is1 tpy 52	hold	switch.end	workers.master	0.000000e0
+is1 tpy 52	hold	switch.gap_end	workers.master	-4.701791e-1
+is1 tpy 12 L 20000	run	class	d0	E1	E2	E3	E4	kappa	max_W	last	in_tol_from	dead	dead_W	dead_F	band_v	r_end	peak_dhat	peak_tick	worst_fill	low_baskets	low_baskets_tick	no_basket_ticks	transfer_short	transfer_short_ticks	depth_eq	depth_trough_y0	depth_trough_y1	lowest_market	mode_a	why
+is1 tpy 12 L 20000	hold	CONVERGED	0.000000e0	4.440892e-13	4.440892e-13	4.440892e-13	4.440892e-13	NaN	4.440892e-13	4.440892e-13	0	0	0	0	1.000000e0	1.000000e0	4.440892e-13	0	1.000000e0	1.000000e0	1	0	0.000000e0	0	-	-	-	land:1.000000e0	PASS	
+is1 tpy 12	hold	switch.live_ticks	workers.trained	0
+is1 tpy 12	hold	switch.max	workers.trained	0.000000e0
+is1 tpy 12	hold	switch.band	workers.trained	0
+is1 tpy 12	hold	switch.end	workers.trained	0.000000e0
+is1 tpy 12	hold	switch.gap_end	workers.trained	-7.366479e-2
+is1 tpy 12	hold	switch.live_ticks	workers.master	0
+is1 tpy 12	hold	switch.max	workers.master	0.000000e0
+is1 tpy 12	hold	switch.band	workers.master	0
+is1 tpy 12	hold	switch.end	workers.master	0.000000e0
+is1 tpy 12	hold	switch.gap_end	workers.master	-4.701791e-1
+is1 tpy 365 L 164000	run	class	d0	E1	E2	E3	E4	kappa	max_W	last	in_tol_from	dead	dead_W	dead_F	band_v	r_end	peak_dhat	peak_tick	worst_fill	low_baskets	low_baskets_tick	no_basket_ticks	transfer_short	transfer_short_ticks	depth_eq	depth_trough_y0	depth_trough_y1	lowest_market	mode_a	why
+is1 tpy 365 L 164000	hold	CONVERGED	0.000000e0	4.440892e-13	4.440892e-13	4.440892e-13	4.440892e-13	NaN	4.440892e-13	4.440892e-13	0	0	0	0	1.000000e0	1.000000e0	4.440892e-13	0	1.000000e0	1.000000e0	3	0	0.000000e0	0	-	-	-	services:1.000000e0	PASS	
+is1 tpy 365	hold	switch.live_ticks	workers.trained	0
+is1 tpy 365	hold	switch.max	workers.trained	0.000000e0
+is1 tpy 365	hold	switch.band	workers.trained	0
+is1 tpy 365	hold	switch.end	workers.trained	0.000000e0
+is1 tpy 365	hold	switch.gap_end	workers.trained	-7.366479e-2
+is1 tpy 365	hold	switch.live_ticks	workers.master	0
+is1 tpy 365	hold	switch.max	workers.master	0.000000e0
+is1 tpy 365	hold	switch.band	workers.master	0
+is1 tpy 365	hold	switch.end	workers.master	0.000000e0
+is1 tpy 365	hold	switch.gap_end	workers.master	-4.701791e-1
+is2 tpy 52 L 24000	run	class	d0	E1	E2	E3	E4	kappa	max_W	last	in_tol_from	dead	dead_W	dead_F	band_v	r_end	peak_dhat	peak_tick	worst_fill	low_baskets	low_baskets_tick	no_basket_ticks	transfer_short	transfer_short_ticks	depth_eq	depth_trough_y0	depth_trough_y1	lowest_market	mode_a	why
+is2 tpy 52 L 24000	hold	CONVERGED	0.000000e0	1.110223e-12	1.110223e-12	1.110223e-12	1.110223e-12	NaN	1.110223e-12	1.110223e-12	0	0	0	0	1.000000e0	1.000000e0	1.110223e-12	12	1.000000e0	1.000000e0	3	0	0.000000e0	0	-	-	-	labour.trained:1.000000e0	PASS	
+is2 tpy 52	hold	switch.live_ticks	workers.trained	24000
+is2 tpy 52	hold	switch.max	workers.trained	3.914281e-1
+is2 tpy 52	hold	switch.band	workers.trained	0
+is2 tpy 52	hold	switch.end	workers.trained	3.914281e-1
+is2 tpy 52	hold	switch.gap_end	workers.trained	0.000000e0
+is2 tpy 52	hold	switch.live_ticks	workers.master	0
+is2 tpy 52	hold	switch.max	workers.master	0.000000e0
+is2 tpy 52	hold	switch.band	workers.master	0
+is2 tpy 52	hold	switch.end	workers.master	0.000000e0
+is2 tpy 52	hold	switch.gap_end	workers.master	-6.530159e-1
+is2 tpy 12 L 20000	run	class	d0	E1	E2	E3	E4	kappa	max_W	last	in_tol_from	dead	dead_W	dead_F	band_v	r_end	peak_dhat	peak_tick	worst_fill	low_baskets	low_baskets_tick	no_basket_ticks	transfer_short	transfer_short_ticks	depth_eq	depth_trough_y0	depth_trough_y1	lowest_market	mode_a	why
+is2 tpy 12 L 20000	hold	CONVERGED	0.000000e0	1.443290e-12	4.440892e-13	4.440892e-13	4.440892e-13	NaN	4.440892e-13	4.440892e-13	0	0	0	0	1.000000e0	1.000000e0	1.443290e-12	64	1.000000e0	1.000000e0	65	0	0.000000e0	0	-	-	-	services:1.000000e0	PASS	
+is2 tpy 12	hold	switch.live_ticks	workers.trained	20000
+is2 tpy 12	hold	switch.max	workers.trained	3.914281e-1
+is2 tpy 12	hold	switch.band	workers.trained	0
+is2 tpy 12	hold	switch.end	workers.trained	3.914281e-1
+is2 tpy 12	hold	switch.gap_end	workers.trained	0.000000e0
+is2 tpy 12	hold	switch.live_ticks	workers.master	0
+is2 tpy 12	hold	switch.max	workers.master	0.000000e0
+is2 tpy 12	hold	switch.band	workers.master	0
+is2 tpy 12	hold	switch.end	workers.master	0.000000e0
+is2 tpy 12	hold	switch.gap_end	workers.master	-6.530159e-1
+is2 tpy 365 L 183000	run	class	d0	E1	E2	E3	E4	kappa	max_W	last	in_tol_from	dead	dead_W	dead_F	band_v	r_end	peak_dhat	peak_tick	worst_fill	low_baskets	low_baskets_tick	no_basket_ticks	transfer_short	transfer_short_ticks	depth_eq	depth_trough_y0	depth_trough_y1	lowest_market	mode_a	why
+is2 tpy 365 L 183000	hold	CONVERGED	0.000000e0	2.664535e-12	2.664535e-12	2.664535e-12	2.664535e-12	NaN	2.664535e-12	2.664535e-12	0	0	0	0	1.000000e0	1.000000e0	2.664535e-12	12	1.000000e0	1.000000e0	13	0	0.000000e0	0	-	-	-	services:1.000000e0	PASS	
+is2 tpy 365	hold	switch.live_ticks	workers.trained	183000
+is2 tpy 365	hold	switch.max	workers.trained	3.914281e-1
+is2 tpy 365	hold	switch.band	workers.trained	0
+is2 tpy 365	hold	switch.end	workers.trained	3.914281e-1
+is2 tpy 365	hold	switch.gap_end	workers.trained	0.000000e0
+is2 tpy 365	hold	switch.live_ticks	workers.master	0
+is2 tpy 365	hold	switch.max	workers.master	0.000000e0
+is2 tpy 365	hold	switch.band	workers.master	0
+is2 tpy 365	hold	switch.end	workers.master	0.000000e0
+is2 tpy 365	hold	switch.gap_end	workers.master	-6.530159e-1

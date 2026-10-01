@@ -1,0 +1,27 @@
+CT2 runs by set, and whether a commons buy was cut by its budget:
+  10L        never cut: 43
+  L          never cut: 115
+  dial       never cut: 726
+  dial       cut: 5
+  joint2     never cut: 60
+  joint4     never cut: 33
+  joint4     cut: 7
+  modea      never cut: 3
+  stocks     never cut: 41
+  tier3s     never cut: 24
+  tier3s10L  never cut: 24
+  tpy12      never cut: 72
+  tpy365     never cut: 72
+dial tilt.*=0.5 p[mach]*0.5: CONVERGED; budget short 0.318996; its lines: {'pass': 9, 'reported': 10}
+dial tilt.*=1 p[mach]*0.5: CONVERGED; budget short 1.145; its lines: {'pass': 9, 'reported': 10}
+dial tilt.*=1 JA(0.5): CONVERGED; budget short 0.583613; its lines: {'pass': 9, 'reported': 10}
+dial tilt.*=0.5 JB(2): CONVERGED; budget short 0.578509; its lines: {'pass': 9, 'reported': 10}
+dial tilt.*=1 JB(2): CONVERGED; budget short 1.60865; its lines: {'fail': 1, 'pass': 8, 'reported': 10}
+joint4 - joint(4,3): CONVERGED; budget short 1.05574; its lines: {'pass': 8, 'reported': 11}
+joint4 - joint(4,6): CONVERGED; budget short 0.930744; its lines: {'pass': 9, 'reported': 10}
+joint4 - joint(4,10): DIVERGED; budget short 0.201021; its lines: {'pass': 2}
+joint4 - joint(4,12): DIVERGED; budget short 0.521304; its lines: {'fail': 1, 'pass': 1}
+joint4 - joint(4,18): DIVERGED; budget short 0.154177; its lines: {'pass': 2}
+joint4 - joint(4,22): DIVERGED; budget short 0.634786; its lines: {'fail': 1, 'pass': 1}
+joint4 - joint(4,39): DIVERGED; budget short 0.0204116; its lines: {'pass': 2}
+their lines in all: {'fail': 3, 'pass': 69, 'reported': 71}

@@ -1,0 +1,72 @@
+il1 tpy 52 L 56000	run	class	d0	E1	E2	E3	E4	kappa	max_W	last	in_tol_from	dead	dead_W	dead_F	band_v	r_end	peak_dhat	peak_tick	worst_fill	low_baskets	low_baskets_tick	no_basket_ticks	transfer_short	transfer_short_ticks	depth_eq	depth_trough_y0	depth_trough_y1	lowest_market	mode_a	why
+il1 tpy 52 L 56000	hold	CONVERGED	0.000000e0	3.330669e-13	2.220446e-13	2.220446e-13	2.220446e-13	NaN	2.220446e-13	2.220446e-13	0	0	0	0	1.000000e0	0.000000e0	3.330669e-13	0	6.264195e-1	1.000000e0	0	0	4.990560e2	56000	-	-	-	shelter:1.000000e0	PASS	
+il1 tpy 52	hold	free.zero_ticks	land	56000
+il1 tpy 52	hold	free.first_zero	land	0
+il1 tpy 52	hold	free.switches	land	0
+il1 tpy 52	hold	free.end_over_ref	land	0.000000e0
+il1 tpy 52	hold	free.star_over_ref	land	0.000000e0
+il1 tpy 52	hold	free.regime_ticks	Idle	56000
+il1 tpy 52	hold	free.regime_switches	-	0
+il1 tpy 52	hold	free.regime_end	-	Idle
+il1 tpy 52	hold	free.regime_star	-	Idle
+il1 tpy 52	hold	free.provider_coin_low	-	0.000000e0
+il1 tpy 12 L 13000	run	class	d0	E1	E2	E3	E4	kappa	max_W	last	in_tol_from	dead	dead_W	dead_F	band_v	r_end	peak_dhat	peak_tick	worst_fill	low_baskets	low_baskets_tick	no_basket_ticks	transfer_short	transfer_short_ticks	depth_eq	depth_trough_y0	depth_trough_y1	lowest_market	mode_a	why
+il1 tpy 12 L 13000	hold	CONVERGED	0.000000e0	3.885781e-12	4.440892e-13	4.440892e-13	4.440892e-13	NaN	4.440892e-13	4.440892e-13	0	0	0	0	1.000000e0	0.000000e0	3.885781e-12	1794	6.264195e-1	1.000000e0	1795	0	5.020266e2	13000	-	-	-	shelter:1.000000e0	PASS	
+il1 tpy 12	hold	free.zero_ticks	land	13000
+il1 tpy 12	hold	free.first_zero	land	0
+il1 tpy 12	hold	free.switches	land	0
+il1 tpy 12	hold	free.end_over_ref	land	0.000000e0
+il1 tpy 12	hold	free.star_over_ref	land	0.000000e0
+il1 tpy 12	hold	free.regime_ticks	Idle	13000
+il1 tpy 12	hold	free.regime_switches	-	0
+il1 tpy 12	hold	free.regime_end	-	Idle
+il1 tpy 12	hold	free.regime_star	-	Idle
+il1 tpy 12	hold	free.provider_coin_low	-	0.000000e0
+il1 tpy 365 L 390000	run	class	d0	E1	E2	E3	E4	kappa	max_W	last	in_tol_from	dead	dead_W	dead_F	band_v	r_end	peak_dhat	peak_tick	worst_fill	low_baskets	low_baskets_tick	no_basket_ticks	transfer_short	transfer_short_ticks	depth_eq	depth_trough_y0	depth_trough_y1	lowest_market	mode_a	why
+il1 tpy 365 L 390000	hold	CONVERGED	0.000000e0	2.220446e-13	2.220446e-13	2.220446e-13	2.220446e-13	NaN	2.220446e-13	2.220446e-13	0	0	0	0	1.000000e0	0.000000e0	2.220446e-13	0	6.264195e-1	1.000000e0	1	0	4.951495e2	390000	-	-	-	mach:1.000000e0	PASS	
+il1 tpy 365	hold	free.zero_ticks	land	390000
+il1 tpy 365	hold	free.first_zero	land	0
+il1 tpy 365	hold	free.switches	land	0
+il1 tpy 365	hold	free.end_over_ref	land	0.000000e0
+il1 tpy 365	hold	free.star_over_ref	land	0.000000e0
+il1 tpy 365	hold	free.regime_ticks	Idle	390000
+il1 tpy 365	hold	free.regime_switches	-	0
+il1 tpy 365	hold	free.regime_end	-	Idle
+il1 tpy 365	hold	free.regime_star	-	Idle
+il1 tpy 365	hold	free.provider_coin_low	-	0.000000e0
+ct2 tpy 52 L 141000	run	class	d0	E1	E2	E3	E4	kappa	max_W	last	in_tol_from	dead	dead_W	dead_F	band_v	r_end	peak_dhat	peak_tick	worst_fill	low_baskets	low_baskets_tick	no_basket_ticks	transfer_short	transfer_short_ticks	depth_eq	depth_trough_y0	depth_trough_y1	lowest_market	mode_a	why
+ct2 tpy 52 L 141000	hold	CONVERGED	0.000000e0	5.551115e-13	5.551115e-13	5.551115e-13	5.551115e-13	NaN	5.551115e-13	5.551115e-13	0	0	0	0	1.000000e0	1.000000e0	5.551115e-13	0	9.334004e-1	1.000000e0	1	0	0.000000e0	0	-	-	-	shelter:1.000000e0	PASS	
+ct2 tpy 52	hold	free.zero_ticks	commons	141000
+ct2 tpy 52	hold	free.first_zero	commons	0
+ct2 tpy 52	hold	free.switches	commons	0
+ct2 tpy 52	hold	free.end_over_ref	commons	0.000000e0
+ct2 tpy 52	hold	free.star_over_ref	commons	0.000000e0
+ct2 tpy 52	hold	free.regime_ticks	Commons	141000
+ct2 tpy 52	hold	free.regime_switches	-	0
+ct2 tpy 52	hold	free.regime_end	-	Commons
+ct2 tpy 52	hold	free.regime_star	-	Commons
+ct2 tpy 52	hold	free.provider_coin_low	-	1.992984e1
+ct2 tpy 12 L 26000	run	class	d0	E1	E2	E3	E4	kappa	max_W	last	in_tol_from	dead	dead_W	dead_F	band_v	r_end	peak_dhat	peak_tick	worst_fill	low_baskets	low_baskets_tick	no_basket_ticks	transfer_short	transfer_short_ticks	depth_eq	depth_trough_y0	depth_trough_y1	lowest_market	mode_a	why
+ct2 tpy 12 L 26000	hold	CONVERGED	0.000000e0	3.141931e-11	3.441691e-11	3.919087e-11	3.363976e-11	NaN	3.919087e-11	1.587619e-11	0	0	0	0	1.000000e0	1.000000e0	3.919087e-11	17180	9.334004e-1	1.000000e0	17180	0	0.000000e0	0	-	-	-	manufactures:1.000000e0	PASS	
+ct2 tpy 12	hold	free.zero_ticks	commons	26000
+ct2 tpy 12	hold	free.first_zero	commons	0
+ct2 tpy 12	hold	free.switches	commons	0
+ct2 tpy 12	hold	free.end_over_ref	commons	0.000000e0
+ct2 tpy 12	hold	free.star_over_ref	commons	0.000000e0
+ct2 tpy 12	hold	free.regime_ticks	Commons	26000
+ct2 tpy 12	hold	free.regime_switches	-	0
+ct2 tpy 12	hold	free.regime_end	-	Commons
+ct2 tpy 12	hold	free.regime_star	-	Commons
+ct2 tpy 12	hold	free.provider_coin_low	-	4.958626e1
+ct2 tpy 365 L 1114000	run	class	d0	E1	E2	E3	E4	kappa	max_W	last	in_tol_from	dead	dead_W	dead_F	band_v	r_end	peak_dhat	peak_tick	worst_fill	low_baskets	low_baskets_tick	no_basket_ticks	transfer_short	transfer_short_ticks	depth_eq	depth_trough_y0	depth_trough_y1	lowest_market	mode_a	why
+ct2 tpy 365 L 1114000	hold	CONVERGED	0.000000e0	7.549517e-12	7.549517e-12	7.549517e-12	7.549517e-12	NaN	7.549517e-12	7.549517e-12	0	0	0	0	1.000000e0	1.000000e0	7.549517e-12	43	9.334004e-1	1.000000e0	52	0	0.000000e0	0	-	-	-	shelter:1.000000e0	PASS	
+ct2 tpy 365	hold	free.zero_ticks	commons	1114000
+ct2 tpy 365	hold	free.first_zero	commons	0
+ct2 tpy 365	hold	free.switches	commons	0
+ct2 tpy 365	hold	free.end_over_ref	commons	0.000000e0
+ct2 tpy 365	hold	free.star_over_ref	commons	0.000000e0
+ct2 tpy 365	hold	free.regime_ticks	Commons	1114000
+ct2 tpy 365	hold	free.regime_switches	-	0
+ct2 tpy 365	hold	free.regime_end	-	Commons
+ct2 tpy 365	hold	free.regime_star	-	Commons
+ct2 tpy 365	hold	free.provider_coin_low	-	1.250626e1

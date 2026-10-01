@@ -1,0 +1,27 @@
+IL1 base               regimes crate/50-digit/mirror ('Idle', 'Idle', 'Idle') land Idle   funded False certified False | crate vs 50 digits 2.9e-16 | mirror vs 50 digits 3.1e-16
+IL1 land.mach x1.1     regimes crate/50-digit/mirror ('Idle', 'Idle', 'Idle') land Idle   funded False certified False | crate vs 50 digits 1.6e-16 | mirror vs 50 digits 3.1e-16
+IL1 land.mach x0.9     regimes crate/50-digit/mirror ('Idle', 'Idle', 'Idle') land Idle   funded False certified False | crate vs 50 digits 1.6e-16 | mirror vs 50 digits 3.1e-16
+IL1 land.mach x2       regimes crate/50-digit/mirror ('Idle', 'Idle', 'Idle') land Idle   funded False certified False | crate vs 50 digits 1.6e-16 | mirror vs 50 digits 3.1e-16
+IL1 land.mach x0.5     regimes crate/50-digit/mirror ('Idle', 'Idle', 'Idle') land Idle   funded False certified False | crate vs 50 digits 1.6e-16 | mirror vs 50 digits 3.1e-16
+IL1 b.food x1.1        regimes crate/50-digit/mirror ('Idle', 'Idle', 'Idle') land Idle   funded False certified False | crate vs 50 digits 1.6e-16 | mirror vs 50 digits 3.1e-16
+IL1 b.food x0.9        regimes crate/50-digit/mirror ('Idle', 'Idle', 'Idle') land Idle   funded False certified False | crate vs 50 digits 1.6e-16 | mirror vs 50 digits 3.1e-16
+IL1 b.food x2          regimes crate/50-digit/mirror ('Idle', 'Idle', 'Idle') land Idle   funded False certified False | crate vs 50 digits 1.6e-16 | mirror vs 50 digits 3.1e-16
+IL1 b.food x0.5        regimes crate/50-digit/mirror ('Idle', 'Idle', 'Idle') land Idle   funded False certified False | crate vs 50 digits 2.6e-16 | mirror vs 50 digits 3.1e-16
+IL1 inst.land x1.1     regimes crate/50-digit/mirror ('Idle', 'Idle', 'Idle') land Idle   funded False certified False | crate vs 50 digits 1.8e-16 | mirror vs 50 digits 3.1e-16
+IL1 inst.land x0.9     regimes crate/50-digit/mirror ('Idle', 'Idle', 'Idle') land Idle   funded False certified False | crate vs 50 digits 1.6e-16 | mirror vs 50 digits 3.1e-16
+IL1 inst.land x2       regimes crate/50-digit/mirror ('Idle', 'Idle', 'Idle') land Idle   funded False certified False | crate vs 50 digits 1.8e-16 | mirror vs 50 digits 3.1e-16
+IL1 inst.land x0.5     regimes crate/50-digit/mirror ('Enclosed', 'Enclosed', 'Enclosed') land Scarce funded True certified False | crate vs 50 digits 5.5e-16 | mirror vs 50 digits 5.5e-16
+CT2 base               regimes crate/50-digit/mirror ('Commons', 'Commons', 'Commons') land Scarce funded True certified False | crate vs 50 digits 6.1e-16 | mirror vs 50 digits 2.5e-16
+CT2 land.mach x1.1     regimes crate/50-digit/mirror ('Commons', 'Commons', 'Commons') land Scarce funded True certified False | crate vs 50 digits 5.5e-16 | mirror vs 50 digits 3.7e-16
+CT2 land.mach x0.9     regimes crate/50-digit/mirror ('Commons', 'Commons', 'Commons') land Scarce funded True certified False | crate vs 50 digits 4.0e-16 | mirror vs 50 digits 2.0e-16
+CT2 land.mach x2       regimes crate/50-digit/mirror ('Commons', 'Commons', 'Commons') land Scarce funded True certified False | crate vs 50 digits 4.6e-16 | mirror vs 50 digits 2.3e-16
+CT2 land.mach x0.5     regimes crate/50-digit/mirror ('Commons', 'Commons', 'Commons') land Scarce funded True certified False | crate vs 50 digits 5.5e-16 | mirror vs 50 digits 1.8e-16
+CT2 b.food x1.1        regimes crate/50-digit/mirror ('Commons', 'Commons', 'Commons') land Scarce funded True certified False | crate vs 50 digits 2.4e-16 | mirror vs 50 digits 2.2e-16
+CT2 b.food x0.9        regimes crate/50-digit/mirror ('Commons', 'Commons', 'Commons') land Scarce funded True certified False | crate vs 50 digits 1.9e-16 | mirror vs 50 digits 2.7e-16
+CT2 b.food x2          regimes crate/50-digit/mirror ('Crowded', 'Crowded', 'Crowded') land Scarce funded True certified False | crate vs 50 digits 4.8e-13 | mirror vs 50 digits 4.8e-13
+CT2 b.food x0.5        regimes crate/50-digit/mirror ('Commons', 'Commons', 'Commons') land Scarce funded True certified False | crate vs 50 digits 1.9e-16 | mirror vs 50 digits 2.1e-16
+CT2 commons x1.1       regimes crate/50-digit/mirror ('Commons', 'Commons', 'Commons') land Scarce funded True certified False | crate vs 50 digits 6.1e-16 | mirror vs 50 digits 2.5e-16
+CT2 commons x0.9       regimes crate/50-digit/mirror ('Crowded', 'Crowded', 'Crowded') land Scarce funded True certified False | crate vs 50 digits 4.6e-15 | mirror vs 50 digits 6.3e-15
+CT2 commons x2         regimes crate/50-digit/mirror ('Commons', 'Commons', 'Commons') land Scarce funded True certified False | crate vs 50 digits 6.1e-16 | mirror vs 50 digits 2.5e-16
+CT2 commons x0.5       regimes crate/50-digit/mirror ('Enclosed', 'Enclosed', 'Enclosed') land Scarce funded True certified False | crate vs 50 digits 2.3e-16 | mirror vs 50 digits 3.0e-16
+largest relative difference by quantity: x 6.5e-16, r_over_w 6.0e-16, Ps_over_w 6.0e-16, Y 2.6e-16, S 1.5e-15, T_m 3.0e-16, T_p 3.9e-16, ro_over_w 4.8e-13, pfood_over_w 5.0e-16

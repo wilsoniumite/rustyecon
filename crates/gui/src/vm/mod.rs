@@ -80,7 +80,7 @@ pub fn unit_of(w: &World, key: &SeriesKey) -> String {
         (Measure::TickDrift, _) => "largest over goods, each in its own unit".to_string(),
         (Measure::Trades, _) => "1 if it traded, else 0".to_string(),
         (Measure::State(f), At::Actor(a)) => match f {
-            StateField::Share | StateField::Used => "share".to_string(),
+            StateField::Share | StateField::Used | StateField::Pool => "share".to_string(),
             StateField::Scale | StateField::Output => "of its output per tick".to_string(),
             StateField::Own | StateField::Serving | StateField::Held | StateField::Target => {
                 "units of the durable good".to_string()

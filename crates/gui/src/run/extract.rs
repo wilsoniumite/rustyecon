@@ -58,6 +58,8 @@ pub enum StateField {
     PlantRun,
     /// The plant units a planted desk's last production built (P2.2b).
     PlantBuilt,
+    /// A switch pop's pool share, the share of its hours sold to the pool (P2.4).
+    Pool,
 }
 
 impl StateField {
@@ -81,12 +83,14 @@ impl StateField {
             StateField::PlantOrder => "plant.order",
             StateField::PlantRun => "plant.run",
             StateField::PlantBuilt => "plant.built",
+            StateField::Pool => "pool",
         }
     }
 }
 
 /// An actor state's numbers, by field, in the order the state's type lists them. A scripted
-/// actor's state holds none. A planted desk's (P2.2b) are its kind's, then its plant's record.
+/// actor's state holds none. A planted desk's (P2.2b) are its kind's, then its plant's record; a
+/// switch pop's (P2.4) its participation share, then its pool share.
 pub fn state_fields(s: &ActorState) -> Vec<(StateField, f64)> {
     let planted = |desk: ActorState, p: &PlantState| {
         let mut v = state_fields(&desk);
@@ -136,6 +140,9 @@ pub fn state_fields(s: &ActorState) -> Vec<(StateField, f64)> {
         ActorState::PlantedType(d) => planted(ActorState::MachDesk(d.desk), &d.plant),
         ActorState::PlantedMaker(d) => planted(ActorState::Maker(d.desk), &d.plant),
         ActorState::PlantedCapacity(d) => planted(ActorState::Capacity(d.desk), &d.plant),
+        ActorState::SwitchWorkers(w) => {
+            vec![(StateField::Share, w.share), (StateField::Pool, w.pool)]
+        }
     }
 }
 

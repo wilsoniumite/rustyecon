@@ -1,0 +1,66 @@
+trap: 10196 records: 107209 lines: pass 77098, reported 30111
+  E10 c1p dial: pass 12978, reported 4540
+  E10 c2p dial: pass 11111, reported 4342
+  E2 c1p info: pass 1, reported 2
+  E2 c1p kick: pass 1, reported 2
+  E2 c1p modea: pass 1, reported 2
+  E2 c1pn info: reported 3
+  E2 c1pn kick: reported 1
+  E2 c1pn modea: pass 1, reported 2
+  E2 c2p info: pass 1, reported 2
+  E2 c2p kick: pass 1, reported 2
+  E2 c2p modea: pass 1, reported 2
+  E3 c1p 10L: pass 767, reported 265
+  E3 c1p L: pass 2087, reported 625
+  E3 c1p Tier 1: pass 1
+  E3 c1p Tier 2: pass 1
+  E3 c1p Tier 3: pass 1
+  E3 c1p Tier 3 at 10L: pass 1
+  E3 c1p Tier 3S: pass 1
+  E3 c1p Tier 3S at 10L: pass 1
+  E3 c1p kick: pass 12
+  E3 c1p tier3s: pass 446, reported 120
+  E3 c1p tier3s10L: pass 446, reported 120
+  E3 c1p verdict: pass 1
+  E3 c2p 10L: pass 655, reported 254
+  E3 c2p L: pass 1819, reported 594
+  E3 c2p Tier 1: pass 1
+  E3 c2p Tier 2: pass 1
+  E3 c2p Tier 3: pass 1
+  E3 c2p Tier 3 at 10L: pass 1
+  E3 c2p Tier 3S: pass 1
+  E3 c2p Tier 3S at 10L: pass 1
+  E3 c2p kick: pass 12
+  E3 c2p tier3s: pass 409, reported 120
+  E3 c2p tier3s10L: pass 409, reported 120
+  E3 c2p verdict: pass 1
+  E4 c1p pace: pass 87, reported 38
+  E4 c1p stocks: pass 738, reported 242
+  E4 c2p pace: pass 73, reported 38
+  E4 c2p stocks: pass 666, reported 237
+  E5 c1p basin: pass 7322, reported 3236
+  E5 c1p joint2: pass 1018, reported 474
+  E5 c1p joint4: pass 618, reported 381
+  E5 c2p basin: pass 6281, reported 3180
+  E5 c2p joint2: pass 862, reported 459
+  E5 c2p joint4: pass 501, reported 380
+  E6 c1p history: pass 488, reported 162
+  E6 c2p history: pass 488, reported 162
+  E7 c1p hold: pass 2087, reported 625
+  E7 c1p tilt1: pass 2055, reported 652
+  E7 c2p hold: pass 1819, reported 594
+  E7 c2p tilt1: pass 1791, reported 622
+  E8 c1p tpy12: pass 1322, reported 365
+  E8 c1p tpy365: pass 1321, reported 360
+  E8 c2p tpy12: pass 1165, reported 340
+  E8 c2p tpy365: pass 1165, reported 340
+  E9 c1 ctl-dial: pass 10765, reported 4917
+  E9 c1p ctl-tilt2: pass 687, reported 281
+  E9 c1p enclose: pass 69, reported 20
+  E9 c1pn L: pass 1875, reported 587
+  E9 c2p ctl-tilt2: pass 591, reported 281
+  E9 c2p enclose: pass 71, reported 20
+  E9 controls controls: pass 1
+  verdict c1p: GO with margin (registered GO with margin)
+  verdict c2p: GO with margin (registered GO with margin)
+refutations: none

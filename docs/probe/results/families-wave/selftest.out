@@ -1,0 +1,41 @@
+6443 records; 32411 lines: missing 6287, pass 24903, reported 1221
+  A1 basin: missing 1437, pass 5285, reported 463
+  A1 history: pass 732
+  A1 hold: missing 303, pass 1195, reported 17
+  A1 joint2: missing 180, pass 669, reported 51
+  A1 joint4: missing 120, pass 393, reported 87
+  A1 map: missing 595, pass 2328, reported 62
+  A1 map_kick: pass 45
+  A1 stocks: missing 120, pass 443, reported 37
+  A1 tilt1: missing 303, pass 1190, reported 22
+  A2 dial: missing 3229, pass 12623, reported 431
+  A2 dial_kick: reported 51
+  I3 map cell r0.5b0.5: registered GO, engine GO
+  I3 map cell r0.5b1: registered GO, engine GO
+  I3 map cell r0.5b2: registered GO, engine GO
+  I3 map cell r1b0.5: registered GO, engine GO
+  I3 map cell r1b2: registered GO, engine GO
+refutations: none
+self-test: 0 lines fail; 6287 missing, of which 6287 are end-of-run lines only the engine's run to L gives and 0 others
+self-test PASSES
+the negative control:
+6443 records; 32407 lines: charged 1, fail 9, pass 31177, reported 1220
+  A1 basin: fail 1, pass 6718, reported 462
+  A1 history: fail 1, pass 731
+  A1 hold: fail 1, pass 1497, reported 17
+  A1 joint2: charged 1, pass 848, reported 51
+  A1 joint4: pass 513, reported 87
+  A1 map: fail 1, pass 2922, reported 62
+  A1 map_kick: fail 1, pass 44
+  A1 stocks: fail 1, pass 562, reported 37
+  A1 tilt1: fail 1, pass 1492, reported 22
+  A2 dial: fail 2, pass 15850, reported 431
+  A2 dial_kick: reported 51
+  I3 map cell r0.5b0.5: registered GO, engine GO
+  I3 map cell r0.5b1: registered GO, engine GO
+  I3 map cell r0.5b2: registered GO, engine GO
+  I3 map cell r1b0.5: registered GO, engine LOCAL
+  I3 map cell r1b2: registered GO, engine GO
+refutations: ["1 runs whose class is not the mirror's", '1 CONVERGED runs ending off their oracle point (gap above 1e-12)', '1 scored kick sets not as registered', '1 map cells whose verdict is not the registered one']
+negative control: 10 lines fail or are charged, 10 made wrong; exactly those
+self-test and negative control PASS

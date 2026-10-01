@@ -1,0 +1,3 @@
+inst,verdict,prediction,Tier 1,Tier 2,Tier 3,Tier 3 at 10L,Tier 3S,Tier 3S at 10L,kicks,e10
+c1p,GO with margin,GO with margin,"{""CONVERGED"": 30}","{""CONVERGED"": 42}","{""CONVERGED"": 43}","{""CONVERGED"": 43}","{""CONVERGED"": 24}","{""CONVERGED"": 24}",13/13 PASS,every Tier-3 run CONVERGED or VACUOUS
+c2p,GO with margin,GO with margin,"{""CONVERGED"": 30}","{""CONVERGED"": 38, ""VACUOUS"": 4}","{""CONVERGED"": 41, ""VACUOUS"": 2}","{""CONVERGED"": 41, ""VACUOUS"": 2}","{""CONVERGED"": 24}","{""CONVERGED"": 24}",13/13 PASS,every Tier-3 run CONVERGED or VACUOUS

@@ -1,0 +1,9 @@
+job lines 10194; distinct dirs 10194; distinct lines 10194
+dirs with an exit file 10194; dirs with any file 10194
+jobs without an exit file 0; exit files of no job 0; dirs with files but no exit 0
+nonzero exits 0; started before the wave 0; ended after it 0
+exit files written 2026-09-30T17:45:04Z .. 2026-09-30T18:43:16Z; wave 2026-09-30T17:43:21Z .. 2026-09-30T18:43:16Z
+runs and kick sets whose output names another run 0; other jobs with an empty out.txt 0
+commands: {'elasticity': 21, 'kick': 83, 'point': 11, 'run': 10079}
+runs.jsonl 10196 records; the first 10194 are the jobs in the list's order: True; the rest: [('switch/is1/env/@envelope', 'envelope'), ('switch/is1/env-ts011/@envelope', 'envelope')]
+records with a nonzero rc, a missing file or a gather error: 0

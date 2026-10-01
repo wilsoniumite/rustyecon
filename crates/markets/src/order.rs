@@ -351,9 +351,16 @@ fn admit_actor<E: Ext>(
                         o.node, o.good
                     )))
                 })?;
-                // No price guard (N6): when budget/price is infinite, qty binds.
-                o.qty
-                    .min(num::max_qty(budget, price).map_err(OrderError::Num)?)
+                // A free good (amended at P2.4.11; FREE-SPEC §6.1): at a posted price of 0 a buy
+                // is feasible in full, whatever its budget, 0 included; only a good with a free
+                // step can post 0. Otherwise no price guard (N6): when budget/price is infinite,
+                // qty binds.
+                if price == 0.0 {
+                    o.qty
+                } else {
+                    o.qty
+                        .min(num::max_qty(budget, price).map_err(OrderError::Num)?)
+                }
             }
             Side::Sell => {
                 take(&mut dry, o.good, o.qty).map_err(|remaining| OrderError::OverPosted {

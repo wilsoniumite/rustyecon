@@ -1,0 +1,26 @@
+CT2 b.food x0.5          line Commons  line points 65537 sign changes 1 line monotone True corner min 9.77 f_inf -3.7 root as the coarse scan's to 25 digits True
+CT2 b.food x0.9          line Commons  line points 65537 sign changes 1 line monotone True corner min 8.08 f_inf -3.74 root as the coarse scan's to 25 digits True
+CT2 b.food x1.1          line Commons  line points 65537 sign changes 1 line monotone True corner min 7.48 f_inf -3.76 root as the coarse scan's to 25 digits True
+CT2 b.food x2            line Crowded  line points 65537 sign changes 1 line monotone True corner min 5.56 f_inf -3.81 root as the coarse scan's to 25 digits True
+CT2 base                 line Commons  line points 65537 sign changes 1 line monotone True corner min 7.77 f_inf -3.75 root as the coarse scan's to 25 digits True
+CT2 commons x0.5         line Enclosed line points 65537 sign changes 1 line monotone True corner min 7.62 f_inf -3.75 root as the coarse scan's to 25 digits True
+CT2 commons x0.9         line Crowded  line points 65537 sign changes 1 line monotone True corner min 7.74 f_inf -3.75 root as the coarse scan's to 25 digits True
+CT2 commons x1.1         line Commons  line points 65537 sign changes 1 line monotone True corner min 7.94 f_inf -3.75 root as the coarse scan's to 25 digits True
+CT2 commons x2           line Commons  line points 65537 sign changes 1 line monotone True corner min 7.94 f_inf -3.75 root as the coarse scan's to 25 digits True
+CT2 land.mach x0.5       line Commons  line points 65537 sign changes 1 line monotone True corner min 7.88 f_inf -3.72 root as the coarse scan's to 25 digits True
+CT2 land.mach x0.9       line Commons  line points 65537 sign changes 1 line monotone True corner min 7.79 f_inf -3.74 root as the coarse scan's to 25 digits True
+CT2 land.mach x1.1       line Commons  line points 65537 sign changes 1 line monotone True corner min 7.75 f_inf -3.75 root as the coarse scan's to 25 digits True
+CT2 land.mach x2         line Commons  line points 65537 sign changes 1 line monotone True corner min 7.64 f_inf -3.79 root as the coarse scan's to 25 digits True
+IL1 b.food x0.5          idle Idle     line points 65537 sign changes 1 line monotone True corner min 10.1 f_inf 0.144 root as the coarse scan's to 25 digits True
+IL1 b.food x0.9          idle Idle     line points 65537 sign changes 1 line monotone True corner min 7.84 f_inf 0.102 root as the coarse scan's to 25 digits True
+IL1 b.food x1.1          idle Idle     line points 65537 sign changes 1 line monotone True corner min 7.2 f_inf 0.0856 root as the coarse scan's to 25 digits True
+IL1 b.food x2            idle Idle     line points 65537 sign changes 1 line monotone True corner min 5.28 f_inf 0.0312 root as the coarse scan's to 25 digits True
+IL1 base                 idle Idle     line points 65537 sign changes 1 line monotone True corner min 7.51 f_inf 0.0937 root as the coarse scan's to 25 digits True
+IL1 inst.land x0.5       wall Enclosed line points 65537 sign changes 1 line monotone True corner min 3.54 f_inf -0.0317 root as the coarse scan's to 25 digits True
+IL1 inst.land x0.9       idle Idle     line points 65537 sign changes 1 line monotone True corner min 6.71 f_inf 0.0686 root as the coarse scan's to 25 digits True
+IL1 inst.land x1.1       idle Idle     line points 65537 sign changes 1 line monotone True corner min 8.3 f_inf 0.119 root as the coarse scan's to 25 digits True
+IL1 inst.land x2         idle Idle     line points 65537 sign changes 1 line monotone True corner min 15.4 f_inf 0.345 root as the coarse scan's to 25 digits True
+IL1 land.mach x0.5       idle Idle     line points 65537 sign changes 1 line monotone True corner min 7.51 f_inf 0.121 root as the coarse scan's to 25 digits True
+IL1 land.mach x0.9       idle Idle     line points 65537 sign changes 1 line monotone True corner min 7.51 f_inf 0.0988 root as the coarse scan's to 25 digits True
+IL1 land.mach x1.1       idle Idle     line points 65537 sign changes 1 line monotone True corner min 7.51 f_inf 0.0888 root as the coarse scan's to 25 digits True
+IL1 land.mach x2         idle Idle     line points 65537 sign changes 1 line monotone True corner min 7.51 f_inf 0.0523 root as the coarse scan's to 25 digits True

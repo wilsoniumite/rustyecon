@@ -1,0 +1,8 @@
+2026-10-01T06:26:49Z
+   Compiling rustyecon-certify v0.2.0 (/root/scratch/p24-exportC/crates/certify)
+   Compiling rustyecon-probe v0.2.0 (/root/scratch/p24-exportC/crates/probe)
+    Finished `release` profile [optimized] target(s) in 15.30s
+2026-10-01T06:27:05Z
+aa97c626d6e266c9241f2ceb52b0f33b43352247cb6ac7c1f57ebd63f30488d4  /root/scratch/p24-exportC-target/release/markets
+aa97c626d6e266c9241f2ceb52b0f33b43352247cb6ac7c1f57ebd63f30488d4  /root/scratch/p24-bcd/markets
+aa97c626d6e266c9241f2ceb52b0f33b43352247cb6ac7c1f57ebd63f30488d4  /root/scratch/p24-bcd/markets

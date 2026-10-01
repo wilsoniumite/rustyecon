@@ -1,0 +1,10 @@
+mirror: CONVERGED, ticks to tolerance 643, free/priced switches {'commons': 2}, ticks run 4001; engine rows 4001; row offset 0
+mirror's priced spans (ticks): [(8, 389)]
+engine's priced spans (ticks): [(8, 116), (118, 118), (120, 120), (122, 140)]
+the paths part at tick 95: the largest gap in log over the posted prices 2.454e-02 (before it at most 1.776e-15); the commons: mirror 0.22105004024620598, engine 0.21569245537080137
+first tick where one posts the commons at 0 and the other not: 117; mirror 0.42194053583097674, engine 0.0
+tick 92: mirror coin wa 107.581, wb 0.0926778; r_o*bid wa 0.0357152, wb 0.0450454; mirror's bids 0.403396 | engine's commons demand 0.403396, its pops' bids 0.403396
+tick 93: mirror coin wa 102.95, wb 0.0724058; r_o*bid wa 0.0369155, wb 0.0465704; mirror's bids 0.403354 | engine's commons demand 0.403354, its pops' bids 0.403354
+tick 94: mirror coin wa 99.8087, wb 0.0558377; r_o*bid wa 0.038161, wb 0.0481336; mirror's bids 0.403383 | engine's commons demand 0.38166, its pops' bids 0.403383
+tick 95: mirror coin wa 99.6747, wb 0.0431738; r_o*bid wa 0.0394541, wb 0.0497363; mirror's bids 0.403485 | engine's commons demand 0.341664, its pops' bids 0.403486
+tick 96: mirror coin wa 101.801, wb 0.0330761; r_o*bid wa 0.0407868, wb 0.0513824; mirror's bids 0.403602 | engine's commons demand 0.334266, its pops' bids 0.403606

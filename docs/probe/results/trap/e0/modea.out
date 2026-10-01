@@ -1,0 +1,45 @@
+c1p tpy 52 L 141000	run	class	d0	E1	E2	E3	E4	kappa	max_W	last	in_tol_from	dead	dead_W	dead_F	band_v	r_end	peak_dhat	peak_tick	worst_fill	low_baskets	low_baskets_tick	no_basket_ticks	transfer_short	transfer_short_ticks	depth_eq	depth_trough_y0	depth_trough_y1	lowest_market	mode_a	why
+c1p tpy 52 L 141000	hold	CONVERGED	0.000000e0	2.442491e-12	2.442491e-12	2.442491e-12	2.442491e-12	NaN	2.442491e-12	2.442491e-12	0	0	0	0	1.000000e0	1.000000e0	2.442491e-12	18	1.000000e0	1.000000e0	21	0	0.000000e0	0	-	-	-	shelter:1.000000e0	PASS	
+c1p tpy 52	hold	pace.gap_max	-	2.220446e-16
+c1p tpy 52	hold	pace.low	-	1.000000e0
+c1p tpy 52	hold	pace.zero_hours	-	0
+c1p tpy 12 L 26000	run	class	d0	E1	E2	E3	E4	kappa	max_W	last	in_tol_from	dead	dead_W	dead_F	band_v	r_end	peak_dhat	peak_tick	worst_fill	low_baskets	low_baskets_tick	no_basket_ticks	transfer_short	transfer_short_ticks	depth_eq	depth_trough_y0	depth_trough_y1	lowest_market	mode_a	why
+c1p tpy 12 L 26000	hold	CONVERGED	0.000000e0	3.619327e-11	2.708944e-11	3.108624e-11	1.998401e-11	NaN	3.108624e-11	4.662937e-12	0	0	0	0	1.000000e0	1.000000e0	3.619327e-11	3565	1.000000e0	1.000000e0	3559	0	0.000000e0	0	-	-	-	care:1.000000e0	PASS	
+c1p tpy 12	hold	pace.gap_max	-	2.220446e-16
+c1p tpy 12	hold	pace.low	-	1.000000e0
+c1p tpy 12	hold	pace.zero_hours	-	0
+c1p tpy 365 L 1113000	run	class	d0	E1	E2	E3	E4	kappa	max_W	last	in_tol_from	dead	dead_W	dead_F	band_v	r_end	peak_dhat	peak_tick	worst_fill	low_baskets	low_baskets_tick	no_basket_ticks	transfer_short	transfer_short_ticks	depth_eq	depth_trough_y0	depth_trough_y1	lowest_market	mode_a	why
+c1p tpy 365 L 1113000	hold	CONVERGED	0.000000e0	5.107026e-12	5.107026e-12	5.107026e-12	5.107026e-12	NaN	5.107026e-12	5.107026e-12	0	0	0	0	1.000000e0	1.000000e0	5.107026e-12	33	1.000000e0	1.000000e0	34	0	0.000000e0	0	-	-	-	shelter:1.000000e0	PASS	
+c1p tpy 365	hold	pace.gap_max	-	2.220446e-16
+c1p tpy 365	hold	pace.low	-	1.000000e0
+c1p tpy 365	hold	pace.zero_hours	-	0
+c2p tpy 52 L 142000	run	class	d0	E1	E2	E3	E4	kappa	max_W	last	in_tol_from	dead	dead_W	dead_F	band_v	r_end	peak_dhat	peak_tick	worst_fill	low_baskets	low_baskets_tick	no_basket_ticks	transfer_short	transfer_short_ticks	depth_eq	depth_trough_y0	depth_trough_y1	lowest_market	mode_a	why
+c2p tpy 52 L 142000	hold	CONVERGED	0.000000e0	5.551115e-13	5.551115e-13	5.551115e-13	5.551115e-13	NaN	5.551115e-13	5.551115e-13	0	0	0	0	1.000000e0	1.000000e0	5.551115e-13	5	1.000000e0	1.000000e0	6	0	0.000000e0	0	-	-	-	care:1.000000e0	PASS	
+c2p tpy 52	hold	pace.gap_max	-	0.000000e0
+c2p tpy 52	hold	pace.low	-	1.000000e0
+c2p tpy 52	hold	pace.zero_hours	-	0
+c2p tpy 12 L 26000	run	class	d0	E1	E2	E3	E4	kappa	max_W	last	in_tol_from	dead	dead_W	dead_F	band_v	r_end	peak_dhat	peak_tick	worst_fill	low_baskets	low_baskets_tick	no_basket_ticks	transfer_short	transfer_short_ticks	depth_eq	depth_trough_y0	depth_trough_y1	lowest_market	mode_a	why
+c2p tpy 12 L 26000	hold	CONVERGED	0.000000e0	2.220446e-13	2.220446e-13	2.220446e-13	2.220446e-13	NaN	2.220446e-13	2.220446e-13	0	0	0	0	1.000000e0	1.000000e0	2.220446e-13	1	1.000000e0	1.000000e0	1	0	0.000000e0	0	-	-	-	manufactures:1.000000e0	PASS	
+c2p tpy 12	hold	pace.gap_max	-	0.000000e0
+c2p tpy 12	hold	pace.low	-	1.000000e0
+c2p tpy 12	hold	pace.zero_hours	-	0
+c2p tpy 365 L 1116000	run	class	d0	E1	E2	E3	E4	kappa	max_W	last	in_tol_from	dead	dead_W	dead_F	band_v	r_end	peak_dhat	peak_tick	worst_fill	low_baskets	low_baskets_tick	no_basket_ticks	transfer_short	transfer_short_ticks	depth_eq	depth_trough_y0	depth_trough_y1	lowest_market	mode_a	why
+c2p tpy 365 L 1116000	hold	CONVERGED	0.000000e0	6.661338e-13	6.661338e-13	6.661338e-13	6.661338e-13	NaN	6.661338e-13	6.661338e-13	0	0	0	0	1.000000e0	1.000000e0	6.661338e-13	3	1.000000e0	1.000000e0	4	0	0.000000e0	0	-	-	-	shelter:1.000000e0	PASS	
+c2p tpy 365	hold	pace.gap_max	-	0.000000e0
+c2p tpy 365	hold	pace.low	-	1.000000e0
+c2p tpy 365	hold	pace.zero_hours	-	0
+c1pn tpy 52 L 141000	run	class	d0	E1	E2	E3	E4	kappa	max_W	last	in_tol_from	dead	dead_W	dead_F	band_v	r_end	peak_dhat	peak_tick	worst_fill	low_baskets	low_baskets_tick	no_basket_ticks	transfer_short	transfer_short_ticks	depth_eq	depth_trough_y0	depth_trough_y1	lowest_market	mode_a	why
+c1pn tpy 52 L 141000	hold	CONVERGED	0.000000e0	2.220446e-13	2.220446e-13	2.220446e-13	2.220446e-13	NaN	2.220446e-13	2.220446e-13	0	0	0	0	1.000000e0	1.000000e0	2.220446e-13	0	1.000000e0	1.000000e0	0	0	0.000000e0	0	-	-	-	manufactures:1.000000e0	PASS	
+c1pn tpy 52	hold	pace.gap_max	-	0.000000e0
+c1pn tpy 52	hold	pace.low	-	1.000000e0
+c1pn tpy 52	hold	pace.zero_hours	-	0
+c1pn tpy 12 L 26000	run	class	d0	E1	E2	E3	E4	kappa	max_W	last	in_tol_from	dead	dead_W	dead_F	band_v	r_end	peak_dhat	peak_tick	worst_fill	low_baskets	low_baskets_tick	no_basket_ticks	transfer_short	transfer_short_ticks	depth_eq	depth_trough_y0	depth_trough_y1	lowest_market	mode_a	why
+c1pn tpy 12 L 26000	hold	CONVERGED	0.000000e0	4.041212e-11	4.884981e-11	4.685141e-11	3.419487e-11	NaN	4.685141e-11	3.774758e-12	0	0	0	0	1.000000e0	1.000000e0	4.884981e-11	7104	1.000000e0	1.000000e0	7097	0	0.000000e0	0	-	-	-	care:1.000000e0	PASS	
+c1pn tpy 12	hold	pace.gap_max	-	1.898481e-14
+c1pn tpy 12	hold	pace.low	-	1.000000e0
+c1pn tpy 12	hold	pace.zero_hours	-	0
+c1pn tpy 365 L 1113000	run	class	d0	E1	E2	E3	E4	kappa	max_W	last	in_tol_from	dead	dead_W	dead_F	band_v	r_end	peak_dhat	peak_tick	worst_fill	low_baskets	low_baskets_tick	no_basket_ticks	transfer_short	transfer_short_ticks	depth_eq	depth_trough_y0	depth_trough_y1	lowest_market	mode_a	why
+c1pn tpy 365 L 1113000	hold	CONVERGED	0.000000e0	3.330669e-13	3.330669e-13	3.330669e-13	3.330669e-13	NaN	3.330669e-13	3.330669e-13	0	0	0	0	1.000000e0	1.000000e0	3.330669e-13	0	1.000000e0	1.000000e0	1	0	0.000000e0	0	-	-	-	care:1.000000e0	PASS	
+c1pn tpy 365	hold	pace.gap_max	-	0.000000e0
+c1pn tpy 365	hold	pace.low	-	1.000000e0
+c1pn tpy 365	hold	pace.zero_hours	-	0

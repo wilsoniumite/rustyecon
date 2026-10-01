@@ -1,0 +1,39 @@
+== CT2/zp05 battery: 115 runs {'CONVERGED': 111, 'VACUOUS': 4}; ticks to tol median 366, slowest 5080
+== CT2/zp05 dial:adjust x0.75: 43 runs {'CONVERGED': 41, 'VACUOUS': 2}; ticks to tol median 517, slowest 6900
+== CT2/zp05 dial:adjust x0.9: 43 runs {'CONVERGED': 41, 'VACUOUS': 2}; ticks to tol median 513, slowest 4673
+== CT2/zp05 dial:adjust x1.1: 43 runs {'CONVERGED': 41, 'VACUOUS': 2}; ticks to tol median 510, slowest 2220
+== CT2/zp05 dial:adjust x1.25: 43 runs {'CONVERGED': 41, 'VACUOUS': 2}; ticks to tol median 509, slowest 969
+== CT2/zp05 dial:buffer x0.75: 43 runs {'CONVERGED': 41, 'VACUOUS': 2}; ticks to tol median 607, slowest 9247
+== CT2/zp05 dial:buffer x0.9: 43 runs {'CONVERGED': 41, 'VACUOUS': 2}; ticks to tol median 541, slowest 1907
+== CT2/zp05 dial:buffer x1.1: 43 runs {'CONVERGED': 41, 'VACUOUS': 2}; ticks to tol median 490, slowest 10915
+== CT2/zp05 dial:buffer x1.25: 43 runs {'CONVERGED': 41, 'VACUOUS': 2}; ticks to tol median 424, slowest 13714
+== CT2/zp05 dial:rate x0.75: 43 runs {'CONVERGED': 41, 'VACUOUS': 2}; ticks to tol median 502, slowest 18365
+== CT2/zp05 dial:rate x0.9: 43 runs {'CONVERGED': 41, 'VACUOUS': 2}; ticks to tol median 516, slowest 13240
+== CT2/zp05 dial:rate x1.1: 43 runs {'CONVERGED': 41, 'VACUOUS': 2}; ticks to tol median 493, slowest 717
+== CT2/zp05 dial:rate x1.25: 43 runs {'CONVERGED': 41, 'VACUOUS': 2}; ticks to tol median 485, slowest 1562
+== CT2/zp05 dial:tilt 0.05: 43 runs {'CONVERGED': 41, 'VACUOUS': 2}; ticks to tol median 450, slowest 3587
+== CT2/zp05 dial:tilt 0.1: 43 runs {'CONVERGED': 41, 'VACUOUS': 2}; ticks to tol median 392, slowest 3534
+== CT2/zp05 dial:tilt 0.25: 43 runs {'CONVERGED': 41, 'VACUOUS': 2}; ticks to tol median 357, slowest 2752
+== CT2/zp05 dial:tilt 0.5: 43 runs {'CONVERGED': 41, 'VACUOUS': 2}; ticks to tol median 309, slowest 3749
+== CT2/zp05 dial:tilt 1: 43 runs {'CONVERGED': 41, 'VACUOUS': 2}; ticks to tol median 420, slowest 649
+== CT2/zp05 modeA: 1 runs {'VACUOUS': 1}
+== IL1/zp05 battery: 100 runs {'CONVERGED': 94, 'VACUOUS': 6}; ticks to tol median 354, slowest 678
+== IL1/zp05 dial:adjust x0.75: 38 runs {'CONVERGED': 36, 'VACUOUS': 2}; ticks to tol median 516, slowest 716
+== IL1/zp05 dial:adjust x0.9: 38 runs {'CONVERGED': 36, 'VACUOUS': 2}; ticks to tol median 516, slowest 684
+== IL1/zp05 dial:adjust x1.1: 38 runs {'CONVERGED': 36, 'VACUOUS': 2}; ticks to tol median 516, slowest 678
+== IL1/zp05 dial:adjust x1.25: 38 runs {'CONVERGED': 36, 'VACUOUS': 2}; ticks to tol median 516, slowest 678
+== IL1/zp05 dial:buffer x0.75: 38 runs {'CONVERGED': 36, 'VACUOUS': 2}; ticks to tol median 516, slowest 670
+== IL1/zp05 dial:buffer x0.9: 38 runs {'CONVERGED': 36, 'VACUOUS': 2}; ticks to tol median 516, slowest 674
+== IL1/zp05 dial:buffer x1.1: 38 runs {'CONVERGED': 36, 'VACUOUS': 2}; ticks to tol median 516, slowest 682
+== IL1/zp05 dial:buffer x1.25: 38 runs {'CONVERGED': 36, 'VACUOUS': 2}; ticks to tol median 517, slowest 693
+== IL1/zp05 dial:rate x0.75: 38 runs {'CONVERGED': 36, 'VACUOUS': 2}; ticks to tol median 673, slowest 917
+== IL1/zp05 dial:rate x0.9: 38 runs {'CONVERGED': 36, 'VACUOUS': 2}; ticks to tol median 570, slowest 756
+== IL1/zp05 dial:rate x1.1: 38 runs {'CONVERGED': 36, 'VACUOUS': 2}; ticks to tol median 471, slowest 623
+== IL1/zp05 dial:rate x1.25: 38 runs {'CONVERGED': 36, 'VACUOUS': 2}; ticks to tol median 414, slowest 571
+== IL1/zp05 dial:tilt 0.05: 38 runs {'CONVERGED': 36, 'VACUOUS': 2}; ticks to tol median 520, slowest 683
+== IL1/zp05 dial:tilt 0.1: 38 runs {'CONVERGED': 36, 'VACUOUS': 2}; ticks to tol median 522, slowest 689
+== IL1/zp05 dial:tilt 0.25: 38 runs {'CONVERGED': 36, 'VACUOUS': 2}; ticks to tol median 517, slowest 707
+== IL1/zp05 dial:tilt 0.5: 38 runs {'CONVERGED': 36, 'VACUOUS': 2}; ticks to tol median 515, slowest 742
+== IL1/zp05 dial:tilt 1: 38 runs {'CONVERGED': 36, 'VACUOUS': 2}; ticks to tol median 518, slowest 825
+== IL1/zp05 modeA: 1 runs {'VACUOUS': 1}
+1594 runs in 122 s

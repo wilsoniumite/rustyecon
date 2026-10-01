@@ -1,0 +1,6 @@
+190 trap runs: the runaway tick equal in 185; largest difference 1
+  C1 p[food]*3.3863549409: engine 270; mirror 269
+  C1 p[mach]*0.436296687611: engine 290; mirror 289
+  C2 p[labour]*0.267848319: engine 271; mirror 272
+  C2 p[labour]*0.295302771698: engine 274; mirror 273
+  C2 p[mach]*0.310067910283: engine 288; mirror 287

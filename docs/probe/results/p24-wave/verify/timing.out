@@ -1,0 +1,14 @@
+start.txt	2026-09-30T17:43:21.567601734Z	2026-09-30T17:43:21.000000000Z
+end.txt	2026-09-30T18:43:16.316840084Z	2026-09-30T18:43:16.000000000Z
+run.log	2026-09-30T18:43:16.316840084Z	2026-09-30T18:43:16.000000000Z
+bin.sha256	2026-09-30T17:43:21.557601737Z	2026-09-30T17:43:21.000000000Z
+--- contents
+start.txt: 2026-09-30T17:43:21Z
+  same bytes as /root/scratch/p24-bcd/start.txt
+end.txt: 2026-09-30T18:43:16Z
+  same bytes as /root/scratch/p24-bcd/end.txt
+run.log: xargs exit 0
+  same bytes as /root/scratch/p24-bcd/run.log
+bin.sha256: aa97c626d6e266c9241f2ceb52b0f33b43352247cb6ac7c1f57ebd63f30488d4  /root/scratch/p24-bcd/markets
+  same bytes as /root/scratch/p24-bcd/bin.sha256
+aa97c626d6e266c9241f2ceb52b0f33b43352247cb6ac7c1f57ebd63f30488d4  /root/scratch/p24-bcd/markets

@@ -12,7 +12,8 @@
 //!   moved into one [`SettleLine`] per order and one [`RationLine`] per (market, class, side)
 //!   (R12).
 //! - **Phase 6.** [`update_prices`] moves each price by the tape's rule and each EMA by its
-//!   registered span in years (A13).
+//!   registered span in years (A13); a good with a free step moves by [`next_price_free`] and
+//!   may post 0 (amended at P2.4.11).
 //!
 //! Salvaged from the July engine (tag `july-v2-phase-3`), with its defects fixed as it moved: no
 //! absolute epsilon on a price change, a currency flow or a quantity (N5, N6, A12); cash bound at
@@ -29,7 +30,7 @@ pub mod settlement;
 
 pub use clearing::{clear, Fills, MarketFill};
 pub use order::{admit, Line, Order, OrderError, Side, SideTag};
-pub use prices::{imbalance, next_price, step, update_prices, PriceError};
+pub use prices::{imbalance, next_price, next_price_free, step, update_prices, PriceError};
 pub use settlement::{settle, RationLine, SettleLine, SettlePlan};
 
 #[cfg(test)]

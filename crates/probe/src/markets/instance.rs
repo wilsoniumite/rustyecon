@@ -13,7 +13,21 @@
 //! The open-commons instances (P2.3; the commons frame, docs/probe/commons/SPEC.md §2) are I1
 //! with one priced worker type whose exit good is food and a commons the workers hold
 //! ([`Commons`]); unit 1e's `ParcelEconomy` solves them, with the enclosed land T and the commons
-//! T_o as two parcels of quality 1 (decision 399).
+//! T_o as two parcels of quality 1 (decision 399). The paced instances (P2.4; the trap's remedy,
+//! decisions 404–406) C1P, C2P and C1PN are C1, C2 and C1N with the workers' participation at a
+//! rate; the pace does not move the point, so their oracle is the same.
+//!
+//! The switch instances (P2.4; the type switch at the wall, decisions 409–415; the switch scan,
+//! docs/probe/switch/SPEC.md §2) IS1 and IS2 are IW1 with unit 1d's E efficiencies on the reserved
+//! types, trained 1.5 and master 1.8, each reserved pop switching between its own market and the
+//! pool ([`Instance::switch`]); unit 1d's `WorkerEconomy` solves them with those efficiencies.
+//!
+//! The free instances (P2.4; a zero price markets can hold, decisions 416–423; the free scan,
+//! docs/probe/free/SPEC.md §3) IL1 and CT2 are I1's economy with a market that may post 0
+//! ([`Instance::free`]): IL1's land, idle at r = 0 (a commons instance with few workers and a
+//! commons of 0, read in wage units), and CT2's commons, traded on a market by two plot-taking
+//! pops ([`Instance::commoners`]). Unit 1e's `ParcelEconomy` solves both, CT2 with two worker
+//! types.
 
 use crate::setup::clock;
 use oracle::{
@@ -42,10 +56,12 @@ pub struct Category {
     pub reserved: Vec<f64>,
 }
 
-/// A reserved-only worker type (unit 1d with ε 0; the wall frame's §2.1, decision 394): its own
-/// pop `workers.<key>` in class `<key>_workers`, selling only its reserved hours on its own
-/// labour market `labour.<key>`, with params `inst.<key>.workers` and `inst.<key>.chi_max`.
-/// Its support is one basket a head, paid by the provider's `more` transfer.
+/// A reserved worker type (unit 1d; the wall frame's §2.1, decision 394): its own pop
+/// `workers.<key>` in class `<key>_workers`, selling its reserved hours on its own labour market
+/// `labour.<key>`, with params `inst.<key>.workers` and `inst.<key>.chi_max`. Its support is one
+/// basket a head, paid by the provider's `more` transfer. At IW1 it is reserved-only (ε 0); at a
+/// switch instance (P2.4) it has pool efficiency ε > 0, `inst.<key>.efficiency`, and its pop
+/// switches between its own market and the pool.
 #[derive(Debug, Clone, PartialEq)]
 pub struct WorkerKind {
     /// Its key.
@@ -54,6 +70,8 @@ pub struct WorkerKind {
     pub workers: f64,
     /// χ_max,i.
     pub chi_max: f64,
+    /// ε_i, its pool efficiency: 0 at IW1 (reserved-only), E's at a switch instance.
+    pub efficiency: f64,
 }
 
 impl WorkerKind {
@@ -84,7 +102,59 @@ pub struct Commons {
     pub plot: f64,
     /// T_o, the commons, per year.
     pub commons: f64,
+    /// Whether the workers' participation moves at a rate (P2.4; O100's remedy, decisions
+    /// 404–406; docs/probe/TRAP-RULES.md): the exit's `pace`, at the dial
+    /// `adjust.participation.workers`, its genesis share the point's S/N. False at C1, C2 and C1N.
+    pub paced: bool,
 }
+
+/// A plot-taking pop on the commons' market (P2.4; the free scan's §3.1, §6.3; decision 419): its
+/// own pop `workers.<key>` in class `<key>_workers`, selling hours on the pool's `labour`, its exit
+/// yielding s(q) = max(s₀ − q·h, s̲) of `good` a head, its share T_o,i of the commons held as an
+/// endowment and offered on the `commons` market. Params `inst.<key>.workers`,
+/// `inst.<key>.chi_max`, `inst.<key>.exit.gross`, `.exit.floor`, `.exit.plot` and
+/// `inst.<key>.commons`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Commoner {
+    /// Its key.
+    pub key: String,
+    /// N_i, potential hours per year.
+    pub workers: f64,
+    /// χ_max,i.
+    pub chi_max: f64,
+    /// The exit good: a category's key.
+    pub good: String,
+    /// s₀.
+    pub gross: f64,
+    /// s̲.
+    pub floor: f64,
+    /// h.
+    pub plot: f64,
+    /// T_o,i, its share of the commons, per year.
+    pub share: f64,
+}
+
+impl Commoner {
+    /// Its pop's actor.
+    pub fn pop(&self) -> String {
+        format!("workers.{}", self.key)
+    }
+}
+
+/// A market whose price may be 0 (P2.4; the free scan's §6.1; decisions 416 and 417): its good
+/// carries the free step, scaled by c times its reference's posted price.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Free {
+    /// The good: `land` (IL1) or `commons` (CT2).
+    pub good: String,
+    /// The reference good, `labour`.
+    pub reference: String,
+    /// c, the dial `free.<good>`.
+    pub scale: f64,
+}
+
+/// The free step's dial's value, c (the free scan's §5; decision 417).
+pub const FREE_SCALE: f64 = 0.5;
 
 /// A machine type, with its flow recipe (unit-1c.md §2; decision 67).
 #[derive(Debug, Clone, PartialEq)]
@@ -164,6 +234,20 @@ pub struct Instance {
     /// The priced exit with a commons (the open-commons instances, P2.3), solved by unit 1e's
     /// `ParcelEconomy`; `None` in every other instance.
     pub exit: Option<Commons>,
+    /// Whether each reserved pop switches between its own market and the pool (P2.4; O97's rule,
+    /// decisions 409–411; docs/probe/SWITCH-RULES.md): each reserved pop's `pool`, its
+    /// `inst.<type>.efficiency` and its dial `rate.switch.<type>` are written. True at IS1 and IS2
+    /// only.
+    pub switch: bool,
+    /// The plot-taking pops on the commons' market (P2.4; decision 419), CT2's; empty elsewhere.
+    /// With them the instance has no `workers` pop: the provider pays the first by its `transfer`
+    /// and the rest by `more`, and the market `commons` follows every other.
+    pub commoners: Vec<Commoner>,
+    /// The market whose price may be 0 (P2.4; decisions 416, 417): IL1's land, CT2's commons;
+    /// `None` elsewhere.
+    pub free: Option<Free>,
+    /// Whether the harness reads in wage units (P2.4; decision 421): IL1's, on the idle stretch.
+    pub wage_units: bool,
 }
 
 /// The scalars' basis, and 1a's machine's.
@@ -312,6 +396,15 @@ pub const WALL_BASIS: &str =
 /// calibration, which the tape writes as `Assumed`.
 pub const COMMONS_BASIS: &str =
     "docs/probe/commons/SPEC.md §2.1: I1 with one priced worker type in food and a commons (frame-commons)";
+/// The free instances' basis for their own numbers (the free scan's §3.1), which the tape writes
+/// as `Assumed`.
+pub const FREE_BASIS: &str =
+    "docs/probe/free/SPEC.md §3.1: I1 with idle enclosed land (IL1) or two types on one commons market (CT2) (scan-free)";
+/// The switch instances' basis for the reserved types' efficiencies (the switch scan's §3.7),
+/// which the tape writes as `Assumed`.
+pub const SWITCH_BASIS: &str = "scan-switch SPEC §2.1: unit-1d.md §3.3 E's efficiencies";
+/// E's efficiencies (unit-1d.md §3.3; the switch scan's §2.1): the trained's and the master's.
+pub const SWITCH_EFFICIENCY: [(&str, f64); 2] = [("trained", 1.5), ("master", 1.8)];
 
 impl Instance {
     fn make(
@@ -343,6 +436,10 @@ impl Instance {
             wtypes: Vec::new(),
             worker_form: false,
             exit: None,
+            switch: false,
+            commoners: Vec::new(),
+            free: None,
+            wage_units: false,
         }
     }
 
@@ -380,8 +477,28 @@ impl Instance {
             floor: 0.0,
             plot,
             commons,
+            paced: false,
         });
         i
+    }
+
+    /// A paced open-commons instance (P2.4; the trap scan's §5.4 and §6; decision 405): the
+    /// commons instance `of` with the workers' participation at a rate, and its own id and title.
+    /// Its oracle, targets, genesis prices and coins are `of`'s; only the workers' block and the
+    /// dial `adjust.participation.workers` are added.
+    fn paced(of: Instance, id: &str, title: &str) -> Instance {
+        let mut i = of;
+        i.id = id.into();
+        i.title = title.into();
+        if let Some(x) = i.exit.as_mut() {
+            x.paced = true;
+        }
+        i
+    }
+
+    /// Whether the workers' participation moves at a rate (a paced commons instance, P2.4).
+    pub fn paced_exit(&self) -> bool {
+        self.exit.as_ref().is_some_and(|x| x.paced)
     }
 
     /// The wall frame's IW1 (docs/probe/wall/SPEC.md §2.1; decision 394), with the entrant's
@@ -402,6 +519,7 @@ impl Instance {
             key: key.into(),
             workers,
             chi_max: 2.0,
+            efficiency: 0.0,
         };
         Instance {
             id: id.into(),
@@ -438,7 +556,137 @@ impl Instance {
             wtypes: vec![wkind("trained", 52.0), wkind("master", 26.0)],
             worker_form: true,
             exit: None,
+            switch: false,
+            commoners: Vec::new(),
+            free: None,
+            wage_units: false,
         }
+    }
+
+    /// A switch instance (P2.4; the switch scan's §2; decisions 412 and 413): IW1 with unit 1d's
+    /// E efficiencies on the reserved types (trained 1.5, master 1.8), support 1, each reserved pop
+    /// switching between its own market and the pool; the trained's reserved hours a unit of
+    /// services `trained`, and that coefficient's registered values `values`, as the scan's
+    /// mirror writes them (IS1: 0.04, IS2: 0.02).
+    fn switched(id: &str, title: &str, (trained, values): (&str, [&str; 4])) -> Instance {
+        let mut i = Instance::wall(id, title, 1.0);
+        for t in i.wtypes.iter_mut() {
+            if let Some((_, e)) = SWITCH_EFFICIENCY.iter().find(|(k, _)| *k == t.key) {
+                t.efficiency = *e;
+            }
+        }
+        i.switch = true;
+        i.categories[0].reserved[0] = trained.parse().unwrap_or(f64::NAN);
+        i.coefs[2] = coef(
+            "res.services.trained",
+            "inst.services.reserved.trained",
+            trained,
+            values,
+        );
+        i
+    }
+
+    /// IL1 (the free scan's §3.1; decisions 418 and 421): I1's economy with the pool's workers one
+    /// priced type in food (N 10.4 a year, χ_max 2, exit (6, 0, 2.7)) taking plots free on idle
+    /// enclosed land, a commons of 0, and land free-able; read in wage units. Its cost
+    /// coefficients are land.mach, b.food and `inst.land` (T a year).
+    fn idle() -> Instance {
+        let mut i = Instance::make(
+            "il1",
+            "I1 with few workers, one priced type in food taking plots on idle enclosed land at r = 0",
+            10.4,
+            c3(),
+            mach(),
+            vec![
+                land_mach(),
+                b_food(),
+                coef(
+                    "inst.land",
+                    "inst.land",
+                    "520",
+                    ["572", "468", "1040", "260"],
+                ),
+            ],
+        );
+        i.chi_max = 2.0;
+        i.scalar_basis = FREE_BASIS.into();
+        i.exit = Some(Commons {
+            good: "food".into(),
+            gross: 6.0,
+            floor: 0.0,
+            plot: 2.7,
+            commons: 0.0,
+            paced: false,
+        });
+        i.free = Some(Free {
+            good: "land".into(),
+            reference: "labour".into(),
+            scale: FREE_SCALE,
+        });
+        i.wage_units = true;
+        i
+    }
+
+    /// CT2 (the free scan's §3.1; decision 419): I1's economy with two plot-taking pops, `wa` at
+    /// C2's exit (0.2, 0, 0.09) and `wb` at (0.25, 0, 0.1125), 104 a year each at χ_max 1, sharing
+    /// a commons of 19.5 a year held half each and traded on the free-able market `commons`. Its
+    /// cost coefficients are land.mach, b.food and `exit.To` (the commons a year, split equally).
+    fn shared() -> Instance {
+        let mut i = Instance::make(
+            "ct2",
+            "I1 with two plot-taking types sharing one commons, traded on a market",
+            104.0,
+            c3(),
+            mach(),
+            vec![
+                land_mach(),
+                b_food(),
+                coef(
+                    "exit.To",
+                    "exit.To",
+                    "19.5",
+                    ["21.45", "17.55", "39", "9.75"],
+                ),
+            ],
+        );
+        let pop = |key: &str, gross: f64, plot: f64| Commoner {
+            key: key.into(),
+            workers: 104.0,
+            chi_max: 1.0,
+            good: "food".into(),
+            gross,
+            floor: 0.0,
+            plot,
+            share: 9.75,
+        };
+        i.commoners = vec![pop("wa", 0.2, 0.09), pop("wb", 0.25, 0.1125)];
+        i.free = Some(Free {
+            good: "commons".into(),
+            reference: "labour".into(),
+            scale: FREE_SCALE,
+        });
+        i
+    }
+
+    /// Whether unit 1e solves the instance: an exit with a commons the workers hold, or pops on
+    /// a commons market (P2.3, P2.4).
+    pub fn parcel(&self) -> bool {
+        self.exit.is_some() || !self.commoners.is_empty()
+    }
+
+    /// The changes a coefficient's value makes, as (param, value) pairs: one, the param itself,
+    /// but CT2's `exit.To` (the commons a year), which sets each commoner's share to V/n, as the
+    /// free scan's mirror splits it (`fm.shocked`).
+    pub fn changes_for(&self, param: &str, value: f64) -> Vec<(String, f64)> {
+        if param == "exit.To" && !self.commoners.is_empty() {
+            let n = self.commoners.len() as f64;
+            return self
+                .commoners
+                .iter()
+                .map(|c| (format!("inst.{}.commons", c.key), value / n))
+                .collect();
+        }
+        vec![(param.to_string(), value)]
     }
 
     /// The registered instance with this id (MARKETS-SPEC §1.1, §1.2, §1.5).
@@ -555,9 +803,43 @@ impl Instance {
                 (0.3, 0.135, 24.3),
                 ("24.3", ["26.73", "21.87", "48.6", "12.15"]),
             ),
+            // The trap's remedy (P2.4; decision 405): C1, C2 and C1N with the workers'
+            // participation at a rate.
+            "c1p" => Instance::paced(
+                Instance::named("c1")?,
+                "c1p",
+                "C1 with the workers' participation at a rate (the trap's remedy)",
+            ),
+            "c2p" => Instance::paced(
+                Instance::named("c2")?,
+                "c2p",
+                "C2 with the workers' participation at a rate (the trap's remedy)",
+            ),
+            "c1pn" => Instance::paced(
+                Instance::named("c1n")?,
+                "c1pn",
+                "C1N with the workers' participation at a rate: a stress control",
+            ),
+            // The type switch at the wall (P2.4; decisions 412 and 413): IW1 with E's
+            // efficiencies, and its control with the trained pooled at its base.
+            "is1" => Instance::switched(
+                "is1",
+                "IW1 with unit 1d's E efficiencies on the reserved types: a type switch at the wall",
+                ("0.04", ["0.044", "0.036", "0.08", "0.02"]),
+            ),
+            "is2" => Instance::switched(
+                "is2",
+                "IS1 with the trained's reserved hours 0.02: the trained pooled at its base, a control",
+                ("0.02", ["0.022", "0.018", "0.04", "0.01"]),
+            ),
+            // A zero price markets can hold (P2.4; decisions 418, 419): idle enclosed land at
+            // r = 0, and two types on one commons market.
+            "il1" => Instance::idle(),
+            "ct2" => Instance::shared(),
             _ => {
                 return Err(format!(
-                    "no instance {id}: i0, i1, i2, i3, l2, l3, g1, iw1, ic1, c1, c2 or c1n"
+                    "no instance {id}: i0, i1, i2, i3, l2, l3, g1, iw1, ic1, c1, c2, c1n, c1p, \
+                     c2p, c1pn, is1, is2, il1 or ct2"
                 ))
             }
         })
@@ -571,6 +853,17 @@ impl Instance {
 
     /// Phase 2 proper's open-commons instances (P2.3): C1, C2 and C1's negative control.
     pub const COMMONS_IDS: [&'static str; 3] = ["c1", "c2", "c1n"];
+
+    /// Phase 2 proper's paced commons instances (P2.4, the trap's remedy): C1P, C2P and the
+    /// stress control C1PN.
+    pub const PACED_IDS: [&'static str; 3] = ["c1p", "c2p", "c1pn"];
+
+    /// Phase 2 proper's switch instances (P2.4, the type switch at the wall): IS1 and the
+    /// control IS2.
+    pub const SWITCH_IDS: [&'static str; 2] = ["is1", "is2"];
+
+    /// Phase 2 proper's free instances (P2.4, a zero price markets can hold): IL1 and CT2.
+    pub const FREE_IDS: [&'static str; 2] = ["il1", "ct2"];
 
     /// The number of segments of the task line.
     pub fn segments(&self) -> usize {
@@ -593,9 +886,19 @@ impl Instance {
     }
 
     /// The markets, in the harness's order: labour, land, each type's service, each category's
-    /// good, then each reserved worker type's labour. For I0 this is P2.0's order, [labour,
-    /// land, mach, good].
+    /// good, then each reserved worker type's labour, then the commons where pops trade it (P2.4).
+    /// For I0 this is P2.0's order, [labour, land, mach, good].
     pub fn markets(&self) -> Vec<String> {
+        let mut m = self.observed_markets();
+        if !self.commoners.is_empty() {
+            m.push("commons".into());
+        }
+        m
+    }
+
+    /// The markets whose cleared volume and price are observed and whose trade the dead-tick rule
+    /// reads: every market but the commons, which the free scan's mirror leaves out (`fb.run`).
+    pub fn observed_markets(&self) -> Vec<String> {
         let mut m = vec!["labour".to_string(), "land".to_string()];
         m.extend(self.types.iter().map(|t| t.key.clone()));
         m.extend(self.categories.iter().map(|c| c.key.clone()));
@@ -603,18 +906,34 @@ impl Instance {
         m
     }
 
+    /// The index of the free-able market among [`Instance::markets`], and its reference's.
+    pub fn free_market(&self) -> Option<(usize, usize)> {
+        let f = self.free.as_ref()?;
+        let m = self.markets();
+        let at = |k: &str| m.iter().position(|x| x == k);
+        Some((at(&f.good)?, at(&f.reference)?))
+    }
+
     /// The households, in the harness's order: the provider, the workers, then each reserved
-    /// worker type's pop.
+    /// worker type's pop; at a commons market (P2.4) the provider, then each commoner's pop.
     pub fn households(&self) -> Vec<String> {
-        let mut h = vec!["provider".to_string(), "workers".to_string()];
+        let mut h = vec!["provider".to_string()];
+        if self.commoners.is_empty() {
+            h.push("workers".into());
+        }
         h.extend(self.wtypes.iter().map(WorkerKind::pop));
+        h.extend(self.commoners.iter().map(Commoner::pop));
         h
     }
 
     /// The households' classes, in [`Instance::households`] order.
     pub fn household_classes(&self) -> Vec<String> {
-        let mut c = vec!["owners".to_string(), "workers".to_string()];
+        let mut c = vec!["owners".to_string()];
+        if self.commoners.is_empty() {
+            c.push("workers".into());
+        }
         c.extend(self.wtypes.iter().map(|t| format!("{}_workers", t.key)));
+        c.extend(self.commoners.iter().map(|t| format!("{}_workers", t.key)));
         c
     }
 
@@ -640,25 +959,56 @@ impl Instance {
         let tau = self.task_type()?;
         let mut out = Vec::new();
         let scal = self.scalar_basis.clone();
-        out.push((
-            "inst.workers".into(),
-            self.workers,
-            "FlowPerYear",
-            scal.clone(),
-        ));
+        // The pool's workers' N and χ_max, where there is a `workers` pop (at a commons market,
+        // P2.4, each commoner has its own).
+        if self.commoners.is_empty() {
+            out.push((
+                "inst.workers".into(),
+                self.workers,
+                "FlowPerYear",
+                scal.clone(),
+            ));
+        }
         out.push(("inst.land".into(), self.land, "FlowPerYear", scal.clone()));
-        for (k, v) in [
-            ("inst.chi_max", self.chi_max),
+        let mut scalars = Vec::new();
+        if self.commoners.is_empty() {
+            scalars.push(("inst.chi_max", self.chi_max));
+        }
+        scalars.extend([
             ("inst.eta", self.eta),
             ("inst.g0", self.g0),
             ("inst.g1", self.g1),
             ("inst.k", self.k),
-        ] {
+        ]);
+        for (k, v) in scalars {
             out.push((k.into(), v, "Dimensionless", scal.clone()));
         }
-        // The priced exit and the commons (the commons frame's §2.1).
+        // Each commoner's N, χ_max, exit and share of the commons (P2.4; the free scan's §3.1).
+        for c in &self.commoners {
+            let b = FREE_BASIS.to_string();
+            out.push((
+                format!("inst.{}.workers", c.key),
+                c.workers,
+                "FlowPerYear",
+                b.clone(),
+            ));
+            for (k, v) in [
+                ("chi_max", c.chi_max),
+                ("exit.gross", c.gross),
+                ("exit.floor", c.floor),
+                ("exit.plot", c.plot),
+            ] {
+                out.push((format!("inst.{}.{k}", c.key), v, "Dimensionless", b.clone()));
+            }
+            out.push((format!("inst.{}.commons", c.key), c.share, "FlowPerYear", b));
+        }
+        // The priced exit and the commons (the commons frame's §2.1; at IL1, the free scan's).
         if let Some(x) = &self.exit {
-            let b = COMMONS_BASIS.to_string();
+            let b = if self.free.is_some() {
+                FREE_BASIS.to_string()
+            } else {
+                COMMONS_BASIS.to_string()
+            };
             for (k, v) in [
                 ("inst.exit.gross", x.gross),
                 ("inst.exit.floor", x.floor),
@@ -681,6 +1031,16 @@ impl Instance {
                 "Dimensionless",
                 scal.clone(),
             ));
+            // Its pool efficiency at a switch instance (P2.4; the switch scan's §3.7), and at no
+            // other, so IW1's params are as they were.
+            if self.switch {
+                out.push((
+                    format!("inst.{}.efficiency", t.key),
+                    t.efficiency,
+                    "Dimensionless",
+                    SWITCH_BASIS.to_string(),
+                ));
+            }
         }
         for (s, e) in self.edges.iter().enumerate() {
             out.push((
@@ -785,8 +1145,15 @@ impl Instance {
             .ok_or_else(|| format!("{}: no param {key}", self.id))
     }
 
-    /// Set the coefficient a param holds (a cost shock's target, or any instance param).
+    /// Set the coefficient a param holds (a cost shock's target, or any instance param). CT2's
+    /// `exit.To` sets each commoner's share ([`Instance::changes_for`]).
     pub fn set(&mut self, key: &str, value: f64) -> Result<(), String> {
+        if key == "exit.To" && !self.commoners.is_empty() {
+            for (k, v) in self.changes_for(key, value) {
+                self.set(&k, v)?;
+            }
+            return Ok(());
+        }
         self.get(key)?;
         let parts: Vec<&str> = key.split('.').collect();
         let bad = || format!("{}: {key} cannot be set", self.id);
@@ -815,6 +1182,32 @@ impl Instance {
                     _ => return Err(bad()),
                 }
             }
+            ["inst", who, "exit", field] => {
+                let c = self
+                    .commoners
+                    .iter_mut()
+                    .find(|c| c.key == who)
+                    .ok_or_else(bad)?;
+                match field {
+                    "gross" => c.gross = value,
+                    "floor" => c.floor = value,
+                    "plot" => c.plot = value,
+                    _ => return Err(bad()),
+                }
+            }
+            ["inst", who, field] if self.commoners.iter().any(|c| c.key == who) => {
+                let c = self
+                    .commoners
+                    .iter_mut()
+                    .find(|c| c.key == who)
+                    .ok_or_else(bad)?;
+                match field {
+                    "workers" => c.workers = value,
+                    "chi_max" => c.chi_max = value,
+                    "commons" => c.share = value,
+                    _ => return Err(bad()),
+                }
+            }
             ["inst", who, field] => {
                 if let Some(c) = self.categories.iter_mut().find(|c| c.key == who) {
                     match field {
@@ -827,6 +1220,7 @@ impl Instance {
                     match field {
                         "workers" => t.workers = value,
                         "chi_max" => t.chi_max = value,
+                        "efficiency" => t.efficiency = value,
                         _ => return Err(bad()),
                     }
                 } else {
@@ -966,9 +1360,9 @@ impl Instance {
     /// Unit 1d's parameters at `tpy` ticks a year (the wall frame's §3.6), for a worker-form
     /// instance: [`Instance::machine_params`]'s categories, space, machine types and schedule,
     /// with the worker types in pop order, the pool's workers first (N, χ_max, ε 1, ν 1) and
-    /// each reserved-only type after them (N_i, χ_max,i, ε 0, ν 1); the tail as each category's
-    /// human-required hours; and each category's reserved hours in the type's column, the
-    /// pool's column and space's row zero.
+    /// each reserved type after them (N_i, χ_max,i, ε_i, ν 1: ε 0 at IW1, E's at a switch
+    /// instance); the tail as each category's human-required hours; and each category's
+    /// reserved hours in the type's column, the pool's column and space's row zero.
     pub fn worker_params(&self, tpy: u32) -> Result<WorkerParams, String> {
         let c = clock(tpy)?;
         let mut w = WorkerParams::from_machines(self.machine_params(tpy)?);
@@ -979,8 +1373,11 @@ impl Instance {
             support: 1.0,
         };
         w.worker_types = vec![kind(self.workers, self.chi_max, 1.0)];
-        w.worker_types
-            .extend(self.wtypes.iter().map(|t| kind(t.workers, t.chi_max, 0.0)));
+        w.worker_types.extend(
+            self.wtypes
+                .iter()
+                .map(|t| kind(t.workers, t.chi_max, t.efficiency)),
+        );
         let n_cats = w.categories.len();
         let n_workers = w.worker_types.len();
         w.human_required = vec![0.0; n_cats];
@@ -1010,7 +1407,7 @@ impl Instance {
         if self.worker_form {
             return self.worker_point(tpy);
         }
-        if self.exit.is_some() {
+        if self.parcel() {
             return self.parcel_point(tpy);
         }
         let e = oracle::MachineEconomy::new(self.machine_params(tpy)?)
@@ -1050,6 +1447,11 @@ impl Instance {
             pop_baskets: vec![q.worker_baskets],
             margin: String::new(),
             commons: None,
+            reserved: Vec::new(),
+            pooled: Vec::new(),
+            pool_share: Vec::new(),
+            switch_distance: Vec::new(),
+            rent: 1.0,
         })
     }
 
@@ -1098,6 +1500,31 @@ impl Instance {
             .zip(&heads)
             .map(|(w, n)| n + w.wage * w.hours / q.p_s)
             .collect();
+        // Each reserved type's switch (P2.4; the switch scan's §2.2): its pool share a* = pool
+        // hours over hours where pooled with pool hours above 0, else 0 (the mirror's
+        // `pool_share_of`); its distance from the switch ln(ζ_i·P_s/(ε_i·v)) with ν_i 1, above 0
+        // at its wall (NaN at ε 0, where it has no switch).
+        let reserved: Vec<&oracle::WorkerEq> = q.workers[1..].iter().collect();
+        let pool_share = reserved
+            .iter()
+            .map(|w| {
+                if w.pooled && w.pool_hours > 0.0 {
+                    w.pool_hours / w.hours
+                } else {
+                    0.0
+                }
+            })
+            .collect();
+        let switch_distance = reserved
+            .iter()
+            .map(|w| {
+                if w.efficiency > 0.0 {
+                    rustyecon_core::num::ln(w.clearing_real_wage * q.p_s / (w.efficiency * q.v))
+                } else {
+                    f64::NAN
+                }
+            })
+            .collect();
         Ok(Point {
             x_star: q.x_star,
             one_minus_x: q.one_minus_x_star,
@@ -1120,6 +1547,11 @@ impl Instance {
             pop_baskets,
             margin: format!("{:?}", q.margin),
             commons: None,
+            reserved: reserved.iter().map(|w| w.reserved_hours).collect(),
+            pooled: reserved.iter().map(|w| w.pooled).collect(),
+            pool_share,
+            switch_distance,
+            rent: 1.0,
         })
     }
 
@@ -1129,6 +1561,9 @@ impl Instance {
     /// (per tick), the one type's exit `ExitForm::Priced` (s₀, s̲, h), and the exit good the
     /// category the tape names.
     pub fn parcel_params(&self, tpy: u32) -> Result<ParcelParams, String> {
+        if !self.commoners.is_empty() {
+            return self.commoner_params(tpy);
+        }
         let c = clock(tpy)?;
         let x = self
             .exit
@@ -1164,10 +1599,71 @@ impl Instance {
         Ok(p)
     }
 
-    /// Unit 1e's interior equilibrium (the commons frame's §2.3, §3.8), relative to r = 1:
-    /// labour clears the supply S at the point, and each household's baskets are its money
-    /// accounts, the provider's (T_m + T_p)/P_s − N and the workers' N + (w·S − T_p)/P_s, which
-    /// sum to Y (the plots pay rent in money, O102).
+    /// Unit 1e's parameters for pops on a commons market (P2.4; the free scan's §3.3, its
+    /// `check/`): [`Instance::machine_params`] in 1d's form with one worker type per commoner, in
+    /// order (N_i, χ_max,i, ε 1, ν 1), the enclosed land T and the whole commons Σ T_o,i as two
+    /// parcels of quality 1 (per tick), each type's exit `ExitForm::Priced`, and the exit good the
+    /// category the commoners name.
+    fn commoner_params(&self, tpy: u32) -> Result<ParcelParams, String> {
+        let c = clock(tpy)?;
+        let first = &self.commoners[0];
+        if self.commoners.iter().any(|k| k.good != first.good) {
+            return Err(format!("{}: the commoners' exit goods differ", self.id));
+        }
+        let g = self
+            .categories
+            .iter()
+            .position(|j| j.key == first.good)
+            .ok_or_else(|| format!("{}: the exit good {} is no category", self.id, first.good))?;
+        let mut w = WorkerParams::from_machines(self.machine_params(tpy)?);
+        w.worker_types = self
+            .commoners
+            .iter()
+            .map(|k| WorkerType {
+                workers: c.flow(FlowPerYear(k.workers)),
+                work_cost: UniformWorkCost { chi_max: k.chi_max },
+                efficiency: 1.0,
+                support: 1.0,
+            })
+            .collect();
+        let n_cats = w.categories.len();
+        w.human_required = vec![0.0; n_cats];
+        w.reserved = vec![vec![0.0; self.commoners.len()]; n_cats];
+        let mut p = ParcelParams::from_workers(w);
+        p.parcels = vec![Parcel {
+            acreage: c.flow(FlowPerYear(self.land)),
+            quality: 1.0,
+            access: Access::Enclosed,
+        }];
+        let commons: f64 = self.commoners.iter().map(|k| k.share).sum();
+        if commons > 0.0 {
+            p.parcels.push(Parcel {
+                acreage: c.flow(FlowPerYear(commons)),
+                quality: 1.0,
+                access: Access::Open,
+            });
+        }
+        p.exits = self
+            .commoners
+            .iter()
+            .map(|k| {
+                ExitForm::Priced(PricedExit {
+                    gross: k.gross,
+                    floor: k.floor,
+                    plot: k.plot,
+                })
+            })
+            .collect();
+        p.exit_good = g;
+        Ok(p)
+    }
+
+    /// Unit 1e's interior equilibrium (the commons frame's §2.3, §3.8), relative to r = 1 while
+    /// land is scarce and to w = 1 on the idle stretch (P2.4; `Point::rent` 0): labour clears the
+    /// supply S at the point, and each household's baskets are its money accounts, the provider's
+    /// (T_m + r·T_p)/P_s − N and the workers' N + (w·S − r·T_p)/P_s, which sum to Y (the plots pay
+    /// rent in money, O102). With several commoners (P2.4) each pop's are
+    /// N_i + (w·S_i + r_o·(T_o,i − its commons plots) − r·its rented plots)/P_s.
     fn parcel_point(&self, tpy: u32) -> Result<Point, String> {
         let e = ParcelEconomy::new(self.parcel_params(tpy)?)
             .map_err(|e| format!("{}: {e}", self.id))?;
@@ -1186,9 +1682,31 @@ impl Instance {
         let nc = self.categories.len();
         let services: Vec<f64> = b.types.iter().map(|t| t.services).collect();
         let traded = self.traded(&b.types, &services);
-        let supply = b.workers[0].supply;
         let rented = q.land.rented_plots;
-        let workers = b.worker_baskets - rented / b.p_s;
+        // The plots' rent is r·T_p: T_p at r = 1, bit for bit as before, and 0 on idle land.
+        let (supply, hours, pop_baskets) = if self.commoners.is_empty() {
+            let supply = b.workers[0].supply;
+            let workers = b.worker_baskets - q.rent * rented / b.p_s;
+            (supply, vec![supply], vec![workers])
+        } else {
+            let c = clock(tpy)?;
+            let hours: Vec<f64> = b.workers.iter().map(|w| w.supply).collect();
+            let baskets = self
+                .commoners
+                .iter()
+                .zip(&b.workers)
+                .zip(&q.workers)
+                .map(|((k, w), x)| {
+                    let own = c.flow(FlowPerYear(k.share));
+                    let on_commons = x.plot_land - x.rented_land;
+                    let money =
+                        b.v * w.supply + q.plot_rent * (own - on_commons) - q.rent * x.rented_land;
+                    c.flow(FlowPerYear(k.workers)) + money / b.p_s
+                })
+                .collect();
+            (hours.iter().sum(), hours, baskets)
+        };
+        let workers = pop_baskets.iter().sum();
         Ok(Point {
             x_star: b.x_star,
             one_minus_x: b.one_minus_x_star,
@@ -1202,13 +1720,18 @@ impl Instance {
             type_services: services,
             type_traded: traded,
             worker_baskets: workers,
-            provider_baskets: b.provider_baskets + rented / b.p_s,
+            provider_baskets: b.provider_baskets + q.rent * rented / b.p_s,
             margin_active: b.margin_active,
             tie: b.tie.is_some() || q.enclosure.is_some(),
             pool: supply,
             wage: Vec::new(),
-            hours: vec![supply],
-            pop_baskets: vec![workers],
+            hours,
+            pop_baskets,
+            reserved: Vec::new(),
+            pooled: Vec::new(),
+            pool_share: Vec::new(),
+            switch_distance: Vec::new(),
+            rent: q.rent,
             margin: format!("{:?}", b.margin),
             commons: Some(CommonsPoint {
                 regime: format!("{:?}", q.exit_land),
@@ -1219,6 +1742,8 @@ impl Instance {
                 exit_value: q.workers[0].exit_value,
                 funded: b.funded,
                 certified,
+                market_land: q.land.market,
+                idle: q.land.idle,
             }),
         })
     }
@@ -1244,9 +1769,14 @@ pub struct CommonsPoint {
     pub funded: bool,
     /// Whether unit-1e.md §5.4 certifies the count.
     pub certified: bool,
+    /// T_m, the market's land in use (P2.4: IL1's land volume target is T_m + T_p).
+    pub market_land: f64,
+    /// T_idle, enclosed land idle at zero rent (0 while land is scarce).
+    pub idle: f64,
 }
 
-/// The oracle's equilibrium, as the harness reads it: per tick, relative to r = 1.
+/// The oracle's equilibrium, as the harness reads it: per tick, relative to r = 1, or to w = 1 on
+/// unit 1e's idle stretch ([`Point::rent`] 0).
 #[derive(Debug, Clone, PartialEq)]
 pub struct Point {
     /// x\*.
@@ -1293,4 +1823,19 @@ pub struct Point {
     pub margin: String,
     /// Unit 1e's readouts at an open-commons instance; `None` elsewhere.
     pub commons: Option<CommonsPoint>,
+    /// Each reserved worker type's reserved hours D_i (unit 1d's `WorkerEq::reserved_hours`), in
+    /// [`Instance::wtypes`] order: its own market clears them. `hours` at a wall (empty in 1c
+    /// and 1e).
+    pub reserved: Vec<f64>,
+    /// Whether each reserved type sells to the pool (unit 1d's `WorkerEq::pooled`).
+    pub pooled: Vec<bool>,
+    /// Each reserved type's pool share a\*: its pool hours over its hours where pooled with pool
+    /// hours above 0, else 0 (P2.4; the switch scan's §3.8).
+    pub pool_share: Vec<f64>,
+    /// Each reserved type's distance from its switch, ln(ζ_i·ν_i·P_s/(ε_i·v)) with ν_i 1: above 0
+    /// at its wall, below 0 pooled; NaN at ε 0 (the switch scan's §2.2).
+    pub switch_distance: Vec<f64>,
+    /// r in the point's units (P2.4): 1 while land is scarce, the rent the numeraire; 0 on unit
+    /// 1e's idle stretch, where the pool's wage is (v = w = 1).
+    pub rent: f64,
 }

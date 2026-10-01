@@ -1,0 +1,6 @@
+None                               RW(2)              ticks with a type pooled   618; money drift over 3,000 ticks 1.5e-15; supply sums 1.9e-16
+None                               x*/2               ticks with a type pooled   676; money drift over 3,000 ticks 2.9e-15; supply sums 2.2e-16
+None                               sw[trained]=0.5    ticks with a type pooled   461; money drift over 3,000 ticks 1.8e-15; supply sums 0.0e+00
+('tail.services', '0.2')           hold               ticks with a type pooled  2998; money drift over 3,000 ticks 1.3e-15; supply sums 1.4e-16
+('res.services.trained', '0.02')   hold               ticks with a type pooled  2998; money drift over 3,000 ticks 2.6e-15; supply sums 0.0e+00
+None                               JB(0.5)            ticks with a type pooled   655; money drift over 3,000 ticks 1.8e-15; supply sums 2.2e-16

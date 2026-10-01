@@ -29,6 +29,23 @@
 //! `produce`. Without it the workers take P2.1's path, and with it switched off (s₀ = s̲ = 0) they
 //! make P2.1's hours, orders and share bit for bit.
 //!
+//! **The trap's remedy** (P2.4; docs/probe/TRAP-RULES.md): the exit's optional `pace`,
+//! participation at a rate. The workers' share, their own state, moves a share a of its gap to
+//! the rule's hours over N each tick, and they offer N times it; the plots stay the rule's.
+//! Without it the rule's hours and share are offered and kept, P2.3's bit for bit.
+//!
+//! **The type switch at the wall** (P2.4; docs/probe/SWITCH-RULES.md): the workers' optional
+//! `pool`, a second market the pop sells to at its efficiency, with the share it sells there
+//! moved by the migration rule ([`crate::roles::many::switch`]). Without it the workers take this
+//! module's path, untouched.
+//!
+//! **The commons as a market** (P2.4; docs/probe/FREE-RULES.md; FREE-SPEC §6.3): the exit's
+//! optional `market`. The pop holds its share of the commons as an endowment, offers it on the
+//! commons' market and bids there for its plots at the posted plot rent r_o, by
+//! [`pop_market_participation`]; where a plot pays more on the commons than on enclosed land it
+//! fills its own share first and rents the rest at r. Without it the exit's rule is P2.3's,
+//! untouched.
+//!
 //! The arithmetic cannot fail, as RULES §2 says of the Appendix B roles: every budget is capped
 //! by the copy of the holding and taken from it, each after the first is at most
 //! `max_remainder(outlay, spent so far)`, sells take from the same copy, and recipes run at
@@ -81,7 +98,7 @@ pub(crate) fn budget_chain(
 }
 
 /// P_s = Σ_j z_j·p_j at posted prices, summed from 0.0 in item order.
-fn basket_price<S>(v: &View<'_, S>, items: &[Item]) -> Result<f64, AgentError> {
+pub(crate) fn basket_price<S>(v: &View<'_, S>, items: &[Item]) -> Result<f64, AgentError> {
     basket_price_at(items, &|s| param(v, s), &|g| price(v, g))
 }
 
@@ -237,9 +254,105 @@ fn participation(
     }
 }
 
+/// A pop's decision on a commons market at posted prices (FREE-SPEC §6.3; decision 419): its
+/// hours, its bid for plots on the commons and its offer of its own share, and the enclosed land
+/// its plots rent.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PopMarket {
+    /// The hours offered, N·F.
+    pub hours: f64,
+    /// F, the share kept in `WorkersState`.
+    pub share: f64,
+    /// The commons bid for: h·(N − hours) while r_o < r̂, else min(G, T_o,i).
+    pub bid: f64,
+    /// T_o,i, the pop's share of the commons, offered in full.
+    pub offer: f64,
+    /// T_p, the enclosed land its plots rent: G − T_o,i where a plot pays at r and G > T_o,i
+    /// at r_o ≥ r̂, else 0.
+    pub plots: f64,
+    /// r̂: r where a plot pays at the market rent, else p_g·(s₀ − s̲)/h, the rent at which a
+    /// plot stops paying.
+    pub cap: f64,
+    /// r_o, the commons' posted price.
+    pub commons_rent: f64,
+    /// P_s, the basket's price.
+    pub basket_price: f64,
+    /// N, the heads' hours a tick.
+    pub heads: f64,
+}
+
+/// The pop's decision on a commons market from its spec, `par` and `pr`, as its rule forms it;
+/// `None` without an exit on a market. The harness reads its readouts through this function, so
+/// the two cannot part.
+pub fn pop_market_participation(
+    workers: &BasketWorkers,
+    par: &ParamAt<'_>,
+    pr: &PriceOf<'_>,
+) -> Result<Option<PopMarket>, AgentError> {
+    let Some((x, m)) = workers.exit.as_ref().and_then(|x| x.market.map(|m| (x, m))) else {
+        return Ok(None);
+    };
+    let w = pr(workers.labour)?;
+    let ps = basket_price_at(&workers.basket, par, pr)?;
+    let n = par(workers.heads)?;
+    let chi = par(workers.chi_max)?;
+    let pg = pr(x.good)?;
+    let r = pr(x.land)?;
+    let ro = pr(m)?;
+    let (s0, sf, h, to) = (par(x.gross)?, par(x.floor)?, par(x.plot)?, par(x.commons)?);
+    Ok(Some(pop_market(
+        (n, chi),
+        (w, ps, pg, r, ro),
+        (s0, sf, h, to),
+    )))
+}
+
+/// The pop's rule on a commons market (FREE-SPEC §6.3, the mirror's `fm.pop_decide`), on numbers:
+/// heads N and χ_max; the wage w, P_s, the exit good's price p_g, the land rent r and the commons'
+/// posted price r_o; and the exit (s₀, s̲, h, T_o,i), N and T_o,i per tick. In its order: e₀ =
+/// p_g·s₀; a plot pays at r where r·h < p_g·(s₀ − s̲), both products rounded once; r̂ = r there,
+/// else p_g·(s₀ − s̲)/h. While r_o < r̂ the plots pay r_o: hours n(fma(−r_o, h, e₀)) and a bid of
+/// h·(N − hours). At r_o ≥ r̂ they pay r̂: hours n(fma(−r̂, h, e₀)) where a plot pays at r, else
+/// n(p_g·s̲); G = h·(N − hours); a bid of min(G, T_o,i), its own share first; and where a plot
+/// pays at r and G > T_o,i, G − T_o,i rented on enclosed land. n(e) = N·F(e), F as P2.3's.
+pub fn pop_market(
+    (n, chi): (f64, f64),
+    (w, ps, pg, r, ro): (f64, f64, f64, f64, f64),
+    (s0, sf, h, to): (f64, f64, f64, f64),
+) -> PopMarket {
+    let delta = s0 - sf;
+    let e0 = pg * s0;
+    let plot_at_r = r * h < pg * delta;
+    let cap = if plot_at_r { r } else { pg * delta / h };
+    let at = |share: f64, bid: f64, plots: f64| PopMarket {
+        hours: n * share,
+        share,
+        bid,
+        offer: to,
+        plots,
+        cap,
+        commons_rent: ro,
+        basket_price: ps,
+        heads: n,
+    };
+    if ro < cap {
+        let f = worth_working(chi, w, ps, num::fma(-ro, h, e0));
+        at(f, h * (n - n * f), 0.0)
+    } else {
+        let f = if plot_at_r {
+            worth_working(chi, w, ps, num::fma(-cap, h, e0))
+        } else {
+            worth_working(chi, w, ps, pg * sf)
+        };
+        let g = h * (n - n * f);
+        let plots = if plot_at_r && g > to { g - to } else { 0.0 };
+        at(f, g.min(to), plots)
+    }
+}
+
 /// A household's baskets: `budget` at P_s buys n = budget/P_s baskets, posted as a buy of z_j·n
 /// of each item with budget p_j·(z_j·n), cut from one budget by [`budget_chain`].
-fn basket_orders<S>(
+pub(crate) fn basket_orders<S>(
     v: &View<'_, S>,
     items: &[Item],
     ps: f64,
@@ -264,7 +377,7 @@ fn basket_orders<S>(
 
 /// A household eats min_j(held_j/z_j) baskets of what it holds, as `Consumption`, burning z_j·n
 /// of each item. What is not eaten dies at 5a: every item is a one-tick good.
-fn eat<S>(v: &View<'_, S>, items: &[Item]) -> Result<Vec<Delta>, AgentError> {
+pub(crate) fn eat<S>(v: &View<'_, S>, items: &[Item]) -> Result<Vec<Delta>, AgentError> {
     let mut held = Vec::with_capacity(items.len());
     for it in items {
         held.push((v.own.get(it.good), param(v, it.weight)?));
@@ -348,6 +461,9 @@ impl Behaviour for BasketWorkers {
     type Own = WorkersState;
 
     fn decide(&self, v: &View<'_, WorkersState>) -> Result<Decision, AgentError> {
+        if self.exit.as_ref().is_some_and(|x| x.market.is_some()) {
+            return self.decide_on_market(v);
+        }
         if self.exit.is_some() {
             return self.decide_with_exit(v);
         }
@@ -388,6 +504,23 @@ impl Behaviour for BasketWorkers {
                 Provenance::Consumption,
                 &mut out,
             );
+            // On a commons market (P2.4; FREE-SPEC §6.3) the plots use the commons the pop
+            // bought, min(held, bid), its bid read again at the same prices and params; the
+            // unsold part of its own share dies at ageing, as the provider's unsold land does.
+            if let Some(m) = x.market {
+                let p = pop_market_participation(self, &|s| param(v, s), &|g| price(v, g))?.ok_or(
+                    AgentError::Core(rustyecon_core::CoreError::Shape(
+                        "the commons' market without its rule".into(),
+                    )),
+                )?;
+                burn(
+                    me,
+                    m,
+                    v.own.get(m).min(p.bid),
+                    Provenance::Consumption,
+                    &mut out,
+                );
+            }
         }
         Ok(out)
     }
@@ -404,7 +537,8 @@ impl BasketWorkers {
     /// chain as the baskets. The chain's total is P + share(spend)·(C − P), with C the coin as the
     /// phase began and P = min(r·T_p, C) the plots' rent the coin covers, so the rent comes first
     /// and the baskets from the rest. Where T_p = 0 the baskets' budget is share(spend)·C and the
-    /// orders are P2.1's. The state holds the regime's F.
+    /// orders are P2.1's. The state holds the regime's F; with the exit's `pace` (P2.4) it holds
+    /// the paced share, and the hours are N times it.
     fn decide_with_exit(&self, v: &View<'_, WorkersState>) -> Result<Decision, AgentError> {
         let mut out = Decision::default();
         let mut dry = v.own.clone();
@@ -413,15 +547,31 @@ impl BasketWorkers {
                 "the workers' exit rule without an exit".into(),
             )),
         )?;
-        if p.hours > 0.0 {
+        // Participation at a rate (P2.4; the trap scan's §5.2; decision 404): with a pace the
+        // share of the heads offering hours moves a share a of its gap to the rule's share
+        // F* = hours/N, s = s₀ + a·(F* − s₀), the technique's form, and they offer N·s; only the
+        // hours lag, the plots below are the rule's. A convex combination of two shares in
+        // [0, 1], so nothing is clamped (R3). Without one they offer the rule's hours and keep
+        // its share, P2.3's bit for bit.
+        let (hours, share) = match self.exit.as_ref().and_then(|x| x.pace) {
+            Some(pace) => {
+                let a = param(v, pace.adjust)?;
+                let target = p.hours / p.heads;
+                let s0 = v.own_state.share;
+                let s = s0 + a * (target - s0);
+                (p.heads * s, s)
+            }
+            None => (p.hours, p.share),
+        };
+        if hours > 0.0 {
             out.deltas.push(StateDelta::Mint {
                 to: Holder::Actor(v.me),
                 good: self.labour,
-                qty: p.hours,
+                qty: hours,
                 prov: Provenance::Endowment,
             });
         }
-        out.orders.push(sell(v, self.labour, p.hours));
+        out.orders.push(sell(v, self.labour, hours));
         let spend = param(v, self.spend)?;
         let coin = dry.get(v.currency);
         match &self.exit {
@@ -449,6 +599,85 @@ impl BasketWorkers {
                 let budget = spend * coin;
                 basket_orders(v, &self.basket, p.basket_price, budget, &mut dry, &mut out)?;
             }
+        }
+        out.deltas
+            .push(set(v, ActorState::Workers(WorkersState { share })));
+        Ok(out)
+    }
+
+    /// Their decision on a commons market (P2.4; FREE-SPEC §6.3; decision 419): the hours
+    /// [`pop_market_participation`] gives, offered as P2.1's are; their share of the commons,
+    /// minted as an endowment and offered in full; a bid for their plots on the commons at the
+    /// posted r_o; and, where the plots spill onto enclosed land, a buy of T_p land at r. With C
+    /// the coin as the phase began and P = min(r·T_p, C), the baskets' budget is
+    /// share(spend)·(C − P), decision 398's, and the commons' is min(r_o·bid, (C − P) − that
+    /// budget): its rent is paid from what the baskets leave, as the mirror's baskets leave it
+    /// out. The chain's total is P + baskets + commons. The state holds F.
+    fn decide_on_market(&self, v: &View<'_, WorkersState>) -> Result<Decision, AgentError> {
+        let mut out = Decision::default();
+        let mut dry = v.own.clone();
+        let (x, m) = self
+            .exit
+            .as_ref()
+            .and_then(|x| x.market.map(|m| (x, m)))
+            .ok_or(AgentError::Core(rustyecon_core::CoreError::Shape(
+                "the commons' market without an exit on one".into(),
+            )))?;
+        let p = pop_market_participation(self, &|s| param(v, s), &|g| price(v, g))?.ok_or(
+            AgentError::Core(rustyecon_core::CoreError::Shape(
+                "the commons' market without its rule".into(),
+            )),
+        )?;
+        let me = Holder::Actor(v.me);
+        if p.hours > 0.0 {
+            out.deltas.push(StateDelta::Mint {
+                to: me,
+                good: self.labour,
+                qty: p.hours,
+                prov: Provenance::Endowment,
+            });
+        }
+        out.orders.push(sell(v, self.labour, p.hours));
+        // Its share of the commons, held each tick as an endowment and offered in full, as the
+        // provider offers its land.
+        if p.offer > 0.0 {
+            out.deltas.push(StateDelta::Mint {
+                to: me,
+                good: m,
+                qty: p.offer,
+                prov: Provenance::Endowment,
+            });
+            out.orders.push(sell(v, m, p.offer));
+        }
+        let spend = param(v, self.spend)?;
+        let coin = dry.get(v.currency);
+        let (rent, paid) = if p.plots > 0.0 {
+            let rent = price(v, x.land)? * p.plots;
+            (rent, rent.min(coin))
+        } else {
+            (0.0, 0.0)
+        };
+        let budget = spend * (coin - paid);
+        let commons = (p.commons_rent * p.bid).min((coin - paid) - budget);
+        let n = budget / p.basket_price;
+        let mut lines: Vec<(GoodId, f64)> = Vec::with_capacity(self.basket.len() + 2);
+        let mut wants = Vec::with_capacity(self.basket.len() + 2);
+        for it in &self.basket {
+            let q = param(v, it.weight)? * n;
+            lines.push((it.good, q));
+            wants.push((it.good, price(v, it.good)? * q));
+        }
+        if p.plots > 0.0 {
+            lines.push((x.land, p.plots));
+            wants.push((x.land, rent));
+        }
+        if p.bid > 0.0 {
+            lines.push((m, p.bid));
+            wants.push((m, commons));
+        }
+        let budgets = budget_chain(paid + budget + commons, &wants, &mut dry, v.currency)?;
+        for ((g, q), b) in lines.into_iter().zip(budgets) {
+            out.orders.push(buy(v, g, q, b));
         }
         out.deltas
             .push(set(v, ActorState::Workers(WorkersState { share: p.share })));

@@ -17,8 +17,11 @@
 //! - A non-finite or non-positive price is an error that stops the run. July's ratio rule kept
 //!   the old price instead (`v2p3: clearing/mod.rs:124-132`); there is no floor, ceiling or
 //!   fallback.
+//! - *Amended at P2.4.11* (FREE-SPEC §6.1; decision 416): a good with a free step moves by
+//!   [`next_price_free`], p′ = p·e^(kx) + (c·p_ref)·expm1(kx), and posts +0.0 where that is not
+//!   positive: the good is free. Its price and EMA may be 0; every other good's stay positive.
 
-use rustyecon_core::num::{self, is_clean};
+use rustyecon_core::num;
 use rustyecon_core::{
     CoreError, Ext, GoodId, NodeId, OneSided, PriceRule, SimState, StateDelta, World,
 };
@@ -140,10 +143,43 @@ pub fn next_price(
     }
 }
 
+/// The free step (FREE-SPEC §6.1; decision 416): the next price of a good with a free step, from
+/// the posted price, the per-tick log step `k`, the volumes and `shift` = c·p_ref, the step's
+/// scale times the reference's posted price.
+///
+/// A one-sided market under `Hold` keeps p (0 stays 0). Otherwise, with x = [`imbalance`], the
+/// step is q = p·e^(kx) + shift·(e^(kx) − 1), each product rounded once and then the sum, and the
+/// posted price is q where q is positive (or NaN, so that a non-finite step still stops the run),
+/// else +0.0: the good is free. At 0 the price stays while S ≥ D and leaves 0 by itself when
+/// D > S. In u = p + shift it is `Imbalance`'s step while p_ref stands still; with shift = 0 it is
+/// [`step`] bit for bit wherever that is positive.
+pub fn next_price_free(
+    one_sided: OneSided,
+    price: f64,
+    k: f64,
+    supply: f64,
+    demand: f64,
+    shift: f64,
+) -> f64 {
+    let one_side = (supply > 0.0) != (demand > 0.0);
+    if one_side && one_sided == OneSided::Hold {
+        return price;
+    }
+    let kx = k * imbalance(supply, demand);
+    let q = price * num::exp(kx) + shift * num::expm1(kx);
+    if q > 0.0 || q.is_nan() {
+        q
+    } else {
+        0.0
+    }
+}
+
 /// Phase 6: the next posted price and EMA of every market, in (node, good) order, from this
 /// tick's volumes. Every rate and the EMA's time constant are read from the current params now.
 /// `SetPrice` and `SetEma` are emitted only when the bits change; a price or EMA that leaves the
-/// finite positive range is an error, and then nothing is emitted.
+/// finite positive range is an error, and then nothing is emitted. A good with a free step moves
+/// by [`next_price_free`], its c read now and its reference's posted price from the phase-start
+/// book at the same node, and its price and EMA may be +0.0 (amended at P2.4.11).
 pub fn update_prices<E: Ext>(
     s: &SimState<E>,
     w: &World<E>,
@@ -161,15 +197,25 @@ pub fn update_prices<E: Ext>(
             .and_then(|g| g.price_rate)
             .ok_or_else(|| CoreError::Shape(format!("{good} has a market but no price rate")))?;
         let k = rate.per_tick(&params, &w.clock)?;
-        let price = next_price(
-            w.market.rule,
-            w.market.one_sided,
-            q.price,
-            k,
-            q.supply,
-            q.demand,
-        );
-        if !(is_clean(price) && price > 0.0) {
+        let price = match w.free_step(good) {
+            None => next_price(
+                w.market.rule,
+                w.market.one_sided,
+                q.price,
+                k,
+                q.supply,
+                q.demand,
+            ),
+            Some(f) => {
+                let reference = s.book().quote(node, f.reference).ok_or_else(|| {
+                    CoreError::Shape(format!("no book slot for ({node}, {})", f.reference))
+                })?;
+                let c = f.scale.value(&params)?;
+                let shift = c * reference.price;
+                next_price_free(w.market.one_sided, q.price, k, q.supply, q.demand, shift)
+            }
+        };
+        if !w.price_allowed(good, price) {
             return Err(PriceError::NonFinite {
                 node,
                 good,
@@ -182,7 +228,7 @@ pub fn update_prices<E: Ext>(
         }
         // The EMA follows this tick's posted price.
         let ema = weight * q.price + (1.0 - weight) * q.ema;
-        if !(is_clean(ema) && ema > 0.0) {
+        if !w.price_allowed(good, ema) {
             return Err(PriceError::NonFiniteEma {
                 node,
                 good,

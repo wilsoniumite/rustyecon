@@ -3,7 +3,7 @@
 //! and so the run length L of §6.4's rule, and the open-loop probe, prices frozen.
 
 use super::harness::run;
-use super::setup::Setup;
+use super::setup::{genesis, Setup};
 use rustyecon_core::num;
 
 /// The one-tick elasticities at the oracle point: for each market's price moved by e^(±h) at
@@ -43,11 +43,16 @@ fn one_tick(base: &Setup, name: &str) -> Result<(Vec<f64>, Vec<f64>), String> {
     out.ok_or_else(|| format!("{name}: no tick ran"))
 }
 
-/// The one-tick elasticity probe at step `h` in log price.
+/// The one-tick elasticity probe at step `h` in log price. A market posting 0 at genesis, a free
+/// good (P2.4; the free scan's `elasticity_free.py`), has no log price to move: e^(±h)·0 is 0, so
+/// its two runs are the undisplaced one and its own elasticities read 0, and it is left out of
+/// τ_max with τ 0, since its price stays 0 while its supply exceeds its demand, whatever the others
+/// do.
 pub fn elasticity(base: &Setup, h: f64) -> Result<Elasticity, String> {
     let markets = base.instance.markets();
     let n = markets.len();
     let (up, dn) = (num::exp(h), num::exp(-h));
+    let at_zero: Vec<bool> = genesis(base)?.prices.iter().map(|&p| p == 0.0).collect();
     let mut eps_s = vec![vec![0.0; n]; n];
     let mut eps_d = vec![vec![0.0; n]; n];
     for (j, m) in markets.iter().enumerate() {
@@ -67,7 +72,9 @@ pub fn elasticity(base: &Setup, h: f64) -> Result<Elasticity, String> {
         let gap = eps_d[i][i] - eps_s[i][i];
         k.push(ki);
         multiplier.push(1.0 + ki * gap);
-        tau.push(if gap == 0.0 {
+        tau.push(if at_zero[i] {
+            0.0
+        } else if gap == 0.0 {
             f64::INFINITY
         } else {
             1.0 / (ki * gap.abs())

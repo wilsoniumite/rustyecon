@@ -1,0 +1,26 @@
+IL1/zp05   base                               C2m          Idle      PL 0.988687 (half-life 61 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   land.mach x1.1                     C2m          Idle      PL 0.988687 (half-life 61 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   land.mach x0.9                     C2m          Idle      PL 0.988687 (half-life 61 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   land.mach x2                       C2m          Idle      PL 0.988687 (half-life 61 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   land.mach x0.5                     C2m          Idle      PL 0.988687 (half-life 61 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   b.food x1.1                        C2m          Idle      PL 0.988687 (half-life 61 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   b.food x0.9                        C2m          Idle      PL 0.988687 (half-life 61 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   b.food x2                          C2m          Idle      PL 0.988687 (half-life 61 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   b.food x0.5                        C2m          Idle      PL 0.988687 (half-life 61 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   inst.land x1.1                     C2m          Idle      PL 0.988687 (half-life 61 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   inst.land x0.9                     C2m          Idle      PL 0.988687 (half-life 61 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   inst.land x2                       C2m          Idle      PL 0.988687 (half-life 61 ticks) held ['land'] drift 0.0e+00
+IL1/zp05   inst.land x0.5                     C2m          Enclosed  PL 0.989993 (half-life 69 ticks) held [] drift 0.0e+00
+CT2/zp05   base                               C2m          Commons   PL 0.985886 (half-life 49 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   land.mach x1.1                     C2m          Commons   PL 0.985869 (half-life 49 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   land.mach x0.9                     C2m          Commons   PL 0.987057 (half-life 53 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   land.mach x2                       C2m          Commons   PL 0.985744 (half-life 48 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   land.mach x0.5                     C2m          Commons   PL 0.987912 (half-life 57 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   b.food x1.1                        C2m          Commons   PL 0.985899 (half-life 49 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   b.food x0.9                        C2m          Commons   PL 0.985855 (half-life 49 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   b.food x2                          C2m          Crowded   PL 0.999846 (half-life 4493 ticks) held [] drift 0.0e+00
+CT2/zp05   b.food x0.5                        C2m          Commons   PL 0.985484 (half-life 47 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   exit.To x1.1                       C2m          Commons   PL 0.985886 (half-life 49 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   exit.To x0.9                       C2m          Crowded   PL 0.998697 (half-life 532 ticks) held [] drift 0.0e+00
+CT2/zp05   exit.To x2                         C2m          Commons   PL 0.985886 (half-life 49 ticks) held ['commons'] drift 0.0e+00
+CT2/zp05   exit.To x0.5                       C2m          Enclosed  PL 0.987107 (half-life 53 ticks) held ['commons'] drift 0.0e+00
