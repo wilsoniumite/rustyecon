@@ -1,0 +1,15 @@
+2026-10-01T06:29:03Z
+staged: 60902 files, 719M; csv left 0
+2026-10-01T06:29:49Z
+10196 records; 0 with a nonzero exit, a missing file or a gather error
+STAGING REGENERATES runs.jsonl BYTE FOR BYTE
+2026-10-01T06:30:24Z
+copied: 60902 files
+2026-10-01T06:35:40Z
+10196 records; 0 with a nonzero exit, a missing file or a gather error
+ARCHIVE ON D: REGENERATES runs.jsonl BYTE FOR BYTE
+a78081843c53fc47355bafb516e5f930c9a2a99f35a427d6a396e21c093577bd  -
+a78081843c53fc47355bafb516e5f930c9a2a99f35a427d6a396e21c093577bd  /root/scratch/p24-bcd/runs.jsonl
+a78081843c53fc47355bafb516e5f930c9a2a99f35a427d6a396e21c093577bd  /root/scratch/p24-run-v/runs-arch.jsonl
+573M	/mnt/d/rustyecon-p24/runs/bcd
+2026-10-01T06:38:00Z

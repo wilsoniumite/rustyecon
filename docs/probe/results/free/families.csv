@@ -1,0 +1,19 @@
+step,inst,set,setting,runs,mirror,engine,ttol_median_mirror,ttol_median_engine,ttol_max_mirror,ttol_max_engine,dead_max_mirror,dead_max_engine,baskets_low_mirror,baskets_low_engine,diverged_mirror,diverged_engine
+E3,ct2,L,-,115,"{""CONVERGED"": 111, ""VACUOUS"": 4}","{""CONVERGED"": 111, ""VACUOUS"": 4}",366,366,5080,5080,151,151,0.0,0.0,,
+E3,il1,L,-,100,"{""CONVERGED"": 94, ""VACUOUS"": 6}","{""CONVERGED"": 94, ""VACUOUS"": 6}",354.5,354.5,678,678,119,119,0.0031082292672993585,0.003108229,,
+E3,ct2,10L,-,43,"{""CONVERGED"": 41, ""VACUOUS"": 2}","{""CONVERGED"": 41, ""VACUOUS"": 2}",512,512,3357,3357,151,151,0.0,0.0,,
+E3,ct2,tier3s10L,-,24,"{""CONVERGED"": 24}","{""CONVERGED"": 24}",342.5,342.5,543,543,46,46,0.285714285714286,0.2857143,,
+E5,ct2,tpy365,-,72,"{""CONVERGED"": 70, ""VACUOUS"": 2}","{""CONVERGED"": 70, ""VACUOUS"": 2}",2067.0,2067.0,35674,35674,524,524,0.20398484477697976,0.2039848,,
+E3,il1,10L,-,38,"{""CONVERGED"": 36, ""VACUOUS"": 2}","{""CONVERGED"": 36, ""VACUOUS"": 2}",516.5,516.5,678,678,119,119,0.0031082292672993585,0.003108229,,
+E3,il1,tier3s10L,-,22,"{""CONVERGED"": 22}","{""CONVERGED"": 22}",356.0,356.0,547,547,2,2,0.28571428571428575,0.2857143,,
+E5,il1,tpy365,-,62,"{""CONVERGED"": 58, ""VACUOUS"": 4}","{""CONVERGED"": 58, ""VACUOUS"": 4}",1839.5,1839.5,3792,3792,321,321,0.039625308676748294,0.03962531,,
+E3,ct2,tier3s,-,24,"{""CONVERGED"": 24}","{""CONVERGED"": 24}",342.5,342.5,543,543,46,46,0.285714285714286,0.2857143,,
+E5,ct2,stocks,-,41,"{""CONVERGED"": 41}","{""CONVERGED"": 41}",420,420,561,561,99,99,0.0,0.0,,
+E5,ct2,joint2,-,60,"{""CONVERGED"": 60}","{""CONVERGED"": 60}",546.0,546.0,661,661,180,180,0.0,0.0,,
+E5,ct2,joint4,-,40,"{""CONVERGED"": 33, ""DIVERGED"": 7}","{""CONVERGED"": 33, ""DIVERGED"": 7}",594,594,890,890,273,273,0.0,0.0,"joint(4,10) joint(4,12) joint(4,18) joint(4,21) joint(4,22) joint(4,34) joint(4,39)","joint(4,10) joint(4,12) joint(4,18) joint(4,21) joint(4,22) joint(4,34) joint(4,39)"
+E3,il1,tier3s,-,22,"{""CONVERGED"": 22}","{""CONVERGED"": 22}",356.0,356.0,547,547,2,2,0.28571428571428575,0.2857143,,
+E5,il1,stocks,-,39,"{""CONVERGED"": 39}","{""CONVERGED"": 39}",392,392,662,662,103,103,0.0,0.0,,
+E5,il1,joint2,-,60,"{""CONVERGED"": 60}","{""CONVERGED"": 60}",540.0,540.0,658,658,96,96,0.0,0.0,,
+E5,il1,joint4,-,40,"{""CONVERGED"": 39, ""DIVERGED"": 1}","{""CONVERGED"": 39, ""DIVERGED"": 1}",645,645,834,834,246,246,0.0,0.0,"joint(4,10)","joint(4,10)"
+E5,ct2,tpy12,-,72,"{""CONVERGED"": 70, ""VACUOUS"": 2}","{""CONVERGED"": 70, ""VACUOUS"": 2}",983.0,983.0,1398,1398,18,18,0.29305151451240513,0.2930515,,
+E5,il1,tpy12,-,62,"{""CONVERGED"": 58, ""VACUOUS"": 4}","{""CONVERGED"": 58, ""VACUOUS"": 4}",124.0,124.0,450,450,21,21,0.06826493233271932,0.06826493,,

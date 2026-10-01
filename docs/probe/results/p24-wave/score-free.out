@@ -1,0 +1,44 @@
+free: 10196 records: 42231 lines: fail 27, pass 33527, reported 8677
+  E2 ct2 info: pass 3
+  E2 ct2 modea: pass 6
+  E2 il1 info: pass 2, reported 1
+  E2 il1 modea: pass 6
+  E3 ct2 10L: pass 590, reported 192
+  E3 ct2 L: pass 1712, reported 402
+  E3 ct2 Tier 1: pass 1
+  E3 ct2 Tier 2: pass 1
+  E3 ct2 Tier 3: pass 1
+  E3 ct2 Tier 3 at 10L: pass 1
+  E3 ct2 Tier 3S: pass 1
+  E3 ct2 Tier 3S at 10L: pass 1
+  E3 ct2 kick: fail 2, pass 11
+  E3 ct2 tier3s: pass 385, reported 72
+  E3 ct2 tier3s10L: pass 385, reported 72
+  E3 ct2 verdict: fail 1
+  E3 il1 10L: pass 563, reported 124
+  E3 il1 L: pass 1493, reported 300
+  E3 il1 Tier 1: pass 1
+  E3 il1 Tier 2: pass 1
+  E3 il1 Tier 3: pass 1
+  E3 il1 Tier 3 at 10L: pass 1
+  E3 il1 Tier 3S: pass 1
+  E3 il1 Tier 3S at 10L: pass 1
+  E3 il1 kick: pass 13
+  E3 il1 tier3s: pass 353, reported 66
+  E3 il1 tier3s10L: pass 353, reported 66
+  E3 il1 verdict: pass 1
+  E4 ct2 dial: fail 21, pass 10035, reported 3238
+  E4 il1 dial: pass 9566, reported 2113
+  E5 ct2 joint2: pass 801, reported 340
+  E5 ct2 joint4: fail 2, pass 412, reported 229
+  E5 ct2 stocks: pass 622, reported 158
+  E5 ct2 tpy12: pass 1123, reported 210
+  E5 ct2 tpy365: pass 1123, reported 210
+  E5 il1 joint2: pass 931, reported 210
+  E5 il1 joint4: fail 1, pass 582, reported 162
+  E5 il1 stocks: pass 582, reported 160
+  E5 il1 tpy12: pass 931, reported 176
+  E5 il1 tpy365: pass 931, reported 176
+  verdict il1: GO (registered GO)
+  verdict ct2: LOCAL (registered GO)
+refutations: ["12 CONVERGED runs resting off the oracle's point (gap above 1e-12)", '2 kick sets failing']

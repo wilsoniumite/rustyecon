@@ -1,0 +1,28 @@
+step,inst,set,group,run,what,registered,engine,band,status
+E4,ct2,dial,E4 rate.*=0.75,b.food=1.2@genesis,end D-hat,1e-09,6.907229e-07,at most 1e-9 (a gap of 1e-12 in log),fail
+E4,ct2,dial,E4 rate.*=0.75,b.food=1.2@dated,end D-hat,1e-09,6.908545e-07,at most 1e-9 (a gap of 1e-12 in log),fail
+E4,ct2,dial,E4 buffer.*=0.75,b.food=1.2@genesis,the regime at the end,Commons,Crowded,exactly,fail
+E4,ct2,dial,E4 buffer.*=0.75,b.food=1.2@genesis,end D-hat,1e-09,1.447287e-09,at most 1e-9 (a gap of 1e-12 in log),fail
+E4,ct2,dial,E4 buffer.*=0.75,b.food=1.2@dated,the regime at the end,Commons,Crowded,exactly,fail
+E4,ct2,dial,E4 buffer.*=0.75,b.food=1.2@dated,end D-hat,1e-09,1.361133e-09,at most 1e-9 (a gap of 1e-12 in log),fail
+E4,ct2,dial,E4 adjust.*=0.75,b.food=1.2@genesis,end D-hat,1e-09,1.030176e-09,at most 1e-9 (a gap of 1e-12 in log),fail
+E4,ct2,dial,E4 adjust.*=0.75,b.food=1.2@dated,end D-hat,1e-09,1.010636e-09,at most 1e-9 (a gap of 1e-12 in log),fail
+E4,ct2,dial,E4 rate.*=0.9,b.food=1.2@genesis,end D-hat,1e-09,1.97673e-08,at most 1e-9 (a gap of 1e-12 in log),fail
+E4,ct2,dial,E4 rate.*=0.9,b.food=1.2@dated,end D-hat,1e-09,1.894662e-08,at most 1e-9 (a gap of 1e-12 in log),fail
+E4,ct2,dial,E4 buffer.*=0.9,b.food=1.2@genesis,the regime at the end,Commons,Crowded,exactly,fail
+E4,ct2,dial,E4 buffer.*=0.9,b.food=1.2@dated,the regime at the end,Commons,Crowded,exactly,fail
+E4,ct2,dial,E4 rate.*=1.1,b.food=1.2@genesis,the regime at the end,Commons,Crowded,exactly,fail
+E4,ct2,dial,E4 rate.*=1.1,b.food=1.2@dated,the regime at the end,Commons,Crowded,exactly,fail
+E4,ct2,dial,E4 buffer.*=1.1,b.food=1.2@genesis,end D-hat,1e-09,1.907918e-09,at most 1e-9 (a gap of 1e-12 in log),fail
+E4,ct2,dial,E4 buffer.*=1.1,b.food=1.2@dated,end D-hat,1e-09,1.810108e-09,at most 1e-9 (a gap of 1e-12 in log),fail
+E4,ct2,dial,E4 rate.*=1.25,b.food=1.2@genesis,the regime at the end,Commons,Crowded,exactly,fail
+E4,ct2,dial,E4 rate.*=1.25,b.food=1.2@dated,the regime at the end,Commons,Crowded,exactly,fail
+E4,ct2,dial,E4 buffer.*=1.25,b.food=1.2@genesis,end D-hat,1e-09,2.949085e-09,at most 1e-9 (a gap of 1e-12 in log),fail
+E4,ct2,dial,E4 buffer.*=1.25,b.food=1.2@dated,end D-hat,1e-09,2.954859e-09,at most 1e-9 (a gap of 1e-12 in log),fail
+E4,ct2,dial,E4 tilt.*=1,JB(2),its free/priced switches: commons,2,8.0,10% or 2,fail
+E5,ct2,joint4,E5,"joint(4,12)",runaway tick,259,279,5% (the harness's reference),fail
+E5,ct2,joint4,E5,"joint(4,22)",runaway tick,269,284,5% (the harness's reference),fail
+E5,il1,joint4,E5,"joint(4,10)",runaway tick,254,269,5% (the harness's reference),fail
+E3,ct2,kick,kick,b.food=1.2@dated,kick set decays (gain_tail at most 1e-3),True,False,as the mirror's PL 0.999846 predicts (PL^(0.9 L) <= 1e-3),fail
+E3,ct2,kick,kick,exit.To=9.75@dated,kick set decays (gain_tail at most 1e-3),True,False,as the mirror's PL 0.987107 predicts (PL^(0.9 L) <= 1e-3),fail
+E3,ct2,verdict,verdict,-,CT2's verdict,GO,LOCAL,"SPEC §9.1: mode A; Tiers 1-3 and 3S CONVERGED at L, 3 and 3S at 10 L; kick sets; the free-able end",fail

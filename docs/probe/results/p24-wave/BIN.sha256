@@ -1,0 +1,2 @@
+aa97c626d6e266c9241f2ceb52b0f33b43352247cb6ac7c1f57ebd63f30488d4  /root/scratch/p24-bcd/markets (the B-D waves: built in WSL release from a git archive export of 2b68736, P2.4.14, in /root/scratch/p24-exportB-target; built again from a fresh export in /root/scratch/p24-exportC-target on 2026-10-01, the same, verify/build.out)
+a78081843c53fc47355bafb516e5f930c9a2a99f35a427d6a396e21c093577bd  runs.jsonl (gather.py over jobs.txt, from /root/scratch/p24-bcd-runs and again from D:/rustyecon-p24/runs/bcd; archived as D:/rustyecon-p24/runs/bcd/runs.jsonl.gz)

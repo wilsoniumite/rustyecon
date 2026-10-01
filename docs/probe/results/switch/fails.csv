@@ -1,0 +1,237 @@
+step,inst,set,group,run,what,registered,engine,band,status
+E5,is1,L,L,res.services.trained=0.036@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.035671256071013395,0.03567126,trained: within 1e-10 relative,fail
+E5,is1,L,L,res.services.trained=0.036@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.035671256071013395,0.03567126,trained: within 1e-10 relative,fail
+E5,is1,L,L,tail.services=0.11@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.007031052173720732,0.007031052,trained: within 1e-10 relative,fail
+E5,is1,L,L,tail.services=0.11@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.007031052173720732,0.007031052,trained: within 1e-10 relative,fail
+E5,is1,L,L,land.mach=0.8@dated,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.451086e-252,trained: as registered,fail
+E5,is1,L,L,land.mach=0.8@genesis,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.465946e-252,trained: as registered,fail
+E5,is1,L,L,res.services.trained=0.02@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,L,L,res.services.trained=0.02@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,L,L,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,L,L,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,L,L,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,L,L,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,hold,hold,res.services.trained=0.036@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.035671256071013395,0.03567126,trained: within 1e-10 relative,fail
+E5,is1,hold,hold,res.services.trained=0.036@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.035671256071013395,0.03567126,trained: within 1e-10 relative,fail
+E5,is1,hold,hold,tail.services=0.11@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.007031052173720732,0.007031052,trained: within 1e-10 relative,fail
+E5,is1,hold,hold,tail.services=0.11@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.007031052173720732,0.007031052,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd adjust.*=0.75,land.mach=0.8@dated,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.451086e-252,trained: as registered,fail
+E5,is1,nbhd,nbhd adjust.*=0.75,land.mach=0.8@genesis,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.465946e-252,trained: as registered,fail
+E5,is1,nbhd,nbhd adjust.*=0.75,res.services.trained=0.02@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd adjust.*=0.75,res.services.trained=0.02@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd adjust.*=0.75,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd adjust.*=0.75,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd adjust.*=0.75,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd adjust.*=0.75,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd adjust.*=0.9,land.mach=0.8@dated,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.451086e-252,trained: as registered,fail
+E5,is1,nbhd,nbhd adjust.*=0.9,land.mach=0.8@genesis,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.465946e-252,trained: as registered,fail
+E5,is1,nbhd,nbhd adjust.*=0.9,res.services.trained=0.02@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd adjust.*=0.9,res.services.trained=0.02@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd adjust.*=0.9,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd adjust.*=0.9,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd adjust.*=0.9,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd adjust.*=0.9,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd adjust.*=1.1,land.mach=0.8@dated,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.451086e-252,trained: as registered,fail
+E5,is1,nbhd,nbhd adjust.*=1.1,land.mach=0.8@genesis,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.465946e-252,trained: as registered,fail
+E5,is1,nbhd,nbhd adjust.*=1.1,res.services.trained=0.02@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd adjust.*=1.1,res.services.trained=0.02@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd adjust.*=1.1,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd adjust.*=1.1,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd adjust.*=1.1,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd adjust.*=1.1,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd adjust.*=1.25,land.mach=0.8@dated,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.451086e-252,trained: as registered,fail
+E5,is1,nbhd,nbhd adjust.*=1.25,land.mach=0.8@genesis,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.465946e-252,trained: as registered,fail
+E5,is1,nbhd,nbhd adjust.*=1.25,res.services.trained=0.02@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd adjust.*=1.25,res.services.trained=0.02@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd adjust.*=1.25,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd adjust.*=1.25,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd adjust.*=1.25,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd adjust.*=1.25,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd buffer.*=0.75,land.mach=0.8@dated,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.340835e-252,trained: as registered,fail
+E5,is1,nbhd,nbhd buffer.*=0.75,land.mach=0.8@genesis,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.355844e-252,trained: as registered,fail
+E5,is1,nbhd,nbhd buffer.*=0.75,res.services.trained=0.02@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd buffer.*=0.75,res.services.trained=0.02@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd buffer.*=0.75,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd buffer.*=0.75,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd buffer.*=0.75,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd buffer.*=0.75,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd buffer.*=0.9,land.mach=0.8@dated,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.402806e-252,trained: as registered,fail
+E5,is1,nbhd,nbhd buffer.*=0.9,land.mach=0.8@genesis,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.417638e-252,trained: as registered,fail
+E5,is1,nbhd,nbhd buffer.*=0.9,res.services.trained=0.02@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd buffer.*=0.9,res.services.trained=0.02@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd buffer.*=0.9,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd buffer.*=0.9,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd buffer.*=0.9,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd buffer.*=0.9,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd buffer.*=1.1,land.mach=0.8@dated,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.503846e-252,trained: as registered,fail
+E5,is1,nbhd,nbhd buffer.*=1.1,land.mach=0.8@genesis,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.51973e-252,trained: as registered,fail
+E5,is1,nbhd,nbhd buffer.*=1.1,res.services.trained=0.02@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd buffer.*=1.1,res.services.trained=0.02@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd buffer.*=1.1,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd buffer.*=1.1,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd buffer.*=1.1,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd buffer.*=1.1,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd buffer.*=1.25,land.mach=0.8@dated,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.594513e-252,trained: as registered,fail
+E5,is1,nbhd,nbhd buffer.*=1.25,land.mach=0.8@genesis,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.610783e-252,trained: as registered,fail
+E5,is1,nbhd,nbhd buffer.*=1.25,res.services.trained=0.02@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd buffer.*=1.25,res.services.trained=0.02@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd buffer.*=1.25,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd buffer.*=1.25,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd buffer.*=1.25,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd buffer.*=1.25,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd rate.*=0.75,JA(0.5),"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,2.440315e-262,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=0.75,JA(2),"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.462404e-264,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=0.75,JB(0.5),"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,5.236045e-263,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=0.75,JB(2),"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,4.73958e-263,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=0.75,N(0.5),"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.167553e-263,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=0.75,N(2),"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,4.682601e-264,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=0.75,RC(0.5),"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.782141e-263,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=0.75,RC(2),"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.929359e-264,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=0.75,RW(0.5),"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,4.330931e-264,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=0.75,RW(2),"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.254063e-263,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=0.75,land.mach=0.8@dated,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,2.199404e-189,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=0.75,land.mach=0.8@genesis,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,2.215165e-189,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=0.75,p[goods]*0.5,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,3.262106e-264,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=0.75,p[goods]*2,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,2.190217e-265,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=0.75,p[labour.trained]*0.5,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,5.954741e-264,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=0.75,p[labour]*0.5,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,3.643092e-264,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=0.75,p[labour]*2,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,2.485448e-264,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=0.75,p[land]*0.5,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,5.149723e-265,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=0.75,p[land]*2,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,4.829759e-263,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=0.75,p[mach]*0.5,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.228913e-262,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=0.75,p[mach]*2,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,2.355786e-264,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=0.75,p[services]*0.5,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.064485e-263,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=0.75,res.services.trained=0.02@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd rate.*=0.75,res.services.trained=0.02@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd rate.*=0.75,s[goods]=0.5,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,8.49475e-264,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=0.75,s[services]=0.5,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,6.854775e-264,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=0.75,sw[trained]=0.5,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,3.200757e-266,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=0.75,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd rate.*=0.75,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd rate.*=0.75,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd rate.*=0.75,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd rate.*=0.75,x*/2,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,3.704302e-263,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=0.9,land.mach=0.8@dated,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,2.670768e-227,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=0.9,land.mach=0.8@genesis,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,2.694911e-227,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=0.9,res.services.trained=0.02@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd rate.*=0.9,res.services.trained=0.02@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd rate.*=0.9,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd rate.*=0.9,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd rate.*=0.9,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd rate.*=0.9,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd rate.*=1.1,land.mach=0.8@dated,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,7.997167e-278,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=1.1,land.mach=0.8@genesis,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,8.08874e-278,trained: as registered,fail
+E5,is1,nbhd,nbhd rate.*=1.1,res.services.trained=0.02@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd rate.*=1.1,res.services.trained=0.02@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd rate.*=1.1,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd rate.*=1.1,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd rate.*=1.1,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd rate.*=1.1,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd rate.*=1.25,res.services.trained=0.02@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd rate.*=1.25,res.services.trained=0.02@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd rate.*=1.25,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd rate.*=1.25,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd rate.*=1.25,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd rate.*=1.25,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=0.05,land.mach=0.8@dated,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.420788e-252,trained: as registered,fail
+E5,is1,nbhd,nbhd tilt.*=0.05,land.mach=0.8@genesis,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.435035e-252,trained: as registered,fail
+E5,is1,nbhd,nbhd tilt.*=0.05,res.services.trained=0.02@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=0.05,res.services.trained=0.02@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=0.05,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=0.05,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=0.05,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=0.05,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=0.1,land.mach=0.8@dated,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.390114e-252,trained: as registered,fail
+E5,is1,nbhd,nbhd tilt.*=0.1,land.mach=0.8@genesis,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.403683e-252,trained: as registered,fail
+E5,is1,nbhd,nbhd tilt.*=0.1,res.services.trained=0.02@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=0.1,res.services.trained=0.02@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=0.1,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=0.1,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=0.1,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=0.1,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=0.25,land.mach=0.8@dated,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.30031e-252,trained: as registered,fail
+E5,is1,nbhd,nbhd tilt.*=0.25,land.mach=0.8@genesis,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.309667e-252,trained: as registered,fail
+E5,is1,nbhd,nbhd tilt.*=0.25,res.services.trained=0.02@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=0.25,res.services.trained=0.02@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=0.25,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=0.25,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=0.25,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=0.25,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=0.5,land.mach=0.8@dated,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.156086e-252,trained: as registered,fail
+E5,is1,nbhd,nbhd tilt.*=0.5,land.mach=0.8@genesis,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.156659e-252,trained: as registered,fail
+E5,is1,nbhd,nbhd tilt.*=0.5,res.services.trained=0.02@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=0.5,res.services.trained=0.02@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=0.5,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=0.5,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=0.5,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=0.5,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=1,land.mach=0.8@dated,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,9.003585e-253,trained: as registered,fail
+E5,is1,nbhd,nbhd tilt.*=1,land.mach=0.8@genesis,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,8.892743e-253,trained: as registered,fail
+E5,is1,nbhd,nbhd tilt.*=1,res.services.trained=0.02@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=1,res.services.trained=0.02@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=1,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=1,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=1,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,nbhd,nbhd tilt.*=1,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,JA(0.5),"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.450529e-263,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,JA(2),"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,4.821262e-265,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,JB(0.5),"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,6.20989e-264,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,JB(2),"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,4.26763e-264,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,N(0.5),"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.650163e-264,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,N(2),"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.153473e-264,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,RC(0.5),"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,3.251435e-264,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,RC(2),"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,6.636613e-265,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,RW(0.5),"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,9.857798e-265,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,RW(2),"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,2.043283e-264,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,land.mach=0.8@dated,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,4.717405e-190,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,land.mach=0.8@genesis,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,4.753283e-190,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,p[goods]*0.5,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,9.964818e-265,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,p[goods]*2,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.226755e-265,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,p[labour.trained]*0.5,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.258186e-264,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,p[labour]*0.5,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,8.572008e-265,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,p[labour]*2,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.064512e-265,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,p[land]*0.5,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,2.227922e-265,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,p[land]*2,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,5.704061e-264,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,p[mach]*0.5,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,8.941849e-264,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,p[mach]*2,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,7.067322e-265,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,p[services]*0.5,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.912954e-264,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,res.services.trained=0.02@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,res.services.trained=0.02@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,s[goods]=0.5,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,2.867357e-264,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,s[services]=0.5,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.932441e-264,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,sw[trained]=0.5,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,3.104728e-266,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,swrate,swrate rate.switch.*=0.75,x*/2,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.042334e-263,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=0.9,land.mach=0.8@dated,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.463072e-227,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=0.9,land.mach=0.8@genesis,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.476428e-227,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=0.9,res.services.trained=0.02@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,swrate,swrate rate.switch.*=0.9,res.services.trained=0.02@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,swrate,swrate rate.switch.*=0.9,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,swrate,swrate rate.switch.*=0.9,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,swrate,swrate rate.switch.*=0.9,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,swrate,swrate rate.switch.*=0.9,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,swrate,swrate rate.switch.*=1.1,land.mach=0.8@dated,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.445521e-277,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=1.1,land.mach=0.8@genesis,"E5: a walled pop ends 0.0 if it never pooled, else at most 1e-300",at most 1e-300,1.461729e-277,trained: as registered,fail
+E5,is1,swrate,swrate rate.switch.*=1.1,res.services.trained=0.02@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,swrate,swrate rate.switch.*=1.1,res.services.trained=0.02@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,swrate,swrate rate.switch.*=1.1,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,swrate,swrate rate.switch.*=1.1,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,swrate,swrate rate.switch.*=1.1,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,swrate,swrate rate.switch.*=1.1,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,swrate,swrate rate.switch.*=1.25,res.services.trained=0.02@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,swrate,swrate rate.switch.*=1.25,res.services.trained=0.02@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.39142810838832925,0.3914281,trained: within 1e-10 relative,fail
+E5,is1,swrate,swrate rate.switch.*=1.25,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,swrate,swrate rate.switch.*=1.25,tail.services=0.2@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,swrate,swrate rate.switch.*=1.25,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.2860879343123933,0.2860879,trained: within 1e-10 relative,fail
+E5,is1,swrate,swrate rate.switch.*=1.25,tail.services=0.2@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.04967163795419962,0.04967164,master: within 1e-10 relative,fail
+E5,is1,tpy12,tpy12,res.services.trained=0.036@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.03567125607101331,0.03567126,trained: within 1e-10 relative,fail
+E5,is1,tpy12,tpy12,res.services.trained=0.036@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.03567125607101331,0.03567126,trained: within 1e-10 relative,fail
+E5,is1,tpy12,tpy12,tail.services=0.11@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.007031052173720643,0.007031052,trained: within 1e-10 relative,fail
+E5,is1,tpy12,tpy12,tail.services=0.11@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.007031052173720643,0.007031052,trained: within 1e-10 relative,fail
+E5,is1,tpy365,tpy365,res.services.trained=0.036@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.03567125607101342,0.03567126,trained: within 1e-10 relative,fail
+E5,is1,tpy365,tpy365,res.services.trained=0.036@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.03567125607101342,0.03567126,trained: within 1e-10 relative,fail
+E5,is1,tpy365,tpy365,tail.services=0.11@dated,"E5: a pooled pop ends at a*, within 1e-10 relative",0.0070310521737207594,0.007031052,trained: within 1e-10 relative,fail
+E5,is1,tpy365,tpy365,tail.services=0.11@genesis,"E5: a pooled pop ends at a*, within 1e-10 relative",0.0070310521737207594,0.007031052,trained: within 1e-10 relative,fail

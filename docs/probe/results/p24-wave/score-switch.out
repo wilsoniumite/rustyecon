@@ -1,0 +1,62 @@
+switch: 10196 records: 65081 lines: fail 236, pass 31360, reported 33485
+  E1 is1 L: pass 108
+  E1 is1 never-pooled: pass 1
+  E1 is1 tier3s: pass 28
+  E2 is1 info: pass 3
+  E2 is1 modea: pass 3
+  E2 is2 info: reported 3
+  E2 is2 modea: reported 3
+  E3 is1 10L: pass 123
+  E3 is1 L: pass 1285, reported 654
+  E3 is1 Tier 1: pass 1
+  E3 is1 Tier 2: pass 1
+  E3 is1 Tier 3: pass 1
+  E3 is1 Tier 3 at 10L: pass 1
+  E3 is1 Tier 3S: pass 1
+  E3 is1 Tier 3S at 10L: pass 1
+  E3 is1 tier3s: pass 226, reported 120
+  E3 is1 verdict: pass 1
+  E4 is1 corner: pass 1
+  E4 is1 env: pass 1
+  E4 is1 env-ts011: reported 1
+  E4 is1 kick: pass 13
+  E5 is1 L: fail 12, pass 414
+  E5 is1 L+tier3s: pass 1
+  E5 is1 basin: pass 2064
+  E5 is1 hold: fail 4, pass 264
+  E5 is1 joint2: pass 240
+  E5 is1 joint4: pass 160
+  E5 is1 nbhd: fail 158, pass 2528
+  E5 is1 stocks: pass 124
+  E5 is1 swrate: fail 54, pass 578
+  E5 is1 tier3s: pass 80
+  E5 is1 tpy12: fail 4, pass 264
+  E5 is1 tpy365: fail 4, pass 264
+  E5 is2 L: reported 329
+  E5 is2 hold: reported 204
+  E5 is2 nbhd: reported 2125
+  E5 is2 tier3s: reported 60
+  E5 is2 tpy12: reported 204
+  E5 is2 tpy365: reported 204
+  E6 is1 L: pass 1
+  E7 is1 basin: pass 7189, reported 3096
+  E7 is1 hold: pass 756, reported 408
+  E7 is1 joint2: pass 829, reported 360
+  E7 is1 joint4: pass 674, reported 240
+  E7 is1 nbhd: pass 9070, reported 4182
+  E7 is1 stocks: pass 384, reported 186
+  E7 is1 swrate: pass 2124, reported 984
+  E7 is1 tpy12: pass 750, reported 408
+  E7 is1 tpy365: pass 755, reported 408
+  E8 is2 10L: reported 123
+  E8 is2 L: reported 1949
+  E8 is2 hold: reported 1167
+  E8 is2 kick: reported 13
+  E8 is2 nbhd: reported 13350
+  E8 is2 tier3s: reported 346
+  E8 is2 tpy12: reported 1164
+  E8 is2 tpy365: reported 1167
+  E9 is1 point: pass 48
+  E9 is2 point: reported 27
+  verdict is1: GO (registered GO)
+refutations: ['0 switch pops ending on the wrong side of their switch, 148 pooled pops more than 1e-9 relative from a*']
