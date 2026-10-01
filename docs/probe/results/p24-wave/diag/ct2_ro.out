@@ -1,0 +1,32 @@
+CT2 runs read: 1225 (every archived CT2 run with a CSV)
+
+Commons star, ro*=0: 1143 runs, 1092 CONVERGED
+  CONVERGED runs ending with the commons free (r_o = 0): 1092 of 1092; free from a row to the end: 1092
+  runs whose commons is free to the end only from a row after in_tol_from: 4
+
+Crowded star, CT2 b.food x2: 38 runs, 38 CONVERGED
+  r_o*/w 0.021821247938779084; |end gap| in log: min 9.948e-14, max 8.546e-08; within 1e-3 at the end: 38 of 38
+  CONVERGED runs whose r_o enters 1e-3 only after the class's tolerance tick (its row before in_tol_from or later): 38 of 38
+  r_o's entry over in_tol_from, at least (the row before / in_tol_from): min 3.19, median 9.87, max 50.63
+    dial/rate.x_0.75/b.food_1.2_genesis: in_tol_from 18363, r_o in (59220, 60630], end gap -8.544e-08
+    dial/rate.x_0.75/b.food_1.2_dated: in_tol_from 18365, r_o in (59220, 60630], end gap -8.546e-08
+    dial/rate.x_0.9/b.food_1.2_genesis: in_tol_from 13240, r_o in (47940, 49350], end gap -2.444e-09
+    dial/rate.x_0.9/b.food_1.2_dated: in_tol_from 12936, r_o in (46530, 47940], end gap -2.343e-09
+    dial/adjust.x_0.75/b.food_1.2_genesis: in_tol_from 6900, r_o in (38070, 39480], end gap -1.273e-10
+    dial/tilt.x_0.25/b.food_1.2_dated: in_tol_from 2749, r_o in (33840, 35250], end gap -6.825e-11
+
+Crowded star, CT2 commons x0.9: 6 runs, 6 CONVERGED
+  r_o*/w 1.3433129155354115; |end gap| in log: min 2.109e-15, max 8.160e-13; within 1e-3 at the end: 6 of 6
+  CONVERGED runs whose r_o enters 1e-3 only after the class's tolerance tick (its row before in_tol_from or later): 6 of 6
+  r_o's entry over in_tol_from, at least (the row before / in_tol_from): min 1.11, median 1.11, max 1.25
+    tpy365/exit.To_17.55_dated: in_tol_from 35674, r_o in (44560, 55700], end gap -8.160e-13
+    tpy365/exit.To_17.55_genesis: in_tol_from 35674, r_o in (44560, 55700], end gap -7.688e-13
+    L/exit.To_17.55_dated: in_tol_from 5080, r_o in (5640, 7050], end gap -1.137e-13
+    L/exit.To_17.55_genesis: in_tol_from 5080, r_o in (5640, 7050], end gap -1.137e-13
+    tpy12/exit.To_17.55_dated: in_tol_from 1170, r_o in (1300, 1560], end gap -2.109e-15
+    tpy12/exit.To_17.55_genesis: in_tol_from 1170, r_o in (1300, 1560], end gap -2.998e-15
+
+Enclosed star, CT2 commons x0.5: 38 runs, 38 CONVERGED
+  r_o*/w 2.112805524036278; |end gap| in log: min 1.255e-03, max 8.010e-03; within 1e-3 at the end: 0 of 38
+  ln(r_o/r) at the end, the run's own land rent: min 1.255e-03, max 8.010e-03
+  CONVERGED runs whose r_o enters 1e-3 only after the class's tolerance tick (its row before in_tol_from or later): 0 of 0

@@ -92,3 +92,30 @@ The tables beside this file: `verdicts.csv`, `tiers.csv` (Tiers 1–3 and 3S, at
   regenerates its printout and every table byte for byte. No run was made again.
 - Nothing in the scorer, the job list or the harness changed after the registration or during the
   wave. The raw runs were archived with their CSVs gzipped and the WSL copy deleted.
+
+## After the reviews (P2.4.20, 2026-10-01)
+
+Two reviews read this wave after P2.4.19; both find the verdict holds as registered. The fidelity
+review narrows what it means:
+
+- **"With margin" is decision 407's class line, met in sample.** Every Tier-3 run at the 17
+  settings CONVERGED or VACUOUS. The pace's rate was chosen in the mirror on this same slice
+  (decision 406). The scan's held-out instance with a dearer exit (X4) has not run on the engine.
+  No liveness floor was applied: 305 of the 1,462 C1P and C2P dial runs have their lowest baskets
+  below 0.05 of the point, 149 at 0 (`runs.csv`), and the most dead ticks in one run is 400. So
+  this is not yet PLAN's "green with margin, judged jointly" (decision 431).
+- **How the remedy works.** For a while it overrides the exit. In the mirror's former trap run
+  (C1P `p[mach]*0.5` at rate × 0.9, which converges) the rule's F\* is exactly 0 on ticks 21–86,
+  with the exit worth up to 2.66 times the wage, while 2–11% of heads still offer hours. That is a
+  friction whose rate has no data behind it (O116). The scan's P5.2 and P13 keep hours positive
+  and still trap, so the pace is not a positivity floor in disguise.
+- **It covers one plot-taking type on decision 398's rule.** A pop on a commons market cannot pace
+  (refused at load; FREE-SPEC §6.3), and the free step's CT2 keeps the trap in 7 of its 40 joint4
+  runs (decision 434).
+- **Away from rest the paced hours and the rule's plots can use more heads than N**, up to 1.12·N
+  in the mirror. That is bookkeeping in the Commons and Crowded regimes, and it rents land no one
+  farms in the Enclosed regime (TRAP-RULES §2, note of P2.4.20; O116).
+
+The measurement review reproduced the record (`../p24-wave/README.md`, "The reviews' fix round").
+"The committed scorer regenerates every table byte for byte" above holds up to CRLF→LF for the
+tables. The E0 of `e0.md` was run again on the scored binary, byte for byte.

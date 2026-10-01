@@ -135,3 +135,16 @@ verdict battery's Tier-3 criterion at that setting.
 - **What the map does not cover.** Only the base's kick set ran at each setting, and only at C1,
   C2 and IW1 (51, all PASS): a setting that made a cost target slowly unstable would show here as
   CONVERGED (O112). The 1750-like instance is not in it.
+- *Narrowed at P2.4.20* (the fidelity review, major; decision 431). "Holds" here is a class line
+  only, decision 407's: every Tier-3 run CONVERGED or VACUOUS. It is not PLAN's gate ("green with
+  margin, judged jointly", with an absolute liveness floor and a stable region the default dials
+  sit in), for four reasons:
+  - **No liveness floor.** 305 of the 1,462 C1P and C2P dial runs have their lowest baskets below
+    0.05 of the point, 149 of them at 0 (`../trap/runs.csv`); the most dead ticks in one run is 400.
+    Unpaced C1 and C2 are similar (194 of 1,121 and 163 of 1,139).
+  - **No target's kick at any dial** (O112, above).
+  - **In sample.** The pace's rate was chosen in the mirror on this same slice (decision 406). The
+    held-out instance with a dearer exit (the trap scan's X4) has not run on the engine.
+  - **The region is not one the default roles sit in.** It holds for the paced roles. C1 as
+    registered keeps 10 of 17, with C2m within 10% of its edge, and the pace cannot be used with a
+    commons market. CT2, LOCAL at its base, is not in the region until O101 is read.

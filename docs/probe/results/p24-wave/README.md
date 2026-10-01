@@ -175,11 +175,13 @@ and nothing was run again:
 
 - `BIN.sha256`: the binary's sha256 (`aa97c626…88d4`) and `runs.jsonl`'s (`a7808184…77bd`).
 - `verify/`: `jobcheck.py` → `jobcheck.out` (every line of `jobs.txt` ran once, under its own name,
-  in its own directory, inside the wave's hour, exit 0; `runs.jsonl` holds one record a job in the
+  in its own directory, inside the wave's hour, exit 0, read on the WSL originals before the
+  archive, whose file times are the copy's, P2.4.20; `runs.jsonl` holds one record a job in the
   list's order plus the two envelope records, 10,196); `build.sh` → `build.out` (a fresh export of
   `2b68736` built in its own target directory gives the wave's binary byte for byte); `regen.sh` →
   `regen.out` (the committed `gather.py` regenerates `runs.jsonl` from the raw runs, and the three
-  committed scorers their printouts and every table, byte for byte); `archive.sh` → `archive.out`
+  committed scorers their printouts and every table, byte for byte, scratch output against scratch
+  output; against the committed tables, up to CRLF→LF, P2.4.20); `archive.sh` → `archive.out`
   (the raw runs with their CSVs gzipped, `D:/rustyecon-p24/runs/bcd/`, 60,902 files, 573 MB;
   `gather.py` regenerates `runs.jsonl` from them byte for byte); `cleanup.sh` → `cleanup.out` (the
   WSL copies, the staging copy, the preflight's runs and the export build deleted after that).
@@ -201,3 +203,36 @@ and nothing was run again:
 
 No file listed in `SHA256SUMS` changed; `sha256sum -c SHA256SUMS` passes but for this README,
 which gained this section.
+
+## The reviews' fix round (P2.4.20, 2026-10-01)
+
+Two reviews, measurement and fidelity, read the waves after P2.4.19. The measurement review
+reproduced the record. It rebuilt both binaries byte for byte, reran 297 B–D jobs and 213 of wave
+A's byte for byte (17 on a Windows build), rescored every run with its own key, and regenerated
+the pipeline from the D: archive. It found five minor faults in how the record is described. They
+are corrected here, and nothing in the record changed:
+
+- **"Every table, byte for byte" is up to CRLF→LF.** `regen.sh` compared two scratch outputs,
+  not the committed files. The scorers write their tables with CRLF (Python's `csv` default); the
+  committed tables are LF copies. Against the committed files, `score-*.out` and `lines.csv` match
+  byte for byte and the other tables after CRLF→LF (the measurement review's regeneration from
+  the archive). Later scorers write LF (decision 436).
+- **The archive's file times are the copy's, not the run's.** `archive.sh` copied with `cp -r`, so
+  every file under `D:/rustyecon-p24/runs/bcd/` dates from 2026-10-01 06:30 UTC on. `jobcheck.out`
+  ("started before the wave 0; ended after it 0") was read on the WSL originals, now deleted, and
+  cannot be re-derived from the archive. The runner's own four records survived in
+  `/root/scratch/p24-bcd`. `verify/timing.sh` → `timing.out` copies them with `cp -a`, times kept,
+  to `D:/rustyecon-p24/runs/bcd/wave-records/`, and they are committed in `verify/wave-records/`:
+  `start.txt` 2026-09-30T17:43:21Z, `end.txt` 18:43:16Z, `run.log` "xargs exit 0" and
+  `bin.sha256` (`aa97c626…88d4`). Content is unaffected: sampled runs reproduce byte for byte.
+- **E0 on the scored binary.** The trap's E0 ran on `9d805e69` (`7ddec38`) and the switch's on
+  `3477fe21` (`1f38b94`). The B–D waves ran on `aa97c626` (`2b68736`), which also holds the switch's
+  and the free step's code. `verify/e0-scored.sh` → `e0-scored.out` runs the three build agents'
+  trace diffs, unedited, on the wave's own binary. Each `tracediff.out` is the committed one byte
+  for byte (the measurement review found the same on a fresh build of `2b68736`).
+
+And one diagnostic for the fidelity review, run after the result on the archive alone:
+
+- `diag/ct2_ro.py` → `ct2_ro.out`, `ct2_ro.csv`: CT2's commons price r_o in every one of its 1,225
+  archived runs, against the registration's 25-digit point: its end gap, and when it enters 1e-3
+  in log beside the class's tolerance tick (`../free/README.md`, "After the reviews").

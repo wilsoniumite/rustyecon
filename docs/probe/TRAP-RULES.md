@@ -48,6 +48,18 @@ with pace:     a = param(pace.adjust)            (a Share: −expm1(−rate/tpy)
 The hours are minted and offered as before. The plots are the rule's, `p.plots`: their land buy,
 budget chain and burn are unchanged. The state holds `share`. Nothing else in the role changes.
 
+*Note added at P2.4.20 (2026-10-01; the fidelity review, minor).* Away from rest the paced hours
+and the rule's plots do not share one time budget: the plots are sized for the rule's hours F\*,
+while N·s hours are offered, so the heads used can pass N. In the mirror (a copy of `tm.py`, Pr
+1.3), C1P's `p[mach]*0.5` at rate × 0.9, a CONVERGED run, uses up to 1.11·N on 1,117 ticks,
+82 of them with plots rented. C1P's `JB(2)` at tilt 2, a trap control, uses 1.12·N on 816 ticks.
+On those ticks up to 0.975 of T_p is rented for heads still offering hours. In the Commons and
+Crowded regimes nothing is rented, so this is bookkeeping. In the Enclosed regime it rents land
+no one farms. The engine's paced run at that setting rents at most 0.073 of land 10
+(`commons.tp_max`), so the effect on the land market is small. P, the plots at the hours offered,
+is the consistent form, and the scan found it equal in class. A later registration that pairs the
+pace with enclosed plots should prefer P (O116).
+
 The rule reads posted prices (through the participation rule), its own state and its params
 (R13). s is a convex combination of s₀ and F\*, both in [0, 1], so no clamp is needed (R3): in
 floating point s₀ + fl(a·fl(F\* − s₀)) with a ≤ 1 cannot pass F\* by a rounding that reaches the

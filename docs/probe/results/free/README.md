@@ -19,8 +19,12 @@ sha256 `aa97c626…88d4` ([../p24-wave/BIN.sha256](../p24-wave/BIN.sha256)).
 
 **IL1 is GO, as registered. CT2 is LOCAL, against a registered GO: two of its 13 kick sets fail,
 and with them a refutation criterion of SPEC §10 is met.** Every run of both instances converges
-where the mirror said, at the oracle's point, with its free-able market free where the oracle's
-price is 0 and priced where it is positive.
+where the mirror said, its real side at the oracle's point, with its free-able market free where
+the oracle's price is 0 and priced where it is positive. *Narrowed at P2.4.20* (the fidelity
+review; "After the reviews" below): CT2's class, ticks and end D̂ do not read the commons' price,
+which is not among its observables. At the Enclosed target every run ends with r_o 1.3e-3 to
+8.0e-3 in log above the oracle's r_o = r, and at b.food × 2 r_o reaches 1e-3 3.2 to 51 times
+later than the real side.
 
 | | mode A | Tier 1 | Tier 2 | Tier 3 (10·L) | Tier 3S (10·L) | kicks | the dial family (17 settings) | verdict |
 |---|---|---|---|---|---|---|---|---|
@@ -113,10 +117,11 @@ lines re-read).
   wall's rent where land is scarce (`inst.land=260`), and every kick set decays. No pinned hash
   moved (E1, P2.4.11).
 - **O101 is not answered as registered.** Two types share one commons traded on a market and every
-  run converges to the oracle's point at every dial, but the kick sets at the Enclosed target and
-  at the smallest Crowded rent fail. Both failures are of the measure against a property of the
-  point (a continuum; a resting offset at a small price) that the mirror shares; neither is a
-  divergence. Whether CT2 is GO is a reading of the verdict rule, and it is the user's.
+  run's real side converges to the oracle's point at every dial, but the kick sets at the Enclosed
+  target and at the smallest Crowded rent fail. Neither is a divergence, and the mirror shares
+  both. *Corrected at P2.4.20:* neither is "a property of the point". The Enclosed continuum is
+  rule 419's tie, and the resting offset is the commons market's floating-point rest set
+  ("After the reviews"). Whether CT2 is GO is a reading of the verdict rule, and it is the user's.
 - **The engine is a better account than the mirror at one corner**: where a pop's coin runs short
   the engine's budget chain cuts its commons bid, and the mirror lets it spend coin it has not got.
 
@@ -130,3 +135,46 @@ lines re-read).
   (CT2's `b.food=1.2@dated` and `exit.To=17.55@dated` at H 70,500 and 282,000) and one 4,001-tick
   engine run (`JB(2)` at tilt 1, every tick), all on the wave's binary; and the free mirror,
   copied from `D:/rustyecon-p24/scan-free/model`, checked against its `SHA256SUMS` and not edited.
+
+## After the reviews (P2.4.20, 2026-10-01)
+
+Two reviews read this wave after P2.4.19. Both find the verdicts hold. What they change here:
+
+- **CT2's commons price** (the fidelity review, major). CT2's observables leave out the commons'
+  price and volume (FREE-RULES §5). Its class, ticks and end D̂ read the real side, and E3's end
+  line reads only the price's sign. At b.food × 2 the real side barely moves with r_o: the
+  commons bids' elasticity in ln r_o is 4.8e-4. `../p24-wave/diag/ct2_ro.py` reads r_o in every
+  archived CT2 run's CSV (written every L/100 ticks), against the registration's 25-digit point,
+  in wage units. No run was made again. Per run: `../p24-wave/diag/ct2_ro.csv`.
+
+  | CT2 star | runs (CONVERGED) | r_o's end gap in log | r_o in 1e-3, against the class's tolerance tick |
+  |---|---|---|---|
+  | Commons (r_o\* = 0) | 1,143 (1,092) | 0 in all 1,092: the commons free at the end | free to the end from a row after it in 4 |
+  | Crowded, b.food × 2 (r_o 0.0118·r) | 38 (38) | 1.0e-13 to 8.5e-8 | later in 38 of 38, by 3.2 to 51 times (median 9.9) |
+  | Crowded, commons × 0.9 (r_o 0.64·r) | 6 (6) | 2.1e-15 to 8.2e-13 | later in 6 of 6, by 1.1 to 1.25 times |
+  | Enclosed, commons × 0.5 (r_o\* = r) | 38 (38) | **1.3e-3 to 8.0e-3, above r in all 38** | never |
+
+  So "every run converges at the oracle's point" holds for the real side everywhere and for the
+  commons' price at the Crowded ends. At the Enclosed target it does not hold for the price.
+- **The Enclosed continuum is rule 419's tie, not a property of the point** (fidelity, major).
+  Unit 1e sets the plot rent there to r (`instance.rs`, the oracle's plot rent "r when the plots
+  spill onto enclosed land"). The rule (`rules.rs` `pop_market`) bids min(G, T_o,i) at every
+  r_o ≥ r̂, so bids equal offers for every r_o ≥ r. A pop that weighed selling its share at r_o
+  against renting enclosed land at r would bid nothing above r, and r_o would be pinned at r. A
+  kick reading that skipped this direction would certify the rule's indeterminacy, not the
+  oracle's point (decision 432).
+- **The resting offset at b.food × 2 is the market's floating-point rest set** (fidelity, minor;
+  measurement, minor). With the other prices at the point, 121 of 8,001 r_o values within
+  ±2e-11 are exact rests in the mirror, a set 6e-13 wide in log. It is the same at c 0.5, 2, 4 and
+  100 (2.9e-12 at c 0.1). Its width is about ulp(D)/(ε·D) at a market whose demand barely moves
+  with its price. A 1e-9 kick read at the 1e-3 bar resolves 1e-12 in log. The failing tails are
+  1.5e-12 to 2.7e-12 in log, the scale of CT2's own mode A gap at 52 a year (5.6e-13 in the
+  engine, 1.9e-12 in the mirror; `modea.csv`). A larger c narrows the set; it cannot remove it
+  (decision 435; O127).
+- **What the session's remedies cover** (fidelity, major): a pop on a commons market cannot pace
+  (refused at load, FREE-SPEC §6.3), and CT2's pops keep the subsistence trap (7 of 40 in joint4;
+  IL1 1 of 40). O100's answer is for one plot-taking type on decision 398's rule (decision 434).
+
+Sources: the review's scripts and outputs, `D:/rustyecon-p24/review-fidelity/free/` (`band.py`,
+`band.out`, `kick1.py`, `k_*.out`), run on copies of the registered mirror. `ct2_ro.py` reads only
+the archive.

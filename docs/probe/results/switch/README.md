@@ -17,8 +17,8 @@ observables. The binary is the B–D waves', sha256 `aa97c626…88d4`
 
 ## Verdict
 
-**IS1 is GO, as registered. 236 lines failed as scored; after amendment A1, 88 fail, all of one
-kind the scorer declared before the wave it expected to fail; no refutation criterion is met.**
+**IS1 is GO, as registered. 236 lines failed as scored; after amendment A1, 88 fail, all under the
+conditions the scorer's reading 4 named before the wave; no refutation criterion is met.**
 
 | | mode A | Tier 1 | Tier 2 | Tier 3 (10·L) | Tier 3S (10·L) | kicks | the neighbourhood (17 × 41) | the switch's rate (4 × 41) | verdict |
 |---|---|---|---|---|---|---|---|---|---|
@@ -43,7 +43,12 @@ tick to tolerance or a verdict. All 236 are E5's end of a switch pop's share:
   of the 17 + 4 settings and in the battery (1.4–1.6e-252; the registration's own run 1.47e-252;
   at rate × 0.9 and × 1.1, 2.7e-227 and 8.1e-278), and every target at `rate.*` × 0.75 and at
   `rate.switch.*` × 0.75 (up to 2.2e-189 and 4.8e-190). Each is on its wall side, its share below
-  1e-9 with its gap below 0: the refutation's reading holds in 88 of 88.
+  1e-9 with its gap below 0: the refutation's reading holds in 88 of 88. *Corrected at P2.4.20*
+  (the measurement review): reading 4 named the mechanism and the conditions (land.mach 0.8;
+  `rate.*` or `rate.switch.*` × 0.75), not the lines. Under those conditions 8 more of the
+  trained's walled-end lines passed (land.mach 0.2 at either rate × 0.75, ending at 2.4e-318 to
+  6.7e-318; land.mach 0.8 at either rate × 1.25, 1.1e-315 to 4.7e-315), and all 21 of the
+  master's. So the failures were predicted in kind, not line by line.
 
 **The engine is the mirror.** In all 2,993 scored runs of IS1 and IS2 every class is the mirror's
 and every tick to tolerance of the CONVERGED ones is the mirror's to the tick; every CONVERGED run
@@ -92,3 +97,20 @@ lines as scored) and `amended.csv` (A1's 1,142 lines re-read).
   took 3,071 of its 10,194 jobs and 12,122 job-seconds.
 - A1 was written after the result, to explain failed lines; it moves no class, tick or verdict.
   The committed scorer and its outputs stand as the record.
+
+## After the reviews (P2.4.20, 2026-10-01)
+
+Two reviews read this wave after P2.4.19; both find IS1's GO holds. The fidelity review checked the
+rule against the code: `switch.rs` reads only the two posted wages, the basket's prices, its own
+params and its share (R13); pooled ends have g exactly 0 (or −1.1e-16). Participation reads the
+blend v = w_i + a′(ε·w − w_i), not 1d's max; the two agree at rest (decision 409's alternative).
+Two corrections:
+
+- **Reading 4 named conditions, not lines** (the measurement review; "Verdict" above).
+- **The answer covers a type with reserved tasks and no exit.** A pop with a priced exit cannot
+  switch (refused at load; O123). The 1750-like instance's trained type under s(q) needs a scan
+  of the switch with the exit, after 1e's addendum for a walled type (O95, decision 377;
+  decision 434).
+
+The E0 of `e0.md` was run again on the scored binary, byte for byte (`../p24-wave/README.md`, "The
+reviews' fix round").
