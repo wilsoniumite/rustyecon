@@ -65,7 +65,10 @@ fill in phase by phase:
 Packages are named `rustyecon-<crate>`. `tapes/gate.ron` is the Phase 0 gate world,
 `tapes/appb.ron` the probe's Appendix B world, `tapes/markets-<id>.ron` the markets probe's
 worlds (and `markets-iw1.ron`, Phase 2 proper's wall instance, and `markets-c1.ron` and
-`markets-c2.ron`, its open-commons instances, P2.3), `tapes/horses-<id>.ron`
+`markets-c2.ron`, its open-commons instances, P2.3; `markets-c1p.ron` and `markets-c2p.ron`, the
+commons with the trap's remedy, `markets-is1.ron`, the type switch at the wall, and
+`markets-il1.ron` and `markets-ct2.ron`, idle land and a shared commons on the free step,
+P2.4), `tapes/horses-<id>.ron`
 the stocks probe's, `tapes/loops-<id>.ron` the loop step's
 (rule B with CAPACITY's plants, P2.2b), and `tapes/demo-gb.ron` the illustrative
 demo world, 93 historic counties of the United Kingdom from 1750 to 1901, compiled by
@@ -92,8 +95,10 @@ manifests they gave.
 - [docs/TAPE.md](docs/TAPE.md): the tape's schema, with the gate tape as its example.
 - [docs/probe/](docs/probe/): the Phase 2 probe's rules (RULES.md) and report (REPORT.md), and
   the markets probe's rules (MARKETS-RULES.md) and report (MARKETS.md), the stocks probe's
-  rules (HORSES-RULES.md) and report (HORSES.md), and Phase 2 proper's first session's rules
-  (WALL-RULES.md, COMMONS-RULES.md) and report (PHASE2-S1.md).
+  rules (HORSES-RULES.md) and report (HORSES.md), the loop step's rules (LOOPS-RULES.md) and
+  report (LOOPS.md), Phase 2 proper's first session's rules (WALL-RULES.md, COMMONS-RULES.md)
+  and report (PHASE2-S1.md), and its second session's rules (TRAP-RULES.md, SWITCH-RULES.md,
+  FREE-RULES.md) and report (PHASE2-S2.md).
 - [docs/spine/](docs/spine/): the data spine's notes (DATA_NOTES.md) and Breakpoint B's
   pre-look (EYEBALL.md).
 - [docs/GUI.md](docs/GUI.md): the GUI's design (A14): its rules, architecture, panels, editor,
